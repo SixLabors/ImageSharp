@@ -157,115 +157,81 @@ internal static partial class Av1ForwardQuantizer
         ref int sourceBase = ref MemoryMarshal.GetReference(coefficients);
         ref int quantizedBase = ref MemoryMarshal.GetReference(quantizedCoefficients);
         ref int dequantizedBase = ref MemoryMarshal.GetReference(dequantizedCoefficients);
+        nuint count = (nuint)coefficientCount;
+        DebugGuard.IsTrue((coefficientCount & 15) == 0, "Every coded transform has a multiple of 16 coefficients.");
 
-        // Raster coefficient zero is the only DC coefficient, so it is encoded once with the plane's DC constants
-        // before the AC-only SIMD traversal begins.
-        Unsafe.Add(ref quantizedBase, 0) = TOperator.Quantize(
-            Unsafe.Add(ref sourceBase, 0),
-            dcRounding,
-            dcQuantizer,
-            dcDequantizer,
-            logScale,
-            out Unsafe.Add(ref dequantizedBase, 0));
-
-        int i = 1;
-
-        // Raster traversal keeps loads and stores contiguous. Each narrower tier resumes at the shared offset left by
-        // the previous tier, retaining vector execution for the widest possible remainder without overlapping lanes.
+        // Every coded transform has a multiple of 16 coefficients, so the widest vector covers the whole block with
+        // no remainder. Raster coefficient zero is the only DC coefficient. The first vector carries the DC
+        // constants in lane zero and the AC constants in every other lane, so the DC coefficient needs no separate
+        // scalar step. Every later vector uses the AC constants alone.
         if (Vector512.IsHardwareAccelerated)
         {
-            nuint vectorCount = coefficients[i..coefficientCount].Vector512Count<int>();
-
-            if (vectorCount > 0)
+            Vector512<int> rounding = Vector512.Create(acRounding).WithElement(0, dcRounding);
+            Vector512<int> quantizer = Vector512.Create(acQuantizer).WithElement(0, dcQuantizer);
+            Vector512<int> dequantizer = Vector512.Create(acDequantizer).WithElement(0, dcDequantizer);
+            for (nuint i = 0; i < count; i += (nuint)Vector512<int>.Count)
             {
-                // Width-specific constants are created only when at least one complete vector remains.
-                Vector512<int> rounding = Vector512.Create(acRounding);
-                Vector512<int> quantizer = Vector512.Create(acQuantizer);
-                Vector512<int> dequantizer = Vector512.Create(acDequantizer);
+                Vector512<int> quantized = TOperator.Quantize(
+                    Vector512.LoadUnsafe(ref sourceBase, i), rounding, quantizer, dequantizer, logScale, out Vector512<int> dequantized);
 
-                for (; vectorCount > 0; vectorCount--, i += Vector512<int>.Count)
-                {
-                    Vector512<int> source = Unsafe.As<int, Vector512<int>>(ref Unsafe.Add(ref sourceBase, i));
-                    Vector512<int> quantized = TOperator.Quantize(
-                        source,
-                        rounding,
-                        quantizer,
-                        dequantizer,
-                        logScale,
-                        out Vector512<int> dequantized);
+                quantized.StoreUnsafe(ref quantizedBase, i);
+                dequantized.StoreUnsafe(ref dequantizedBase, i);
 
-                    Unsafe.As<int, Vector512<int>>(ref Unsafe.Add(ref quantizedBase, i)) = quantized;
-                    Unsafe.As<int, Vector512<int>>(ref Unsafe.Add(ref dequantizedBase, i)) = dequantized;
-                }
+                // Lane zero of the first vector was the DC coefficient. The rest of the block is AC.
+                rounding = Vector512.Create(acRounding);
+                quantizer = Vector512.Create(acQuantizer);
+                dequantizer = Vector512.Create(acDequantizer);
             }
         }
-
-        if (Vector256.IsHardwareAccelerated)
+        else if (Vector256.IsHardwareAccelerated)
         {
-            nuint vectorCount = coefficients[i..coefficientCount].Vector256Count<int>();
-
-            if (vectorCount > 0)
+            Vector256<int> rounding = Vector256.Create(acRounding).WithElement(0, dcRounding);
+            Vector256<int> quantizer = Vector256.Create(acQuantizer).WithElement(0, dcQuantizer);
+            Vector256<int> dequantizer = Vector256.Create(acDequantizer).WithElement(0, dcDequantizer);
+            for (nuint i = 0; i < count; i += (nuint)Vector256<int>.Count)
             {
-                // The shared offset exposes only the remainder left by wider lanes, so no coefficient is revisited.
-                Vector256<int> rounding = Vector256.Create(acRounding);
-                Vector256<int> quantizer = Vector256.Create(acQuantizer);
-                Vector256<int> dequantizer = Vector256.Create(acDequantizer);
+                Vector256<int> quantized = TOperator.Quantize(
+                    Vector256.LoadUnsafe(ref sourceBase, i), rounding, quantizer, dequantizer, logScale, out Vector256<int> dequantized);
 
-                for (; vectorCount > 0; vectorCount--, i += Vector256<int>.Count)
-                {
-                    Vector256<int> source = Unsafe.As<int, Vector256<int>>(ref Unsafe.Add(ref sourceBase, i));
-                    Vector256<int> quantized = TOperator.Quantize(
-                        source,
-                        rounding,
-                        quantizer,
-                        dequantizer,
-                        logScale,
-                        out Vector256<int> dequantized);
+                quantized.StoreUnsafe(ref quantizedBase, i);
+                dequantized.StoreUnsafe(ref dequantizedBase, i);
 
-                    Unsafe.As<int, Vector256<int>>(ref Unsafe.Add(ref quantizedBase, i)) = quantized;
-                    Unsafe.As<int, Vector256<int>>(ref Unsafe.Add(ref dequantizedBase, i)) = dequantized;
-                }
+                // Lane zero of the first vector was the DC coefficient. The rest of the block is AC.
+                rounding = Vector256.Create(acRounding);
+                quantizer = Vector256.Create(acQuantizer);
+                dequantizer = Vector256.Create(acDequantizer);
             }
         }
-
-        if (Vector128.IsHardwareAccelerated)
+        else if (Vector128.IsHardwareAccelerated)
         {
-            nuint vectorCount = coefficients[i..coefficientCount].Vector128Count<int>();
-
-            if (vectorCount > 0)
+            Vector128<int> rounding = Vector128.Create(acRounding).WithElement(0, dcRounding);
+            Vector128<int> quantizer = Vector128.Create(acQuantizer).WithElement(0, dcQuantizer);
+            Vector128<int> dequantizer = Vector128.Create(acDequantizer).WithElement(0, dcDequantizer);
+            for (nuint i = 0; i < count; i += (nuint)Vector128<int>.Count)
             {
-                // The final SIMD tier consumes complete four-lane groups and leaves fewer than four coefficients.
-                Vector128<int> rounding = Vector128.Create(acRounding);
-                Vector128<int> quantizer = Vector128.Create(acQuantizer);
-                Vector128<int> dequantizer = Vector128.Create(acDequantizer);
+                Vector128<int> quantized = TOperator.Quantize(
+                    Vector128.LoadUnsafe(ref sourceBase, i), rounding, quantizer, dequantizer, logScale, out Vector128<int> dequantized);
 
-                for (; vectorCount > 0; vectorCount--, i += Vector128<int>.Count)
-                {
-                    Vector128<int> source = Unsafe.As<int, Vector128<int>>(ref Unsafe.Add(ref sourceBase, i));
-                    Vector128<int> quantized = TOperator.Quantize(
-                        source,
-                        rounding,
-                        quantizer,
-                        dequantizer,
-                        logScale,
-                        out Vector128<int> dequantized);
+                quantized.StoreUnsafe(ref quantizedBase, i);
+                dequantized.StoreUnsafe(ref dequantizedBase, i);
 
-                    Unsafe.As<int, Vector128<int>>(ref Unsafe.Add(ref quantizedBase, i)) = quantized;
-                    Unsafe.As<int, Vector128<int>>(ref Unsafe.Add(ref dequantizedBase, i)) = dequantized;
-                }
+                // Lane zero of the first vector was the DC coefficient. The rest of the block is AC.
+                rounding = Vector128.Create(acRounding);
+                quantizer = Vector128.Create(acQuantizer);
+                dequantizer = Vector128.Create(acDequantizer);
             }
         }
-
-        // On SIMD-capable systems this loop receives only the final zero-to-three AC coefficients.
-        for (; i < coefficientCount; i++)
+        else
         {
-            Unsafe.Add(ref quantizedBase, i) = TOperator.Quantize(
-                Unsafe.Add(ref sourceBase, i),
-                acRounding,
-                acQuantizer,
-                acDequantizer,
-                logScale,
-                out Unsafe.Add(ref dequantizedBase, i));
+            // Without vector hardware, the DC coefficient uses its own constants and every other coefficient the AC ones.
+            Unsafe.Add(ref quantizedBase, 0) = TOperator.Quantize(
+                Unsafe.Add(ref sourceBase, 0), dcRounding, dcQuantizer, dcDequantizer, logScale, out Unsafe.Add(ref dequantizedBase, 0));
+
+            for (nuint i = 1; i < count; i++)
+            {
+                Unsafe.Add(ref quantizedBase, i) = TOperator.Quantize(
+                    Unsafe.Add(ref sourceBase, i), acRounding, acQuantizer, acDequantizer, logScale, out Unsafe.Add(ref dequantizedBase, i));
+            }
         }
 
         if (!scanOrder)

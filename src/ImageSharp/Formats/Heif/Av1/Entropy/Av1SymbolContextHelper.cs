@@ -896,12 +896,18 @@ internal static class Av1SymbolContextHelper
             return 0;
         }
 
-        // The sum stops as soon as it passes the mask, which it is then clamped to. Reference: av1_get_txb_entropy_context().
+        // The context is the sum of the coefficient magnitudes in scan order. The sum stops as soon as it passes the
+        // mask, which it is then clamped to. The scan holds a position for every coefficient of the transform, and
+        // the end of block is at most that count, so the reads go through references with no range checks.
         ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
+        DebugGuard.MustBeLessThanOrEqualTo((int)endOfBlock, scan.Length, nameof(endOfBlock));
+        DebugGuard.MustBeGreaterThanOrEqualTo(coefficients.Length, scan.Length, nameof(coefficients));
+        ref short scanBase = ref MemoryMarshal.GetReference(scan);
+        ref int coefficientBase = ref MemoryMarshal.GetReference(coefficients);
         int culLevel = 0;
-        for (int scanIndex = 0; scanIndex < endOfBlock; scanIndex++)
+        for (nuint scanIndex = 0; scanIndex < endOfBlock; scanIndex++)
         {
-            int value = coefficients[scan[scanIndex]];
+            int value = Unsafe.Add(ref coefficientBase, (nuint)(ushort)Unsafe.Add(ref scanBase, scanIndex));
             if (value == 0)
             {
                 continue;

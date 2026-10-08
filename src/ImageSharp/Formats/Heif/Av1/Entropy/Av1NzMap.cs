@@ -459,26 +459,28 @@ internal static partial class Av1NzMap
     public static int GetNzMagnitude(ref byte level, int stride, Av1TransformClass transformClass)
     {
         // Large levels must not dominate probability selection; AV1 contributes at most three from each neighbor.
-        int mag = ClipMax3(Unsafe.Add(ref level, 1)); // { 0, 1 }
-        mag += ClipMax3(Unsafe.Add(ref level, stride)); // { 1, 0 }
+        // The neighbors lie to the right and below, so every offset is a positive native-width value.
+        nuint row = (nuint)(uint)stride;
+        int mag = ClipMax3(Unsafe.Add(ref level, (nuint)1)); // { 0, 1 }
+        mag += ClipMax3(Unsafe.Add(ref level, row)); // { 1, 0 }
 
         switch (transformClass)
         {
             case Av1TransformClass.Class2D:
-                mag += ClipMax3(Unsafe.Add(ref level, stride + 1)); // { 1, 1 }
-                mag += ClipMax3(Unsafe.Add(ref level, 2)); // { 0, 2 }
-                mag += ClipMax3(Unsafe.Add(ref level, 2 * stride)); // { 2, 0 }
+                mag += ClipMax3(Unsafe.Add(ref level, row + 1)); // { 1, 1 }
+                mag += ClipMax3(Unsafe.Add(ref level, (nuint)2)); // { 0, 2 }
+                mag += ClipMax3(Unsafe.Add(ref level, 2 * row)); // { 2, 0 }
                 break;
 
             case Av1TransformClass.ClassVertical:
-                mag += ClipMax3(Unsafe.Add(ref level, 2 * stride)); // { 2, 0 }
-                mag += ClipMax3(Unsafe.Add(ref level, 3 * stride)); // { 3, 0 }
-                mag += ClipMax3(Unsafe.Add(ref level, 4 * stride)); // { 4, 0 }
+                mag += ClipMax3(Unsafe.Add(ref level, 2 * row)); // { 2, 0 }
+                mag += ClipMax3(Unsafe.Add(ref level, 3 * row)); // { 3, 0 }
+                mag += ClipMax3(Unsafe.Add(ref level, 4 * row)); // { 4, 0 }
                 break;
             case Av1TransformClass.ClassHorizontal:
-                mag += ClipMax3(Unsafe.Add(ref level, 2)); // { 0, 2 }
-                mag += ClipMax3(Unsafe.Add(ref level, 3)); // { 0, 3 }
-                mag += ClipMax3(Unsafe.Add(ref level, 4)); // { 0, 4 }
+                mag += ClipMax3(Unsafe.Add(ref level, (nuint)2)); // { 0, 2 }
+                mag += ClipMax3(Unsafe.Add(ref level, (nuint)3)); // { 0, 3 }
+                mag += ClipMax3(Unsafe.Add(ref level, (nuint)4)); // { 0, 4 }
                 break;
         }
 

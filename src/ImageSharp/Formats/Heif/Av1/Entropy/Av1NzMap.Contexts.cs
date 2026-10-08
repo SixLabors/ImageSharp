@@ -81,7 +81,7 @@ internal static partial class Av1NzMap
         int band = Math.Min((stats + 1) >> 1, 4);
         return transformClass switch
         {
-            Av1TransformClass.Class2D => band + Unsafe.Add(ref offsets, coefficientIndex),
+            Av1TransformClass.Class2D => band + Unsafe.Add(ref offsets, (nuint)(uint)coefficientIndex),
             Av1TransformClass.ClassHorizontal => band + GetOneDimensionalOffsetByte(coefficientIndex & ((1 << widthLog2) - 1)),
             _ => band + GetOneDimensionalOffsetByte(coefficientIndex >> widthLog2),
         };

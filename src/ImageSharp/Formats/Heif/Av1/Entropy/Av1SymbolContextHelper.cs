@@ -528,11 +528,14 @@ internal static class Av1SymbolContextHelper
     {
         int row = coefficientIndex >> widthLog2;
         int column = coefficientIndex & ((1 << widthLog2) - 1);
-        int mag = Unsafe.Add(ref level, 1) + Unsafe.Add(ref level, stride);
+
+        // The neighbors lie to the right and below, so every offset is a positive native-width value.
+        nuint step = (nuint)(uint)stride;
+        int mag = Unsafe.Add(ref level, (nuint)1) + Unsafe.Add(ref level, step);
         switch (transformClass)
         {
             case Av1TransformClass.Class2D:
-                mag += Unsafe.Add(ref level, stride + 1);
+                mag += Unsafe.Add(ref level, step + 1);
                 mag = Math.Min((mag + 1) >> 1, 6);
                 if (coefficientIndex == 0)
                 {
@@ -546,7 +549,7 @@ internal static class Av1SymbolContextHelper
 
                 break;
             case Av1TransformClass.ClassHorizontal:
-                mag += Unsafe.Add(ref level, 2);
+                mag += Unsafe.Add(ref level, (nuint)2);
                 mag = Math.Min((mag + 1) >> 1, 6);
                 if (coefficientIndex == 0)
                 {
@@ -560,7 +563,7 @@ internal static class Av1SymbolContextHelper
 
                 break;
             case Av1TransformClass.ClassVertical:
-                mag += Unsafe.Add(ref level, 2 * stride);
+                mag += Unsafe.Add(ref level, 2 * step);
                 mag = Math.Min((mag + 1) >> 1, 6);
                 if (coefficientIndex == 0)
                 {

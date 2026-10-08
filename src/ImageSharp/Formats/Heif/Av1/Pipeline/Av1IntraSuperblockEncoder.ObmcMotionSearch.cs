@@ -29,6 +29,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="motionSearchPrediction">The motion search prediction buffer.</param>
         /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="referenceFrame">The reference of the block.</param>
@@ -40,6 +42,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> motionSearchPrediction,
             Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
+            ReadOnlySpan<int> modeInfoGrid,
+            ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             Point blockOrigin,
             Av1BlockSize blockSize,
             Av1ReferenceFrameType referenceFrame,
@@ -51,7 +55,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height = blockSize.GetHeight();
             Span<int> weightedSource = this.blockWorkspace.ObmcWeightedSource.AsSpan(0, width * height);
             Span<int> mask = this.blockWorkspace.ObmcMask.AsSpan(0, width * height);
-            this.CalculateObmcTarget(blockSize, weightedSource, mask, filterRows);
+            this.CalculateObmcTarget(blockSize, weightedSource, mask, filterRows, modeInfoGrid, modeInfoAllocation);
 
             // The full-sample search reads a reference of another size through its copy resized to the frame size, and
             // the fractional search the reference itself. Reference: the scaled_ref_frame of
@@ -770,7 +774,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="weightedSource">Receives the weighted source, one entry per luma sample.</param>
         /// <param name="mask">Receives the prediction weights, one entry per luma sample.</param>
         /// <param name="filterRows">The intermediate rows of the neighbor prediction filters.</param>
-        private void CalculateObmcTarget(Av1BlockSize blockSize, Span<int> weightedSource, Span<int> mask, Span<short> filterRows)
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        private void CalculateObmcTarget(
+            Av1BlockSize blockSize,
+            Span<int> weightedSource,
+            Span<int> mask,
+            Span<short> filterRows,
+            ReadOnlySpan<int> modeInfoGrid,
+            ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation)
         {
             ReadOnlySpan<int> maximumNeighbors = [0, 1, 2, 3, 4, 4];
             int width = blockSize.GetWidth();
@@ -781,10 +793,7 @@ internal static partial class Av1IntraSuperblockEncoder
             weightedSource.Clear();
             mask.Fill(BlendMaximumAlpha);
 
-            // The mode-information grid and the vectors are read once. A neighbor and its vector share the allocation
-            // index at the grid cell.
-            ReadOnlySpan<int> grid = this.picture.ModeInfoGrid.Span;
-            ReadOnlySpan<Av1MacroBlockModeInfo> allocation = this.picture.ModeInfoAllocation.Span;
+            // The vectors are read once. A neighbor and its vector share the allocation index at the grid cell.
             ReadOnlySpan<Av1EncoderDisplacementVector> vectors = this.picture.DisplacementVectors.Span;
             int stride = this.picture.ModeInfoStride;
             if (this.obmcAboveAvailable)
@@ -797,16 +806,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 int step;
                 for (int column = position.X; column < endColumn && count < limit; column += step)
                 {
-                    int neighborIndex = grid[((position.Y - 1) * stride) + column];
-                    step = Math.Min(allocation[neighborIndex].Block.BlockSize.Get4x4WideCount(), 16);
+                    int neighborIndex = modeInfoGrid[((position.Y - 1) * stride) + column];
+                    step = Math.Min(modeInfoAllocation[neighborIndex].Block.BlockSize.Get4x4WideCount(), 16);
                     if (step == 1)
                     {
                         column &= ~1;
-                        neighborIndex = grid[((position.Y - 1) * stride) + column + 1];
+                        neighborIndex = modeInfoGrid[((position.Y - 1) * stride) + column + 1];
                         step = 2;
                     }
 
-                    ref readonly Av1EncoderBlockModeInfo neighbor = ref allocation[neighborIndex].Block;
+                    ref readonly Av1EncoderBlockModeInfo neighbor = ref modeInfoAllocation[neighborIndex].Block;
                     if (neighbor.ReferenceFrame <= Av1ReferenceFrameType.Intra && !neighbor.UseIntraBlockCopy)
                     {
                         continue;
@@ -854,16 +863,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 int step;
                 for (int row = position.Y; row < endRow && count < limit; row += step)
                 {
-                    int neighborIndex = grid[(row * stride) + position.X - 1];
-                    step = Math.Min(allocation[neighborIndex].Block.BlockSize.Get4x4HighCount(), 16);
+                    int neighborIndex = modeInfoGrid[(row * stride) + position.X - 1];
+                    step = Math.Min(modeInfoAllocation[neighborIndex].Block.BlockSize.Get4x4HighCount(), 16);
                     if (step == 1)
                     {
                         row &= ~1;
-                        neighborIndex = grid[((row + 1) * stride) + position.X - 1];
+                        neighborIndex = modeInfoGrid[((row + 1) * stride) + position.X - 1];
                         step = 2;
                     }
 
-                    ref readonly Av1EncoderBlockModeInfo neighbor = ref allocation[neighborIndex].Block;
+                    ref readonly Av1EncoderBlockModeInfo neighbor = ref modeInfoAllocation[neighborIndex].Block;
                     if (neighbor.ReferenceFrame <= Av1ReferenceFrameType.Intra && !neighbor.UseIntraBlockCopy)
                     {
                         continue;

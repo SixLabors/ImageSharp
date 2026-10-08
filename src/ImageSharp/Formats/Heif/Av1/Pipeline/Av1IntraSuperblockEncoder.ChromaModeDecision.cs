@@ -68,6 +68,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions of the winner.</param>
@@ -89,6 +91,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> searchReconstructions,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1MacroBlockModeInfo modeInfo,
@@ -159,7 +163,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         blockOrigin,
                         blockSize,
                         macroBlock,
-                        macroBlock.GetRelativeModeInfo(0).Block.PartitionType,
+                        macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, 0).Block.PartitionType,
                         0,
                         0,
                         width,
@@ -246,6 +250,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         transformTypeProbabilities,
                         searchCoefficients,
                         searchReconstructions,
+                        modeInfoGrid,
+                        modeInfoAllocation,
                         macroBlock,
                         blockOrigin,
                         origin,
@@ -313,6 +319,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="paletteEdges">The palette color context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
@@ -343,6 +351,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -373,6 +383,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in paletteEdges,
                 in blueCoefficientEdges,
                 in redCoefficientEdges,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
@@ -406,6 +418,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="paletteEdges">The palette color context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
@@ -436,6 +450,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -465,6 +481,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 searchReconstructions,
                 in blueCoefficientEdges,
                 in redCoefficientEdges,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
@@ -497,6 +515,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in paletteEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     modeInfo,
                     lumaOrigin,
@@ -550,6 +570,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
@@ -579,6 +601,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> searchReconstructions,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -608,6 +632,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 searchReconstructions,
                 in blueCoefficientEdges,
                 in redCoefficientEdges,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
@@ -641,6 +667,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
@@ -670,6 +698,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> searchReconstructions,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -710,6 +740,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     searchReconstructions,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     modeInfo,
                     lumaOrigin,
@@ -796,7 +828,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> redSourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(redSource, chromaOrigin);
             Span<TSample> blueFrame = blueReconstruction.Samples;
             Span<TSample> redFrame = redReconstruction.Samples;
-            bool smoothChromaEdges = this.UseSmoothIntraEdges(macroBlock, lumaOrigin, blockSize, Av1Plane.U);
+            bool smoothChromaEdges = this.UseSmoothIntraEdges(modeInfoGrid, modeInfoAllocation, macroBlock, lumaOrigin, blockSize, Av1Plane.U);
             Span<TSample> blueAboveStorage = modeWorkspace.GetReferenceSamples(0);
             Span<TSample> blueLeftStorage = modeWorkspace.GetReferenceSamples(1);
             Span<TSample> redAboveStorage = modeWorkspace.GetReferenceSamples(2);
@@ -984,7 +1016,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             lumaQ3,
                             transformSize,
                             this.GetChromaFromLumaExtent(
-                                macroBlock, lumaOrigin, blockSize, modeInfo.Block.TransformSize, subsamplingX, subsamplingY),
+                                modeInfoAllocation, macroBlock, lumaOrigin, blockSize, modeInfo.Block.TransformSize, subsamplingX, subsamplingY),
                             colorConfig.SubSamplingX,
                             colorConfig.SubSamplingY);
 
@@ -1411,6 +1443,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
@@ -1440,6 +1474,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> searchReconstructions,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -1617,6 +1653,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         transformTypeProbabilities,
                         searchCoefficients,
                         searchReconstructions,
+                        modeInfoGrid,
+                        modeInfoAllocation,
                         macroBlock,
                         lumaOrigin,
                         chromaOrigin,
@@ -1673,6 +1711,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         transformTypeProbabilities,
                         searchCoefficients,
                         searchReconstructions,
+                        modeInfoGrid,
+                        modeInfoAllocation,
                         macroBlock,
                         lumaOrigin,
                         chromaOrigin,
@@ -1816,6 +1856,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
         /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
         /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The block neighborhood.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
         /// <param name="chromaOrigin">The block origin in plane samples.</param>
@@ -1855,6 +1897,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> transformTypeProbabilities,
             Span<int> searchCoefficients,
             Span<int> searchReconstructions,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point lumaOrigin,
             Point chromaOrigin,
@@ -1938,9 +1982,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformSize);
 
             // The edge filter strength depends on the neighbors of the block alone, so every transform block shares it.
-            bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, lumaOrigin, blockSize, plane);
+            bool smoothEdges = this.UseSmoothIntraEdges(modeInfoGrid, modeInfoAllocation, macroBlock, lumaOrigin, blockSize, plane);
             ReadOnlySpan<TSample> reconstructionBlock = reconstructionSamples[reconstruction.GetOffset(chromaOrigin.X, chromaOrigin.Y)..];
-            Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(0).Block.PartitionType;
+            Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, 0).Block.PartitionType;
 
             // Residual syntax completes each bounded 64x64 luma region, scaled for chroma, before
             // moving to the next region. Candidate coefficients and states must retain that exact order.
@@ -2418,7 +2462,20 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Derives the directional edge-filter class from the relevant neighboring coding blocks.
         /// </summary>
-        private bool UseSmoothIntraEdges(Av1MacroBlockD macroBlock, Point lumaOrigin, Av1BlockSize blockSize, Av1Plane plane)
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="lumaOrigin">The block origin in luma samples.</param>
+        /// <param name="blockSize">The luma block size.</param>
+        /// <param name="plane">The plane whose edges are filtered.</param>
+        /// <returns><see langword="true"/> when a neighbor selects the smooth edge-filter class.</returns>
+        private bool UseSmoothIntraEdges(
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Av1MacroBlockD macroBlock,
+            Point lumaOrigin,
+            Av1BlockSize blockSize,
+            Av1Plane plane)
         {
             ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
             int subX = plane == Av1Plane.Y ? 0 : colorConfig.SubSamplingX ? 1 : 0;
@@ -2441,13 +2498,13 @@ internal static partial class Av1IntraSuperblockEncoder
             // adjacent chroma regions, measured from the top-left unit covered by the current chroma block.
             int baseOffset = -((row & subY) * macroBlock.ModeInfoStride) - (column & subX);
             if (hasAbove && IsSmoothIntraNeighbor(
-                macroBlock.GetRelativeModeInfo(baseOffset - macroBlock.ModeInfoStride + subX).Block, plane))
+                macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, baseOffset - macroBlock.ModeInfoStride + subX).Block, plane))
             {
                 return true;
             }
 
             return hasLeft && IsSmoothIntraNeighbor(
-                macroBlock.GetRelativeModeInfo(baseOffset + (subY * macroBlock.ModeInfoStride) - 1).Block, plane);
+                macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, baseOffset + (subY * macroBlock.ModeInfoStride) - 1).Block, plane);
         }
 
         /// <summary>

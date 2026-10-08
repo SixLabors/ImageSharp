@@ -2101,7 +2101,6 @@ internal partial class Av1TileWriter
         Guard.MustBeLessThan((int)blockSize, (int)Av1BlockSize.AllSizes, nameof(blockSize));
 
         SetModeInfoRowAndColumn(
-            pcs,
             macroBlock,
             macroBlock.Tile,
             modeInfoPosition,
@@ -2202,12 +2201,13 @@ internal partial class Av1TileWriter
 
             if (writesSkipMode)
             {
-                writer.WriteSkipMode<TOperation>(ref output, macroBlockModeInfo.Block.SkipMode, GetSkipModeContext(macroBlock));
+                int skipModeContext = GetSkipModeContext(modeInfoGrid, modeInfoAllocation, macroBlock);
+                writer.WriteSkipMode<TOperation>(ref output, macroBlockModeInfo.Block.SkipMode, skipModeContext);
             }
 
             if (!macroBlockModeInfo.Block.SkipMode)
             {
-                EncodeSkipCoefficients<TOperation>(ref output, writer, macroBlock, skipWritingCoefficients);
+                EncodeSkipCoefficients<TOperation>(ref output, writer, modeInfoGrid, modeInfoAllocation, macroBlock, skipWritingCoefficients);
             }
 
             if (pcs.Parent.FrameHeader.SegmentationParameters.Enabled && !pcs.Parent.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
@@ -2267,7 +2267,7 @@ internal partial class Av1TileWriter
 
                 if (!macroBlockModeInfo.Block.SkipMode && !isReferenceForced && !isGlobalMotionForced)
                 {
-                    int intraInterContext = GetIntraInterContext(macroBlock);
+                    int intraInterContext = GetIntraInterContext(modeInfoGrid, modeInfoAllocation, macroBlock);
                     writer.WriteIsInter<TOperation>(ref output, isInterBlock, intraInterContext);
                 }
             }
@@ -2279,15 +2279,15 @@ internal partial class Av1TileWriter
                 if (!macroBlockModeInfo.Block.SkipMode && !isReferenceForced && !isGlobalMotionForced)
                 {
                     Span<byte> referenceCounts = stackalloc byte[Av1Constants.ReferenceFrameCount];
-                    CollectNeighborReferenceCounts(macroBlock, referenceCounts);
+                    CollectNeighborReferenceCounts(modeInfoGrid, modeInfoAllocation, macroBlock, referenceCounts);
                     if (macroBlockModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
                     {
                         writer.WriteCompoundReference<TOperation>(
                             ref output,
                             macroBlockModeInfo.Block.ReferenceFrame,
                             macroBlockModeInfo.Block.SecondaryReferenceFrame,
-                            Av1SymbolContextHelper.GetReferenceModeContext(macroBlock),
-                            Av1SymbolContextHelper.GetCompoundReferenceTypeContext(macroBlock),
+                            Av1SymbolContextHelper.GetReferenceModeContext(modeInfoGrid, modeInfoAllocation, macroBlock),
+                            Av1SymbolContextHelper.GetCompoundReferenceTypeContext(modeInfoGrid, modeInfoAllocation, macroBlock),
                             referenceCounts);
                     }
                     else
@@ -2295,7 +2295,8 @@ internal partial class Av1TileWriter
                         if (frm_hdr.ReferenceMode == ObuReferenceMode.ReferenceModeSelect &&
                             Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8)
                         {
-                            writer.WriteIsCompoundReference<TOperation>(ref output, false, Av1SymbolContextHelper.GetReferenceModeContext(macroBlock));
+                            int referenceModeContext = Av1SymbolContextHelper.GetReferenceModeContext(modeInfoGrid, modeInfoAllocation, macroBlock);
+                            writer.WriteIsCompoundReference<TOperation>(ref output, false, referenceModeContext);
                         }
 
                         writer.WriteSingleReference<TOperation>(
@@ -2523,13 +2524,15 @@ internal partial class Av1TileWriter
                         frm_hdr,
                         macroBlockModeInfo.Block.ReferenceFrame,
                         macroBlockModeInfo.Block.SecondaryReferenceFrame,
+                        modeInfoGrid,
+                        modeInfoAllocation,
                         macroBlock);
 
                     writer.WriteCompoundBlend<TOperation>(
                         ref output,
                         blockSize,
                         macroBlockModeInfo.Block.CompoundType,
-                        GetCompoundGroupIndexContext(macroBlock),
+                        GetCompoundGroupIndexContext(modeInfoGrid, modeInfoAllocation, macroBlock),
                         compoundIndexContext,
                         macroBlockModeInfo.Block.CompoundWedgeIndex,
                         macroBlockModeInfo.Block.CompoundWedgeSign,
@@ -2579,6 +2582,8 @@ internal partial class Av1TileWriter
                     // The vertical symbol is first and supplies both axes unless the sequence enables dual filters.
                     int verticalContext = Av1SymbolContextHelper.GetSwitchableInterpolationContext(
                         macroBlockModeInfo.Block,
+                        modeInfoGrid,
+                        modeInfoAllocation,
                         macroBlock,
                         direction: 0);
 
@@ -2597,6 +2602,8 @@ internal partial class Av1TileWriter
                     {
                         int horizontalContext = Av1SymbolContextHelper.GetSwitchableInterpolationContext(
                             macroBlockModeInfo.Block,
+                            modeInfoGrid,
+                            modeInfoAllocation,
                             macroBlock,
                             direction: 1);
 
@@ -2645,7 +2652,9 @@ internal partial class Av1TileWriter
                     macroBlock,
                     ref blk_ptr,
                     blockSize,
-                    lumaMode);
+                    lumaMode,
+                    modeInfoGrid,
+                    modeInfoAllocation);
             }
 
             if (!isInterBlock && !macroBlockModeInfo.Block.UseIntraBlockCopy)
@@ -2758,7 +2767,17 @@ internal partial class Av1TileWriter
                 }
             }
 
-            WriteTransformSize<TOperation>(ref output, pcs, writer, ref macroBlockModeInfo, macroBlock, blockSize, blockOrigin, in transformEdges);
+            WriteTransformSize<TOperation>(
+                ref output,
+                pcs,
+                writer,
+                ref macroBlockModeInfo,
+                macroBlock,
+                blockSize,
+                blockOrigin,
+                in transformEdges,
+                modeInfoGrid,
+                modeInfoAllocation);
 
             entropyCodingContext.MacroBlockModeInfo = macroBlockModeInfo;
             if (!skipWritingCoefficients)
@@ -2808,12 +2827,16 @@ internal partial class Av1TileWriter
     /// Derives the uniform intra transform-size context from the current above and left edges.
     /// </summary>
     /// <param name="transformContexts">The retained transform widths and heights, read once by the caller.</param>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
     /// <param name="macroBlock">The reusable macroblock edge and neighbor state.</param>
     /// <param name="blockOrigin">The block origin in samples.</param>
     /// <param name="blockSize">The block size defining the maximum transform.</param>
     /// <returns>The uniform transform-size context.</returns>
     public static int GetTransformSizeContext(
         in Av1NeighborEdges<byte> transformContexts,
+        ReadOnlySpan<int> modeInfoGrid,
+        Span<Av1MacroBlockModeInfo> modeInfoAllocation,
         Av1MacroBlockD macroBlock,
         Point blockOrigin,
         Av1BlockSize blockSize)
@@ -2825,9 +2848,7 @@ internal partial class Av1TileWriter
         // Inter neighbors contribute their coding-block extent, not their residual-transform extent.
         if (macroBlock.IsUpAvailable)
         {
-            ref Av1MacroBlockModeInfo aboveModeInfo =
-                ref macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride);
-
+            ref Av1MacroBlockModeInfo aboveModeInfo = ref macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -macroBlock.ModeInfoStride);
             if (aboveModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra ||
                 aboveModeInfo.Block.UseIntraBlockCopy)
             {
@@ -2837,7 +2858,7 @@ internal partial class Av1TileWriter
 
         if (macroBlock.IsLeftAvailable)
         {
-            ref Av1MacroBlockModeInfo leftModeInfo = ref macroBlock.GetRelativeModeInfo(-1);
+            ref Av1MacroBlockModeInfo leftModeInfo = ref macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -1);
             if (leftModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra ||
                 leftModeInfo.Block.UseIntraBlockCopy)
             {
@@ -2862,6 +2883,8 @@ internal partial class Av1TileWriter
     /// <param name="blockSize">The block size.</param>
     /// <param name="blockOrigin">The block origin in samples.</param>
     /// <param name="transformEdges">The transform size context edges of the tile.</param>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
     internal static void WriteTransformSize<TOperation>(
         ref Span<byte> output,
         Av1PictureControlSet pcs,
@@ -2870,7 +2893,9 @@ internal partial class Av1TileWriter
         Av1MacroBlockD macroBlock,
         Av1BlockSize blockSize,
         Point blockOrigin,
-        in Av1NeighborEdges<byte> transformEdges)
+        in Av1NeighborEdges<byte> transformEdges,
+        ReadOnlySpan<int> modeInfoGrid,
+        Span<Av1MacroBlockModeInfo> modeInfoAllocation)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
@@ -2902,7 +2927,7 @@ internal partial class Av1TileWriter
 
         if (writesUniformTransformSize)
         {
-            int context = GetTransformSizeContext(in transformEdges, macroBlock, blockOrigin, blockSize);
+            int context = GetTransformSizeContext(in transformEdges, modeInfoGrid, modeInfoAllocation, macroBlock, blockOrigin, blockSize);
             writer.WriteTransformSize<TOperation>(ref output, blockSize, transformSize, context);
         }
         else if (writesVariableTransformSize)
@@ -3141,22 +3166,29 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Gets the above and left key-frame contexts used to write an intra luma mode.
     /// </summary>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
     /// <param name="xd">The current macroblock and its mapped neighbors.</param>
     /// <param name="above_ctx">The context derived from the above luma mode.</param>
     /// <param name="left_ctx">The context derived from the left luma mode.</param>
-    public static void GetYModeContext(Av1MacroBlockD xd, out byte above_ctx, out byte left_ctx)
+    public static void GetYModeContext(
+        ReadOnlySpan<int> modeInfoGrid,
+        Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+        Av1MacroBlockD xd,
+        out byte above_ctx,
+        out byte left_ctx)
     {
         Av1PredictionMode intraLumaLeftMode = Av1PredictionMode.DC;
         Av1PredictionMode intraLumaTopMode = Av1PredictionMode.DC;
         if (xd.IsLeftAvailable)
         {
             // Key-frame neighbors are intra blocks, so their luma modes directly select the context class.
-            intraLumaLeftMode = xd.GetRelativeModeInfo(-1).Block.Mode;
+            intraLumaLeftMode = xd.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -1).Block.Mode;
         }
 
         if (xd.IsUpAvailable)
         {
-            intraLumaTopMode = xd.GetRelativeModeInfo(-xd.ModeInfoStride).Block.Mode;
+            intraLumaTopMode = xd.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -xd.ModeInfoStride).Block.Mode;
         }
 
         above_ctx = IntraModeContextLookup[(int)intraLumaTopMode];
@@ -3167,6 +3199,8 @@ internal partial class Av1TileWriter
     /// Gets the luma mode rate from the frame-appropriate distribution.
     /// </summary>
     /// <param name="modeCosts">The mode rates that the caller read once.</param>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
     /// <param name="macroBlock">The current block's mapped neighbor state.</param>
     /// <param name="blockSize">The selected block size.</param>
     /// <param name="mode">The candidate luma mode.</param>
@@ -3175,6 +3209,8 @@ internal partial class Av1TileWriter
     /// <returns>The luma mode and directional-angle rate in 1/512-bit units.</returns>
     public static int GetLumaModeCost(
         Av1ModeCosts modeCosts,
+        ReadOnlySpan<int> modeInfoGrid,
+        Span<Av1MacroBlockModeInfo> modeInfoAllocation,
         Av1MacroBlockD macroBlock,
         Av1BlockSize blockSize,
         Av1PredictionMode mode,
@@ -3185,7 +3221,7 @@ internal partial class Av1TileWriter
         byte leftContext = 0;
         if (isIntraFrame)
         {
-            GetYModeContext(macroBlock, out topContext, out leftContext);
+            GetYModeContext(modeInfoGrid, modeInfoAllocation, macroBlock, out topContext, out leftContext);
         }
 
         return GetLumaModeCost(modeCosts, blockSize, mode, angleDelta, isIntraFrame, topContext, leftContext);
@@ -3235,6 +3271,8 @@ internal partial class Av1TileWriter
     /// <param name="blk_ptr">The encoder prediction-unit state.</param>
     /// <param name="blockSize">The block size.</param>
     /// <param name="lumaMode">The selected luma prediction mode.</param>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
     /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
     private static void EncodeIntraLumaMode<TOperation>(
         ref Span<byte> output,
@@ -3244,12 +3282,14 @@ internal partial class Av1TileWriter
         Av1MacroBlockD macroBlock,
         ref Av1EncoderBlockStruct blk_ptr,
         Av1BlockSize blockSize,
-        Av1PredictionMode lumaMode)
+        Av1PredictionMode lumaMode,
+        ReadOnlySpan<int> modeInfoGrid,
+        Span<Av1MacroBlockModeInfo> modeInfoAllocation)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         if (frameHeader.IsIntra)
         {
-            GetYModeContext(macroBlock, out byte topContext, out byte leftContext);
+            GetYModeContext(modeInfoGrid, modeInfoAllocation, macroBlock, out byte topContext, out byte leftContext);
             writer.WriteLumaMode<TOperation>(ref output, lumaMode, topContext, leftContext);
         }
         else
@@ -3266,20 +3306,22 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Gets the prediction-domain context from the immediately above and left encoder blocks.
     /// </summary>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
     /// <param name="macroBlock">The current block's mapped neighbor state.</param>
     /// <returns>The context in the inclusive range zero through three.</returns>
-    public static int GetIntraInterContext(Av1MacroBlockD macroBlock)
+    public static int GetIntraInterContext(ReadOnlySpan<int> modeInfoGrid, Span<Av1MacroBlockModeInfo> modeInfoAllocation, Av1MacroBlockD macroBlock)
     {
         bool hasAbove = macroBlock.IsUpAvailable;
         bool hasLeft = macroBlock.IsLeftAvailable;
         if (hasAbove && hasLeft)
         {
             bool aboveIsIntra = macroBlock
-                .GetRelativeModeInfo(-macroBlock.ModeInfoStride)
+                .GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -macroBlock.ModeInfoStride)
                 .Block.ReferenceFrame <= Av1ReferenceFrameType.Intra;
 
             bool leftIsIntra = macroBlock
-                .GetRelativeModeInfo(-1)
+                .GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -1)
                 .Block.ReferenceFrame <= Av1ReferenceFrameType.Intra;
 
             if (aboveIsIntra && leftIsIntra)
@@ -3293,7 +3335,7 @@ internal partial class Av1TileWriter
         if (hasAbove)
         {
             return macroBlock
-                .GetRelativeModeInfo(-macroBlock.ModeInfoStride)
+                .GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -macroBlock.ModeInfoStride)
                 .Block.ReferenceFrame <= Av1ReferenceFrameType.Intra
                     ? 2
                     : 0;
@@ -3302,7 +3344,7 @@ internal partial class Av1TileWriter
         if (hasLeft)
         {
             return macroBlock
-                .GetRelativeModeInfo(-1)
+                .GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -1)
                 .Block.ReferenceFrame <= Av1ReferenceFrameType.Intra
                     ? 2
                     : 0;
@@ -3314,13 +3356,17 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Gets the masked compound context from the immediately above and left encoder blocks.
     /// </summary>
-    public static int GetCompoundGroupIndexContext(Av1MacroBlockD macroBlock)
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+    /// <param name="macroBlock">The current block's mapped neighbor state.</param>
+    /// <returns>The context in the inclusive range zero through five.</returns>
+    public static int GetCompoundGroupIndexContext(ReadOnlySpan<int> modeInfoGrid, Span<Av1MacroBlockModeInfo> modeInfoAllocation, Av1MacroBlockD macroBlock)
     {
         // Reference: get_comp_group_idx_context(). A single-reference ALTREF neighbor counts 3.
         int context = 0;
         if (macroBlock.IsUpAvailable)
         {
-            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;
+            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -macroBlock.ModeInfoStride).Block;
             context += above.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
                 ? above.CompoundGroupIndex ? 1 : 0
                 : above.ReferenceFrame == Av1ReferenceFrameType.Alternate ? 3 : 0;
@@ -3328,7 +3374,7 @@ internal partial class Av1TileWriter
 
         if (macroBlock.IsLeftAvailable)
         {
-            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(-1).Block;
+            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -1).Block;
             context += left.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
                 ? left.CompoundGroupIndex ? 1 : 0
                 : left.ReferenceFrame == Av1ReferenceFrameType.Alternate ? 3 : 0;
@@ -3340,9 +3386,13 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Counts the single-reference labels used by the immediately above and left encoded blocks.
     /// </summary>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
     /// <param name="macroBlock">The current block's mapped neighbor state.</param>
     /// <param name="referenceCounts">The eight-entry destination indexed by reference-frame label.</param>
     public static void CollectNeighborReferenceCounts(
+        ReadOnlySpan<int> modeInfoGrid,
+        Span<Av1MacroBlockModeInfo> modeInfoAllocation,
         Av1MacroBlockD macroBlock,
         Span<byte> referenceCounts)
     {
@@ -3352,7 +3402,7 @@ internal partial class Av1TileWriter
         if (macroBlock.IsUpAvailable)
         {
             Av1ReferenceFrameType referenceFrame = macroBlock
-                .GetRelativeModeInfo(-macroBlock.ModeInfoStride)
+                .GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -macroBlock.ModeInfoStride)
                 .Block.ReferenceFrame;
 
             if (referenceFrame > Av1ReferenceFrameType.Intra)
@@ -3361,7 +3411,7 @@ internal partial class Av1TileWriter
             }
 
             Av1ReferenceFrameType secondaryReference = macroBlock
-                .GetRelativeModeInfo(-macroBlock.ModeInfoStride)
+                .GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -macroBlock.ModeInfoStride)
                 .Block.SecondaryReferenceFrame;
 
             if (secondaryReference > Av1ReferenceFrameType.Intra)
@@ -3372,18 +3422,13 @@ internal partial class Av1TileWriter
 
         if (macroBlock.IsLeftAvailable)
         {
-            Av1ReferenceFrameType referenceFrame = macroBlock
-                .GetRelativeModeInfo(-1)
-                .Block.ReferenceFrame;
-
+            Av1ReferenceFrameType referenceFrame = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -1).Block.ReferenceFrame;
             if (referenceFrame > Av1ReferenceFrameType.Intra)
             {
                 referenceCounts[(int)referenceFrame]++;
             }
 
-            Av1ReferenceFrameType secondaryReference = macroBlock
-                .GetRelativeModeInfo(-1)
-                .Block.SecondaryReferenceFrame;
+            Av1ReferenceFrameType secondaryReference = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -1).Block.SecondaryReferenceFrame;
 
             if (secondaryReference > Av1ReferenceFrameType.Intra)
             {
@@ -3891,7 +3936,6 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Populates a macroblock's frame edges, tile-neighbor availability, and rectangular-partition context.
     /// </summary>
-    /// <param name="pcs">The picture coding state.</param>
     /// <param name="macroBlock">The macroblock state to populate.</param>
     /// <param name="tile">The active tile boundaries.</param>
     /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
@@ -3900,7 +3944,6 @@ internal partial class Av1TileWriter
     /// <param name="modeInfoRowCount">The coded frame height in mode-information rows.</param>
     /// <param name="modeInfoColumnCount">The coded frame width in mode-information columns.</param>
     internal static void SetModeInfoRowAndColumn(
-        Av1PictureControlSet pcs,
         Av1MacroBlockD macroBlock,
         Av1TileInfo tile,
         Point modeInfoPosition,
@@ -3921,8 +3964,7 @@ internal partial class Av1TileWriter
         // Prediction cannot cross tile boundaries even when frame mode information exists there.
         macroBlock.IsUpAvailable = modeInfoPosition.Y > tile.ModeInfoRowStart;
         macroBlock.IsLeftAvailable = modeInfoPosition.X > tile.ModeInfoColumnStart;
-        int modeInfoIndex = (modeInfoPosition.Y * modeInfoStride) + modeInfoPosition.X;
-        macroBlock.SetModeInfoGrid(pcs.ModeInfoGrid, pcs.ModeInfoAllocation, modeInfoIndex);
+        macroBlock.SetModeInfoIndex((modeInfoPosition.Y * modeInfoStride) + modeInfoPosition.X);
     }
 
     /// <summary>
@@ -4632,26 +4674,32 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Gets the block skip context from the available above and left modes.
     /// </summary>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
     /// <param name="macroBlock">The reusable macroblock edge and neighbor state.</param>
     /// <returns>The sum of the available above and left skip states.</returns>
-    public static int GetSkipContext(Av1MacroBlockD macroBlock)
+    public static int GetSkipContext(ReadOnlySpan<int> modeInfoGrid, Span<Av1MacroBlockModeInfo> modeInfoAllocation, Av1MacroBlockD macroBlock)
     {
         bool aboveSkipped = macroBlock.IsUpAvailable &&
-            macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block.Skip;
+            macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -macroBlock.ModeInfoStride).Block.Skip;
 
-        bool leftSkipped = macroBlock.IsLeftAvailable && macroBlock.GetRelativeModeInfo(-1).Block.Skip;
+        bool leftSkipped = macroBlock.IsLeftAvailable && macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -1).Block.Skip;
         return (aboveSkipped ? 1 : 0) + (leftSkipped ? 1 : 0);
     }
 
     /// <summary>
     /// Gets the block skip-mode context from available above and left modes.
     /// </summary>
-    public static int GetSkipModeContext(Av1MacroBlockD macroBlock)
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+    /// <param name="macroBlock">The reusable macroblock edge and neighbor state.</param>
+    /// <returns>The sum of the available above and left skip-mode states.</returns>
+    public static int GetSkipModeContext(ReadOnlySpan<int> modeInfoGrid, Span<Av1MacroBlockModeInfo> modeInfoAllocation, Av1MacroBlockD macroBlock)
     {
         bool aboveSkipMode = macroBlock.IsUpAvailable &&
-            macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block.SkipMode;
+            macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -macroBlock.ModeInfoStride).Block.SkipMode;
 
-        bool leftSkipMode = macroBlock.IsLeftAvailable && macroBlock.GetRelativeModeInfo(-1).Block.SkipMode;
+        bool leftSkipMode = macroBlock.IsLeftAvailable && macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -1).Block.SkipMode;
         return (aboveSkipMode ? 1 : 0) + (leftSkipMode ? 1 : 0);
     }
 
@@ -4684,9 +4732,17 @@ internal partial class Av1TileWriter
     /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
     /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
     /// <param name="macroBlock">The reusable macroblock edge and neighbor state.</param>
     /// <param name="skip">The skip value to write.</param>
-    public static void EncodeSkipCoefficients<TOperation>(ref Span<byte> output, Av1SymbolEncoder writer, Av1MacroBlockD macroBlock, bool skip)
+    public static void EncodeSkipCoefficients<TOperation>(
+        ref Span<byte> output,
+        Av1SymbolEncoder writer,
+        ReadOnlySpan<int> modeInfoGrid,
+        Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+        Av1MacroBlockD macroBlock,
+        bool skip)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
-        => writer.WriteSkip<TOperation>(ref output, skip, GetSkipContext(macroBlock));
+        => writer.WriteSkip<TOperation>(ref output, skip, GetSkipContext(modeInfoGrid, modeInfoAllocation, macroBlock));
 }

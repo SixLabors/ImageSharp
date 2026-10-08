@@ -119,7 +119,6 @@ public class Av1IntraBlockCopyTests
         Av1TileInfo tileInfo = new(0, 0, frameHeader);
         Av1MacroBlockD macroBlock = new() { Tile = tileInfo };
         Av1TileWriter.SetModeInfoRowAndColumn(
-            picture,
             macroBlock,
             tileInfo,
             modeInfoPosition,

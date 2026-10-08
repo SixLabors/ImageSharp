@@ -124,6 +124,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="regularStatistics">The rate and distortion of the intra winner.</param>
@@ -151,6 +153,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1RateDistortionStatistics regularStatistics,
@@ -229,6 +233,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -319,6 +325,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     modeInfo,
@@ -421,6 +429,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -451,6 +461,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -657,7 +669,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     if (mode == Av1PredictionMode.NearMotionVector && cacheDecision != 2 &&
-                        this.ShouldPruneNearMode(macroBlock, reference, Av1ReferenceFrameType.None, Math.Min(this.blockCostLimit, selectedStatistics.Cost)))
+                        this.ShouldPruneNearMode(
+                            modeInfoGrid,
+                            modeInfoAllocation,
+                            macroBlock,
+                            reference,
+                            Av1ReferenceFrameType.None,
+                            Math.Min(this.blockCostLimit, selectedStatistics.Cost)))
                     {
                         continue;
                     }
@@ -725,6 +743,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         in lumaCoefficientEdges,
                         in blueCoefficientEdges,
                         in redCoefficientEdges,
+                        modeInfoGrid,
+                        modeInfoAllocation,
                         macroBlock,
                         blockOrigin,
                         Math.Min(this.blockCostLimit, selectedStatistics.Cost),
@@ -852,6 +872,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         in lumaCoefficientEdges,
                         in blueCoefficientEdges,
                         in redCoefficientEdges,
+                        modeInfoGrid,
+                        modeInfoAllocation,
                         macroBlock,
                         blockOrigin,
                         compoundReferences[pairIndex * 2],
@@ -894,6 +916,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in lumaCoefficientEdges,
                 in blueCoefficientEdges,
                 in redCoefficientEdges,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock,
                 blockOrigin,
                 singleReferenceVectors[..],
@@ -928,6 +952,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     ref modeInfo,
@@ -1090,6 +1116,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="motionMode">The motion mode to evaluate.</param>
@@ -1132,6 +1160,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1MotionMode motionMode,
@@ -1199,6 +1229,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         motionSearchPrediction,
                         interWorkspace.FilterRows,
                         in motionVectorCosts,
+                        modeInfoGrid,
+                        modeInfoAllocation,
                         blockOrigin,
                         blockSize,
                         candidate.ReferenceFrame,
@@ -1223,14 +1255,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     filterRate = Av1SymbolEncoder.GetSwitchableInterpolationFilterCost(
                         tables.ModeCosts,
                         candidate.VerticalInterpolationFilter,
-                        Av1SymbolContextHelper.GetSwitchableInterpolationContext(candidate, macroBlock, 0));
+                        Av1SymbolContextHelper.GetSwitchableInterpolationContext(candidate, modeInfoGrid, modeInfoAllocation, macroBlock, 0));
 
                     if (this.picture.Sequence.SequenceHeader.EnableDualFilter)
                     {
                         filterRate += Av1SymbolEncoder.GetSwitchableInterpolationFilterCost(
                             tables.ModeCosts,
                             candidate.HorizontalInterpolationFilter,
-                            Av1SymbolContextHelper.GetSwitchableInterpolationContext(candidate, macroBlock, 1));
+                            Av1SymbolContextHelper.GetSwitchableInterpolationContext(candidate, modeInfoGrid, modeInfoAllocation, macroBlock, 1));
                     }
                 }
             }
@@ -1285,6 +1317,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in lumaCoefficientEdges,
                 in blueCoefficientEdges,
                 in redCoefficientEdges,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -1383,6 +1417,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="singleReferenceVectors">The reference vector lists of the single references.</param>
@@ -1411,6 +1447,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ReadOnlySpan<Av1ReferenceMotionVectors> singleReferenceVectors,
@@ -1432,8 +1470,9 @@ internal static partial class Av1IntraSuperblockEncoder
             ObuSequenceHeader sequenceHeader = this.picture.Sequence.SequenceHeader;
             Point position = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
             Span<byte> referenceCounts = stackalloc byte[Av1Constants.ReferenceFrameCount];
-            Av1TileWriter.CollectNeighborReferenceCounts(macroBlock, referenceCounts);
-            int intraInterRate = Av1SymbolEncoder.GetIsInterCost(tables.ModeCosts, isInter: true, Av1TileWriter.GetIntraInterContext(macroBlock));
+            Av1TileWriter.CollectNeighborReferenceCounts(modeInfoGrid, modeInfoAllocation, macroBlock, referenceCounts);
+            int intraInterContext = Av1TileWriter.GetIntraInterContext(modeInfoGrid, modeInfoAllocation, macroBlock);
+            int intraInterRate = Av1SymbolEncoder.GetIsInterCost(tables.ModeCosts, isInter: true, intraInterContext);
             Av1ModeCosts modeCosts = tables.ModeCosts;
             for (int index = 0; index < this.motionModeWinnerCount; index++)
             {
@@ -1471,7 +1510,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     if (frameHeader.ReferenceMode == ObuReferenceMode.ReferenceModeSelect &&
                         Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8)
                     {
-                        baseRate += modeCosts.GetCompInter(Av1SymbolContextHelper.GetReferenceModeContext(macroBlock), 0);
+                        baseRate += modeCosts.GetCompInter(Av1SymbolContextHelper.GetReferenceModeContext(modeInfoGrid, modeInfoAllocation, macroBlock), 0);
                     }
 
                     if (sequenceHeader.EnableInterIntraCompound && blockSize is >= Av1BlockSize.Block8x8 and <= Av1BlockSize.Block32x32)
@@ -1499,6 +1538,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         in lumaCoefficientEdges,
                         in blueCoefficientEdges,
                         in redCoefficientEdges,
+                        modeInfoGrid,
+                        modeInfoAllocation,
                         macroBlock,
                         blockOrigin,
                         motionMode,
@@ -1761,6 +1802,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor context of the block.</param>
         /// <param name="blockOrigin">The luma origin of the block.</param>
         /// <param name="modeInfo">The block decisions, which receive the winner.</param>
@@ -1792,6 +1835,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -1855,6 +1900,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         interIntraAbove,
                         interIntraLeft,
                         compoundMask,
+                        modeInfoGrid,
+                        modeInfoAllocation,
                         macroBlock,
                         blockOrigin,
                         predictionModeInfo.BlockSize,
@@ -1911,7 +1958,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             interWorkspace.FilterRows,
                             firstIntermediate,
                             secondIntermediate,
-                            compoundMask);
+                            compoundMask,
+                            modeInfoGrid,
+                            modeInfoAllocation);
                     }
 
                     // The rebuilt luma goes into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in
@@ -1945,6 +1994,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     Math.Min(this.blockCostLimit, selected.Cost),
@@ -2041,6 +2092,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -2068,6 +2121,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -2095,14 +2150,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 int originalFilterRate = Av1SymbolEncoder.GetSwitchableInterpolationFilterCost(
                     tables.ModeCosts,
                     modeInfo.Block.VerticalInterpolationFilter,
-                    Av1SymbolContextHelper.GetSwitchableInterpolationContext(modeInfo.Block, macroBlock, 0));
+                    Av1SymbolContextHelper.GetSwitchableInterpolationContext(modeInfo.Block, modeInfoGrid, modeInfoAllocation, macroBlock, 0));
 
                 if (this.picture.Sequence.SequenceHeader.EnableDualFilter)
                 {
                     originalFilterRate += Av1SymbolEncoder.GetSwitchableInterpolationFilterCost(
                         tables.ModeCosts,
                         modeInfo.Block.HorizontalInterpolationFilter,
-                        Av1SymbolContextHelper.GetSwitchableInterpolationContext(modeInfo.Block, macroBlock, 1));
+                        Av1SymbolContextHelper.GetSwitchableInterpolationContext(modeInfo.Block, modeInfoGrid, modeInfoAllocation, macroBlock, 1));
                 }
 
                 // This search ranks luma only. Chroma is prepared below after the selected luma tree
@@ -2113,6 +2168,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     modeInfo.Block.BlockSize,
@@ -2139,6 +2196,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     candidateModeInfo,
@@ -2162,6 +2221,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformPrediction,
                 in transformEdges,
                 in lumaCoefficientEdges,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock,
                 blockOrigin,
                 ref candidateModeInfo.Block,
@@ -2191,6 +2252,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 compoundMask,
                 in blueCoefficientEdges,
                 in redCoefficientEdges,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock,
                 blockOrigin,
                 candidateModeInfo,
@@ -2202,7 +2265,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 out InlineArray16<Av1EncoderTransformBlockState> redStates);
 
             candidateStatistics.Add(this.rateMultiplier, chromaStatistics);
-            int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
+            int skipContext = Av1TileWriter.GetSkipContext(modeInfoGrid, modeInfoAllocation, macroBlock);
             Av1ModeCosts modeCosts = tables.ModeCosts;
             int noSkipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext);
             int skipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext);
@@ -2374,6 +2437,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The coded block and its frame-edge geometry.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The selected prediction mode.</param>
@@ -2398,6 +2463,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> compoundMask,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1MacroBlockModeInfo modeInfo,
@@ -2433,6 +2500,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     compoundMask,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     long.MaxValue,
                     blockOrigin,
@@ -2492,6 +2561,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -2507,6 +2578,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1MacroBlockModeInfo modeInfo,
@@ -2524,6 +2597,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     interIntraAbove,
                     interIntraLeft,
                     compoundMask,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     modeInfo.Block.BlockSize,
@@ -2716,7 +2791,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (this.useObmcPrediction)
             {
-                this.ApplyObmcPrediction(Av1Plane.Y, 0, 0, prediction, residual, interWorkspace.FilterRows);
+                this.ApplyObmcPrediction(Av1Plane.Y, 0, 0, prediction, residual, interWorkspace.FilterRows, modeInfoGrid, modeInfoAllocation);
                 return;
             }
 
@@ -2741,6 +2816,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformPrediction">The prediction storage of one transform block.</param>
         /// <param name="transformEdges">The transform size context edges of the tile.</param>
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighborhood of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The mode information of the block, which gets the transform sizes.</param>
@@ -2760,6 +2837,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> transformPrediction,
             in Av1NeighborEdges<byte> transformEdges,
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1EncoderBlockModeInfo modeInfo,
@@ -2790,6 +2869,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformPrediction,
                     in transformEdges,
                     in lumaCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     ref modeInfo,
@@ -2815,6 +2896,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformPrediction">The prediction storage of one transform block.</param>
         /// <param name="transformEdges">The transform size context edges of the tile.</param>
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighborhood of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The mode information of the block, which gets the transform sizes.</param>
@@ -2834,6 +2917,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> transformPrediction,
             in Av1NeighborEdges<byte> transformEdges,
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1EncoderBlockModeInfo modeInfo,
@@ -2957,7 +3042,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             Av1ModeCosts modeCosts = tables.ModeCosts;
-            int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
+            int skipContext = Av1TileWriter.GetSkipContext(modeInfoGrid, modeInfoAllocation, macroBlock);
             int skipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext);
             int codedRate = Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext);
             long skipCost = Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, 0);
@@ -3836,6 +3921,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor context of the block.</param>
         /// <param name="blockOrigin">The luma origin of the block.</param>
         /// <param name="skipModeContext">The skip mode symbol context.</param>
@@ -3852,6 +3939,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
+            ReadOnlySpan<int> modeInfoGrid,
+            ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             int skipModeContext,
@@ -3957,7 +4046,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     interWorkspace.FilterRows,
                     firstIntermediate,
                     secondIntermediate,
-                    compoundMask);
+                    compoundMask,
+                    modeInfoGrid,
+                    modeInfoAllocation);
 
                 // The luma prediction goes into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in skip_mode_rd().
                 if (plane == Av1Plane.Y)
@@ -4056,6 +4147,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="bestCost">The cost of the best block result so far.</param>
@@ -4093,6 +4186,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             long bestCost,
@@ -4193,9 +4288,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> candidateBlueCoefficients = interWorkspace.BlueCandidateCoefficients;
             Span<int> selectedRedCoefficients = interWorkspace.SelectedRedCoefficients;
             Span<int> candidateRedCoefficients = interWorkspace.RedCandidateCoefficients;
-            int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
+            int skipContext = Av1TileWriter.GetSkipContext(modeInfoGrid, modeInfoAllocation, macroBlock);
             Span<byte> referenceCounts = stackalloc byte[Av1Constants.ReferenceFrameCount];
-            Av1TileWriter.CollectNeighborReferenceCounts(macroBlock, referenceCounts);
+            Av1TileWriter.CollectNeighborReferenceCounts(modeInfoGrid, modeInfoAllocation, macroBlock, referenceCounts);
 
             // Every candidate prices its reference and skip syntax with the same rates.
             Av1ModeCosts modeCosts = tables.ModeCosts;
@@ -4203,7 +4298,8 @@ internal static partial class Av1IntraSuperblockEncoder
             // Every candidate of this reference pays the same syntax: the flag that says the block
             // is inter, and the reference selection itself. Pricing it once keeps it out of the
             // candidate loop.
-            int commonPredictionRate = Av1SymbolEncoder.GetIsInterCost(tables.ModeCosts, isInter: true, Av1TileWriter.GetIntraInterContext(macroBlock)) +
+            int intraInterContext = Av1TileWriter.GetIntraInterContext(modeInfoGrid, modeInfoAllocation, macroBlock);
+            int commonPredictionRate = Av1SymbolEncoder.GetIsInterCost(tables.ModeCosts, isInter: true, intraInterContext) +
                 Av1SymbolEncoder.GetSingleReferenceCost(tables.ModeCosts, referenceFrame, referenceCounts);
 
             // A frame that lets each block choose its reference mode codes one flag saying whether
@@ -4212,7 +4308,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (frameHeader.ReferenceMode == ObuReferenceMode.ReferenceModeSelect &&
                 Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8)
             {
-                commonPredictionRate += modeCosts.GetCompInter(Av1SymbolContextHelper.GetReferenceModeContext(macroBlock), 0);
+                commonPredictionRate += modeCosts.GetCompInter(Av1SymbolContextHelper.GetReferenceModeContext(modeInfoGrid, modeInfoAllocation, macroBlock), 0);
             }
 
             // A frame that selects its transform size codes, for each block, whether the largest
@@ -4322,7 +4418,14 @@ internal static partial class Av1IntraSuperblockEncoder
             // The model prunes no entry of the mode when a neighbor shares its reference. Reference: the
             // ref_match_found_in_above_nb and ref_match_found_in_left_nb setup of handle_inter_mode().
             bool tplPruning = this.tplInterModePruning &&
-                !this.HasNeighborReferenceMatch(macroBlock, blockOrigin, blockSize, referenceFrame, Av1ReferenceFrameType.None);
+                !this.HasNeighborReferenceMatch(
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    macroBlock,
+                    blockOrigin,
+                    blockSize,
+                    referenceFrame,
+                    Av1ReferenceFrameType.None);
 
             int candidateMask = (1 << candidateCount) - 1;
 
@@ -4409,6 +4512,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             firstIntermediate,
                             secondIntermediate,
                             compoundMask,
+                            modeInfoGrid,
+                            modeInfoAllocation,
                             candidateVectors[index],
                             default,
                             modeInfo.Block,
@@ -4745,6 +4850,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask,
+                        modeInfoGrid,
+                        modeInfoAllocation,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -4768,13 +4875,25 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
                 else if (Av1TileWriter.UsesSwitchableInterpolation(frameHeader, modeInfo.Block))
                 {
-                    filterRate = Av1SymbolEncoder.GetSwitchableInterpolationFilterCost(
-                        tables.ModeCosts, defaultFilter, Av1SymbolContextHelper.GetSwitchableInterpolationContext(modeInfo.Block, macroBlock, 0));
+                    int verticalContext = Av1SymbolContextHelper.GetSwitchableInterpolationContext(
+                        modeInfo.Block,
+                        modeInfoGrid,
+                        modeInfoAllocation,
+                        macroBlock,
+                        0);
+
+                    filterRate = Av1SymbolEncoder.GetSwitchableInterpolationFilterCost(tables.ModeCosts, defaultFilter, verticalContext);
 
                     if (sequenceHeader.EnableDualFilter)
                     {
-                        filterRate += Av1SymbolEncoder.GetSwitchableInterpolationFilterCost(
-                            tables.ModeCosts, defaultFilter, Av1SymbolContextHelper.GetSwitchableInterpolationContext(modeInfo.Block, macroBlock, 1));
+                        int horizontalContext = Av1SymbolContextHelper.GetSwitchableInterpolationContext(
+                            modeInfo.Block,
+                            modeInfoGrid,
+                            modeInfoAllocation,
+                            macroBlock,
+                            1);
+
+                        filterRate += Av1SymbolEncoder.GetSwitchableInterpolationFilterCost(tables.ModeCosts, defaultFilter, horizontalContext);
                     }
                 }
 
@@ -4854,6 +4973,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         in lumaCoefficientEdges,
                         in blueCoefficientEdges,
                         in redCoefficientEdges,
+                        modeInfoGrid,
+                        modeInfoAllocation,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -5011,6 +5132,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             in lumaCoefficientEdges,
                             in blueCoefficientEdges,
                             in redCoefficientEdges,
+                            modeInfoGrid,
+                            modeInfoAllocation,
                             macroBlock,
                             blockOrigin,
                             motionMode,
@@ -5147,6 +5270,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     compoundMask,
                     in transformEdges,
                     in lumaCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -5182,6 +5307,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     interIntraAbove,
                     interIntraLeft,
                     compoundMask,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -5216,6 +5343,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -5401,6 +5530,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="compoundMask">The blend mask storage.</param>
         /// <param name="transformEdges">The transform size context edges of the tile.</param>
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -5432,6 +5563,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> compoundMask,
             in Av1NeighborEdges<byte> transformEdges,
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -5504,6 +5637,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformPrediction,
                     interIntraAbove,
                     interIntraLeft,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -5566,6 +5701,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformPrediction,
                 interIntraAbove,
                 interIntraLeft,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -5590,6 +5727,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in interWorkspace,
                 in transformEdges,
                 in lumaCoefficientEdges,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -5622,6 +5761,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformPrediction,
                     interIntraAbove,
                     interIntraLeft,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -5681,6 +5822,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformPrediction,
                 interIntraAbove,
                 interIntraLeft,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -5878,6 +6021,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in interWorkspace,
                 in transformEdges,
                 in lumaCoefficientEdges,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -5907,6 +6052,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="interWorkspace">The inter prediction buffers of the block, whose luma prediction is current.</param>
         /// <param name="transformEdges">The transform size context edges of the tile.</param>
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -5923,6 +6070,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             in Av1NeighborEdges<byte> transformEdges,
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -5972,7 +6121,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformRate = Av1SymbolEncoder.GetTransformPartitionCost(tables.ModeCosts, false, context);
             }
 
-            int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
+            int skipContext = Av1TileWriter.GetSkipContext(modeInfoGrid, modeInfoAllocation, macroBlock);
             Av1ModeCosts modeCosts = tables.ModeCosts;
             int noSkipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext);
             int skipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext);
@@ -6023,6 +6172,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformPrediction">The intra prediction destination.</param>
         /// <param name="interIntraAbove">The storage of the extended above edge.</param>
         /// <param name="interIntraLeft">The storage of the extended left edge.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -6035,6 +6186,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> transformPrediction,
             Span<TSample> interIntraAbove,
             Span<TSample> interIntraLeft,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -6095,7 +6248,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoColumn,
                 hasAbove,
                 rightAvailable,
-                macroBlock.GetRelativeModeInfo(0).Block.PartitionType,
+                macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, 0).Block.PartitionType,
                 transformSize,
                 0,
                 0,
@@ -6109,7 +6262,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoColumn,
                 bottomAvailable,
                 hasLeft,
-                macroBlock.GetRelativeModeInfo(0).Block.PartitionType,
+                macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, 0).Block.PartitionType,
                 transformSize,
                 0,
                 0,
@@ -6147,7 +6300,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 intraMode,
                 0,
                 this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
-                this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, plane),
+                this.UseSmoothIntraEdges(modeInfoGrid, modeInfoAllocation, macroBlock, blockOrigin, blockSize, plane),
                 interWorkspace.Residual,
                 transformSize,
                 this.bitDepth);
@@ -6164,6 +6317,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="interIntraAbove">The extended above edge of an inter-intra prediction.</param>
         /// <param name="interIntraLeft">The extended left edge of an inter-intra prediction.</param>
         /// <param name="compoundMask">The blend mask storage.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -6183,6 +6338,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> interIntraAbove,
             Span<TSample> interIntraLeft,
             Span<byte> compoundMask,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -6238,6 +6395,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformPrediction,
                     interIntraAbove,
                     interIntraLeft,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -6474,6 +6633,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// block's mode. Reference: find_ref_match_in_above_nbs() and find_ref_match_in_left_nbs() with
         /// ref_match_found_in_nb_blocks().
         /// </summary>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The block's neighbor availability.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -6481,6 +6642,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="second">The second reference, or none for a single reference.</param>
         /// <returns><see langword="true"/> when a neighbor matches or is unavailable.</returns>
         private readonly bool HasNeighborReferenceMatch(
+            ReadOnlySpan<int> modeInfoGrid,
+            ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -6492,18 +6655,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 return true;
             }
 
-            // Each step advances by the width of the above block found at the current column.
+            // Each step advances by the width of the above block found at the current column. A neighbor is its
+            // allocation entry at the grid cell.
             int modeInfoRow = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
             int modeInfoColumn = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
             int endColumn = Math.Min(modeInfoColumn + blockSize.Get4x4WideCount(), this.picture.Parent.Common.ModeInfoColumnCount);
-
-            // The mode-information grid is read once; a neighbor is its allocation entry at the grid cell.
-            ReadOnlySpan<int> grid = this.picture.ModeInfoGrid.Span;
-            ReadOnlySpan<Av1MacroBlockModeInfo> allocation = this.picture.ModeInfoAllocation.Span;
             int stride = this.picture.ModeInfoStride;
             for (int column = modeInfoColumn; column < endColumn;)
             {
-                ref readonly Av1EncoderBlockModeInfo above = ref allocation[grid[((modeInfoRow - 1) * stride) + column]].Block;
+                ref readonly Av1EncoderBlockModeInfo above = ref modeInfoAllocation[modeInfoGrid[((modeInfoRow - 1) * stride) + column]].Block;
                 if (MatchesNeighborReference(above, first, second))
                 {
                     return true;
@@ -6520,7 +6680,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int endRow = Math.Min(modeInfoRow + blockSize.Get4x4HighCount(), this.picture.Parent.Common.ModeInfoRowCount);
             for (int row = modeInfoRow; row < endRow;)
             {
-                ref readonly Av1EncoderBlockModeInfo left = ref allocation[grid[(row * stride) + modeInfoColumn - 1]].Block;
+                ref readonly Av1EncoderBlockModeInfo left = ref modeInfoAllocation[modeInfoGrid[(row * stride) + modeInfoColumn - 1]].Block;
                 if (MatchesNeighborReference(left, first, second))
                 {
                     return true;
@@ -6961,7 +7121,16 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Rejects near-motion modes when adjacent reference pairs do not meet the quantizer-dependent threshold.
         /// </summary>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="macroBlock">The block's neighbor availability.</param>
+        /// <param name="primary">The first reference of the mode.</param>
+        /// <param name="secondary">The second reference of the mode, or none for a single reference.</param>
+        /// <param name="bestCost">The cost of the best mode so far.</param>
+        /// <returns><see langword="true"/> when the near-motion modes are rejected.</returns>
         private bool ShouldPruneNearMode(
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Av1ReferenceFrameType primary,
             Av1ReferenceFrameType secondary,
@@ -6975,8 +7144,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             ReadOnlySpan<byte> thresholds = [1, 0, 0, 1, 1, 0, 2, 1, 0];
             int threshold = thresholds[((level - 1) * 3) + (this.blockQIndex * 3 / 256)];
-            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(-1).Block;
-            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;
+            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -1).Block;
+            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -macroBlock.ModeInfoStride).Block;
             int matches = left.ReferenceFrame == primary && left.SecondaryReferenceFrame == secondary ? 1 : 0;
             matches += above.ReferenceFrame == primary && above.SecondaryReferenceFrame == secondary ? 1 : 0;
             return matches < threshold;
@@ -7205,6 +7374,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="primaryReference">The first reference of the pair.</param>
@@ -7243,6 +7414,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1ReferenceFrameType primaryReference,
@@ -7299,17 +7472,18 @@ internal static partial class Av1IntraSuperblockEncoder
             // The model prunes no entry of the pair when a neighbor shares one of its references. Reference: the
             // ref_match_found_in_above_nb and ref_match_found_in_left_nb setup of handle_inter_mode().
             bool tplPruning = this.tplInterModePruning &&
-                !this.HasNeighborReferenceMatch(macroBlock, blockOrigin, blockSize, primaryReference, secondaryReference);
+                !this.HasNeighborReferenceMatch(modeInfoGrid, modeInfoAllocation, macroBlock, blockOrigin, blockSize, primaryReference, secondaryReference);
 
             Span<byte> referenceCounts = stackalloc byte[Av1Constants.ReferenceFrameCount];
-            Av1TileWriter.CollectNeighborReferenceCounts(macroBlock, referenceCounts);
-            int commonPredictionRate = Av1SymbolEncoder.GetIsInterCost(tables.ModeCosts, isInter: true, Av1TileWriter.GetIntraInterContext(macroBlock)) +
+            Av1TileWriter.CollectNeighborReferenceCounts(modeInfoGrid, modeInfoAllocation, macroBlock, referenceCounts);
+            int intraInterContext = Av1TileWriter.GetIntraInterContext(modeInfoGrid, modeInfoAllocation, macroBlock);
+            int commonPredictionRate = Av1SymbolEncoder.GetIsInterCost(tables.ModeCosts, isInter: true, intraInterContext) +
                 Av1SymbolEncoder.GetCompoundReferenceCost(
                     tables.ModeCosts,
                     primaryReference,
                     secondaryReference,
-                    Av1SymbolContextHelper.GetReferenceModeContext(macroBlock),
-                    Av1SymbolContextHelper.GetCompoundReferenceTypeContext(macroBlock),
+                    Av1SymbolContextHelper.GetReferenceModeContext(modeInfoGrid, modeInfoAllocation, macroBlock),
+                    Av1SymbolContextHelper.GetCompoundReferenceTypeContext(modeInfoGrid, modeInfoAllocation, macroBlock),
                     referenceCounts);
 
             InlineArray16<Av1MotionVector> primaryVectorsStorage = default;
@@ -7427,12 +7601,14 @@ internal static partial class Av1IntraSuperblockEncoder
             bool maskedCompoundEnabled = this.picture.Sequence.SequenceHeader.EnableMaskedCompound &&
                 Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8;
 
-            int compoundGroupContext = Av1TileWriter.GetCompoundGroupIndexContext(macroBlock);
+            int compoundGroupContext = Av1TileWriter.GetCompoundGroupIndexContext(modeInfoGrid, modeInfoAllocation, macroBlock);
             int compoundIndexContext = Av1SymbolContextHelper.GetCompoundIndexContext(
                 this.picture.Sequence.SequenceHeader.OrderHintInfo,
                 frameHeader,
                 primaryReference,
                 secondaryReference,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock);
 
             ReadOnlySpan<Av1PredictionMode> primaryModes =
@@ -7464,6 +7640,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 Av1EncoderBlockModeInfo neighbor = macroBlock.GetRelativeModeInfo(
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     neighborIndex == 0 ? -1 : -macroBlock.ModeInfoStride).Block;
 
                 if (neighbor.ReferenceFrame > Av1ReferenceFrameType.Intra)
@@ -7525,7 +7703,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     rejectMode |= this.GetInterModeCacheDecision(mode, primaryReference, secondaryReference) == 1;
                     rejectMode |= mode == Av1PredictionMode.NearNearMotionVector &&
                         this.ShouldPruneNearMode(
-                            macroBlock, primaryReference, secondaryReference, Math.Min(this.blockCostLimit, selectedStatistics.Cost));
+                            modeInfoGrid,
+                            modeInfoAllocation,
+                            macroBlock,
+                            primaryReference,
+                            secondaryReference,
+                            Math.Min(this.blockCostLimit, selectedStatistics.Cost));
 
                     int modeIndex = (int)mode - (int)Av1PredictionMode.CompoundInterModeStart;
                     for (int component = 0; component < 2; component++)
@@ -7649,6 +7832,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                     firstIntermediate,
                                     secondIntermediate,
                                     compoundMask,
+                                    modeInfoGrid,
+                                    modeInfoAllocation,
                                     translationPrimary,
                                     translationSecondary,
                                     prediction,
@@ -7797,6 +7982,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     compoundMask,
                     in transformEdges,
                     in lumaCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -7867,6 +8054,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -7919,6 +8108,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -8344,6 +8535,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
         /// <param name="transformEdges">The transform size context edges of the tile.</param>
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -8379,6 +8572,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> compoundMask,
             in Av1NeighborEdges<byte> transformEdges,
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -8417,12 +8612,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1BlockSize.Block16x16 or Av1BlockSize.Block16x32 or Av1BlockSize.Block32x16 or Av1BlockSize.Block32x32 or
                 Av1BlockSize.Block8x32 or Av1BlockSize.Block32x8;
 
-            int groupContext = Av1TileWriter.GetCompoundGroupIndexContext(macroBlock);
+            int groupContext = Av1TileWriter.GetCompoundGroupIndexContext(modeInfoGrid, modeInfoAllocation, macroBlock);
             int indexContext = Av1SymbolContextHelper.GetCompoundIndexContext(
                 this.picture.Sequence.SequenceHeader.OrderHintInfo,
                 frameHeader,
                 primaryReference,
                 secondaryReference,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock);
 
             bool hasNew = mode is Av1PredictionMode.NewNewMotionVector or Av1PredictionMode.NewNearestMotionVector or
@@ -8600,7 +8797,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         interWorkspace.FilterRows,
                         firstIntermediate,
                         secondIntermediate,
-                        compoundMask);
+                        compoundMask,
+                        modeInfoGrid,
+                        modeInfoAllocation);
 
                     this.PrepareInterPlanePrediction(
                         initialSecondary,
@@ -8627,7 +8826,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         interWorkspace.FilterRows,
                         firstIntermediate,
                         secondIntermediate,
-                        compoundMask);
+                        compoundMask,
+                        modeInfoGrid,
+                        modeInfoAllocation);
 
                     predictorsReady = true;
                 }
@@ -8834,7 +9035,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             interWorkspace.FilterRows,
                             firstIntermediate,
                             secondIntermediate,
-                            compoundMask);
+                            compoundMask,
+                            modeInfoGrid,
+                            modeInfoAllocation);
                     }
                     else
                     {
@@ -8919,6 +9122,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             in interWorkspace,
                             in transformEdges,
                             in lumaCoefficientEdges,
+                            modeInfoGrid,
+                            modeInfoAllocation,
                             macroBlock,
                             blockOrigin,
                             blockSize,
@@ -9567,6 +9772,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The block geometry and neighboring transform contexts.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The selected prediction and interpolation syntax.</param>
@@ -9594,6 +9801,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1MacroBlockModeInfo modeInfo,
@@ -9614,6 +9823,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     interIntraAbove,
                     interIntraLeft,
                     compoundMask,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     blockOrigin,
                     modeInfo.Block.BlockSize,
@@ -9705,7 +9916,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     interWorkspace.FilterRows,
                     firstIntermediate,
                     secondIntermediate,
-                    compoundMask);
+                    compoundMask,
+                    modeInfoGrid,
+                    modeInfoAllocation);
 
                 // The whole luma prediction goes into the frame before the transform blocks, also past the coded area.
                 // Reference: av1_enc_build_inter_predictor() into pd->dst in encode_superblock(), before av1_encode_sb().
@@ -9930,6 +10143,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -9948,6 +10163,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -9968,8 +10185,8 @@ internal static partial class Av1IntraSuperblockEncoder
             bool dual = this.picture.Sequence.SequenceHeader.EnableDualFilter;
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             bool writesFilters = Av1TileWriter.UsesSwitchableInterpolation(frameHeader, modeInfo);
-            int verticalContext = Av1SymbolContextHelper.GetSwitchableInterpolationContext(modeInfo, macroBlock, 0);
-            int horizontalContext = Av1SymbolContextHelper.GetSwitchableInterpolationContext(modeInfo, macroBlock, 1);
+            int verticalContext = Av1SymbolContextHelper.GetSwitchableInterpolationContext(modeInfo, modeInfoGrid, modeInfoAllocation, macroBlock, 0);
+            int horizontalContext = Av1SymbolContextHelper.GetSwitchableInterpolationContext(modeInfo, modeInfoGrid, modeInfoAllocation, macroBlock, 1);
             Span<Av1InterpolationSearchRecord> records = this.blockWorkspace.InterpolationSearchRecords;
             int reuseLevel = winnerSearch ? 0 : settings.InterpolationReuseLevel;
             int match = -1;
@@ -10139,8 +10356,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.blockWorkspace.FrameNumber & 1) != 0 &&
                 macroBlock.IsUpAvailable && macroBlock.IsLeftAvailable)
             {
-                Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;
-                Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(-1).Block;
+                Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -macroBlock.ModeInfoStride).Block;
+                Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -1).Block;
                 if (above.ReferenceFrame > Av1ReferenceFrameType.Intra && left.ReferenceFrame > Av1ReferenceFrameType.Intra &&
                     above.HorizontalInterpolationFilter == left.HorizontalInterpolationFilter &&
                     above.VerticalInterpolationFilter == left.VerticalInterpolationFilter)
@@ -10180,6 +10397,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 firstIntermediate,
                 secondIntermediate,
                 compoundMask,
+                modeInfoGrid,
+                modeInfoAllocation,
                 primary,
                 secondary,
                 modeInfo,
@@ -10265,6 +10484,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     primary,
                     secondary,
                     modeInfo,
@@ -10410,7 +10631,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         interWorkspace.FilterRows,
                         firstIntermediate,
                         secondIntermediate,
-                        compoundMask);
+                        compoundMask,
+                        modeInfoGrid,
+                        modeInfoAllocation);
 
                     // A difference-weighted blend predicts luma into pd->dst again. Reference: the av1_enc_build_inter_predictor()
                     // call after av1_interpolation_filter_search() in handle_inter_mode().
@@ -10452,6 +10675,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="vector">The motion vector.</param>
         /// <param name="secondaryVector">The second motion vector of a compound prediction.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -10475,6 +10700,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
+            ReadOnlySpan<int> modeInfoGrid,
+            ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MotionVector vector,
             Av1MotionVector secondaryVector,
             Av1EncoderBlockModeInfo modeInfo,
@@ -10550,7 +10777,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     interWorkspace.FilterRows,
                     firstIntermediate,
                     secondIntermediate,
-                    compoundMask);
+                    compoundMask,
+                    modeInfoGrid,
+                    modeInfoAllocation);
 
                 Size visible = simpleModel ? new Size(width, height) : this.GetPredictionModelSize(blockOrigin, blockSize, subsamplingX, subsamplingY);
                 int visibleWidth = visible.Width;
@@ -10627,6 +10856,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -10682,6 +10913,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -10845,7 +11078,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     interWorkspace.FilterRows,
                     firstIntermediate,
                     secondIntermediate,
-                    compoundMask);
+                    compoundMask,
+                    modeInfoGrid,
+                    modeInfoAllocation);
 
                 if (measurePrediction)
                 {
@@ -11017,6 +11252,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in lumaCoefficientEdges,
                 in blueCoefficientEdges,
                 in redCoefficientEdges,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock,
                 blockOrigin,
                 bestCost,
@@ -11122,6 +11359,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="bestCost">The cost above which the evaluation stops.</param>
@@ -11156,6 +11395,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             long bestCost,
@@ -11192,7 +11433,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1InterpolationFilter verticalFilter = predictionModeInfo.VerticalInterpolationFilter;
             bool usePreparedPrediction = true;
             int predictionRate = candidate.PredictionRate;
-            int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
+            int skipContext = Av1TileWriter.GetSkipContext(modeInfoGrid, modeInfoAllocation, macroBlock);
             Av1ModeCosts modeCosts = tables.ModeCosts;
             int noSkipCost = Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext);
             int skipCost = Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext);
@@ -11234,6 +11475,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformPrediction,
                 in transformEdges,
                 in lumaCoefficientEdges,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock,
                 blockOrigin,
                 ref lumaModeInfo,
@@ -11291,6 +11534,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     compoundMask,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     chromaCostLimit,
                     blockOrigin,
@@ -11350,6 +11595,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     compoundMask,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     redCostLimit,
                     blockOrigin,
@@ -11743,6 +11990,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="costLimit">The cost above which the evaluation stops.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -11784,6 +12033,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> compoundMask,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             long costLimit,
             Point blockOrigin,
@@ -11867,7 +12118,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 interWorkspace.FilterRows,
                 firstIntermediate,
                 secondIntermediate,
-                compoundMask);
+                compoundMask,
+                modeInfoGrid,
+                modeInfoAllocation);
 
             // Coefficient coding reads the neighboring contexts of this plane, and the search
             // changes them as it prices each transform. Taking a copy leaves the tile contexts
@@ -12033,13 +12286,17 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="prediction">The contiguous plane prediction, blended in place.</param>
         /// <param name="residual">The contiguous residual, rebuilt from the blended prediction.</param>
         /// <param name="filterRows">The interpolation scratch.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         private void ApplyObmcPrediction(
             Av1Plane plane,
             int subsamplingX,
             int subsamplingY,
             Span<TSample> prediction,
             Span<short> residual,
-            Span<short> filterRows)
+            Span<short> filterRows,
+            ReadOnlySpan<int> modeInfoGrid,
+            ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation)
         {
             ReadOnlySpan<int> maximumNeighbors = [0, 1, 2, 3, 4, 4];
             Av1BlockSize blockSize = this.obmcBlockSize;
@@ -12057,10 +12314,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // Reference: av1_skip_u4x4_pred_in_obmc().
             bool smallPlane = planeSize is Av1BlockSize.Block4x4 or Av1BlockSize.Block8x4 or Av1BlockSize.Block4x8;
 
-            // The mode-information grid and the vectors are read once. A neighbor and its vector share the allocation
-            // index at the grid cell.
-            ReadOnlySpan<int> grid = this.picture.ModeInfoGrid.Span;
-            ReadOnlySpan<Av1MacroBlockModeInfo> allocation = this.picture.ModeInfoAllocation.Span;
+            // The vectors are read once. A neighbor and its vector share the allocation index at the grid cell.
             ReadOnlySpan<Av1EncoderDisplacementVector> vectors = this.picture.DisplacementVectors.Span;
             int stride = this.picture.ModeInfoStride;
             if (this.obmcAboveAvailable && !smallPlane)
@@ -12072,17 +12326,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 int step;
                 for (int column = position.X; column < endColumn && count < limit; column += step)
                 {
-                    int neighborIndex = grid[aboveRow + column];
-                    step = Math.Min(allocation[neighborIndex].Block.BlockSize.Get4x4WideCount(), largestStep);
+                    int neighborIndex = modeInfoGrid[aboveRow + column];
+                    step = Math.Min(modeInfoAllocation[neighborIndex].Block.BlockSize.Get4x4WideCount(), largestStep);
                     if (step == 1)
                     {
                         // A four-sample neighbor is one half of a pair whose second block carries the chroma.
                         column &= ~1;
-                        neighborIndex = grid[aboveRow + column + 1];
+                        neighborIndex = modeInfoGrid[aboveRow + column + 1];
                         step = 2;
                     }
 
-                    ref readonly Av1EncoderBlockModeInfo neighbor = ref allocation[neighborIndex].Block;
+                    ref readonly Av1EncoderBlockModeInfo neighbor = ref modeInfoAllocation[neighborIndex].Block;
                     if (neighbor.ReferenceFrame <= Av1ReferenceFrameType.Intra && !neighbor.UseIntraBlockCopy)
                     {
                         continue;
@@ -12125,16 +12379,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 int step;
                 for (int row = position.Y; row < endRow && count < limit; row += step)
                 {
-                    int neighborIndex = grid[(row * stride) + position.X - 1];
-                    step = Math.Min(allocation[neighborIndex].Block.BlockSize.Get4x4HighCount(), largestStep);
+                    int neighborIndex = modeInfoGrid[(row * stride) + position.X - 1];
+                    step = Math.Min(modeInfoAllocation[neighborIndex].Block.BlockSize.Get4x4HighCount(), largestStep);
                     if (step == 1)
                     {
                         row &= ~1;
-                        neighborIndex = grid[((row + 1) * stride) + position.X - 1];
+                        neighborIndex = modeInfoGrid[((row + 1) * stride) + position.X - 1];
                         step = 2;
                     }
 
-                    ref readonly Av1EncoderBlockModeInfo neighbor = ref allocation[neighborIndex].Block;
+                    ref readonly Av1EncoderBlockModeInfo neighbor = ref modeInfoAllocation[neighborIndex].Block;
                     if (neighbor.ReferenceFrame <= Av1ReferenceFrameType.Intra && !neighbor.UseIntraBlockCopy)
                     {
                         continue;
@@ -12266,6 +12520,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="prediction">The contiguous prediction destination.</param>
         /// <param name="residual">The contiguous residual destination.</param>
         /// <param name="filterRows">The interpolation scratch.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <returns><see langword="true"/> when the prediction was built.</returns>
         private bool TryPrepareSubEightInterPrediction(
             Av1MotionVector vector,
@@ -12280,7 +12536,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             Span<TSample> prediction,
             Span<short> residual,
-            Span<short> filterRows)
+            Span<short> filterRows,
+            ReadOnlySpan<int> modeInfoGrid,
+            ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation)
         {
             bool subFourX = blockSize.GetWidth() == 4 && subsamplingX != 0;
             bool subFourY = blockSize.GetHeight() == 4 && subsamplingY != 0;
@@ -12296,10 +12554,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 (lumaOrigin.X >> Av1Constants.ModeInfoSizeLog2) - columnStart,
                 (lumaOrigin.Y >> Av1Constants.ModeInfoSizeLog2) - rowStart);
 
-            // The mode-information grid and the vectors are read once. A covered block and its vector share the
-            // allocation index at the grid cell.
-            ReadOnlySpan<int> grid = this.picture.ModeInfoGrid.Span;
-            ReadOnlySpan<Av1MacroBlockModeInfo> allocation = this.picture.ModeInfoAllocation.Span;
+            // The vectors are read once. A covered block and its vector share the allocation index at the grid cell.
             ReadOnlySpan<Av1EncoderDisplacementVector> vectors = this.picture.DisplacementVectors.Span;
             int stride = this.picture.ModeInfoStride;
             for (int row = rowStart; row <= 0; row++)
@@ -12311,7 +12566,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         continue;
                     }
 
-                    ref readonly Av1EncoderBlockModeInfo covered = ref allocation[grid[((current.Y + row) * stride) + current.X + column]].Block;
+                    int coveredIndex = modeInfoGrid[((current.Y + row) * stride) + current.X + column];
+                    ref readonly Av1EncoderBlockModeInfo covered = ref modeInfoAllocation[coveredIndex].Block;
 
                     if (covered.ReferenceFrame <= Av1ReferenceFrameType.Intra || covered.UseIntraBlockCopy)
                     {
@@ -12340,8 +12596,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1InterpolationFilter subVertical = verticalFilter;
                     if (modeRow != 0 || modeColumn != 0)
                     {
-                        int coveredIndex = grid[((current.Y + modeRow) * stride) + current.X + modeColumn];
-                        ref readonly Av1EncoderBlockModeInfo covered = ref allocation[coveredIndex].Block;
+                        int coveredIndex = modeInfoGrid[((current.Y + modeRow) * stride) + current.X + modeColumn];
+                        ref readonly Av1EncoderBlockModeInfo covered = ref modeInfoAllocation[coveredIndex].Block;
                         subVector = new Av1MotionVector(vectors[coveredIndex].Row, vectors[coveredIndex].Column);
                         subReferenceFrame = covered.ReferenceFrame;
                         subReference = references[(int)covered.ReferenceFrame].CodedView.GetPlane(plane);
@@ -12639,6 +12895,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         private void PrepareInterPlanePrediction(
             Av1MotionVector vector,
             Av1MotionVector secondaryVector,
@@ -12664,7 +12922,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> filterRows,
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
-            Span<byte> compoundMask)
+            Span<byte> compoundMask,
+            ReadOnlySpan<int> modeInfoGrid,
+            ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation)
         {
             // A chroma block of a block four samples wide or high starts at the first luma block it covers.
             // Reference: the odd mi_row and mi_col adjustment of setup_pred_plane().
@@ -12787,7 +13047,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockSize,
                     prediction,
                     residual,
-                    filterRows))
+                    filterRows,
+                    modeInfoGrid,
+                    modeInfoAllocation))
                 {
                     return;
                 }
@@ -12870,7 +13132,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (this.useObmcPrediction)
                 {
-                    this.ApplyObmcPrediction(plane, subsamplingX, subsamplingY, prediction, residual, filterRows);
+                    this.ApplyObmcPrediction(plane, subsamplingX, subsamplingY, prediction, residual, filterRows, modeInfoGrid, modeInfoAllocation);
                 }
             }
             else

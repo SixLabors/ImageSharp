@@ -35,6 +35,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="paletteEdges">The palette color context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
@@ -60,6 +62,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -85,6 +89,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in paletteEdges,
                 in blueCoefficientEdges,
                 in redCoefficientEdges,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
@@ -114,6 +120,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="paletteEdges">The palette color context edges of the tile.</param>
         /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
@@ -139,6 +147,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
             in Av1NeighborEdges<byte> blueCoefficientEdges,
             in Av1NeighborEdges<byte> redCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -403,6 +413,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformTypeProbabilities,
                     searchCoefficients,
                     searchReconstructions,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     lumaOrigin,
                     chromaOrigin,
@@ -450,6 +462,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformTypeProbabilities,
                     searchCoefficients,
                     searchReconstructions,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     lumaOrigin,
                     chromaOrigin,

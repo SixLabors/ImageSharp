@@ -280,11 +280,21 @@ internal static class Av1SymbolContextHelper
     /// <summary>
     /// Gets the equal-or-distance-weighted compound context from compact encoder state.
     /// </summary>
+    /// <param name="orderHintInfo">The active order-hint modulo domain.</param>
+    /// <param name="frameHeader">The current frame and retained reference order hints.</param>
+    /// <param name="primaryReference">The first reference of the compound block.</param>
+    /// <param name="secondaryReference">The second reference of the compound block.</param>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+    /// <param name="macroBlock">The current block's mapped neighbor state.</param>
+    /// <returns>The context in the inclusive range zero through five.</returns>
     public static int GetCompoundIndexContext(
         ObuOrderHintInfo orderHintInfo,
         ObuFrameHeader frameHeader,
         Av1ReferenceFrameType primaryReference,
         Av1ReferenceFrameType secondaryReference,
+        ReadOnlySpan<int> modeInfoGrid,
+        Span<Av1MacroBlockModeInfo> modeInfoAllocation,
         Av1MacroBlockD macroBlock)
     {
         ReadOnlySpan<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
@@ -298,7 +308,7 @@ internal static class Av1SymbolContextHelper
         int context = forwardDistance == backwardDistance ? 3 : 0;
         if (macroBlock.IsUpAvailable)
         {
-            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;
+            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -macroBlock.ModeInfoStride).Block;
             context += above.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
                 ? above.CompoundIndex ? 1 : 0
                 : above.ReferenceFrame == Av1ReferenceFrameType.Alternate ? 1 : 0;
@@ -306,7 +316,7 @@ internal static class Av1SymbolContextHelper
 
         if (macroBlock.IsLeftAvailable)
         {
-            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(-1).Block;
+            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -1).Block;
             context += left.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
                 ? left.CompoundIndex ? 1 : 0
                 : left.ReferenceFrame == Av1ReferenceFrameType.Alternate ? 1 : 0;
@@ -1065,11 +1075,15 @@ internal static class Av1SymbolContextHelper
     /// Gets the switchable interpolation-filter context from the encoder's packed single-reference neighbors.
     /// </summary>
     /// <param name="modeInfo">The current inter block.</param>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
     /// <param name="macroBlock">The current block's available spatial neighbors.</param>
     /// <param name="direction">Zero for the vertical filter or one for the horizontal filter.</param>
     /// <returns>The single-reference context for the selected direction.</returns>
     public static int GetSwitchableInterpolationContext(
         Av1EncoderBlockModeInfo modeInfo,
+        ReadOnlySpan<int> modeInfoGrid,
+        Span<Av1MacroBlockModeInfo> modeInfoAllocation,
         Av1MacroBlockD macroBlock,
         int direction)
     {
@@ -1078,7 +1092,7 @@ internal static class Av1SymbolContextHelper
         int leftFilter = SwitchableInterpolationFilterCount;
         if (macroBlock.IsUpAvailable)
         {
-            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;
+            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -macroBlock.ModeInfoStride).Block;
             if (above.ReferenceFrame == modeInfo.ReferenceFrame || above.SecondaryReferenceFrame == modeInfo.ReferenceFrame)
             {
                 aboveFilter = (int)(direction == 0 ? above.VerticalInterpolationFilter : above.HorizontalInterpolationFilter);
@@ -1087,7 +1101,7 @@ internal static class Av1SymbolContextHelper
 
         if (macroBlock.IsLeftAvailable)
         {
-            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(-1).Block;
+            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -1).Block;
             if (left.ReferenceFrame == modeInfo.ReferenceFrame || left.SecondaryReferenceFrame == modeInfo.ReferenceFrame)
             {
                 leftFilter = (int)(direction == 0 ? left.VerticalInterpolationFilter : left.HorizontalInterpolationFilter);
@@ -1104,14 +1118,18 @@ internal static class Av1SymbolContextHelper
     /// <summary>
     /// Gets the block reference-mode context from compact encoder neighbors.
     /// </summary>
-    public static int GetReferenceModeContext(Av1MacroBlockD macroBlock)
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+    /// <param name="macroBlock">The current block's mapped neighbor state.</param>
+    /// <returns>The context in the inclusive range zero through four.</returns>
+    public static int GetReferenceModeContext(ReadOnlySpan<int> modeInfoGrid, Span<Av1MacroBlockModeInfo> modeInfoAllocation, Av1MacroBlockD macroBlock)
     {
         bool hasAbove = macroBlock.IsUpAvailable;
         bool hasLeft = macroBlock.IsLeftAvailable;
         if (hasAbove && hasLeft)
         {
-            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;
-            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(-1).Block;
+            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -macroBlock.ModeInfoStride).Block;
+            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -1).Block;
             bool aboveCompound = above.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra;
             bool leftCompound = left.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra;
             if (!aboveCompound && !leftCompound)
@@ -1136,7 +1154,8 @@ internal static class Av1SymbolContextHelper
 
         if (hasAbove || hasLeft)
         {
-            Av1EncoderBlockModeInfo neighbor = macroBlock.GetRelativeModeInfo(hasAbove ? -macroBlock.ModeInfoStride : -1).Block;
+            int neighborOffset = hasAbove ? -macroBlock.ModeInfoStride : -1;
+            Av1EncoderBlockModeInfo neighbor = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, neighborOffset).Block;
             if (neighbor.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
             {
                 return 3;
@@ -1152,16 +1171,18 @@ internal static class Av1SymbolContextHelper
     /// Gets the compound reference-direction context from compact encoder neighbors.
     /// Reference: av1_get_comp_reference_type_context().
     /// </summary>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
     /// <param name="macroBlock">The current block's mapped neighbor state.</param>
     /// <returns>The context in the inclusive range zero through four.</returns>
-    public static int GetCompoundReferenceTypeContext(Av1MacroBlockD macroBlock)
+    public static int GetCompoundReferenceTypeContext(ReadOnlySpan<int> modeInfoGrid, Span<Av1MacroBlockModeInfo> modeInfoAllocation, Av1MacroBlockD macroBlock)
     {
         bool hasAbove = macroBlock.IsUpAvailable;
         bool hasLeft = macroBlock.IsLeftAvailable;
         if (hasAbove && hasLeft)
         {
-            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;
-            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(-1).Block;
+            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -macroBlock.ModeInfoStride).Block;
+            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -1).Block;
             bool aboveIntra = above.ReferenceFrame <= Av1ReferenceFrameType.Intra;
             bool leftIntra = left.ReferenceFrame <= Av1ReferenceFrameType.Intra;
             if (aboveIntra && leftIntra)
@@ -1217,7 +1238,7 @@ internal static class Av1SymbolContextHelper
 
         if (hasAbove || hasLeft)
         {
-            Av1EncoderBlockModeInfo edge = macroBlock.GetRelativeModeInfo(hasAbove ? -macroBlock.ModeInfoStride : -1).Block;
+            Av1EncoderBlockModeInfo edge = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, hasAbove ? -macroBlock.ModeInfoStride : -1).Block;
             if (edge.ReferenceFrame <= Av1ReferenceFrameType.Intra ||
                 edge.SecondaryReferenceFrame <= Av1ReferenceFrameType.Intra)
             {

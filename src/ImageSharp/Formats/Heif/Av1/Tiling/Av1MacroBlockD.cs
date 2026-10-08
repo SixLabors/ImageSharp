@@ -9,17 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 internal class Av1MacroBlockD
 {
     /// <summary>
-    /// Stores the frame's mode-information allocation-index grid.
-    /// </summary>
-    private Memory<int> modeInfoGrid;
-
-    /// <summary>
-    /// Stores the frame's contiguous mode-information values.
-    /// </summary>
-    private Memory<Av1MacroBlockModeInfo> modeInfoAllocation;
-
-    /// <summary>
-    /// Stores the current block's linear position in <see cref="modeInfoGrid"/>.
+    /// Stores the current block's linear position in the frame's mode-information grid.
     /// </summary>
     private int modeInfoIndex;
 
@@ -66,23 +56,8 @@ internal class Av1MacroBlockD
     /// <summary>
     /// Selects the current entry in the frame-owned mode-information grid.
     /// </summary>
-    /// <param name="grid">The frame-owned mode-information allocation-index grid.</param>
-    /// <param name="allocation">The frame-owned contiguous mode-information values.</param>
     /// <param name="index">The current block's linear grid index.</param>
-    public void SetModeInfoGrid(Memory<int> grid, Memory<Av1MacroBlockModeInfo> allocation, int index)
-    {
-        this.modeInfoGrid = grid;
-        this.modeInfoAllocation = allocation;
-        this.modeInfoIndex = index;
-    }
-
-    /// <summary>
-    /// Gets a mode-information entry relative to the current block.
-    /// </summary>
-    /// <param name="offset">The signed linear offset from the current block.</param>
-    /// <returns>A reference to the mapped neighboring or current entry.</returns>
-    public ref Av1MacroBlockModeInfo GetRelativeModeInfo(int offset)
-        => ref this.GetRelativeModeInfo(this.modeInfoGrid.Span, this.modeInfoAllocation.Span, offset);
+    public void SetModeInfoIndex(int index) => this.modeInfoIndex = index;
 
     /// <summary>
     /// Gets a mode-information entry relative to the current block from the frame grid and allocation, which the

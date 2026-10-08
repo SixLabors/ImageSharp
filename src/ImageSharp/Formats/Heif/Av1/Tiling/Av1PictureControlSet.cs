@@ -161,14 +161,6 @@ internal class Av1PictureControlSet
     }
 
     /// <summary>
-    /// Gets the mode-information entry mapped to a frame position.
-    /// </summary>
-    /// <param name="position">The frame position in 4x4 mode-information units.</param>
-    /// <returns>A reference to the mapped mode-information entry.</returns>
-    public ref Av1MacroBlockModeInfo GetFromModeInfoGrid(Point position)
-        => ref this.GetFromModeInfoGrid(this.ModeInfoGrid.Span, this.ModeInfoAllocation.Span, position);
-
-    /// <summary>
     /// Gets the mode-information entry mapped to a frame position from the grid and allocation, which the caller
     /// read once.
     /// </summary>

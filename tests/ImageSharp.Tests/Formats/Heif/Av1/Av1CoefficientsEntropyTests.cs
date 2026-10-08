@@ -151,7 +151,7 @@ public class Av1CoefficientsEntropyTests
 
         // Uniform-size context substitutes coding-block extents for inter neighbors, so mirror production mode-info setup.
         macroBlock.ModeInfoStride = picture.ModeInfoStride;
-        macroBlock.SetModeInfoGrid(picture.ModeInfoGrid, picture.ModeInfoAllocation, modeInfoIndex);
+        macroBlock.SetModeInfoIndex(modeInfoIndex);
 
         using Av1NeighborArrayUnit<byte> transforms = new(
             Configuration.Default,
@@ -178,7 +178,9 @@ public class Av1CoefficientsEntropyTests
             macroBlock,
             modeInfo.Block.BlockSize,
             blockOrigin,
-            in edges);
+            in edges,
+            picture.ModeInfoGrid.Span,
+            picture.ModeInfoAllocation.Span);
 
         using IMemoryOwner<byte> encoded = writer.Exit();
         writer.Dispose();

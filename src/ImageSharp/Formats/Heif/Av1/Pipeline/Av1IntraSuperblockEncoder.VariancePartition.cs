@@ -565,6 +565,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The superblock's neighboring syntax and frame edges.</param>
         /// <param name="origin">The superblock's luma origin.</param>
         /// <param name="predictionStride">The row stride of the returned luma prediction.</param>
@@ -577,6 +579,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point origin,
             out int predictionStride,
@@ -699,7 +703,10 @@ internal static partial class Av1IntraSuperblockEncoder
                         continue;
                     }
 
-                    Av1EncoderBlockModeInfo neighbor = macroBlock.GetRelativeModeInfo(index == 0 ? -macroBlock.ModeInfoStride : -1).Block;
+                    Av1EncoderBlockModeInfo neighbor = macroBlock
+                        .GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, index == 0 ? -macroBlock.ModeInfoStride : -1)
+                        .Block;
+
                     if (neighbor.Mode < Av1PredictionMode.SingleInterModeStart || neighbor.ReferenceFrame != Av1ReferenceFrameType.Last)
                     {
                         continue;
@@ -805,7 +812,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         interWorkspace.FilterRows,
                         firstIntermediate,
                         secondIntermediate,
-                        compoundMask);
+                        compoundMask,
+                        modeInfoGrid,
+                        modeInfoAllocation);
                 }
             }
 
@@ -903,9 +912,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Filters a low-motion source superblock in place before partition and prediction analysis.
         /// </summary>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The superblock's already-encoded neighbors.</param>
         /// <param name="origin">The superblock's luma origin.</param>
-        private void FilterTemporalSource(Av1MacroBlockD macroBlock, Point origin)
+        private void FilterTemporalSource(
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Av1MacroBlockD macroBlock,
+            Point origin)
         {
             Point position = new(origin.X >> Av1Constants.ModeInfoSizeLog2, origin.Y >> Av1Constants.ModeInfoSizeLog2);
             for (int index = 0; index < 2; index++)
@@ -913,7 +928,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 bool available = index == 0 ? macroBlock.IsUpAvailable : macroBlock.IsLeftAvailable;
                 if (available)
                 {
-                    Av1EncoderBlockModeInfo neighbor = macroBlock.GetRelativeModeInfo(index == 0 ? -macroBlock.ModeInfoStride : -1).Block;
+                    Av1EncoderBlockModeInfo neighbor = macroBlock
+                        .GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, index == 0 ? -macroBlock.ModeInfoStride : -1)
+                        .Block;
+
                     if (neighbor.ReferenceFrame > Av1ReferenceFrameType.Intra)
                     {
                         Av1MotionVector vector = this.picture.GetDisplacementVector(position + (index == 0 ? new Size(0, -1) : new Size(-1, 0)));
@@ -1036,6 +1054,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the superblock.</param>
         /// <param name="superblockOrigin">The luma superblock origin.</param>
         private void PrepareVariancePartitions(
@@ -1045,6 +1065,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point superblockOrigin)
         {
@@ -1052,7 +1074,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 if (this.filterTemporalSource)
                 {
-                    this.FilterTemporalSource(macroBlock, superblockOrigin);
+                    this.FilterTemporalSource(modeInfoGrid, modeInfoAllocation, macroBlock, superblockOrigin);
                 }
 
                 Av1PictureParentControlSet parent = this.picture.Parent;
@@ -1085,6 +1107,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
+                    modeInfoGrid,
+                    modeInfoAllocation,
                     macroBlock,
                     superblockOrigin,
                     out int predictionStride,

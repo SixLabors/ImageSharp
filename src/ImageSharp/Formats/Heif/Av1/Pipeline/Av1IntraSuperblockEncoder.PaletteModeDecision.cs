@@ -32,6 +32,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformEdges">The transform size context edges of the tile.</param>
         /// <param name="paletteEdges">The palette color context edges of the tile.</param>
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -53,6 +55,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> transformEdges,
             in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -74,6 +78,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in transformEdges,
                 in paletteEdges,
                 in lumaCoefficientEdges,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -99,6 +105,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformEdges">The transform size context edges of the tile.</param>
         /// <param name="paletteEdges">The palette color context edges of the tile.</param>
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -120,6 +128,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> transformEdges,
             in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -185,7 +195,13 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<ushort> colorCache = workspace.ColorCache;
             int colorCacheSize = Av1TileWriter.GetPaletteCache(in paletteEdges, macroBlock, blockOrigin, Av1Plane.Y, colorCache);
             Av1PlaneRegion<byte> colorIndexMap = this.superblock.Workspace.GetPaletteMaps().GetMap(Av1PlaneType.Y, blockWidth, blockHeight);
-            int transformSizeContext = Av1TileWriter.GetTransformSizeContext(in transformEdges, macroBlock, blockOrigin, blockSize);
+            int transformSizeContext = Av1TileWriter.GetTransformSizeContext(
+                in transformEdges,
+                modeInfoGrid,
+                modeInfoAllocation,
+                macroBlock,
+                blockOrigin,
+                blockSize);
 
             Av1EncoderSpeedSettings speedSettings = this.picture.Parent.SpeedSettings;
             int speed = (int)speedSettings.Speed;
@@ -207,7 +223,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 MacroBlock = macroBlock,
                 BlockOrigin = blockOrigin,
                 BlockSize = blockSize,
-                BlockState = this.GetLumaBlockState(in tables, macroBlock, blockOrigin, blockSize),
+                BlockState = this.GetLumaBlockState(in tables, modeInfoGrid, modeInfoAllocation, macroBlock, blockOrigin, blockSize),
                 TransformSizeContext = transformSizeContext,
                 SourceVariance = sourceVariance,
                 Samples = samples,

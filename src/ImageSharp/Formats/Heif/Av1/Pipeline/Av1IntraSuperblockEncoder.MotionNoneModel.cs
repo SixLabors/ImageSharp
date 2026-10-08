@@ -165,6 +165,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
         /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -175,6 +177,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> motionSearchPrediction,
             Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -216,6 +220,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 motionSearchPrediction,
                 filterRows,
                 in motionVectorCosts,
+                modeInfoGrid,
+                modeInfoAllocation,
                 macroBlock,
                 blockOrigin,
                 blockSize,

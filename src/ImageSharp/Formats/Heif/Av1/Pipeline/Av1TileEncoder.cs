@@ -1341,7 +1341,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                 }
 
                 Point firstModeInfoPosition = new(tile.ModeInfoColumnStart, tile.ModeInfoRowStart);
-                entropyContext.MacroBlockModeInfo = picture.GetMacroBlockModeInfo(firstModeInfoPosition);
+                entropyContext.MacroBlockModeInfo = picture.GetMacroBlockModeInfo(modeInfoAllocation, firstModeInfoPosition);
                 for (int modeInfoRow = tile.ModeInfoRowStart;
                     modeInfoRow < tile.ModeInfoRowEnd;
                     modeInfoRow += superblockModeInfoSize)
@@ -1454,10 +1454,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 writer.FillDisplacementVectorCosts(blockWorkspace.GetDisplacementVectorCosts());
                             }
 
-                            Av1IntraSuperblockEncoder.Prepare(
-                                picture,
-                                superblock,
-                                entropyContext.SuperblockOrigin);
+                            Av1IntraSuperblockEncoder.Prepare(picture, modeInfoAllocation, superblock, entropyContext.SuperblockOrigin);
 
                             Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator> blockEncoder = new(
                                 source,

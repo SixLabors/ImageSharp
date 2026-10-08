@@ -92,6 +92,41 @@ internal sealed partial class Av1LevelBuffer
         where TOperator : struct, IAv1LevelOperator
     {
         /// <summary>
+        /// Fills the level plane of a transform four coefficients wide, four rows at a time, with the four padding
+        /// bytes after each row.
+        /// </summary>
+        /// <remarks>
+        /// A padded row is four levels followed by four zero bytes, eight bytes in all. Four rows of four coefficients
+        /// narrow to one vector of sixteen bytes. A byte shuffle then puts four zero bytes after each row, which
+        /// gives two vectors of sixteen bytes that hold four padded rows. An index of 0xFF in the shuffle gives a
+        /// zero byte.
+        /// </remarks>
+        /// <param name="source">The first coefficient of the transform, in raster order.</param>
+        /// <param name="destination">The first level of the first row.</param>
+        /// <param name="height">The number of rows, a multiple of four.</param>
+        public static void FillFourWide(ref int source, ref byte destination, int height)
+        {
+            // Rows 0 and 1, then rows 2 and 3, each with four zero bytes after the row.
+            Vector128<byte> firstRows = Vector128.Create(0, 1, 2, 3, 0xFF, 0xFF, 0xFF, 0xFF, 4, 5, 6, 7, 0xFF, 0xFF, 0xFF, (byte)0xFF);
+            Vector128<byte> lastRows = Vector128.Create(8, 9, 10, 11, 0xFF, 0xFF, 0xFF, 0xFF, 12, 13, 14, 15, 0xFF, 0xFF, 0xFF, (byte)0xFF);
+            nuint rows = (nuint)height;
+            for (nuint row = 0; row < rows; row += 4)
+            {
+                // Each group of four rows is 16 coefficients in and 32 padded bytes out.
+                ref int rowSource = ref Unsafe.Add(ref source, row * 4);
+                Vector128<int> row0 = TOperator.Saturate(Vector128.LoadUnsafe(ref rowSource));
+                Vector128<int> row1 = TOperator.Saturate(Vector128.LoadUnsafe(ref rowSource, 4));
+                Vector128<int> row2 = TOperator.Saturate(Vector128.LoadUnsafe(ref rowSource, 8));
+                Vector128<int> row3 = TOperator.Saturate(Vector128.LoadUnsafe(ref rowSource, 12));
+
+                // Every level is at most 127, so the narrowing keeps each value.
+                Vector128<byte> levels = Vector128.Narrow(Vector128.Narrow(row0, row1), Vector128.Narrow(row2, row3)).AsByte();
+                Vector128.Shuffle(levels, firstRows).StoreUnsafe(ref destination, row * 8);
+                Vector128.Shuffle(levels, lastRows).StoreUnsafe(ref destination, (row * 8) + 16);
+            }
+        }
+
+        /// <summary>
         /// Fills one row of the level plane.
         /// </summary>
         /// <param name="source">The first coefficient of the row.</param>

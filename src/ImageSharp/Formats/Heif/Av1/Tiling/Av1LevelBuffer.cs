@@ -98,13 +98,23 @@ internal sealed partial class Av1LevelBuffer : IDisposable
         ref byte destinationBase = ref MemoryMarshal.GetReference(levels);
         ref int sourceBase = ref MemoryMarshal.GetReference(coefficientBuffer);
 
-        for (int y = 0; y < height; y++)
+        if (width == 4 && Vector128.IsHardwareAccelerated)
         {
-            ref byte destination = ref Unsafe.Add(ref destinationBase, y * stride);
-            Levels<LevelOperator>.FillRow(ref Unsafe.Add(ref sourceBase, y * width), ref destination, width);
+            // A row of four coefficients is too short for a vector, so four rows go together, padding included.
+            Levels<LevelOperator>.FillFourWide(ref sourceBase, ref destinationBase, height);
+        }
+        else
+        {
+            nuint rowStep = (nuint)stride;
+            nuint columns = (nuint)width;
+            for (nuint y = 0; y < (nuint)height; y++)
+            {
+                ref byte destination = ref Unsafe.Add(ref destinationBase, y * rowStep);
+                Levels<LevelOperator>.FillRow(ref Unsafe.Add(ref sourceBase, y * columns), ref destination, width);
 
-            // The four padding bytes after each row are the right-hand neighbors of its final columns.
-            Unsafe.WriteUnaligned(ref Unsafe.Add(ref destination, width), 0u);
+                // The four padding bytes after each row are the right-hand neighbors of its final columns.
+                Unsafe.WriteUnaligned(ref Unsafe.Add(ref destination, columns), 0u);
+            }
         }
 
         // Rows below the transform are the lower neighbors of its final rows.

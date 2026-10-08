@@ -36,7 +36,7 @@ public class Av1CompoundReferenceEntropyTests
             CompoundTypeContext,
             referenceCounts) > 0);
 
-        Assert.True(encoder.GetInterCompoundModeCost(Mode, ModeContext) > 0);
+        Assert.True(Av1SymbolEncoder.GetInterCompoundModeCost(encoder.ModeCosts, Mode, ModeContext) > 0);
         encoder.WriteLastGoldenCompoundReference<Av1SymbolEncoder.SymbolWriteOperation>(
             ref output, ReferenceModeContext, CompoundTypeContext, referenceCounts);
 

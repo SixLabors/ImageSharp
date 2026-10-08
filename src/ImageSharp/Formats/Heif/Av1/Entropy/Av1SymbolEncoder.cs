@@ -789,20 +789,17 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Gets the current fixed-point cost of a palette color-order index.
     /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
     /// <param name="colorOrderIndex">The index in the context-specific palette color order.</param>
     /// <param name="paletteSize">The number of colors in the palette.</param>
     /// <param name="colorContext">The color-index context derived from preceding spatial indices.</param>
     /// <param name="planeType">The luma or chroma plane class.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetPaletteColorIndexCost(
-        int colorOrderIndex,
-        int paletteSize,
-        int colorContext,
-        Av1PlaneType planeType)
+    public static int GetPaletteColorIndexCost(Av1ModeCosts modeCosts, int colorOrderIndex, int paletteSize, int colorContext, Av1PlaneType planeType)
     {
         return planeType == Av1PlaneType.Y
-            ? this.ModeCosts.GetPaletteYColorIndex(paletteSize - 2, colorContext, colorOrderIndex)
-            : this.ModeCosts.GetPaletteUvColorIndex(paletteSize - 2, colorContext, colorOrderIndex);
+            ? modeCosts.GetPaletteYColorIndex(paletteSize - 2, colorContext, colorOrderIndex)
+            : modeCosts.GetPaletteUvColorIndex(paletteSize - 2, colorContext, colorOrderIndex);
     }
 
     /// <summary>
@@ -1150,11 +1147,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Measures one switchable interpolation filter against its live tile distribution.
     /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
     /// <param name="filter">The regular, smooth, or sharp filter.</param>
     /// <param name="context">The spatial filter context for the selected direction.</param>
     /// <returns>The syntax cost in 1/512-bit units.</returns>
-    public int GetSwitchableInterpolationFilterCost(Av1InterpolationFilter filter, int context)
-        => this.ModeCosts.GetSwitchableInterpolation(context, (int)filter);
+    public static int GetSwitchableInterpolationFilterCost(Av1ModeCosts modeCosts, Av1InterpolationFilter filter, int context)
+        => modeCosts.GetSwitchableInterpolation(context, (int)filter);
 
     /// <summary>
     /// Writes one switchable interpolation filter and updates its live tile distribution.
@@ -1170,13 +1168,14 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Measures a single-reference inter mode against the live branch distributions.
     /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
     /// <param name="mode">The new, global, nearest, or near motion-vector mode.</param>
     /// <param name="modeContext">The packed context derived from the reference-vector stack.</param>
     /// <returns>The syntax cost in 1/512-bit units.</returns>
-    public int GetInterModeCost(Av1PredictionMode mode, int modeContext)
+    public static int GetInterModeCost(Av1ModeCosts modeCosts, Av1PredictionMode mode, int modeContext)
     {
         bool isNotNew = mode != Av1PredictionMode.NewMotionVector;
-        int rate = this.ModeCosts.GetNewMv(Av1SymbolContextHelper.GetNewMvContext(modeContext), isNotNew ? 1 : 0);
+        int rate = modeCosts.GetNewMv(Av1SymbolContextHelper.GetNewMvContext(modeContext), isNotNew ? 1 : 0);
 
         if (!isNotNew)
         {
@@ -1184,14 +1183,14 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         }
 
         bool isNotGlobal = mode != Av1PredictionMode.GlobalMotionVector;
-        rate += this.ModeCosts.GetZeroMv(Av1SymbolContextHelper.GetZeroMvContext(modeContext), isNotGlobal ? 1 : 0);
+        rate += modeCosts.GetZeroMv(Av1SymbolContextHelper.GetZeroMvContext(modeContext), isNotGlobal ? 1 : 0);
 
         if (!isNotGlobal)
         {
             return rate;
         }
 
-        return rate + this.ModeCosts.GetRefMv(Av1SymbolContextHelper.GetRefMvContext(modeContext), mode == Av1PredictionMode.NearMotionVector ? 1 : 0);
+        return rate + modeCosts.GetRefMv(Av1SymbolContextHelper.GetRefMvContext(modeContext), mode == Av1PredictionMode.NearMotionVector ? 1 : 0);
     }
 
     /// <summary>
@@ -1229,11 +1228,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Measures one dynamic-reference-list advance decision.
     /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
     /// <param name="advance">Whether selection advances to the next candidate.</param>
     /// <param name="context">The candidate-weight context.</param>
     /// <returns>The syntax cost in 1/512-bit units.</returns>
-    public int GetDynamicReferenceListCost(bool advance, int context)
-        => this.ModeCosts.GetDrl(context, advance ? 1 : 0);
+    public static int GetDynamicReferenceListCost(Av1ModeCosts modeCosts, bool advance, int context)
+        => modeCosts.GetDrl(context, advance ? 1 : 0);
 
     /// <summary>
     /// Writes one dynamic-reference-list advance decision.
@@ -1287,11 +1287,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Gets the current fixed-point cost of a complete block partition symbol.
     /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
     /// <param name="partitionType">The partition type to measure.</param>
     /// <param name="context">The partition probability context.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetPartitionTypeCost(Av1PartitionType partitionType, int context)
-        => this.ModeCosts.GetPartitionTypes(context, (int)partitionType);
+    public static int GetPartitionTypeCost(Av1ModeCosts modeCosts, Av1PartitionType partitionType, int context)
+        => modeCosts.GetPartitionTypes(context, (int)partitionType);
 
     /// <summary>
     /// Writes a complete block partition type using the selected partition context.
@@ -2181,11 +2182,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Gets the current fixed-point cost of one variable-transform partition decision.
     /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
     /// <param name="split">Indicates whether the current transform node is split.</param>
     /// <param name="context">The neighboring variable-transform context.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetTransformPartitionCost(bool split, int context)
-        => this.ModeCosts.GetTransformPartition(context, split ? 1 : 0);
+    public static int GetTransformPartitionCost(Av1ModeCosts modeCosts, bool split, int context)
+        => modeCosts.GetTransformPartition(context, split ? 1 : 0);
 
     /// <summary>
     /// Writes one variable-transform partition decision.
@@ -2567,8 +2569,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Gets the compound skip-mode flag cost.
     /// </summary>
-    public int GetSkipModeCost(bool skip, int context)
-        => this.ModeCosts.GetSkipMode(context, skip ? 1 : 0);
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="skip">Whether skip mode is selected.</param>
+    /// <param name="context">The neighboring skip-mode context.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetSkipModeCost(Av1ModeCosts modeCosts, bool skip, int context)
+        => modeCosts.GetSkipMode(context, skip ? 1 : 0);
 
     /// <summary>
     /// Writes the compound-reference skip-mode flag.
@@ -2706,11 +2712,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Gets the cost of the prediction-domain decision for an inter-frame block.
     /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
     /// <param name="isInter">Whether the block uses a retained reference frame.</param>
     /// <param name="context">The neighboring prediction-domain context.</param>
     /// <returns>The syntax cost in 1/512-bit units.</returns>
-    public int GetIsInterCost(bool isInter, int context)
-        => this.ModeCosts.GetIntraInter(context, isInter ? 1 : 0);
+    public static int GetIsInterCost(Av1ModeCosts modeCosts, bool isInter, int context)
+        => modeCosts.GetIntraInter(context, isInter ? 1 : 0);
 
     /// <summary>
     /// Writes the prediction-domain decision for an inter-frame block.
@@ -2729,41 +2736,40 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Gets the cost of selecting one reference from the single-reference branch tree.
     /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
     /// <param name="referenceFrame">The selected reference-frame label.</param>
     /// <param name="referenceCounts">The neighboring reference counts indexed by reference-frame label.</param>
     /// <returns>The syntax cost in 1/512-bit units.</returns>
-    public int GetSingleReferenceCost(
-        Av1ReferenceFrameType referenceFrame,
-        ReadOnlySpan<byte> referenceCounts)
+    public static int GetSingleReferenceCost(Av1ModeCosts modeCosts, Av1ReferenceFrameType referenceFrame, ReadOnlySpan<byte> referenceCounts)
     {
         bool isBackward = referenceFrame >= Av1ReferenceFrameType.Backward;
         int context = Av1SymbolContextHelper.GetSingleReferenceBackwardContext(referenceCounts);
-        int rate = this.ModeCosts.GetSingleReference(context, 0, isBackward ? 1 : 0);
+        int rate = modeCosts.GetSingleReference(context, 0, isBackward ? 1 : 0);
         if (isBackward)
         {
             bool isAlternate = referenceFrame == Av1ReferenceFrameType.Alternate;
             context = Av1SymbolContextHelper.GetSingleReferenceAlternateContext(referenceCounts);
-            rate += this.ModeCosts.GetSingleReference(context, 1, isAlternate ? 1 : 0);
+            rate += modeCosts.GetSingleReference(context, 1, isAlternate ? 1 : 0);
             if (isAlternate)
             {
                 return rate;
             }
 
             context = Av1SymbolContextHelper.GetSingleReferenceAlternate2Context(referenceCounts);
-            return rate + this.ModeCosts.GetSingleReference(context, 5, referenceFrame == Av1ReferenceFrameType.Alternate2 ? 1 : 0);
+            return rate + modeCosts.GetSingleReference(context, 5, referenceFrame == Av1ReferenceFrameType.Alternate2 ? 1 : 0);
         }
 
         bool isLast3OrGolden = referenceFrame is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
         context = Av1SymbolContextHelper.GetSingleReferenceLast3OrGoldenContext(referenceCounts);
-        rate += this.ModeCosts.GetSingleReference(context, 2, isLast3OrGolden ? 1 : 0);
+        rate += modeCosts.GetSingleReference(context, 2, isLast3OrGolden ? 1 : 0);
         if (isLast3OrGolden)
         {
             context = Av1SymbolContextHelper.GetSingleReferenceGoldenContext(referenceCounts);
-            return rate + this.ModeCosts.GetSingleReference(context, 4, referenceFrame == Av1ReferenceFrameType.Golden ? 1 : 0);
+            return rate + modeCosts.GetSingleReference(context, 4, referenceFrame == Av1ReferenceFrameType.Golden ? 1 : 0);
         }
 
         context = Av1SymbolContextHelper.GetSingleReferenceLast2Context(referenceCounts);
-        return rate + this.ModeCosts.GetSingleReference(context, 3, referenceFrame == Av1ReferenceFrameType.Last2 ? 1 : 0);
+        return rate + modeCosts.GetSingleReference(context, 3, referenceFrame == Av1ReferenceFrameType.Last2 ? 1 : 0);
     }
 
     /// <summary>
@@ -2837,7 +2843,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         int referenceModeContext,
         int compoundTypeContext,
         ReadOnlySpan<byte> referenceCounts)
-        => this.GetCompoundReferenceCost(
+        => GetCompoundReferenceCost(
+            this.ModeCosts,
             Av1ReferenceFrameType.Last,
             Av1ReferenceFrameType.Golden,
             referenceModeContext,
@@ -2847,7 +2854,15 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Gets the complete syntax cost for one legal AV1 compound-reference pair.
     /// </summary>
-    public int GetCompoundReferenceCost(
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="primaryReference">The first reference of the pair.</param>
+    /// <param name="secondaryReference">The second reference of the pair.</param>
+    /// <param name="referenceModeContext">The neighboring single-versus-compound context.</param>
+    /// <param name="compoundTypeContext">The neighboring compound direction context.</param>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by reference-frame label.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetCompoundReferenceCost(
+        Av1ModeCosts modeCosts,
         Av1ReferenceFrameType primaryReference,
         Av1ReferenceFrameType secondaryReference,
         int referenceModeContext,
@@ -2857,14 +2872,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         bool isUnidirectional = (primaryReference < Av1ReferenceFrameType.Backward) ==
             (secondaryReference < Av1ReferenceFrameType.Backward);
 
-        int rate = this.ModeCosts.GetCompInter(referenceModeContext, 1) +
-            this.ModeCosts.GetCompoundReferenceType(compoundTypeContext, isUnidirectional ? 0 : 1);
+        int rate = modeCosts.GetCompInter(referenceModeContext, 1) + modeCosts.GetCompoundReferenceType(compoundTypeContext, isUnidirectional ? 0 : 1);
 
         if (isUnidirectional)
         {
             bool isBackwardPair = primaryReference == Av1ReferenceFrameType.Backward;
             int context = Av1SymbolContextHelper.GetUnidirectionalCompoundBackwardContext(referenceCounts);
-            rate += this.ModeCosts.GetUnidirectionalCompoundReference(context, 0, isBackwardPair ? 1 : 0);
+            rate += modeCosts.GetUnidirectionalCompoundReference(context, 0, isBackwardPair ? 1 : 0);
             if (isBackwardPair)
             {
                 return rate;
@@ -2872,49 +2886,37 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
             bool isLast3OrGolden = secondaryReference is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
             context = Av1SymbolContextHelper.GetUnidirectionalCompoundLast3OrGoldenContext(referenceCounts);
-            rate += this.ModeCosts.GetUnidirectionalCompoundReference(context, 1, isLast3OrGolden ? 1 : 0);
+            rate += modeCosts.GetUnidirectionalCompoundReference(context, 1, isLast3OrGolden ? 1 : 0);
             if (!isLast3OrGolden)
             {
                 return rate;
             }
 
             context = Av1SymbolContextHelper.GetUnidirectionalCompoundGoldenContext(referenceCounts);
-            return rate + this.ModeCosts.GetUnidirectionalCompoundReference(
-                context,
-                2,
-                secondaryReference == Av1ReferenceFrameType.Golden ? 1 : 0);
+            return rate + modeCosts.GetUnidirectionalCompoundReference(context, 2, secondaryReference == Av1ReferenceFrameType.Golden ? 1 : 0);
         }
 
         bool isLast3OrGoldenPrimary = primaryReference is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
         int forwardContext = Av1SymbolContextHelper.GetCompoundForwardLast3OrGoldenContext(referenceCounts);
-        rate += this.ModeCosts.GetCompoundReference(forwardContext, 0, isLast3OrGoldenPrimary ? 1 : 0);
+        rate += modeCosts.GetCompoundReference(forwardContext, 0, isLast3OrGoldenPrimary ? 1 : 0);
         if (isLast3OrGoldenPrimary)
         {
             forwardContext = Av1SymbolContextHelper.GetCompoundForwardGoldenContext(referenceCounts);
-            rate += this.ModeCosts.GetCompoundReference(
-                forwardContext,
-                2,
-                primaryReference == Av1ReferenceFrameType.Golden ? 1 : 0);
+            rate += modeCosts.GetCompoundReference(forwardContext, 2, primaryReference == Av1ReferenceFrameType.Golden ? 1 : 0);
         }
         else
         {
             forwardContext = Av1SymbolContextHelper.GetCompoundForwardLast2Context(referenceCounts);
-            rate += this.ModeCosts.GetCompoundReference(
-                forwardContext,
-                1,
-                primaryReference == Av1ReferenceFrameType.Last2 ? 1 : 0);
+            rate += modeCosts.GetCompoundReference(forwardContext, 1, primaryReference == Av1ReferenceFrameType.Last2 ? 1 : 0);
         }
 
         bool isAlternate = secondaryReference == Av1ReferenceFrameType.Alternate;
         int backwardContext = Av1SymbolContextHelper.GetCompoundBackwardAlternateContext(referenceCounts);
-        rate += this.ModeCosts.GetCompoundBackwardReference(backwardContext, 0, isAlternate ? 1 : 0);
+        rate += modeCosts.GetCompoundBackwardReference(backwardContext, 0, isAlternate ? 1 : 0);
         if (!isAlternate)
         {
             backwardContext = Av1SymbolContextHelper.GetCompoundBackwardAlternate2Context(referenceCounts);
-            rate += this.ModeCosts.GetCompoundBackwardReference(
-                backwardContext,
-                1,
-                secondaryReference == Av1ReferenceFrameType.Alternate2 ? 1 : 0);
+            rate += modeCosts.GetCompoundBackwardReference(backwardContext, 1, secondaryReference == Av1ReferenceFrameType.Alternate2 ? 1 : 0);
         }
 
         return rate;
@@ -3048,8 +3050,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Gets the cost of one compound motion-vector mode.
     /// </summary>
-    public int GetInterCompoundModeCost(Av1PredictionMode mode, int modeContext)
-        => this.ModeCosts.GetInterCompoundMode(
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="mode">The compound motion-vector mode.</param>
+    /// <param name="modeContext">The packed context derived from the reference-vector stack.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetInterCompoundModeCost(Av1ModeCosts modeCosts, Av1PredictionMode mode, int modeContext)
+        => modeCosts.GetInterCompoundMode(
             Av1SymbolContextHelper.GetCompoundModeContext(modeContext),
             (int)mode - (int)Av1PredictionMode.NearestNearestMotionVector);
 
@@ -3072,22 +3078,24 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Gets the complete inter-intra syntax rate for one eligible single-reference block.
     /// </summary>
-    public int GetInterIntraCost(
-        Av1BlockSize blockSize,
-        bool enabled,
-        Av1InterIntraMode mode,
-        bool useWedge,
-        int wedgeIndex)
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="enabled">Whether the block uses inter-intra prediction.</param>
+    /// <param name="mode">The intra mode of the inter-intra prediction.</param>
+    /// <param name="useWedge">Whether the blend uses a wedge mask.</param>
+    /// <param name="wedgeIndex">The wedge mask index.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetInterIntraCost(Av1ModeCosts modeCosts, Av1BlockSize blockSize, bool enabled, Av1InterIntraMode mode, bool useWedge, int wedgeIndex)
     {
-        int rate = this.ModeCosts.GetInterIntra(blockSize, enabled ? 1 : 0);
+        int rate = modeCosts.GetInterIntra(blockSize, enabled ? 1 : 0);
         if (!enabled)
         {
             return rate;
         }
 
-        rate += this.ModeCosts.GetInterIntraMode(blockSize, mode);
-        rate += this.ModeCosts.GetWedgeInterIntra(blockSize, useWedge ? 1 : 0);
-        return useWedge ? rate + this.ModeCosts.GetWedgeIndex(blockSize, wedgeIndex) : rate;
+        rate += modeCosts.GetInterIntraMode(blockSize, mode);
+        rate += modeCosts.GetWedgeInterIntra(blockSize, useWedge ? 1 : 0);
+        return useWedge ? rate + modeCosts.GetWedgeIndex(blockSize, wedgeIndex) : rate;
     }
 
     /// <summary>
@@ -3155,7 +3163,16 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Gets the complete blend syntax rate for one compound prediction type.
     /// </summary>
-    public int GetCompoundBlendCost(
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="compoundType">The compound prediction type.</param>
+    /// <param name="compoundGroupContext">The compound group index context.</param>
+    /// <param name="compoundIndexContext">The compound index context.</param>
+    /// <param name="wedgeIndex">The wedge mask index of a wedge blend.</param>
+    /// <param name="maskedCompoundEnabled">Whether the sequence enables masked compound prediction.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetCompoundBlendCost(
+        Av1ModeCosts modeCosts,
         Av1BlockSize blockSize,
         Av1CompoundType compoundType,
         int compoundGroupContext,
@@ -3164,24 +3181,20 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         bool maskedCompoundEnabled)
     {
         bool masked = compoundType is Av1CompoundType.Wedge or Av1CompoundType.DifferenceWeighted;
-        int rate = maskedCompoundEnabled
-            ? this.ModeCosts.GetCompoundGroupIndex(compoundGroupContext, masked ? 1 : 0)
-            : 0;
+        int rate = maskedCompoundEnabled ? modeCosts.GetCompoundGroupIndex(compoundGroupContext, masked ? 1 : 0) : 0;
 
         if (!masked)
         {
             // The average and distance-weighted types pay the compound index even in a sequence that does not code
             // it. Reference: calc_masked_type_cost().
-            return rate + this.ModeCosts.GetCompoundIndex(compoundIndexContext, compoundType == Av1CompoundType.Average ? 1 : 0);
+            return rate + modeCosts.GetCompoundIndex(compoundIndexContext, compoundType == Av1CompoundType.Average ? 1 : 0);
         }
 
-        rate += this.ModeCosts.GetCompoundType(
-            blockSize,
-            compoundType == Av1CompoundType.DifferenceWeighted ? 1 : 0);
+        rate += modeCosts.GetCompoundType(blockSize, compoundType == Av1CompoundType.DifferenceWeighted ? 1 : 0);
 
         if (compoundType == Av1CompoundType.Wedge)
         {
-            rate += this.ModeCosts.GetWedgeIndex(blockSize, wedgeIndex) + 512;
+            rate += modeCosts.GetWedgeIndex(blockSize, wedgeIndex) + 512;
         }
         else
         {

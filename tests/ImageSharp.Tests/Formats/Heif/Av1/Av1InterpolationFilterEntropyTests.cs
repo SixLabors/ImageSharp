@@ -83,8 +83,8 @@ public class Av1InterpolationFilterEntropyTests
             // its owner refreshes them, not after each written symbol.
             encoder.RefreshCosts();
             int expectedCost = Av1ProbabilityCost.GetSymbolCost(distribution, (int)filter);
-            Assert.Equal(expectedCost, encoder.GetSwitchableInterpolationFilterCost(filter, context));
-            Assert.Equal(expectedCost, encoder.GetSwitchableInterpolationFilterCost(filter, context));
+            Assert.Equal(expectedCost, Av1SymbolEncoder.GetSwitchableInterpolationFilterCost(encoder.ModeCosts, filter, context));
+            Assert.Equal(expectedCost, Av1SymbolEncoder.GetSwitchableInterpolationFilterCost(encoder.ModeCosts, filter, context));
             expectedWriter.WriteSymbol(ref expectedOutput, (int)filter, distribution);
             encoder.WriteSwitchableInterpolationFilter<Av1SymbolEncoder.SymbolWriteOperation>(ref output, filter, context);
         }

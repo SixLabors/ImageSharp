@@ -894,6 +894,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     {
                         candidateDistortion = TOperator.ReconstructPredictionCandidate(
                             this.blockWorkspace,
+                            transformWorkspace,
                             candidateDequantized,
                             source,
                             sourceStride,
@@ -966,6 +967,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 long pixelDistortion = TOperator.ReconstructPredictionCandidate(
                     this.blockWorkspace,
+                    transformWorkspace,
                     bestDequantized,
                     source,
                     sourceStride,

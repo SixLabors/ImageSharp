@@ -55,8 +55,37 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Refines coefficients for the selected UV predictor without repeating mode or alpha search.
         /// Reference: the av1_txfm_uvrd() call of refine_winner_mode_tx() for an intra winner.
         /// </summary>
+        /// <param name="writer">The symbol encoder that prices the syntax.</param>
+        /// <param name="tables">The rate tables of the tile.</param>
+        /// <param name="workspace">The mode decision buffers of the block.</param>
+        /// <param name="blockTransformCoefficients">The forward transform output buffer.</param>
+        /// <param name="blockDequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
+        /// <param name="blockTransformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="blockResidual">The residual buffer of the block.</param>
+        /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
+        /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
+        /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="tileIndex">The tile index.</param>
+        /// <param name="modeInfo">The block decisions of the winner.</param>
+        /// <param name="block">The block state of the winner.</param>
+        /// <param name="paletteInfo">The palette of the winner.</param>
+        /// <param name="previousStatistics">The rate and distortion of the chroma planes before the refinement.</param>
+        /// <returns>The rate and distortion of the refined chroma planes.</returns>
         private Av1RateDistortionStatistics RefineSelectedChroma(
             Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            Span<int> blockTransformCoefficients,
+            Span<int> blockDequantizedCoefficients,
+            Span<int> blockTransformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
+            Span<short> blockResidual,
+            Span<int> searchCoefficients,
+            Span<int> searchDequantizedCoefficients,
+            Span<int> searchReconstructions,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
@@ -83,7 +112,6 @@ internal static partial class Av1IntraSuperblockEncoder
             int contextWidth = planeSize.Get4x4WideCount();
             int contextHeight = planeSize.Get4x4HighCount();
             int transformCount = sampleCount / transformSize.GetSize2d();
-            Av1EncoderModeDecisionWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
             bool usesChromaFromLuma = modeInfo.Block.UvMode == Av1ChromaPredictionMode.ChromaFromLuma;
 
             // Chroma-from-luma predicts from the luma of the chroma mode search, not from the refined luma: the
@@ -99,17 +127,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
             long distortion = 0;
             bool hasCoefficients = false;
-
-            // Both chroma planes read the same rate tables and workspace buffers.
-            Av1CoefficientTables tables = writer.GetCoefficientTables();
-            Span<int> blockTransformCoefficients = this.blockWorkspace.TransformCoefficients;
-            Span<int> blockDequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
-            Span<int> blockTransformWorkspace = this.blockWorkspace.TransformWorkspace;
-            ReadOnlySpan<int> transformTypeProbabilities = this.blockWorkspace.TransformTypeProbabilities;
-            Span<short> blockResidual = this.blockWorkspace.Residual;
-            Span<int> searchCoefficients = this.blockWorkspace.SearchCoefficients;
-            Span<int> searchDequantizedCoefficients = this.blockWorkspace.SearchDequantizedCoefficients;
-            Span<int> searchReconstructions = this.blockWorkspace.SearchReconstructions;
             for (int planeIndex = 1; planeIndex < 3; planeIndex++)
             {
                 Av1Plane plane = (Av1Plane)planeIndex;
@@ -279,8 +296,48 @@ internal static partial class Av1IntraSuperblockEncoder
             };
         }
 
+        /// <summary>
+        /// Selects the chroma mode, angle, chroma-from-luma alpha and palette of an intra block.
+        /// </summary>
+        /// <param name="writer">The symbol encoder that prices the syntax.</param>
+        /// <param name="tables">The rate tables of the tile.</param>
+        /// <param name="workspace">The mode decision buffers of the block.</param>
+        /// <param name="blockTransformCoefficients">The forward transform output buffer.</param>
+        /// <param name="blockDequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
+        /// <param name="blockTransformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="blockResidual">The residual buffer of the block.</param>
+        /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
+        /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
+        /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
+        /// <param name="lumaOrigin">The block origin in luma samples.</param>
+        /// <param name="chromaOrigin">The block origin in chroma samples.</param>
+        /// <param name="blockSize">The luma block size.</param>
+        /// <param name="tileIndex">The tile index.</param>
+        /// <param name="lumaMode">The selected luma mode.</param>
+        /// <param name="transformSize">The chroma transform size.</param>
+        /// <param name="retainedBlueStates">The transform states of the blue winner.</param>
+        /// <param name="retainedRedStates">The transform states of the red winner.</param>
+        /// <param name="paletteInfo">The palette of the block.</param>
+        /// <param name="selectedAngleDelta">The angle delta of the chroma winner.</param>
+        /// <param name="selectedChromaFromLumaIndex">The chroma-from-luma alpha index of the winner.</param>
+        /// <param name="selectedChromaFromLumaSigns">The chroma-from-luma alpha signs of the winner.</param>
+        /// <param name="selectedStatistics">The rate and distortion of the chroma winner.</param>
+        /// <returns>The chroma mode of the winner.</returns>
         private Av1ChromaPredictionMode SelectChromaMode(
             Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            Span<int> blockTransformCoefficients,
+            Span<int> blockDequantizedCoefficients,
+            Span<int> blockTransformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
+            Span<short> blockResidual,
+            Span<int> searchCoefficients,
+            Span<int> searchDequantizedCoefficients,
+            Span<int> searchReconstructions,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -299,6 +356,16 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             return this.SelectChromaModeCore(
                 writer,
+                in tables,
+                in workspace,
+                blockTransformCoefficients,
+                blockDequantizedCoefficients,
+                blockTransformWorkspace,
+                transformTypeProbabilities,
+                blockResidual,
+                searchCoefficients,
+                searchDequantizedCoefficients,
+                searchReconstructions,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
@@ -316,8 +383,48 @@ internal static partial class Av1IntraSuperblockEncoder
                 out selectedStatistics);
         }
 
+        /// <summary>
+        /// Searches the chroma predictions of an intra block, then the chroma palette, and keeps the cheapest.
+        /// </summary>
+        /// <param name="writer">The symbol encoder that prices the syntax.</param>
+        /// <param name="tables">The rate tables of the tile.</param>
+        /// <param name="workspace">The mode decision buffers of the block.</param>
+        /// <param name="blockTransformCoefficients">The forward transform output buffer.</param>
+        /// <param name="blockDequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
+        /// <param name="blockTransformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="blockResidual">The residual buffer of the block.</param>
+        /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
+        /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
+        /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
+        /// <param name="lumaOrigin">The block origin in luma samples.</param>
+        /// <param name="chromaOrigin">The block origin in chroma samples.</param>
+        /// <param name="blockSize">The luma block size.</param>
+        /// <param name="tileIndex">The tile index.</param>
+        /// <param name="lumaMode">The selected luma mode.</param>
+        /// <param name="transformSize">The chroma transform size.</param>
+        /// <param name="retainedBlueStates">The transform states of the blue winner.</param>
+        /// <param name="retainedRedStates">The transform states of the red winner.</param>
+        /// <param name="paletteInfo">The palette of the block.</param>
+        /// <param name="selectedAngleDelta">The angle delta of the chroma winner.</param>
+        /// <param name="selectedChromaFromLumaIndex">The chroma-from-luma alpha index of the winner.</param>
+        /// <param name="selectedChromaFromLumaSigns">The chroma-from-luma alpha signs of the winner.</param>
+        /// <param name="selectedStatistics">The rate and distortion of the chroma winner.</param>
+        /// <returns>The chroma mode of the winner.</returns>
         private Av1ChromaPredictionMode SelectChromaModeCore(
             Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            Span<int> blockTransformCoefficients,
+            Span<int> blockDequantizedCoefficients,
+            Span<int> blockTransformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
+            Span<short> blockResidual,
+            Span<int> searchCoefficients,
+            Span<int> searchDequantizedCoefficients,
+            Span<int> searchReconstructions,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -336,6 +443,16 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             Av1ChromaPredictionMode mode = this.SelectChromaPrediction(
                 writer,
+                in tables,
+                in workspace,
+                blockTransformCoefficients,
+                blockDequantizedCoefficients,
+                blockTransformWorkspace,
+                transformTypeProbabilities,
+                blockResidual,
+                searchCoefficients,
+                searchDequantizedCoefficients,
+                searchReconstructions,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
@@ -357,6 +474,15 @@ internal static partial class Av1IntraSuperblockEncoder
             if (Av1TileWriter.IsPaletteAllowed(this.picture.Parent.FrameHeader.AllowScreenContentTools, blockSize) &&
                 this.SelectChromaPalette(
                     writer,
+                    in tables,
+                    in workspace,
+                    blockTransformCoefficients,
+                    blockDequantizedCoefficients,
+                    blockTransformWorkspace,
+                    transformTypeProbabilities,
+                    searchCoefficients,
+                    searchDequantizedCoefficients,
+                    searchReconstructions,
                     macroBlock,
                     modeInfo,
                     lumaOrigin,
@@ -395,8 +521,48 @@ internal static partial class Av1IntraSuperblockEncoder
             return mode;
         }
 
+        /// <summary>
+        /// Searches the chroma prediction modes of an intra block.
+        /// </summary>
+        /// <param name="writer">The symbol encoder that prices the syntax.</param>
+        /// <param name="tables">The rate tables of the tile.</param>
+        /// <param name="workspace">The mode decision buffers of the block.</param>
+        /// <param name="blockTransformCoefficients">The forward transform output buffer.</param>
+        /// <param name="blockDequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
+        /// <param name="blockTransformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="blockResidual">The residual buffer of the block.</param>
+        /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
+        /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
+        /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
+        /// <param name="lumaOrigin">The block origin in luma samples.</param>
+        /// <param name="chromaOrigin">The block origin in chroma samples.</param>
+        /// <param name="blockSize">The luma block size.</param>
+        /// <param name="tileIndex">The tile index.</param>
+        /// <param name="lumaMode">The selected luma mode.</param>
+        /// <param name="transformSize">The chroma transform size.</param>
+        /// <param name="retainedBlueStates">The transform states of the blue winner.</param>
+        /// <param name="retainedRedStates">The transform states of the red winner.</param>
+        /// <param name="paletteInfo">The palette of the block.</param>
+        /// <param name="selectedAngleDelta">The angle delta of the chroma winner.</param>
+        /// <param name="selectedChromaFromLumaIndex">The chroma-from-luma alpha index of the winner.</param>
+        /// <param name="selectedChromaFromLumaSigns">The chroma-from-luma alpha signs of the winner.</param>
+        /// <param name="selectedStatistics">The rate and distortion of the chroma winner.</param>
+        /// <returns>The chroma mode of the winner.</returns>
         private Av1ChromaPredictionMode SelectChromaPrediction(
             Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            Span<int> blockTransformCoefficients,
+            Span<int> blockDequantizedCoefficients,
+            Span<int> blockTransformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
+            Span<short> blockResidual,
+            Span<int> searchCoefficients,
+            Span<int> searchDequantizedCoefficients,
+            Span<int> searchReconstructions,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -415,6 +581,16 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             return this.SelectChromaPredictionCore(
                 writer,
+                in tables,
+                in workspace,
+                blockTransformCoefficients,
+                blockDequantizedCoefficients,
+                blockTransformWorkspace,
+                transformTypeProbabilities,
+                blockResidual,
+                searchCoefficients,
+                searchDequantizedCoefficients,
+                searchReconstructions,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
@@ -432,8 +608,49 @@ internal static partial class Av1IntraSuperblockEncoder
                 out selectedStatistics);
         }
 
+        /// <summary>
+        /// Searches the directional, smooth and chroma-from-luma chroma modes of an intra block with their angles and
+        /// alphas, and keeps the cheapest.
+        /// </summary>
+        /// <param name="writer">The symbol encoder that prices the syntax.</param>
+        /// <param name="tables">The rate tables of the tile.</param>
+        /// <param name="workspace">The mode decision buffers of the block.</param>
+        /// <param name="blockTransformCoefficients">The forward transform output buffer.</param>
+        /// <param name="blockDequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
+        /// <param name="blockTransformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="blockResidual">The residual buffer of the block.</param>
+        /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
+        /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
+        /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
+        /// <param name="lumaOrigin">The block origin in luma samples.</param>
+        /// <param name="chromaOrigin">The block origin in chroma samples.</param>
+        /// <param name="blockSize">The luma block size.</param>
+        /// <param name="tileIndex">The tile index.</param>
+        /// <param name="lumaMode">The selected luma mode.</param>
+        /// <param name="transformSize">The chroma transform size.</param>
+        /// <param name="retainedBlueStates">The transform states of the blue winner.</param>
+        /// <param name="retainedRedStates">The transform states of the red winner.</param>
+        /// <param name="paletteInfo">The palette of the block.</param>
+        /// <param name="selectedAngleDelta">The angle delta of the chroma winner.</param>
+        /// <param name="selectedChromaFromLumaIndex">The chroma-from-luma alpha index of the winner.</param>
+        /// <param name="selectedChromaFromLumaSigns">The chroma-from-luma alpha signs of the winner.</param>
+        /// <param name="selectedStatistics">The rate and distortion of the chroma winner.</param>
+        /// <returns>The chroma mode of the winner.</returns>
         private Av1ChromaPredictionMode SelectChromaPredictionCore(
             Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            Span<int> blockTransformCoefficients,
+            Span<int> blockDequantizedCoefficients,
+            Span<int> blockTransformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
+            Span<short> blockResidual,
+            Span<int> searchCoefficients,
+            Span<int> searchDequantizedCoefficients,
+            Span<int> searchReconstructions,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -450,9 +667,6 @@ internal static partial class Av1IntraSuperblockEncoder
             out sbyte selectedChromaFromLumaSigns,
             out Av1RateDistortionStatistics selectedStatistics)
         {
-            Av1EncoderModeDecisionWorkspace<TSample> workspace =
-                this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
-
             ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
             int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
             int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
@@ -467,6 +681,15 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 return this.SelectTiledChromaMode(
                     writer,
+                    in tables,
+                    in workspace,
+                    blockTransformCoefficients,
+                    blockDequantizedCoefficients,
+                    blockTransformWorkspace,
+                    transformTypeProbabilities,
+                    searchCoefficients,
+                    searchDequantizedCoefficients,
+                    searchReconstructions,
                     macroBlock,
                     modeInfo,
                     lumaOrigin,
@@ -641,18 +864,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 GetSourceVariance(blueSource, chromaOrigin, width, height, this.bitDepth) < 20 &&
                 GetSourceVariance(redSource, chromaOrigin, width, height, this.bitDepth) < 20;
 
-            // The rate tables and the workspace buffers of every chroma candidate of the block, read once.
-            Av1CoefficientTables tables = writer.GetCoefficientTables();
             Av1ModeCosts modeCosts = tables.ModeCosts;
-            Span<int> blockTransformCoefficients = this.blockWorkspace.TransformCoefficients;
-            Span<int> blockDequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
-            Span<int> blockTransformWorkspace = this.blockWorkspace.TransformWorkspace;
-            ReadOnlySpan<int> transformTypeProbabilities = this.blockWorkspace.TransformTypeProbabilities;
-            Span<short> blockResidual = this.blockWorkspace.Residual;
-            Span<int> searchCoefficients = this.blockWorkspace.SearchCoefficients;
-            Span<int> searchDequantizedCoefficients = this.blockWorkspace.SearchDequantizedCoefficients;
-            Span<int> searchReconstructions = this.blockWorkspace.SearchReconstructions;
-
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
             int paletteDisabledCost = Av1TileWriter.IsPaletteAllowed(
                 this.picture.Parent.FrameHeader.AllowScreenContentTools,
@@ -1174,8 +1386,48 @@ internal static partial class Av1IntraSuperblockEncoder
             return bestMode;
         }
 
+        /// <summary>
+        /// Searches the chroma modes of an intra block whose chroma plane codes several transform blocks, one transform
+        /// block at a time in coding order.
+        /// </summary>
+        /// <param name="writer">The symbol encoder that prices the syntax.</param>
+        /// <param name="tables">The rate tables of the tile.</param>
+        /// <param name="workspace">The mode decision buffers of the block.</param>
+        /// <param name="blockTransformCoefficients">The forward transform output buffer.</param>
+        /// <param name="blockDequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
+        /// <param name="blockTransformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
+        /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
+        /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
+        /// <param name="lumaOrigin">The block origin in luma samples.</param>
+        /// <param name="chromaOrigin">The block origin in chroma samples.</param>
+        /// <param name="blockSize">The luma block size.</param>
+        /// <param name="chromaBlockSize">The chroma block size.</param>
+        /// <param name="tileIndex">The tile index.</param>
+        /// <param name="lumaMode">The selected luma mode.</param>
+        /// <param name="transformSize">The chroma transform size.</param>
+        /// <param name="retainedBlueStates">The transform states of the blue winner.</param>
+        /// <param name="retainedRedStates">The transform states of the red winner.</param>
+        /// <param name="paletteInfo">The palette of the block.</param>
+        /// <param name="selectedAngleDelta">The angle delta of the chroma winner.</param>
+        /// <param name="selectedChromaFromLumaIndex">The chroma-from-luma alpha index of the winner.</param>
+        /// <param name="selectedChromaFromLumaSigns">The chroma-from-luma alpha signs of the winner.</param>
+        /// <param name="selectedStatistics">The rate and distortion of the chroma winner.</param>
+        /// <returns>The chroma mode of the winner.</returns>
         private Av1ChromaPredictionMode SelectTiledChromaMode(
             Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            Span<int> blockTransformCoefficients,
+            Span<int> blockDequantizedCoefficients,
+            Span<int> blockTransformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
+            Span<int> searchCoefficients,
+            Span<int> searchDequantizedCoefficients,
+            Span<int> searchReconstructions,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -1193,9 +1445,6 @@ internal static partial class Av1IntraSuperblockEncoder
             out sbyte selectedChromaFromLumaSigns,
             out Av1RateDistortionStatistics selectedStatistics)
         {
-            Av1EncoderModeDecisionWorkspace<TSample> workspace =
-                this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
-
             ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
             int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
             int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
@@ -1277,16 +1526,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 GetSourceVariance(blueSource, chromaOrigin, blockWidth, blockHeight, this.bitDepth) < 20 &&
                 GetSourceVariance(redSource, chromaOrigin, blockWidth, blockHeight, this.bitDepth) < 20;
 
-            // Every chroma mode of the block reads the same rate tables and workspace buffers.
-            Av1CoefficientTables tables = writer.GetCoefficientTables();
             Av1ModeCosts modeCosts = tables.ModeCosts;
-            Span<int> blockTransformCoefficients = this.blockWorkspace.TransformCoefficients;
-            Span<int> blockDequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
-            Span<int> blockTransformWorkspace = this.blockWorkspace.TransformWorkspace;
-            ReadOnlySpan<int> transformTypeProbabilities = this.blockWorkspace.TransformTypeProbabilities;
-            Span<int> searchCoefficients = this.blockWorkspace.SearchCoefficients;
-            Span<int> searchDequantizedCoefficients = this.blockWorkspace.SearchDequantizedCoefficients;
-            Span<int> searchReconstructions = this.blockWorkspace.SearchReconstructions;
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
             int paletteDisabledCost = Av1TileWriter.IsPaletteAllowed(
                 this.picture.Parent.FrameHeader.AllowScreenContentTools,
@@ -1678,7 +1918,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Span<TSample> typeWinnerReconstruction =
                 Av1EncoderBlockWorkspace.GetSearchReconstruction<TSample>(searchReconstructions, 1)[..transformSampleCount];
-
 
             // A predicted empty block is priced with the contexts at the block origin, before any transform block
             // of this plane updates them. Reference: av1_get_entropy_contexts() in predict_dc_only_block().

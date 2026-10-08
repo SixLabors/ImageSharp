@@ -24,7 +24,20 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Searches the ordinary retained reference and measures its final rounded luma predictor.
         /// </summary>
+        /// <param name="prediction">The prediction buffer of the motion search.</param>
+        /// <param name="predictionScratch">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="start">The vector that starts the search.</param>
+        /// <param name="useSubpixel">Whether the search refines to fractional precision.</param>
+        /// <param name="squaredError">The squared error of the selected prediction.</param>
+        /// <param name="variance">The variance of the selected prediction error.</param>
+        /// <returns>The selected vector.</returns>
         private Av1MotionVector SearchSimpleMotion(
+            Span<TSample> prediction,
+            Span<short> predictionScratch,
+            in Av1MotionVectorCosts motionVectorCosts,
             Point blockOrigin,
             Av1BlockSize blockSize,
             Av1MotionVector start,
@@ -55,7 +68,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MotionVector zero = default;
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             Av1MotionSearchSettings settings = this.picture.Parent.MotionSearchSettings;
-            Av1MotionVectorCosts costs = this.blockWorkspace.GetMotionVectorCosts(frameHeader.MotionVectorPrecision);
             Av1MotionSearchSettings.FullPixelSearchMethod method = settings.GetFullPixelMethod(blockSize);
             Av1MotionSearchSites sites = this.blockWorkspace.GetMotionSearchSites(method, referencePlane.Stride);
             int step = Math.Min(this.picture.Parent.MotionSearchStepParameter + this.picture.Parent.SpeedSettings.SimpleMotionStepReduction, 9);
@@ -73,7 +85,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 size,
                 this.ApplySharpnessMargins(zero.GetFullPixelSearchBounds(frameBounds), blockOrigin, size, 1),
                 zero,
-                costs,
+                motionVectorCosts,
                 this.bitDepth,
                 Av1RateDistortion.GetMotionSearchSadPerBit(this.blockQIndex, this.bitDepth),
                 errorPerBitRateMultiplier,
@@ -101,8 +113,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 // The fractional search and the final prediction of a reference of another size read the reference
                 // itself with its scale factors. Reference: the buffer that av1_simple_motion_search() swaps back
                 // before the subpel search.
-                Span<TSample> prediction = this.blockWorkspace.GetMotionSearchPrediction<TSample>();
-                Span<short> predictionScratch = this.blockWorkspace.GetInterPredictionWorkspace<TSample>().PredictionScratch;
                 Av1MotionSearchBase.ScaledReference<TSample> scaledReference =
                     this.GetScaledSearchReference(this.simpleMotionReference, blockOrigin, predictionScratch);
 
@@ -116,7 +126,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     size,
                     this.ApplySharpnessMargins(zero.GetSubpixelSearchBounds(frameBounds), blockOrigin, size, Av1MotionVector.SubpixelScale),
                     zero,
-                    costs,
+                    motionVectorCosts,
                     this.bitDepth,
                     errorPerBitRateMultiplier,
                     [],
@@ -181,13 +191,27 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Populates whole, quarter, and half-block features without repeating completed searches.
         /// </summary>
-        private void CollectSimpleMotionFeatures(Point blockOrigin, Av1BlockSize blockSize, int nodeIndex, bool includeRectangles)
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="predictionScratch">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="nodeIndex">The simple motion node of the block.</param>
+        /// <param name="includeRectangles">Whether the half-block searches are measured too.</param>
+        private void CollectSimpleMotionFeatures(
+            Span<TSample> motionSearchPrediction,
+            Span<short> predictionScratch,
+            in Av1MotionVectorCosts motionVectorCosts,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            int nodeIndex,
+            bool includeRectangles)
         {
             Span<Av1SimpleMotionData> nodes = this.blockWorkspace.SimpleMotionData;
             ref Av1SimpleMotionData node = ref nodes[nodeIndex];
             if (!node.WholeBlockValid)
             {
-                this.MeasureSimpleMotionNode(blockOrigin, blockSize, nodeIndex);
+                this.MeasureSimpleMotionNode(motionSearchPrediction, predictionScratch, in motionVectorCosts, blockOrigin, blockSize, nodeIndex);
             }
 
             Av1BlockSize childSize = Av1PartitionType.Split.GetBlockSubSize(blockSize);
@@ -198,7 +222,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (!nodes[childIndex].WholeBlockValid)
                 {
                     Point origin = new(blockOrigin.X + ((child & 1) * half), blockOrigin.Y + ((child >> 1) * half));
-                    this.MeasureSimpleMotionNode(origin, childSize, childIndex);
+                    this.MeasureSimpleMotionNode(motionSearchPrediction, predictionScratch, in motionVectorCosts, origin, childSize, childIndex);
                 }
             }
 
@@ -213,6 +237,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     Av1BlockSize rectangleSize = (horizontal ? Av1PartitionType.Horizontal : Av1PartitionType.Vertical).GetBlockSubSize(blockSize);
                     this.SearchSimpleMotion(
+                        motionSearchPrediction,
+                        predictionScratch,
+                        in motionVectorCosts,
                         origin,
                         rectangleSize,
                         node.Starts[(int)Av1ReferenceFrameType.Last],
@@ -228,7 +255,19 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Packs log-scaled motion errors, quantization, and spatial-neighbor geometry for the partition models.
         /// </summary>
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="predictionScratch">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="nodeIndex">The simple motion node of the block.</param>
+        /// <param name="includeRectangles">Whether the half-block features are packed too.</param>
+        /// <param name="features">The feature destination.</param>
         private void GetSimpleMotionFeatures(
+            Span<TSample> motionSearchPrediction,
+            Span<short> predictionScratch,
+            in Av1MotionVectorCosts motionVectorCosts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -236,7 +275,15 @@ internal static partial class Av1IntraSuperblockEncoder
             bool includeRectangles,
             Span<float> features)
         {
-            this.CollectSimpleMotionFeatures(blockOrigin, blockSize, nodeIndex, includeRectangles);
+            this.CollectSimpleMotionFeatures(
+                motionSearchPrediction,
+                predictionScratch,
+                in motionVectorCosts,
+                blockOrigin,
+                blockSize,
+                nodeIndex,
+                includeRectangles);
+
             Span<Av1SimpleMotionData> nodes = this.blockWorkspace.SimpleMotionData;
             features[0] = float.LogP1(nodes[nodeIndex].SquaredError);
             features[1] = float.LogP1(nodes[nodeIndex].Variance);
@@ -285,12 +332,32 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Publishes a square's measured features and propagates its full-sample starting vector to its children.
         /// </summary>
-        private void MeasureSimpleMotionNode(Point blockOrigin, Av1BlockSize blockSize, int nodeIndex)
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="predictionScratch">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="nodeIndex">The simple motion node of the block.</param>
+        private void MeasureSimpleMotionNode(
+            Span<TSample> motionSearchPrediction,
+            Span<short> predictionScratch,
+            in Av1MotionVectorCosts motionVectorCosts,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            int nodeIndex)
         {
             Span<Av1SimpleMotionData> nodes = this.blockWorkspace.SimpleMotionData;
             ref Av1SimpleMotionData node = ref nodes[nodeIndex];
             Av1MotionVector vector = this.SearchSimpleMotion(
-                blockOrigin, blockSize, node.Starts[(int)Av1ReferenceFrameType.Last], true, out node.SquaredError, out node.Variance);
+                motionSearchPrediction,
+                predictionScratch,
+                in motionVectorCosts,
+                blockOrigin,
+                blockSize,
+                node.Starts[(int)Av1ReferenceFrameType.Last],
+                true,
+                out node.SquaredError,
+                out node.Variance);
 
             node.WholeBlockValid = true;
             if (this.IsBlockOriginInsideFrame(blockOrigin))

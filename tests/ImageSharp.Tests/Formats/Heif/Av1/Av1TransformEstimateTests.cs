@@ -112,11 +112,14 @@ public class Av1TransformEstimateTests
                             int skipRate = 619;
                             int sharpness = pattern;
                             long cost = Av1TransformBlockEncoder.EstimateInterTransform(
-                                workspace,
+                                workspace.TransformCoefficients,
+                                workspace.DequantizedCoefficients,
+                                workspace.TransformWorkspace,
                                 residual,
                                 stride,
                                 quantized,
                                 writer,
+                                writer.GetCoefficientTables(),
                                 above,
                                 left,
                                 blockSize,
@@ -154,11 +157,14 @@ public class Av1TransformEstimateTests
 
                             // Running the same trial again must see identical probabilities and incoming neighbors.
                             long repeated = Av1TransformBlockEncoder.EstimateInterTransform(
-                                workspace,
+                                workspace.TransformCoefficients,
+                                workspace.DequantizedCoefficients,
+                                workspace.TransformWorkspace,
                                 residual,
                                 stride,
                                 quantized,
                                 writer,
+                                writer.GetCoefficientTables(),
                                 above,
                                 left,
                                 blockSize,
@@ -186,11 +192,14 @@ public class Av1TransformEstimateTests
                             if (split)
                             {
                                 long terminated = Av1TransformBlockEncoder.EstimateInterTransform(
-                                    workspace,
+                                    workspace.TransformCoefficients,
+                                    workspace.DequantizedCoefficients,
+                                    workspace.TransformWorkspace,
                                     residual,
                                     stride,
                                     quantized,
                                     writer,
+                                    writer.GetCoefficientTables(),
                                     above,
                                     left,
                                     blockSize,

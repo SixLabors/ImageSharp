@@ -749,6 +749,7 @@ internal partial class Av1TileWriter
     /// </summary>
     /// <param name="pcs">The picture coding state.</param>
     /// <param name="writer">The live tile symbol encoder.</param>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
     /// <param name="blockSize">The square parent block size.</param>
     /// <param name="partitionType">The partition type to measure.</param>
     /// <param name="blockOrigin">The block origin in samples.</param>
@@ -757,6 +758,7 @@ internal partial class Av1TileWriter
     public static int GetPartitionCost(
         Av1PictureControlSet pcs,
         Av1SymbolEncoder writer,
+        Av1ModeCosts modeCosts,
         Av1BlockSize blockSize,
         Av1PartitionType partitionType,
         Point blockOrigin,
@@ -777,7 +779,7 @@ internal partial class Av1TileWriter
 
         if (hasRows && hasColumns)
         {
-            return writer.GetPartitionTypeCost(partitionType, context);
+            return Av1SymbolEncoder.GetPartitionTypeCost(modeCosts, partitionType, context);
         }
 
         return !hasRows

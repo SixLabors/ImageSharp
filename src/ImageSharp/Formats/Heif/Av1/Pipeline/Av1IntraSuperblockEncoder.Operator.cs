@@ -630,7 +630,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Adds a selected transform's residual to the destination prediction.
         /// </summary>
-        /// <param name="workspace">The dequantized coefficients and transform workspace.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficients of the transform.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the inverse transform.</param>
         /// <param name="prediction">The destination starting at the transform origin.</param>
         /// <param name="stride">The destination row stride in samples.</param>
         /// <param name="transformSize">The transform dimensions.</param>
@@ -639,7 +640,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lossless">Whether the reversible transform is required.</param>
         /// <param name="state">The nonempty transform's type and end-of-block position.</param>
         public static abstract void AddSelectedResidual(
-            Av1EncoderBlockWorkspace workspace,
+            ReadOnlySpan<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
             Span<TSample> prediction,
             int stride,
             Av1TransformSize transformSize,
@@ -651,7 +653,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Reconstructs a quantized candidate from its dequantized coefficients and measures its distortion.
         /// </summary>
-        /// <param name="workspace">The workspace supplying transform scratch storage.</param>
+        /// <param name="workspace">The workspace supplying the visible extent of the plane.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the inverse transform.</param>
         /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
         /// <param name="source">The source transform block, from its top-left sample.</param>
         /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
@@ -668,6 +671,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
         public static abstract long ReconstructPredictionCandidate(
             Av1EncoderBlockWorkspace workspace,
+            Span<int> transformWorkspace,
             ReadOnlySpan<int> dequantized,
             ReadOnlySpan<TSample> source,
             int sourceStride,
@@ -1751,7 +1755,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void AddSelectedResidual(
-            Av1EncoderBlockWorkspace workspace,
+            ReadOnlySpan<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
             Span<byte> prediction,
             int stride,
             Av1TransformSize transformSize,
@@ -1760,7 +1765,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool lossless,
             Av1EncoderTransformBlockState state)
             => Av1InverseTransformer.Reconstruct8Bit(
-                workspace.DequantizedCoefficients,
+                dequantizedCoefficients,
                 prediction,
                 stride,
                 transformSize,
@@ -1768,11 +1773,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 (int)plane,
                 state.EndOfBlock,
                 lossless,
-                workspace.TransformWorkspace);
+                transformWorkspace);
 
         /// <inheritdoc/>
         public static long ReconstructPredictionCandidate(
             Av1EncoderBlockWorkspace workspace,
+            Span<int> transformWorkspace,
             ReadOnlySpan<int> dequantized,
             ReadOnlySpan<byte> source,
             int sourceStride,
@@ -1788,6 +1794,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.ReconstructPredictionLossyCandidate(
                 workspace,
+                transformWorkspace,
                 dequantized,
                 source,
                 sourceStride,
@@ -2860,7 +2867,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void AddSelectedResidual(
-            Av1EncoderBlockWorkspace workspace,
+            ReadOnlySpan<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
             Span<ushort> prediction,
             int stride,
             Av1TransformSize transformSize,
@@ -2869,7 +2877,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool lossless,
             Av1EncoderTransformBlockState state)
             => Av1InverseTransformer.ReconstructHighBitDepth(
-                workspace.DequantizedCoefficients,
+                dequantizedCoefficients,
                 MemoryMarshal.Cast<ushort, short>(prediction),
                 stride,
                 transformSize,
@@ -2878,11 +2886,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 state.EndOfBlock,
                 lossless,
                 bitDepth,
-                workspace.TransformWorkspace);
+                transformWorkspace);
 
         /// <inheritdoc/>
         public static long ReconstructPredictionCandidate(
             Av1EncoderBlockWorkspace workspace,
+            Span<int> transformWorkspace,
             ReadOnlySpan<int> dequantized,
             ReadOnlySpan<ushort> source,
             int sourceStride,
@@ -2898,6 +2907,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.ReconstructPredictionLossyCandidate(
                 workspace,
+                transformWorkspace,
                 dequantized,
                 source,
                 sourceStride,

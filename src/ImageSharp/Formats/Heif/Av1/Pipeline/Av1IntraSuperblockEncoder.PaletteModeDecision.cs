@@ -19,8 +19,35 @@ internal static partial class Av1IntraSuperblockEncoder
         where TSample : unmanaged
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
+        /// <summary>
+        /// Searches the luma palettes of an intra block and keeps one that costs less than the best result.
+        /// </summary>
+        /// <param name="writer">The symbol encoder that prices the syntax.</param>
+        /// <param name="tables">The rate tables of the tile.</param>
+        /// <param name="modeDecisionWorkspace">The mode decision buffers of the block.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="tileIndex">The tile index.</param>
+        /// <param name="retainedStates">The transform states of the luma winner.</param>
+        /// <param name="colorThreshold">The largest number of distinct colors that a palette search accepts.</param>
+        /// <param name="dcModeCost">The rate of the DC luma mode, which a palette block signals.</param>
+        /// <param name="bestStatistics">The rate and distortion of the best result.</param>
+        /// <param name="paletteInfo">The palette of the block.</param>
+        /// <param name="selectedTransformSize">The transform size of the best result.</param>
+        /// <returns><see langword="true"/> when a palette replaced the best result.</returns>
         private bool SelectLumaPalette(
             Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeDecisionWorkspace,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -34,6 +61,12 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             return this.SelectLumaPaletteCore(
                 writer,
+                in tables,
+                in modeDecisionWorkspace,
+                transformCoefficients,
+                dequantizedCoefficients,
+                transformWorkspace,
+                transformTypeProbabilities,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -46,8 +79,36 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref selectedTransformSize);
         }
 
+        /// <summary>
+        /// Clusters the luma colors of an intra block into palettes of each size, searches their transform sizes and
+        /// keeps a palette that costs less than the best result.
+        /// </summary>
+        /// <param name="writer">The symbol encoder that prices the syntax.</param>
+        /// <param name="tables">The rate tables of the tile.</param>
+        /// <param name="modeDecisionWorkspace">The mode decision buffers of the block.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="tileIndex">The tile index.</param>
+        /// <param name="retainedStates">The transform states of the luma winner.</param>
+        /// <param name="colorThreshold">The largest number of distinct colors that a palette search accepts.</param>
+        /// <param name="dcModeCost">The rate of the DC luma mode, which a palette block signals.</param>
+        /// <param name="bestStatistics">The rate and distortion of the best result.</param>
+        /// <param name="paletteInfo">The palette of the block.</param>
+        /// <param name="selectedTransformSize">The transform size of the best result.</param>
+        /// <returns><see langword="true"/> when a palette replaced the best result.</returns>
         private bool SelectLumaPaletteCore(
             Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeDecisionWorkspace,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -59,7 +120,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderPaletteInfo paletteInfo,
             ref Av1TransformSize selectedTransformSize)
         {
-            Av1EncoderPaletteWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>().Palette;
+            Av1EncoderPaletteWorkspace<TSample> workspace = modeDecisionWorkspace.Palette;
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             int blockWidth = blockSize.GetWidth();
             int blockHeight = blockSize.GetHeight();
@@ -126,7 +187,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int searchLevel = speedSettings.PaletteSearchLevel;
             int headerPruneLevel = speedSettings.LumaPaletteHeaderPruneLevel;
 
-            int sourceVariance = this.GetSourceVariance(blockOrigin, blockSize);
+            int sourceVariance = this.GetSourceVariance(modeDecisionWorkspace.GetCandidateReconstruction(0), blockOrigin, blockSize);
             bool selected = false;
 
             // Every palette size of every family uses the same block, neighbors and workspace buffers, so the loops
@@ -141,7 +202,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 MacroBlock = macroBlock,
                 BlockOrigin = blockOrigin,
                 BlockSize = blockSize,
-                BlockState = this.GetLumaBlockState(writer, macroBlock, blockOrigin, blockSize),
+                BlockState = this.GetLumaBlockState(in tables, macroBlock, blockOrigin, blockSize),
                 TileIndex = tileIndex,
                 TransformSizeContext = transformSizeContext,
                 SourceVariance = sourceVariance,
@@ -155,13 +216,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 RetainedStates = retainedStates,
                 DcModeCost = dcModeCost
             };
-
-            // Every palette candidate reads the same rate tables and workspace buffers.
-            Av1CoefficientTables tables = writer.GetCoefficientTables();
-            Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
-            Span<int> dequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
-            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
-            ReadOnlySpan<int> transformTypeProbabilities = this.blockWorkspace.TransformTypeProbabilities;
 
             // Frequency seeds precede range-seeded clustering. Each family finishes its coarse/fine
             // or ascending/descending search before the next family reuses the sample workspace.
@@ -198,6 +252,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         int candidatePruneLevel = gateHeader ? headerPruneLevel : 0;
                         bool improved = this.EvaluateLumaPaletteCandidate(
                             in tables,
+                            in modeDecisionWorkspace,
                             transformCoefficients,
                             dequantizedCoefficients,
                             transformWorkspace,
@@ -278,6 +333,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// palette syntax and searches its transform sizes. The candidate replaces the best result if it costs less.
         /// </summary>
         /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
+        /// <param name="modeDecisionWorkspace">The mode decision buffers of the block, which hold the palette buffers.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the type estimates.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -292,6 +348,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns><see langword="true"/> if the candidate became the best result.</returns>
         private bool EvaluateLumaPaletteCandidate(
             in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeDecisionWorkspace,
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -306,6 +363,7 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             return this.EvaluateLumaPaletteCandidateCore(
                 in tables,
+                in modeDecisionWorkspace,
                 transformCoefficients,
                 dequantizedCoefficients,
                 transformWorkspace,
@@ -322,6 +380,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc cref="EvaluateLumaPaletteCandidate"/>
         private bool EvaluateLumaPaletteCandidateCore(
             in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeDecisionWorkspace,
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -362,7 +421,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1EncoderTransformBlockState> retainedStates = search.RetainedStates;
             int blockWidth = blockSize.GetWidth();
             int blockHeight = blockSize.GetHeight();
-            Av1EncoderModeDecisionWorkspace<TSample> modeDecisionWorkspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
             Av1EncoderPaletteWorkspace<TSample> workspace = modeDecisionWorkspace.Palette;
             int bitDepth = this.bitDepth.GetBitCount();
             int cacheThreshold = 4 << (bitDepth - 8);
@@ -475,6 +533,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1RateDistortionStatistics candidateStatistics = this.ChooseUniformTransformSize(
                 writer,
                 in tables,
+                in modeDecisionWorkspace,
                 transformCoefficients,
                 dequantizedCoefficients,
                 transformWorkspace,
@@ -524,6 +583,7 @@ internal static partial class Av1IntraSuperblockEncoder
             candidatePalette.PaletteSizes[0] = (byte)paletteSize;
             candidatePalette.SetColors(Av1Plane.Y, paletteColors);
             this.RetainLumaCandidate(
+                in modeDecisionWorkspace,
                 new LumaCandidate
                 {
                     Mode = Av1PredictionMode.DC,

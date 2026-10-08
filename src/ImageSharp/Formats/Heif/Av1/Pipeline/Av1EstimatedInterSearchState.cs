@@ -116,11 +116,11 @@ internal struct Av1EstimatedInterSearchState
     /// <summary>
     /// Initializes validity and comparison state for the next block.
     /// </summary>
-    /// <param name="writer">The current tile symbol costs.</param>
+    /// <param name="costs">The mode rate tables of the tile.</param>
     /// <param name="intraInterContext">The neighboring intra/inter context.</param>
     /// <param name="compoundTypeContext">The neighboring compound-reference type context.</param>
     /// <param name="selectReferenceMode">Whether this block can select single or compound prediction.</param>
-    public void Reset(Av1SymbolEncoder writer, int intraInterContext, int compoundTypeContext, bool selectReferenceMode)
+    public void Reset(Av1ModeCosts costs, int intraInterContext, int compoundTypeContext, bool selectReferenceMode)
     {
         // Motion and syntax entries are filled only for admitted references. Clear their validity,
         // not their unused payloads; a rejected or unavailable reference must never consume an entry.
@@ -142,9 +142,8 @@ internal struct Av1EstimatedInterSearchState
         this.SuperblockMotionTested = false;
         this.EndSearch = false;
         this.MinimumChromaDistortion = long.MaxValue;
-        Av1ModeCosts costs = writer.ModeCosts;
-        this.ReferenceCosts[(int)Av1ReferenceFrameType.Intra] = writer.GetIsInterCost(false, intraInterContext);
-        int baseCost = writer.GetIsInterCost(true, intraInterContext);
+        this.ReferenceCosts[(int)Av1ReferenceFrameType.Intra] = Av1SymbolEncoder.GetIsInterCost(costs, false, intraInterContext);
+        int baseCost = Av1SymbolEncoder.GetIsInterCost(costs, true, intraInterContext);
         if (selectReferenceMode)
         {
             baseCost += costs.GetCompoundReferenceType(compoundTypeContext, 1);
@@ -229,7 +228,7 @@ internal struct Av1EstimatedInterSearchState
     /// <summary>
     /// Adds single-reference syntax costs and records a completed candidate.
     /// </summary>
-    /// <param name="writer">The current symbol-cost state.</param>
+    /// <param name="costs">The mode rate tables of the tile.</param>
     /// <param name="referenceVectors">The candidate reference-vector context.</param>
     /// <param name="rateMultiplier">The block rate-distortion multiplier.</param>
     /// <param name="mode">The searched mode, replaced when equivalent global syntax costs less.</param>
@@ -242,7 +241,7 @@ internal struct Av1EstimatedInterSearchState
     /// <param name="checkGlobalMotion">Whether subsequent candidates still need an explicit global-motion trial.</param>
     /// <returns>Whether the candidate replaced the current winner.</returns>
     public bool CompleteSingleCandidate(
-        Av1SymbolEncoder writer,
+        Av1ModeCosts costs,
         Av1ReferenceMotionVectors referenceVectors,
         int rateMultiplier,
         ref Av1PredictionMode mode,
@@ -273,7 +272,7 @@ internal struct Av1EstimatedInterSearchState
             if (mode is Av1PredictionMode.NewMotionVector or Av1PredictionMode.NearMotionVector && referenceVectors.Count > 1)
             {
                 int context = Av1SymbolContextHelper.GetDrlContext(referenceVectors.Weights, 0);
-                alternativeRate += writer.GetDynamicReferenceListCost(false, context);
+                alternativeRate += Av1SymbolEncoder.GetDynamicReferenceListCost(costs, false, context);
             }
 
             if (alternativeRate > this.ModeCosts[globalIndex][slot])

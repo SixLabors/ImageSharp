@@ -296,7 +296,8 @@ internal static partial class Av1TransformBlockEncoder
     /// with its current winner first. A candidate whose rate alone already costs more cannot win, and then needs
     /// no inverse transform or pixel comparison.
     /// </remarks>
-    /// <param name="workspace">The workspace supplying transform scratch storage.</param>
+    /// <param name="workspace">The workspace supplying the visible extent of the plane.</param>
+    /// <param name="transformWorkspace">The intermediate buffer of the inverse transform.</param>
     /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
     /// <param name="source">The source transform block, from its top-left sample.</param>
     /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
@@ -312,6 +313,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
     public static long ReconstructPredictionLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
+        Span<int> transformWorkspace,
         ReadOnlySpan<int> dequantized,
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -326,6 +328,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1EncoderTransformBlockState state)
         => ReconstructPredictionLossyCandidateCore(
             workspace,
+            transformWorkspace,
             dequantized,
             source,
             sourceStride,
@@ -342,7 +345,8 @@ internal static partial class Av1TransformBlockEncoder
     /// <summary>
     /// Reconstructs the eight-bit candidate and measures its distortion.
     /// </summary>
-    /// <param name="workspace">The workspace supplying transform scratch storage.</param>
+    /// <param name="workspace">The workspace supplying the visible extent of the plane.</param>
+    /// <param name="transformWorkspace">The intermediate buffer of the inverse transform.</param>
     /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
     /// <param name="source">The source transform block, from its top-left sample.</param>
     /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
@@ -358,6 +362,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
     public static long ReconstructPredictionLossyCandidateCore(
         Av1EncoderBlockWorkspace workspace,
+        Span<int> transformWorkspace,
         ReadOnlySpan<int> dequantized,
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -430,7 +435,7 @@ internal static partial class Av1TransformBlockEncoder
                     (int)plane,
                     state.EndOfBlock,
                     qIndex == 0,
-                    workspace.TransformWorkspace);
+                    transformWorkspace);
             }
         }
 
@@ -720,7 +725,8 @@ internal static partial class Av1TransformBlockEncoder
     /// with its current winner first. A candidate whose rate alone already costs more cannot win, and then needs
     /// no inverse transform or pixel comparison.
     /// </remarks>
-    /// <param name="workspace">The workspace supplying transform scratch storage.</param>
+    /// <param name="workspace">The workspace supplying the visible extent of the plane.</param>
+    /// <param name="transformWorkspace">The intermediate buffer of the inverse transform.</param>
     /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
     /// <param name="source">The source transform block, from its top-left sample.</param>
     /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
@@ -737,6 +743,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
     public static long ReconstructPredictionLossyCandidate(
         Av1EncoderBlockWorkspace workspace,
+        Span<int> transformWorkspace,
         ReadOnlySpan<int> dequantized,
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -752,6 +759,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1EncoderTransformBlockState state)
         => ReconstructPredictionLossyCandidateCore(
             workspace,
+            transformWorkspace,
             dequantized,
             source,
             sourceStride,
@@ -769,7 +777,8 @@ internal static partial class Av1TransformBlockEncoder
     /// <summary>
     /// Reconstructs the high-bit-depth candidate and measures its distortion.
     /// </summary>
-    /// <param name="workspace">The workspace supplying transform scratch storage.</param>
+    /// <param name="workspace">The workspace supplying the visible extent of the plane.</param>
+    /// <param name="transformWorkspace">The intermediate buffer of the inverse transform.</param>
     /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
     /// <param name="source">The source transform block, from its top-left sample.</param>
     /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
@@ -786,6 +795,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
     public static long ReconstructPredictionLossyCandidateCore(
         Av1EncoderBlockWorkspace workspace,
+        Span<int> transformWorkspace,
         ReadOnlySpan<int> dequantized,
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -822,7 +832,7 @@ internal static partial class Av1TransformBlockEncoder
                 state.EndOfBlock,
                 qIndex == 0,
                 bitDepth,
-                workspace.TransformWorkspace);
+                transformWorkspace);
         }
 
         // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
@@ -2102,11 +2112,14 @@ internal static partial class Av1TransformBlockEncoder
     /// <summary>
     /// Estimates the luma transform rate and distortion of a prepared inter prediction.
     /// </summary>
-    /// <param name="workspace">The reusable transform storage, overwritten for each transform block.</param>
+    /// <param name="transformCoefficients">The forward transform output, overwritten for each transform block.</param>
+    /// <param name="dequantizedCoefficients">The dequantized coefficients, overwritten for each transform block.</param>
+    /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
     /// <param name="residual">The padded source-minus-prediction block.</param>
     /// <param name="residualStride">The number of residual samples between rows.</param>
     /// <param name="quantizedCoefficients">Scratch for one transform's entropy-coding coefficients.</param>
     /// <param name="writer">The current tile probability state; estimation does not adapt it.</param>
+    /// <param name="tables">The rate tables of the tile, which the caller read once.</param>
     /// <param name="aboveContexts">The block's top coefficient contexts in four-sample units.</param>
     /// <param name="leftContexts">The block's left coefficient contexts in four-sample units.</param>
     /// <param name="blockSize">The containing prediction block size.</param>
@@ -2127,11 +2140,14 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="skip">Whether the aggregate estimate selects transform skip.</param>
     /// <returns>The decision cost including the skip flag, or the invalid cost for an incomplete estimate.</returns>
     public static long EstimateInterTransform(
-        Av1EncoderBlockWorkspace workspace,
+        Span<int> transformCoefficients,
+        Span<int> dequantizedCoefficients,
+        Span<int> transformWorkspace,
         ReadOnlySpan<short> residual,
         int residualStride,
         Span<int> quantizedCoefficients,
         Av1SymbolEncoder writer,
+        in Av1CoefficientTables tables,
         ReadOnlySpan<byte> aboveContexts,
         ReadOnlySpan<byte> leftContexts,
         Av1BlockSize blockSize,
@@ -2156,9 +2172,9 @@ internal static partial class Av1TransformBlockEncoder
         int widthUnits = width >> Av1Constants.ModeInfoSizeLog2;
         int heightUnits = height >> Av1Constants.ModeInfoSizeLog2;
         int coefficientCount = transformSize.GetAdjusted().GetSize2d();
-        Span<int> transformed = workspace.TransformCoefficients[..coefficientCount];
+        Span<int> transformed = transformCoefficients[..coefficientCount];
         Span<int> quantized = quantizedCoefficients[..coefficientCount];
-        Span<int> dequantized = workspace.DequantizedCoefficients[..coefficientCount];
+        Span<int> dequantized = dequantizedCoefficients[..coefficientCount];
 
         // A prediction trial changes only its local edge contexts. At most 32 four-sample units lie along
         // either edge of a 128-sample block; subsequent transforms see earlier transforms from this trial.
@@ -2175,10 +2191,6 @@ internal static partial class Av1TransformBlockEncoder
             Av1RateDistortion.GetCost(rateMultiplier, skipRate, 0));
 
         bool exitEarly = false;
-        Span<int> transformWorkspace = workspace.TransformWorkspace;
-
-        // Every transform block of the estimate is priced with the same rate tables, so they are read once.
-        Av1CoefficientTables tables = writer.GetCoefficientTables();
         for (int y = 0; y < activeSize.Height; y += height)
         {
             for (int x = 0; x < activeSize.Width; x += width)

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -1855,7 +1856,24 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Uses whole and quarter-block motion errors to restrict square and rectangular partition searches.
         /// </summary>
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="predictionScratch">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="nodeIndex">The simple motion node of the block.</param>
+        /// <param name="splitLevel">The split pruning level, or zero to keep the split.</param>
+        /// <param name="aggressiveness">The pruning aggressiveness of the speed setting.</param>
+        /// <param name="allowNone">Whether the unsplit block is searched.</param>
+        /// <param name="allowSplit">Whether the square split is searched.</param>
+        /// <param name="allowRectangles">Whether the rectangular partitions are searched.</param>
+        /// <param name="pruneHorizontal">Whether the horizontal partitions are dropped.</param>
+        /// <param name="pruneVertical">Whether the vertical partitions are dropped.</param>
         private void PrunePartitionsBySimpleMotion(
+            Span<TSample> motionSearchPrediction,
+            Span<short> predictionScratch,
+            in Av1MotionVectorCosts motionVectorCosts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -1935,7 +1953,17 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Span<float> features = featureStorage[..17];
                 InlineArray2<float> output = default;
-                this.GetSimpleMotionFeatures(macroBlock, blockOrigin, blockSize, nodeIndex, false, features);
+                this.GetSimpleMotionFeatures(
+                    motionSearchPrediction,
+                    predictionScratch,
+                    in motionVectorCosts,
+                    macroBlock,
+                    blockOrigin,
+                    blockSize,
+                    nodeIndex,
+                    false,
+                    features);
+
                 for (int feature = 0; feature < features.Length; feature++)
                 {
                     features[feature] = (features[feature] - means[(modelIndex * 17) + feature]) / deviations[(modelIndex * 17) + feature];
@@ -2036,7 +2064,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 Span<float> features = featureStorage[..25];
                 InlineArray16<float> output = default;
                 Span<float> scores = output[..bias1.Length];
-                this.GetSimpleMotionFeatures(macroBlock, blockOrigin, blockSize, nodeIndex, true, features);
+                this.GetSimpleMotionFeatures(
+                    motionSearchPrediction,
+                    predictionScratch,
+                    in motionVectorCosts,
+                    macroBlock,
+                    blockOrigin,
+                    blockSize,
+                    nodeIndex,
+                    true,
+                    features);
+
                 for (int feature = 0; feature < features.Length; feature++)
                 {
                     features[feature] = (features[feature] - means[feature]) / deviations[feature];

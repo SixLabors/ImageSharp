@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -597,7 +598,21 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Combines completed child costs, selected geometry, and motion residuals into a stopping decision.
         /// </summary>
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="predictionScratch">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="nodeIndex">The simple motion node of the block.</param>
+        /// <param name="bestCost">The best partition cost of the block.</param>
+        /// <param name="noneCost">The cost of the unsplit block.</param>
+        /// <param name="splitCost">The cost of the square split.</param>
+        /// <param name="childCosts">The costs of the four split children.</param>
+        /// <returns><see langword="true"/> when the remaining partition searches stop.</returns>
         private bool ShouldTerminateAfterSplit(
+            Span<TSample> motionSearchPrediction,
+            Span<short> predictionScratch,
+            in Av1MotionVectorCosts motionVectorCosts,
             Point blockOrigin,
             Av1BlockSize blockSize,
             int nodeIndex,
@@ -688,7 +703,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            this.CollectSimpleMotionFeatures(blockOrigin, blockSize, nodeIndex, true);
+            this.CollectSimpleMotionFeatures(motionSearchPrediction, predictionScratch, in motionVectorCosts, blockOrigin, blockSize, nodeIndex, true);
             Span<Av1SimpleMotionData> nodes = this.blockWorkspace.SimpleMotionData;
             features[featureIndex++] = float.LogP1(nodes[nodeIndex].Variance);
             for (int child = 0; child < 4; child++)

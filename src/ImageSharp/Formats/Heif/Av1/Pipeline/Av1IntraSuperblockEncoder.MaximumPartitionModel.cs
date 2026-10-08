@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -173,7 +174,18 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Aggregates the 64 full-sample block searches needed to choose a 128-sample superblock's size limit.
         /// </summary>
-        private Av1BlockSize PredictMaximumPartition(Point blockOrigin)
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="predictionScratch">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="midpoint">Storage for one row of mid-gray samples of the source variance.</param>
+        /// <param name="blockOrigin">The luma superblock origin.</param>
+        /// <returns>The largest partition size of the superblock.</returns>
+        private Av1BlockSize PredictMaximumPartition(
+            Span<TSample> motionSearchPrediction,
+            Span<short> predictionScratch,
+            in Av1MotionVectorCosts motionVectorCosts,
+            Span<TSample> midpoint,
+            Point blockOrigin)
         {
             float rowSum = 0F;
             float rowSquares = 0F;
@@ -192,7 +204,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 for (int column = 0; column < 8; column++)
                 {
                     Point origin = new(blockOrigin.X + (column * 16), blockOrigin.Y + (row * 16));
-                    Av1MotionVector vector = this.SearchSimpleMotion(origin, Av1BlockSize.Block16x16, default, false, out int squaredError, out _);
+                    Av1MotionVector vector = this.SearchSimpleMotion(
+                        motionSearchPrediction,
+                        predictionScratch,
+                        in motionVectorCosts,
+                        origin,
+                        Av1BlockSize.Block16x16,
+                        default,
+                        false,
+                        out int squaredError,
+                        out _);
+
                     float motionRow = vector.Row / 8;
                     float motionColumn = vector.Column / 8;
                     float logError = float.LogP1(squaredError);
@@ -270,7 +292,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 int variance = mode == Av1EncoderSpeedSettings.MaximumPartitionPrediction.Adaptive
-                    ? this.GetSourceVariance(blockOrigin, Av1BlockSize.Block128x128) : 0;
+                    ? this.GetSourceVariance(midpoint, blockOrigin, Av1BlockSize.Block128x128) : 0;
 
                 if (mode == Av1EncoderSpeedSettings.MaximumPartitionPrediction.Relaxed || variance > 16)
                 {

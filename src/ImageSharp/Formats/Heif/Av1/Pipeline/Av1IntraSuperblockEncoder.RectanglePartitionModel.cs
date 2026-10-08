@@ -422,7 +422,17 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Classifies horizontal and vertical partition searches after the square candidates.
         /// </summary>
+        /// <param name="midpoint">Storage for one row of mid-gray samples of the source variance.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="bestCost">The best partition cost of the block.</param>
+        /// <param name="noneCost">The cost of the unsplit block.</param>
+        /// <param name="sourceVariance">The source variance of the block.</param>
+        /// <param name="splitNoneCosts">The unsplit costs of the four split children.</param>
+        /// <param name="pruneHorizontal">Whether the horizontal partitions are dropped.</param>
+        /// <param name="pruneVertical">Whether the vertical partitions are dropped.</param>
         private void PruneRectangularPartitions(
+            Span<TSample> midpoint,
             Point blockOrigin,
             Av1BlockSize blockSize,
             long bestCost,
@@ -464,7 +474,7 @@ internal static partial class Av1IntraSuperblockEncoder
             for (int child = 0; child < 4; child++)
             {
                 Point origin = new(blockOrigin.X + ((child & 1) * halfWidth), blockOrigin.Y + ((child >> 1) * halfWidth));
-                features[child + 5] = (float)this.GetSourceVariance(origin, childSize) / wholeVariance;
+                features[child + 5] = (float)this.GetSourceVariance(midpoint, origin, childSize) / wholeVariance;
             }
 
             ReadOnlySpan<float> weights;

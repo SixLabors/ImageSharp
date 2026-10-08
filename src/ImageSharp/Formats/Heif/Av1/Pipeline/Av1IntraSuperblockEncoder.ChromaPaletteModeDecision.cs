@@ -19,8 +19,42 @@ internal static partial class Av1IntraSuperblockEncoder
         where TSample : unmanaged
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
+        /// <summary>
+        /// Searches the paired chroma palettes of an intra block and keeps one that costs less than the best result.
+        /// </summary>
+        /// <param name="writer">The symbol encoder that prices the syntax.</param>
+        /// <param name="tables">The rate tables of the tile.</param>
+        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
+        /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
+        /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
+        /// <param name="lumaOrigin">The block origin in luma samples.</param>
+        /// <param name="chromaOrigin">The block origin in chroma samples.</param>
+        /// <param name="tileIndex">The tile index.</param>
+        /// <param name="lumaMode">The selected luma mode.</param>
+        /// <param name="transformSize">The chroma transform size.</param>
+        /// <param name="retainedBlueStates">The transform states of the blue winner.</param>
+        /// <param name="retainedRedStates">The transform states of the red winner.</param>
+        /// <param name="bestStatistics">The rate and distortion of the best chroma result.</param>
+        /// <param name="paletteInfo">The palette of the block.</param>
+        /// <returns><see langword="true"/> when a palette replaced the best result.</returns>
         private bool SelectChromaPalette(
             Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
+            Span<int> searchCoefficients,
+            Span<int> searchDequantizedCoefficients,
+            Span<int> searchReconstructions,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -35,6 +69,15 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             return this.SelectChromaPaletteCore(
                 writer,
+                in tables,
+                in modeWorkspace,
+                transformCoefficients,
+                dequantizedCoefficients,
+                transformWorkspace,
+                transformTypeProbabilities,
+                searchCoefficients,
+                searchDequantizedCoefficients,
+                searchReconstructions,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
@@ -48,8 +91,43 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref paletteInfo);
         }
 
+        /// <summary>
+        /// Clusters the paired chroma colors of an intra block into palettes of each size, searches them and keeps a
+        /// palette that costs less than the best result.
+        /// </summary>
+        /// <param name="writer">The symbol encoder that prices the syntax.</param>
+        /// <param name="tables">The rate tables of the tile.</param>
+        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
+        /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
+        /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
+        /// <param name="lumaOrigin">The block origin in luma samples.</param>
+        /// <param name="chromaOrigin">The block origin in chroma samples.</param>
+        /// <param name="tileIndex">The tile index.</param>
+        /// <param name="lumaMode">The selected luma mode.</param>
+        /// <param name="transformSize">The chroma transform size.</param>
+        /// <param name="retainedBlueStates">The transform states of the blue winner.</param>
+        /// <param name="retainedRedStates">The transform states of the red winner.</param>
+        /// <param name="bestStatistics">The rate and distortion of the best chroma result.</param>
+        /// <param name="paletteInfo">The palette of the block.</param>
+        /// <returns><see langword="true"/> when a palette replaced the best result.</returns>
         private bool SelectChromaPaletteCore(
             Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
+            Span<int> searchCoefficients,
+            Span<int> searchDequantizedCoefficients,
+            Span<int> searchReconstructions,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -63,7 +141,6 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderPaletteInfo paletteInfo)
         {
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
-            Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
             Av1EncoderPaletteWorkspace<TSample> workspace = modeWorkspace.Palette;
 
             ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
@@ -176,15 +253,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool paletteSelected = false;
 
             // Every palette size of the block reads the same mode rates.
-            Av1CoefficientTables tables = writer.GetCoefficientTables();
             Av1ModeCosts modeCosts = tables.ModeCosts;
-            Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
-            Span<int> dequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
-            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
-            ReadOnlySpan<int> transformTypeProbabilities = this.blockWorkspace.TransformTypeProbabilities;
-            Span<int> searchCoefficients = this.blockWorkspace.SearchCoefficients;
-            Span<int> searchDequantizedCoefficients = this.blockWorkspace.SearchDequantizedCoefficients;
-            Span<int> searchReconstructions = this.blockWorkspace.SearchReconstructions;
 
             // A paired centroid assigns one index to both components. Larger palettes are considered only
             // while their shared syntax can still beat the current complete chroma decision.

@@ -559,13 +559,28 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Selects the temporal predictor used by partition variance and measures its chroma activity.
         /// </summary>
+        /// <param name="workspace">The inter prediction buffers of the block.</param>
+        /// <param name="midpoint">Storage for one row of mid-gray samples of the source variance.</param>
+        /// <param name="transformCoefficients">The forward transform buffer, which the motion search borrows.</param>
+        /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
+        /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
+        /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
         /// <param name="macroBlock">The superblock's neighboring syntax and frame edges.</param>
         /// <param name="origin">The superblock's luma origin.</param>
         /// <param name="predictionStride">The row stride of the returned luma prediction.</param>
         /// <param name="lastSad">The selected LAST prediction's absolute-difference sum.</param>
         /// <returns>The borrowed luma prediction for partition moments.</returns>
         private ReadOnlySpan<TSample> PrepareInterVariancePrediction(
-            Av1MacroBlockD macroBlock, Point origin, out int predictionStride, out uint lastSad)
+            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
+            Span<TSample> midpoint,
+            Span<int> transformCoefficients,
+            Span<ushort> firstIntermediate,
+            Span<ushort> secondIntermediate,
+            Span<byte> compoundMask,
+            Av1MacroBlockD macroBlock,
+            Point origin,
+            out int predictionStride,
+            out uint lastSad)
         {
             Av1PictureParentControlSet parent = this.picture.Parent;
             Av1BlockSize blockSize = this.picture.Sequence.SequenceHeader.SuperblockSize;
@@ -577,7 +592,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> lastStorage = lastPlane.Samples;
             int lastOrigin = ((lastPlane.Bounds.Y + origin.Y) * lastPlane.Stride) + lastPlane.Bounds.X + origin.X;
             int precisionShift = this.bitDepth.GetBitCount() - 8;
-            uint spatialVariance = this.sourceSadLevel > Av1SourceSadLevel.Low ? (uint)this.GetSourceVariance(origin, blockSize) : uint.MaxValue;
+            uint spatialVariance = this.sourceSadLevel > Av1SourceSadLevel.Low ? (uint)this.GetSourceVariance(midpoint, origin, blockSize) : uint.MaxValue;
             uint goldenSad = uint.MaxValue;
             if (this.hasDistinctGoldenReference && this.sourceSadLevel != Av1SourceSadLevel.Zero)
             {
@@ -644,7 +659,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     parent.IsScreenContent,
                     largeSearch,
                     integerBounds,
-                    MemoryMarshal.Cast<int, short>(this.blockWorkspace.TransformCoefficients),
+                    MemoryMarshal.Cast<int, short>(transformCoefficients),
                     out this.partitionMotion,
                     out uint zeroSad);
 
@@ -746,7 +761,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.estimatedReferencePruning = 0;
             }
 
-            Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
             bool zeroMotion = this.partitionMotion.IsZero;
             Av1EncoderFrame<TSample>.PlanarView selected = this.partitionReference switch
             {
@@ -787,7 +801,11 @@ internal static partial class Av1IntraSuperblockEncoder
                         subY,
                         blockSize,
                         prediction,
-                        workspace.Residual);
+                        workspace.Residual,
+                        workspace.PredictionScratch,
+                        firstIntermediate,
+                        secondIntermediate,
+                        compoundMask);
                 }
             }
 
@@ -1008,7 +1026,27 @@ internal static partial class Av1IntraSuperblockEncoder
             }
         }
 
-        private void PrepareVariancePartitions(Av1MacroBlockD macroBlock, Point superblockOrigin)
+        /// <summary>
+        /// Prepares the variance partition decision of one superblock: the temporal source filter, the segment, the
+        /// split thresholds and the inter prediction that the variances measure.
+        /// </summary>
+        /// <param name="workspace">The inter prediction buffers of the block.</param>
+        /// <param name="midpoint">Storage for one row of mid-gray samples of the source variance.</param>
+        /// <param name="transformCoefficients">The forward transform buffer, which the motion search borrows.</param>
+        /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
+        /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
+        /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
+        /// <param name="macroBlock">The neighbor availability of the superblock.</param>
+        /// <param name="superblockOrigin">The luma superblock origin.</param>
+        private void PrepareVariancePartitions(
+            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
+            Span<TSample> midpoint,
+            Span<int> transformCoefficients,
+            Span<ushort> firstIntermediate,
+            Span<ushort> secondIntermediate,
+            Span<byte> compoundMask,
+            Av1MacroBlockD macroBlock,
+            Point superblockOrigin)
         {
             if (!this.picture.Parent.FrameHeader.IsIntra)
             {
@@ -1041,7 +1079,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.GetInterVarianceThresholds(sourceSad, boostedSegment, partitionQIndex, thresholds);
 
                 ReadOnlySpan<TSample> prediction = this.PrepareInterVariancePrediction(
-                    macroBlock, superblockOrigin, out int predictionStride, out uint lastSad);
+                    in workspace,
+                    midpoint,
+                    transformCoefficients,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
+                    macroBlock,
+                    superblockOrigin,
+                    out int predictionStride,
+                    out uint lastSad);
 
                 // Only the base segment exits early, so a boosted segment keeps refreshing. Reference: the
                 // CR_SEGMENT_ID_BASE test of the part_early_exit_zeromv exit.

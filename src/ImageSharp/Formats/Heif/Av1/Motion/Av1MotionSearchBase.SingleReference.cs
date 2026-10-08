@@ -753,6 +753,10 @@ internal static partial class Av1MotionSearchBase
         /// <summary>
         /// Searches one differential-reference choice while retaining state for subsequent choices.
         /// </summary>
+        /// <param name="tables">The rate tables of the tile, which price a rate-distortion candidate estimate.</param>
+        /// <param name="transformCoefficients">The forward transform output of a candidate estimate.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficients of a candidate estimate.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="settings">The resolved frame search policy.</param>
         /// <param name="frameStepParameter">The frame's initial number of excluded outer search stages.</param>
         /// <param name="spatialMagnitude">The largest full-sample magnitude in this reference's spatial context.</param>
@@ -772,6 +776,10 @@ internal static partial class Av1MotionSearchBase
         /// <param name="result">The selected displacement and prediction-error statistics.</param>
         /// <returns>Whether the search produced a valid candidate.</returns>
         public bool Search(
+            in Av1CoefficientTables tables,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
             Av1MotionSearchSettings settings,
             int frameStepParameter,
             int spatialMagnitude,
@@ -1021,10 +1029,24 @@ internal static partial class Av1MotionSearchBase
                         if (settings.SecondCandidateSelection == CandidateSelection.RateDistortion && secondCost != int.MaxValue)
                         {
                             long firstRateDistortion = this.EstimateCandidate(
-                                result.Vector, referenceVector, horizontalFilter, verticalFilter);
+                                in tables,
+                                transformCoefficients,
+                                dequantizedCoefficients,
+                                transformWorkspace,
+                                result.Vector,
+                                referenceVector,
+                                horizontalFilter,
+                                verticalFilter);
 
                             long secondRateDistortion = this.EstimateCandidate(
-                                secondResult.Vector, referenceVector, horizontalFilter, verticalFilter);
+                                in tables,
+                                transformCoefficients,
+                                dequantizedCoefficients,
+                                transformWorkspace,
+                                secondResult.Vector,
+                                referenceVector,
+                                horizontalFilter,
+                                verticalFilter);
 
                             if (secondRateDistortion < firstRateDistortion)
                             {
@@ -1072,12 +1094,20 @@ internal static partial class Av1MotionSearchBase
         /// <summary>
         /// Compares a refined vector using final prediction, transform rate, and differential motion rate.
         /// </summary>
+        /// <param name="tables">The rate tables of the tile.</param>
+        /// <param name="transformCoefficients">The forward transform output of the estimate.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficients of the estimate.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="vector">The refined candidate vector.</param>
         /// <param name="referenceVector">The differential coding reference.</param>
         /// <param name="horizontalFilter">The horizontal interpolation family of the prediction.</param>
         /// <param name="verticalFilter">The vertical interpolation family of the prediction.</param>
         /// <returns>The rate-distortion estimate excluding the block skip-header cost.</returns>
         private long EstimateCandidate(
+            in Av1CoefficientTables tables,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
             Av1MotionVector vector,
             Av1MotionVector referenceVector,
             Av1InterpolationFilter horizontalFilter,
@@ -1125,11 +1155,14 @@ internal static partial class Av1MotionSearchBase
                 this.workspace, Av1Plane.Y, this.blockOrigin, this.residual, width, width, height, Av1TransformType.DctDct);
 
             Av1TransformBlockEncoder.EstimateInterTransform(
-                this.workspace,
+                transformCoefficients,
+                dequantizedCoefficients,
+                transformWorkspace,
                 this.residual,
                 width,
                 this.quantized,
                 this.writer,
+                in tables,
                 this.aboveContexts,
                 this.leftContexts,
                 this.blockSize,

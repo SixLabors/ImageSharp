@@ -162,7 +162,19 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Decides whether the completed unsplit candidate makes additional partition searches unnecessary.
         /// </summary>
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="predictionScratch">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="nodeIndex">The simple motion node of the block.</param>
+        /// <param name="statistics">The rate and distortion of the unsplit block.</param>
+        /// <returns><see langword="true"/> when the remaining partition searches stop.</returns>
         private bool ShouldTerminateAfterMotionNone(
+            Span<TSample> motionSearchPrediction,
+            Span<short> predictionScratch,
+            in Av1MotionVectorCosts motionVectorCosts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -200,7 +212,17 @@ internal static partial class Av1IntraSuperblockEncoder
 
             InlineArray32<float> featureStorage = default;
             Span<float> features = featureStorage;
-            this.GetSimpleMotionFeatures(macroBlock, blockOrigin, blockSize, nodeIndex, true, features);
+            this.GetSimpleMotionFeatures(
+                motionSearchPrediction,
+                predictionScratch,
+                in motionVectorCosts,
+                macroBlock,
+                blockOrigin,
+                blockSize,
+                nodeIndex,
+                true,
+                features);
+
             features[25] = float.LogP1(statistics.Rate);
             features[26] = float.LogP1(statistics.Distortion);
             features[27] = float.LogP1(statistics.Cost);

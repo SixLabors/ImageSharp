@@ -64,7 +64,10 @@ internal static class Av1IntraModeEstimator
     /// <summary>
     /// Estimates the cost of a predicted luma residual.
     /// </summary>
-    /// <param name="workspace">The reusable transform and quantization storage.</param>
+    /// <param name="workspace">The block workspace, which holds the encoder options.</param>
+    /// <param name="rowCoefficients">The coefficients of one row of estimation transforms.</param>
+    /// <param name="searchDequantizedCoefficients">The dequantized coefficients of one estimation transform.</param>
+    /// <param name="transformWorkspace">The intermediate buffer of the transforms, which also holds the quantized levels.</param>
     /// <param name="residual">The predicted residual samples.</param>
     /// <param name="stride">The residual row stride.</param>
     /// <param name="extent">The included residual dimensions.</param>
@@ -79,6 +82,9 @@ internal static class Av1IntraModeEstimator
     /// <param name="skip">Whether every estimated coefficient is zero.</param>
     public static void Estimate(
         Av1EncoderBlockWorkspace workspace,
+        Span<int> rowCoefficients,
+        Span<int> searchDequantizedCoefficients,
+        Span<int> transformWorkspace,
         ReadOnlySpan<short> residual,
         int stride,
         Size extent,
@@ -104,9 +110,7 @@ internal static class Av1IntraModeEstimator
                 _ => highBitDepth ? HighBitDepthScan16x16 : Scan16x16
             };
 
-        Span<int> rowCoefficients = workspace.EstimationRowCoefficients;
-        Span<int> reconstructed = workspace.SearchDequantizedCoefficients[..sampleCount];
-        Span<int> transformWorkspace = workspace.TransformWorkspace;
+        Span<int> reconstructed = searchDequantizedCoefficients[..sampleCount];
         Span<int> quantized = transformWorkspace[..sampleCount];
         int normalizationShift = (bitDepth.GetBitCount() - 8) * 2;
         int blocksPerRow = (extent.Width + width - 1) / width;

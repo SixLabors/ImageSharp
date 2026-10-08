@@ -391,9 +391,10 @@ internal static partial class Av1IntraSuperblockEncoder
             // The intra reference cost of an inter frame joins the total only after the search, so the header gate
             // and the candidate comparison leave it out. Reference: intra_mode_info_cost_y() in palette_rd_y(), and
             // the ref_frame_cost that av1_search_palette_mode() adds to rate2.
+            Av1ModeCosts modeCosts = writer.ModeCosts;
             int rate = dcModeCost;
-            rate += writer.GetPaletteYModeCost(true, blockSizeContext, neighborContext);
-            rate += writer.GetPaletteSizeCost(paletteSize, blockSizeContext, Av1PlaneType.Y);
+            rate += Av1SymbolEncoder.GetPaletteYModeCost(modeCosts, true, blockSizeContext, neighborContext);
+            rate += Av1SymbolEncoder.GetPaletteSizeCost(modeCosts, paletteSize, blockSizeContext, Av1PlaneType.Y);
             rate += Av1SymbolEncoder.GetPaletteYColorCost(colorCache, paletteColors, bitDepth);
 
             // Real-time mode search prices only the first map index; the rest of the color map is discounted.

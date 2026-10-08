@@ -4344,6 +4344,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1RateDistortionStatistics paletteStatistics = modeSearchStatistics;
                 Av1EncoderPaletteInfo candidatePalette = paletteInfo;
                 Av1TransformSize paletteTransformSize = modeInfo.Block.TransformSize;
+                Av1ModeCosts modeCosts = writer.ModeCosts;
                 if (Av1TileWriter.IsPaletteAllowed(this.picture.Parent.FrameHeader.AllowScreenContentTools, blockSize) &&
                     this.SelectLumaPalette(
                     writer,
@@ -4353,7 +4354,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     tileIndex,
                     retainedLumaStates,
                     64,
-                    Av1SymbolEncoder.GetInterFrameLumaModeCost(writer.ModeCosts, Av1PredictionMode.DC, blockSize),
+                    Av1SymbolEncoder.GetInterFrameLumaModeCost(modeCosts, Av1PredictionMode.DC, blockSize),
                     ref paletteStatistics,
                     ref candidatePalette,
                     ref paletteTransformSize))
@@ -4364,7 +4365,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     // makes this_skippable of av1_search_palette_mode() zero.
                     int rate = writer.GetIsInterCost(false, Av1TileWriter.GetIntraInterContext(macroBlock)) +
                         paletteStatistics.Rate + modeSearchChroma.Rate +
-                        writer.GetSkipCost(false, Av1TileWriter.GetSkipContext(macroBlock));
+                        Av1SymbolEncoder.GetSkipCost(modeCosts, false, Av1TileWriter.GetSkipContext(macroBlock));
 
                     Av1RateDistortionStatistics combinedStatistics = new(
                         this.rateMultiplier, rate, paletteStatistics.Distortion + modeSearchChroma.Distortion);
@@ -5849,7 +5850,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MacroBlockD macroBlock,
             Av1RateDistortionStatistics modeStatistics)
         {
-            int rateAdjustment = writer.GetSkipCost(false, Av1TileWriter.GetSkipContext(macroBlock));
+            int rateAdjustment = Av1SymbolEncoder.GetSkipCost(writer.ModeCosts, false, Av1TileWriter.GetSkipContext(macroBlock));
 
             return new(this.rateMultiplier, modeStatistics.Rate + rateAdjustment, modeStatistics.Distortion);
         }
@@ -6133,7 +6134,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.picture.TransformFunctionContexts[tileIndex].GetEdges(), macroBlock, blockOrigin, blockSize);
 
                 int paletteDisabledCost = paletteAllowed
-                    ? writer.GetPaletteYModeCost(
+                    ? Av1SymbolEncoder.GetPaletteYModeCost(
+                        writer.ModeCosts,
                         false,
                         Av1TileWriter.GetPaletteBlockSizeContext(blockSize),
                         Av1TileWriter.GetPaletteYModeContext(this.picture.PaletteContexts[tileIndex].GetEdges(), macroBlock, blockOrigin))
@@ -6294,9 +6296,12 @@ internal static partial class Av1IntraSuperblockEncoder
             int sizeContext = Av1TileWriter.GetTransformSizeContext(
                 this.picture.TransformFunctionContexts[tileIndex].GetEdges(), macroBlock, blockOrigin, blockSize);
 
+            // Every luma mode of the block reads the same mode rates.
+            Av1ModeCosts modeCosts = writer.ModeCosts;
             bool paletteAllowed = Av1TileWriter.IsPaletteAllowed(this.picture.Parent.FrameHeader.AllowScreenContentTools, blockSize);
             int paletteDisabledCost = paletteAllowed
-                ? writer.GetPaletteYModeCost(
+                ? Av1SymbolEncoder.GetPaletteYModeCost(
+                    modeCosts,
                     false,
                     Av1TileWriter.GetPaletteBlockSizeContext(blockSize),
                     Av1TileWriter.GetPaletteYModeContext(this.picture.PaletteContexts[tileIndex].GetEdges(), macroBlock, blockOrigin))
@@ -6356,7 +6361,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 : Av1PredictionMode.DC;
 
             int interFrameSyntaxRate = intraFrame ? 0 : blockState.IntraInterRate + blockState.NoSkipRate;
-            Av1ModeCosts modeCosts = writer.ModeCosts;
 
             // A predictor first chooses its own transform grid. Only that completed result competes
             // with other predictors, so an empty residual cannot change ranking midway through type search.
@@ -7062,7 +7066,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1ModeCosts modeCosts = transformBuffers.Tables.ModeCosts;
             int rate = !codedLossless && blockSize > Av1BlockSize.Block4x4 && selectsTransformSize &&
                 this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select
-                ? writer.GetTransformSizeCost(blockSize, transformSize, transformSizeContext)
+                ? Av1SymbolEncoder.GetTransformSizeCost(modeCosts, blockSize, transformSize, transformSizeContext)
                 : 0;
 
             int transformSizeRate = rate;
@@ -7089,9 +7093,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     rate += paletteDisabledCost;
                     if (Av1TileWriter.IsFilterIntraAllowedBlockSize(this.picture.Sequence.SequenceHeader.EnableFilterIntra, blockSize))
                     {
-                        rate += writer.GetFilterIntraModeCost(
-                            filterIntraMode,
-                            blockSize);
+                        rate += Av1SymbolEncoder.GetFilterIntraModeCost(modeCosts, filterIntraMode, blockSize);
                     }
                 }
             }
@@ -7100,7 +7102,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // Reference: the intrabc_cost term of intra_mode_info_cost_y().
             if (this.picture.Parent.FrameHeader.AllowIntraBlockCopy)
             {
-                rate += writer.GetUseIntraBlockCopyCost(false);
+                rate += Av1SymbolEncoder.GetUseIntraBlockCopyCost(modeCosts, false);
             }
 
             Av1PlaneRegion<byte> colorIndexMap = default;
@@ -7948,7 +7950,7 @@ internal static partial class Av1IntraSuperblockEncoder
             return new(
                 macroBlock.GetRelativeModeInfo(0).Block.PartitionType,
                 this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, Av1Plane.Y),
-                writer.GetSkipCost(false, Av1TileWriter.GetSkipContext(macroBlock)),
+                Av1SymbolEncoder.GetSkipCost(writer.ModeCosts, false, Av1TileWriter.GetSkipContext(macroBlock)),
                 intraFrame ? 0 : writer.GetIsInterCost(false, Av1TileWriter.GetIntraInterContext(macroBlock)),
                 topModeContext,
                 leftModeContext);

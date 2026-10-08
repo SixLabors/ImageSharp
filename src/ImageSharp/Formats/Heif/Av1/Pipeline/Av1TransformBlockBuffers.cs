@@ -24,6 +24,10 @@ internal readonly ref struct Av1TransformBlockBuffers
         this.TransformCoefficients = workspace.TransformCoefficients;
         this.DequantizedCoefficients = workspace.DequantizedCoefficients;
         this.TransformWorkspace = workspace.TransformWorkspace;
+        this.Residual = workspace.Residual;
+        this.SearchCoefficients = workspace.SearchCoefficients;
+        this.SearchDequantizedCoefficients = workspace.SearchDequantizedCoefficients;
+        this.SearchReconstructions = workspace.SearchReconstructions;
     }
 
     /// <summary>
@@ -55,4 +59,35 @@ internal readonly ref struct Av1TransformBlockBuffers
     /// Gets the intermediate buffer of the transforms.
     /// </summary>
     public Span<int> TransformWorkspace { get; }
+
+    /// <summary>
+    /// Gets the residual buffer of one transform block.
+    /// </summary>
+    public Span<short> Residual { get; }
+
+    /// <summary>
+    /// Gets the quantized coefficients of the best transform type of a type search.
+    /// </summary>
+    public Span<int> SearchCoefficients { get; }
+
+    /// <summary>
+    /// Gets the dequantized coefficients of the best transform type of a type search.
+    /// </summary>
+    public Span<int> SearchDequantizedCoefficients { get; }
+
+    /// <summary>
+    /// Gets the storage of the two reconstructions that a transform type search swaps between its candidate and its
+    /// winner.
+    /// </summary>
+    public Span<int> SearchReconstructions { get; }
+
+    /// <summary>
+    /// Gets one of the two transform type search reconstructions.
+    /// </summary>
+    /// <typeparam name="TSample">The reconstructed sample type.</typeparam>
+    /// <param name="index">The reconstruction slot, zero or one.</param>
+    /// <returns>The reconstruction storage.</returns>
+    public Span<TSample> GetSearchReconstruction<TSample>(int index)
+        where TSample : unmanaged
+        => Av1EncoderBlockWorkspace.GetSearchReconstruction<TSample>(this.SearchReconstructions, index);
 }

@@ -3470,8 +3470,9 @@ internal partial class Av1TileWriter
         int skipContext,
         int emptyTransformRate)
     {
-        int skipRate = writer.GetSkipCost(true, skipContext);
-        int nonSkipRate = writer.GetSkipCost(false, skipContext) + emptyTransformRate;
+        Av1ModeCosts modeCosts = writer.ModeCosts;
+        int skipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext);
+        int nonSkipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext) + emptyTransformRate;
 
         // Current libaom keeps intra blocks non-skipped. Empty transforms make both choices
         // decoder-identical, so select skip only when its complete live rate is strictly lower.

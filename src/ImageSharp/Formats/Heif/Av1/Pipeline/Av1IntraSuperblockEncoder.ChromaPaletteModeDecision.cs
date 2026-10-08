@@ -285,8 +285,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1ChromaPredictionMode.DC,
                     0);
 
-                rate += writer.GetPaletteUvModeCost(true, hasLumaPalette);
-                rate += writer.GetPaletteSizeCost(paletteSize, blockSizeContext, Av1PlaneType.Uv);
+                rate += Av1SymbolEncoder.GetPaletteUvModeCost(modeCosts, true, hasLumaPalette);
+                rate += Av1SymbolEncoder.GetPaletteSizeCost(modeCosts, paletteSize, blockSizeContext, Av1PlaneType.Uv);
                 rate += Av1SymbolEncoder.GetPaletteUvColorCost(
                     colorCache,
                     bluePaletteColors,

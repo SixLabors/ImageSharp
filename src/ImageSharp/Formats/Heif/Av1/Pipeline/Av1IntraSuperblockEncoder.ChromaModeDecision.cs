@@ -615,11 +615,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 GetSourceVariance(blueSource, chromaOrigin, width, height, this.bitDepth) < 20 &&
                 GetSourceVariance(redSource, chromaOrigin, width, height, this.bitDepth) < 20;
 
+            // The workspace buffers and the rate tables of every chroma candidate of the block, read once.
+            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
+            Av1ModeCosts modeCosts = transformBuffers.Tables.ModeCosts;
+
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
             int paletteDisabledCost = Av1TileWriter.IsPaletteAllowed(
                 this.picture.Parent.FrameHeader.AllowScreenContentTools,
                 blockSize)
-                ? writer.GetPaletteUvModeCost(false, hasLumaPalette)
+                ? Av1SymbolEncoder.GetPaletteUvModeCost(modeCosts, false, hasLumaPalette)
                 : 0;
 
             bool chromaFromLumaAllowed = blockSize.AllowsChromaFromLuma(
@@ -628,10 +632,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 colorConfig.SubSamplingY);
 
             Span<long> angleCosts = stackalloc long[7];
-
-            // The workspace buffers and the rate tables of every chroma candidate of the block, read once.
-            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
-            Av1ModeCosts modeCosts = transformBuffers.Tables.ModeCosts;
             Span<int> blockTransformCoefficients = transformBuffers.TransformCoefficients;
             Span<int> blockTransformWorkspace = transformBuffers.TransformWorkspace;
 
@@ -663,7 +663,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 AcDeltaQ = this.quantization.DeltaQAc[(int)Av1Plane.U],
                 BitDepth = this.bitDepth,
                 DistortionPolicy = Av1TransformBlockEncoder.GetDistortionPolicy(this.blockWorkspace, speedSettings),
-                Residual = this.blockWorkspace.Residual
+                Residual = transformBuffers.Residual
             };
 
             Av1IntraCandidatePlane<TSample> redPlane = new()
@@ -1199,11 +1199,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 GetSourceVariance(blueSource, chromaOrigin, blockWidth, blockHeight, this.bitDepth) < 20 &&
                 GetSourceVariance(redSource, chromaOrigin, blockWidth, blockHeight, this.bitDepth) < 20;
 
+            // Every chroma mode of the block reads the same mode rates.
+            Av1ModeCosts modeCosts = writer.ModeCosts;
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
             int paletteDisabledCost = Av1TileWriter.IsPaletteAllowed(
                 this.picture.Parent.FrameHeader.AllowScreenContentTools,
                 blockSize)
-                ? writer.GetPaletteUvModeCost(false, hasLumaPalette)
+                ? Av1SymbolEncoder.GetPaletteUvModeCost(modeCosts, false, hasLumaPalette)
                 : 0;
 
             Av1RateDistortionStatistics bestStatistics = Av1RateDistortionStatistics.Invalid;
@@ -1212,8 +1214,6 @@ internal static partial class Av1IntraSuperblockEncoder
             selectedChromaFromLumaIndex = 0;
             selectedChromaFromLumaSigns = 0;
 
-            // Every chroma mode of the block reads the same mode rates.
-            Av1ModeCosts modeCosts = writer.ModeCosts;
             Span<long> angleCosts = stackalloc long[7];
             for (int modeIndex = 0; modeIndex < ChromaModeSearchOrder.Length; modeIndex++)
             {
@@ -1552,14 +1552,17 @@ internal static partial class Av1IntraSuperblockEncoder
             predictionDistortion = 0;
             rate = 0;
 
+            // Every transform block of the plane reads the same transform buffers and rate tables.
+            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
+
             // Both candidate planes hold this block, so the type search swaps its candidate and winner through the
             // block workspace.
-            Span<TSample> typeCandidateReconstruction = this.blockWorkspace.GetSearchReconstruction<TSample>(0)[..transformSampleCount];
-            Span<TSample> typeWinnerReconstruction = this.blockWorkspace.GetSearchReconstruction<TSample>(1)[..transformSampleCount];
-            Span<int> typeWinnerCoefficients = this.blockWorkspace.SearchCoefficients;
-            Span<int> dequantizedStorage = this.blockWorkspace.DequantizedCoefficients;
-            Span<int> searchDequantizedStorage = this.blockWorkspace.SearchDequantizedCoefficients;
-            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
+            Span<TSample> typeCandidateReconstruction = transformBuffers.GetSearchReconstruction<TSample>(0)[..transformSampleCount];
+            Span<TSample> typeWinnerReconstruction = transformBuffers.GetSearchReconstruction<TSample>(1)[..transformSampleCount];
+            Span<int> typeWinnerCoefficients = transformBuffers.SearchCoefficients;
+            Span<int> dequantizedStorage = transformBuffers.DequantizedCoefficients;
+            Span<int> searchDequantizedStorage = transformBuffers.SearchDequantizedCoefficients;
+            Span<int> transformWorkspace = transformBuffers.TransformWorkspace;
 
             // A predicted empty block is priced with the contexts at the block origin, before any transform block
             // of this plane updates them. Reference: av1_get_entropy_contexts() in predict_dc_only_block().
@@ -1574,9 +1577,6 @@ internal static partial class Av1IntraSuperblockEncoder
             bool smoothEdges = this.UseSmoothIntraEdges(macroBlock, lumaOrigin, blockSize, plane);
             ReadOnlySpan<TSample> reconstructionBlock = reconstructionSamples[reconstruction.GetOffset(chromaOrigin.X, chromaOrigin.Y)..];
             Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(0).Block.PartitionType;
-
-            // Every transform block of the plane reads the same transform buffers and rate tables.
-            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
 
             // Residual syntax completes each bounded 64x64 luma region, scaled for chroma, before
             // moving to the next region. Candidate coefficients and states must retain that exact order.
@@ -1838,15 +1838,15 @@ internal static partial class Av1IntraSuperblockEncoder
             // The prediction goes into the frame. The block is one transform block, so the frame keeps the prediction.
             // Reference: av1_predict_intra_block_facade() into pd->dst in block_rd_txfm(), and the last block test of recon_intra().
             Av1TransformBlockEncoder.WriteFrameSamples(frame, frame.Samples, chromaOrigin, prediction, width, width, height);
-            Span<short> residual = this.blockWorkspace.Residual[..sampleCount];
+            Span<short> residual = buffers.Residual[..sampleCount];
             TOperator.SubtractPrediction(Av1TransformBlockEncoder.GetPlaneSpan(source, chromaOrigin), source.Stride, prediction, residual, width, height);
 
-            Span<TSample> candidateReconstruction = this.blockWorkspace.GetSearchReconstruction<TSample>(0)[..sampleCount];
-            Span<TSample> bestReconstruction = this.blockWorkspace.GetSearchReconstruction<TSample>(1)[..sampleCount];
+            Span<TSample> candidateReconstruction = buffers.GetSearchReconstruction<TSample>(0)[..sampleCount];
+            Span<TSample> bestReconstruction = buffers.GetSearchReconstruction<TSample>(1)[..sampleCount];
             Span<int> candidateCoefficients = coefficients;
-            Span<int> bestCoefficients = this.blockWorkspace.SearchCoefficients;
+            Span<int> bestCoefficients = buffers.SearchCoefficients;
             Span<int> candidateDequantized = buffers.DequantizedCoefficients;
-            Span<int> bestDequantized = this.blockWorkspace.SearchDequantizedCoefficients;
+            Span<int> bestDequantized = buffers.SearchDequantizedCoefficients;
 
             // A CfL block is one transform at the block origin, and searches the DCT_DCT that its chroma mode
             // derives. Reference: av1_txfm_rd_in_plane() of cfl_compute_rd().

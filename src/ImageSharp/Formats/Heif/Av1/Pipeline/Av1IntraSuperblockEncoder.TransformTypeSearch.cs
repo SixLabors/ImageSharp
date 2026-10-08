@@ -669,8 +669,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 best.Type = Av1TransformType.DctDct;
                 best.State.TransformType = plane == Av1Plane.Y ? Av1TransformType.DctDct : derivedType;
                 best.ReconstructionState = best.State;
-                best.Rate = buffers.Writer.GetTransformBlockSkipCost(
-                    true, Av1SymbolContextHelper.GetTransformSizeContext(transformSize), originContext.SkipContext, componentType);
+                best.Rate = Av1SymbolEncoder.GetTransformBlockSkipCost(
+                    buffers.Tables.CoefficientCosts,
+                    true,
+                    Av1SymbolContextHelper.GetTransformSizeContext(transformSize),
+                    originContext.SkipContext,
+                    componentType);
 
                 best.Distortion = blockError;
                 for (int row = 0; row < transformHeight; row++)

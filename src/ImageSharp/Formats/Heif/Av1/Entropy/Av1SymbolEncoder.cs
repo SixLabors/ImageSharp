@@ -537,7 +537,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Gets the retained coefficient rates.
     /// </summary>
-    private Av1CoefficientCosts CoefficientCosts => new(
+    public Av1CoefficientCosts CoefficientCosts => new(
         this.entropyWorkspace.Memory.Span.Slice(Av1ModeCosts.StorageLength, Av1CoefficientCosts.StorageLength));
 
     /// <summary>
@@ -705,16 +705,15 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the current fixed-point cost of the luma palette-mode flag.
+    /// Gets the fixed-point cost of the luma palette-mode flag from the given mode rates.
     /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="usePalette">Indicates whether the block uses luma palette prediction.</param>
     /// <param name="blockSizeContext">The block-area context in the range from zero through six.</param>
     /// <param name="neighborContext">The number of available above and left luma neighbors that use palettes.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetPaletteYModeCost(bool usePalette, int blockSizeContext, int neighborContext)
-    {
-        return this.ModeCosts.GetPaletteYMode(blockSizeContext, neighborContext, usePalette ? 1 : 0);
-    }
+    public static int GetPaletteYModeCost(Av1ModeCosts modeCosts, bool usePalette, int blockSizeContext, int neighborContext)
+        => modeCosts.GetPaletteYMode(blockSizeContext, neighborContext, usePalette ? 1 : 0);
 
     /// <summary>
     /// Writes the luma palette-mode flag.
@@ -732,15 +731,14 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the current fixed-point cost of the chroma palette-mode flag.
+    /// Gets the fixed-point cost of the chroma palette-mode flag from the given mode rates.
     /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="usePalette">Indicates whether the block uses chroma palette prediction.</param>
     /// <param name="hasLumaPalette">Indicates whether the current block uses a luma palette.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetPaletteUvModeCost(bool usePalette, bool hasLumaPalette)
-    {
-        return this.ModeCosts.GetPaletteUvMode(hasLumaPalette ? 1 : 0, usePalette ? 1 : 0);
-    }
+    public static int GetPaletteUvModeCost(Av1ModeCosts modeCosts, bool usePalette, bool hasLumaPalette)
+        => modeCosts.GetPaletteUvMode(hasLumaPalette ? 1 : 0, usePalette ? 1 : 0);
 
     /// <summary>
     /// Writes the chroma palette-mode flag.
@@ -757,18 +755,17 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the current fixed-point cost of a palette-size symbol.
+    /// Gets the fixed-point cost of a palette-size symbol from the given mode rates.
     /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="paletteSize">The palette size in the range from two through eight.</param>
     /// <param name="blockSizeContext">The block-area context in the range from zero through six.</param>
     /// <param name="planeType">The luma or chroma plane class.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetPaletteSizeCost(int paletteSize, int blockSizeContext, Av1PlaneType planeType)
-    {
-        return planeType == Av1PlaneType.Y
-            ? this.ModeCosts.GetPaletteYSize(blockSizeContext, paletteSize - 2)
-            : this.ModeCosts.GetPaletteUvSize(blockSizeContext, paletteSize - 2);
-    }
+    public static int GetPaletteSizeCost(Av1ModeCosts modeCosts, int paletteSize, int blockSizeContext, Av1PlaneType planeType)
+        => planeType == Av1PlaneType.Y
+            ? modeCosts.GetPaletteYSize(blockSizeContext, paletteSize - 2)
+            : modeCosts.GetPaletteUvSize(blockSizeContext, paletteSize - 2);
 
     /// <summary>
     /// Writes a palette-size symbol.
@@ -1125,12 +1122,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Measures the frame-local intra-block-copy flag against the live distribution.
+    /// Gets the fixed-point cost of the intra-block-copy flag from the given mode rates.
     /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="value">Indicates whether intra-block copy is selected.</param>
     /// <returns>The syntax cost in 1/512-bit units.</returns>
-    public int GetUseIntraBlockCopyCost(bool value)
-        => this.ModeCosts.GetIntraBlockCopy(value ? 1 : 0);
+    public static int GetUseIntraBlockCopyCost(Av1ModeCosts modeCosts, bool value)
+        => modeCosts.GetIntraBlockCopy(value ? 1 : 0);
 
     /// <summary>
     /// Writes an integer intra-block-copy displacement vector relative to a spatial reference.
@@ -2085,25 +2083,32 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the current fixed-point cost of the transform-block skip flag.
+    /// Gets the fixed-point cost of the luma transform-block skip flag from the given coefficient rates.
     /// </summary>
+    /// <param name="coefficientCosts">The coefficient rates that the caller read once.</param>
     /// <param name="skip">Indicates whether the transform block is empty.</param>
     /// <param name="transformSizeContext">The square transform-size probability context.</param>
     /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetTransformBlockSkipCost(bool skip, Av1TransformSize transformSizeContext, int skipContext)
-        => this.GetTransformBlockSkipCost(skip, transformSizeContext, skipContext, Av1ComponentType.Luminance);
+    public static int GetTransformBlockSkipCost(Av1CoefficientCosts coefficientCosts, bool skip, Av1TransformSize transformSizeContext, int skipContext)
+        => GetTransformBlockSkipCost(coefficientCosts, skip, transformSizeContext, skipContext, Av1ComponentType.Luminance);
 
     /// <summary>
     /// Gets the rate of signaling whether a transform block of a component has no coded coefficients.
     /// </summary>
+    /// <param name="coefficientCosts">The coefficient rates that the caller read once.</param>
     /// <param name="skip">Indicates whether the transform block is empty.</param>
     /// <param name="transformSizeContext">The square transform-size probability context.</param>
     /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
     /// <param name="componentType">The luma or chroma component.</param>
     /// <returns>The rate in 1/512-bit units.</returns>
-    public int GetTransformBlockSkipCost(bool skip, Av1TransformSize transformSizeContext, int skipContext, Av1ComponentType componentType)
-        => Av1CoefficientCosts.GetSkip(this.CoefficientCosts.GetPlane((int)transformSizeContext, (int)componentType), skipContext, skip ? 1 : 0);
+    public static int GetTransformBlockSkipCost(
+        Av1CoefficientCosts coefficientCosts,
+        bool skip,
+        Av1TransformSize transformSizeContext,
+        int skipContext,
+        Av1ComponentType componentType)
+        => Av1CoefficientCosts.GetSkip(coefficientCosts.GetPlane((int)transformSizeContext, (int)componentType), skipContext, skip ? 1 : 0);
 
     /// <summary>
     /// Writes whether a transform block has no coded coefficients.
@@ -2144,16 +2149,17 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the current fixed-point cost of a transform-size subdivision depth.
+    /// Gets the fixed-point cost of a transform-size subdivision depth from the given mode rates.
     /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="blockSize">The block size defining the maximum transform.</param>
     /// <param name="transformSize">The selected transform size.</param>
     /// <param name="context">The neighboring transform-size context.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetTransformSizeCost(Av1BlockSize blockSize, Av1TransformSize transformSize, int context)
+    public static int GetTransformSizeCost(Av1ModeCosts modeCosts, Av1BlockSize blockSize, Av1TransformSize transformSize, int context)
     {
         int selectedDepth = GetTransformSizeDepth(blockSize, transformSize, out int categoryDepth);
-        return this.ModeCosts.GetTransformSize(categoryDepth - 1, context, selectedDepth);
+        return modeCosts.GetTransformSize(categoryDepth - 1, context, selectedDepth);
     }
 
     /// <summary>
@@ -2535,13 +2541,14 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the current fixed-point cost of the transform-skip flag.
+    /// Gets the fixed-point cost of the transform-skip flag from the given mode rates.
     /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="skip">Indicates whether the block contains no coded transform coefficients.</param>
     /// <param name="context">The neighboring skip context.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetSkipCost(bool skip, int context)
-        => this.ModeCosts.GetSkip(context, skip ? 1 : 0);
+    public static int GetSkipCost(Av1ModeCosts modeCosts, bool skip, int context)
+        => modeCosts.GetSkip(context, skip ? 1 : 0);
 
     /// <summary>
     /// Writes the transform-skip flag from a neighboring skip context.
@@ -2578,18 +2585,19 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the current fixed-point cost of the filter-intra enable flag and selected mode.
+    /// Gets the fixed-point cost of the filter-intra enable flag and selected mode from the given mode rates.
     /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
     /// <param name="blockSize">The block size selecting the enable distribution.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetFilterIntraModeCost(Av1FilterIntraMode filterIntraMode, Av1BlockSize blockSize)
+    public static int GetFilterIntraModeCost(Av1ModeCosts modeCosts, Av1FilterIntraMode filterIntraMode, Av1BlockSize blockSize)
     {
         bool useFilter = filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes;
-        int cost = this.ModeCosts.GetFilterIntra((int)blockSize, useFilter ? 1 : 0);
+        int cost = modeCosts.GetFilterIntra((int)blockSize, useFilter ? 1 : 0);
         if (useFilter)
         {
-            cost += this.ModeCosts.GetFilterIntraMode((int)filterIntraMode);
+            cost += modeCosts.GetFilterIntraMode((int)filterIntraMode);
         }
 
         return cost;
@@ -2646,7 +2654,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the current fixed-point cost of a key-frame luma prediction mode.
+    /// Gets the fixed-point cost of a key-frame luma prediction mode from the given mode rates.
     /// </summary>
     /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="lumaMode">The luma prediction mode.</param>
@@ -2672,7 +2680,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the cost of an intra luma mode coded inside an inter frame.
+    /// Gets the cost of an intra luma mode coded inside an inter frame from the given mode rates.
     /// </summary>
     /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="lumaMode">The intra luma mode.</param>
@@ -3261,7 +3269,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the current fixed-point cost of a directional angle-delta symbol.
+    /// Gets the fixed-point cost of a directional angle-delta symbol from the given mode rates.
     /// </summary>
     /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="angleDelta">The signed angle delta offset by <see cref="Av1Constants.MaxAngleDelta"/>.</param>
@@ -3302,7 +3310,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the current fixed-point cost of a chroma intra prediction mode.
+    /// Gets the fixed-point cost of a chroma intra prediction mode from the given mode rates.
     /// </summary>
     /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="chromaMode">The chroma prediction mode.</param>
@@ -3316,7 +3324,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the current fixed-point cost of joint chroma-from-luma alpha syntax.
+    /// Gets the fixed-point cost of joint chroma-from-luma alpha syntax from the given mode rates.
     /// </summary>
     /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="chromaFromLumaIndex">The packed U/V alpha-magnitude indices.</param>

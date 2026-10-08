@@ -797,6 +797,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // set_mode_eval_params(DEFAULT_EVAL) that opens av1_nonrd_use_partition().
             Av1EncoderEvaluationStage previousStage = this.blockWorkspace.EvaluationStage;
             this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Default;
+            Av1ModeCosts modeCosts = writer.ModeCosts;
             bool selected = this.SelectLumaPalette(
                 writer,
                 macroBlock,
@@ -805,7 +806,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 tileIndex,
                 states,
                 colorThreshold,
-                Av1SymbolEncoder.GetInterFrameLumaModeCost(writer.ModeCosts, Av1PredictionMode.DC, blockSize),
+                Av1SymbolEncoder.GetInterFrameLumaModeCost(modeCosts, Av1PredictionMode.DC, blockSize),
                 ref paletteStatistics,
                 ref palette,
                 ref transformSize);
@@ -815,7 +816,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 bool skip = !paletteStatistics.HasCoefficients;
                 int rate = state.ReferenceCosts[(int)Av1ReferenceFrameType.Intra] +
-                    (skip ? 0 : paletteStatistics.Rate) + writer.GetSkipCost(skip, Av1TileWriter.GetSkipContext(macroBlock));
+                    (skip ? 0 : paletteStatistics.Rate) + Av1SymbolEncoder.GetSkipCost(modeCosts, skip, Av1TileWriter.GetSkipContext(macroBlock));
 
                 Av1RateDistortionStatistics statistics = new(this.rateMultiplier, rate, paletteStatistics.Distortion)
                 {
@@ -1198,7 +1199,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (mode == Av1PredictionMode.DC &&
                     Av1TileWriter.IsFilterIntraAllowedBlockSize(this.picture.Sequence.SequenceHeader.EnableFilterIntra, blockSize))
                 {
-                    rate += writer.GetFilterIntraModeCost(Av1FilterIntraMode.AllFilterIntraModes, blockSize);
+                    rate += Av1SymbolEncoder.GetFilterIntraModeCost(modeCosts, Av1FilterIntraMode.AllFilterIntraModes, blockSize);
                 }
 
                 Av1RateDistortionStatistics statistics = new(this.rateMultiplier, rate, residual.Distortion)
@@ -2104,6 +2105,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // The estimated motion entry measures prediction error and vector rate only. Coefficient
                 // edges are unused here; residual modeling follows the final motion/filter selection.
                 // The non-RD path gives no frame, so this search does not write the frame.
+                Av1ModeCosts modeCosts = writer.ModeCosts;
                 Av1MotionSearchBase.SingleReferenceSearch<TSample, TOperator> motionSearch = new(
                     Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
                     sourcePlane.Stride,
@@ -2130,8 +2132,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     header.CodedLossless,
                     this.rateMultiplier,
                     0,
-                    writer.GetSkipCost(false, skipContext),
-                    writer.GetSkipCost(true, skipContext),
+                    Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext),
+                    Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext),
                     this.blockWorkspace.GetMotionVectorCosts(header.MotionVectorPrecision));
 
                 Av1MotionSearchBase.FractionalResult result;
@@ -2978,8 +2980,9 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             initialSkip = earlyTermination;
             chromaDistortion = long.MaxValue;
+            Av1ModeCosts modeCosts = writer.ModeCosts;
             int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
-            int skipRate = writer.GetSkipCost(true, skipContext);
+            int skipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext);
             long predictionDistortion = lumaSquaredError << 4;
             if (earlyTermination)
             {
@@ -3019,7 +3022,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 out long distortion,
                 out bool skip);
 
-            int codedRate = rate + writer.GetSkipCost(false, skipContext);
+            int codedRate = rate + Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext);
             long codedDistortion = distortion;
             bool retainCodedAlternative = false;
             if (skip || Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion) >=

@@ -665,6 +665,12 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         => this.owner.Memory.Span.Slice(SearchCoefficientOffset, MaximumCoefficientCount);
 
     /// <summary>
+    /// Gets the storage of both transform type search reconstructions, which a caller reads once for its loop.
+    /// </summary>
+    public Span<int> SearchReconstructions
+        => this.owner.Memory.Span.Slice(SearchReconstructionOffset, 2 * SearchReconstructionStorageLength);
+
+    /// <summary>
     /// Gets the reusable two-dimensional transform workspace.
     /// </summary>
     public Span<int> TransformWorkspace
@@ -681,18 +687,16 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public ref Av1EstimatedInterSearchState EstimatedInterSearchState => ref this.estimatedInterSearchState;
 
     /// <summary>
-    /// Gets one of the two transform-sized reconstructions that a transform type search swaps between its
-    /// candidate and its winner, for a caller whose candidate planes are both live.
+    /// Gets one of the two transform type search reconstructions from their storage.
     /// </summary>
     /// <typeparam name="TSample">The reconstructed sample type.</typeparam>
+    /// <param name="searchReconstructions">The storage from <see cref="SearchReconstructions"/>.</param>
     /// <param name="index">The reconstruction slot, zero or one.</param>
     /// <returns>The reconstruction storage.</returns>
-    public Span<TSample> GetSearchReconstruction<TSample>(int index)
+    public static Span<TSample> GetSearchReconstruction<TSample>(Span<int> searchReconstructions, int index)
         where TSample : unmanaged
         => MemoryMarshal.Cast<int, TSample>(
-            this.owner.Memory.Span.Slice(
-                SearchReconstructionOffset + (index * SearchReconstructionStorageLength),
-                SearchReconstructionStorageLength))[..SearchReconstructionSampleCount];
+            searchReconstructions.Slice(index * SearchReconstructionStorageLength, SearchReconstructionStorageLength))[..SearchReconstructionSampleCount];
 
     /// <summary>
     /// Selects the quantization matrix levels of a frame. Reference: set_qmatrix().

@@ -162,10 +162,13 @@ internal static partial class Av1IntraSuperblockEncoder
             bool selectedSkip = false;
             this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Default;
             ref Av1ReferenceMotionVectors referenceMotionVectors = ref this.blockWorkspace.ReferenceMotionVectors;
+
+            // Every candidate signals the copy flag with the same rate.
+            int useCopyRate = Av1SymbolEncoder.GetUseIntraBlockCopyCost(writer.ModeCosts, true);
             for (int index = 0; index < candidateCount; index++)
             {
                 Av1MotionVector vector = candidates[index];
-                int predictionRate = writer.GetUseIntraBlockCopyCost(true) + costs.GetDisplacementVectorCost(vector, reference);
+                int predictionRate = useCopyRate + costs.GetDisplacementVectorCost(vector, reference);
                 Av1RateDistortionStatistics statistics = this.EvaluateInterCandidate(
                     writer,
                     macroBlock,
@@ -1718,8 +1721,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
             candidateStatistics.Add(this.rateMultiplier, chromaStatistics);
             int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
-            int noSkipRate = writer.GetSkipCost(false, skipContext);
-            int skipRate = writer.GetSkipCost(true, skipContext);
+            Av1ModeCosts modeCosts = writer.ModeCosts;
+            int noSkipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext);
+            int skipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext);
             bool allEmpty = !candidateStatistics.HasCoefficients;
 
             // Skipping removes the entire transform tree, including every partition and coefficient
@@ -2333,9 +2337,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 return skipStatistics;
             }
 
+            // Every node of every root transform tree uses the same workspace buffers and rate tables.
+            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
+            Av1ModeCosts modeCosts = transformBuffers.Tables.ModeCosts;
             int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
-            int skipRate = writer.GetSkipCost(true, skipContext);
-            int codedRate = writer.GetSkipCost(false, skipContext);
+            int skipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext);
+            int codedRate = Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext);
             long skipCost = Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, 0);
             long codedCost = Av1RateDistortion.GetCost(this.rateMultiplier, codedRate, 0);
             Av1TransformSize rootSize = this.picture.Parent.FrameHeader.CodedLossless
@@ -2361,9 +2368,6 @@ internal static partial class Av1IntraSuperblockEncoder
             // A coding block can contain several maximum-size transforms. Each root consumes the
             // contexts left by its predecessor, while the bound retains both coded and skipped costs.
             int rootCount = width4 * height4 / (rootWidth4 * rootHeight4);
-
-            // Every node of every root transform tree uses the same workspace buffers and rate tables.
-            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
             for (int root = 0; root < rootCount; root++)
             {
                 Point offset = rootSize.GetBlockPartitionOrigin(modeInfo.BlockSize, rootSize, root, 0, 0);
@@ -2604,8 +2608,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformBlockContext firstContext = Av1TileWriter.GetTransformBlockContexts(
                 Av1ComponentType.Luminance, coefficientAbove[..width4], coefficientLeft[..height4], blockSize, transformSize);
 
-            int zeroRate = writer.GetTransformBlockSkipCost(
-                true, Av1SymbolContextHelper.GetTransformSizeContext(transformSize), firstContext.SkipContext);
+            int zeroRate = Av1SymbolEncoder.GetTransformBlockSkipCost(
+                writer.CoefficientCosts, true, Av1SymbolContextHelper.GetTransformSizeContext(transformSize), firstContext.SkipContext);
 
             int transformCount = (blockWidth4 / width4) * (blockHeight4 / height4);
 
@@ -3449,6 +3453,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> referenceCounts = stackalloc byte[Av1Constants.ReferenceFrameCount];
             Av1TileWriter.CollectNeighborReferenceCounts(macroBlock, referenceCounts);
 
+            // Every candidate prices its reference and skip syntax with the same rates.
+            Av1ModeCosts modeCosts = writer.ModeCosts;
+
             // Every candidate of this reference pays the same syntax: the flag that says the block
             // is inter, and the reference selection itself. Pricing it once keeps it out of the
             // candidate loop.
@@ -3463,7 +3470,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (frameHeader.ReferenceMode == ObuReferenceMode.ReferenceModeSelect &&
                 Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8)
             {
-                commonPredictionRate += writer.ModeCosts.GetCompInter(Av1SymbolContextHelper.GetReferenceModeContext(macroBlock), 0);
+                commonPredictionRate += modeCosts.GetCompInter(Av1SymbolContextHelper.GetReferenceModeContext(macroBlock), 0);
             }
 
             // A frame that selects its transform size codes, for each block, whether the largest
@@ -3565,8 +3572,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 frameHeader.CodedLossless,
                 this.rateMultiplier,
                 transformPartitionRate,
-                writer.GetSkipCost(false, skipContext),
-                writer.GetSkipCost(true, skipContext),
+                Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext),
+                Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext),
                 this.blockWorkspace.GetMotionVectorCosts(frameHeader.MotionVectorPrecision),
                 this.GetScaledSearchReference(referenceFrame, blockOrigin, workspace.PredictionScratch));
 
@@ -5023,8 +5030,9 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
-            int noSkipRate = writer.GetSkipCost(false, skipContext);
-            int skipRate = writer.GetSkipCost(true, skipContext);
+            Av1ModeCosts modeCosts = writer.ModeCosts;
+            int noSkipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext);
+            int skipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext);
             long cost = Av1TransformBlockEncoder.EstimateInterTransform(
                 this.blockWorkspace,
                 workspace.Residual,
@@ -9770,8 +9778,9 @@ internal static partial class Av1IntraSuperblockEncoder
             bool usePreparedPrediction = true;
             int predictionRate = candidate.PredictionRate;
             int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
-            int noSkipCost = writer.GetSkipCost(false, skipContext);
-            int skipCost = writer.GetSkipCost(true, skipContext);
+            Av1ModeCosts modeCosts = writer.ModeCosts;
+            int noSkipCost = Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext);
+            int skipCost = Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext);
 
             // The header alone above the budget and a failed luma search both leave the luma result invalid, unlike
             // a later bound on the combined cost or a failed chroma search. Reference: the rd_stats_y->rate ==
@@ -9933,15 +9942,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            int codedRate = predictionRate +
-                writer.GetSkipCost(false, skipContext) +
-                lumaRate +
-                blueRate +
-                redRate;
-
+            int codedRate = predictionRate + noSkipCost + lumaRate + blueRate + redRate;
             long codedDistortion = lumaDistortion + blueDistortion + redDistortion;
             Av1RateDistortionStatistics selectedStatistics = new(this.rateMultiplier, codedRate, codedDistortion);
-            int skipRate = writer.GetSkipCost(true, skipContext);
             long skipDistortion = lumaPredictionDistortion + bluePredictionDistortion + redPredictionDistortion;
 
             // All-empty residuals omit the transform tree. Nonempty residuals can also be discarded when
@@ -9969,8 +9972,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.blockWorkspace.EvaluationStage != Av1EncoderEvaluationStage.Candidate);
 
                 bool lumaSkippable = lumaStatistics.SkipPredicted || (recursiveLumaSearch
-                    ? Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, lumaPredictionDistortion) <=
-                        Av1RateDistortion.GetCost(this.rateMultiplier, lumaRate + writer.GetSkipCost(false, skipContext), lumaDistortion)
+                    ? Av1RateDistortion.GetCost(this.rateMultiplier, skipCost, lumaPredictionDistortion) <=
+                        Av1RateDistortion.GetCost(this.rateMultiplier, lumaRate + noSkipCost, lumaDistortion)
                     : !lumaStatistics.HasCoefficients);
 
                 skippable = lumaSkippable && !blueHasCoefficients && !redHasCoefficients;
@@ -9985,7 +9988,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 skip = skippable ||
-                    Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, comparedSkipDistortion) <=
+                    Av1RateDistortion.GetCost(this.rateMultiplier, skipCost, comparedSkipDistortion) <=
                     Av1RateDistortion.GetCost(this.rateMultiplier, codedRate - predictionRate, comparedCodedDistortion);
             }
 
@@ -9993,7 +9996,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 selectedStatistics = new(
                     this.rateMultiplier,
-                    predictionRate + skipRate,
+                    predictionRate + skipCost,
                     skipDistortion);
 
                 // A skippable residual whose skipped cost exceeds the budget fails the search. Reference: the
@@ -11398,7 +11401,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> bestReconstruction = selectedReconstruction[..sampleCount];
             Span<int> bestCoefficients = selectedCoefficients[..sampleCount];
             Span<int> candidateDequantized = buffers.DequantizedCoefficients;
-            Span<int> bestDequantized = this.blockWorkspace.SearchDequantizedCoefficients;
+            Span<int> bestDequantized = buffers.SearchDequantizedCoefficients;
             TransformTypeSearchResult result = this.SearchTransformType(
                 in buffers,
                 plane,

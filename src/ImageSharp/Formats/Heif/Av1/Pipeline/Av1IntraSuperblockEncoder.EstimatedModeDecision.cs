@@ -274,7 +274,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
-                rate = (skip ? 0 : rate) + writer.GetSkipCost(skip, skipContext);
+                rate = (skip ? 0 : rate) + Av1SymbolEncoder.GetSkipCost(modeCosts, skip, skipContext);
 
                 // Prediction estimates charge the mode symbol only. Angle syntax belongs to the
                 // full transform search and would unfairly penalize horizontal and vertical estimates.
@@ -326,7 +326,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     // A skipped palette block omits its residual and mode rates. Apply skip syntax
                     // before comparing with the retained estimate, which already includes that syntax.
                     bool skip = !paletteStatistics.HasCoefficients;
-                    int paletteRate = (skip ? 0 : paletteStatistics.Rate) + writer.GetSkipCost(skip, skipContext);
+                    int paletteRate = (skip ? 0 : paletteStatistics.Rate) + Av1SymbolEncoder.GetSkipCost(modeCosts, skip, skipContext);
                     paletteStatistics = new(this.rateMultiplier, paletteRate, paletteStatistics.Distortion)
                     {
                         HasCoefficients = !skip,

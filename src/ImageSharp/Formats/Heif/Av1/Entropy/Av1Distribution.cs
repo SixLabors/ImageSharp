@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
 /// <summary>
@@ -315,20 +313,7 @@ internal sealed class Av1Distribution
     /// </summary>
     /// <param name="index">The zero-based threshold index.</param>
     /// <returns>The Q15 inverse cumulative threshold.</returns>
-    /// <remarks>
-    /// The cost and write paths read two thresholds for every symbol. A variable index into the inline array makes a
-    /// new span on each read, so the read goes through a reference to the first threshold. The index is a symbol of
-    /// this alphabet, which is always less than <see cref="NumberOfSymbols"/>.
-    /// </remarks>
-    public uint this[int index]
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            DebugGuard.MustBeBetweenOrEqualTo(index, 0, this.NumberOfSymbols - 1, nameof(index));
-            return Unsafe.Add(ref this.probabilities[0], (nuint)(uint)index);
-        }
-    }
+    public uint this[int index] => this.probabilities[index];
 
     /// <summary>
     /// Creates an independently adaptable copy of a distribution.
@@ -419,22 +404,20 @@ internal sealed class Av1Distribution
         // Switching tmp to zero at the observed symbol moves the thresholds on either side toward the sample while
         // preserving their inverse-cumulative ordering in one pass. Arithmetic stays wide until the stored update;
         // each step moves toward zero or 32768, so narrowing cannot discard a significant probability bit. The
-        // thresholds are read through a reference to the first threshold, so no span is made for each symbol. The
-        // loop stops before the last entry, which stays zero, and the alphabet has at most 16 entries.
-        ref ushort threshold = ref this.probabilities[0];
-        nuint thresholdCount = (nuint)(uint)(this.NumberOfSymbols - 1);
-        for (nuint i = 0; i < thresholdCount; i++)
+        // thresholds are taken as a span once, outside the loop, rather than through the inline array indexer.
+        Span<ushort> probabilities = this.probabilities;
+        int thresholdCount = this.NumberOfSymbols - 1;
+        for (int i = 0; i < thresholdCount; i++)
         {
-            tmp = i == (nuint)(uint)value ? 0 : tmp;
-            ref ushort probability = ref Unsafe.Add(ref threshold, i);
-            uint p = probability;
+            tmp = i == value ? 0 : tmp;
+            uint p = probabilities[i];
             if (tmp < p)
             {
-                probability -= (ushort)((p - tmp) >> rate);
+                probabilities[i] -= (ushort)((p - tmp) >> rate);
             }
             else
             {
-                probability += (ushort)((tmp - p) >> rate);
+                probabilities[i] += (ushort)((tmp - p) >> rate);
             }
         }
 

@@ -67,6 +67,8 @@ internal partial class Av1TileWriter
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The tile-local macroblock state.</param>
         /// <param name="blockOrigin">The absolute luma-sample origin.</param>
         /// <param name="blockSize">The current square partition size.</param>
@@ -114,6 +116,8 @@ internal partial class Av1TileWriter
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
             Span<int> workspaceStorage,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -162,6 +166,8 @@ internal partial class Av1TileWriter
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The current block's mapped neighbor state.</param>
         /// <param name="blockOrigin">The absolute luma-sample origin.</param>
         /// <param name="modeInfo">The mode information to publish.</param>
@@ -208,6 +214,8 @@ internal partial class Av1TileWriter
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
             Span<int> workspaceStorage,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -277,6 +285,8 @@ internal partial class Av1TileWriter
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
             Span<int> workspaceStorage,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -380,6 +390,8 @@ internal partial class Av1TileWriter
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
             Span<int> workspaceStorage,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,

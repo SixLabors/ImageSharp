@@ -599,6 +599,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Combines completed child costs, selected geometry, and motion residuals into a stopping decision.
         /// </summary>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
         /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
@@ -612,6 +614,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns><see langword="true"/> when the remaining partition searches stop.</returns>
         private bool ShouldTerminateAfterSplit(
             Span<int> workspaceStorage,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Span<TSample> motionSearchPrediction,
             Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
@@ -707,7 +711,16 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             this.CollectSimpleMotionFeatures(
-                workspaceStorage, motionSearchPrediction, filterRows, in motionVectorCosts, blockOrigin, blockSize, nodeIndex, true);
+                workspaceStorage,
+                in sourcePlanes,
+                in reconstructionPlanes,
+                motionSearchPrediction,
+                filterRows,
+                in motionVectorCosts,
+                blockOrigin,
+                blockSize,
+                nodeIndex,
+                true);
 
             Span<Av1SimpleMotionData> nodes = this.blockWorkspace.GetSimpleMotionData(workspaceStorage);
             features[featureIndex++] = float.LogP1(nodes[nodeIndex].Variance);

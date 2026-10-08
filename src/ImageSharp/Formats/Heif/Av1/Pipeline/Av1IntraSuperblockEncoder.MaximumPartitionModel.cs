@@ -175,6 +175,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Aggregates the 64 full-sample block searches needed to choose a 128-sample superblock's size limit.
         /// </summary>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
         /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
@@ -183,6 +185,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns>The largest partition size of the superblock.</returns>
         private Av1BlockSize PredictMaximumPartition(
             Span<int> workspaceStorage,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Span<TSample> motionSearchPrediction,
             Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
@@ -208,6 +212,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     Point origin = new(blockOrigin.X + (column * 16), blockOrigin.Y + (row * 16));
                     Av1MotionVector vector = this.SearchSimpleMotion(
                         workspaceStorage,
+                        in sourcePlanes,
+                        in reconstructionPlanes,
                         motionSearchPrediction,
                         filterRows,
                         in motionVectorCosts,
@@ -295,7 +301,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 int variance = mode == Av1EncoderSpeedSettings.MaximumPartitionPrediction.Adaptive
-                    ? this.GetSourceVariance(midpoint, blockOrigin, Av1BlockSize.Block128x128) : 0;
+                    ? this.GetSourceVariance(in sourcePlanes, midpoint, blockOrigin, Av1BlockSize.Block128x128) : 0;
 
                 if (mode == Av1EncoderSpeedSettings.MaximumPartitionPrediction.Relaxed || variance > 16)
                 {

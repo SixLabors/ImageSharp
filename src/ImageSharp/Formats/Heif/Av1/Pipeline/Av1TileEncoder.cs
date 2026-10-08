@@ -1284,6 +1284,10 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         // The search buffers that each block reads from the workspace are sliced from this storage.
         Span<int> workspaceStorage = blockWorkspace.Storage;
 
+        // The mode decision reads the coded views of the source and the reconstruction, so their samples are read once here.
+        Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes = source.CodedView.GetSamples();
+        Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes = reconstruction.CodedView.GetSamples();
+
         // The mode information and the retained block decisions of the picture serve every block of the frame pass,
         // so they are read once here.
         Span<int> modeInfoGrid = picture.ModeInfoGrid.Span;
@@ -1439,6 +1443,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 previousSegmentMap,
                                 superblockCoefficients,
                                 workspaceStorage,
+                                in sourcePlanes,
+                                in reconstructionPlanes,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,
@@ -1539,6 +1545,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 previousSegmentMap,
                                 superblockCoefficients,
                                 workspaceStorage,
+                                in sourcePlanes,
+                                in reconstructionPlanes,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,

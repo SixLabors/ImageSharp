@@ -1650,6 +1650,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Computes convolution features once per 64x64 parent and applies the selected block-size classifier.
         /// </summary>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
         /// <param name="blockOrigin">The luma block origin, in samples.</param>
         /// <param name="blockSize">The square block size of the partition node.</param>
         /// <param name="level">The pruning level. Level 1 keeps the unsplit candidate when only square partitions remain.</param>
@@ -1659,6 +1660,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns><see langword="true"/> when the classifier keeps only the square partitions.</returns>
         private bool PruneIntraPartitions(
             Span<int> workspaceStorage,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
             Point blockOrigin,
             Av1BlockSize blockSize,
             int level,
@@ -1666,13 +1668,15 @@ internal static partial class Av1IntraSuperblockEncoder
             ref bool allowSplit,
             ref bool allowRectangles)
         {
-            return this.PruneIntraPartitionsCore(workspaceStorage, blockOrigin, blockSize, level, ref allowNone, ref allowSplit, ref allowRectangles);
+            return this.PruneIntraPartitionsCore(
+                workspaceStorage, in sourcePlanes, blockOrigin, blockSize, level, ref allowNone, ref allowSplit, ref allowRectangles);
         }
 
         /// <summary>
         /// Computes convolution features once per 64x64 parent and applies the selected block-size classifier.
         /// </summary>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
         /// <param name="blockOrigin">The luma block origin, in samples.</param>
         /// <param name="blockSize">The square block size of the partition node.</param>
         /// <param name="level">The pruning level. Level 1 keeps the unsplit candidate when only square partitions remain.</param>
@@ -1682,6 +1686,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns><see langword="true"/> when the classifier keeps only the square partitions.</returns>
         private bool PruneIntraPartitionsCore(
             Span<int> workspaceStorage,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
             Point blockOrigin,
             Av1BlockSize blockSize,
             int level,
@@ -1700,7 +1705,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 // Include the padded source row and column above/left. The complete 64x64 parent
                 // was checked by the partition controller; the frame owner supplies its physical border.
-                ReadOnlySpan<TSample> sourceSamples = source.Samples;
+                ReadOnlySpan<TSample> sourceSamples = sourcePlanes.GetPlane(Av1Plane.Y);
                 int rowOffset = source.GetOffset(blockOrigin.X - 1, blockOrigin.Y - 1);
                 for (int y = 0; y < 65; y++, rowOffset += source.Stride)
                 {

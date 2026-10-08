@@ -147,7 +147,9 @@ public class Av1TransformBlockEncoderTests
         Av1TransformBlockEncoder.EncodeIntraDcLossy(
             actualWorkspace,
             sourcePlane,
+            sourcePlane.Samples,
             reconstructionPlane,
+            reconstructionPlane.Samples,
             Point.Empty,
             above,
             left,
@@ -274,7 +276,9 @@ public class Av1TransformBlockEncoderTests
         Av1TransformBlockEncoder.EncodeIntraDcLossy(
             actualWorkspace,
             sourceRegion,
+            sourceRegion.Samples,
             reconstructionRegion,
+            reconstructionRegion.Samples,
             Point.Empty,
             above,
             left,

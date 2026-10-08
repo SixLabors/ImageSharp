@@ -58,6 +58,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The coding-block neighbors and frame edges.</param>
         /// <param name="origin">The luma block origin.</param>
         /// <param name="modeInfo">The selected block syntax.</param>
@@ -94,6 +96,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
             Span<int> workspaceStorage,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Av1MacroBlockD macroBlock,
             Point origin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -123,7 +127,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.GetNeighborMotionVector(modeInfoGrid, modeInfoAllocation, displacementVectors, macroBlock, origin, above: true),
                 this.GetNeighborMotionVector(modeInfoGrid, modeInfoAllocation, displacementVectors, macroBlock, origin, above: false));
 
-            bool forceZeroMotion = this.CanSkipEstimatedZeroMotionBlock(origin, blockSize);
+            bool forceZeroMotion = this.CanSkipEstimatedZeroMotionBlock(in sourcePlanes, origin, blockSize);
             InlineArray2<byte> colorSensitivity = this.superblockColorSensitivity;
             this.blockColorSensitivity = colorSensitivity;
             bool measureSad = !forceZeroMotion &&
@@ -137,6 +141,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoAllocation,
                 displacementVectors,
                 referenceContexts,
+                in sourcePlanes,
                 macroBlock,
                 origin,
                 blockSize,
@@ -190,6 +195,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     referenceContexts,
+                    in sourcePlanes,
                     macroBlock,
                     origin,
                     blockSize,
@@ -208,6 +214,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     referenceContexts,
+                    in sourcePlanes,
                     macroBlock,
                     origin,
                     blockSize,
@@ -225,7 +232,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
                 Av1PlaneRegion<TSample> referencePlane = this.reference.GetPlane(Av1Plane.Y);
                 blockZeroSad = TOperator.SumAbsoluteDifferences(
-                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, origin),
+                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, origin),
                     sourcePlane.Stride,
                     Av1TransformBlockEncoder.GetPlaneSpan(referencePlane, origin),
                     referencePlane.Stride,
@@ -258,7 +265,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         lumaSad = state.NearSad[(int)Av1ReferenceFrameType.Last];
                     }
 
-                    this.SetEstimatedColorSensitivity(origin, blockSize, lumaSad, false, colorSensitivity);
+                    this.SetEstimatedColorSensitivity(in sourcePlanes, origin, blockSize, lumaSad, false, colorSensitivity);
                 }
             }
 
@@ -310,6 +317,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoAllocation,
                         displacementVectors,
                         workspaceStorage,
+                        in sourcePlanes,
                         macroBlock,
                         origin,
                         reference,
@@ -352,6 +360,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     referenceContexts,
+                    in sourcePlanes,
                     macroBlock,
                     origin,
                     evaluateBlue,
@@ -381,6 +390,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     workspaceStorage,
+                    in sourcePlanes,
+                    in reconstructionPlanes,
                     macroBlock,
                     origin,
                     evaluateBlue,
@@ -432,7 +443,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     compoundMask,
                     modeInfoGrid,
                     modeInfoAllocation,
-                    displacementVectors);
+                    displacementVectors,
+                    in sourcePlanes);
             }
 
             Av1TransformType transformType = Av1TransformType.DctDct;
@@ -457,6 +469,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoAllocation,
                 displacementVectors,
                 superblockCoefficients,
+                in sourcePlanes,
+                in reconstructionPlanes,
                 macroBlock,
                 origin,
                 forceZeroMotion,
@@ -532,6 +546,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     superblockCoefficients,
+                    in sourcePlanes,
+                    in reconstructionPlanes,
                     macroBlock,
                     origin,
                     ref modeInfo.Block,
@@ -567,6 +583,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     superblockCoefficients,
+                    in sourcePlanes,
+                    in reconstructionPlanes,
                     macroBlock,
                     origin,
                     blockSize,
@@ -593,6 +611,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         superblockCoefficients,
+                        in sourcePlanes,
+                        in reconstructionPlanes,
                         macroBlock,
                         origin,
                         blockSize,
@@ -613,6 +633,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         superblockCoefficients,
+                        in sourcePlanes,
+                        in reconstructionPlanes,
                         macroBlock,
                         origin,
                         blockSize,
@@ -693,6 +715,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The block neighbors and frame boundaries.</param>
         /// <param name="origin">The luma block origin.</param>
         /// <param name="evaluateBlue">Whether blue-difference error participates in selection.</param>
@@ -718,6 +741,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             ReadOnlySpan<Av1EncoderReferenceContext> referenceContexts,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
             Av1MacroBlockD macroBlock,
             Point origin,
             bool evaluateBlue,
@@ -813,6 +837,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
+                    in sourcePlanes,
                     macroBlock,
                     origin,
                     ref candidate,
@@ -896,6 +921,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The coding-block neighbors and edges.</param>
         /// <param name="origin">The luma coding-block origin.</param>
         /// <param name="forceZeroMotion">Whether stationary residual skipping has already been selected.</param>
@@ -928,6 +955,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Span<int> superblockCoefficients,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Av1MacroBlockD macroBlock,
             Point origin,
             bool forceZeroMotion,
@@ -954,7 +983,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 int height = blockSize.GetHeight();
                 Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
                 TOperator.SubtractPrediction(
-                    Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, origin), lumaSource.Stride, prediction, interWorkspace.Residual, width, height);
+                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), lumaSource, origin),
+                    lumaSource.Stride,
+                    prediction,
+                    interWorkspace.Residual,
+                    width,
+                    height);
 
                 Size extent = new(
                     width + (Math.Min(0, macroBlock.ToRightEdge) >> 3),
@@ -1017,12 +1051,13 @@ internal static partial class Av1IntraSuperblockEncoder
                                 compoundMask,
                                 modeInfoGrid,
                                 modeInfoAllocation,
-                                displacementVectors);
+                                displacementVectors,
+                                in sourcePlanes);
                         }
                     }
 
                     Av1RateDistortionStatistics chroma = this.EstimateInterChroma(
-                        origin, blockSize, interWorkspace.BluePrediction, interWorkspace.RedPrediction, evaluateBlue, evaluateRed);
+                        in sourcePlanes, origin, blockSize, interWorkspace.BluePrediction, interWorkspace.RedPrediction, evaluateBlue, evaluateRed);
 
                     state.MinimumChromaDistortion = Math.Min(state.MinimumChromaDistortion, chroma.Distortion);
                     rate += chroma.Rate;
@@ -1101,6 +1136,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in lumaCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
+                in sourcePlanes,
+                in reconstructionPlanes,
                 macroBlock,
                 origin,
                 blockSize,
@@ -1145,10 +1182,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Applies the stationary-prediction skip test to a child of a temporally unchanged superblock.
         /// </summary>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
         /// <param name="origin">The luma block origin.</param>
         /// <param name="blockSize">The coding-block geometry.</param>
         /// <returns>Whether all coded planes satisfy the stationary skip thresholds.</returns>
-        private bool CanSkipEstimatedZeroMotionBlock(Point origin, Av1BlockSize blockSize)
+        private bool CanSkipEstimatedZeroMotionBlock(in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes, Point origin, Av1BlockSize blockSize)
         {
             if (this.forceZeroMotionLevel < 2)
             {
@@ -1172,7 +1210,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane((Av1Plane)index);
                 Av1PlaneRegion<TSample> referencePlane = this.reference.GetPlane((Av1Plane)index);
                 uint sad = (uint)(TOperator.SumAbsoluteDifferences(
-                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, planeOrigin),
+                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane((Av1Plane)index), sourcePlane, planeOrigin),
                     sourcePlane.Stride,
                     Av1TransformBlockEncoder.GetPlaneSpan(referencePlane, planeOrigin),
                     referencePlane.Stride,
@@ -1192,13 +1230,19 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Refines uncertain superblock color decisions using the current block's stationary chroma error.
         /// </summary>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
         /// <param name="origin">The luma block origin.</param>
         /// <param name="blockSize">The coding-block geometry.</param>
         /// <param name="lumaSad">The spatial predictor SAD with the smallest displacement.</param>
         /// <param name="forceCheck">Whether partition selection requires a fresh block-level measurement.</param>
         /// <param name="colorSensitivity">The inherited color decisions, updated in place.</param>
         private void SetEstimatedColorSensitivity(
-            Point origin, Av1BlockSize blockSize, int lumaSad, bool forceCheck, Span<byte> colorSensitivity)
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            Point origin,
+            Av1BlockSize blockSize,
+            int lumaSad,
+            bool forceCheck,
+            Span<byte> colorSensitivity)
         {
             if (blockSize == this.picture.Sequence.SequenceHeader.SuperblockSize && !forceCheck)
             {
@@ -1267,7 +1311,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
                     Av1PlaneRegion<TSample> referencePlane = this.reference.GetPlane(plane);
                     int sad = (int)(TOperator.SumAbsoluteDifferences(
-                        Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, chromaOrigin),
+                        Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(plane), sourcePlane, chromaOrigin),
                         sourcePlane.Stride,
                         Av1TransformBlockEncoder.GetPlaneSpan(referencePlane, chromaOrigin),
                         referencePlane.Stride,
@@ -1349,6 +1393,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The reconstructed block neighbors.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="evaluateBlue">Whether blue-difference distortion participates in selection.</param>
@@ -1369,6 +1415,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<int> workspaceStorage,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             bool evaluateBlue,
@@ -1513,6 +1561,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in interWorkspace,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    in sourcePlanes,
+                    in reconstructionPlanes,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -1579,6 +1629,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The block's reconstructed neighbors and frame edges.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The coding-block geometry.</param>
@@ -1600,6 +1652,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -1647,8 +1701,10 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
                 Av1PlaneRegion<TSample> reconstructedPlane = this.reconstruction.GetPlane(plane);
-                ReadOnlySpan<TSample> sourceSamples = sourcePlane.Samples;
-                ReadOnlySpan<TSample> reconstructedBlock = Av1TransformBlockEncoder.GetPlaneSpan(reconstructedPlane, origin);
+                ReadOnlySpan<TSample> sourceSamples = sourcePlanes.GetPlane(plane);
+                ReadOnlySpan<TSample> reconstructedBlock = Av1TransformBlockEncoder.GetPlaneSpan(
+                    reconstructionPlanes.GetPlane(plane), reconstructedPlane, origin);
+
                 Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, 0).Block.PartitionType;
                 bool smoothEdges = this.UseSmoothIntraEdges(modeInfoGrid, modeInfoAllocation, macroBlock, blockOrigin, blockSize, plane);
 
@@ -1810,6 +1866,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The current block's neighbors and edges.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The selected inter syntax.</param>
@@ -1837,6 +1895,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Span<int> superblockCoefficients,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1EncoderBlockModeInfo modeInfo,
@@ -1892,7 +1952,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     compoundMask,
                     modeInfoGrid,
                     modeInfoAllocation,
-                    displacementVectors);
+                    displacementVectors,
+                    in sourcePlanes);
 
                 lumaPrediction = rebuilt;
             }
@@ -1944,7 +2005,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         compoundMask,
                         modeInfoGrid,
                         modeInfoAllocation,
-                        displacementVectors);
+                        displacementVectors,
+                        in sourcePlanes);
 
                     prediction = chromaPrediction;
                 }
@@ -1952,7 +2014,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
                     TOperator.SubtractPrediction(
-                        Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, planeOrigin),
+                        Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(plane), sourcePlane, planeOrigin),
                         sourcePlane.Stride,
                         prediction,
                         interWorkspace.Residual,
@@ -1961,7 +2023,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 Av1PlaneRegion<TSample> destinationPlane = this.reconstruction.GetPlane(plane);
-                Span<TSample> destination = Av1TransformBlockEncoder.GetPlaneSpan(destinationPlane, planeOrigin);
+                Span<TSample> destination = Av1TransformBlockEncoder.GetPlaneSpan(reconstructionPlanes.GetPlane(plane), destinationPlane, planeOrigin);
                 Size extent = GetCodedTransformExtent(macroBlock, planeBlock, transformSize, subX, subY);
                 int width = transformSize.GetWidth();
                 int height = transformSize.GetHeight();
@@ -2126,6 +2188,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The current block's neighbors and edges.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="reference">The admitted reference label.</param>
@@ -2163,6 +2226,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Span<int> workspaceStorage,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1ReferenceFrameType reference,
@@ -2281,6 +2345,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
+                    in sourcePlanes,
                     macroBlock,
                     blockOrigin,
                     ref candidate,
@@ -2355,6 +2420,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The coding-block neighbors.</param>
         /// <param name="blockOrigin">The luma coding-block origin.</param>
         /// <param name="blockSize">The coding-block geometry.</param>
@@ -2369,6 +2435,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             ReadOnlySpan<Av1EncoderReferenceContext> referenceContexts,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -2420,7 +2487,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin);
+            ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin);
             ReadOnlySpan<TSample> referenceSamples = referencePlane.Samples;
             int referenceOrigin = ((referencePlane.Bounds.Y + blockOrigin.Y) * referencePlane.Stride) + referencePlane.Bounds.X + blockOrigin.X;
             int width = blockSize.GetWidth();
@@ -2486,6 +2553,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The coding-block neighbors and edges.</param>
         /// <param name="blockOrigin">The luma coding-block origin.</param>
         /// <param name="modeInfo">The candidate syntax and selected transform size.</param>
@@ -2524,6 +2592,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1EncoderBlockModeInfo modeInfo,
@@ -2587,7 +2656,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // The non-RD path gives no frame, so this search does not write the frame.
                 Av1ModeCosts modeCosts = tables.ModeCosts;
                 Av1MotionSearchBase.SingleReferenceSearch<TSample, TOperator> motionSearch = new(
-                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
+                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin),
                     sourcePlane.Stride,
                     referencePlane.Samples,
                     referencePlane.Stride,
@@ -2629,7 +2698,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     Point integerVector = Point.Empty;
                     uint projectionSad;
-                    ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin);
+                    ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin);
                     if (this.bitDepth == Av1BitDepth.EightBit)
                     {
                         projectionSad = Av1MotionSearchBase.SearchProjection(
@@ -2732,6 +2801,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
+                    in sourcePlanes,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -2786,13 +2856,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     compoundMask,
                     modeInfoGrid,
                     modeInfoAllocation,
-                    displacementVectors);
+                    displacementVectors,
+                    in sourcePlanes);
 
                 Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
                 int width = blockSize.GetWidth();
                 int height = blockSize.GetHeight();
                 TOperator.GetMoments(
-                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
+                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin),
                     sourcePlane.Stride,
                     prediction,
                     width,
@@ -2837,6 +2908,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             modeInfoGrid,
                             modeInfoAllocation,
                             displacementVectors,
+                            in sourcePlanes,
                             blockOrigin,
                             modeInfo,
                             vector,
@@ -2915,7 +2987,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         compoundMask,
                         modeInfoGrid,
                         modeInfoAllocation,
-                        displacementVectors);
+                        displacementVectors,
+                        in sourcePlanes);
                 }
             }
 
@@ -2928,6 +3001,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 in interWorkspace,
                 modeInfoGrid,
                 modeInfoAllocation,
+                in sourcePlanes,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -2969,6 +3043,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The current coding-block neighbors.</param>
         /// <param name="blockOrigin">The luma coding-block origin.</param>
         /// <param name="blockSize">The coding-block geometry.</param>
@@ -2993,6 +3068,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -3067,10 +3143,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     compoundMask,
                     modeInfoGrid,
                     modeInfoAllocation,
-                    displacementVectors);
+                    displacementVectors,
+                    in sourcePlanes);
 
                 TOperator.GetMoments(
-                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
+                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin),
                     sourcePlane.Stride,
                     scratch,
                     width,
@@ -3101,6 +3178,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         displacementVectors,
+                        in sourcePlanes,
                         blockOrigin,
                         filterMode,
                         vector,
@@ -3261,6 +3339,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
         /// <param name="blockOrigin">The luma coding-block origin.</param>
         /// <param name="modeInfo">The candidate syntax, whose filters build the chroma predictions.</param>
         /// <param name="vector">The primary displacement.</param>
@@ -3283,6 +3362,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
             Point blockOrigin,
             Av1EncoderBlockModeInfo modeInfo,
             Av1MotionVector vector,
@@ -3326,7 +3406,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // The units are the 16x16 transforms of a block larger than 32x32 or of a 16x16 estimation transform,
             // and 8x8 units otherwise.
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            Span<TSample> sourceSpan = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin);
+            Span<TSample> sourceSpan = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin);
             int unit = transformSize == Av1TransformSize.Size16x16 ? 16 : 8;
             int unitLog2 = unit == 16 ? 8 : 6;
             for (int y = 0; y < height; y += unit)
@@ -3405,11 +3485,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     compoundMask,
                     modeInfoGrid,
                     modeInfoAllocation,
-                    displacementVectors);
+                    displacementVectors,
+                    in sourcePlanes);
 
                 Av1PlaneRegion<TSample> chromaSource = this.source.GetPlane(plane);
                 TOperator.GetMoments(
-                    Av1TransformBlockEncoder.GetPlaneSpan(chromaSource, chromaOrigin),
+                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(plane), chromaSource, chromaOrigin),
                     chromaSource.Stride,
                     chromaPrediction,
                     chromaWidth,
@@ -3432,6 +3513,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Models the chroma residuals selected by the block's color-sensitivity decision.
         /// </summary>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
         /// <param name="blockOrigin">The luma coding-block origin.</param>
         /// <param name="blockSize">The luma coding-block geometry.</param>
         /// <param name="bluePrediction">The tightly packed blue-difference predictor.</param>
@@ -3440,6 +3522,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="evaluateRed">Whether red-difference distortion participates in the mode decision.</param>
         /// <returns>The combined chroma estimate, including the prediction-only alternative.</returns>
         private Av1RateDistortionStatistics EstimateInterChroma(
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
             Point blockOrigin,
             Av1BlockSize blockSize,
             ReadOnlySpan<TSample> bluePrediction,
@@ -3468,7 +3551,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane((Av1Plane)planeIndex);
                 ReadOnlySpan<TSample> prediction = planeIndex == 1 ? bluePrediction : redPrediction;
                 TOperator.GetMoments(
-                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, origin),
+                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane((Av1Plane)planeIndex), sourcePlane, origin),
                     sourcePlane.Stride,
                     prediction,
                     width,
@@ -3528,6 +3611,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The coding-block neighbors and frame edges.</param>
         /// <param name="blockOrigin">The luma coding-block origin.</param>
         /// <param name="blockSize">The coding-block geometry.</param>
@@ -3551,6 +3635,7 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -3585,7 +3670,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> residual = interWorkspace.Residual;
             Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
             TOperator.SubtractPrediction(
-                Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, blockOrigin), lumaSource.Stride, lumaPrediction, residual, width, height);
+                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), lumaSource, blockOrigin),
+                lumaSource.Stride,
+                lumaPrediction,
+                residual,
+                width,
+                height);
 
             // Estimation visits transforms whose origins remain inside the coded frame. It still
             // transforms the full padded block at each edge, matching the predictor's sample extent.
@@ -3630,7 +3720,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (evaluateBlue || evaluateRed)
             {
                 Av1RateDistortionStatistics chroma = this.EstimateInterChroma(
-                    blockOrigin, blockSize, bluePrediction, redPrediction, evaluateBlue, evaluateRed);
+                    in sourcePlanes, blockOrigin, blockSize, bluePrediction, redPrediction, evaluateBlue, evaluateRed);
 
                 chromaDistortion = chroma.Distortion;
                 ref Av1EstimatedInterSearchState state = ref this.blockWorkspace.EstimatedInterSearchState;

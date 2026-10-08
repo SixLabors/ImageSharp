@@ -1862,6 +1862,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -1880,6 +1882,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<int> workspaceStorage,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -1966,6 +1970,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     workspaceStorage,
+                    in sourcePlanes,
+                    in reconstructionPlanes,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -2080,6 +2086,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     workspaceStorage,
+                    in sourcePlanes,
+                    in reconstructionPlanes,
                     macroBlock,
                     blockOrigin,
                     blockSize,

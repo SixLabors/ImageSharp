@@ -165,12 +165,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Builds a compound prediction from two retained reference frames using the selected blend.
         /// </summary>
         /// <param name="source">The coded source plane.</param>
+        /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
         /// <param name="blockOrigin">The destination block origin in plane samples.</param>
         /// <param name="primaryReference">The padded primary retained reference plane.</param>
+        /// <param name="primaryReferenceSamples">The samples of the complete primary reference plane, read once by the caller.</param>
         /// <param name="primaryPredictionOrigin">The integer primary-reference origin preceding the subpixel phase.</param>
         /// <param name="primaryHorizontalPhase">The primary horizontal phase in one-sixteenth-sample units.</param>
         /// <param name="primaryVerticalPhase">The primary vertical phase in one-sixteenth-sample units.</param>
         /// <param name="secondaryReference">The padded secondary retained reference plane.</param>
+        /// <param name="secondaryReferenceSamples">The samples of the complete secondary reference plane, read once by the caller.</param>
         /// <param name="secondaryPredictionOrigin">The integer secondary-reference origin preceding the subpixel phase.</param>
         /// <param name="secondaryHorizontalPhase">The secondary horizontal phase in one-sixteenth-sample units.</param>
         /// <param name="secondaryVerticalPhase">The secondary vertical phase in one-sixteenth-sample units.</param>
@@ -198,12 +201,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="secondaryPrepared">Whether <paramref name="secondIntermediate"/> already holds the secondary predictor.</param>
         public static abstract void PrepareCompoundInterPrediction(
             Av1PlaneRegion<TSample> source,
+            ReadOnlySpan<TSample> sourceSamples,
             Point blockOrigin,
             Av1PlaneRegion<TSample> primaryReference,
+            ReadOnlySpan<TSample> primaryReferenceSamples,
             Point primaryPredictionOrigin,
             int primaryHorizontalPhase,
             int primaryVerticalPhase,
             Av1PlaneRegion<TSample> secondaryReference,
+            ReadOnlySpan<TSample> secondaryReferenceSamples,
             Point secondaryPredictionOrigin,
             int secondaryHorizontalPhase,
             int secondaryVerticalPhase,
@@ -267,7 +273,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="blockWorkspace">The reusable block workspace.</param>
         /// <param name="source">The coded source plane.</param>
+        /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
         /// <param name="reconstruction">The coded reconstruction plane.</param>
+        /// <param name="reconstructionSamples">The samples of the complete reconstruction plane, read once by the caller.</param>
         /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
         /// <param name="above">The top reference samples.</param>
         /// <param name="left">The left reference samples.</param>
@@ -284,7 +292,9 @@ internal static partial class Av1IntraSuperblockEncoder
         public static abstract void Encode(
             Av1EncoderBlockWorkspace blockWorkspace,
             Av1PlaneRegion<TSample> source,
+            ReadOnlySpan<TSample> sourceSamples,
             Av1PlaneRegion<TSample> reconstruction,
+            Span<TSample> reconstructionSamples,
             Point blockOrigin,
             ReadOnlySpan<TSample> above,
             ReadOnlySpan<TSample> left,
@@ -383,8 +393,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Builds an intra-block-copy prediction and the matching source residual.
         /// </summary>
         /// <param name="source">The coded source plane.</param>
+        /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
         /// <param name="blockOrigin">The destination block origin in plane samples.</param>
         /// <param name="reconstruction">The reconstructed plane containing the reference samples.</param>
+        /// <param name="reconstructionSamples">The samples of the complete reconstruction plane, read once by the caller.</param>
         /// <param name="predictionOrigin">The integer reference origin preceding any half-sample phase.</param>
         /// <param name="halfX">Indicates whether the horizontal source phase is one half-sample.</param>
         /// <param name="halfY">Indicates whether the vertical source phase is one half-sample.</param>
@@ -393,8 +405,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="predictionSize">The prediction dimensions.</param>
         public static abstract void PrepareIntraBlockCopyPrediction(
             Av1PlaneRegion<TSample> source,
+            ReadOnlySpan<TSample> sourceSamples,
             Point blockOrigin,
             Av1PlaneRegion<TSample> reconstruction,
+            ReadOnlySpan<TSample> reconstructionSamples,
             Point predictionOrigin,
             bool halfX,
             bool halfY,
@@ -440,6 +454,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// av1_make_inter_predictor() calls for a warped block.
         /// </summary>
         /// <param name="reference">The padded retained reference plane.</param>
+        /// <param name="referenceSamples">The samples of the complete reference plane, read once by the caller.</param>
         /// <param name="referenceWidth">The visible width of the reference plane.</param>
         /// <param name="referenceHeight">The visible height of the reference plane.</param>
         /// <param name="blockOrigin">The block origin in plane samples.</param>
@@ -453,6 +468,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PrepareWarpedInterPrediction(
             Av1PlaneRegion<TSample> reference,
+            ReadOnlySpan<TSample> referenceSamples,
             int referenceWidth,
             int referenceHeight,
             Point blockOrigin,
@@ -471,6 +487,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// av1_make_inter_predictor() passes for a warped reference of a compound block.
         /// </summary>
         /// <param name="reference">The padded retained reference plane.</param>
+        /// <param name="referenceSamples">The samples of the complete reference plane, read once by the caller.</param>
         /// <param name="referenceWidth">The visible width of the reference plane.</param>
         /// <param name="referenceHeight">The visible height of the reference plane.</param>
         /// <param name="blockOrigin">The block origin in plane samples.</param>
@@ -484,6 +501,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PrepareWarpedCompoundIntermediate(
             Av1PlaneRegion<TSample> reference,
+            ReadOnlySpan<TSample> referenceSamples,
             int referenceWidth,
             int referenceHeight,
             Point blockOrigin,
@@ -500,8 +518,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Builds a translational prediction from a retained reference frame and the matching source residual.
         /// </summary>
         /// <param name="source">The coded source plane.</param>
+        /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
         /// <param name="blockOrigin">The destination block origin in plane samples.</param>
         /// <param name="reference">The padded retained reference plane.</param>
+        /// <param name="referenceSamples">The samples of the complete reference plane, read once by the caller.</param>
         /// <param name="predictionOrigin">The integer reference origin preceding the subpixel phase.</param>
         /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
         /// <param name="verticalFilter">The vertical interpolation filter.</param>
@@ -514,8 +534,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PrepareTranslationalInterPrediction(
             Av1PlaneRegion<TSample> source,
+            ReadOnlySpan<TSample> sourceSamples,
             Point blockOrigin,
             Av1PlaneRegion<TSample> reference,
+            ReadOnlySpan<TSample> referenceSamples,
             Point predictionOrigin,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
@@ -552,6 +574,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Predicts one translational rectangle into a strided destination, without a residual.
         /// </summary>
         /// <param name="reference">The padded retained reference plane.</param>
+        /// <param name="referenceSamples">The samples of the complete reference plane, read once by the caller.</param>
         /// <param name="predictionOrigin">The integer reference origin preceding the subpixel phase.</param>
         /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
         /// <param name="verticalFilter">The vertical interpolation filter.</param>
@@ -565,6 +588,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PredictTranslationalInter(
             Av1PlaneRegion<TSample> reference,
+            ReadOnlySpan<TSample> referenceSamples,
             Point predictionOrigin,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
@@ -583,6 +607,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// av1_make_inter_predictor(), which calls av1_convolve_2d_scale() or av1_highbd_convolve_2d_scale().
         /// </summary>
         /// <param name="reference">The padded retained reference plane.</param>
+        /// <param name="referenceSamples">The samples of the complete reference plane, read once by the caller.</param>
         /// <param name="predictionOrigin">The integer reference position of the first output sample.</param>
         /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
         /// <param name="verticalFilter">The vertical interpolation filter.</param>
@@ -598,6 +623,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PredictScaledInter(
             Av1PlaneRegion<TSample> reference,
+            ReadOnlySpan<TSample> referenceSamples,
             Point predictionOrigin,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
@@ -1170,7 +1196,9 @@ internal static partial class Av1IntraSuperblockEncoder
         public static void Encode(
             Av1EncoderBlockWorkspace blockWorkspace,
             Av1PlaneRegion<byte> source,
+            ReadOnlySpan<byte> sourceSamples,
             Av1PlaneRegion<byte> reconstruction,
+            Span<byte> reconstructionSamples,
             Point blockOrigin,
             ReadOnlySpan<byte> above,
             ReadOnlySpan<byte> left,
@@ -1187,7 +1215,9 @@ internal static partial class Av1IntraSuperblockEncoder
             => Av1TransformBlockEncoder.EncodeIntraDcLossy(
                 blockWorkspace,
                 source,
+                sourceSamples,
                 reconstruction,
+                reconstructionSamples,
                 blockOrigin,
                 above,
                 left,
@@ -1285,8 +1315,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PrepareIntraBlockCopyPrediction(
             Av1PlaneRegion<byte> source,
+            ReadOnlySpan<byte> sourceSamples,
             Point blockOrigin,
             Av1PlaneRegion<byte> reconstruction,
+            ReadOnlySpan<byte> reconstructionSamples,
             Point predictionOrigin,
             bool halfX,
             bool halfY,
@@ -1297,7 +1329,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int width = predictionSize.GetWidth();
             int height = predictionSize.GetHeight();
             Av1IntraBlockCopyPredictor.Predict(
-                Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, predictionOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(reconstructionSamples, reconstruction, predictionOrigin),
                 reconstruction.Stride,
                 prediction,
                 width,
@@ -1307,7 +1339,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 halfY);
 
             Av1ResidualBuilder.Subtract(
-                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(sourceSamples, source, blockOrigin),
                 source.Stride,
                 prediction,
                 width,
@@ -1347,6 +1379,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PrepareWarpedInterPrediction(
             Av1PlaneRegion<byte> reference,
+            ReadOnlySpan<byte> referenceSamples,
             int referenceWidth,
             int referenceHeight,
             Point blockOrigin,
@@ -1359,7 +1392,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> scratch,
             Av1BitDepth bitDepth)
             => Av1WarpedInterPredictor.PredictWarped(
-                reference.Samples,
+                referenceSamples,
                 reference.Stride,
                 reference.Bounds.Location,
                 referenceWidth,
@@ -1377,6 +1410,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PrepareWarpedCompoundIntermediate(
             Av1PlaneRegion<byte> reference,
+            ReadOnlySpan<byte> referenceSamples,
             int referenceWidth,
             int referenceHeight,
             Point blockOrigin,
@@ -1389,7 +1423,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> scratch,
             Av1BitDepth bitDepth)
             => Av1WarpedInterPredictor.PredictWarpedCompound(
-                reference.Samples,
+                referenceSamples,
                 reference.Stride,
                 reference.Bounds.Location,
                 referenceWidth,
@@ -1419,6 +1453,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PredictTranslationalInter(
             Av1PlaneRegion<byte> reference,
+            ReadOnlySpan<byte> referenceSamples,
             Point predictionOrigin,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
@@ -1438,7 +1473,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 predictionOrigin.X;
 
             Av1TranslationalInterPredictor.Predict(
-                reference.Samples,
+                referenceSamples,
                 reference.Stride,
                 referenceOrigin,
                 prediction,
@@ -1455,6 +1490,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PredictScaledInter(
             Av1PlaneRegion<byte> reference,
+            ReadOnlySpan<byte> referenceSamples,
             Point predictionOrigin,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
@@ -1476,7 +1512,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 predictionOrigin.X;
 
             Av1ScaledInterPredictor.PredictScaled(
-                reference.Samples,
+                referenceSamples,
                 reference.Stride,
                 referenceOrigin,
                 prediction,
@@ -1495,8 +1531,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PrepareTranslationalInterPrediction(
             Av1PlaneRegion<byte> source,
+            ReadOnlySpan<byte> sourceSamples,
             Point blockOrigin,
             Av1PlaneRegion<byte> reference,
+            ReadOnlySpan<byte> referenceSamples,
             Point predictionOrigin,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
@@ -1517,7 +1555,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 predictionOrigin.X;
 
             Av1TranslationalInterPredictor.Predict(
-                reference.Samples,
+                referenceSamples,
                 reference.Stride,
                 referenceOrigin,
                 prediction,
@@ -1531,7 +1569,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 filterRows);
 
             Av1ResidualBuilder.Subtract(
-                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(sourceSamples, source, blockOrigin),
                 source.Stride,
                 prediction,
                 width,
@@ -1544,12 +1582,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PrepareCompoundInterPrediction(
             Av1PlaneRegion<byte> source,
+            ReadOnlySpan<byte> sourceSamples,
             Point blockOrigin,
             Av1PlaneRegion<byte> primaryReference,
+            ReadOnlySpan<byte> primaryReferenceSamples,
             Point primaryPredictionOrigin,
             int primaryHorizontalPhase,
             int primaryVerticalPhase,
             Av1PlaneRegion<byte> secondaryReference,
+            ReadOnlySpan<byte> secondaryReferenceSamples,
             Point secondaryPredictionOrigin,
             int secondaryHorizontalPhase,
             int secondaryVerticalPhase,
@@ -1589,7 +1630,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (!primaryPrepared)
             {
                 Av1CompoundInterPredictor.PredictCompound(
-                    primaryReference.Samples,
+                    primaryReferenceSamples,
                     primaryReference.Stride,
                     primaryOrigin,
                     firstIntermediate,
@@ -1606,7 +1647,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (!secondaryPrepared)
             {
                 Av1CompoundInterPredictor.PredictCompound(
-                    secondaryReference.Samples,
+                    secondaryReferenceSamples,
                     secondaryReference.Stride,
                     secondaryOrigin,
                     secondIntermediate,
@@ -1697,7 +1738,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             Av1ResidualBuilder.Subtract(
-                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(sourceSamples, source, blockOrigin),
                 source.Stride,
                 prediction,
                 width,
@@ -2258,7 +2299,9 @@ internal static partial class Av1IntraSuperblockEncoder
         public static void Encode(
             Av1EncoderBlockWorkspace blockWorkspace,
             Av1PlaneRegion<ushort> source,
+            ReadOnlySpan<ushort> sourceSamples,
             Av1PlaneRegion<ushort> reconstruction,
+            Span<ushort> reconstructionSamples,
             Point blockOrigin,
             ReadOnlySpan<ushort> above,
             ReadOnlySpan<ushort> left,
@@ -2275,7 +2318,9 @@ internal static partial class Av1IntraSuperblockEncoder
             => Av1TransformBlockEncoder.EncodeIntraDcLossy(
                 blockWorkspace,
                 source,
+                sourceSamples,
                 reconstruction,
+                reconstructionSamples,
                 blockOrigin,
                 above,
                 left,
@@ -2383,8 +2428,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PrepareIntraBlockCopyPrediction(
             Av1PlaneRegion<ushort> source,
+            ReadOnlySpan<ushort> sourceSamples,
             Point blockOrigin,
             Av1PlaneRegion<ushort> reconstruction,
+            ReadOnlySpan<ushort> reconstructionSamples,
             Point predictionOrigin,
             bool halfX,
             bool halfY,
@@ -2395,7 +2442,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int width = predictionSize.GetWidth();
             int height = predictionSize.GetHeight();
             Av1IntraBlockCopyPredictor.Predict(
-                MemoryMarshal.Cast<ushort, short>(Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, predictionOrigin)),
+                MemoryMarshal.Cast<ushort, short>(Av1TransformBlockEncoder.GetPlaneSpan(reconstructionSamples, reconstruction, predictionOrigin)),
                 reconstruction.Stride,
                 MemoryMarshal.Cast<ushort, short>(prediction),
                 width,
@@ -2405,7 +2452,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 halfY);
 
             Av1ResidualBuilder.Subtract(
-                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(sourceSamples, source, blockOrigin),
                 source.Stride,
                 prediction,
                 width,
@@ -2445,6 +2492,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PrepareWarpedInterPrediction(
             Av1PlaneRegion<ushort> reference,
+            ReadOnlySpan<ushort> referenceSamples,
             int referenceWidth,
             int referenceHeight,
             Point blockOrigin,
@@ -2457,7 +2505,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> scratch,
             Av1BitDepth bitDepth)
             => Av1WarpedInterPredictor.PredictWarped(
-                reference.Samples,
+                referenceSamples,
                 reference.Stride,
                 reference.Bounds.Location,
                 referenceWidth,
@@ -2476,6 +2524,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PrepareWarpedCompoundIntermediate(
             Av1PlaneRegion<ushort> reference,
+            ReadOnlySpan<ushort> referenceSamples,
             int referenceWidth,
             int referenceHeight,
             Point blockOrigin,
@@ -2488,7 +2537,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> scratch,
             Av1BitDepth bitDepth)
             => Av1WarpedInterPredictor.PredictWarpedCompound(
-                reference.Samples,
+                referenceSamples,
                 reference.Stride,
                 reference.Bounds.Location,
                 referenceWidth,
@@ -2519,6 +2568,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PredictTranslationalInter(
             Av1PlaneRegion<ushort> reference,
+            ReadOnlySpan<ushort> referenceSamples,
             Point predictionOrigin,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
@@ -2538,7 +2588,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 predictionOrigin.X;
 
             Av1TranslationalInterPredictor.Predict(
-                reference.Samples,
+                referenceSamples,
                 reference.Stride,
                 referenceOrigin,
                 prediction,
@@ -2556,6 +2606,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PredictScaledInter(
             Av1PlaneRegion<ushort> reference,
+            ReadOnlySpan<ushort> referenceSamples,
             Point predictionOrigin,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
@@ -2577,7 +2628,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 predictionOrigin.X;
 
             Av1ScaledInterPredictor.PredictScaled(
-                reference.Samples,
+                referenceSamples,
                 reference.Stride,
                 referenceOrigin,
                 prediction,
@@ -2597,8 +2648,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PrepareTranslationalInterPrediction(
             Av1PlaneRegion<ushort> source,
+            ReadOnlySpan<ushort> sourceSamples,
             Point blockOrigin,
             Av1PlaneRegion<ushort> reference,
+            ReadOnlySpan<ushort> referenceSamples,
             Point predictionOrigin,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
@@ -2619,7 +2672,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 predictionOrigin.X;
 
             Av1TranslationalInterPredictor.Predict(
-                reference.Samples,
+                referenceSamples,
                 reference.Stride,
                 referenceOrigin,
                 prediction,
@@ -2634,7 +2687,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 filterRows);
 
             Av1ResidualBuilder.Subtract(
-                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(sourceSamples, source, blockOrigin),
                 source.Stride,
                 prediction,
                 width,
@@ -2647,12 +2700,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void PrepareCompoundInterPrediction(
             Av1PlaneRegion<ushort> source,
+            ReadOnlySpan<ushort> sourceSamples,
             Point blockOrigin,
             Av1PlaneRegion<ushort> primaryReference,
+            ReadOnlySpan<ushort> primaryReferenceSamples,
             Point primaryPredictionOrigin,
             int primaryHorizontalPhase,
             int primaryVerticalPhase,
             Av1PlaneRegion<ushort> secondaryReference,
+            ReadOnlySpan<ushort> secondaryReferenceSamples,
             Point secondaryPredictionOrigin,
             int secondaryHorizontalPhase,
             int secondaryVerticalPhase,
@@ -2692,7 +2748,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (!primaryPrepared)
             {
                 Av1CompoundInterPredictor.PredictCompound(
-                    primaryReference.Samples,
+                    primaryReferenceSamples,
                     primaryReference.Stride,
                     primaryOrigin,
                     firstIntermediate,
@@ -2710,7 +2766,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (!secondaryPrepared)
             {
                 Av1CompoundInterPredictor.PredictCompound(
-                    secondaryReference.Samples,
+                    secondaryReferenceSamples,
                     secondaryReference.Stride,
                     secondaryOrigin,
                     secondIntermediate,
@@ -2802,7 +2858,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             Av1ResidualBuilder.Subtract(
-                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(sourceSamples, source, blockOrigin),
                 source.Stride,
                 prediction,
                 width,

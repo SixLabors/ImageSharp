@@ -25,6 +25,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Searches the ordinary retained reference and measures its final rounded luma predictor.
         /// </summary>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
         /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
@@ -37,6 +39,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns>The selected vector.</returns>
         private Av1MotionVector SearchSimpleMotion(
             Span<int> workspaceStorage,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Span<TSample> motionSearchPrediction,
             Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
@@ -56,7 +60,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             Av1PlaneRegion<TSample> referencePlane = this.reference.GetPlane(Av1Plane.Y);
-            ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin);
+            ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin);
             ReadOnlySpan<TSample> reference = referencePlane.Samples;
             int referenceOrigin = ((referencePlane.Bounds.Y + blockOrigin.Y) * referencePlane.Stride) + referencePlane.Bounds.X + blockOrigin.X;
             Size size = new(blockSize.GetWidth(), blockSize.GetHeight());
@@ -175,7 +179,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 // The prediction goes into pd->dst, which is the frame at this block. Reference: av1_enc_build_inter_predictor() in
                 // av1_simple_motion_search().
                 Av1PlaneRegion<TSample> luma = this.reconstruction.GetPlane(Av1Plane.Y);
-                Av1TransformBlockEncoder.WriteFrameSamples(luma, luma.Samples, blockOrigin, motionSearchPrediction, size.Width, size.Width, size.Height);
+                Av1TransformBlockEncoder.WriteFrameSamples(
+                    luma, reconstructionPlanes.GetPlane(Av1Plane.Y), blockOrigin, motionSearchPrediction, size.Width, size.Width, size.Height);
 
                 TOperator.GetMoments(source, sourcePlane.Stride, motionSearchPrediction, size.Width, size.Width, size.Height, out int sum, out long squares);
 
@@ -193,6 +198,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Populates whole, quarter, and half-block features without repeating completed searches.
         /// </summary>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
         /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
@@ -202,6 +209,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="includeRectangles">Whether the half-block searches are measured too.</param>
         private void CollectSimpleMotionFeatures(
             Span<int> workspaceStorage,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Span<TSample> motionSearchPrediction,
             Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
@@ -214,7 +223,16 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1SimpleMotionData node = ref nodes[nodeIndex];
             if (!node.WholeBlockValid)
             {
-                this.MeasureSimpleMotionNode(workspaceStorage, motionSearchPrediction, filterRows, in motionVectorCosts, blockOrigin, blockSize, nodeIndex);
+                this.MeasureSimpleMotionNode(
+                    workspaceStorage,
+                    in sourcePlanes,
+                    in reconstructionPlanes,
+                    motionSearchPrediction,
+                    filterRows,
+                    in motionVectorCosts,
+                    blockOrigin,
+                    blockSize,
+                    nodeIndex);
             }
 
             Av1BlockSize childSize = Av1PartitionType.Split.GetBlockSubSize(blockSize);
@@ -225,7 +243,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (!nodes[childIndex].WholeBlockValid)
                 {
                     Point origin = new(blockOrigin.X + ((child & 1) * half), blockOrigin.Y + ((child >> 1) * half));
-                    this.MeasureSimpleMotionNode(workspaceStorage, motionSearchPrediction, filterRows, in motionVectorCosts, origin, childSize, childIndex);
+                    this.MeasureSimpleMotionNode(
+                        workspaceStorage,
+                        in sourcePlanes,
+                        in reconstructionPlanes,
+                        motionSearchPrediction,
+                        filterRows,
+                        in motionVectorCosts,
+                        origin,
+                        childSize,
+                        childIndex);
                 }
             }
 
@@ -241,6 +268,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1BlockSize rectangleSize = (horizontal ? Av1PartitionType.Horizontal : Av1PartitionType.Vertical).GetBlockSubSize(blockSize);
                     this.SearchSimpleMotion(
                         workspaceStorage,
+                        in sourcePlanes,
+                        in reconstructionPlanes,
                         motionSearchPrediction,
                         filterRows,
                         in motionVectorCosts,
@@ -265,6 +294,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -278,6 +309,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<int> workspaceStorage,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -286,7 +319,16 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<float> features)
         {
             this.CollectSimpleMotionFeatures(
-                workspaceStorage, motionSearchPrediction, filterRows, in motionVectorCosts, blockOrigin, blockSize, nodeIndex, includeRectangles);
+                workspaceStorage,
+                in sourcePlanes,
+                in reconstructionPlanes,
+                motionSearchPrediction,
+                filterRows,
+                in motionVectorCosts,
+                blockOrigin,
+                blockSize,
+                nodeIndex,
+                includeRectangles);
 
             Span<Av1SimpleMotionData> nodes = this.blockWorkspace.GetSimpleMotionData(workspaceStorage);
             features[0] = float.LogP1(nodes[nodeIndex].SquaredError);
@@ -340,6 +382,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Publishes a square's measured features and propagates its full-sample starting vector to its children.
         /// </summary>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
         /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
@@ -348,6 +392,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="nodeIndex">The simple motion node of the block.</param>
         private void MeasureSimpleMotionNode(
             Span<int> workspaceStorage,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Span<TSample> motionSearchPrediction,
             Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
@@ -359,6 +405,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1SimpleMotionData node = ref nodes[nodeIndex];
             Av1MotionVector vector = this.SearchSimpleMotion(
                 workspaceStorage,
+                in sourcePlanes,
+                in reconstructionPlanes,
                 motionSearchPrediction,
                 filterRows,
                 in motionVectorCosts,

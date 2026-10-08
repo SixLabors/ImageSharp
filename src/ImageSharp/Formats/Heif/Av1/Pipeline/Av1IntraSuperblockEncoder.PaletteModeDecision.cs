@@ -34,6 +34,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -57,6 +59,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -80,6 +84,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in lumaCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
+                in sourcePlanes,
+                in reconstructionPlanes,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -107,6 +113,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -130,6 +138,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -151,7 +161,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int columns = blockWidth + (Math.Min(0, macroBlock.ToRightEdge) >> 3);
             Span<short> samples = workspace.GetSamples(0)[..(rows * columns)];
             TOperator.CopyPaletteSamples(
-                sourcePlane.Samples[sourcePlane.GetOffset(blockOrigin.X, blockOrigin.Y)..], sourcePlane.Stride, rows, columns, samples);
+                sourcePlanes.GetPlane(Av1Plane.Y)[sourcePlane.GetOffset(blockOrigin.X, blockOrigin.Y)..], sourcePlane.Stride, rows, columns, samples);
 
             Span<int> counts = workspace.LumaColorCounts[..(1 << this.bitDepth.GetBitCount())];
             int colorCount = this.CountPaletteColors(samples, counts, out int occupiedBins, out short minimum, out short maximum);
@@ -208,7 +218,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int searchLevel = speedSettings.PaletteSearchLevel;
             int headerPruneLevel = speedSettings.LumaPaletteHeaderPruneLevel;
 
-            int sourceVariance = this.GetSourceVariance(modeWorkspace.GetCandidateReconstruction(0), blockOrigin, blockSize);
+            int sourceVariance = this.GetSourceVariance(in sourcePlanes, modeWorkspace.GetCandidateReconstruction(0), blockOrigin, blockSize);
             bool selected = false;
 
             // Every palette size of every family uses the same block, neighbors and workspace buffers, so the loops
@@ -271,6 +281,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         int candidatePruneLevel = gateHeader ? headerPruneLevel : 0;
                         bool improved = this.EvaluateLumaPaletteCandidate(
+                            in sourcePlanes,
+                            in reconstructionPlanes,
                             in tables,
                             in modeWorkspace,
                             transformCoefficients,
@@ -353,6 +365,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Codes one luma palette candidate: snaps its colors to the neighbor cache, builds the color map, prices the
         /// palette syntax and searches its transform sizes. The candidate replaces the best result if it costs less.
         /// </summary>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
         /// <param name="modeWorkspace">The mode decision buffers of the block, which hold the palette buffers.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
@@ -369,6 +383,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="headerBreakout">Whether the palette syntax cost alone rejected the candidate.</param>
         /// <returns><see langword="true"/> if the candidate became the best result.</returns>
         private bool EvaluateLumaPaletteCandidate(
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
             Span<int> transformCoefficients,
@@ -385,6 +401,8 @@ internal static partial class Av1IntraSuperblockEncoder
             out bool headerBreakout)
         {
             return this.EvaluateLumaPaletteCandidateCore(
+                in sourcePlanes,
+                in reconstructionPlanes,
                 in tables,
                 in modeWorkspace,
                 transformCoefficients,
@@ -403,6 +421,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc cref="EvaluateLumaPaletteCandidate"/>
         private bool EvaluateLumaPaletteCandidateCore(
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
             Span<int> transformCoefficients,
@@ -555,6 +575,8 @@ internal static partial class Av1IntraSuperblockEncoder
             // to av1_pick_uniform_tx_size_type_yrd(), then its this_rd < *best_rd test.
             long candidateLimit = Math.Min(this.blockCostLimit, bestStatistics.Cost);
             Av1RateDistortionStatistics candidateStatistics = this.ChooseUniformTransformSize(
+                in sourcePlanes,
+                in reconstructionPlanes,
                 writer,
                 in tables,
                 in modeWorkspace,

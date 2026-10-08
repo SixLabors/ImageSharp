@@ -37,6 +37,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
@@ -64,6 +66,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -91,6 +95,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in redCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
+                in sourcePlanes,
+                in reconstructionPlanes,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
@@ -122,6 +128,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
@@ -149,6 +157,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -214,10 +224,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> redSource = this.source.GetPlane(Av1Plane.V);
 
             // Every palette size reads the same source and frame planes, so they are read once.
-            ReadOnlySpan<TSample> blueSourceSamples = blueSource.Samples;
-            ReadOnlySpan<TSample> redSourceSamples = redSource.Samples;
-            Span<TSample> blueReconstructionSamples = blueReconstruction.Samples;
-            Span<TSample> redReconstructionSamples = redReconstruction.Samples;
+            ReadOnlySpan<TSample> blueSourceSamples = sourcePlanes.GetPlane(Av1Plane.U);
+            ReadOnlySpan<TSample> redSourceSamples = sourcePlanes.GetPlane(Av1Plane.V);
+            Span<TSample> blueReconstructionSamples = reconstructionPlanes.GetPlane(Av1Plane.U);
+            Span<TSample> redReconstructionSamples = reconstructionPlanes.GetPlane(Av1Plane.V);
             TOperator.CopyPaletteSamples(
                 blueSourceSamples[blueSource.GetOffset(chromaOrigin.X, chromaOrigin.Y)..], blueSource.Stride, rows, columns, blueSamples);
 

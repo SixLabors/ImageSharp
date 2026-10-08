@@ -97,7 +97,7 @@ internal static partial class Av1IntraSuperblockEncoder
         int height = transformSize.GetHeight();
         bool hasLeft = blockOrigin.X > 0;
         bool hasAbove = blockOrigin.Y > 0;
-        ReadOnlySpan<TSample> reconstructionSamples = reconstructionPlane.Samples;
+        Span<TSample> reconstructionSamples = reconstructionPlane.Samples;
         ReadOnlySpan<TSample> above = hasAbove
             ? reconstructionSamples.Slice(reconstructionPlane.GetOffset(blockOrigin.X, blockOrigin.Y - 1), width)
             : [];
@@ -117,7 +117,9 @@ internal static partial class Av1IntraSuperblockEncoder
         TOperator.Encode(
             blockWorkspace,
             sourcePlane,
+            sourcePlane.Samples,
             reconstructionPlane,
+            reconstructionSamples,
             blockOrigin,
             above,
             left,

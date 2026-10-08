@@ -62,6 +62,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Computes the directional-mode skip mask from a source block's Sobel histogram.
         /// </summary>
         /// <param name="source">The source component plane.</param>
+        /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
         /// <param name="origin">The visible block origin.</param>
         /// <param name="rows">The visible row count.</param>
         /// <param name="columns">The visible column count.</param>
@@ -70,6 +71,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns>A bit mask whose eight bits correspond to the contiguous directional prediction modes.</returns>
         internal static byte GetDirectionalModeSkipMask(
             Av1PlaneRegion<TSample> source,
+            ReadOnlySpan<TSample> sourceSamples,
             Point origin,
             int rows,
             int columns,
@@ -92,7 +94,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 Span<short> horizontal = stackalloc short[128];
                 Span<short> vertical = stackalloc short[128];
                 int interior = columns - 2;
-                ReadOnlySpan<TSample> sourceSamples = source.Samples;
                 for (int row = 1; row < rows - 1; row++)
                 {
                     TOperator.CopyPaletteSamples(sourceSamples[source.GetOffset(origin.X, origin.Y + row - 1)..], source.Stride, 3, columns, window);

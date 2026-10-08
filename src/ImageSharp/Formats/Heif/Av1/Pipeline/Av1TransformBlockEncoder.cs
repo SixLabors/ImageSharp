@@ -38,7 +38,9 @@ internal static partial class Av1TransformBlockEncoder
     /// </summary>
     /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
     /// <param name="source">The coded source plane.</param>
+    /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
     /// <param name="reconstruction">The coded reconstruction plane.</param>
+    /// <param name="reconstructionSamples">The samples of the complete reconstruction plane, read once by the caller.</param>
     /// <param name="blockOrigin">The block origin in plane samples.</param>
     /// <param name="above">The contiguous top reference samples.</param>
     /// <param name="left">The contiguous left reference samples.</param>
@@ -55,7 +57,9 @@ internal static partial class Av1TransformBlockEncoder
     public static void EncodeIntraDcLossy(
         Av1EncoderBlockWorkspace workspace,
         Av1PlaneRegion<byte> source,
+        ReadOnlySpan<byte> sourceSamples,
         Av1PlaneRegion<byte> reconstruction,
+        Span<byte> reconstructionSamples,
         Point blockOrigin,
         ReadOnlySpan<byte> above,
         ReadOnlySpan<byte> left,
@@ -70,14 +74,11 @@ internal static partial class Av1TransformBlockEncoder
         Av1Plane plane,
         ref Av1EncoderTransformBlockState state)
     {
-        ReadOnlySpan<byte> sourceSamples = GetPlaneSpan(source, blockOrigin);
-        Span<byte> reconstructionSamples = GetPlaneSpan(reconstruction, blockOrigin);
-
         EncodeIntraLossyContiguous(
             workspace,
-            sourceSamples,
+            GetPlaneSpan(sourceSamples, source, blockOrigin),
             source.Stride,
-            reconstructionSamples,
+            GetPlaneSpan(reconstructionSamples, reconstruction, blockOrigin),
             reconstruction.Stride,
             above,
             left,
@@ -457,7 +458,9 @@ internal static partial class Av1TransformBlockEncoder
     /// </summary>
     /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
     /// <param name="source">The coded source plane.</param>
+    /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
     /// <param name="reconstruction">The coded reconstruction plane.</param>
+    /// <param name="reconstructionSamples">The samples of the complete reconstruction plane, read once by the caller.</param>
     /// <param name="blockOrigin">The block origin in plane samples.</param>
     /// <param name="above">The contiguous top reference samples.</param>
     /// <param name="left">The contiguous left reference samples.</param>
@@ -475,7 +478,9 @@ internal static partial class Av1TransformBlockEncoder
     public static void EncodeIntraDcLossy(
         Av1EncoderBlockWorkspace workspace,
         Av1PlaneRegion<ushort> source,
+        ReadOnlySpan<ushort> sourceSamples,
         Av1PlaneRegion<ushort> reconstruction,
+        Span<ushort> reconstructionSamples,
         Point blockOrigin,
         ReadOnlySpan<ushort> above,
         ReadOnlySpan<ushort> left,
@@ -491,14 +496,11 @@ internal static partial class Av1TransformBlockEncoder
         Av1BitDepth bitDepth,
         ref Av1EncoderTransformBlockState state)
     {
-        ReadOnlySpan<ushort> sourceSamples = GetPlaneSpan(source, blockOrigin);
-        Span<ushort> reconstructionSamples = GetPlaneSpan(reconstruction, blockOrigin);
-
         EncodeIntraLossyContiguous(
             workspace,
-            sourceSamples,
+            GetPlaneSpan(sourceSamples, source, blockOrigin),
             source.Stride,
-            reconstructionSamples,
+            GetPlaneSpan(reconstructionSamples, reconstruction, blockOrigin),
             reconstruction.Stride,
             above,
             left,
@@ -2460,4 +2462,28 @@ internal static partial class Av1TransformBlockEncoder
         // Encoder planes are single contiguous allocations, so the block keeps the physical stride without a row copy.
         return plane.Samples[offset..];
     }
+
+    /// <summary>
+    /// Gets the plane samples from a block origin to the end of the plane, from the plane samples that the caller read once.
+    /// </summary>
+    /// <typeparam name="TSample">The sample storage type.</typeparam>
+    /// <param name="planeSamples">The samples of the complete plane, borders included, read once by the caller.</param>
+    /// <param name="plane">The plane, which gives the position of the rectangle and the stride.</param>
+    /// <param name="blockOrigin">The block origin, relative to the plane rectangle.</param>
+    /// <returns>The samples from the block origin; rows are <see cref="Av1PlaneRegion{TSample}.Stride"/> apart.</returns>
+    public static Span<TSample> GetPlaneSpan<TSample>(Span<TSample> planeSamples, Av1PlaneRegion<TSample> plane, Point blockOrigin)
+        where TSample : unmanaged
+        => planeSamples[plane.GetOffset(blockOrigin.X, blockOrigin.Y)..];
+
+    /// <summary>
+    /// Gets the read-only plane samples from a block origin to the end of the plane, from the plane samples that the caller read once.
+    /// </summary>
+    /// <typeparam name="TSample">The sample storage type.</typeparam>
+    /// <param name="planeSamples">The samples of the complete plane, borders included, read once by the caller.</param>
+    /// <param name="plane">The plane, which gives the position of the rectangle and the stride.</param>
+    /// <param name="blockOrigin">The block origin, relative to the plane rectangle.</param>
+    /// <returns>The samples from the block origin; rows are <see cref="Av1PlaneRegion{TSample}.Stride"/> apart.</returns>
+    public static ReadOnlySpan<TSample> GetPlaneSpan<TSample>(ReadOnlySpan<TSample> planeSamples, Av1PlaneRegion<TSample> plane, Point blockOrigin)
+        where TSample : unmanaged
+        => planeSamples[plane.GetOffset(blockOrigin.X, blockOrigin.Y)..];
 }

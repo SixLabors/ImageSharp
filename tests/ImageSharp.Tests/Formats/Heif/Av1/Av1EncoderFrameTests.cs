@@ -109,8 +109,10 @@ public class Av1EncoderFrameTests
 
         // The exact-sized interior includes the corner and twenty projected samples. Sentinel samples
         // on either side detect writes outside the reference view, including the former 2*long-edge span.
+        Av1PlaneRegion<TSample> referenceView = plane.GetSubRegion(0, 0, limitedExtent ? width + 3 : 33, limitedExtent ? height + 3 : 33);
         Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator>.PrepareReferenceSamples(
-            plane.GetSubRegion(0, 0, limitedExtent ? width + 3 : 33, limitedExtent ? height + 3 : 33),
+            referenceView,
+            referenceView.Samples,
             new Point(1, 1),
             width,
             height,

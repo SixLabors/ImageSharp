@@ -1293,6 +1293,13 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Span<int> cdefPreset = picture.CdefPreset.Span;
         Span<int> previousQIndex = picture.Parent.PreviousQIndex.Span;
 
+        // The symbol statistics and the segment maps of the frame are also updated by every block, so they are read once here.
+        Span<int> transformTypeCounts = picture.Parent.TransformTypeCounts.Span;
+        Span<int> interpolationCounts = picture.Parent.InterpolationCounts.Span;
+        Span<int> selectedInterpolationCounts = picture.Parent.SelectedInterpolationCounts.Span;
+        Span<byte> encoderSegmentMap = picture.Parent.EncoderSegmentMap.Span;
+        Span<byte> segmentationNeighborMap = picture.SegmentationNeighborMap.Span;
+
         for (int tileRow = 0; tileRow < tileLayout.TileRowCount; tileRow++)
         {
             tile.SetTileRow(tileLayout, frameHeader.ModeInfoRowCount, tileRow);
@@ -1415,6 +1422,11 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 paletteTokens,
                                 cdefPreset,
                                 previousQIndex,
+                                transformTypeCounts,
+                                interpolationCounts,
+                                selectedInterpolationCounts,
+                                encoderSegmentMap,
+                                segmentationNeighborMap,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,
@@ -1506,6 +1518,11 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 paletteTokens,
                                 cdefPreset,
                                 previousQIndex,
+                                transformTypeCounts,
+                                interpolationCounts,
+                                selectedInterpolationCounts,
+                                encoderSegmentMap,
+                                segmentationNeighborMap,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,

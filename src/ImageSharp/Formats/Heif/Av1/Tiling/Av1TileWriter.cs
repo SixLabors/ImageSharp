@@ -100,6 +100,11 @@ internal partial class Av1TileWriter
     /// <param name="paletteTokens">The color map tokens of the picture.</param>
     /// <param name="cdefPreset">The constrained directional enhancement filter strengths of each tile.</param>
     /// <param name="previousQIndex">The previous quantizer index of each tile.</param>
+    /// <param name="transformTypeCounts">The selected transform type counts of the frame, by transform size.</param>
+    /// <param name="interpolationCounts">The interpolation filter counts of the frame analysis, by context.</param>
+    /// <param name="selectedInterpolationCounts">The interpolation filter counts of the packed frame.</param>
+    /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+    /// <param name="segmentationNeighborMap">The frame segment identifiers used for spatial prediction.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -144,6 +149,11 @@ internal partial class Av1TileWriter
         Span<byte> paletteTokens,
         Span<int> cdefPreset,
         Span<int> previousQIndex,
+        Span<int> transformTypeCounts,
+        Span<int> interpolationCounts,
+        Span<int> selectedInterpolationCounts,
+        Span<byte> encoderSegmentMap,
+        Span<byte> segmentationNeighborMap,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -251,6 +261,11 @@ internal partial class Av1TileWriter
             paletteTokens,
             cdefPreset,
             previousQIndex,
+            transformTypeCounts,
+            interpolationCounts,
+            selectedInterpolationCounts,
+            encoderSegmentMap,
+            segmentationNeighborMap,
             superblock,
             coefficientBuffer,
             tileIndex,
@@ -306,6 +321,11 @@ internal partial class Av1TileWriter
     /// <param name="paletteTokens">The color map tokens of the picture.</param>
     /// <param name="cdefPreset">The constrained directional enhancement filter strengths of each tile.</param>
     /// <param name="previousQIndex">The previous quantizer index of each tile.</param>
+    /// <param name="transformTypeCounts">The selected transform type counts of the frame, by transform size.</param>
+    /// <param name="interpolationCounts">The interpolation filter counts of the frame analysis, by context.</param>
+    /// <param name="selectedInterpolationCounts">The interpolation filter counts of the packed frame.</param>
+    /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+    /// <param name="segmentationNeighborMap">The frame segment identifiers used for spatial prediction.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -354,6 +374,11 @@ internal partial class Av1TileWriter
         Span<byte> paletteTokens,
         Span<int> cdefPreset,
         Span<int> previousQIndex,
+        Span<int> transformTypeCounts,
+        Span<int> interpolationCounts,
+        Span<int> selectedInterpolationCounts,
+        Span<byte> encoderSegmentMap,
+        Span<byte> segmentationNeighborMap,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -475,6 +500,11 @@ internal partial class Av1TileWriter
                     paletteTokens,
                     cdefPreset,
                     previousQIndex,
+                    transformTypeCounts,
+                    interpolationCounts,
+                    selectedInterpolationCounts,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -523,6 +553,11 @@ internal partial class Av1TileWriter
                     paletteTokens,
                     cdefPreset,
                     previousQIndex,
+                    transformTypeCounts,
+                    interpolationCounts,
+                    selectedInterpolationCounts,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -571,6 +606,11 @@ internal partial class Av1TileWriter
                         paletteTokens,
                         cdefPreset,
                         previousQIndex,
+                        transformTypeCounts,
+                        interpolationCounts,
+                        selectedInterpolationCounts,
+                        encoderSegmentMap,
+                        segmentationNeighborMap,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -620,6 +660,11 @@ internal partial class Av1TileWriter
                     paletteTokens,
                     cdefPreset,
                     previousQIndex,
+                    transformTypeCounts,
+                    interpolationCounts,
+                    selectedInterpolationCounts,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -668,6 +713,11 @@ internal partial class Av1TileWriter
                         paletteTokens,
                         cdefPreset,
                         previousQIndex,
+                        transformTypeCounts,
+                        interpolationCounts,
+                        selectedInterpolationCounts,
+                        encoderSegmentMap,
+                        segmentationNeighborMap,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -734,6 +784,11 @@ internal partial class Av1TileWriter
                             paletteTokens,
                             cdefPreset,
                             previousQIndex,
+                            transformTypeCounts,
+                            interpolationCounts,
+                            selectedInterpolationCounts,
+                            encoderSegmentMap,
+                            segmentationNeighborMap,
                             superblock,
                             coefficientBuffer,
                             tileIndex,
@@ -784,6 +839,11 @@ internal partial class Av1TileWriter
                         paletteTokens,
                         cdefPreset,
                         previousQIndex,
+                        transformTypeCounts,
+                        interpolationCounts,
+                        selectedInterpolationCounts,
+                        encoderSegmentMap,
+                        segmentationNeighborMap,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -833,6 +893,11 @@ internal partial class Av1TileWriter
                         paletteTokens,
                         cdefPreset,
                         previousQIndex,
+                        transformTypeCounts,
+                        interpolationCounts,
+                        selectedInterpolationCounts,
+                        encoderSegmentMap,
+                        segmentationNeighborMap,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -882,6 +947,11 @@ internal partial class Av1TileWriter
                         paletteTokens,
                         cdefPreset,
                         previousQIndex,
+                        transformTypeCounts,
+                        interpolationCounts,
+                        selectedInterpolationCounts,
+                        encoderSegmentMap,
+                        segmentationNeighborMap,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -931,6 +1001,11 @@ internal partial class Av1TileWriter
                         paletteTokens,
                         cdefPreset,
                         previousQIndex,
+                        transformTypeCounts,
+                        interpolationCounts,
+                        selectedInterpolationCounts,
+                        encoderSegmentMap,
+                        segmentationNeighborMap,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -982,6 +1057,11 @@ internal partial class Av1TileWriter
                     paletteTokens,
                     cdefPreset,
                     previousQIndex,
+                    transformTypeCounts,
+                    interpolationCounts,
+                    selectedInterpolationCounts,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1028,6 +1108,11 @@ internal partial class Av1TileWriter
                     paletteTokens,
                     cdefPreset,
                     previousQIndex,
+                    transformTypeCounts,
+                    interpolationCounts,
+                    selectedInterpolationCounts,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1074,6 +1159,11 @@ internal partial class Av1TileWriter
                     paletteTokens,
                     cdefPreset,
                     previousQIndex,
+                    transformTypeCounts,
+                    interpolationCounts,
+                    selectedInterpolationCounts,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1122,6 +1212,11 @@ internal partial class Av1TileWriter
                     paletteTokens,
                     cdefPreset,
                     previousQIndex,
+                    transformTypeCounts,
+                    interpolationCounts,
+                    selectedInterpolationCounts,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1168,6 +1263,11 @@ internal partial class Av1TileWriter
                     paletteTokens,
                     cdefPreset,
                     previousQIndex,
+                    transformTypeCounts,
+                    interpolationCounts,
+                    selectedInterpolationCounts,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1214,6 +1314,11 @@ internal partial class Av1TileWriter
                     paletteTokens,
                     cdefPreset,
                     previousQIndex,
+                    transformTypeCounts,
+                    interpolationCounts,
+                    selectedInterpolationCounts,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1262,6 +1367,11 @@ internal partial class Av1TileWriter
                     paletteTokens,
                     cdefPreset,
                     previousQIndex,
+                    transformTypeCounts,
+                    interpolationCounts,
+                    selectedInterpolationCounts,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1308,6 +1418,11 @@ internal partial class Av1TileWriter
                     paletteTokens,
                     cdefPreset,
                     previousQIndex,
+                    transformTypeCounts,
+                    interpolationCounts,
+                    selectedInterpolationCounts,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1354,6 +1469,11 @@ internal partial class Av1TileWriter
                     paletteTokens,
                     cdefPreset,
                     previousQIndex,
+                    transformTypeCounts,
+                    interpolationCounts,
+                    selectedInterpolationCounts,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1402,6 +1522,11 @@ internal partial class Av1TileWriter
                     paletteTokens,
                     cdefPreset,
                     previousQIndex,
+                    transformTypeCounts,
+                    interpolationCounts,
+                    selectedInterpolationCounts,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1448,6 +1573,11 @@ internal partial class Av1TileWriter
                     paletteTokens,
                     cdefPreset,
                     previousQIndex,
+                    transformTypeCounts,
+                    interpolationCounts,
+                    selectedInterpolationCounts,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1494,6 +1624,11 @@ internal partial class Av1TileWriter
                     paletteTokens,
                     cdefPreset,
                     previousQIndex,
+                    transformTypeCounts,
+                    interpolationCounts,
+                    selectedInterpolationCounts,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1551,6 +1686,11 @@ internal partial class Av1TileWriter
                         paletteTokens,
                         cdefPreset,
                         previousQIndex,
+                        transformTypeCounts,
+                        interpolationCounts,
+                        selectedInterpolationCounts,
+                        encoderSegmentMap,
+                        segmentationNeighborMap,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1609,6 +1749,11 @@ internal partial class Av1TileWriter
                         paletteTokens,
                         cdefPreset,
                         previousQIndex,
+                        transformTypeCounts,
+                        interpolationCounts,
+                        selectedInterpolationCounts,
+                        encoderSegmentMap,
+                        segmentationNeighborMap,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1672,6 +1817,11 @@ internal partial class Av1TileWriter
     /// <param name="paletteTokens">The color map tokens of the picture.</param>
     /// <param name="cdefPreset">The constrained directional enhancement filter strengths of each tile.</param>
     /// <param name="previousQIndex">The previous quantizer index of each tile.</param>
+    /// <param name="transformTypeCounts">The selected transform type counts of the frame, by transform size.</param>
+    /// <param name="interpolationCounts">The interpolation filter counts of the frame analysis, by context.</param>
+    /// <param name="selectedInterpolationCounts">The interpolation filter counts of the packed frame.</param>
+    /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+    /// <param name="segmentationNeighborMap">The frame segment identifiers used for spatial prediction.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -1717,6 +1867,11 @@ internal partial class Av1TileWriter
         Span<byte> paletteTokens,
         Span<int> cdefPreset,
         Span<int> previousQIndex,
+        Span<int> transformTypeCounts,
+        Span<int> interpolationCounts,
+        Span<int> selectedInterpolationCounts,
+        Span<byte> encoderSegmentMap,
+        Span<byte> segmentationNeighborMap,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -1767,6 +1922,11 @@ internal partial class Av1TileWriter
             paletteTokens,
             cdefPreset,
             previousQIndex,
+            transformTypeCounts,
+            interpolationCounts,
+            selectedInterpolationCounts,
+            encoderSegmentMap,
+            segmentationNeighborMap,
             superblock,
             ref block,
             tileIndex,
@@ -2029,6 +2189,11 @@ internal partial class Av1TileWriter
     /// <param name="paletteTokens">The color map tokens of the picture.</param>
     /// <param name="cdefPreset">The constrained directional enhancement filter strengths of each tile.</param>
     /// <param name="previousQIndex">The previous quantizer index of each tile.</param>
+    /// <param name="transformTypeCounts">The selected transform type counts of the frame, by transform size.</param>
+    /// <param name="interpolationCounts">The interpolation filter counts of the frame analysis, by context.</param>
+    /// <param name="selectedInterpolationCounts">The interpolation filter counts of the packed frame.</param>
+    /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+    /// <param name="segmentationNeighborMap">The frame segment identifiers used for spatial prediction.</param>
     /// <param name="tb_ptr">The containing superblock.</param>
     /// <param name="blk_ptr">The final encoder decisions for the block.</param>
     /// <param name="tile_idx">The zero-based tile index.</param>
@@ -2077,6 +2242,11 @@ internal partial class Av1TileWriter
         Span<byte> paletteTokens,
         Span<int> cdefPreset,
         Span<int> previousQIndex,
+        Span<int> transformTypeCounts,
+        Span<int> interpolationCounts,
+        Span<int> selectedInterpolationCounts,
+        Span<byte> encoderSegmentMap,
+        Span<byte> segmentationNeighborMap,
         Av1Superblock tb_ptr,
         ref Av1EncoderBlockStruct blk_ptr,
         ushort tile_idx,
@@ -2186,6 +2356,8 @@ internal partial class Av1TileWriter
                     blockOrigin,
                     macroBlock,
                     ref blk_ptr,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     skipWritingCoefficients,
                     beforeSkip: true);
             }
@@ -2220,6 +2392,8 @@ internal partial class Av1TileWriter
                     blockOrigin,
                     macroBlock,
                     ref blk_ptr,
+                    encoderSegmentMap,
+                    segmentationNeighborMap,
                     skipWritingCoefficients,
                     beforeSkip: false);
             }
@@ -2594,11 +2768,11 @@ internal partial class Av1TileWriter
                     writer.WriteSwitchableInterpolationFilter<TOperation>(ref output, macroBlockModeInfo.Block.VerticalInterpolationFilter, verticalContext);
                     if (TOperation.WritesOutput)
                     {
-                        pcs.Parent.SelectedInterpolationCounts.Span[(int)macroBlockModeInfo.Block.VerticalInterpolationFilter]++;
+                        selectedInterpolationCounts[(int)macroBlockModeInfo.Block.VerticalInterpolationFilter]++;
                     }
                     else
                     {
-                        pcs.Parent.InterpolationCounts.Span[
+                        interpolationCounts[
                             (verticalContext * Av1InterpolationProbabilities.FilterCount) + (int)macroBlockModeInfo.Block.VerticalInterpolationFilter]++;
                     }
 
@@ -2616,11 +2790,11 @@ internal partial class Av1TileWriter
 
                         if (TOperation.WritesOutput)
                         {
-                            pcs.Parent.SelectedInterpolationCounts.Span[(int)macroBlockModeInfo.Block.HorizontalInterpolationFilter]++;
+                            selectedInterpolationCounts[(int)macroBlockModeInfo.Block.HorizontalInterpolationFilter]++;
                         }
                         else
                         {
-                            pcs.Parent.InterpolationCounts.Span[
+                            interpolationCounts[
                                 (horizontalContext * Av1InterpolationProbabilities.FilterCount) + (int)macroBlockModeInfo.Block.HorizontalInterpolationFilter]++;
                         }
                     }
@@ -2801,6 +2975,7 @@ internal partial class Av1TileWriter
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
+                    transformTypeCounts,
                     TBlockEncoder.UsesRetainedDecisions);
             }
         }
@@ -3995,6 +4170,7 @@ internal partial class Av1TileWriter
     /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
     /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
     /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
+    /// <param name="transformTypeCounts">The selected transform type counts of the frame, by transform size.</param>
     /// <param name="useRetainedContexts">Whether coefficient contexts come from completed block analysis.</param>
     private static void EncodeTransformCoefficientRegions<TOperation>(
         ref Span<byte> output,
@@ -4010,6 +4186,7 @@ internal partial class Av1TileWriter
         in Av1NeighborEdges<byte> lumaCoefficientEdges,
         in Av1NeighborEdges<byte> blueCoefficientEdges,
         in Av1NeighborEdges<byte> redCoefficientEdges,
+        Span<int> transformTypeCounts,
         bool useRetainedContexts)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
@@ -4088,6 +4265,7 @@ internal partial class Av1TileWriter
                             coefficientBuffer,
                             superblockIndex,
                             planeCoefficientEdges,
+                            transformTypeCounts,
                             isLuma ? regionRow : regionRow >> subsamplingY,
                             isLuma ? regionColumn : regionColumn >> subsamplingX,
                             isLuma ? unitBottom : Av1Math.RoundPowerOf2(unitBottom, subsamplingY),
@@ -4122,6 +4300,7 @@ internal partial class Av1TileWriter
                     coefficientBuffer,
                     superblockIndex,
                     lumaCoefficientEdges,
+                    transformTypeCounts,
                     regionRow,
                     regionColumn,
                     unitBottom,
@@ -4150,6 +4329,7 @@ internal partial class Av1TileWriter
                         coefficientBuffer,
                         superblockIndex,
                         blueCoefficientEdges,
+                        transformTypeCounts,
                         chromaRegionRow,
                         chromaRegionColumn,
                         chromaUnitBottom,
@@ -4169,6 +4349,7 @@ internal partial class Av1TileWriter
                         coefficientBuffer,
                         superblockIndex,
                         redCoefficientEdges,
+                        transformTypeCounts,
                         chromaRegionRow,
                         chromaRegionColumn,
                         chromaUnitBottom,
@@ -4196,6 +4377,7 @@ internal partial class Av1TileWriter
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="superblockIndex">The raster-ordered index of the containing superblock.</param>
     /// <param name="coefficientEdges">The coefficient context edges of the plane, read once by the caller.</param>
+    /// <param name="transformTypeCounts">The selected transform type counts of the frame, by transform size.</param>
     /// <param name="regionRow">The first row of the region, in 4x4 units of the plane.</param>
     /// <param name="regionColumn">The first column of the region, in 4x4 units of the plane.</param>
     /// <param name="unitBottom">The row after the region, in 4x4 units of the plane.</param>
@@ -4215,6 +4397,7 @@ internal partial class Av1TileWriter
         Av1EncoderCoefficientBuffer coefficientBuffer,
         int superblockIndex,
         in Av1NeighborEdges<byte> coefficientEdges,
+        Span<int> transformTypeCounts,
         int regionRow,
         int regionColumn,
         int unitBottom,
@@ -4340,8 +4523,7 @@ internal partial class Av1TileWriter
                     {
                         // Only the final packing traversal counts selected transforms. Partition trials and
                         // coefficient analysis revisit the same samples and must not change frame history.
-                        pcs.Parent.TransformTypeCounts.Span[
-                            ((int)transformSize * Av1TransformTypeProbabilities.TypeCount) + (int)transformType]++;
+                        transformTypeCounts[((int)transformSize * Av1TransformTypeProbabilities.TypeCount) + (int)transformType]++;
                     }
 
                     int culLevel = writer.WriteCoefficients<TOperation>(
@@ -4535,6 +4717,8 @@ internal partial class Av1TileWriter
     /// <param name="blockOrigin">The block origin in samples.</param>
     /// <param name="macroBlock">The reusable macroblock edge and neighbor state.</param>
     /// <param name="block">The encoder block state.</param>
+    /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
+    /// <param name="segmentationNeighborMap">The frame segment identifiers used for spatial prediction.</param>
     /// <param name="skip">A value indicating whether residual coefficients are omitted.</param>
     /// <param name="beforeSkip">Whether the segment identifier is written before the skip flag.</param>
     /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
@@ -4546,6 +4730,8 @@ internal partial class Av1TileWriter
         Point blockOrigin,
         Av1MacroBlockD macroBlock,
         ref Av1EncoderBlockStruct block,
+        Span<byte> encoderSegmentMap,
+        Span<byte> segmentationNeighborMap,
         bool skip,
         bool beforeSkip)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
@@ -4556,16 +4742,16 @@ internal partial class Av1TileWriter
             return;
         }
 
-        int spatial_pred = GetSpatialSegmentationPrediction(pcs, macroBlock, blockOrigin, out int cdf_num);
+        int spatial_pred = GetSpatialSegmentationPrediction(pcs.Parent.Common, segmentationNeighborMap, macroBlock, blockOrigin, out int cdf_num);
         if (!beforeSkip && skip)
         {
             // Post-skip segment syntax can infer the spatial predictor once the decoder already knows the block is skipped.
             // The bitstream also records it in the encoder's own map. Reference: the skip_txfm branch of
             // write_segment_id().
-            pcs.UpdateSegmentation(blockSize, blockOrigin, spatial_pred);
+            pcs.UpdateSegmentation(segmentationNeighborMap, blockSize, blockOrigin, spatial_pred);
             if (TOperation.WritesOutput)
             {
-                pcs.UpdateSegmentation(pcs.Parent.EncoderSegmentMap.Span, blockSize, blockOrigin, spatial_pred);
+                pcs.UpdateSegmentation(encoderSegmentMap, blockSize, blockOrigin, spatial_pred);
             }
 
             block.SegmentId = spatial_pred;
@@ -4588,23 +4774,8 @@ internal partial class Av1TileWriter
             writer.WriteSegmentId<TOperation>(ref output, coded_id, cdf_num);
         }
 
-        pcs.UpdateSegmentation(blockSize, blockOrigin, block.SegmentId);
+        pcs.UpdateSegmentation(segmentationNeighborMap, blockSize, blockOrigin, block.SegmentId);
     }
-
-    /// <summary>
-    /// Derives a segment identifier predictor and entropy context from the upper-left, above, and left neighbors.
-    /// </summary>
-    /// <param name="pcs">The picture coding state.</param>
-    /// <param name="xd">The current macroblock and its neighbor availability.</param>
-    /// <param name="blockOrigin">The block origin in samples.</param>
-    /// <param name="cdf_index">The entropy context selected by matching neighbor identifiers.</param>
-    /// <returns>The spatially predicted segment identifier.</returns>
-    private static int GetSpatialSegmentationPrediction(
-        Av1PictureControlSet pcs,
-        Av1MacroBlockD xd,
-        Point blockOrigin,
-        out int cdf_index)
-        => GetSpatialSegmentationPrediction(pcs.Parent.Common, pcs.SegmentationNeighborMap.Span, xd, blockOrigin, out cdf_index);
 
     /// <summary>
     /// Derives a segment identifier predictor and entropy context from the upper-left, above, and left neighbors of a

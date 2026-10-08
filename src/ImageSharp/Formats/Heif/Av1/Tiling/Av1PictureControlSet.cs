@@ -292,15 +292,6 @@ internal class Av1PictureControlSet
     }
 
     /// <summary>
-    /// Writes a segment identifier to every segmentation-map entry covered by a block.
-    /// </summary>
-    /// <param name="blockSize">The block size.</param>
-    /// <param name="origin">The block origin in samples.</param>
-    /// <param name="segmentId">The segment identifier.</param>
-    public void UpdateSegmentation(Av1BlockSize blockSize, Point origin, int segmentId)
-        => this.UpdateSegmentation(this.SegmentationNeighborMap.Span, blockSize, origin, segmentId);
-
-    /// <summary>
     /// Writes a segment identifier to every entry of a segment map that a block covers. Reference: set_segment_id().
     /// </summary>
     /// <param name="segment_ids">The segment map, one entry per 4x4 block.</param>

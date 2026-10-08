@@ -70,6 +70,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions of the winner.</param>
@@ -93,6 +94,7 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<int> superblockCoefficients,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1MacroBlockModeInfo modeInfo,
@@ -289,7 +291,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     hasCoefficients |= states[index].EndOfBlock != 0;
                 }
 
-                Span<Av1EncoderTransformBlockState> committedStates = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane)[
+                Span<Av1EncoderTransformBlockState> committedStates = this.coefficientBuffer.GetTransformBlockSpan(superblockCoefficients, plane)[
                     (this.codedAreaChroma / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount)..];
 
                 CopyTiledCandidate(states, extent, transformSize, committedStates);

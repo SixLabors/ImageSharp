@@ -123,23 +123,36 @@ internal sealed class Av1EncoderCoefficientBuffer : IDisposable
     public long TotalCoefficientCount => (long)this.CoefficientsPerSuperblock * this.SuperblockCount;
 
     /// <summary>
+    /// Gets the coefficient storage of a raster-ordered superblock. A caller reads it once per superblock and slices
+    /// the planes from it with <see cref="GetPlaneSpan(Span{int}, Av1Plane)"/> and
+    /// <see cref="GetTransformBlockSpan(Span{int}, Av1Plane)"/>.
+    /// </summary>
+    /// <param name="superblockIndex">The raster-ordered superblock index.</param>
+    /// <returns>The coefficients of every plane, followed by the transform block states of every plane.</returns>
+    public Span<int> GetSuperblockSpan(int superblockIndex) => this.storage.DangerousGetRowSpan(superblockIndex);
+
+    /// <summary>
     /// Gets one component plane's coefficient span for a raster-ordered superblock.
     /// </summary>
     /// <param name="superblockIndex">The raster-ordered superblock index.</param>
     /// <param name="plane">The requested component plane.</param>
     /// <returns>The complete coefficient span reserved for that plane and superblock.</returns>
     public Span<int> GetPlaneSpan(int superblockIndex, Av1Plane plane)
-    {
-        Span<int> superblock = this.storage.DangerousGetRowSpan(superblockIndex);
-        return plane switch
+        => this.GetPlaneSpan(this.storage.DangerousGetRowSpan(superblockIndex), plane);
+
+    /// <summary>
+    /// Gets one component plane's coefficient span from the coefficient storage of a superblock.
+    /// </summary>
+    /// <param name="superblock">The coefficient storage of the superblock, from <see cref="GetSuperblockSpan(int)"/>.</param>
+    /// <param name="plane">The requested component plane.</param>
+    /// <returns>The complete coefficient span reserved for that plane and superblock.</returns>
+    public Span<int> GetPlaneSpan(Span<int> superblock, Av1Plane plane)
+        => plane switch
         {
             Av1Plane.Y => superblock[..this.LumaCoefficientCount],
             Av1Plane.U => superblock.Slice(this.LumaCoefficientCount, this.ChromaCoefficientCount),
-            _ => superblock.Slice(
-                this.LumaCoefficientCount + this.ChromaCoefficientCount,
-                this.ChromaCoefficientCount)
+            _ => superblock.Slice(this.LumaCoefficientCount + this.ChromaCoefficientCount, this.ChromaCoefficientCount)
         };
-    }
 
     /// <summary>
     /// Gets one component plane's transform-block state for a raster-ordered superblock.
@@ -148,8 +161,17 @@ internal sealed class Av1EncoderCoefficientBuffer : IDisposable
     /// <param name="plane">The requested component plane.</param>
     /// <returns>One state entry for every 4x4 coefficient unit in the plane.</returns>
     public Span<Av1EncoderTransformBlockState> GetTransformBlockSpan(int superblockIndex, Av1Plane plane)
+        => this.GetTransformBlockSpan(this.storage.DangerousGetRowSpan(superblockIndex), plane);
+
+    /// <summary>
+    /// Gets one component plane's transform-block state from the coefficient storage of a superblock.
+    /// </summary>
+    /// <param name="superblock">The coefficient storage of the superblock, from <see cref="GetSuperblockSpan(int)"/>.</param>
+    /// <param name="plane">The requested component plane.</param>
+    /// <returns>One state entry for every 4x4 coefficient unit in the plane.</returns>
+    public Span<Av1EncoderTransformBlockState> GetTransformBlockSpan(Span<int> superblock, Av1Plane plane)
     {
-        Span<int> superblock = this.storage.DangerousGetRowSpan(superblockIndex);
+        // The transform block states follow the coefficients of all three planes in the same storage row.
         Span<Av1EncoderTransformBlockState> transformBlocks =
             MemoryMarshal.Cast<int, Av1EncoderTransformBlockState>(superblock[this.CoefficientsPerSuperblock..]);
 

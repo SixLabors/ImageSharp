@@ -56,6 +56,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
         /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
+        /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
         /// <param name="macroBlock">The coding-block neighbors and frame edges.</param>
         /// <param name="origin">The luma block origin.</param>
         /// <param name="modeInfo">The selected block syntax.</param>
@@ -90,6 +91,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> encoderSegmentMap,
             Span<byte> searchSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
+            Span<int> superblockCoefficients,
             Av1MacroBlockD macroBlock,
             Point origin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -450,6 +452,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoGrid,
                 modeInfoAllocation,
                 displacementVectors,
+                superblockCoefficients,
                 macroBlock,
                 origin,
                 forceZeroMotion,
@@ -524,6 +527,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
+                    superblockCoefficients,
                     macroBlock,
                     origin,
                     ref modeInfo.Block,
@@ -558,6 +562,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     in lumaCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    superblockCoefficients,
                     macroBlock,
                     origin,
                     blockSize,
@@ -583,6 +588,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         in blueCoefficientEdges,
                         modeInfoGrid,
                         modeInfoAllocation,
+                        superblockCoefficients,
                         macroBlock,
                         origin,
                         blockSize,
@@ -602,6 +608,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         in redCoefficientEdges,
                         modeInfoGrid,
                         modeInfoAllocation,
+                        superblockCoefficients,
                         macroBlock,
                         origin,
                         blockSize,
@@ -880,6 +887,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
         /// <param name="macroBlock">The coding-block neighbors and edges.</param>
         /// <param name="origin">The luma coding-block origin.</param>
         /// <param name="forceZeroMotion">Whether stationary residual skipping has already been selected.</param>
@@ -911,6 +919,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            Span<int> superblockCoefficients,
             Av1MacroBlockD macroBlock,
             Point origin,
             bool forceZeroMotion,
@@ -1059,7 +1068,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            Span<Av1EncoderTransformBlockState> states = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.Y)[
+            Span<Av1EncoderTransformBlockState> states = this.coefficientBuffer.GetTransformBlockSpan(superblockCoefficients, Av1Plane.Y)[
                 (this.codedAreaLuma / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount)..];
 
             Av1TransformSize transformSize = winner.TransformSize;
@@ -1790,6 +1799,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
         /// <param name="macroBlock">The current block's neighbors and edges.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The selected inter syntax.</param>
@@ -1816,6 +1826,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            Span<int> superblockCoefficients,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1EncoderBlockModeInfo modeInfo,
@@ -1946,8 +1957,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 int height = transformSize.GetHeight();
                 int sampleCount = transformSize.GetSize2d();
                 int offset = planeIndex == 0 ? this.codedAreaLuma : this.codedAreaChroma;
-                Span<int> coefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane);
-                Span<Av1EncoderTransformBlockState> states = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane);
+                Span<int> coefficients = this.coefficientBuffer.GetPlaneSpan(superblockCoefficients, plane);
+                Span<Av1EncoderTransformBlockState> states = this.coefficientBuffer.GetTransformBlockSpan(superblockCoefficients, plane);
                 Av1NeighborEdges<byte> neighbors = plane switch
                 {
                     Av1Plane.Y => lumaCoefficientEdges,

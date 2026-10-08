@@ -1373,6 +1373,9 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                         superblock.Index = (superblockRow * coefficientBuffer.SuperblockColumnCount) + superblockColumn;
                         superblock.TileIndex = tileIndex;
 
+                        // The coefficients and transform block states of the superblock serve every block in it, so they are read once here.
+                        Span<int> superblockCoefficients = coefficientBuffer.GetSuperblockSpan(superblock.Index);
+
                         // Reference: the reset_mb_rd_record() and av1_zero(x->picked_ref_frames_mask) of
                         // init_encode_rd_sb().
                         blockWorkspace.MacroblockRateDistortionRecord.Reset();
@@ -1431,6 +1434,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 segmentationNeighborMap,
                                 searchSegmentMap,
                                 previousSegmentMap,
+                                superblockCoefficients,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,
@@ -1529,6 +1533,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 segmentationNeighborMap,
                                 searchSegmentMap,
                                 previousSegmentMap,
+                                superblockCoefficients,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,

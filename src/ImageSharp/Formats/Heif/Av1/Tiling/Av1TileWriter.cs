@@ -107,6 +107,7 @@ internal partial class Av1TileWriter
     /// <param name="segmentationNeighborMap">The frame segment identifiers used for spatial prediction.</param>
     /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
     /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
+    /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -158,6 +159,7 @@ internal partial class Av1TileWriter
         Span<byte> segmentationNeighborMap,
         Span<byte> searchSegmentMap,
         ReadOnlySpan<byte> previousSegmentMap,
+        Span<int> superblockCoefficients,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -272,6 +274,7 @@ internal partial class Av1TileWriter
             segmentationNeighborMap,
             searchSegmentMap,
             previousSegmentMap,
+            superblockCoefficients,
             superblock,
             coefficientBuffer,
             tileIndex,
@@ -334,6 +337,7 @@ internal partial class Av1TileWriter
     /// <param name="segmentationNeighborMap">The frame segment identifiers used for spatial prediction.</param>
     /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
     /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
+    /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -389,6 +393,7 @@ internal partial class Av1TileWriter
         Span<byte> segmentationNeighborMap,
         Span<byte> searchSegmentMap,
         ReadOnlySpan<byte> previousSegmentMap,
+        Span<int> superblockCoefficients,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -453,6 +458,7 @@ internal partial class Av1TileWriter
             encoderSegmentMap,
             searchSegmentMap,
             previousSegmentMap,
+            superblockCoefficients,
             entropyCodingContext.MacroBlock,
             blockOrigin,
             blockSize,
@@ -520,6 +526,7 @@ internal partial class Av1TileWriter
                     segmentationNeighborMap,
                     searchSegmentMap,
                     previousSegmentMap,
+                    superblockCoefficients,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -575,6 +582,7 @@ internal partial class Av1TileWriter
                     segmentationNeighborMap,
                     searchSegmentMap,
                     previousSegmentMap,
+                    superblockCoefficients,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -630,6 +638,7 @@ internal partial class Av1TileWriter
                         segmentationNeighborMap,
                         searchSegmentMap,
                         previousSegmentMap,
+                        superblockCoefficients,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -686,6 +695,7 @@ internal partial class Av1TileWriter
                     segmentationNeighborMap,
                     searchSegmentMap,
                     previousSegmentMap,
+                    superblockCoefficients,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -741,6 +751,7 @@ internal partial class Av1TileWriter
                         segmentationNeighborMap,
                         searchSegmentMap,
                         previousSegmentMap,
+                        superblockCoefficients,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -814,6 +825,7 @@ internal partial class Av1TileWriter
                             segmentationNeighborMap,
                             searchSegmentMap,
                             previousSegmentMap,
+                            superblockCoefficients,
                             superblock,
                             coefficientBuffer,
                             tileIndex,
@@ -871,6 +883,7 @@ internal partial class Av1TileWriter
                         segmentationNeighborMap,
                         searchSegmentMap,
                         previousSegmentMap,
+                        superblockCoefficients,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -927,6 +940,7 @@ internal partial class Av1TileWriter
                         segmentationNeighborMap,
                         searchSegmentMap,
                         previousSegmentMap,
+                        superblockCoefficients,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -983,6 +997,7 @@ internal partial class Av1TileWriter
                         segmentationNeighborMap,
                         searchSegmentMap,
                         previousSegmentMap,
+                        superblockCoefficients,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1039,6 +1054,7 @@ internal partial class Av1TileWriter
                         segmentationNeighborMap,
                         searchSegmentMap,
                         previousSegmentMap,
+                        superblockCoefficients,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1097,6 +1113,7 @@ internal partial class Av1TileWriter
                     segmentationNeighborMap,
                     searchSegmentMap,
                     previousSegmentMap,
+                    superblockCoefficients,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1150,6 +1167,7 @@ internal partial class Av1TileWriter
                     segmentationNeighborMap,
                     searchSegmentMap,
                     previousSegmentMap,
+                    superblockCoefficients,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1203,6 +1221,7 @@ internal partial class Av1TileWriter
                     segmentationNeighborMap,
                     searchSegmentMap,
                     previousSegmentMap,
+                    superblockCoefficients,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1258,6 +1277,7 @@ internal partial class Av1TileWriter
                     segmentationNeighborMap,
                     searchSegmentMap,
                     previousSegmentMap,
+                    superblockCoefficients,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1311,6 +1331,7 @@ internal partial class Av1TileWriter
                     segmentationNeighborMap,
                     searchSegmentMap,
                     previousSegmentMap,
+                    superblockCoefficients,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1364,6 +1385,7 @@ internal partial class Av1TileWriter
                     segmentationNeighborMap,
                     searchSegmentMap,
                     previousSegmentMap,
+                    superblockCoefficients,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1419,6 +1441,7 @@ internal partial class Av1TileWriter
                     segmentationNeighborMap,
                     searchSegmentMap,
                     previousSegmentMap,
+                    superblockCoefficients,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1472,6 +1495,7 @@ internal partial class Av1TileWriter
                     segmentationNeighborMap,
                     searchSegmentMap,
                     previousSegmentMap,
+                    superblockCoefficients,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1525,6 +1549,7 @@ internal partial class Av1TileWriter
                     segmentationNeighborMap,
                     searchSegmentMap,
                     previousSegmentMap,
+                    superblockCoefficients,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1580,6 +1605,7 @@ internal partial class Av1TileWriter
                     segmentationNeighborMap,
                     searchSegmentMap,
                     previousSegmentMap,
+                    superblockCoefficients,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1633,6 +1659,7 @@ internal partial class Av1TileWriter
                     segmentationNeighborMap,
                     searchSegmentMap,
                     previousSegmentMap,
+                    superblockCoefficients,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1686,6 +1713,7 @@ internal partial class Av1TileWriter
                     segmentationNeighborMap,
                     searchSegmentMap,
                     previousSegmentMap,
+                    superblockCoefficients,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -1750,6 +1778,7 @@ internal partial class Av1TileWriter
                         segmentationNeighborMap,
                         searchSegmentMap,
                         previousSegmentMap,
+                        superblockCoefficients,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1815,6 +1844,7 @@ internal partial class Av1TileWriter
                         segmentationNeighborMap,
                         searchSegmentMap,
                         previousSegmentMap,
+                        superblockCoefficients,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -1885,6 +1915,7 @@ internal partial class Av1TileWriter
     /// <param name="segmentationNeighborMap">The frame segment identifiers used for spatial prediction.</param>
     /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
     /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
+    /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
@@ -1937,6 +1968,7 @@ internal partial class Av1TileWriter
         Span<byte> segmentationNeighborMap,
         Span<byte> searchSegmentMap,
         ReadOnlySpan<byte> previousSegmentMap,
+        Span<int> superblockCoefficients,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -1994,6 +2026,7 @@ internal partial class Av1TileWriter
             segmentationNeighborMap,
             searchSegmentMap,
             previousSegmentMap,
+            superblockCoefficients,
             superblock,
             ref block,
             tileIndex,
@@ -2263,6 +2296,7 @@ internal partial class Av1TileWriter
     /// <param name="segmentationNeighborMap">The frame segment identifiers used for spatial prediction.</param>
     /// <param name="searchSegmentMap">The segment map that the frame buffer holds while the frame is searched.</param>
     /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
+    /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
     /// <param name="tb_ptr">The containing superblock.</param>
     /// <param name="blk_ptr">The final encoder decisions for the block.</param>
     /// <param name="tile_idx">The zero-based tile index.</param>
@@ -2318,6 +2352,7 @@ internal partial class Av1TileWriter
         Span<byte> segmentationNeighborMap,
         Span<byte> searchSegmentMap,
         ReadOnlySpan<byte> previousSegmentMap,
+        Span<int> superblockCoefficients,
         Av1Superblock tb_ptr,
         ref Av1EncoderBlockStruct blk_ptr,
         ushort tile_idx,
@@ -2393,6 +2428,7 @@ internal partial class Av1TileWriter
             encoderSegmentMap,
             searchSegmentMap,
             previousSegmentMap,
+            superblockCoefficients,
             macroBlock,
             blockOrigin,
             ref macroBlockModeInfo,
@@ -3045,7 +3081,7 @@ internal partial class Av1TileWriter
                     lumaMode,
                     blockSize,
                     coefficientBuffer,
-                    tb_ptr.Index,
+                    superblockCoefficients,
                     in lumaCoefficientEdges,
                     in blueCoefficientEdges,
                     in redCoefficientEdges,
@@ -4240,7 +4276,7 @@ internal partial class Av1TileWriter
     /// <param name="intraLumaMode">The luma prediction direction used by coefficient contexts.</param>
     /// <param name="blockSize">The luma block size.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
-    /// <param name="superblockIndex">The raster-ordered index of the containing superblock.</param>
+    /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
     /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
     /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
     /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
@@ -4256,7 +4292,7 @@ internal partial class Av1TileWriter
         Av1PredictionMode intraLumaMode,
         Av1BlockSize blockSize,
         Av1EncoderCoefficientBuffer coefficientBuffer,
-        int superblockIndex,
+        Span<int> superblockCoefficients,
         in Av1NeighborEdges<byte> lumaCoefficientEdges,
         in Av1NeighborEdges<byte> blueCoefficientEdges,
         in Av1NeighborEdges<byte> redCoefficientEdges,
@@ -4337,7 +4373,7 @@ internal partial class Av1TileWriter
                             blockSize,
                             plane,
                             coefficientBuffer,
-                            superblockIndex,
+                            superblockCoefficients,
                             planeCoefficientEdges,
                             transformTypeCounts,
                             isLuma ? regionRow : regionRow >> subsamplingY,
@@ -4372,7 +4408,7 @@ internal partial class Av1TileWriter
                     blockSize,
                     Av1Plane.Y,
                     coefficientBuffer,
-                    superblockIndex,
+                    superblockCoefficients,
                     lumaCoefficientEdges,
                     transformTypeCounts,
                     regionRow,
@@ -4401,7 +4437,7 @@ internal partial class Av1TileWriter
                         blockSize,
                         Av1Plane.U,
                         coefficientBuffer,
-                        superblockIndex,
+                        superblockCoefficients,
                         blueCoefficientEdges,
                         transformTypeCounts,
                         chromaRegionRow,
@@ -4421,7 +4457,7 @@ internal partial class Av1TileWriter
                         blockSize,
                         Av1Plane.V,
                         coefficientBuffer,
-                        superblockIndex,
+                        superblockCoefficients,
                         redCoefficientEdges,
                         transformTypeCounts,
                         chromaRegionRow,
@@ -4449,7 +4485,7 @@ internal partial class Av1TileWriter
     /// <param name="lumaBlockSize">The luma block size.</param>
     /// <param name="plane">The plane to write.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
-    /// <param name="superblockIndex">The raster-ordered index of the containing superblock.</param>
+    /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
     /// <param name="coefficientEdges">The coefficient context edges of the plane, read once by the caller.</param>
     /// <param name="transformTypeCounts">The selected transform type counts of the frame, by transform size.</param>
     /// <param name="regionRow">The first row of the region, in 4x4 units of the plane.</param>
@@ -4469,7 +4505,7 @@ internal partial class Av1TileWriter
         Av1BlockSize lumaBlockSize,
         Av1Plane plane,
         Av1EncoderCoefficientBuffer coefficientBuffer,
-        int superblockIndex,
+        Span<int> superblockCoefficients,
         in Av1NeighborEdges<byte> coefficientEdges,
         Span<int> transformTypeCounts,
         int regionRow,
@@ -4505,9 +4541,8 @@ internal partial class Av1TileWriter
             ? Av1ComponentType.Luminance
             : Av1ComponentType.Chroma;
 
-        Span<int> planeCoefficients = coefficientBuffer.GetPlaneSpan(superblockIndex, plane);
-        Span<Av1EncoderTransformBlockState> planeTransformBlocks =
-            coefficientBuffer.GetTransformBlockSpan(superblockIndex, plane);
+        Span<int> planeCoefficients = coefficientBuffer.GetPlaneSpan(superblockCoefficients, plane);
+        Span<Av1EncoderTransformBlockState> planeTransformBlocks = coefficientBuffer.GetTransformBlockSpan(superblockCoefficients, plane);
 
         int codedArea = isLuma
             ? entropyCodingContext.CodedAreaSuperblock

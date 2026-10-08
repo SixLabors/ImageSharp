@@ -129,6 +129,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
+        /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="regularStatistics">The rate and distortion of the intra winner.</param>
@@ -161,6 +162,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1EncoderDisplacementVector> displacementVectors,
             ReadOnlySpan<byte> encoderSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
+            Span<int> superblockCoefficients,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1RateDistortionStatistics regularStatistics,
@@ -340,6 +342,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     displacementVectors,
                     encoderSegmentMap,
                     previousSegmentMap,
+                    superblockCoefficients,
                     macroBlock,
                     blockOrigin,
                     modeInfo,
@@ -9867,6 +9870,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
+        /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
         /// <param name="macroBlock">The block geometry and neighboring transform contexts.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The selected prediction and interpolation syntax.</param>
@@ -9899,6 +9903,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             ReadOnlySpan<byte> encoderSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
+            Span<int> superblockCoefficients,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1MacroBlockModeInfo modeInfo,
@@ -9956,8 +9961,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1Plane plane = (Av1Plane)planeIndex;
 
                 // Every transform block of the plane writes into the same plane coefficients and states.
-                Span<int> planeCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane);
-                Span<Av1EncoderTransformBlockState> planeStates = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane);
+                Span<int> planeCoefficients = this.coefficientBuffer.GetPlaneSpan(superblockCoefficients, plane);
+                Span<Av1EncoderTransformBlockState> planeStates = this.coefficientBuffer.GetTransformBlockSpan(superblockCoefficients, plane);
                 int subX = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingX;
                 int subY = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingY;
                 Size frameContextSize = new(

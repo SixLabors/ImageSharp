@@ -78,6 +78,11 @@ internal static class Av1WorkCounters
     public const bool TimersEnabled = false;
 
     /// <summary>
+    /// Whether the counters count. Off, every count call folds away, so the encoder pays nothing for them.
+    /// </summary>
+    public const bool CountsEnabled = false;
+
+    /// <summary>
     /// Reads the timer.
     /// </summary>
     /// <returns>The current timestamp.</returns>
@@ -102,7 +107,15 @@ internal static class Av1WorkCounters
     /// Adds one to a counter.
     /// </summary>
     /// <param name="index">The counter.</param>
-    public static void Count(int index) => Values[index]++;
+#pragma warning disable CS0162 // The count switch is a compile-time constant.
+    public static void Count(int index)
+    {
+        if (CountsEnabled)
+        {
+            Values[index]++;
+        }
+    }
+#pragma warning restore CS0162
 
     /// <summary>
     /// Clears every counter.

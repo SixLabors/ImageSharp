@@ -7,7 +7,9 @@ using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -514,6 +516,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Issue3198, PixelTypes.Rgba32)]
     [WithFile(Issues2454_A, PixelTypes.Rgba32)]
     [WithFile(Issues2454_B, PixelTypes.Rgba32)]
+    [WithFile(Icc.PerceptualRgb8Webp, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
     public void Decode_WhenColorProfileHandlingIsPreserve_PreservesIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -897,20 +900,20 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Theory]
     [WithFile(RgbJpegCompressed, PixelTypes.Rgba32)]
     [WithFile(RgbJpegCompressed2, PixelTypes.Rgba32)]
-    [WithFile(RgbWithStripsJpegCompressed, PixelTypes.Rgba32)]
+    [WithFile(RgbWithStripsJpegCompressed, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
     [WithFile(YCbCrJpegCompressed, PixelTypes.Rgba32)]
     [WithFile(YCbCrJpegCompressed2, PixelTypes.Rgba32)]
-    [WithFile(RgbJpegCompressedNoJpegTable, PixelTypes.Rgba32)]
-    [WithFile(GrayscaleJpegCompressed, PixelTypes.Rgba32)]
+    [WithFile(RgbJpegCompressedNoJpegTable, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    [WithFile(GrayscaleJpegCompressed, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
     [WithFile(Issues2123, PixelTypes.Rgba32, 0.110f)]
     public void TiffDecoder_CanDecode_JpegCompressed<TPixel>(TestImageProvider<TPixel> provider, float tolerance = 0.001f)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: tolerance);
 
     [Theory]
-    [WithFile(RgbOldJpegCompressed, PixelTypes.Rgba32)]
+    [WithFile(RgbOldJpegCompressed, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
     [WithFile(RgbOldJpegCompressed2, PixelTypes.Rgba32, 0.1003f)]
     [WithFile(RgbOldJpegCompressed3, PixelTypes.Rgba32)]
-    [WithFile(RgbOldJpegCompressedGray, PixelTypes.Rgba32)]
+    [WithFile(RgbOldJpegCompressedGray, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
     [WithFile(YCbCrOldJpegCompressed, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_OldJpegCompressed<TPixel>(TestImageProvider<TPixel> provider, float tolerance = 0.001f)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -928,15 +931,68 @@ public class TiffDecoderTests : TiffDecoderBaseTester
             decoderOptions);
     }
 
+    /// <summary>
+    /// Checks nested WebP output against an independent decoder across integer, floating and associated pixel formats.
+    /// </summary>
+    /// <typeparam name="TPixel">The requested output pixel format.</typeparam>
+    /// <param name="provider">The real TIFF fixture.</param>
     [Theory]
-    [WithFile(WebpCompressed, PixelTypes.Rgba32)]
+    [WithFile(WebpCompressed, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    [WithFile(WebpCompressedRgb, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    [WithFile(WebpCompressedRgbTiled, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    [WithFile(WebpCompressedRgbaAlphaOmitted, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    [WithFile(WebpCompressedLosslessRgbaOpaque, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
     public void TiffDecoder_CanDecode_WebpCompressed<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (TestEnvironment.IsWindows)
-        {
-            TestTiffDecoder(provider, useExactComparer: false);
-        }
+        // The fixtures cover multiple strips, cropped edge tiles and RGBA headers whose WebP data omits an opaque alpha plane.
+        // Comparing the requested TPixel output catches RGB-only staging and incorrect copies of nested pixel bytes.
+        TestTiffDecoder(provider, useExactComparer: false);
+    }
+
+    /// <summary>
+    /// Checks that TIFF passes its profile to WebP and applies the source transform once.
+    /// </summary>
+    /// <typeparam name="TPixel">The requested output pixel format.</typeparam>
+    /// <param name="provider">The profiled TIFF fixture.</param>
+    [Theory]
+    [WithFile(Icc.PerceptualRgb8Webp, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    public void Decode_WebpIcc_ConvertsOnce<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
+
+        // libtiff recompressed Perceptual_RGB8 losslessly, retaining its source RGB samples and IFD profile.
+        // Magick applies that profile independently; this comparison catches omitted and repeated ICC transforms.
+        image.DebugSave(provider);
+
+        image.CompareToOriginal(provider, ImageComparer.Tolerant(0.001F), ReferenceDecoder);
+
+        Assert.Null(image.Metadata.IccProfile);
+        Assert.Null(image.Frames.RootFrame.Metadata.IccProfile);
+    }
+
+    /// <summary>
+    /// Rejects planar WebP before the decoder selects a raw channel-buffer path.
+    /// </summary>
+    /// <param name="path">An existing strip or tile WebP TIFF.</param>
+    [Theory]
+    [InlineData(WebpCompressedRgb)]
+    [InlineData(WebpCompressedRgbTiled)]
+    public void Parse_WebpPlanarLayout_Throws(string path)
+    {
+        using FileStream stream = File.OpenRead(TestFile.Create(path).FullPath);
+        DirectoryReader reader = new(stream, Configuration.Default.MemoryAllocator);
+        ExifProfile tags = reader.Read()[0];
+
+        // Change only the layout tag from a real fixture to test rejection of the layout that libtiff's WebP codec excludes.
+        tags.SetValue(ExifTag.PlanarConfiguration, (ushort)TiffPlanarConfiguration.Planar);
+        TiffFrameMetadata metadata = TiffFrameMetadata.Parse(tags);
+        TiffDecoderCore decoder = new(new DecoderOptions());
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => decoder.VerifyAndParse(tags, metadata));
+        Assert.Equal("WebP compression is not supported with planar configuration", exception.Message);
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/1891

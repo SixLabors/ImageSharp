@@ -592,7 +592,7 @@ internal static class TiffDecoderOptionsParser
 
                 if (options.PlanarConfiguration is TiffPlanarConfiguration.Planar)
                 {
-                    // Nested OldJPEG emits interleaved Rgb24, which per-plane TIFF buffers cannot consume.
+                    // The nested decoder writes complete pixels; the planar path requires separate raw channel samples.
                     TiffThrowHelper.ThrowNotSupported("Old Jpeg compression is not supported with planar configuration");
                 }
 
@@ -602,7 +602,7 @@ internal static class TiffDecoderOptionsParser
             case TiffCompression.Jpeg:
                 if (options.PlanarConfiguration is TiffPlanarConfiguration.Planar)
                 {
-                    // Nested JPEG emits interleaved Rgb24, which per-plane TIFF buffers cannot consume.
+                    // The nested decoder writes complete pixels; the planar path requires separate raw channel samples.
                     TiffThrowHelper.ThrowNotSupported("Jpeg compression is not supported with planar configuration");
                 }
 
@@ -611,6 +611,12 @@ internal static class TiffDecoderOptionsParser
                 break;
 
             case TiffCompression.Webp:
+                if (options.PlanarConfiguration is TiffPlanarConfiguration.Planar)
+                {
+                    // Reject planar layout here, matching libtiff's WebP codec requirement in TWebPFixupTags for contiguous RGB/RGBA.
+                    TiffThrowHelper.ThrowNotSupported("WebP compression is not supported with planar configuration");
+                }
+
                 options.CompressionType = TiffDecoderCompressionType.Webp;
                 break;
 

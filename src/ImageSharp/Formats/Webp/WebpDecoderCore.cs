@@ -56,11 +56,23 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// </summary>
     private readonly BackgroundColorHandling backgroundColorHandling;
 
+    private readonly IccProfile? sourceIccProfile;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
     public WebpDecoderCore(WebpDecoderOptions options)
+        : this(options, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WebpDecoderCore"/> class with the containing format's ICC profile.
+    /// </summary>
+    /// <param name="options">The decoder options.</param>
+    /// <param name="sourceIccProfile">The containing format's profile, or null to use the WebP profile.</param>
+    public WebpDecoderCore(WebpDecoderOptions options, IccProfile? sourceIccProfile)
         : base(options.GeneralOptions)
     {
         this.backgroundColorHandling = options.BackgroundColorHandling;
@@ -68,6 +80,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
         this.maxFrames = options.GeneralOptions.MaxFrames;
         this.memoryAllocator = this.configuration.MemoryAllocator;
+        this.sourceIccProfile = sourceIccProfile;
     }
 
     /// <inheritdoc />
@@ -76,7 +89,8 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         Image<TPixel>? image = null;
         try
         {
-            ImageMetadata metadata = new();
+            // The containing format's profile takes precedence. ICCP parsing already skips a second profile while consuming its chunk.
+            ImageMetadata metadata = new() { IccProfile = this.sourceIccProfile };
             Span<byte> buffer = stackalloc byte[4];
 
             uint fileSize = ReadImageHeader(stream, buffer);

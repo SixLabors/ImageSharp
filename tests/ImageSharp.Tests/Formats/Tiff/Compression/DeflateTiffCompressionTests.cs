@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression;
 
@@ -26,7 +27,8 @@ public class DeflateTiffCompressionTests
 
         using DeflateTiffCompression decompressor = new(Configuration.Default.MemoryAllocator, 10, 8, TiffColorType.BlackIsZero8, TiffPredictor.None, false, false, 0, 0);
 
-        decompressor.Decompress(stream, 0, (uint)stream.Length, 1, buffer, default);
+        // These codecs return raw TIFF samples; no final pixel region is needed.
+        decompressor.Decompress<Rgba32>(stream, 0, (uint)stream.Length, 1, buffer, default, default);
 
         Assert.Equal(data, buffer);
     }

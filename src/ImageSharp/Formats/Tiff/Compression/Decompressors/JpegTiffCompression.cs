@@ -43,7 +43,7 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
         ImageFrameMetadata metadata,
         byte[] jpegTables,
         TiffPhotometricInterpretation photometricInterpretation)
-        : base(memoryAllocator, width, bitsPerPixel)
+        : base(memoryAllocator, width, bitsPerPixel, TiffPredictor.None)
     {
         this.options = options;
         this.metadata = metadata;
@@ -52,10 +52,23 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
     }
 
     /// <inheritdoc/>
-    protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
-        => this.DecodeJpegData(stream, buffer, cancellationToken);
+    public override bool DecodesPixels => true;
 
-    private void DecodeJpegData(BufferedReadStream stream, Span<byte> buffer, CancellationToken cancellationToken)
+    /// <inheritdoc/>
+    protected override void Decompress<TPixel>(
+        BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
+        => this.DecodeJpegData(stream, stripHeight, pixels, cancellationToken);
+
+    /// <summary>
+    /// Applies the nested JPEG color conversion and copies its TPixel output into the TIFF destination.
+    /// </summary>
+    /// <typeparam name="TPixel">The requested image pixel format.</typeparam>
+    /// <param name="stream">The nested JPEG stream.</param>
+    /// <param name="stripHeight">The encoded strip or tile height.</param>
+    /// <param name="buffer">The visible TIFF destination region.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    private void DecodeJpegData<TPixel>(BufferedReadStream stream, int stripHeight, Buffer2DRegion<TPixel> buffer, CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         using JpegDecoderCore jpegDecoder = new(this.options, this.metadata.IccProfile);
         Configuration configuration = this.options.GeneralOptions.Configuration;
@@ -64,7 +77,7 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
             case TiffPhotometricInterpretation.BlackIsZero:
             case TiffPhotometricInterpretation.WhiteIsZero:
             {
-                using SpectralConverter<Rgb24> spectralConverterGray = new GrayJpegSpectralConverter<Rgb24>(configuration, this.photometricInterpretation);
+                using SpectralConverter<TPixel> spectralConverterGray = new GrayJpegSpectralConverter<TPixel>(configuration, this.photometricInterpretation);
 
                 if (this.jpegTables is not null)
                 {
@@ -79,8 +92,8 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
 
                 _ = IccProfile.TryGetIccProfileForColorConversion(this.metadata.IccProfile, out IccProfile? profile);
 
-                using Buffer2D<Rgb24> decompressedBuffer = spectralConverterGray.GetPixelBuffer(profile, cancellationToken);
-                JpegCompressionUtils.CopyImageBytesToBuffer(spectralConverterGray.Configuration, buffer, decompressedBuffer);
+                using Buffer2D<TPixel> decompressedBuffer = spectralConverterGray.GetPixelBuffer(profile, cancellationToken);
+                this.CopyPixels(decompressedBuffer, stripHeight, buffer);
                 break;
             }
 
@@ -89,9 +102,9 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
             case TiffPhotometricInterpretation.Separated:
             {
                 // Complete JPEG streams retain normal JPEG color deduction; table-based strips use TIFF's photometric interpretation.
-                using SpectralConverter<Rgb24> spectralConverter = this.jpegTables is null
-                    ? new SpectralConverter<Rgb24>(configuration)
-                    : new TiffJpegSpectralConverter<Rgb24>(configuration, this.photometricInterpretation);
+                using SpectralConverter<TPixel> spectralConverter = this.jpegTables is null
+                    ? new SpectralConverter<TPixel>(configuration)
+                    : new TiffJpegSpectralConverter<TPixel>(configuration, this.photometricInterpretation);
 
                 if (this.jpegTables is not null)
                 {
@@ -105,8 +118,8 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
 
                 _ = IccProfile.TryGetIccProfileForColorConversion(this.metadata.IccProfile, out IccProfile? profile);
 
-                using Buffer2D<Rgb24> decompressedBuffer = spectralConverter.GetPixelBuffer(profile, cancellationToken);
-                JpegCompressionUtils.CopyImageBytesToBuffer(spectralConverter.Configuration, buffer, decompressedBuffer);
+                using Buffer2D<TPixel> decompressedBuffer = spectralConverter.GetPixelBuffer(profile, cancellationToken);
+                this.CopyPixels(decompressedBuffer, stripHeight, buffer);
                 break;
             }
 

@@ -975,6 +975,10 @@ public static class TestImages
         public const string Fax4Compressed2 = "Tiff/CCITTGroup4.tiff";
         public const string Fax4CompressedLowerOrderBitsFirst = "Tiff/basi3p02_fax4_lowerOrderBitsFirst.tiff";
         public const string WebpCompressed = "Tiff/webp_compressed.tiff";
+        public const string WebpCompressedRgb = "Tiff/rgbsmall_WEBP.tif";
+        public const string WebpCompressedRgbTiled = "Tiff/rgbsmall_WEBP_tiled.tif";
+        public const string WebpCompressedRgbaAlphaOmitted = "Tiff/rgbsmall_WEBP_RGBA_alpha_omitted.tif";
+        public const string WebpCompressedLosslessRgbaOpaque = "Tiff/webp_lossless_rgba_alpha_fully_opaque.tif";
         public const string Fax4CompressedMinIsBlack = "Tiff/CCITTGroup4_minisblack.tiff";
         public const string CcittFax3AllTermCodes = "Tiff/ccitt_fax3_all_terminating_codes.tiff";
         public const string CcittFax3AllMakeupCodes = "Tiff/ccitt_fax3_all_makeup_codes.tiff";
@@ -1263,6 +1267,7 @@ public static class TestImages
             public const string PerceptualCmyk = "Tiff/icc-profiles/Perceptual_CMYK.tiff";
             public const string PerceptualCieLab = "Tiff/icc-profiles/Perceptual_CIELAB.tiff";
             public const string PerceptualRgb8 = "Tiff/icc-profiles/Perceptual_RGB8.tiff";
+            public const string PerceptualRgb8Webp = "Tiff/icc-profiles/Perceptual_RGB8_Webp.tiff";
             public const string PerceptualRgb16 = "Tiff/icc-profiles/Perceptual_RGB16.tiff";
         }
     }

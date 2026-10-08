@@ -100,70 +100,46 @@ internal static partial class Av1TransformBlockEncoder
     /// <summary>
     /// Encodes one eight-bit intra candidate into contiguous decision scratch.
     /// </summary>
-    /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
-    /// <param name="writer">The coefficient entropy costs.</param>
-    /// <param name="context">The neighboring coefficient contexts.</param>
-    /// <param name="rateMultiplier">The rate-distortion multiplier.</param>
-    /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
-    /// <param name="source">The source block, from its top-left sample.</param>
-    /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
-    /// <param name="blockOrigin">The block origin in plane samples.</param>
-    /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
-    /// <param name="frame">The frame plane that gets the prediction, as libaom writes pd->dst.</param>
-    /// <param name="frameSamples">The samples of <paramref name="frame"/>, which the caller reads once outside its loops.</param>
-    /// <param name="above">The contiguous top reference samples, with prefix storage for the shared corner.</param>
-    /// <param name="left">The contiguous left reference samples.</param>
-    /// <param name="hasLeft">Whether the left reference is available.</param>
-    /// <param name="hasAbove">Whether the top reference is available.</param>
+    /// <param name="candidate">The values and buffers of the plane that every candidate of the block shares.</param>
     /// <param name="mode">The intra prediction mode.</param>
     /// <param name="angleDelta">The signed directional-angle adjustment.</param>
-    /// <param name="enableIntraEdgeFilter">Whether sequence syntax enables directional edge filtering.</param>
-    /// <param name="smoothIntraEdges">Whether a relevant neighboring block uses smooth prediction.</param>
-    /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
-    /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
-    /// <param name="qIndex">The segment quantizer index.</param>
-    /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
-    /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
-    /// <param name="plane">The component plane containing the block.</param>
-    /// <param name="distortionPolicy">The transform-domain distortion type and its mean-error threshold.</param>
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
-    /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was. Reference: the sse of search_tx_type().</param>
+    /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was.</param>
     /// <returns>The normalized distortion in AV1 transform units.</returns>
     public static long EncodeIntraLossyCandidate(
-        Av1EncoderBlockWorkspace workspace,
-        Av1SymbolEncoder writer,
-        Av1TransformBlockContext context,
-        int rateMultiplier,
-        bool useChromaWeights,
-        ReadOnlySpan<byte> source,
-        int sourceStride,
-        Point blockOrigin,
-        Span<byte> reconstruction,
-        Av1PlaneRegion<byte> frame,
-        Span<byte> frameSamples,
-        ReadOnlySpan<byte> above,
-        ReadOnlySpan<byte> left,
-        bool hasLeft,
-        bool hasAbove,
+        in Av1IntraCandidatePlane<byte> candidate,
         Av1PredictionMode mode,
         int angleDelta,
-        bool enableIntraEdgeFilter,
-        bool smoothIntraEdges,
-        Span<int> quantizedCoefficients,
-        Av1TransformSize transformSize,
         Av1TransformType transformType,
-        int qIndex,
-        int dcDeltaQ,
-        int acDeltaQ,
-        Av1Plane plane,
-        (int Type, uint Threshold) distortionPolicy,
         ref Av1EncoderTransformBlockState state,
         out long sse)
     {
         Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
+
+        // The source block and the candidate reconstruction.
+        Av1EncoderBlockWorkspace workspace = candidate.Workspace;
+        ReadOnlySpan<byte> source = candidate.Source;
+        int sourceStride = candidate.SourceStride;
+        Point blockOrigin = candidate.BlockOrigin;
+        Span<byte> reconstruction = candidate.Reconstruction;
+
+        // The transform and the quantizer of the plane.
+        Av1Plane plane = candidate.Plane;
+        Av1TransformSize transformSize = candidate.TransformSize;
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
+        int qIndex = candidate.QIndex;
+        int dcDeltaQ = candidate.DcDeltaQ;
+        int acDeltaQ = candidate.AcDeltaQ;
+        (int Type, uint Threshold) distortionPolicy = candidate.DistortionPolicy;
+
+        // The coefficient and workspace buffers, which the caller read once for all candidates.
+        Span<int> quantizedCoefficients = candidate.QuantizedCoefficients;
+        Span<short> residual = candidate.Residual;
+        Span<int> transformCoefficients = candidate.TransformCoefficients;
+        Span<int> dequantizedCoefficients = candidate.DequantizedCoefficients;
+        Span<int> transformWorkspace = candidate.TransformWorkspace;
 
         PrepareIntraPrediction(
             workspace,
@@ -171,20 +147,20 @@ internal static partial class Av1TransformBlockEncoder
             sourceStride,
             reconstruction,
             width,
-            above,
-            left,
-            hasLeft,
-            hasAbove,
+            candidate.Above,
+            candidate.Left,
+            candidate.HasLeft,
+            candidate.HasAbove,
             mode,
             angleDelta,
-            enableIntraEdgeFilter,
-            smoothIntraEdges,
-            workspace.Residual,
+            candidate.EnableIntraEdgeFilter,
+            candidate.SmoothIntraEdges,
+            residual,
             transformSize);
 
         // The prediction goes into the frame. This candidate is the last transform block of its plane block, so the frame keeps the prediction.
         // Reference: av1_predict_intra_block_facade() into pd->dst in block_rd_txfm(), and the last block test of recon_intra().
-        WriteFrameSamples(frame, frameSamples, blockOrigin, reconstruction, width, width, height);
+        WriteFrameSamples(candidate.Frame, candidate.FrameSamples, blockOrigin, reconstruction, width, width, height);
 
         // search_tx_type measures the residual energy of the visible samples and
         // selects transform-domain distortion when the speed policy and that energy allow it. A 64-point
@@ -202,9 +178,9 @@ internal static partial class Av1TransformBlockEncoder
         uint blockMseQ8;
         long residualEnergy = predictDcBlock
             ? GetBlockStatistics(
-                workspace.Residual, width, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8, out perPixelMean, out blockVariance)
+                residual, width, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8, out perPixelMean, out blockVariance)
             : GetBlockError(
-                workspace.Residual, width, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8);
+                residual, width, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8);
 
         sse = residualEnergy;
 
@@ -236,13 +212,13 @@ internal static partial class Av1TransformBlockEncoder
             transformSize.GetSquareUpSize() != Av1TransformSize.Size64x64;
 
         // search_tx_type() subtracts with the border padding of the candidate type.
-        PadBorderResidual(workspace, plane, blockOrigin, workspace.Residual, width, width, height, transformType);
+        PadBorderResidual(workspace, plane, blockOrigin, residual, width, width, height, transformType);
 
         EncodeLossyCandidate(
             workspace,
-            writer,
-            context,
-            workspace.Residual,
+            candidate.Writer,
+            candidate.Context,
+            residual,
             width,
             quantizedCoefficients,
             transformSize,
@@ -252,9 +228,9 @@ internal static partial class Av1TransformBlockEncoder
             acDeltaQ,
             Av1BitDepth.EightBit,
             plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
-            rateMultiplier,
+            candidate.RateMultiplier,
             false,
-            useChromaWeights,
+            candidate.UseChromaWeights,
             false,
             blockMseQ8,
             ref state);
@@ -262,7 +238,7 @@ internal static partial class Av1TransformBlockEncoder
         if (state.EndOfBlock > 0)
         {
             Av1InverseTransformer.Reconstruct8Bit(
-                workspace.DequantizedCoefficients,
+                dequantizedCoefficients,
                 reconstruction,
                 width,
                 transformSize,
@@ -270,7 +246,7 @@ internal static partial class Av1TransformBlockEncoder
                 (int)plane,
                 state.EndOfBlock,
                 qIndex == 0,
-                workspace.TransformWorkspace);
+                transformWorkspace);
         }
 
         if (useTransformDomainDistortion)
@@ -280,8 +256,8 @@ internal static partial class Av1TransformBlockEncoder
             return state.EndOfBlock == 0
                 ? residualEnergy
                 : GetTransformError(
-                    workspace.TransformCoefficients[..codedCoefficientCount],
-                    workspace.DequantizedCoefficients[..codedCoefficientCount],
+                    transformCoefficients[..codedCoefficientCount],
+                    dequantizedCoefficients[..codedCoefficientCount],
                     transformSize,
                     Av1BitDepth.EightBit,
                     out sse);
@@ -296,7 +272,18 @@ internal static partial class Av1TransformBlockEncoder
             visibleWidth,
             visibleHeight);
 
-        return BoundPixelDistortion(workspace, plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma, state.TransformType, distortion << 4, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, Av1BitDepth.EightBit);
+        Av1ComponentType componentType = plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma;
+        return BoundPixelDistortion(
+            workspace,
+            componentType,
+            state.TransformType,
+            distortion << 4,
+            residualEnergy,
+            state.EndOfBlock,
+            transformCoefficients,
+            dequantizedCoefficients,
+            transformSize,
+            Av1BitDepth.EightBit);
     }
 
     /// <summary>
@@ -535,72 +522,47 @@ internal static partial class Av1TransformBlockEncoder
     /// <summary>
     /// Encodes one high-bit-depth intra candidate into contiguous decision scratch.
     /// </summary>
-    /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
-    /// <param name="writer">The coefficient entropy costs.</param>
-    /// <param name="context">The neighboring coefficient contexts.</param>
-    /// <param name="rateMultiplier">The rate-distortion multiplier.</param>
-    /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
-    /// <param name="source">The source block, from its top-left sample.</param>
-    /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
-    /// <param name="blockOrigin">The block origin in plane samples.</param>
-    /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
-    /// <param name="frame">The frame plane that gets the prediction, as libaom writes pd->dst.</param>
-    /// <param name="frameSamples">The samples of <paramref name="frame"/>, which the caller reads once outside its loops.</param>
-    /// <param name="above">The contiguous top reference samples, with prefix storage for the shared corner.</param>
-    /// <param name="left">The contiguous left reference samples.</param>
-    /// <param name="hasLeft">Whether the left reference is available.</param>
-    /// <param name="hasAbove">Whether the top reference is available.</param>
+    /// <param name="candidate">The values and buffers of the plane that every candidate of the block shares.</param>
     /// <param name="mode">The intra prediction mode.</param>
     /// <param name="angleDelta">The signed directional-angle adjustment.</param>
-    /// <param name="enableIntraEdgeFilter">Whether sequence syntax enables directional edge filtering.</param>
-    /// <param name="smoothIntraEdges">Whether a relevant neighboring block uses smooth prediction.</param>
-    /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
-    /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
-    /// <param name="qIndex">The segment quantizer index.</param>
-    /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
-    /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
-    /// <param name="plane">The component plane containing the block.</param>
-    /// <param name="bitDepth">The coded sample bit depth.</param>
-    /// <param name="distortionPolicy">The transform-domain distortion type and its mean-error threshold.</param>
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
-    /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was. Reference: the sse of search_tx_type().</param>
+    /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was.</param>
     /// <returns>The normalized distortion in AV1 transform units.</returns>
     public static long EncodeIntraLossyCandidate(
-        Av1EncoderBlockWorkspace workspace,
-        Av1SymbolEncoder writer,
-        Av1TransformBlockContext context,
-        int rateMultiplier,
-        bool useChromaWeights,
-        ReadOnlySpan<ushort> source,
-        int sourceStride,
-        Point blockOrigin,
-        Span<ushort> reconstruction,
-        Av1PlaneRegion<ushort> frame,
-        Span<ushort> frameSamples,
-        ReadOnlySpan<ushort> above,
-        ReadOnlySpan<ushort> left,
-        bool hasLeft,
-        bool hasAbove,
+        in Av1IntraCandidatePlane<ushort> candidate,
         Av1PredictionMode mode,
         int angleDelta,
-        bool enableIntraEdgeFilter,
-        bool smoothIntraEdges,
-        Span<int> quantizedCoefficients,
-        Av1TransformSize transformSize,
         Av1TransformType transformType,
-        int qIndex,
-        int dcDeltaQ,
-        int acDeltaQ,
-        Av1Plane plane,
-        Av1BitDepth bitDepth,
-        (int Type, uint Threshold) distortionPolicy,
         ref Av1EncoderTransformBlockState state,
         out long sse)
     {
         Av1WorkCounters.Count(Av1WorkCounters.DistPxDomain);
+
+        // The source block and the candidate reconstruction.
+        Av1EncoderBlockWorkspace workspace = candidate.Workspace;
+        ReadOnlySpan<ushort> source = candidate.Source;
+        int sourceStride = candidate.SourceStride;
+        Point blockOrigin = candidate.BlockOrigin;
+        Span<ushort> reconstruction = candidate.Reconstruction;
+
+        // The transform and the quantizer of the plane.
+        Av1Plane plane = candidate.Plane;
+        Av1TransformSize transformSize = candidate.TransformSize;
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
+        int qIndex = candidate.QIndex;
+        int dcDeltaQ = candidate.DcDeltaQ;
+        int acDeltaQ = candidate.AcDeltaQ;
+        Av1BitDepth bitDepth = candidate.BitDepth;
+        (int Type, uint Threshold) distortionPolicy = candidate.DistortionPolicy;
+
+        // The coefficient and workspace buffers, which the caller read once for all candidates.
+        Span<int> quantizedCoefficients = candidate.QuantizedCoefficients;
+        Span<short> residual = candidate.Residual;
+        Span<int> transformCoefficients = candidate.TransformCoefficients;
+        Span<int> dequantizedCoefficients = candidate.DequantizedCoefficients;
+        Span<int> transformWorkspace = candidate.TransformWorkspace;
 
         PrepareIntraPrediction(
             workspace,
@@ -608,21 +570,21 @@ internal static partial class Av1TransformBlockEncoder
             sourceStride,
             reconstruction,
             width,
-            above,
-            left,
-            hasLeft,
-            hasAbove,
+            candidate.Above,
+            candidate.Left,
+            candidate.HasLeft,
+            candidate.HasAbove,
             mode,
             angleDelta,
-            enableIntraEdgeFilter,
-            smoothIntraEdges,
-            workspace.Residual,
+            candidate.EnableIntraEdgeFilter,
+            candidate.SmoothIntraEdges,
+            residual,
             transformSize,
             bitDepth);
 
-        // The prediction goes into the frame. This candidate is the last transform block of its plane block, so the frame keeps the prediction.
-        // Reference: av1_predict_intra_block_facade() into pd->dst in block_rd_txfm(), and the last block test of recon_intra().
-        WriteFrameSamples(frame, frameSamples, blockOrigin, reconstruction, width, width, height);
+        // The prediction goes into the frame. This candidate is the last transform block of its plane block, so the
+        // frame keeps the prediction.
+        WriteFrameSamples(candidate.Frame, candidate.FrameSamples, blockOrigin, reconstruction, width, width, height);
 
         // search_tx_type measures the residual energy of the visible samples and
         // selects transform-domain distortion when the speed policy and that energy allow it. A 64-point
@@ -640,9 +602,9 @@ internal static partial class Av1TransformBlockEncoder
         uint blockMseQ8;
         long residualEnergy = predictDcBlock
             ? GetBlockStatistics(
-                workspace.Residual, width, visibleWidth, visibleHeight, bitDepth, out blockMseQ8, out perPixelMean, out blockVariance)
+                residual, width, visibleWidth, visibleHeight, bitDepth, out blockMseQ8, out perPixelMean, out blockVariance)
             : GetBlockError(
-                workspace.Residual, width, visibleWidth, visibleHeight, bitDepth, out blockMseQ8);
+                residual, width, visibleWidth, visibleHeight, bitDepth, out blockMseQ8);
 
         sse = residualEnergy;
 
@@ -674,12 +636,12 @@ internal static partial class Av1TransformBlockEncoder
             transformSize.GetSquareUpSize() != Av1TransformSize.Size64x64;
 
         // search_tx_type() subtracts with the border padding of the candidate type.
-        PadBorderResidual(workspace, plane, blockOrigin, workspace.Residual, width, width, height, transformType);
+        PadBorderResidual(workspace, plane, blockOrigin, residual, width, width, height, transformType);
         EncodeLossyCandidate(
             workspace,
-            writer,
-            context,
-            workspace.Residual,
+            candidate.Writer,
+            candidate.Context,
+            residual,
             width,
             quantizedCoefficients,
             transformSize,
@@ -689,9 +651,9 @@ internal static partial class Av1TransformBlockEncoder
             acDeltaQ,
             bitDepth,
             plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
-            rateMultiplier,
+            candidate.RateMultiplier,
             false,
-            useChromaWeights,
+            candidate.UseChromaWeights,
             false,
             blockMseQ8,
             ref state);
@@ -699,7 +661,7 @@ internal static partial class Av1TransformBlockEncoder
         if (state.EndOfBlock > 0)
         {
             Av1InverseTransformer.ReconstructHighBitDepth(
-                workspace.DequantizedCoefficients,
+                dequantizedCoefficients,
                 MemoryMarshal.Cast<ushort, short>(reconstruction),
                 width,
                 transformSize,
@@ -708,7 +670,7 @@ internal static partial class Av1TransformBlockEncoder
                 state.EndOfBlock,
                 qIndex == 0,
                 bitDepth,
-                workspace.TransformWorkspace);
+                transformWorkspace);
         }
 
         if (useTransformDomainDistortion)
@@ -718,8 +680,8 @@ internal static partial class Av1TransformBlockEncoder
             return state.EndOfBlock == 0
                 ? residualEnergy
                 : GetTransformError(
-                    workspace.TransformCoefficients[..codedCoefficientCount],
-                    workspace.DequantizedCoefficients[..codedCoefficientCount],
+                    transformCoefficients[..codedCoefficientCount],
+                    dequantizedCoefficients[..codedCoefficientCount],
                     transformSize,
                     bitDepth,
                     out sse);
@@ -739,7 +701,18 @@ internal static partial class Av1TransformBlockEncoder
             ? distortion
             : (distortion + (1L << (shift - 1))) >> shift;
 
-        return BoundPixelDistortion(workspace, plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma, state.TransformType, normalizedDistortion << 4, residualEnergy, state.EndOfBlock, workspace.TransformCoefficients, workspace.DequantizedCoefficients, transformSize, bitDepth);
+        Av1ComponentType componentType = plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma;
+        return BoundPixelDistortion(
+            workspace,
+            componentType,
+            state.TransformType,
+            normalizedDistortion << 4,
+            residualEnergy,
+            state.EndOfBlock,
+            transformCoefficients,
+            dequantizedCoefficients,
+            transformSize,
+            bitDepth);
     }
 
     /// <summary>

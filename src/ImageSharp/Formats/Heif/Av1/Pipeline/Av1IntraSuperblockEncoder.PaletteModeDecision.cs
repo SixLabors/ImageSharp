@@ -290,24 +290,30 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1WorkCounters.Count(Av1WorkCounters.PaletteYRd);
             headerBreakout = false;
 
-            // The search values are copied to locals once, so the body below reads them as plain variables.
+            // The block and its neighbor values.
             Av1SymbolEncoder writer = search.Writer;
             Av1MacroBlockD macroBlock = search.MacroBlock;
             Point blockOrigin = search.BlockOrigin;
             Av1BlockSize blockSize = search.BlockSize;
             LumaBlockState blockState = search.BlockState;
             ushort tileIndex = search.TileIndex;
-            int transformSizeContext = search.TransformSizeContext;
             int sourceVariance = search.SourceVariance;
+
+            // The visible source samples and the color map.
             ReadOnlySpan<short> samples = search.Samples;
             int rows = search.Rows;
             int columns = search.Columns;
+            Av1PlaneRegion<byte> colorIndexMap = search.ColorIndexMap;
+
+            // The palette syntax contexts and rates.
             ReadOnlySpan<ushort> colorCache = search.ColorCache;
             int blockSizeContext = search.BlockSizeContext;
             int neighborContext = search.NeighborContext;
-            Av1PlaneRegion<byte> colorIndexMap = search.ColorIndexMap;
-            Span<Av1EncoderTransformBlockState> retainedStates = search.RetainedStates;
+            int transformSizeContext = search.TransformSizeContext;
             int dcModeCost = search.DcModeCost;
+
+            // The transform block states of the best candidate.
+            Span<Av1EncoderTransformBlockState> retainedStates = search.RetainedStates;
             int blockWidth = blockSize.GetWidth();
             int blockHeight = blockSize.GetHeight();
             Av1EncoderModeDecisionWorkspace<TSample> modeDecisionWorkspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();

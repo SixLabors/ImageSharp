@@ -601,6 +601,75 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<long> angleCosts = stackalloc long[7];
             Span<int> blockTransformCoefficients = this.blockWorkspace.TransformCoefficients;
             Span<int> blockTransformWorkspace = this.blockWorkspace.TransformWorkspace;
+
+            // Every spatial chroma candidate of the block uses the same planes, references, contexts and buffers.
+            // Only the mode, the angle and the transform type change, so each plane is described once here.
+            Av1IntraCandidatePlane<TSample> bluePlane = new()
+            {
+                Workspace = this.blockWorkspace,
+                Writer = writer,
+                Context = blueContext,
+                RateMultiplier = this.rateMultiplier,
+                UseChromaWeights = this.picture.Sequence.SequenceHeader.IsStillPicture,
+                Source = blueSourceBlock,
+                SourceStride = blueSource.Stride,
+                BlockOrigin = chromaOrigin,
+                Reconstruction = candidateBlueReconstruction[..sampleCount],
+                Frame = blueReconstruction,
+                FrameSamples = blueFrame,
+                Above = blueAbove,
+                Left = blueLeft,
+                HasLeft = hasLeft,
+                HasAbove = hasAbove,
+                EnableIntraEdgeFilter = this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
+                SmoothIntraEdges = smoothChromaEdges,
+                QuantizedCoefficients = candidateBlueCoefficients[..sampleCount],
+                TransformSize = transformSize,
+                Plane = Av1Plane.U,
+                QIndex = this.blockQIndex,
+                DcDeltaQ = this.quantization.DeltaQDc[(int)Av1Plane.U],
+                AcDeltaQ = this.quantization.DeltaQAc[(int)Av1Plane.U],
+                BitDepth = this.bitDepth,
+                DistortionPolicy = Av1TransformBlockEncoder.GetDistortionPolicy(this.blockWorkspace, speedSettings),
+                Residual = this.blockWorkspace.Residual,
+                TransformCoefficients = blockTransformCoefficients,
+                DequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients,
+                TransformWorkspace = blockTransformWorkspace
+            };
+
+            Av1IntraCandidatePlane<TSample> redPlane = new()
+            {
+                Workspace = this.blockWorkspace,
+                Writer = writer,
+                Context = redContext,
+                RateMultiplier = this.rateMultiplier,
+                UseChromaWeights = bluePlane.UseChromaWeights,
+                Source = redSourceBlock,
+                SourceStride = redSource.Stride,
+                BlockOrigin = chromaOrigin,
+                Reconstruction = candidateRedReconstruction[..sampleCount],
+                Frame = redReconstruction,
+                FrameSamples = redFrame,
+                Above = redAbove,
+                Left = redLeft,
+                HasLeft = hasLeft,
+                HasAbove = hasAbove,
+                EnableIntraEdgeFilter = bluePlane.EnableIntraEdgeFilter,
+                SmoothIntraEdges = smoothChromaEdges,
+                QuantizedCoefficients = candidateRedCoefficients[..sampleCount],
+                TransformSize = transformSize,
+                Plane = Av1Plane.V,
+                QIndex = this.blockQIndex,
+                DcDeltaQ = this.quantization.DeltaQDc[(int)Av1Plane.V],
+                AcDeltaQ = this.quantization.DeltaQAc[(int)Av1Plane.V],
+                BitDepth = this.bitDepth,
+                DistortionPolicy = bluePlane.DistortionPolicy,
+                Residual = bluePlane.Residual,
+                TransformCoefficients = blockTransformCoefficients,
+                DequantizedCoefficients = bluePlane.DequantizedCoefficients,
+                TransformWorkspace = blockTransformWorkspace
+            };
+
             for (int modeIndex = 0; modeIndex < ChromaModeSearchOrder.Length; modeIndex++)
             {
                 // Chroma-from-luma follows DC so its complete cost bounds the remaining spatial modes.
@@ -971,28 +1040,10 @@ internal static partial class Av1IntraSuperblockEncoder
                         chromaMode,
                         angleDelta,
                         blockSize,
-                        chromaOrigin,
-                        transformSize,
-                        blueSourceBlock,
-                        redSourceBlock,
-                        blueSource.Stride,
-                        blueFrame,
-                        redFrame,
-                        blueAbove,
-                        blueLeft,
-                        redAbove,
-                        redLeft,
-                        hasLeft,
-                        hasAbove,
-                        smoothChromaEdges,
-                        blueContext,
-                        redContext,
+                        in bluePlane,
+                        in redPlane,
                         paletteDisabledCost,
                         costLimit,
-                        candidateBlueReconstruction[..sampleCount],
-                        candidateRedReconstruction[..sampleCount],
-                        candidateBlueCoefficients[..sampleCount],
-                        candidateRedCoefficients[..sampleCount],
                         ref candidateBlueState,
                         ref candidateRedState);
 
@@ -2001,7 +2052,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Measures the joint rate and distortion of one chroma mode on both chroma planes of a one-transform block.
-        /// Reference: av1_txfm_uvrd() as intra_model_rd() and the chroma mode search call it.
         /// </summary>
         /// <param name="writer">The tile symbol encoder that prices the syntax.</param>
         /// <param name="modeInfo">The mode information of the block.</param>
@@ -2009,28 +2059,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="chromaMode">The chroma mode.</param>
         /// <param name="angleDelta">The signed directional-angle adjustment.</param>
         /// <param name="blockSize">The luma block size.</param>
-        /// <param name="chromaOrigin">The chroma block origin in plane samples.</param>
-        /// <param name="transformSize">The chroma transform size.</param>
-        /// <param name="blueSource">The blue-difference source block, from its top-left sample.</param>
-        /// <param name="redSource">The red-difference source block, from its top-left sample.</param>
-        /// <param name="sourceStride">The number of samples between rows of both source blocks.</param>
-        /// <param name="blueFrame">The samples of the reconstructed blue-difference plane, read once outside the mode loop.</param>
-        /// <param name="redFrame">The samples of the reconstructed red-difference plane, read once outside the mode loop.</param>
-        /// <param name="blueAbove">The blue-difference top reference samples.</param>
-        /// <param name="blueLeft">The blue-difference left reference samples.</param>
-        /// <param name="redAbove">The red-difference top reference samples.</param>
-        /// <param name="redLeft">The red-difference left reference samples.</param>
-        /// <param name="hasLeft">Whether the left reference is available.</param>
-        /// <param name="hasAbove">Whether the top reference is available.</param>
-        /// <param name="smoothIntraEdges">Whether a relevant neighboring block uses smooth prediction.</param>
-        /// <param name="blueContext">The coefficient contexts of the blue-difference transform block.</param>
-        /// <param name="redContext">The coefficient contexts of the red-difference transform block.</param>
+        /// <param name="blue">The values and buffers of the blue-difference plane that every candidate shares.</param>
+        /// <param name="red">The values and buffers of the red-difference plane that every candidate shares.</param>
         /// <param name="paletteDisabledCost">The rate of signaling no chroma palette.</param>
         /// <param name="costLimit">The cost bound of the candidate.</param>
-        /// <param name="candidateBlueReconstruction">The blue-difference reconstruction of the candidate.</param>
-        /// <param name="candidateRedReconstruction">The red-difference reconstruction of the candidate.</param>
-        /// <param name="candidateBlueCoefficients">The blue-difference coefficients of the candidate.</param>
-        /// <param name="candidateRedCoefficients">The red-difference coefficients of the candidate.</param>
         /// <param name="candidateBlueState">The blue-difference transform state of the candidate.</param>
         /// <param name="candidateRedState">The red-difference transform state of the candidate.</param>
         /// <returns>The joint rate and distortion, or an invalid result when the candidate exceeds its bound.</returns>
@@ -2041,28 +2073,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1ChromaPredictionMode chromaMode,
             int angleDelta,
             Av1BlockSize blockSize,
-            Point chromaOrigin,
-            Av1TransformSize transformSize,
-            ReadOnlySpan<TSample> blueSource,
-            ReadOnlySpan<TSample> redSource,
-            int sourceStride,
-            Span<TSample> blueFrame,
-            Span<TSample> redFrame,
-            ReadOnlySpan<TSample> blueAbove,
-            ReadOnlySpan<TSample> blueLeft,
-            ReadOnlySpan<TSample> redAbove,
-            ReadOnlySpan<TSample> redLeft,
-            bool hasLeft,
-            bool hasAbove,
-            bool smoothIntraEdges,
-            Av1TransformBlockContext blueContext,
-            Av1TransformBlockContext redContext,
+            in Av1IntraCandidatePlane<TSample> blue,
+            in Av1IntraCandidatePlane<TSample> red,
             int paletteDisabledCost,
             long costLimit,
-            Span<TSample> candidateBlueReconstruction,
-            Span<TSample> candidateRedReconstruction,
-            Span<int> candidateBlueCoefficients,
-            Span<int> candidateRedCoefficients,
             ref Av1EncoderTransformBlockState candidateBlueState,
             ref Av1EncoderTransformBlockState candidateRedState)
         {
@@ -2074,28 +2088,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 chromaMode,
                 angleDelta,
                 blockSize,
-                chromaOrigin,
-                transformSize,
-                blueSource,
-                redSource,
-                sourceStride,
-                blueFrame,
-                redFrame,
-                blueAbove,
-                blueLeft,
-                redAbove,
-                redLeft,
-                hasLeft,
-                hasAbove,
-                smoothIntraEdges,
-                blueContext,
-                redContext,
+                in blue,
+                in red,
                 paletteDisabledCost,
                 costLimit,
-                candidateBlueReconstruction,
-                candidateRedReconstruction,
-                candidateBlueCoefficients,
-                candidateRedCoefficients,
                 ref candidateBlueState,
                 ref candidateRedState);
 
@@ -2106,37 +2102,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Measures the joint rate and distortion of one chroma mode, without the work counter.
         /// </summary>
-        /// <param name="writer">The tile symbol encoder that prices the syntax.</param>
-        /// <param name="modeInfo">The mode information of the block.</param>
-        /// <param name="lumaMode">The luma mode, which selects the transform-type context.</param>
-        /// <param name="chromaMode">The chroma mode.</param>
-        /// <param name="angleDelta">The signed directional-angle adjustment.</param>
-        /// <param name="blockSize">The luma block size.</param>
-        /// <param name="chromaOrigin">The chroma block origin in plane samples.</param>
-        /// <param name="transformSize">The chroma transform size.</param>
-        /// <param name="blueSource">The blue-difference source block, from its top-left sample.</param>
-        /// <param name="redSource">The red-difference source block, from its top-left sample.</param>
-        /// <param name="sourceStride">The number of samples between rows of both source blocks.</param>
-        /// <param name="blueFrame">The samples of the reconstructed blue-difference plane, read once outside the mode loop.</param>
-        /// <param name="redFrame">The samples of the reconstructed red-difference plane, read once outside the mode loop.</param>
-        /// <param name="blueAbove">The blue-difference top reference samples.</param>
-        /// <param name="blueLeft">The blue-difference left reference samples.</param>
-        /// <param name="redAbove">The red-difference top reference samples.</param>
-        /// <param name="redLeft">The red-difference left reference samples.</param>
-        /// <param name="hasLeft">Whether the left reference is available.</param>
-        /// <param name="hasAbove">Whether the top reference is available.</param>
-        /// <param name="smoothIntraEdges">Whether a relevant neighboring block uses smooth prediction.</param>
-        /// <param name="blueContext">The coefficient contexts of the blue-difference transform block.</param>
-        /// <param name="redContext">The coefficient contexts of the red-difference transform block.</param>
-        /// <param name="paletteDisabledCost">The rate of signaling no chroma palette.</param>
-        /// <param name="costLimit">The cost bound of the candidate.</param>
-        /// <param name="candidateBlueReconstruction">The blue-difference reconstruction of the candidate.</param>
-        /// <param name="candidateRedReconstruction">The red-difference reconstruction of the candidate.</param>
-        /// <param name="candidateBlueCoefficients">The blue-difference coefficients of the candidate.</param>
-        /// <param name="candidateRedCoefficients">The red-difference coefficients of the candidate.</param>
-        /// <param name="candidateBlueState">The blue-difference transform state of the candidate.</param>
-        /// <param name="candidateRedState">The red-difference transform state of the candidate.</param>
-        /// <returns>The joint rate and distortion, or an invalid result when the candidate exceeds its bound.</returns>
+        /// <inheritdoc cref="GetChromaCandidateCost"/>
         private Av1RateDistortionStatistics GetChromaCandidateCostCore(
             Av1SymbolEncoder writer,
             Av1MacroBlockModeInfo modeInfo,
@@ -2144,33 +2110,16 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1ChromaPredictionMode chromaMode,
             int angleDelta,
             Av1BlockSize blockSize,
-            Point chromaOrigin,
-            Av1TransformSize transformSize,
-            ReadOnlySpan<TSample> blueSource,
-            ReadOnlySpan<TSample> redSource,
-            int sourceStride,
-            Span<TSample> blueFrame,
-            Span<TSample> redFrame,
-            ReadOnlySpan<TSample> blueAbove,
-            ReadOnlySpan<TSample> blueLeft,
-            ReadOnlySpan<TSample> redAbove,
-            ReadOnlySpan<TSample> redLeft,
-            bool hasLeft,
-            bool hasAbove,
-            bool smoothIntraEdges,
-            Av1TransformBlockContext blueContext,
-            Av1TransformBlockContext redContext,
+            in Av1IntraCandidatePlane<TSample> blue,
+            in Av1IntraCandidatePlane<TSample> red,
             int paletteDisabledCost,
             long costLimit,
-            Span<TSample> candidateBlueReconstruction,
-            Span<TSample> candidateRedReconstruction,
-            Span<int> candidateBlueCoefficients,
-            Span<int> candidateRedCoefficients,
             ref Av1EncoderTransformBlockState candidateBlueState,
             ref Av1EncoderTransformBlockState candidateRedState)
         {
             Av1WorkCounters.Count(Av1WorkCounters.ChromaUvrd);
             Av1PredictionMode predictionMode = chromaMode.ToLumaMode();
+            Av1TransformSize transformSize = blue.TransformSize;
 
             // Intra chroma derives one transform type from the shared UV prediction mode. The type is not
             // signaled independently for either chroma plane, so U and V must use the same legal fallback.
@@ -2181,50 +2130,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformSize,
                     this.picture.Parent.FrameHeader.UseReducedTransformSet);
 
-            // search_tx_type is shared by both planes, so chroma follows the same distortion policy as luma.
-            // The policy belongs to the active mode evaluation stage.
-            (int Type, uint Threshold) distortionPolicy = Av1TransformBlockEncoder.GetDistortionPolicy(
-                this.blockWorkspace, this.picture.Parent.SpeedSettings);
-
-            long distortion = TOperator.EncodeCandidate(
-                this.blockWorkspace,
-                writer,
-                blueContext,
-                this.rateMultiplier,
-                this.picture.Sequence.SequenceHeader.IsStillPicture,
-                blueSource,
-                sourceStride,
-                chromaOrigin,
-                candidateBlueReconstruction,
-                this.reconstruction.GetPlane(Av1Plane.U),
-                blueFrame,
-                blueAbove,
-                blueLeft,
-                hasLeft,
-                hasAbove,
-                predictionMode,
-                angleDelta,
-                this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
-                smoothIntraEdges,
-                candidateBlueCoefficients,
-                transformSize,
-                transformType,
-                Av1Plane.U,
-                this.blockQIndex,
-                this.quantization.DeltaQDc[(int)Av1Plane.U],
-                this.quantization.DeltaQAc[(int)Av1Plane.U],
-                this.bitDepth,
-                distortionPolicy,
-                ref candidateBlueState,
-                out long blueSse);
-
+            long distortion = TOperator.EncodeCandidate(in blue, predictionMode, angleDelta, transformType, ref candidateBlueState, out long blueSse);
             int blueRate = writer.GetCoefficientCost(
                 transformSize,
                 transformType,
                 lumaMode,
-                candidateBlueCoefficients,
+                blue.QuantizedCoefficients,
                 Av1ComponentType.Chroma,
-                blueContext,
+                blue.Context,
                 candidateBlueState.EndOfBlock,
                 this.picture.Parent.FrameHeader.UseReducedTransformSet,
                 Av1FilterIntraMode.AllFilterIntraModes,
@@ -2249,37 +2162,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return Av1RateDistortionStatistics.Invalid;
             }
 
-            long redDistortion = TOperator.EncodeCandidate(
-                this.blockWorkspace,
-                writer,
-                redContext,
-                this.rateMultiplier,
-                this.picture.Sequence.SequenceHeader.IsStillPicture,
-                redSource,
-                sourceStride,
-                chromaOrigin,
-                candidateRedReconstruction,
-                this.reconstruction.GetPlane(Av1Plane.V),
-                redFrame,
-                redAbove,
-                redLeft,
-                hasLeft,
-                hasAbove,
-                predictionMode,
-                angleDelta,
-                this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
-                smoothIntraEdges,
-                candidateRedCoefficients,
-                transformSize,
-                transformType,
-                Av1Plane.V,
-                this.blockQIndex,
-                this.quantization.DeltaQDc[(int)Av1Plane.V],
-                this.quantization.DeltaQAc[(int)Av1Plane.V],
-                this.bitDepth,
-                distortionPolicy,
-                ref candidateRedState,
-                out long redSse);
+            long redDistortion = TOperator.EncodeCandidate(in red, predictionMode, angleDelta, transformType, ref candidateRedState, out long redSse);
 
             predictionDistortion += redSse;
 
@@ -2304,9 +2187,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformSize,
                 transformType,
                 lumaMode,
-                candidateRedCoefficients,
+                red.QuantizedCoefficients,
                 Av1ComponentType.Chroma,
-                redContext,
+                red.Context,
                 candidateRedState.EndOfBlock,
                 this.picture.Parent.FrameHeader.UseReducedTransformSet,
                 Av1FilterIntraMode.AllFilterIntraModes,

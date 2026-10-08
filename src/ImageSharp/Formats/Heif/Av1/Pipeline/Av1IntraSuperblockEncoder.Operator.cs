@@ -302,66 +302,18 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Encodes one intra candidate into contiguous decision scratch.
         /// </summary>
-        /// <param name="workspace">The reusable block workspace.</param>
-        /// <param name="writer">The coefficient entropy costs.</param>
-        /// <param name="context">The neighboring coefficient contexts.</param>
-        /// <param name="rateMultiplier">The rate-distortion multiplier.</param>
-        /// <param name="useChromaWeights">Whether chroma uses its own coefficient refinement weights.</param>
-        /// <param name="source">The source transform block, from its top-left sample.</param>
-        /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
-        /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
-        /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
-        /// <param name="frame">The frame plane that gets the prediction, as libaom writes pd->dst.</param>
-        /// <param name="frameSamples">The samples of <paramref name="frame"/>, which the caller reads once outside its loops.</param>
-        /// <param name="above">The top reference samples, with prefix storage for the shared corner.</param>
-        /// <param name="left">The left reference samples.</param>
-        /// <param name="hasLeft">Whether the left reference is available.</param>
-        /// <param name="hasAbove">Whether the top reference is available.</param>
+        /// <param name="plane">The values and buffers of the plane that every candidate of the block shares.</param>
         /// <param name="mode">The intra prediction mode.</param>
         /// <param name="angleDelta">The signed directional-angle adjustment.</param>
-        /// <param name="enableIntraEdgeFilter">Whether sequence syntax enables directional edge filtering.</param>
-        /// <param name="smoothIntraEdges">Whether a relevant neighboring block uses smooth prediction.</param>
-        /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
-        /// <param name="transformSize">The transform dimensions.</param>
         /// <param name="transformType">The compound transform applied to the residual.</param>
-        /// <param name="plane">The component plane containing the block.</param>
-        /// <param name="qIndex">The effective segment quantizer index.</param>
-        /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
-        /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
-        /// <param name="bitDepth">The coded sample bit depth.</param>
-        /// <param name="distortionPolicy">The transform-domain distortion type and its mean-error threshold.</param>
         /// <param name="state">The candidate transform state.</param>
-        /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was. Reference: the sse of search_tx_type().</param>
+        /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was.</param>
         /// <returns>The normalized distortion in AV1 transform units.</returns>
         public static abstract long EncodeCandidate(
-            Av1EncoderBlockWorkspace workspace,
-            Av1SymbolEncoder writer,
-            Av1TransformBlockContext context,
-            int rateMultiplier,
-            bool useChromaWeights,
-            ReadOnlySpan<TSample> source,
-            int sourceStride,
-            Point blockOrigin,
-            Span<TSample> reconstruction,
-            Av1PlaneRegion<TSample> frame,
-            Span<TSample> frameSamples,
-            ReadOnlySpan<TSample> above,
-            ReadOnlySpan<TSample> left,
-            bool hasLeft,
-            bool hasAbove,
+            in Av1IntraCandidatePlane<TSample> plane,
             Av1PredictionMode mode,
             int angleDelta,
-            bool enableIntraEdgeFilter,
-            bool smoothIntraEdges,
-            Span<int> quantizedCoefficients,
-            Av1TransformSize transformSize,
             Av1TransformType transformType,
-            Av1Plane plane,
-            int qIndex,
-            int dcDeltaQ,
-            int acDeltaQ,
-            Av1BitDepth bitDepth,
-            (int Type, uint Threshold) distortionPolicy,
             ref Av1EncoderTransformBlockState state,
             out long sse);
 
@@ -1248,66 +1200,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static long EncodeCandidate(
-            Av1EncoderBlockWorkspace workspace,
-            Av1SymbolEncoder writer,
-            Av1TransformBlockContext context,
-            int rateMultiplier,
-            bool useChromaWeights,
-            ReadOnlySpan<byte> source,
-            int sourceStride,
-            Point blockOrigin,
-            Span<byte> reconstruction,
-            Av1PlaneRegion<byte> frame,
-            Span<byte> frameSamples,
-            ReadOnlySpan<byte> above,
-            ReadOnlySpan<byte> left,
-            bool hasLeft,
-            bool hasAbove,
+            in Av1IntraCandidatePlane<byte> plane,
             Av1PredictionMode mode,
             int angleDelta,
-            bool enableIntraEdgeFilter,
-            bool smoothIntraEdges,
-            Span<int> quantizedCoefficients,
-            Av1TransformSize transformSize,
             Av1TransformType transformType,
-            Av1Plane plane,
-            int qIndex,
-            int dcDeltaQ,
-            int acDeltaQ,
-            Av1BitDepth bitDepth,
-            (int Type, uint Threshold) distortionPolicy,
             ref Av1EncoderTransformBlockState state,
             out long sse)
-            => Av1TransformBlockEncoder.EncodeIntraLossyCandidate(
-                workspace,
-                writer,
-                context,
-                rateMultiplier,
-                useChromaWeights,
-                source,
-                sourceStride,
-                blockOrigin,
-                reconstruction,
-                frame,
-                frameSamples,
-                above,
-                left,
-                hasLeft,
-                hasAbove,
-                mode,
-                angleDelta,
-                enableIntraEdgeFilter,
-                smoothIntraEdges,
-                quantizedCoefficients,
-                transformSize,
-                transformType,
-                qIndex,
-                dcDeltaQ,
-                acDeltaQ,
-                plane,
-                distortionPolicy,
-                ref state,
-                out sse);
+            => Av1TransformBlockEncoder.EncodeIntraLossyCandidate(in plane, mode, angleDelta, transformType, ref state, out sse);
 
         /// <inheritdoc/>
         public static void PrepareIntra(
@@ -2387,67 +2286,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static long EncodeCandidate(
-            Av1EncoderBlockWorkspace workspace,
-            Av1SymbolEncoder writer,
-            Av1TransformBlockContext context,
-            int rateMultiplier,
-            bool useChromaWeights,
-            ReadOnlySpan<ushort> source,
-            int sourceStride,
-            Point blockOrigin,
-            Span<ushort> reconstruction,
-            Av1PlaneRegion<ushort> frame,
-            Span<ushort> frameSamples,
-            ReadOnlySpan<ushort> above,
-            ReadOnlySpan<ushort> left,
-            bool hasLeft,
-            bool hasAbove,
+            in Av1IntraCandidatePlane<ushort> plane,
             Av1PredictionMode mode,
             int angleDelta,
-            bool enableIntraEdgeFilter,
-            bool smoothIntraEdges,
-            Span<int> quantizedCoefficients,
-            Av1TransformSize transformSize,
             Av1TransformType transformType,
-            Av1Plane plane,
-            int qIndex,
-            int dcDeltaQ,
-            int acDeltaQ,
-            Av1BitDepth bitDepth,
-            (int Type, uint Threshold) distortionPolicy,
             ref Av1EncoderTransformBlockState state,
             out long sse)
-            => Av1TransformBlockEncoder.EncodeIntraLossyCandidate(
-                workspace,
-                writer,
-                context,
-                rateMultiplier,
-                useChromaWeights,
-                source,
-                sourceStride,
-                blockOrigin,
-                reconstruction,
-                frame,
-                frameSamples,
-                above,
-                left,
-                hasLeft,
-                hasAbove,
-                mode,
-                angleDelta,
-                enableIntraEdgeFilter,
-                smoothIntraEdges,
-                quantizedCoefficients,
-                transformSize,
-                transformType,
-                qIndex,
-                dcDeltaQ,
-                acDeltaQ,
-                plane,
-                bitDepth,
-                distortionPolicy,
-                ref state,
-                out sse);
+            => Av1TransformBlockEncoder.EncodeIntraLossyCandidate(in plane, mode, angleDelta, transformType, ref state, out sse);
 
         /// <inheritdoc/>
         public static void PrepareIntra(

@@ -181,7 +181,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="firstIntermediate">The reusable primary unsigned compound intermediate.</param>
         /// <param name="secondIntermediate">The reusable secondary unsigned compound intermediate.</param>
         /// <param name="compoundMask">The reusable luma-resolution blend mask.</param>
-        /// <param name="predictionScratch">The intermediate storage used by two-dimensional filtering.</param>
+        /// <param name="filterRows">The intermediate storage used by two-dimensional filtering.</param>
         /// <param name="predictionSize">The prediction dimensions.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         /// <param name="plane">The component plane. Only luma constructs the difference-weighted mask.</param>
@@ -214,7 +214,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             Av1BlockSize predictionSize,
             Av1BitDepth bitDepth,
             Av1Plane plane,
@@ -265,7 +265,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Encodes and reconstructs one DC intra transform block.
         /// </summary>
-        /// <param name="workspace">The reusable block workspace.</param>
+        /// <param name="blockWorkspace">The reusable block workspace.</param>
         /// <param name="source">The coded source plane.</param>
         /// <param name="reconstruction">The coded reconstruction plane.</param>
         /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
@@ -282,7 +282,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="bitDepth">The coded sample bit depth.</param>
         /// <param name="state">The retained transform state.</param>
         public static abstract void Encode(
-            Av1EncoderBlockWorkspace workspace,
+            Av1EncoderBlockWorkspace blockWorkspace,
             Av1PlaneRegion<TSample> source,
             Av1PlaneRegion<TSample> reconstruction,
             Point blockOrigin,
@@ -509,7 +509,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
         /// <param name="prediction">The contiguous prediction destination.</param>
         /// <param name="residual">The contiguous source-minus-prediction destination.</param>
-        /// <param name="predictionScratch">The intermediate storage used by two-dimensional filtering.</param>
+        /// <param name="filterRows">The intermediate storage used by two-dimensional filtering.</param>
         /// <param name="predictionSize">The prediction dimensions.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PrepareTranslationalInterPrediction(
@@ -523,7 +523,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int verticalPhase,
             Span<TSample> prediction,
             Span<short> residual,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             Av1BlockSize predictionSize,
             Av1BitDepth bitDepth);
 
@@ -561,7 +561,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="predictionStride">The destination stride.</param>
         /// <param name="width">The rectangle width.</param>
         /// <param name="height">The rectangle height.</param>
-        /// <param name="predictionScratch">The intermediate storage used by two-dimensional filtering.</param>
+        /// <param name="filterRows">The intermediate storage used by two-dimensional filtering.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PredictTranslationalInter(
             Av1PlaneRegion<TSample> reference,
@@ -574,7 +574,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int predictionStride,
             int width,
             int height,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             Av1BitDepth bitDepth);
 
         /// <summary>
@@ -594,7 +594,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="predictionStride">The destination stride.</param>
         /// <param name="width">The rectangle width.</param>
         /// <param name="height">The rectangle height.</param>
-        /// <param name="predictionScratch">The intermediate storage used by two-dimensional filtering.</param>
+        /// <param name="filterRows">The intermediate storage used by two-dimensional filtering.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PredictScaledInter(
             Av1PlaneRegion<TSample> reference,
@@ -609,7 +609,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int predictionStride,
             int width,
             int height,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             Av1BitDepth bitDepth);
 
         /// <summary>
@@ -653,7 +653,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Reconstructs a quantized candidate from its dequantized coefficients and measures its distortion.
         /// </summary>
-        /// <param name="workspace">The workspace supplying the visible extent of the plane.</param>
+        /// <param name="blockWorkspace">The workspace supplying the visible extent of the plane.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the inverse transform.</param>
         /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
         /// <param name="source">The source transform block, from its top-left sample.</param>
@@ -670,7 +670,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="state">The candidate transform state.</param>
         /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
         public static abstract long ReconstructPredictionCandidate(
-            Av1EncoderBlockWorkspace workspace,
+            Av1EncoderBlockWorkspace blockWorkspace,
             Span<int> transformWorkspace,
             ReadOnlySpan<int> dequantized,
             ReadOnlySpan<TSample> source,
@@ -1168,7 +1168,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void Encode(
-            Av1EncoderBlockWorkspace workspace,
+            Av1EncoderBlockWorkspace blockWorkspace,
             Av1PlaneRegion<byte> source,
             Av1PlaneRegion<byte> reconstruction,
             Point blockOrigin,
@@ -1185,7 +1185,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth,
             ref Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.EncodeIntraDcLossy(
-                workspace,
+                blockWorkspace,
                 source,
                 reconstruction,
                 blockOrigin,
@@ -1428,7 +1428,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int predictionStride,
             int width,
             int height,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             Av1BitDepth bitDepth)
         {
             Rectangle referenceBounds = reference.Bounds;
@@ -1449,7 +1449,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 verticalFilter,
                 horizontalPhase,
                 verticalPhase,
-                predictionScratch);
+                filterRows);
         }
 
         /// <inheritdoc/>
@@ -1466,7 +1466,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int predictionStride,
             int width,
             int height,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             Av1BitDepth bitDepth)
         {
             Rectangle referenceBounds = reference.Bounds;
@@ -1489,7 +1489,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 horizontalStep,
                 verticalPhase,
                 verticalStep,
-                predictionScratch);
+                filterRows);
         }
 
         /// <inheritdoc/>
@@ -1504,7 +1504,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int verticalPhase,
             Span<byte> prediction,
             Span<short> residual,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             Av1BlockSize predictionSize,
             Av1BitDepth bitDepth)
         {
@@ -1528,7 +1528,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 verticalFilter,
                 horizontalPhase,
                 verticalPhase,
-                predictionScratch);
+                filterRows);
 
             Av1ResidualBuilder.Subtract(
                 Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
@@ -1560,7 +1560,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             Av1BlockSize predictionSize,
             Av1BitDepth bitDepth,
             Av1Plane plane,
@@ -1600,7 +1600,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     verticalFilter,
                     primaryHorizontalPhase,
                     primaryVerticalPhase,
-                    predictionScratch);
+                    filterRows);
             }
 
             if (!secondaryPrepared)
@@ -1617,7 +1617,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     verticalFilter,
                     secondaryHorizontalPhase,
                     secondaryVerticalPhase,
-                    predictionScratch);
+                    filterRows);
             }
 
             int bitCount = bitDepth.GetBitCount();
@@ -1777,7 +1777,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static long ReconstructPredictionCandidate(
-            Av1EncoderBlockWorkspace workspace,
+            Av1EncoderBlockWorkspace blockWorkspace,
             Span<int> transformWorkspace,
             ReadOnlySpan<int> dequantized,
             ReadOnlySpan<byte> source,
@@ -1793,7 +1793,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth,
             Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.ReconstructPredictionLossyCandidate(
-                workspace,
+                blockWorkspace,
                 transformWorkspace,
                 dequantized,
                 source,
@@ -2256,7 +2256,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static void Encode(
-            Av1EncoderBlockWorkspace workspace,
+            Av1EncoderBlockWorkspace blockWorkspace,
             Av1PlaneRegion<ushort> source,
             Av1PlaneRegion<ushort> reconstruction,
             Point blockOrigin,
@@ -2273,7 +2273,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth,
             ref Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.EncodeIntraDcLossy(
-                workspace,
+                blockWorkspace,
                 source,
                 reconstruction,
                 blockOrigin,
@@ -2528,7 +2528,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int predictionStride,
             int width,
             int height,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             Av1BitDepth bitDepth)
         {
             Rectangle referenceBounds = reference.Bounds;
@@ -2550,7 +2550,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 horizontalPhase,
                 verticalPhase,
                 bitDepth.GetBitCount(),
-                predictionScratch);
+                filterRows);
         }
 
         /// <inheritdoc/>
@@ -2567,7 +2567,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int predictionStride,
             int width,
             int height,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             Av1BitDepth bitDepth)
         {
             Rectangle referenceBounds = reference.Bounds;
@@ -2591,7 +2591,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 verticalPhase,
                 verticalStep,
                 bitDepth.GetBitCount(),
-                predictionScratch);
+                filterRows);
         }
 
         /// <inheritdoc/>
@@ -2606,7 +2606,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int verticalPhase,
             Span<ushort> prediction,
             Span<short> residual,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             Av1BlockSize predictionSize,
             Av1BitDepth bitDepth)
         {
@@ -2631,7 +2631,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 horizontalPhase,
                 verticalPhase,
                 bitDepth.GetBitCount(),
-                predictionScratch);
+                filterRows);
 
             Av1ResidualBuilder.Subtract(
                 Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
@@ -2663,7 +2663,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             Av1BlockSize predictionSize,
             Av1BitDepth bitDepth,
             Av1Plane plane,
@@ -2704,7 +2704,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     primaryHorizontalPhase,
                     primaryVerticalPhase,
                     bitDepth.GetBitCount(),
-                    predictionScratch);
+                    filterRows);
             }
 
             if (!secondaryPrepared)
@@ -2722,7 +2722,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     secondaryHorizontalPhase,
                     secondaryVerticalPhase,
                     bitDepth.GetBitCount(),
-                    predictionScratch);
+                    filterRows);
             }
 
             int bitCount = bitDepth.GetBitCount();
@@ -2890,7 +2890,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static long ReconstructPredictionCandidate(
-            Av1EncoderBlockWorkspace workspace,
+            Av1EncoderBlockWorkspace blockWorkspace,
             Span<int> transformWorkspace,
             ReadOnlySpan<int> dequantized,
             ReadOnlySpan<ushort> source,
@@ -2906,7 +2906,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth,
             Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.ReconstructPredictionLossyCandidate(
-                workspace,
+                blockWorkspace,
                 transformWorkspace,
                 dequantized,
                 source,

@@ -27,10 +27,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
+        /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
         /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
-        /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
@@ -50,10 +50,10 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
+            Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
             ReadOnlySpan<int> transformTypeProbabilities,
             Span<int> searchCoefficients,
-            Span<int> searchDequantizedCoefficients,
             Span<int> searchReconstructions,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
@@ -73,10 +73,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 in modeWorkspace,
                 transformCoefficients,
                 dequantizedCoefficients,
+                searchDequantizedCoefficients,
                 transformWorkspace,
                 transformTypeProbabilities,
                 searchCoefficients,
-                searchDequantizedCoefficients,
                 searchReconstructions,
                 macroBlock,
                 modeInfo,
@@ -100,10 +100,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
+        /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
         /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
-        /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
@@ -123,10 +123,10 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
+            Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
             ReadOnlySpan<int> transformTypeProbabilities,
             Span<int> searchCoefficients,
-            Span<int> searchDequantizedCoefficients,
             Span<int> searchReconstructions,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
@@ -396,10 +396,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     in modeWorkspace,
                     transformCoefficients,
                     dequantizedCoefficients,
+                    searchDequantizedCoefficients,
                     transformWorkspace,
                     transformTypeProbabilities,
                     searchCoefficients,
-                    searchDequantizedCoefficients,
                     searchReconstructions,
                     macroBlock,
                     lumaOrigin,
@@ -443,10 +443,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     in modeWorkspace,
                     transformCoefficients,
                     dequantizedCoefficients,
+                    searchDequantizedCoefficients,
                     transformWorkspace,
                     transformTypeProbabilities,
                     searchCoefficients,
-                    searchDequantizedCoefficients,
                     searchReconstructions,
                     macroBlock,
                     lumaOrigin,

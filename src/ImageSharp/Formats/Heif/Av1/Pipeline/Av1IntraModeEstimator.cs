@@ -65,7 +65,7 @@ internal static class Av1IntraModeEstimator
     /// Estimates the cost of a predicted luma residual.
     /// </summary>
     /// <param name="workspace">The block workspace, which holds the encoder options.</param>
-    /// <param name="rowCoefficients">The coefficients of one row of estimation transforms.</param>
+    /// <param name="estimationRowCoefficients">The coefficients of one row of estimation transforms.</param>
     /// <param name="searchDequantizedCoefficients">The dequantized coefficients of one estimation transform.</param>
     /// <param name="transformWorkspace">The intermediate buffer of the transforms, which also holds the quantized levels.</param>
     /// <param name="residual">The predicted residual samples.</param>
@@ -82,7 +82,7 @@ internal static class Av1IntraModeEstimator
     /// <param name="skip">Whether every estimated coefficient is zero.</param>
     public static void Estimate(
         Av1EncoderBlockWorkspace workspace,
-        Span<int> rowCoefficients,
+        Span<int> estimationRowCoefficients,
         Span<int> searchDequantizedCoefficients,
         Span<int> transformWorkspace,
         ReadOnlySpan<short> residual,
@@ -129,14 +129,14 @@ internal static class Av1IntraModeEstimator
                     stride,
                     width,
                     blocksPerRow,
-                    rowCoefficients,
+                    estimationRowCoefficients,
                     transformWorkspace,
                     highBitDepth);
             }
 
             for (int block = 0; block < blocksPerRow; block++)
             {
-                Span<int> coefficients = rowCoefficients.Slice(block * sampleCount, sampleCount);
+                Span<int> coefficients = estimationRowCoefficients.Slice(block * sampleCount, sampleCount);
                 if (identity)
                 {
                     // Identity estimation keeps spatial sample order and scales each residual by eight,

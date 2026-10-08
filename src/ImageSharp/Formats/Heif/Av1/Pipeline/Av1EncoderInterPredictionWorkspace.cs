@@ -30,7 +30,7 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     /// <see cref="Av1ScaledInterPredictor.GetMaximumScaledScratchLength(int, int)"/> for the largest block, which
     /// also covers <see cref="Av1TranslationalInterPredictor.GetScratchLength(int, int)"/>.
     /// </summary>
-    public const int PredictionScratchCount =
+    public const int FilterRowCount =
         MaximumBlockDimension * ((MaximumBlockDimension * 2) + Av1TranslationalInterPredictor.FilterCoefficientCount);
 
     /// <summary>
@@ -50,7 +50,7 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
 
     private readonly Span<TSample> samples;
     private readonly Span<short> residual;
-    private readonly Span<short> predictionScratch;
+    private readonly Span<short> filterRows;
     private readonly Span<int> coefficients;
 
     /// <summary>
@@ -58,17 +58,13 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     /// </summary>
     /// <param name="samples">The sample storage.</param>
     /// <param name="residual">The residual storage shared by sequential plane evaluations.</param>
-    /// <param name="predictionScratch">The intermediate storage used by two-dimensional interpolation.</param>
+    /// <param name="filterRows">The intermediate storage used by two-dimensional interpolation.</param>
     /// <param name="coefficients">The coefficient storage.</param>
-    public Av1EncoderInterPredictionWorkspace(
-        Span<TSample> samples,
-        Span<short> residual,
-        Span<short> predictionScratch,
-        Span<int> coefficients)
+    public Av1EncoderInterPredictionWorkspace(Span<TSample> samples, Span<short> residual, Span<short> filterRows, Span<int> coefficients)
     {
         this.samples = samples;
         this.residual = residual;
-        this.predictionScratch = predictionScratch;
+        this.filterRows = filterRows;
         this.coefficients = coefficients;
     }
 
@@ -128,9 +124,9 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     public Span<short> Residual => this.residual;
 
     /// <summary>
-    /// Gets the intermediate scratch used when both translational interpolation axes are filtered.
+    /// Gets the intermediate filter rows used when both translational interpolation axes are filtered.
     /// </summary>
-    public Span<short> PredictionScratch => this.predictionScratch;
+    public Span<short> FilterRows => this.filterRows;
 
     /// <summary>
     /// Gets the local coefficient and transform edge contexts retained during inter search.

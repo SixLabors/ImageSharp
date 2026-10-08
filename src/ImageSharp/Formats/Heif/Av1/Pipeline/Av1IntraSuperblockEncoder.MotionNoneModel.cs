@@ -163,7 +163,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Decides whether the completed unsplit candidate makes additional partition searches unnecessary.
         /// </summary>
         /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
-        /// <param name="predictionScratch">The intermediate rows of the prediction filters.</param>
+        /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -173,7 +173,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns><see langword="true"/> when the remaining partition searches stop.</returns>
         private bool ShouldTerminateAfterMotionNone(
             Span<TSample> motionSearchPrediction,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
@@ -214,7 +214,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<float> features = featureStorage;
             this.GetSimpleMotionFeatures(
                 motionSearchPrediction,
-                predictionScratch,
+                filterRows,
                 in motionVectorCosts,
                 macroBlock,
                 blockOrigin,

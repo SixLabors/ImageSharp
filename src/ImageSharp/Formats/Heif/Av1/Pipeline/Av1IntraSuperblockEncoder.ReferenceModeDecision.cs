@@ -107,19 +107,19 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="transformPrediction">The prediction storage of one transform block.</param>
         /// <param name="interIntraAbove">The extended above edge of an inter-intra prediction.</param>
         /// <param name="interIntraLeft">The extended left edge of an inter-intra prediction.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
-        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="tileIndex">The tile index.</param>
@@ -131,19 +131,19 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics SelectIntraBlockCopy(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
             ReadOnlySpan<int> transformTypeProbabilities,
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            in Av1MotionVectorCosts motionVectorCosts,
             Span<TSample> transformPrediction,
             Span<TSample> interIntraAbove,
             Span<TSample> interIntraLeft,
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
-            in Av1MotionVectorCosts motionVectorCosts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
@@ -189,7 +189,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.blockWorkspace.GetMotionSearchSites(settings.GetFullPixelMethod(blockSize), this.reconstruction.GetPlane(Av1Plane.Y).Stride),
                 candidates);
 
-            Av1EncoderInterPredictionWorkspace<TSample> workspace = interWorkspace;
             Av1RateDistortionStatistics selectedStatistics = regularStatistics;
             Av1MotionVector selectedVector = default;
             InlineArray128<Av1EncoderTransformBlockState> selectedStatesStorage = default;
@@ -209,17 +208,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1RateDistortionStatistics statistics = this.EvaluateInterCandidate(
                     writer,
                     in tables,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     searchDequantizedCoefficients,
                     transformWorkspace,
                     transformTypeProbabilities,
                     in interWorkspace,
+                    in motionVectorCosts,
                     transformPrediction,
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
-                    in motionVectorCosts,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -246,12 +245,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     false,
                     0,
                     referenceMotionVectors,
-                    workspace.LumaCandidateReconstruction,
-                    workspace.LumaCandidateCoefficients,
-                    workspace.BlueCandidateReconstruction,
-                    workspace.BlueCandidateCoefficients,
-                    workspace.RedCandidateReconstruction,
-                    workspace.RedCandidateCoefficients,
+                    interWorkspace.LumaCandidateReconstruction,
+                    interWorkspace.LumaCandidateCoefficients,
+                    interWorkspace.BlueCandidateReconstruction,
+                    interWorkspace.BlueCandidateCoefficients,
+                    interWorkspace.RedCandidateReconstruction,
+                    interWorkspace.RedCandidateCoefficients,
                     out bool skip,
                     out InlineArray64<Av1EncoderTransformBlockState> lumaStates,
                     out InlineArray16<Av1TransformSize> sizes,
@@ -298,7 +297,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.encodedWithoutCoefficients = !this.ReconstructSelectedInterBlock(
                     writer,
                     in tables,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     transformWorkspace,
                     in interWorkspace,
@@ -392,21 +391,21 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="blockResidual">The residual buffer of the motion search.</param>
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="transformPrediction">The prediction storage of one transform block.</param>
         /// <param name="interIntraAbove">The extended above edge of an inter-intra prediction.</param>
         /// <param name="interIntraLeft">The extended left edge of an inter-intra prediction.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
-        /// <param name="blockResidual">The residual buffer of the motion search.</param>
-        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
-        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="tileIndex">The tile index.</param>
@@ -419,21 +418,21 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics SelectInterBlock(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
             ReadOnlySpan<int> transformTypeProbabilities,
+            Span<short> blockResidual,
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            Span<TSample> motionSearchPrediction,
+            in Av1MotionVectorCosts motionVectorCosts,
             Span<TSample> transformPrediction,
             Span<TSample> interIntraAbove,
             Span<TSample> interIntraLeft,
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
-            Span<short> blockResidual,
-            Span<TSample> motionSearchPrediction,
-            in Av1MotionVectorCosts motionVectorCosts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
@@ -690,21 +689,21 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1RateDistortionStatistics candidateStatistics = this.SelectSingleReferenceMode(
                         writer,
                         in tables,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         searchDequantizedCoefficients,
                         transformWorkspace,
                         transformTypeProbabilities,
+                        blockResidual,
                         in interWorkspace,
+                        motionSearchPrediction,
+                        in motionVectorCosts,
                         transformPrediction,
                         interIntraAbove,
                         interIntraLeft,
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask,
-                        blockResidual,
-                        motionSearchPrediction,
-                        in motionVectorCosts,
                         macroBlock,
                         blockOrigin,
                         tileIndex,
@@ -818,17 +817,17 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.SelectCompoundBlock(
                         writer,
                         in tables,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         searchDequantizedCoefficients,
                         transformWorkspace,
                         transformTypeProbabilities,
                         in interWorkspace,
+                        in motionVectorCosts,
                         transformPrediction,
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask,
-                        in motionVectorCosts,
                         macroBlock,
                         blockOrigin,
                         tileIndex,
@@ -856,18 +855,18 @@ internal static partial class Av1IntraSuperblockEncoder
             this.EvaluateMotionModeWinners(
                 writer,
                 in tables,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 searchDequantizedCoefficients,
                 transformWorkspace,
                 transformTypeProbabilities,
                 in interWorkspace,
+                motionSearchPrediction,
+                in motionVectorCosts,
                 transformPrediction,
                 firstIntermediate,
                 secondIntermediate,
                 compoundMask,
-                motionSearchPrediction,
-                in motionVectorCosts,
                 macroBlock,
                 blockOrigin,
                 tileIndex,
@@ -887,7 +886,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 selectedStatistics = this.SearchRetainedInterCandidates(
                     writer,
                     in tables,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     searchDequantizedCoefficients,
                     transformWorkspace,
@@ -1046,18 +1045,18 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the block entry read once.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
         /// <param name="interWorkspace">The inter prediction workspace, which the block entry read once.</param>
+        /// <param name="motionSearchPrediction">The prediction buffer of the OBMC motion search.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="transformPrediction">The prediction storage of one transform block.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
-        /// <param name="motionSearchPrediction">The prediction buffer of the OBMC motion search.</param>
-        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="tileIndex">The tile index.</param>
@@ -1085,18 +1084,18 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics EvaluateMotionMode(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
             ReadOnlySpan<int> transformTypeProbabilities,
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            Span<TSample> motionSearchPrediction,
+            in Av1MotionVectorCosts motionVectorCosts,
             Span<TSample> transformPrediction,
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
-            Span<TSample> motionSearchPrediction,
-            in Av1MotionVectorCosts motionVectorCosts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
@@ -1163,7 +1162,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     int spatialMagnitude = GetSpatialMotionMagnitude(referenceMotionVectors, blockOrigin, blockSize, frameSize);
                     vector = this.SearchObmcVector(
                         motionSearchPrediction,
-                        interWorkspace.PredictionScratch,
+                        interWorkspace.FilterRows,
                         in motionVectorCosts,
                         blockOrigin,
                         blockSize,
@@ -1236,17 +1235,17 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1RateDistortionStatistics statistics = this.EvaluateInterCandidate(
                 writer,
                 in tables,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 searchDequantizedCoefficients,
                 transformWorkspace,
                 transformTypeProbabilities,
                 in interWorkspace,
+                in motionVectorCosts,
                 transformPrediction,
                 firstIntermediate,
                 secondIntermediate,
                 compoundMask,
-                in motionVectorCosts,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -1330,18 +1329,18 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="transformPrediction">The prediction storage of one transform block.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
-        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
-        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="tileIndex">The tile index.</param>
@@ -1355,18 +1354,18 @@ internal static partial class Av1IntraSuperblockEncoder
         private void EvaluateMotionModeWinners(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
             ReadOnlySpan<int> transformTypeProbabilities,
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            Span<TSample> motionSearchPrediction,
+            in Av1MotionVectorCosts motionVectorCosts,
             Span<TSample> transformPrediction,
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
-            Span<TSample> motionSearchPrediction,
-            in Av1MotionVectorCosts motionVectorCosts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
@@ -1391,7 +1390,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> referenceCounts = stackalloc byte[Av1Constants.ReferenceFrameCount];
             Av1TileWriter.CollectNeighborReferenceCounts(macroBlock, referenceCounts);
             int intraInterRate = Av1SymbolEncoder.GetIsInterCost(tables.ModeCosts, isInter: true, Av1TileWriter.GetIntraInterContext(macroBlock));
-            Av1EncoderInterPredictionWorkspace<TSample> workspace = interWorkspace;
             Av1ModeCosts modeCosts = tables.ModeCosts;
             for (int index = 0; index < this.motionModeWinnerCount; index++)
             {
@@ -1441,18 +1439,18 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1RateDistortionStatistics statistics = this.EvaluateMotionMode(
                         writer,
                         in tables,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         searchDequantizedCoefficients,
                         transformWorkspace,
                         transformTypeProbabilities,
                         in interWorkspace,
+                        motionSearchPrediction,
+                        in motionVectorCosts,
                         transformPrediction,
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask,
-                        motionSearchPrediction,
-                        in motionVectorCosts,
                         macroBlock,
                         blockOrigin,
                         tileIndex,
@@ -1465,12 +1463,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         singleReferenceVectors[(int)candidate.ReferenceFrame],
                         ref candidate,
                         ref vector,
-                        workspace.LumaCandidateReconstruction,
-                        workspace.LumaCandidateCoefficients,
-                        workspace.BlueCandidateReconstruction,
-                        workspace.BlueCandidateCoefficients,
-                        workspace.RedCandidateReconstruction,
-                        workspace.RedCandidateCoefficients,
+                        interWorkspace.LumaCandidateReconstruction,
+                        interWorkspace.LumaCandidateCoefficients,
+                        interWorkspace.BlueCandidateReconstruction,
+                        interWorkspace.BlueCandidateCoefficients,
+                        interWorkspace.RedCandidateReconstruction,
+                        interWorkspace.RedCandidateCoefficients,
                         out bool skip,
                         out InlineArray64<Av1EncoderTransformBlockState> lumaStates,
                         out InlineArray16<Av1TransformSize> lumaSizes,
@@ -1519,7 +1517,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// keeping the vector with the smallest luma variance plus vector cost. The retained model is left in
         /// <see cref="warpedModel"/>. Reference: av1_refine_warped_mv() with compute_motion_cost().
         /// </summary>
-        /// <param name="workspace">The inter prediction buffers of the block.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -1528,7 +1526,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="referenceVector">The reference of the new vector.</param>
         /// <returns>The refined vector.</returns>
         private Av1MotionVector RefineWarpedVector(
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             in Av1MotionVectorCosts motionVectorCosts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
@@ -1566,7 +1564,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 Math.Min(referencePlane.Bounds.X, referencePlane.Bounds.Y)));
 
             Av1GlobalMotionParameters bestModel = this.warpedModel;
-            long bestCost = this.GetWarpedMotionCost(in workspace, in motionVectorCosts, blockOrigin, blockSize, mode.ReferenceFrame, vector, referenceVector);
+            long bestCost = this.GetWarpedMotionCost(
+                in interWorkspace,
+                in motionVectorCosts,
+                blockOrigin,
+                blockSize,
+                mode.ReferenceFrame,
+                vector,
+                referenceVector);
+
             int validNeighbors = 0xFF;
             for (int iteration = 0; iteration < iterations; iteration++)
             {
@@ -1594,7 +1600,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     this.warpedModel = model;
                     long cost = this.GetWarpedMotionCost(
-                        in workspace,
+                        in interWorkspace,
                         in motionVectorCosts,
                         blockOrigin,
                         blockSize,
@@ -1627,7 +1633,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Measures the luma variance of the current warped prediction plus the cost of its vector.
         /// Reference: compute_motion_cost().
         /// </summary>
-        /// <param name="workspace">The inter prediction buffers of the block.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -1636,7 +1642,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="referenceVector">The reference of the new vector.</param>
         /// <returns>The luma variance plus the vector cost.</returns>
         private long GetWarpedMotionCost(
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             in Av1MotionVectorCosts motionVectorCosts,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -1647,7 +1653,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderFrame<TSample> reference = this.references.Span[(int)referenceFrame];
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
-            Span<TSample> prediction = workspace.LumaPrediction[..(width * height)];
+            Span<TSample> prediction = interWorkspace.LumaPrediction[..(width * height)];
             TOperator.PrepareWarpedInterPrediction(
                 reference.CodedView.GetPlane(Av1Plane.Y),
                 reference.Width,
@@ -1659,7 +1665,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 0,
                 this.warpedModel,
                 prediction,
-                workspace.PredictionScratch,
+                interWorkspace.FilterRows,
                 this.bitDepth);
 
             // The prediction is the first operand, so high-bit-depth rounding matches the reference variance.
@@ -1692,7 +1698,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the block entry read once.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -1720,7 +1726,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics SearchRetainedInterCandidates(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -1760,7 +1766,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> searchedModes = searchedModesStorage;
             int searchCount = 0;
             bool searchedNewMotion = false;
-            Av1EncoderInterPredictionWorkspace<TSample> workspace = interWorkspace;
             ReadOnlySpan<Av1EncoderFrame<TSample>> references = this.references.Span;
             for (int index = 0; index < candidateCount; index++)
             {
@@ -1791,11 +1796,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (predictionModeInfo.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra)
                 {
                     this.PrepareInterIntraPrediction(
+                        transformWorkspace,
                         in interWorkspace,
                         transformPrediction,
                         interIntraAbove,
                         interIntraLeft,
-                        transformWorkspace,
                         compoundMask,
                         macroBlock,
                         blockOrigin,
@@ -1821,8 +1826,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         int subX = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingX;
                         int subY = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingY;
                         Av1BlockSize planeSize = predictionModeInfo.BlockSize.GetSubsampled(subX != 0, subY != 0);
-                        Span<TSample> prediction = planeIndex == 0 ? workspace.LumaPrediction :
-                            planeIndex == 1 ? workspace.BluePrediction : workspace.RedPrediction;
+                        Span<TSample> prediction = planeIndex == 0 ? interWorkspace.LumaPrediction :
+                            planeIndex == 1 ? interWorkspace.BluePrediction : interWorkspace.RedPrediction;
 
                         Av1PlaneRegion<TSample> secondaryReference = predictionModeInfo.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
                             ? references[(int)predictionModeInfo.SecondaryReferenceFrame].CodedView.GetPlane(plane)
@@ -1849,8 +1854,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             subY,
                             predictionModeInfo.BlockSize,
                             prediction,
-                            workspace.Residual,
-                            workspace.PredictionScratch,
+                            interWorkspace.Residual,
+                            interWorkspace.FilterRows,
                             firstIntermediate,
                             secondIntermediate,
                             compoundMask);
@@ -1860,7 +1865,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     // tx_search_best_inter_candidates().
                     if (!this.useObmcPrediction && !this.useWarpedPrediction)
                     {
-                        this.WriteInterLumaDestination(lumaFrame, blockOrigin, predictionModeInfo.BlockSize, workspace.LumaPrediction);
+                        this.WriteInterLumaDestination(lumaFrame, blockOrigin, predictionModeInfo.BlockSize, interWorkspace.LumaPrediction);
                     }
                 }
 
@@ -1873,7 +1878,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1RateDistortionStatistics statistics = this.EvaluatePreparedInterCandidate(
                     writer,
                     in tables,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     searchDequantizedCoefficients,
                     transformWorkspace,
@@ -1889,12 +1894,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     Math.Min(this.blockCostLimit, selected.Cost),
                     block.HasChroma,
                     candidate,
-                    workspace.LumaCandidateReconstruction,
-                    workspace.LumaCandidateCoefficients,
-                    workspace.BlueCandidateReconstruction,
-                    workspace.BlueCandidateCoefficients,
-                    workspace.RedCandidateReconstruction,
-                    workspace.RedCandidateCoefficients,
+                    interWorkspace.LumaCandidateReconstruction,
+                    interWorkspace.LumaCandidateCoefficients,
+                    interWorkspace.BlueCandidateReconstruction,
+                    interWorkspace.BlueCandidateCoefficients,
+                    interWorkspace.RedCandidateReconstruction,
+                    interWorkspace.RedCandidateCoefficients,
                     out bool skip,
                     out InlineArray64<Av1EncoderTransformBlockState> lumaStates,
                     out InlineArray16<Av1TransformSize> sizes,
@@ -1964,7 +1969,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -1988,7 +1993,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private void RefineInterTransformSize(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -2064,11 +2069,11 @@ internal static partial class Av1IntraSuperblockEncoder
             if (!preparedPrediction)
             {
                 this.PrepareSelectedInterLumaPrediction(
+                    transformWorkspace,
                     in interWorkspace,
                     transformPrediction,
                     interIntraAbove,
                     interIntraLeft,
-                    transformWorkspace,
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
@@ -2086,7 +2091,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1RateDistortionStatistics candidateStatistics = this.EvaluateInterLumaTree(
                 writer,
                 in tables,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 searchDequantizedCoefficients,
                 transformWorkspace,
@@ -2112,7 +2117,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1RateDistortionStatistics chromaStatistics = this.EvaluateRefinedInterChroma(
                 writer,
                 in tables,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 searchDequantizedCoefficients,
                 transformWorkspace,
@@ -2147,13 +2152,12 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // High bit depth sharpness 3 adds a skip penalty to the comparison only.
             // Reference: the av1_get_tx_skip_dist() call before the skip_blk test of refine_winner_mode_tx().
-            Av1EncoderInterPredictionWorkspace<TSample> workspace = interWorkspace;
             long comparedCodedDistortion = candidateStatistics.Distortion;
             long comparedSkipDistortion = candidateStatistics.PredictionDistortion;
             if (this.UsesHighBitDepthSharpness)
             {
                 this.PenalizeTransformSkip(
-                    blockOrigin, modeInfo.Block.BlockSize, workspace.LumaPrediction, ref comparedCodedDistortion, ref comparedSkipDistortion);
+                    blockOrigin, modeInfo.Block.BlockSize, interWorkspace.LumaPrediction, ref comparedCodedDistortion, ref comparedSkipDistortion);
             }
 
             bool skip = (this.blockWorkspace.EncoderOptions.Sharpness == 0 || !compound) &&
@@ -2203,7 +2207,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (this.UsesHighBitDepthSharpness)
             {
                 bool refinedSkip = modeInfo.Block.Skip || skip;
-                this.ChargeRefinedInterTextureLoss(ref refinedStatistics, blockOrigin, modeInfo.Block, vector, workspace.LumaPrediction, refinedSkip);
+                this.ChargeRefinedInterTextureLoss(ref refinedStatistics, blockOrigin, modeInfo.Block, vector, interWorkspace.LumaPrediction, refinedSkip);
             }
 
             // The winner is priced again from its rate and distortion, which drops the cost bias of the image tune but
@@ -2295,7 +2299,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The current entropy cost model.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the block entry read once.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -2318,7 +2322,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics EvaluateRefinedInterChroma(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -2346,14 +2350,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 return statistics;
             }
 
-            Av1EncoderInterPredictionWorkspace<TSample> workspace = interWorkspace;
             for (int planeIndex = 1; planeIndex < 3; planeIndex++)
             {
                 Av1Plane plane = (Av1Plane)planeIndex;
                 this.EvaluateInterChromaPlane(
                     writer,
                     in tables,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     searchDequantizedCoefficients,
                     transformWorkspace,
@@ -2382,8 +2385,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfo.Block.VerticalInterpolationFilter,
                     modeInfo.Block.InterTransformSizes,
                     lumaStates,
-                    plane == Av1Plane.U ? workspace.BlueCandidateReconstruction : workspace.RedCandidateReconstruction,
-                    plane == Av1Plane.U ? workspace.BlueCandidateCoefficients : workspace.RedCandidateCoefficients,
+                    plane == Av1Plane.U ? interWorkspace.BlueCandidateReconstruction : interWorkspace.RedCandidateReconstruction,
+                    plane == Av1Plane.U ? interWorkspace.BlueCandidateCoefficients : interWorkspace.RedCandidateCoefficients,
                     out InlineArray16<Av1EncoderTransformBlockState> states,
                     out int rate,
                     out long distortion,
@@ -2414,11 +2417,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Writes the luma prediction of the selected inter block into the frame: the inter-intra blend, or the single
         /// or compound inter prediction.
         /// </summary>
-        /// <param name="workspace">The inter prediction buffers of the block.</param>
-        /// <param name="interIntraPrediction">The intra prediction storage of an inter-intra blend.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+        /// <param name="transformPrediction">The intra prediction storage of an inter-intra blend.</param>
         /// <param name="interIntraAbove">The extended above edge of an inter-intra prediction.</param>
         /// <param name="interIntraLeft">The extended left edge of an inter-intra prediction.</param>
-        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
@@ -2429,11 +2432,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="vector">The motion vector.</param>
         /// <param name="secondaryVector">The second motion vector of a compound prediction.</param>
         private void PrepareSelectedInterLumaPrediction(
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
-            Span<TSample> interIntraPrediction,
+            Span<int> transformWorkspace,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            Span<TSample> transformPrediction,
             Span<TSample> interIntraAbove,
             Span<TSample> interIntraLeft,
-            Span<int> transformWorkspace,
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
@@ -2448,11 +2451,11 @@ internal static partial class Av1IntraSuperblockEncoder
             if (modeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra)
             {
                 this.PrepareInterIntraPrediction(
-                    in workspace,
-                    interIntraPrediction,
+                    transformWorkspace,
+                    in interWorkspace,
+                    transformPrediction,
                     interIntraAbove,
                     interIntraLeft,
-                    transformWorkspace,
                     compoundMask,
                     macroBlock,
                     blockOrigin,
@@ -2472,8 +2475,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Av1BlockSize predictionSize = modeInfo.Block.BlockSize;
             int sampleCount = predictionSize.GetWidth() * predictionSize.GetHeight();
-            Span<TSample> prediction = workspace.LumaPrediction[..sampleCount];
-            Span<short> residual = workspace.Residual[..sampleCount];
+            Span<TSample> prediction = interWorkspace.LumaPrediction[..sampleCount];
+            Span<short> residual = interWorkspace.Residual[..sampleCount];
             if (modeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
             {
                 int firstWeight = 8;
@@ -2501,7 +2504,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     0,
                     0,
                     firstIntermediate,
-                    workspace.PredictionScratch);
+                    interWorkspace.FilterRows);
 
                 bool secondaryWarped = this.TryPrepareGlobalCompoundIntermediate(
                     modeInfo.Block.Mode,
@@ -2513,7 +2516,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     0,
                     0,
                     secondIntermediate,
-                    workspace.PredictionScratch);
+                    interWorkspace.FilterRows);
 
                 int primaryColumnQ4 = (blockOrigin.X << 4) + (vector.Column << 1);
                 int primaryRowQ4 = (blockOrigin.Y << 4) + (vector.Row << 1);
@@ -2537,7 +2540,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
-                    workspace.PredictionScratch,
+                    interWorkspace.FilterRows,
                     predictionSize,
                     this.bitDepth,
                     Av1Plane.Y,
@@ -2586,7 +2589,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     0,
                     warpModel,
                     prediction,
-                    workspace.PredictionScratch,
+                    interWorkspace.FilterRows,
                     this.bitDepth);
 
                 Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
@@ -2622,7 +2625,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     predictionSize,
                     prediction,
                     residual,
-                    workspace.PredictionScratch);
+                    interWorkspace.FilterRows);
             }
             else
             {
@@ -2639,14 +2642,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     rowQ4 & 15,
                     prediction,
                     residual,
-                    workspace.PredictionScratch,
+                    interWorkspace.FilterRows,
                     predictionSize,
                     this.bitDepth);
             }
 
             if (this.useObmcPrediction)
             {
-                this.ApplyObmcPrediction(Av1Plane.Y, 0, 0, prediction, residual, workspace.PredictionScratch);
+                this.ApplyObmcPrediction(Av1Plane.Y, 0, 0, prediction, residual, interWorkspace.FilterRows);
                 return;
             }
 
@@ -2662,7 +2665,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that supplies the coefficient costs.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the block entry read once.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -2680,7 +2683,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics EvaluateInterLumaTree(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -2709,7 +2712,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.EvaluateInterLumaTreeCore(
                     writer,
                     in tables,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     searchDequantizedCoefficients,
                     transformWorkspace,
@@ -2733,7 +2736,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that supplies the coefficient costs.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the block entry read once.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -2751,7 +2754,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics EvaluateInterLumaTreeCore(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -2766,13 +2769,12 @@ internal static partial class Av1IntraSuperblockEncoder
             long costLimit,
             out int stateCount)
         {
-            Av1EncoderInterPredictionWorkspace<TSample> workspace = interWorkspace;
             int width4 = modeInfo.BlockSize.Get4x4WideCount();
             int height4 = modeInfo.BlockSize.Get4x4HighCount();
-            Span<byte> coefficientAbove = workspace.TransformContexts[..width4];
-            Span<byte> coefficientLeft = workspace.TransformContexts.Slice(width4, height4);
-            Span<byte> transformAbove = workspace.TransformContexts.Slice(width4 + height4, width4);
-            Span<byte> transformLeft = workspace.TransformContexts.Slice((2 * width4) + height4, height4);
+            Span<byte> coefficientAbove = interWorkspace.TransformContexts[..width4];
+            Span<byte> coefficientLeft = interWorkspace.TransformContexts.Slice(width4, height4);
+            Span<byte> transformAbove = interWorkspace.TransformContexts.Slice(width4 + height4, width4);
+            Span<byte> transformLeft = interWorkspace.TransformContexts.Slice((2 * width4) + height4, height4);
             Av1NeighborEdges<byte> coefficientEdges = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
             Av1NeighborEdges<byte> transformEdges = this.picture.TransformFunctionContexts[tileIndex].GetEdges();
             coefficientEdges.Top.Slice(coefficientEdges.GetTopIndex(blockOrigin), width4).CopyTo(coefficientAbove);
@@ -2790,7 +2792,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int blockWidth = modeInfo.BlockSize.GetWidth();
             int blockHeight = modeInfo.BlockSize.GetHeight();
-            Span<short> residual = workspace.Residual[..(blockWidth * blockHeight)];
+            Span<short> residual = interWorkspace.Residual[..(blockWidth * blockHeight)];
             Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
             bool residualPrepared = false;
 
@@ -2802,7 +2804,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 TOperator.SubtractPrediction(
                     Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, blockOrigin),
                     lumaSource.Stride,
-                    workspace.LumaPrediction,
+                    interWorkspace.LumaPrediction,
                     residual,
                     blockWidth,
                     blockHeight);
@@ -2829,7 +2831,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     TOperator.SubtractPrediction(
                         Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, blockOrigin),
                         lumaSource.Stride,
-                        workspace.LumaPrediction,
+                        interWorkspace.LumaPrediction,
                         residual,
                         blockWidth,
                         blockHeight);
@@ -2854,9 +2856,9 @@ internal static partial class Av1IntraSuperblockEncoder
             int skipPredictionLevel = this.GetSkipPredictionLevel();
             if (skipPredictionLevel != 0 && !this.picture.Parent.FrameHeader.CodedLossless &&
                 this.PredictSkipTransform(
-                    in interWorkspace,
-                    forwardCoefficients,
+                    transformCoefficients,
                     transformWorkspace,
+                    in interWorkspace,
                     macroBlock,
                     blockOrigin,
                     modeInfo.BlockSize,
@@ -2940,7 +2942,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1RateDistortionStatistics rootStatistics = this.SelectInterTransformNode(
                         writer,
                         in tables,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         searchDequantizedCoefficients,
                         transformWorkspace,
@@ -3007,7 +3009,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 long skipDistortion = statistics.PredictionDistortion;
                 if (this.UsesHighBitDepthSharpness)
                 {
-                    this.PenalizeTransformSkip(blockOrigin, modeInfo.BlockSize, workspace.LumaPrediction, ref codedDistortion, ref skipDistortion);
+                    this.PenalizeTransformSkip(blockOrigin, modeInfo.BlockSize, interWorkspace.LumaPrediction, ref codedDistortion, ref skipDistortion);
                 }
 
                 long forcedSkipCost = Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, skipDistortion);
@@ -3040,9 +3042,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Predicts whether the whole luma residual of an inter or copied block quantizes to nothing.
         /// Reference: predict_skip_txfm().
         /// </summary>
-        /// <param name="workspace">The inter prediction buffers of the block, whose luma prediction is current.</param>
-        /// <param name="coefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block, whose luma prediction is current.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -3050,9 +3052,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="distortion">The distortion of the skipped residual.</param>
         /// <returns><see langword="true"/> when the residual is predicted to quantize to nothing.</returns>
         private bool PredictSkipTransform(
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
-            Span<int> coefficients,
+            Span<int> transformCoefficients,
             Span<int> transformWorkspace,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -3066,7 +3068,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // Reference: av1_is_skip_txfm_penalized() at the start of predict_skip_txfm().
             if (this.PenalizesHighBitDepthSkip)
             {
-                this.GetVarianceStatistics(blockOrigin, blockSize, workspace.LumaPrediction, width, out long sourceVariance, out long sampleVariance);
+                this.GetVarianceStatistics(blockOrigin, blockSize, interWorkspace.LumaPrediction, width, out long sourceVariance, out long sampleVariance);
                 if (sourceVariance > sampleVariance && sourceVariance / (width * height) < 64)
                 {
                     distortion = 0;
@@ -3074,10 +3076,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            Span<short> residual = workspace.Residual[..(width * height)];
+            Span<short> residual = interWorkspace.Residual[..(width * height)];
             Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
             TOperator.SubtractPrediction(
-                Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, blockOrigin), lumaSource.Stride, workspace.LumaPrediction, residual, width, height);
+                Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, blockOrigin), lumaSource.Stride, interWorkspace.LumaPrediction, residual, width, height);
 
             // The whole block is subtracted with the DCT_DCT border padding. Reference: av1_subtract_plane().
             Av1TransformBlockEncoder.PadBorderResidual(
@@ -3121,20 +3123,20 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     Av1ForwardTransformer.Transform2d(
                         residual[((row * width) + column)..],
-                        coefficients,
+                        transformCoefficients,
                         (uint)width,
                         Av1TransformType.DctDct,
                         transformSize,
                         this.bitDepth.GetBitCount(),
                         transformWorkspace);
 
-                    if (((uint)Math.Abs(coefficients[0]) << 7) >= dcThreshold)
+                    if (((uint)Math.Abs(transformCoefficients[0]) << 7) >= dcThreshold)
                     {
                         return false;
                     }
 
                     // Any AC coefficient at or above its threshold fails, so the largest magnitude decides.
-                    if (((uint)Av1CoefficientMeasures.GetMaximumAbsolute(coefficients[1..coefficientCount]) << 7) >= acThreshold)
+                    if (((uint)Av1CoefficientMeasures.GetMaximumAbsolute(transformCoefficients[1..coefficientCount]) << 7) >= acThreshold)
                     {
                         return false;
                     }
@@ -3239,7 +3241,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The tile symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the root of the tree reads once.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -3250,7 +3252,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="candidateCoefficients">The coefficient storage of the candidate.</param>
         /// <param name="lumaCandidateReconstruction">The reconstruction storage of the winner.</param>
         /// <param name="lumaCandidateCoefficients">The coefficient storage of the winner.</param>
-        /// <param name="prediction">The prediction storage of one transform block.</param>
+        /// <param name="transformPrediction">The prediction storage of one transform block.</param>
         /// <param name="macroBlock">The block and its neighbor availability.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="coefficientEdges">The coefficient context edges of the tile, read once at the root.</param>
@@ -3272,7 +3274,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics SelectInterTransformNode(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -3283,7 +3285,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> candidateCoefficients,
             Span<TSample> lumaCandidateReconstruction,
             Span<int> lumaCandidateCoefficients,
-            Span<TSample> prediction,
+            Span<TSample> transformPrediction,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             in Av1NeighborEdges<byte> coefficientEdges,
@@ -3332,7 +3334,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int sourceOffset = ((row << 2) * sourceStride) + (column << 2);
             for (int y = 0; y < height; y++)
             {
-                lumaPrediction.Slice(sourceOffset + (y * sourceStride), width).CopyTo(prediction.Slice(y * width, width));
+                lumaPrediction.Slice(sourceOffset + (y * sourceStride), width).CopyTo(transformPrediction.Slice(y * width, width));
             }
 
             Point origin = blockOrigin + new Size(column << 2, row << 2);
@@ -3340,7 +3342,7 @@ internal static partial class Av1IntraSuperblockEncoder
             TOperator.SubtractPrediction(
                 Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, origin),
                 lumaSource.Stride,
-                prediction,
+                transformPrediction,
                 residual,
                 transformSize.GetWidth(),
                 transformSize.GetHeight());
@@ -3436,7 +3438,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.EvaluateInterTransform(
                     writer,
                     in tables,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     searchDequantizedCoefficients,
                     transformWorkspace,
@@ -3448,7 +3450,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1TransformType.AllTransformTypes,
                     context,
                     Av1TileWriter.GetTransformBlockContexts(Av1ComponentType.Luminance, in coefficientEdges, blockOrigin, blockSize, transformSize),
-                    prediction,
+                    transformPrediction,
                     residual,
                     width,
                     costLimit,
@@ -3600,7 +3602,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Av1RateDistortionStatistics child = this.SelectInterTransformNode(
                             writer,
                             in tables,
-                            forwardCoefficients,
+                            transformCoefficients,
                             dequantizedCoefficients,
                             searchDequantizedCoefficients,
                             transformWorkspace,
@@ -3611,7 +3613,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             candidateCoefficients,
                             lumaCandidateReconstruction,
                             lumaCandidateCoefficients,
-                            prediction,
+                            transformPrediction,
                             macroBlock,
                             blockOrigin,
                             in coefficientEdges,
@@ -3760,7 +3762,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// rd_pick_skip_mode().
         /// </summary>
         /// <param name="tables">The rate tables that price the syntax.</param>
-        /// <param name="workspace">The inter prediction buffers of the block.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
@@ -3776,7 +3778,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="selectedStates">The transform states of the winner.</param>
         private void SelectSkipModeBlock(
             in Av1CoefficientTables tables,
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
@@ -3855,9 +3857,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1BlockSize planeSize = blockSize.GetSubsampled(subX != 0, subY != 0);
                 Span<TSample> prediction = plane switch
                 {
-                    Av1Plane.Y => workspace.LumaPrediction,
-                    Av1Plane.U => workspace.BluePrediction,
-                    _ => workspace.RedPrediction
+                    Av1Plane.Y => interWorkspace.LumaPrediction,
+                    Av1Plane.U => interWorkspace.BluePrediction,
+                    _ => interWorkspace.RedPrediction
                 };
 
                 this.PrepareInterPlanePrediction(
@@ -3881,8 +3883,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     subY,
                     blockSize,
                     prediction,
-                    workspace.Residual,
-                    workspace.PredictionScratch,
+                    interWorkspace.Residual,
+                    interWorkspace.FilterRows,
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask);
@@ -3906,7 +3908,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 int width = visibleSize.Width;
                 int height = visibleSize.Height;
-                long squaredError = Av1ResidualBuilder.SumSquares(workspace.Residual, planeSize.GetWidth(), width, height);
+                long squaredError = Av1ResidualBuilder.SumSquares(interWorkspace.Residual, planeSize.GetWidth(), width, height);
 
                 exactPrediction &= squaredError == 0;
                 distortion += normalizationShift == 0
@@ -3965,21 +3967,21 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="blockResidual">The residual buffer of the motion search.</param>
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="transformPrediction">The prediction storage of one transform block.</param>
         /// <param name="interIntraAbove">The extended above edge of an inter-intra prediction.</param>
         /// <param name="interIntraLeft">The extended left edge of an inter-intra prediction.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
-        /// <param name="blockResidual">The residual buffer of the motion search.</param>
-        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
-        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="tileIndex">The tile index.</param>
@@ -3999,21 +4001,21 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics SelectSingleReferenceMode(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
             ReadOnlySpan<int> transformTypeProbabilities,
+            Span<short> blockResidual,
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            Span<TSample> motionSearchPrediction,
+            in Av1MotionVectorCosts motionVectorCosts,
             Span<TSample> transformPrediction,
             Span<TSample> interIntraAbove,
             Span<TSample> interIntraLeft,
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
-            Span<short> blockResidual,
-            Span<TSample> motionSearchPrediction,
-            in Av1MotionVectorCosts motionVectorCosts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
@@ -4059,8 +4061,6 @@ internal static partial class Av1IntraSuperblockEncoder
             block.PredictionUnit.ChromaFromLumaIndex = 0;
             block.PredictionUnit.ChromaFromLumaSigns = 0;
 
-            Av1EncoderInterPredictionWorkspace<TSample> workspace = interWorkspace;
-
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
 
@@ -4105,18 +4105,18 @@ internal static partial class Av1IntraSuperblockEncoder
             // Each plane keeps two buffers: one holding the best candidate so far and one the
             // candidate under test. Naming both here lets the winner be taken by exchanging spans
             // rather than by copying a block of samples for every improvement.
-            Span<TSample> selectedLumaReconstruction = workspace.SelectedLumaReconstruction;
-            Span<TSample> candidateLumaReconstruction = workspace.LumaCandidateReconstruction;
-            Span<TSample> selectedBlueReconstruction = workspace.SelectedBlueReconstruction;
-            Span<TSample> candidateBlueReconstruction = workspace.BlueCandidateReconstruction;
-            Span<TSample> selectedRedReconstruction = workspace.SelectedRedReconstruction;
-            Span<TSample> candidateRedReconstruction = workspace.RedCandidateReconstruction;
-            Span<int> selectedLumaCoefficients = workspace.SelectedLumaCoefficients;
-            Span<int> candidateLumaCoefficients = workspace.LumaCandidateCoefficients;
-            Span<int> selectedBlueCoefficients = workspace.SelectedBlueCoefficients;
-            Span<int> candidateBlueCoefficients = workspace.BlueCandidateCoefficients;
-            Span<int> selectedRedCoefficients = workspace.SelectedRedCoefficients;
-            Span<int> candidateRedCoefficients = workspace.RedCandidateCoefficients;
+            Span<TSample> selectedLumaReconstruction = interWorkspace.SelectedLumaReconstruction;
+            Span<TSample> candidateLumaReconstruction = interWorkspace.LumaCandidateReconstruction;
+            Span<TSample> selectedBlueReconstruction = interWorkspace.SelectedBlueReconstruction;
+            Span<TSample> candidateBlueReconstruction = interWorkspace.BlueCandidateReconstruction;
+            Span<TSample> selectedRedReconstruction = interWorkspace.SelectedRedReconstruction;
+            Span<TSample> candidateRedReconstruction = interWorkspace.RedCandidateReconstruction;
+            Span<int> selectedLumaCoefficients = interWorkspace.SelectedLumaCoefficients;
+            Span<int> candidateLumaCoefficients = interWorkspace.LumaCandidateCoefficients;
+            Span<int> selectedBlueCoefficients = interWorkspace.SelectedBlueCoefficients;
+            Span<int> candidateBlueCoefficients = interWorkspace.BlueCandidateCoefficients;
+            Span<int> selectedRedCoefficients = interWorkspace.SelectedRedCoefficients;
+            Span<int> candidateRedCoefficients = interWorkspace.RedCandidateCoefficients;
             int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
             Span<byte> referenceCounts = stackalloc byte[Av1Constants.ReferenceFrameCount];
             Av1TileWriter.CollectNeighborReferenceCounts(macroBlock, referenceCounts);
@@ -4226,8 +4226,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 motionSearchPrediction,
                 this.reconstruction.GetPlane(Av1Plane.Y),
                 blockResidual,
-                workspace.PredictionScratch,
-                workspace.TransformCoefficients,
+                interWorkspace.FilterRows,
+                interWorkspace.TransformCoefficients,
                 writer,
                 aboveContexts,
                 leftContexts,
@@ -4241,7 +4241,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext),
                 Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext),
                 motionVectorCosts,
-                this.GetScaledSearchReference(referenceFrame, blockOrigin, workspace.PredictionScratch));
+                this.GetScaledSearchReference(referenceFrame, blockOrigin, interWorkspace.FilterRows));
 
             int spatialMagnitude = GetSpatialMotionMagnitude(referenceMotionVectors, blockOrigin, blockSize, frameSize);
 
@@ -4355,15 +4355,15 @@ internal static partial class Av1IntraSuperblockEncoder
                             long.MaxValue,
                             100,
                             0,
-                            workspace.LumaPrediction,
-                            workspace.BluePrediction,
-                            workspace.RedPrediction,
+                            interWorkspace.LumaPrediction,
+                            interWorkspace.BluePrediction,
+                            interWorkspace.RedPrediction,
                             planeStatistics,
                             ref translationLumaSquaredError);
 
                         // The estimate predicts luma into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in
                         // simple_translation_pred_rd().
-                        this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, workspace.LumaPrediction);
+                        this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, interWorkspace.LumaPrediction);
 
                         // Reference: the plane 0 pred_sse store of model_rd_for_sb_with_curvfit() in
                         // simple_translation_pred_rd().
@@ -4400,12 +4400,12 @@ internal static partial class Av1IntraSuperblockEncoder
             // trial. The winner from before the entry is held in the spare buffers until the test, which runs when
             // the next entry starts and after the last. Reference: the av1_check_newmv_joint_nonzero() test at the
             // end of motion_mode_rd().
-            Span<TSample> spareLumaReconstruction = workspace.SpareLumaReconstruction;
-            Span<TSample> spareBlueReconstruction = workspace.SpareBlueReconstruction;
-            Span<TSample> spareRedReconstruction = workspace.SpareRedReconstruction;
-            Span<int> spareLumaCoefficients = workspace.SpareLumaCoefficients;
-            Span<int> spareBlueCoefficients = workspace.SpareBlueCoefficients;
-            Span<int> spareRedCoefficients = workspace.SpareRedCoefficients;
+            Span<TSample> spareLumaReconstruction = interWorkspace.SpareLumaReconstruction;
+            Span<TSample> spareBlueReconstruction = interWorkspace.SpareBlueReconstruction;
+            Span<TSample> spareRedReconstruction = interWorkspace.SpareRedReconstruction;
+            Span<int> spareLumaCoefficients = interWorkspace.SpareLumaCoefficients;
+            Span<int> spareBlueCoefficients = interWorkspace.SpareBlueCoefficients;
+            Span<int> spareRedCoefficients = interWorkspace.SpareRedCoefficients;
             bool entryPending = false;
             bool winnerHeld = false;
             Av1MotionVector entryReference = default;
@@ -4597,7 +4597,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (!motionSearch.Search(
                         in tables,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         transformWorkspace,
                         motionSettings,
@@ -4773,17 +4773,17 @@ internal static partial class Av1IntraSuperblockEncoder
                     candidateStatistics = this.EvaluateInterCandidate(
                         writer,
                         in tables,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         searchDequantizedCoefficients,
                         transformWorkspace,
                         transformTypeProbabilities,
                         in interWorkspace,
+                        in motionVectorCosts,
                         transformPrediction,
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask,
-                        in motionVectorCosts,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -4926,18 +4926,18 @@ internal static partial class Av1IntraSuperblockEncoder
                         Av1RateDistortionStatistics motionStatistics = this.EvaluateMotionMode(
                             writer,
                             in tables,
-                            forwardCoefficients,
+                            transformCoefficients,
                             dequantizedCoefficients,
                             searchDequantizedCoefficients,
                             transformWorkspace,
                             transformTypeProbabilities,
                             in interWorkspace,
+                            motionSearchPrediction,
+                            in motionVectorCosts,
                             transformPrediction,
                             firstIntermediate,
                             secondIntermediate,
                             compoundMask,
-                            motionSearchPrediction,
-                            in motionVectorCosts,
                             macroBlock,
                             blockOrigin,
                             tileIndex,
@@ -5064,15 +5064,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (!this.SelectInterIntraBlend(
                     writer,
                     in tables,
-                    in interWorkspace,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
+                    transformWorkspace,
+                    in interWorkspace,
+                    in motionVectorCosts,
                     transformPrediction,
                     interIntraAbove,
                     interIntraLeft,
-                    transformWorkspace,
                     compoundMask,
-                    in motionVectorCosts,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -5103,11 +5103,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 this.PrepareInterIntraPrediction(
+                    transformWorkspace,
                     in interWorkspace,
                     transformPrediction,
                     interIntraAbove,
                     interIntraLeft,
-                    transformWorkspace,
                     compoundMask,
                     macroBlock,
                     blockOrigin,
@@ -5128,17 +5128,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1RateDistortionStatistics interIntraStatistics = this.EvaluateInterCandidate(
                     writer,
                     in tables,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     searchDequantizedCoefficients,
                     transformWorkspace,
                     transformTypeProbabilities,
                     in interWorkspace,
+                    in motionVectorCosts,
                     transformPrediction,
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
-                    in motionVectorCosts,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -5314,15 +5314,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="workspace">The inter prediction buffers of the block.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
-        /// <param name="interIntraPrediction">The intra prediction storage of the blend.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="transformPrediction">The intra prediction storage of the blend.</param>
         /// <param name="interIntraAbove">The extended above edge of an inter-intra prediction.</param>
         /// <param name="interIntraLeft">The extended left edge of an inter-intra prediction.</param>
-        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="compoundMask">The blend mask storage.</param>
-        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -5344,15 +5344,15 @@ internal static partial class Av1IntraSuperblockEncoder
         private bool SelectInterIntraBlend(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
-            Span<TSample> interIntraPrediction,
+            Span<int> transformWorkspace,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            in Av1MotionVectorCosts motionVectorCosts,
+            Span<TSample> transformPrediction,
             Span<TSample> interIntraAbove,
             Span<TSample> interIntraLeft,
-            Span<int> transformWorkspace,
             Span<byte> compoundMask,
-            in Av1MotionVectorCosts motionVectorCosts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -5377,10 +5377,10 @@ internal static partial class Av1IntraSuperblockEncoder
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
             int sampleCount = width * height;
-            Span<TSample> interPrediction = workspace.TransformReconstruction[..sampleCount];
-            Span<TSample> blendedPrediction = workspace.LumaPrediction[..sampleCount];
-            Span<short> intraResidual = workspace.Residual[..sampleCount];
-            Span<short> interResidual = workspace.Residual.Slice(sampleCount, sampleCount);
+            Span<TSample> interPrediction = interWorkspace.TransformReconstruction[..sampleCount];
+            Span<TSample> blendedPrediction = interWorkspace.LumaPrediction[..sampleCount];
+            Span<short> intraResidual = interWorkspace.Residual[..sampleCount];
+            Span<short> interResidual = interWorkspace.Residual.Slice(sampleCount, sampleCount);
             Span<byte> mask = compoundMask[..sampleCount];
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
 
@@ -5401,7 +5401,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockSize,
                 interPrediction,
                 interResidual,
-                workspace.PredictionScratch);
+                interWorkspace.FilterRows);
 
             int shift = (this.bitDepth.GetBitCount() - 8) * 2;
             int acQuantizer = Av1QuantizationLookup.GetAcQuant(this.blockQIndex, this.quantization.DeltaQAc[0], this.bitDepth);
@@ -5421,11 +5421,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 Span<TSample> intraPrediction = this.PrepareInterIntraPlane(
-                    in workspace,
-                    interIntraPrediction,
+                    transformWorkspace,
+                    in interWorkspace,
+                    transformPrediction,
                     interIntraAbove,
                     interIntraLeft,
-                    transformWorkspace,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -5483,11 +5483,11 @@ internal static partial class Av1IntraSuperblockEncoder
 
             cachedMode = (int)selectedMode;
             Span<TSample> selectedIntra = this.PrepareInterIntraPlane(
-                in workspace,
-                interIntraPrediction,
+                transformWorkspace,
+                in interWorkspace,
+                transformPrediction,
                 interIntraAbove,
                 interIntraLeft,
-                transformWorkspace,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -5506,10 +5506,10 @@ internal static partial class Av1IntraSuperblockEncoder
             long smoothCost = this.EstimateInterPredictionResidual(
                 writer,
                 in tables,
-                in workspace,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 transformWorkspace,
+                in interWorkspace,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -5538,11 +5538,11 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 Av1InterIntraMode mode = (Av1InterIntraMode)modeIndex;
                 Span<TSample> wedgeIntra = this.PrepareInterIntraPlane(
-                    in workspace,
-                    interIntraPrediction,
+                    transformWorkspace,
+                    in interWorkspace,
+                    transformPrediction,
                     interIntraAbove,
                     interIntraLeft,
-                    transformWorkspace,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -5597,11 +5597,11 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             selectedIntra = this.PrepareInterIntraPlane(
-                in workspace,
-                interIntraPrediction,
+                transformWorkspace,
+                in interWorkspace,
+                transformPrediction,
                 interIntraAbove,
                 interIntraLeft,
-                transformWorkspace,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -5669,7 +5669,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         referencePlane.Samples,
                         referencePlane.Stride,
                         referenceOrigin,
-                        workspace.BluePrediction,
+                        interWorkspace.BluePrediction,
                         size,
                         this.ApplySharpnessMargins(referenceVector.GetSubpixelSearchBounds(bounds), blockOrigin, size, Av1MotionVector.SubpixelScale),
                         referenceVector,
@@ -5678,7 +5678,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.rateMultiplier,
                         selectedIntra,
                         mask,
-                        this.GetScaledSearchReference(referenceFrame, blockOrigin, workspace.PredictionScratch));
+                        this.GetScaledSearchReference(referenceFrame, blockOrigin, interWorkspace.FilterRows));
 
                     fractionalSearch.Search(
                         trialVector,
@@ -5711,7 +5711,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             blockSize,
                             blendedPrediction,
                             intraResidual,
-                            workspace.PredictionScratch);
+                            interWorkspace.FilterRows);
                     }
                     else
                     {
@@ -5728,7 +5728,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             trialRowQ4 & 15,
                             blendedPrediction,
                             intraResidual,
-                            workspace.PredictionScratch,
+                            interWorkspace.FilterRows,
                             blockSize,
                             this.bitDepth);
                     }
@@ -5793,10 +5793,10 @@ internal static partial class Av1IntraSuperblockEncoder
             long wedgeCost = this.EstimateInterPredictionResidual(
                 writer,
                 in tables,
-                in workspace,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 transformWorkspace,
+                in interWorkspace,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -5821,10 +5821,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="workspace">The inter prediction buffers of the block, whose luma prediction is current.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block, whose luma prediction is current.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -5836,10 +5836,10 @@ internal static partial class Av1IntraSuperblockEncoder
         private long EstimateInterPredictionResidual(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -5858,12 +5858,17 @@ internal static partial class Av1IntraSuperblockEncoder
             int height = blockSize.GetHeight();
             Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
             TOperator.SubtractPrediction(
-                Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, blockOrigin), lumaSource.Stride, workspace.LumaPrediction, workspace.Residual, width, height);
+                Av1TransformBlockEncoder.GetPlaneSpan(lumaSource, blockOrigin),
+                lumaSource.Stride,
+                interWorkspace.LumaPrediction,
+                interWorkspace.Residual,
+                width,
+                height);
 
             // A block crossing the frame edge is subtracted with the DCT_DCT border padding. Reference: the
             // av1_subtract_plane() call of estimate_yrd_for_sb().
             Av1TransformBlockEncoder.PadBorderResidual(
-                this.blockWorkspace, Av1Plane.Y, blockOrigin, workspace.Residual, width, width, height, Av1TransformType.DctDct);
+                this.blockWorkspace, Av1Plane.Y, blockOrigin, interWorkspace.Residual, width, width, height, Av1TransformType.DctDct);
 
             Av1TransformSize transformSize = blockSize.GetMaximumTransformSize();
             Av1NeighborEdges<byte> coefficientContexts = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
@@ -5889,12 +5894,12 @@ internal static partial class Av1IntraSuperblockEncoder
             int noSkipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext);
             int skipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext);
             long cost = Av1TransformBlockEncoder.EstimateInterTransform(
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 transformWorkspace,
-                workspace.Residual,
+                interWorkspace.Residual,
                 width,
-                workspace.TransformCoefficients,
+                interWorkspace.TransformCoefficients,
                 writer,
                 in tables,
                 above,
@@ -5930,11 +5935,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Builds the intra component of one inter-intra plane from its reconstructed boundary.
         /// </summary>
-        /// <param name="workspace">The inter prediction buffers of the block.</param>
-        /// <param name="intraPrediction">The intra prediction destination.</param>
-        /// <param name="aboveStorage">The storage of the extended above edge.</param>
-        /// <param name="leftStorage">The storage of the extended left edge.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+        /// <param name="transformPrediction">The intra prediction destination.</param>
+        /// <param name="interIntraAbove">The storage of the extended above edge.</param>
+        /// <param name="interIntraLeft">The storage of the extended left edge.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -5942,11 +5947,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="interIntraMode">The intra mode of the blend.</param>
         /// <returns>The intra prediction of the plane.</returns>
         private Span<TSample> PrepareInterIntraPlane(
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
-            Span<TSample> intraPrediction,
-            Span<TSample> aboveStorage,
-            Span<TSample> leftStorage,
             Span<int> transformWorkspace,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            Span<TSample> transformPrediction,
+            Span<TSample> interIntraAbove,
+            Span<TSample> interIntraLeft,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -6042,40 +6047,40 @@ internal static partial class Av1IntraSuperblockEncoder
                 hasTopRight,
                 hasBottomLeft,
                 this.bitDepth,
-                aboveStorage,
-                leftStorage);
+                interIntraAbove,
+                interIntraLeft);
 
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
             TOperator.PrepareIntra(
                 transformWorkspace,
                 Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, planeOrigin),
                 sourcePlane.Stride,
-                intraPrediction,
+                transformPrediction,
                 width,
-                aboveStorage.Slice(1, width + height),
-                leftStorage.Slice(1, width + height),
+                interIntraAbove.Slice(1, width + height),
+                interIntraLeft.Slice(1, width + height),
                 hasLeft,
                 hasAbove,
                 intraMode,
                 0,
                 this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
                 this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, plane),
-                workspace.Residual,
+                interWorkspace.Residual,
                 transformSize,
                 this.bitDepth);
 
-            return intraPrediction[..sampleCount];
+            return transformPrediction[..sampleCount];
         }
 
         /// <summary>
         /// Builds every active plane of the selected inter-intra prediction.
         /// </summary>
-        /// <param name="workspace">The inter prediction buffers of the block.</param>
-        /// <param name="interIntraPrediction">The intra prediction storage of the blend.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+        /// <param name="transformPrediction">The intra prediction storage of the blend.</param>
         /// <param name="interIntraAbove">The extended above edge of an inter-intra prediction.</param>
         /// <param name="interIntraLeft">The extended left edge of an inter-intra prediction.</param>
-        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
-        /// <param name="mask">The blend mask storage.</param>
+        /// <param name="compoundMask">The blend mask storage.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -6089,12 +6094,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="useWedge">Whether the blend uses a wedge mask.</param>
         /// <param name="wedgeIndex">The wedge mask index.</param>
         private void PrepareInterIntraPrediction(
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
-            Span<TSample> interIntraPrediction,
+            Span<int> transformWorkspace,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            Span<TSample> transformPrediction,
             Span<TSample> interIntraAbove,
             Span<TSample> interIntraLeft,
-            Span<int> transformWorkspace,
-            Span<byte> mask,
+            Span<byte> compoundMask,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -6123,9 +6128,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1TransformSize transformSize = planeSize.GetMaximumTransformSize();
                 Span<TSample> interPrediction = plane switch
                 {
-                    Av1Plane.Y => workspace.LumaPrediction[..sampleCount],
-                    Av1Plane.U => workspace.BluePrediction[..sampleCount],
-                    _ => workspace.RedPrediction[..sampleCount],
+                    Av1Plane.Y => interWorkspace.LumaPrediction[..sampleCount],
+                    Av1Plane.U => interWorkspace.BluePrediction[..sampleCount],
+                    _ => interWorkspace.RedPrediction[..sampleCount],
                 };
 
                 this.PrepareSingleInterPrediction(
@@ -6141,15 +6146,15 @@ internal static partial class Av1IntraSuperblockEncoder
                     verticalFilter,
                     transformSize.ToBlockSize(),
                     interPrediction,
-                    workspace.Residual,
-                    workspace.PredictionScratch);
+                    interWorkspace.Residual,
+                    interWorkspace.FilterRows);
 
                 Span<TSample> intraPrediction = this.PrepareInterIntraPlane(
-                    in workspace,
-                    interIntraPrediction,
+                    transformWorkspace,
+                    in interWorkspace,
+                    transformPrediction,
                     interIntraAbove,
                     interIntraLeft,
-                    transformWorkspace,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -6158,14 +6163,14 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (useWedge)
                 {
-                    Av1WedgeMask.Fill(mask, width, blockSize, wedgeIndex, wedgeSign: false, subX, subY, invert: true);
+                    Av1WedgeMask.Fill(compoundMask, width, blockSize, wedgeIndex, wedgeSign: false, subX, subY, invert: true);
                 }
                 else
                 {
-                    Av1InterIntraMaskBuilder.FillInterIntraMask(mask, width, width, height, interIntraMode, invert: true);
+                    Av1InterIntraMaskBuilder.FillInterIntraMask(compoundMask, width, width, height, interIntraMode, invert: true);
                 }
 
-                TOperator.BlendInterIntraPrediction(interPrediction, intraPrediction[..sampleCount], mask, width, height);
+                TOperator.BlendInterIntraPrediction(interPrediction, intraPrediction[..sampleCount], compoundMask, width, height);
 
                 // The blended luma goes into pd->dst, which is the frame. Reference: av1_build_interintra_predictor() in
                 // av1_enc_build_inter_predictor().
@@ -7102,17 +7107,17 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="transformPrediction">The prediction storage of one transform block.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
-        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="tileIndex">The tile index.</param>
@@ -7137,17 +7142,17 @@ internal static partial class Av1IntraSuperblockEncoder
         private void SelectCompoundBlock(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
             ReadOnlySpan<int> transformTypeProbabilities,
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            in Av1MotionVectorCosts motionVectorCosts,
             Span<TSample> transformPrediction,
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
-            in Av1MotionVectorCosts motionVectorCosts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
@@ -7327,7 +7332,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
             modes[candidateCount++] = Av1PredictionMode.GlobalGlobalMotionVector;
 
-            Av1EncoderInterPredictionWorkspace<TSample> workspace = interWorkspace;
             Av1InterpolationFilter filter = frameHeader.InterpolationFilter == Av1InterpolationFilter.Switchable
                 ? Av1InterpolationFilter.Regular : frameHeader.InterpolationFilter;
 
@@ -7568,15 +7572,15 @@ internal static partial class Av1IntraSuperblockEncoder
                                     long.MaxValue,
                                     100,
                                     0,
-                                    workspace.LumaPrediction,
-                                    workspace.BluePrediction,
-                                    workspace.RedPrediction,
+                                    interWorkspace.LumaPrediction,
+                                    interWorkspace.BluePrediction,
+                                    interWorkspace.RedPrediction,
                                     planeStatistics,
                                     ref translationLumaSquaredError);
 
                                 // The estimate predicts luma into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in
                                 // simple_translation_pred_rd().
-                                this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, workspace.LumaPrediction);
+                                this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, interWorkspace.LumaPrediction);
 
                                 // Reference: the plane 0 pred_sse store of model_rd_for_sb_with_curvfit() in
                                 // simple_translation_pred_rd().
@@ -7694,14 +7698,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (!this.SelectCompoundBlend(
                     writer,
                     in tables,
-                    in interWorkspace,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     transformWorkspace,
+                    in interWorkspace,
+                    in motionVectorCosts,
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
-                    in motionVectorCosts,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -7810,17 +7814,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1RateDistortionStatistics candidateStatistics = this.EvaluateInterCandidate(
                     writer,
                     in tables,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     searchDequantizedCoefficients,
                     transformWorkspace,
                     transformTypeProbabilities,
                     in interWorkspace,
+                    in motionVectorCosts,
                     transformPrediction,
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
-                    in motionVectorCosts,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -7847,12 +7851,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     false,
                     0,
                     referenceMotionVectors,
-                    workspace.LumaCandidateReconstruction,
-                    workspace.LumaCandidateCoefficients,
-                    workspace.BlueCandidateReconstruction,
-                    workspace.BlueCandidateCoefficients,
-                    workspace.RedCandidateReconstruction,
-                    workspace.RedCandidateCoefficients,
+                    interWorkspace.LumaCandidateReconstruction,
+                    interWorkspace.LumaCandidateCoefficients,
+                    interWorkspace.BlueCandidateReconstruction,
+                    interWorkspace.BlueCandidateCoefficients,
+                    interWorkspace.RedCandidateReconstruction,
+                    interWorkspace.RedCandidateCoefficients,
                     out bool candidateSkip,
                     out InlineArray64<Av1EncoderTransformBlockState> candidateLumaStates,
                     out InlineArray16<Av1TransformSize> candidateLumaSizes,
@@ -8024,10 +8028,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns>The energy difference.</returns>
         private readonly int GetSubBlockEnergyDifference(Point blockOrigin, Av1BlockSize blockSize)
         {
-            Av1EncoderBlockWorkspace workspace = this.blockWorkspace;
-            if (workspace.SubBlockEnergyBlockSize == blockSize)
+            if (this.blockWorkspace.SubBlockEnergyBlockSize == blockSize)
             {
-                return workspace.SubBlockEnergyDifference;
+                return this.blockWorkspace.SubBlockEnergyDifference;
             }
 
             int width = blockSize.GetWidth();
@@ -8069,8 +8072,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 difference = Math.Max(0, maximumEnergy - minimumEnergy);
             }
 
-            workspace.SubBlockEnergyDifference = difference;
-            workspace.SubBlockEnergyBlockSize = blockSize;
+            this.blockWorkspace.SubBlockEnergyDifference = difference;
+            this.blockWorkspace.SubBlockEnergyBlockSize = blockSize;
             return difference;
         }
 
@@ -8238,14 +8241,14 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="workspace">The inter prediction buffers of the block.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
-        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -8272,14 +8275,14 @@ internal static partial class Av1IntraSuperblockEncoder
         private bool SelectCompoundBlend(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            in Av1MotionVectorCosts motionVectorCosts,
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
-            in Av1MotionVectorCosts motionVectorCosts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -8309,8 +8312,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
             int count = width * height;
-            Span<TSample> firstPrediction = workspace.LumaCandidateReconstruction[..count];
-            Span<TSample> secondPrediction = workspace.BlueCandidateReconstruction[..count];
+            Span<TSample> firstPrediction = interWorkspace.LumaCandidateReconstruction[..count];
+            Span<TSample> secondPrediction = interWorkspace.BlueCandidateReconstruction[..count];
             Span<byte> mask = compoundMask[..count];
 
             bool masked = this.picture.Sequence.SequenceHeader.EnableMaskedCompound && Math.Min(width, height) >= 8;
@@ -8498,8 +8501,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         0,
                         blockSize,
                         firstPrediction,
-                        workspace.Residual,
-                        workspace.PredictionScratch,
+                        interWorkspace.Residual,
+                        interWorkspace.FilterRows,
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask);
@@ -8525,8 +8528,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         0,
                         blockSize,
                         secondPrediction,
-                        workspace.Residual,
-                        workspace.PredictionScratch,
+                        interWorkspace.Residual,
+                        interWorkspace.FilterRows,
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask);
@@ -8554,7 +8557,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     maskModel = this.SelectCompoundMask(
                         in tables,
-                        in workspace,
+                        in interWorkspace,
                         compoundMask,
                         blockOrigin,
                         blockSize,
@@ -8689,7 +8692,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         }
 
                         this.RefineCompoundVectors(
-                            in workspace,
+                            in interWorkspace,
                             in motionVectorCosts,
                             blockOrigin,
                             blockSize,
@@ -8731,17 +8734,17 @@ internal static partial class Av1IntraSuperblockEncoder
                             0,
                             0,
                             blockSize,
-                            workspace.LumaPrediction,
-                            workspace.Residual,
-                            workspace.PredictionScratch,
+                            interWorkspace.LumaPrediction,
+                            interWorkspace.Residual,
+                            interWorkspace.FilterRows,
                             firstIntermediate,
                             secondIntermediate,
                             compoundMask);
                     }
                     else
                     {
-                        firstPrediction.CopyTo(workspace.LumaPrediction);
-                        TOperator.BlendInterIntraPrediction(workspace.LumaPrediction, secondPrediction, mask, width, height);
+                        firstPrediction.CopyTo(interWorkspace.LumaPrediction);
+                        TOperator.BlendInterIntraPrediction(interWorkspace.LumaPrediction, secondPrediction, mask, width, height);
                     }
 
                     int typeIndex = (int)type;
@@ -8754,11 +8757,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     // av1_compound_type_rd().
                     if (type == Av1CompoundType.Average && !useCachedEstimate)
                     {
-                        this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, workspace.LumaPrediction);
+                        this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, interWorkspace.LumaPrediction);
                     }
 
                     long model = this.GetCompoundPredictionModelCost(
-                        in workspace,
+                        in interWorkspace,
                         blockOrigin,
                         blockSize,
                         blendRate + motionRate,
@@ -8772,8 +8775,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         trialPrimary = initialPrimary;
                         trialSecondary = initialSecondary;
                         motionRate = initialMotionRate;
-                        firstPrediction.CopyTo(workspace.LumaPrediction);
-                        TOperator.BlendInterIntraPrediction(workspace.LumaPrediction, secondPrediction, mask, width, height);
+                        firstPrediction.CopyTo(interWorkspace.LumaPrediction);
+                        TOperator.BlendInterIntraPrediction(interWorkspace.LumaPrediction, secondPrediction, mask, width, height);
                         model = maskModel + Av1RateDistortion.GetCost(this.rateMultiplier, blendRate + motionRate, 0);
                     }
 
@@ -8815,10 +8818,10 @@ internal static partial class Av1IntraSuperblockEncoder
                         estimate = this.EstimateInterPredictionResidual(
                             writer,
                             in tables,
-                            in workspace,
-                            forwardCoefficients,
+                            transformCoefficients,
                             dequantizedCoefficients,
                             transformWorkspace,
+                            in interWorkspace,
                             macroBlock,
                             blockOrigin,
                             blockSize,
@@ -9021,7 +9024,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Selects a mask from rounded single predictors while retaining six-bit blend precision in its error estimate.
         /// </summary>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="workspace">The inter prediction buffers of the block.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
         /// <param name="compoundMask">The blend mask destination.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -9035,7 +9038,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns>The modeled cost of the selected mask.</returns>
         private long SelectCompoundMask(
             in Av1CoefficientTables tables,
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             Span<byte> compoundMask,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -9050,10 +9053,10 @@ internal static partial class Av1IntraSuperblockEncoder
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
             int count = width * height;
-            Span<short> residualStorage = MemoryMarshal.Cast<int, short>(workspace.BlueCandidateCoefficients);
+            Span<short> residualStorage = MemoryMarshal.Cast<int, short>(interWorkspace.BlueCandidateCoefficients);
             Span<short> firstResidual = residualStorage[..count];
             Span<short> secondResidual = residualStorage.Slice(count, count);
-            Span<short> difference = workspace.Residual[..count];
+            Span<short> difference = interWorkspace.Residual[..count];
             Span<byte> mask = compoundMask[..count];
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin);
@@ -9169,7 +9172,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Measures a rounded luma predictor in the curve-fit model's normalized error domain.
         /// </summary>
-        /// <param name="workspace">The inter prediction buffers of the block, whose luma prediction is current.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block, whose luma prediction is current.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="syntaxRate">The prediction syntax rate of the candidate.</param>
@@ -9178,7 +9181,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="distortion">The modeled residual distortion.</param>
         /// <returns>The modeled cost of the candidate.</returns>
         private long GetCompoundPredictionModelCost(
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             Point blockOrigin,
             Av1BlockSize blockSize,
             int syntaxRate,
@@ -9191,7 +9194,7 @@ internal static partial class Av1IntraSuperblockEncoder
             TOperator.GetMoments(
                 Av1TransformBlockEncoder.GetPlaneSpan(sourcePlane, blockOrigin),
                 sourcePlane.Stride,
-                workspace.LumaPrediction,
+                interWorkspace.LumaPrediction,
                 blockSize.GetWidth(),
                 visible.Width,
                 visible.Height,
@@ -9223,7 +9226,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Refines the searched components of a compound predictor while holding its blend mask fixed.
         /// </summary>
-        /// <param name="workspace">The inter prediction buffers of the block.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -9237,7 +9240,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="primary">The first vector, which the search may change.</param>
         /// <param name="secondary">The second vector, which the search may change.</param>
         private void RefineCompoundVectors(
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             in Av1MotionVectorCosts motionVectorCosts,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -9301,9 +9304,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1InterpolationFilter.Regular,
                     columnQ4 & 15,
                     rowQ4 & 15,
-                    workspace.BluePrediction,
-                    workspace.Residual,
-                    workspace.PredictionScratch,
+                    interWorkspace.BluePrediction,
+                    interWorkspace.Residual,
+                    interWorkspace.FilterRows,
                     blockSize,
                     this.bitDepth);
 
@@ -9331,7 +9334,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.bitDepth,
                     Av1RateDistortion.GetMotionSearchSadPerBit(this.blockQIndex, this.bitDepth),
                     this.rateMultiplier,
-                    workspace.BluePrediction,
+                    interWorkspace.BluePrediction,
                     mask);
 
                 Point start = new(
@@ -9373,14 +9376,14 @@ internal static partial class Av1IntraSuperblockEncoder
                         movingPlane.Samples,
                         movingPlane.Stride,
                         referenceOrigin,
-                        workspace.RedPrediction,
+                        interWorkspace.RedPrediction,
                         size,
                         this.ApplySharpnessMargins(referenceVector.GetSubpixelSearchBounds(bounds), blockOrigin, size, Av1MotionVector.SubpixelScale),
                         referenceVector,
                         motionVectorCosts,
                         this.bitDepth,
                         this.rateMultiplier,
-                        workspace.BluePrediction,
+                        interWorkspace.BluePrediction,
                         mask);
 
                     searchCost = fractionalSearch.Search(
@@ -9458,8 +9461,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
-        /// <param name="workspace">The inter prediction buffers of the block.</param>
-        /// <param name="interIntraPrediction">The intra component storage of an inter-intra prediction.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+        /// <param name="transformPrediction">The intra component storage of an inter-intra prediction.</param>
         /// <param name="interIntraAbove">The extended above edge of an inter-intra prediction.</param>
         /// <param name="interIntraLeft">The extended left edge of an inter-intra prediction.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
@@ -9483,8 +9486,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
-            Span<TSample> interIntraPrediction,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            Span<TSample> transformPrediction,
             Span<TSample> interIntraAbove,
             Span<TSample> interIntraLeft,
             Span<ushort> firstIntermediate,
@@ -9505,11 +9508,11 @@ internal static partial class Av1IntraSuperblockEncoder
             if (isInterIntra)
             {
                 this.PrepareInterIntraPrediction(
-                    in workspace,
-                    interIntraPrediction,
+                    transformWorkspace,
+                    in interWorkspace,
+                    transformPrediction,
                     interIntraAbove,
                     interIntraLeft,
-                    transformWorkspace,
                     compoundMask,
                     macroBlock,
                     blockOrigin,
@@ -9570,9 +9573,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 Size extent = GetCodedTransformExtent(macroBlock, planeBlockSize, Av1TransformSize.Size4x4, subX, subY);
                 Span<TSample> prediction = plane switch
                 {
-                    Av1Plane.Y => workspace.LumaPrediction,
-                    Av1Plane.U => workspace.BluePrediction,
-                    _ => workspace.RedPrediction,
+                    Av1Plane.Y => interWorkspace.LumaPrediction,
+                    Av1Plane.U => interWorkspace.BluePrediction,
+                    _ => interWorkspace.RedPrediction,
                 };
 
                 // Keep motion interpolation and compound masks in full-block coordinates. Transform
@@ -9598,8 +9601,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     subY,
                     modeInfo.Block.BlockSize,
                     prediction,
-                    workspace.Residual,
-                    workspace.PredictionScratch,
+                    interWorkspace.Residual,
+                    interWorkspace.FilterRows,
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask);
@@ -9621,7 +9624,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1NeighborEdges<byte> neighbors = neighborArray.GetEdges();
                 int contextWidth = planeBlockSize.Get4x4WideCount();
                 int contextHeight = planeBlockSize.Get4x4HighCount();
-                Span<byte> transformContexts = workspace.TransformContexts;
+                Span<byte> transformContexts = interWorkspace.TransformContexts;
                 Span<byte> topContexts = transformContexts[..contextWidth];
                 Span<byte> leftContexts = transformContexts.Slice(contextWidth, contextHeight);
                 neighbors.Top.Slice(neighbors.GetTopIndex(planeOrigin), contextWidth).CopyTo(topContexts);
@@ -9697,7 +9700,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         plane,
                         transformSize,
                         prediction[inputOffset..],
-                        workspace.Residual[inputOffset..],
+                        interWorkspace.Residual[inputOffset..],
                         width,
                         selectedState,
                         modeInfo.Block.Skip,
@@ -9824,7 +9827,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Selects interpolation filters with per-block reuse and frame-history pruning.
         /// </summary>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="workspace">The inter prediction buffers of the block.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
@@ -9842,7 +9845,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns>Whether all selected prediction planes are prepared in the shared workspace.</returns>
         private bool SelectInterFilters(
             in Av1CoefficientTables tables,
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
@@ -10050,12 +10053,12 @@ internal static partial class Av1IntraSuperblockEncoder
             int lumaCount = blockSize.GetWidth() * blockSize.GetHeight();
             Av1BlockSize chromaSize = blockSize.GetSubsampled(this.source.ChromaSubsamplingX != 0, this.source.ChromaSubsamplingY != 0);
             int chromaCount = hasChroma ? chromaSize.GetWidth() * chromaSize.GetHeight() : 0;
-            Span<TSample> bestLuma = workspace.LumaPrediction[..lumaCount];
-            Span<TSample> trialLuma = workspace.LumaCandidateReconstruction[..lumaCount];
-            Span<TSample> bestBlue = workspace.BluePrediction[..chromaCount];
-            Span<TSample> trialBlue = workspace.BlueCandidateReconstruction[..chromaCount];
-            Span<TSample> bestRed = workspace.RedPrediction[..chromaCount];
-            Span<TSample> trialRed = workspace.RedCandidateReconstruction[..chromaCount];
+            Span<TSample> bestLuma = interWorkspace.LumaPrediction[..lumaCount];
+            Span<TSample> trialLuma = interWorkspace.LumaCandidateReconstruction[..lumaCount];
+            Span<TSample> bestBlue = interWorkspace.BluePrediction[..chromaCount];
+            Span<TSample> trialBlue = interWorkspace.BlueCandidateReconstruction[..chromaCount];
+            Span<TSample> bestRed = interWorkspace.RedPrediction[..chromaCount];
+            Span<TSample> trialRed = interWorkspace.RedCandidateReconstruction[..chromaCount];
             Av1InterpolationFilter initialFilter = frameHeader.InterpolationFilter == Av1InterpolationFilter.Switchable
                 ? Av1InterpolationFilter.Regular : frameHeader.InterpolationFilter;
 
@@ -10074,7 +10077,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1RateDistortionStatistics> trialPlaneStatistics = trialPlaneStatisticsStorage;
             long bestLumaSquaredError = 0;
             Av1RateDistortionStatistics regular = this.GetInterFilterModelCost(
-                in workspace,
+                in interWorkspace,
                 firstIntermediate,
                 secondIntermediate,
                 compoundMask,
@@ -10159,7 +10162,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 bestPlaneStatistics[..].CopyTo(trialPlaneStatistics);
                 long trialLumaSquaredError = bestLumaSquaredError;
                 Av1RateDistortionStatistics trial = this.GetInterFilterModelCost(
-                    in workspace,
+                    in interWorkspace,
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
@@ -10256,13 +10259,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (!lumaUsesWorkspace)
             {
-                bestLuma.CopyTo(workspace.LumaPrediction);
+                bestLuma.CopyTo(interWorkspace.LumaPrediction);
             }
 
             if (modelChroma && !chromaUsesWorkspace)
             {
-                bestBlue.CopyTo(workspace.BluePrediction);
-                bestRed.CopyTo(workspace.RedPrediction);
+                bestBlue.CopyTo(interWorkspace.BluePrediction);
+                bestRed.CopyTo(interWorkspace.RedPrediction);
             }
 
             if (hasChroma && !modelChroma)
@@ -10276,8 +10279,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1Plane plane = (Av1Plane)planeIndex;
                     int subX = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingX;
                     int subY = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingY;
-                    Span<TSample> prediction = planeIndex == 0 ? workspace.LumaPrediction :
-                        planeIndex == 1 ? workspace.BluePrediction : workspace.RedPrediction;
+                    Span<TSample> prediction = planeIndex == 0 ? interWorkspace.LumaPrediction :
+                        planeIndex == 1 ? interWorkspace.BluePrediction : interWorkspace.RedPrediction;
                     Av1PlaneRegion<TSample> reference = references[(int)modeInfo.ReferenceFrame].CodedView.GetPlane(plane);
                     Av1PlaneRegion<TSample> secondaryReference = modeInfo.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
                         ? references[(int)modeInfo.SecondaryReferenceFrame].CodedView.GetPlane(plane)
@@ -10304,8 +10307,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         subY,
                         blockSize,
                         prediction,
-                        workspace.Residual,
-                        workspace.PredictionScratch,
+                        interWorkspace.Residual,
+                        interWorkspace.FilterRows,
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask);
@@ -10346,7 +10349,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Ranks a filter pair from visible prediction error without transforming samples.
         /// </summary>
-        /// <param name="workspace">The inter prediction buffers of the block.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
@@ -10369,7 +10372,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaSquaredError">The squared luma prediction error.</param>
         /// <returns>The modeled rate and distortion, or an invalid result when the model stops.</returns>
         private Av1RateDistortionStatistics GetInterFilterModelCost(
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
@@ -10417,7 +10420,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int width = planeBlockSize.GetWidth();
                 int height = planeBlockSize.GetHeight();
                 Span<TSample> prediction = plane == Av1Plane.Y ? lumaPrediction : plane == Av1Plane.U ? bluePrediction : redPrediction;
-                Span<short> residual = workspace.Residual[..(width * height)];
+                Span<short> residual = interWorkspace.Residual[..(width * height)];
                 Av1PlaneRegion<TSample> primaryReferencePlane = references[(int)modeInfo.ReferenceFrame].CodedView.GetPlane(plane);
                 Av1PlaneRegion<TSample> secondaryReferencePlane = modeInfo.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
                     ? references[(int)modeInfo.SecondaryReferenceFrame].CodedView.GetPlane(plane)
@@ -10445,7 +10448,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockSize,
                     prediction,
                     residual,
-                    workspace.PredictionScratch,
+                    interWorkspace.FilterRows,
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask);
@@ -10510,17 +10513,17 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="transformPrediction">The prediction storage of one transform block.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
-        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -10562,17 +10565,17 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics EvaluateInterCandidate(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
             ReadOnlySpan<int> transformTypeProbabilities,
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            in Av1MotionVectorCosts motionVectorCosts,
             Span<TSample> transformPrediction,
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
-            in Av1MotionVectorCosts motionVectorCosts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -10685,7 +10688,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 SearchIndex = this.interCandidateCount
             };
 
-            Av1EncoderInterPredictionWorkspace<TSample> workspace = interWorkspace;
             Av1EncoderFrame<TSample>.PlanarView primaryReference = referenceFrame == Av1ReferenceFrameType.Intra
                 ? this.reconstruction
                 : this.references.Span[(int)referenceFrame].CodedView;
@@ -10710,8 +10712,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 int subX = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingX;
                 int subY = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingY;
                 Av1BlockSize planeSize = blockSize.GetSubsampled(subX != 0, subY != 0);
-                Span<TSample> prediction = planeIndex == 0 ? workspace.LumaPrediction :
-                    planeIndex == 1 ? workspace.BluePrediction : workspace.RedPrediction;
+                Span<TSample> prediction = planeIndex == 0 ? interWorkspace.LumaPrediction :
+                    planeIndex == 1 ? interWorkspace.BluePrediction : interWorkspace.RedPrediction;
 
                 this.PrepareInterPlanePrediction(
                     vector,
@@ -10734,8 +10736,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     subY,
                     blockSize,
                     prediction,
-                    workspace.Residual,
-                    workspace.PredictionScratch,
+                    interWorkspace.Residual,
+                    interWorkspace.FilterRows,
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask);
@@ -10802,7 +10804,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // Reference: av1_enc_build_inter_predictor() in handle_inter_mode() and rd_pick_intrabc_mode_sb().
             if (!usePreparedPrediction && !this.useObmcPrediction && !this.useWarpedPrediction)
             {
-                this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, workspace.LumaPrediction);
+                this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, interWorkspace.LumaPrediction);
             }
 
             // Sharpness 3 measures the candidate's luma prediction, which the plane loop leaves in the current
@@ -10810,7 +10812,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // pd->dst in adjust_rdcost() of motion_mode_rd().
             bool chargesPrediction = referenceFrame != Av1ReferenceFrameType.Intra && !this.BiasesInterCosts && this.ChargesSmoothing;
             long predictionSmoothingOffset = chargesPrediction
-                ? this.GetSmoothingOffset(blockOrigin, blockSize, workspace.LumaPrediction, blockSize.GetWidth())
+                ? this.GetSmoothingOffset(blockOrigin, blockSize, interWorkspace.LumaPrediction, blockSize.GetWidth())
                 : 0;
 
             // High bit depth sharpness 3 measures the same prediction. It sets the charge when the skip is known.
@@ -10821,7 +10823,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (chargesTextureLoss)
             {
                 this.GetVarianceStatistics(
-                    blockOrigin, blockSize, workspace.LumaPrediction, blockSize.GetWidth(), out predictionSourceVariance, out predictionSampleVariance);
+                    blockOrigin, blockSize, interWorkspace.LumaPrediction, blockSize.GetWidth(), out predictionSourceVariance, out predictionSampleVariance);
             }
 
             if (this.estimateInterCandidates)
@@ -10896,7 +10898,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1RateDistortionStatistics statistics = this.EvaluatePreparedInterCandidate(
                 writer,
                 in tables,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 searchDequantizedCoefficients,
                 transformWorkspace,
@@ -10998,7 +11000,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -11029,7 +11031,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics EvaluatePreparedInterCandidate(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -11098,7 +11100,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? Av1TransformSize.Size4x4
                 : blockSize.GetMaximumTransformSize();
 
-            Av1EncoderInterPredictionWorkspace<TSample> workspace = interWorkspace;
             Av1EncoderBlockModeInfo lumaModeInfo = new()
             {
                 BlockSize = blockSize,
@@ -11110,7 +11111,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1RateDistortionStatistics lumaStatistics = this.EvaluateInterLumaTree(
                 writer,
                 in tables,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 searchDequantizedCoefficients,
                 transformWorkspace,
@@ -11164,7 +11165,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 bool blueValid = this.EvaluateInterChromaPlane(
                     writer,
                     in tables,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     searchDequantizedCoefficients,
                     transformWorkspace,
@@ -11222,7 +11223,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 bool redValid = this.EvaluateInterChromaPlane(
                     writer,
                     in tables,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     searchDequantizedCoefficients,
                     transformWorkspace,
@@ -11311,7 +11312,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 long comparedSkipDistortion = skipDistortion;
                 if (!skippable && this.UsesHighBitDepthSharpness)
                 {
-                    this.PenalizeTransformSkip(blockOrigin, blockSize, workspace.LumaPrediction, ref comparedCodedDistortion, ref comparedSkipDistortion);
+                    this.PenalizeTransformSkip(blockOrigin, blockSize, interWorkspace.LumaPrediction, ref comparedCodedDistortion, ref comparedSkipDistortion);
                 }
 
                 skip = skippable ||
@@ -11334,7 +11335,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 int lumaSampleCount = blockSize.GetWidth() * blockSize.GetHeight();
-                workspace.LumaPrediction[..lumaSampleCount].CopyTo(lumaReconstruction);
+                interWorkspace.LumaPrediction[..lumaSampleCount].CopyTo(lumaReconstruction);
                 lumaCoefficients[..lumaSampleCount].Clear();
                 lumaStates = default;
                 lumaTransformSizes[..].Fill(lumaTransformSize);
@@ -11344,8 +11345,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.source.ChromaSubsamplingX != 0, this.source.ChromaSubsamplingY != 0);
 
                     int chromaSampleCount = chromaBlockSize.GetWidth() * chromaBlockSize.GetHeight();
-                    workspace.BluePrediction[..chromaSampleCount].CopyTo(blueReconstruction);
-                    workspace.RedPrediction[..chromaSampleCount].CopyTo(redReconstruction);
+                    interWorkspace.BluePrediction[..chromaSampleCount].CopyTo(blueReconstruction);
+                    interWorkspace.RedPrediction[..chromaSampleCount].CopyTo(redReconstruction);
                     blueCoefficients[..chromaSampleCount].Clear();
                     redCoefficients[..chromaSampleCount].Clear();
                     blueState = default;
@@ -11614,7 +11615,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -11654,7 +11655,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private bool EvaluateInterChromaPlane(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -11714,8 +11715,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int cellWidth = cellSize.GetWidth();
             int cellHeight = cellSize.GetHeight();
             int cellStride = blockSize.GetWidth() / cellWidth;
-            Av1EncoderInterPredictionWorkspace<TSample> workspace = interWorkspace;
-            Span<TSample> prediction = plane == Av1Plane.U ? workspace.BluePrediction : workspace.RedPrediction;
+            Span<TSample> prediction = plane == Av1Plane.U ? interWorkspace.BluePrediction : interWorkspace.RedPrediction;
             Av1EncoderFrame<TSample>.PlanarView primaryReference = referenceFrame == Av1ReferenceFrameType.Intra
                 ? this.reconstruction
                 : this.references.Span[(int)referenceFrame].CodedView;
@@ -11744,8 +11744,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 subY,
                 blockSize,
                 prediction,
-                workspace.Residual,
-                workspace.PredictionScratch,
+                interWorkspace.Residual,
+                interWorkspace.FilterRows,
                 firstIntermediate,
                 secondIntermediate,
                 compoundMask);
@@ -11759,7 +11759,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int contextWidth = planeBlockSize.Get4x4WideCount();
             int contextHeight = planeBlockSize.Get4x4HighCount();
-            Span<byte> transformContexts = workspace.TransformContexts;
+            Span<byte> transformContexts = interWorkspace.TransformContexts;
             Span<byte> topContexts = transformContexts[..contextWidth];
             Span<byte> leftContexts = transformContexts.Slice(contextWidth, contextHeight);
             neighbors.Top.Slice(neighbors.GetTopIndex(planeOrigin), contextWidth).CopyTo(topContexts);
@@ -11845,7 +11845,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.EvaluateInterTransform(
                         writer,
                         in tables,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         searchDequantizedCoefficients,
                         transformWorkspace,
@@ -11858,11 +11858,11 @@ internal static partial class Av1IntraSuperblockEncoder
                         context,
                         Av1TileWriter.GetTransformBlockContexts(Av1ComponentType.Chroma, in neighbors, planeOrigin, planeBlockSize, transformSize),
                         prediction[inputOffset..],
-                        workspace.Residual[inputOffset..],
+                        interWorkspace.Residual[inputOffset..],
                         width,
                         costLimit - currentCost,
-                        workspace.TransformReconstruction,
-                        workspace.TransformCoefficients,
+                        interWorkspace.TransformReconstruction,
+                        interWorkspace.TransformCoefficients,
                         selectedReconstruction.Slice(coefficientOffset, sampleCount),
                         coefficients,
                         out Av1EncoderTransformBlockState state,
@@ -11915,14 +11915,14 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="subsamplingY">The vertical subsampling shift.</param>
         /// <param name="prediction">The contiguous plane prediction, blended in place.</param>
         /// <param name="residual">The contiguous residual, rebuilt from the blended prediction.</param>
-        /// <param name="predictionScratch">The interpolation scratch.</param>
+        /// <param name="filterRows">The interpolation scratch.</param>
         private void ApplyObmcPrediction(
             Av1Plane plane,
             int subsamplingX,
             int subsamplingY,
             Span<TSample> prediction,
             Span<short> residual,
-            Span<short> predictionScratch)
+            Span<short> filterRows)
         {
             ReadOnlySpan<int> maximumNeighbors = [0, 1, 2, 3, 4, 4];
             Av1BlockSize blockSize = this.obmcBlockSize;
@@ -11987,7 +11987,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         width,
                         predictionHeight,
                         neighborPrediction,
-                        predictionScratch,
+                        filterRows,
                         bitDepth);
 
                     ReadOnlySpan<byte> verticalMask = Av1ObmcMask.Get(overlap);
@@ -12039,7 +12039,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         predictionWidth,
                         height,
                         neighborPrediction,
-                        predictionScratch,
+                        filterRows,
                         bitDepth);
 
                     TOperator.BlendMask(
@@ -12072,7 +12072,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="width">The rectangle width.</param>
         /// <param name="height">The rectangle height.</param>
         /// <param name="destination">The contiguous destination.</param>
-        /// <param name="predictionScratch">The interpolation scratch.</param>
+        /// <param name="filterRows">The interpolation scratch.</param>
         /// <param name="bitDepth">The coded bit depth.</param>
         private void PredictObmcNeighbor(
             Av1Plane plane,
@@ -12084,7 +12084,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int width,
             int height,
             Span<TSample> destination,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             Av1BitDepth bitDepth)
         {
             // A neighbor predicts from its reference with that reference's scale factors. Reference:
@@ -12104,7 +12104,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     width,
                     width,
                     height,
-                    predictionScratch);
+                    filterRows);
 
                 return;
             }
@@ -12126,7 +12126,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 width,
                 width,
                 height,
-                predictionScratch,
+                filterRows,
                 bitDepth);
         }
 
@@ -12148,7 +12148,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockSize">The luma block size.</param>
         /// <param name="prediction">The contiguous prediction destination.</param>
         /// <param name="residual">The contiguous residual destination.</param>
-        /// <param name="predictionScratch">The interpolation scratch.</param>
+        /// <param name="filterRows">The interpolation scratch.</param>
         /// <returns><see langword="true"/> when the prediction was built.</returns>
         private bool TryPrepareSubEightInterPrediction(
             Av1MotionVector vector,
@@ -12163,7 +12163,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             Span<TSample> prediction,
             Span<short> residual,
-            Span<short> predictionScratch)
+            Span<short> filterRows)
         {
             bool subFourX = blockSize.GetWidth() == 4 && subsamplingX != 0;
             bool subFourY = blockSize.GetHeight() == 4 && subsamplingY != 0;
@@ -12250,7 +12250,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             planeWidth,
                             subWidth,
                             subHeight,
-                            predictionScratch);
+                            filterRows);
 
                         continue;
                     }
@@ -12268,7 +12268,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         planeWidth,
                         subWidth,
                         subHeight,
-                        predictionScratch,
+                        filterRows,
                         this.picture.Sequence.SequenceHeader.ColorConfig.BitDepth);
                 }
             }
@@ -12331,7 +12331,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="subsamplingX">The horizontal subsampling of the plane.</param>
         /// <param name="subsamplingY">The vertical subsampling of the plane.</param>
         /// <param name="intermediate">The compound intermediate of this reference.</param>
-        /// <param name="predictionScratch">The intermediate rows of the warp filter.</param>
+        /// <param name="filterRows">The intermediate rows of the warp filter.</param>
         /// <returns><see langword="true"/> when the intermediate holds the warped predictor.</returns>
         private readonly bool TryPrepareGlobalCompoundIntermediate(
             Av1PredictionMode mode,
@@ -12343,7 +12343,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int subsamplingX,
             int subsamplingY,
             Span<ushort> intermediate,
-            Span<short> predictionScratch)
+            Span<short> filterRows)
         {
             int width = predictionSize.GetWidth();
             int height = predictionSize.GetHeight();
@@ -12364,7 +12364,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 subsamplingY,
                 model,
                 intermediate,
-                predictionScratch,
+                filterRows,
                 this.bitDepth);
 
             return true;
@@ -12518,7 +12518,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockSize">The block size.</param>
         /// <param name="prediction">The prediction destination.</param>
         /// <param name="residual">The residual destination.</param>
-        /// <param name="predictionScratch">The intermediate rows of the prediction filters.</param>
+        /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
@@ -12544,7 +12544,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             Span<TSample> prediction,
             Span<short> residual,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask)
@@ -12607,7 +12607,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     subsamplingX,
                     subsamplingY,
                     firstIntermediate,
-                    predictionScratch);
+                    filterRows);
 
                 bool secondaryWarped = this.TryPrepareGlobalCompoundIntermediate(
                     predictionMode,
@@ -12619,7 +12619,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     subsamplingX,
                     subsamplingY,
                     secondIntermediate,
-                    predictionScratch);
+                    filterRows);
 
                 TOperator.PrepareCompoundInterPrediction(
                     sourcePlane,
@@ -12639,7 +12639,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
-                    predictionScratch,
+                    filterRows,
                     predictionSize,
                     this.bitDepth,
                     plane,
@@ -12670,7 +12670,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockSize,
                     prediction,
                     residual,
-                    predictionScratch))
+                    filterRows))
                 {
                     return;
                 }
@@ -12701,7 +12701,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         subsamplingY,
                         warpModel,
                         prediction,
-                        predictionScratch,
+                        filterRows,
                         this.bitDepth);
 
                     TOperator.SubtractPrediction(
@@ -12731,7 +12731,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         predictionSize,
                         prediction,
                         residual,
-                        predictionScratch);
+                        filterRows);
                 }
                 else
                 {
@@ -12746,14 +12746,14 @@ internal static partial class Av1IntraSuperblockEncoder
                         sourceRowQ4 & 15,
                         prediction,
                         residual,
-                        predictionScratch,
+                        filterRows,
                         predictionSize,
                         this.picture.Sequence.SequenceHeader.ColorConfig.BitDepth);
                 }
 
                 if (this.useObmcPrediction)
                 {
-                    this.ApplyObmcPrediction(plane, subsamplingX, subsamplingY, prediction, residual, predictionScratch);
+                    this.ApplyObmcPrediction(plane, subsamplingX, subsamplingY, prediction, residual, filterRows);
                 }
             }
             else
@@ -12777,7 +12777,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The tile symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -12794,7 +12794,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="inputStride">The number of prediction and residual samples between rows.</param>
         /// <param name="costLimit">The budget left for the transform block.</param>
         /// <param name="transformReconstruction">The reconstruction storage of the candidate.</param>
-        /// <param name="transformCoefficients">The coefficient storage of the candidate.</param>
+        /// <param name="trialCoefficients">The coefficient storage of the candidate.</param>
         /// <param name="selectedReconstruction">The reconstruction storage of the winner.</param>
         /// <param name="selectedCoefficients">The coefficient storage of the winner.</param>
         /// <param name="selectedState">The transform state of the winner.</param>
@@ -12804,7 +12804,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private void EvaluateInterTransform(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -12821,7 +12821,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int inputStride,
             long costLimit,
             Span<TSample> transformReconstruction,
-            Span<int> transformCoefficients,
+            Span<int> trialCoefficients,
             Span<TSample> selectedReconstruction,
             Span<int> selectedCoefficients,
             out Av1EncoderTransformBlockState selectedState,
@@ -12835,7 +12835,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // The candidate uses the transform scratch and the winner the caller's selected storage. The search swaps
             // them on each improvement, so the winner is copied at most once, after the search.
             Span<TSample> candidateReconstruction = transformReconstruction[..sampleCount];
-            Span<int> candidateCoefficients = transformCoefficients[..sampleCount];
+            Span<int> candidateCoefficients = trialCoefficients[..sampleCount];
             Span<TSample> bestReconstruction = selectedReconstruction[..sampleCount];
             Span<int> bestCoefficients = selectedCoefficients[..sampleCount];
             Span<int> candidateDequantized = dequantizedCoefficients;
@@ -12843,7 +12843,7 @@ internal static partial class Av1IntraSuperblockEncoder
             TransformTypeSearchResult result = this.SearchTransformType(
                 writer,
                 in tables,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 transformWorkspace,
                 transformTypeProbabilities,

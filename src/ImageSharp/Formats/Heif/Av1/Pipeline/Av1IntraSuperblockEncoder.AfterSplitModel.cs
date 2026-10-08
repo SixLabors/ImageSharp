@@ -599,7 +599,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Combines completed child costs, selected geometry, and motion residuals into a stopping decision.
         /// </summary>
         /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
-        /// <param name="predictionScratch">The intermediate rows of the prediction filters.</param>
+        /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -611,7 +611,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns><see langword="true"/> when the remaining partition searches stop.</returns>
         private bool ShouldTerminateAfterSplit(
             Span<TSample> motionSearchPrediction,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -703,7 +703,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            this.CollectSimpleMotionFeatures(motionSearchPrediction, predictionScratch, in motionVectorCosts, blockOrigin, blockSize, nodeIndex, true);
+            this.CollectSimpleMotionFeatures(motionSearchPrediction, filterRows, in motionVectorCosts, blockOrigin, blockSize, nodeIndex, true);
             Span<Av1SimpleMotionData> nodes = this.blockWorkspace.SimpleMotionData;
             features[featureIndex++] = float.LogP1(nodes[nodeIndex].Variance);
             for (int child = 0; child < 4; child++)

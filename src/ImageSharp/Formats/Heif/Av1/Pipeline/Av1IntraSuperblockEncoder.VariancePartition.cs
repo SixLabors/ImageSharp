@@ -559,9 +559,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Selects the temporal predictor used by partition variance and measures its chroma activity.
         /// </summary>
-        /// <param name="workspace">The inter prediction buffers of the block.</param>
-        /// <param name="midpoint">Storage for one row of mid-gray samples of the source variance.</param>
         /// <param name="transformCoefficients">The forward transform buffer, which the motion search borrows.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+        /// <param name="midpoint">Storage for one row of mid-gray samples of the source variance.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
@@ -571,9 +571,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lastSad">The selected LAST prediction's absolute-difference sum.</param>
         /// <returns>The borrowed luma prediction for partition moments.</returns>
         private ReadOnlySpan<TSample> PrepareInterVariancePrediction(
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
-            Span<TSample> midpoint,
             Span<int> transformCoefficients,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            Span<TSample> midpoint,
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
@@ -777,8 +777,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1Plane plane = (Av1Plane)planeIndex;
                     int subX = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingX;
                     int subY = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingY;
-                    Span<TSample> prediction = planeIndex == 0 ? workspace.LumaPrediction
-                        : planeIndex == 1 ? workspace.BluePrediction : workspace.RedPrediction;
+                    Span<TSample> prediction = planeIndex == 0 ? interWorkspace.LumaPrediction
+                        : planeIndex == 1 ? interWorkspace.BluePrediction : interWorkspace.RedPrediction;
 
                     this.PrepareInterPlanePrediction(
                         this.partitionMotion,
@@ -801,8 +801,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         subY,
                         blockSize,
                         prediction,
-                        workspace.Residual,
-                        workspace.PredictionScratch,
+                        interWorkspace.Residual,
+                        interWorkspace.FilterRows,
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask);
@@ -844,7 +844,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1PlaneRegion<TSample> chromaReference = searchReferences[(int)Av1ReferenceFrameType.Last].CodedView.GetPlane(plane);
                     ReadOnlySpan<TSample> prediction = zeroMotion
                         ? Av1TransformBlockEncoder.GetPlaneSpan(chromaReference, chromaOrigin)
-                        : index == 0 ? workspace.BluePrediction : workspace.RedPrediction;
+                        : index == 0 ? interWorkspace.BluePrediction : interWorkspace.RedPrediction;
 
                     uint sad = (uint)TOperator.SumAbsoluteDifferences(
                         sourceBlock,
@@ -897,7 +897,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             predictionStride = side;
-            return workspace.LumaPrediction;
+            return interWorkspace.LumaPrediction;
         }
 
         /// <summary>
@@ -1030,18 +1030,18 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Prepares the variance partition decision of one superblock: the temporal source filter, the segment, the
         /// split thresholds and the inter prediction that the variances measure.
         /// </summary>
-        /// <param name="workspace">The inter prediction buffers of the block.</param>
-        /// <param name="midpoint">Storage for one row of mid-gray samples of the source variance.</param>
         /// <param name="transformCoefficients">The forward transform buffer, which the motion search borrows.</param>
+        /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
+        /// <param name="midpoint">Storage for one row of mid-gray samples of the source variance.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
         /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
         /// <param name="macroBlock">The neighbor availability of the superblock.</param>
         /// <param name="superblockOrigin">The luma superblock origin.</param>
         private void PrepareVariancePartitions(
-            in Av1EncoderInterPredictionWorkspace<TSample> workspace,
-            Span<TSample> midpoint,
             Span<int> transformCoefficients,
+            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
+            Span<TSample> midpoint,
             Span<ushort> firstIntermediate,
             Span<ushort> secondIntermediate,
             Span<byte> compoundMask,
@@ -1079,9 +1079,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.GetInterVarianceThresholds(sourceSad, boostedSegment, partitionQIndex, thresholds);
 
                 ReadOnlySpan<TSample> prediction = this.PrepareInterVariancePrediction(
-                    in workspace,
-                    midpoint,
                     transformCoefficients,
+                    in interWorkspace,
+                    midpoint,
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,

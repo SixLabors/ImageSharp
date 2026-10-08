@@ -78,16 +78,16 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         sizeof(short) /
         sizeof(int);
 
-    private const int InterPredictionScratchStorageOffset =
+    private const int InterFilterRowStorageOffset =
         InterPredictionResidualStorageOffset + InterPredictionResidualStorageLength;
 
-    private const int InterPredictionScratchStorageLength =
-        Av1EncoderInterPredictionWorkspace<ushort>.PredictionScratchCount *
+    private const int InterFilterRowStorageLength =
+        Av1EncoderInterPredictionWorkspace<ushort>.FilterRowCount *
         sizeof(short) /
         sizeof(int);
 
     private const int InterPredictionCoefficientStorageOffset =
-        InterPredictionScratchStorageOffset + InterPredictionScratchStorageLength;
+        InterFilterRowStorageOffset + InterFilterRowStorageLength;
 
     private const int InterPredictionCoefficientStorageLength =
         (Av1EncoderInterPredictionWorkspace<ushort>.CoefficientBufferCount *
@@ -98,7 +98,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     private const int InterPredictionStorageLength =
         InterPredictionSampleStorageLength +
         InterPredictionResidualStorageLength +
-        InterPredictionScratchStorageLength +
+        InterFilterRowStorageLength +
         InterPredictionCoefficientStorageLength;
 
     private const int ModeDecisionStorageLength = Av1EncoderModeDecisionWorkspace<ushort>.StorageLength;
@@ -991,20 +991,15 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
 
         residualStorage = residualStorage[..Av1EncoderInterPredictionWorkspace<TSample>.MaximumSampleCount];
 
-        Span<short> predictionScratch = MemoryMarshal
-            .Cast<int, short>(storage.Slice(InterPredictionScratchStorageOffset, InterPredictionScratchStorageLength));
+        Span<short> filterRowStorage = MemoryMarshal.Cast<int, short>(storage.Slice(InterFilterRowStorageOffset, InterFilterRowStorageLength));
 
-        predictionScratch = predictionScratch[..Av1EncoderInterPredictionWorkspace<TSample>.PredictionScratchCount];
+        filterRowStorage = filterRowStorage[..Av1EncoderInterPredictionWorkspace<TSample>.FilterRowCount];
 
         Span<int> coefficientStorage = storage.Slice(
             InterPredictionCoefficientStorageOffset,
             InterPredictionCoefficientStorageLength);
 
-        return new Av1EncoderInterPredictionWorkspace<TSample>(
-            sampleStorage,
-            residualStorage,
-            predictionScratch,
-            coefficientStorage);
+        return new Av1EncoderInterPredictionWorkspace<TSample>(sampleStorage, residualStorage, filterRowStorage, coefficientStorage);
     }
 
     /// <summary>

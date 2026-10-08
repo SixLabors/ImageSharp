@@ -788,7 +788,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // The rate tables and the transform buffers of every search below, read once here and passed down.
             Av1CoefficientTables tables = writer.GetCoefficientTables();
             Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
-            Span<int> forwardCoefficients = this.blockWorkspace.TransformCoefficients;
+            Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
             Span<int> dequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
             Span<int> searchDequantizedCoefficients = this.blockWorkspace.SearchDequantizedCoefficients;
             Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
@@ -838,9 +838,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     else
                     {
                         this.PrepareVariancePartitions(
+                            transformCoefficients,
                             in interWorkspace,
                             modeWorkspace.GetCandidateReconstruction(0),
-                            forwardCoefficients,
                             firstIntermediate,
                             secondIntermediate,
                             compoundMask,
@@ -856,7 +856,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             writer,
                             in tables,
                             in modeWorkspace,
-                            forwardCoefficients,
+                            transformCoefficients,
                             dequantizedCoefficients,
                             searchDequantizedCoefficients,
                             transformWorkspace,
@@ -891,7 +891,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         writer,
                         in tables,
                         in modeWorkspace,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         searchDequantizedCoefficients,
                         transformWorkspace,
@@ -945,7 +945,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     writer,
                     in tables,
                     in modeWorkspace,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     searchDequantizedCoefficients,
                     transformWorkspace,
@@ -990,7 +990,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
         /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -1018,7 +1018,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -1081,7 +1081,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 writer,
                 in tables,
                 in modeWorkspace,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 searchDequantizedCoefficients,
                 transformWorkspace,
@@ -1155,7 +1155,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         writer,
                         in tables,
                         in modeWorkspace,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         searchDequantizedCoefficients,
                         transformWorkspace,
@@ -1293,7 +1293,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
         /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -1325,7 +1325,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -1381,7 +1381,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 writer,
                 in tables,
                 in modeWorkspace,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 searchDequantizedCoefficients,
                 transformWorkspace,
@@ -1721,7 +1721,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
         /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -1753,7 +1753,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -1852,7 +1852,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.maximumPartitionSize = (Av1BlockSize)Math.Clamp(
                         (int)this.PredictMaximumPartition(
                             motionSearchPrediction,
-                            interWorkspace.PredictionScratch,
+                            interWorkspace.FilterRows,
                             in motionVectorCosts,
                             modeWorkspace.GetCandidateReconstruction(0),
                             blockOrigin),
@@ -1948,7 +1948,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 this.PrunePartitionsBySimpleMotion(
                     motionSearchPrediction,
-                    interWorkspace.PredictionScratch,
+                    interWorkspace.FilterRows,
                     in motionVectorCosts,
                     macroBlock,
                     blockOrigin,
@@ -2042,10 +2042,10 @@ internal static partial class Av1IntraSuperblockEncoder
                         true);
 
                     if (this.PrunePartitionsAfterSplit(
-                        motionSearchPrediction,
-                        interWorkspace.PredictionScratch,
-                        in motionVectorCosts,
                         in modeWorkspace,
+                        motionSearchPrediction,
+                        interWorkspace.FilterRows,
+                        in motionVectorCosts,
                         blockOrigin,
                         blockSize,
                         nodeIndex,
@@ -2187,7 +2187,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     GetPartitionLeafGeometry(blockOrigin, blockSize, stripPartition, strip, out Point origin, out Av1BlockSize size);
                                     this.SearchSimpleMotion(
                                         motionSearchPrediction,
-                                        interWorkspace.PredictionScratch,
+                                        interWorkspace.FilterRows,
                                         in motionVectorCosts,
                                         origin,
                                         size,
@@ -2422,7 +2422,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     writer,
                     in tables,
                     in modeWorkspace,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     searchDequantizedCoefficients,
                     transformWorkspace,
@@ -2581,7 +2581,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     terminateAfterNone = this.ShouldTerminateAfterMotionNone(
                         motionSearchPrediction,
-                        interWorkspace.PredictionScratch,
+                        interWorkspace.FilterRows,
                         in motionVectorCosts,
                         macroBlock,
                         blockOrigin,
@@ -2622,10 +2622,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (partitionType == Av1PartitionType.Split)
                 {
                     terminateAfterSplit = this.PrunePartitionsAfterSplit(
-                        motionSearchPrediction,
-                        interWorkspace.PredictionScratch,
-                        in motionVectorCosts,
                         in modeWorkspace,
+                        motionSearchPrediction,
+                        interWorkspace.FilterRows,
+                        in motionVectorCosts,
                         blockOrigin,
                         blockSize,
                         nodeIndex,
@@ -2857,10 +2857,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Reference: the skip_non_sq_part_based_on_none test and prune_partitions_after_split() in
         /// av1_rd_pick_partition().
         /// </summary>
-        /// <param name="motionSearchPrediction">The prediction buffer of the simple motion searches.</param>
-        /// <param name="predictionScratch">The intermediate rows of the prediction filters.</param>
-        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="modeWorkspace">The mode decision buffers, whose first candidate row holds the variance midpoint.</param>
+        /// <param name="motionSearchPrediction">The prediction buffer of the simple motion searches.</param>
+        /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="nodeIndex">The partition tree node of the block.</param>
@@ -2878,10 +2878,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="parentSourceVariance">The cached source variance of the block, or a negative value.</param>
         /// <returns><see langword="true"/> when the partition search ends here.</returns>
         private bool PrunePartitionsAfterSplit(
-            Span<TSample> motionSearchPrediction,
-            Span<short> predictionScratch,
-            in Av1MotionVectorCosts motionVectorCosts,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
+            Span<TSample> motionSearchPrediction,
+            Span<short> filterRows,
+            in Av1MotionVectorCosts motionVectorCosts,
             Point blockOrigin,
             Av1BlockSize blockSize,
             int nodeIndex,
@@ -2935,7 +2935,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 terminated = this.ShouldTerminateAfterSplit(
                     motionSearchPrediction,
-                    predictionScratch,
+                    filterRows,
                     in motionVectorCosts,
                     blockOrigin,
                     blockSize,
@@ -3018,7 +3018,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
         /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -3047,7 +3047,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -3083,7 +3083,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 writer,
                 in tables,
                 in modeWorkspace,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 searchDequantizedCoefficients,
                 transformWorkspace,
@@ -3121,7 +3121,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
         /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -3150,7 +3150,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -3192,7 +3192,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         writer,
                         in tables,
                         in modeWorkspace,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         searchDequantizedCoefficients,
                         transformWorkspace,
@@ -3230,7 +3230,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         writer,
                         in tables,
                         in modeWorkspace,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         searchDequantizedCoefficients,
                         transformWorkspace,
@@ -3272,7 +3272,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 writer,
                                 in tables,
                                 in modeWorkspace,
-                                forwardCoefficients,
+                                transformCoefficients,
                                 dequantizedCoefficients,
                                 transformWorkspace,
                                 in interWorkspace,
@@ -3296,7 +3296,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 writer,
                                 in tables,
                                 in modeWorkspace,
-                                forwardCoefficients,
+                                transformCoefficients,
                                 dequantizedCoefficients,
                                 transformWorkspace,
                                 macroBlock,
@@ -3322,7 +3322,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             writer,
                             in tables,
                             in modeWorkspace,
-                            forwardCoefficients,
+                            transformCoefficients,
                             dequantizedCoefficients,
                             searchDequantizedCoefficients,
                             transformWorkspace,
@@ -3363,7 +3363,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             writer,
                             in tables,
                             in modeWorkspace,
-                            forwardCoefficients,
+                            transformCoefficients,
                             dequantizedCoefficients,
                             searchDequantizedCoefficients,
                             transformWorkspace,
@@ -3400,7 +3400,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     writer,
                     in tables,
                     in modeWorkspace,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     searchDequantizedCoefficients,
                     transformWorkspace,
@@ -3450,7 +3450,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
         /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -3483,7 +3483,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -3521,7 +3521,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     writer,
                     in tables,
                     in modeWorkspace,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     searchDequantizedCoefficients,
                     transformWorkspace,
@@ -3564,7 +3564,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 writer,
                 in tables,
                 in modeWorkspace,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 searchDequantizedCoefficients,
                 transformWorkspace,
@@ -3650,7 +3650,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
         /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -3686,7 +3686,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -3805,7 +3805,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         writer,
                         in tables,
                         in modeWorkspace,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         searchDequantizedCoefficients,
                         transformWorkspace,
@@ -3839,7 +3839,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             writer,
                             in tables,
                             in modeWorkspace,
-                            forwardCoefficients,
+                            transformCoefficients,
                             dequantizedCoefficients,
                             searchDequantizedCoefficients,
                             transformWorkspace,
@@ -3871,7 +3871,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             writer,
                             in tables,
                             in modeWorkspace,
-                            forwardCoefficients,
+                            transformCoefficients,
                             dequantizedCoefficients,
                             transformWorkspace,
                             in interWorkspace,
@@ -4007,7 +4007,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             writer,
                             in tables,
                             in modeWorkspace,
-                            forwardCoefficients,
+                            transformCoefficients,
                             dequantizedCoefficients,
                             transformWorkspace,
                             in interWorkspace,
@@ -4031,7 +4031,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             writer,
                             in tables,
                             in modeWorkspace,
-                            forwardCoefficients,
+                            transformCoefficients,
                             dequantizedCoefficients,
                             transformWorkspace,
                             macroBlock,
@@ -4510,7 +4510,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // The rate tables and the transform buffers of every search of the block, read once here and passed down.
             Av1CoefficientTables tables = writer.GetCoefficientTables();
             Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
-            Span<int> forwardCoefficients = this.blockWorkspace.TransformCoefficients;
+            Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
             Span<int> dequantizedCoefficients = this.blockWorkspace.DequantizedCoefficients;
             Span<int> searchDequantizedCoefficients = this.blockWorkspace.SearchDequantizedCoefficients;
             Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
@@ -4539,7 +4539,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 writer,
                 in tables,
                 in modeWorkspace,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 searchDequantizedCoefficients,
                 transformWorkspace,
@@ -4573,7 +4573,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
         /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -4601,7 +4601,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -4631,7 +4631,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 writer,
                 in tables,
                 in modeWorkspace,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 searchDequantizedCoefficients,
                 transformWorkspace,
@@ -4697,7 +4697,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
         /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -4725,7 +4725,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -4754,7 +4754,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 writer,
                 in tables,
                 in modeWorkspace,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 searchDequantizedCoefficients,
                 transformWorkspace,
@@ -4787,7 +4787,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
         /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -4816,7 +4816,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -4965,7 +4965,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.encodedWithoutCoefficients = !this.ReconstructSelectedInterBlock(
                         writer,
                         in tables,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         transformWorkspace,
                         in interWorkspace,
@@ -5020,7 +5020,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         writer,
                         in tables,
                         in modeWorkspace,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         transformWorkspace,
                         macroBlock,
@@ -5089,12 +5089,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         writer,
                         in tables,
                         in modeWorkspace,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         searchDequantizedCoefficients,
-                        estimationRowCoefficients,
                         transformWorkspace,
                         transformTypeProbabilities,
+                        estimationRowCoefficients,
                         in interWorkspace,
                         firstIntermediate,
                         secondIntermediate,
@@ -5119,16 +5119,16 @@ internal static partial class Av1IntraSuperblockEncoder
                     writer,
                     in tables,
                     in modeWorkspace,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
+                    searchDequantizedCoefficients,
                     transformWorkspace,
                     transformTypeProbabilities,
+                    blockResidual,
                     estimationRowCoefficients,
-                    searchDequantizedCoefficients,
                     in interWorkspace,
                     motionSearchPrediction,
                     in motionVectorCosts,
-                    blockResidual,
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
@@ -5155,21 +5155,21 @@ internal static partial class Av1IntraSuperblockEncoder
                 interStatistics = this.SelectInterBlock(
                     writer,
                     in tables,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     searchDequantizedCoefficients,
                     transformWorkspace,
                     transformTypeProbabilities,
+                    blockResidual,
                     in interWorkspace,
+                    motionSearchPrediction,
+                    in motionVectorCosts,
                     transformPrediction,
                     interIntraAbove,
                     interIntraLeft,
                     firstIntermediate,
                     secondIntermediate,
                     compoundMask,
-                    blockResidual,
-                    motionSearchPrediction,
-                    in motionVectorCosts,
                     macroBlock,
                     blockOrigin,
                     tileIndex,
@@ -5287,7 +5287,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     writer,
                     in tables,
                     in modeWorkspace,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     transformWorkspace,
                     transformTypeProbabilities,
@@ -5360,13 +5360,13 @@ internal static partial class Av1IntraSuperblockEncoder
                         writer,
                         in tables,
                         in modeWorkspace,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
+                        searchDequantizedCoefficients,
                         transformWorkspace,
                         transformTypeProbabilities,
                         blockResidual,
                         searchCoefficients,
-                        searchDequantizedCoefficients,
                         searchReconstructions,
                         macroBlock,
                         modeInfo,
@@ -5474,7 +5474,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.RefineInterTransformSize(
                         writer,
                         in tables,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         searchDequantizedCoefficients,
                         transformWorkspace,
@@ -5509,19 +5509,19 @@ internal static partial class Av1IntraSuperblockEncoder
                     ? this.SelectIntraBlockCopy(
                         writer,
                         in tables,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         searchDequantizedCoefficients,
                         transformWorkspace,
                         transformTypeProbabilities,
                         in interWorkspace,
+                        in motionVectorCosts,
                         transformPrediction,
                         interIntraAbove,
                         interIntraLeft,
                         firstIntermediate,
                         secondIntermediate,
                         compoundMask,
-                        in motionVectorCosts,
                         macroBlock,
                         blockOrigin,
                         tileIndex,
@@ -5590,7 +5590,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         writer,
                         in tables,
                         in modeWorkspace,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         transformWorkspace,
                         transformTypeProbabilities,
@@ -5621,13 +5621,13 @@ internal static partial class Av1IntraSuperblockEncoder
                             writer,
                             in tables,
                             in modeWorkspace,
-                            forwardCoefficients,
+                            transformCoefficients,
                             dequantizedCoefficients,
+                            searchDequantizedCoefficients,
                             transformWorkspace,
                             transformTypeProbabilities,
                             blockResidual,
                             searchCoefficients,
-                            searchDequantizedCoefficients,
                             searchReconstructions,
                             macroBlock,
                             blockOrigin,
@@ -5689,7 +5689,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     writer,
                     in tables,
                     in modeWorkspace,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     transformWorkspace,
                     macroBlock,
@@ -5710,7 +5710,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     writer,
                     in tables,
                     in modeWorkspace,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     transformWorkspace,
                     transformTypeProbabilities,
@@ -5768,7 +5768,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         writer,
                         in tables,
                         in modeWorkspace,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         transformWorkspace,
                         macroBlock,
@@ -5808,7 +5808,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     writer,
                     in tables,
                     in modeWorkspace,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     transformWorkspace,
                     macroBlock,
@@ -5918,7 +5918,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.encodedWithoutCoefficients = !this.ReconstructSelectedInterBlock(
                         writer,
                         in tables,
-                        forwardCoefficients,
+                        transformCoefficients,
                         dequantizedCoefficients,
                         transformWorkspace,
                         in interWorkspace,
@@ -5984,7 +5984,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
         /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -6017,7 +6017,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -6083,7 +6083,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 writer,
                 in tables,
                 in modeWorkspace,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 searchDequantizedCoefficients,
                 transformWorkspace,
@@ -6165,7 +6165,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
         /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
         /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -6198,7 +6198,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> searchDequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -6252,7 +6252,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 writer,
                 in tables,
                 in modeWorkspace,
-                forwardCoefficients,
+                transformCoefficients,
                 dequantizedCoefficients,
                 searchDequantizedCoefficients,
                 transformWorkspace,
@@ -6453,7 +6453,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
         /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="forwardCoefficients">The forward transform output buffer.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
@@ -6475,7 +6475,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> forwardCoefficients,
+            Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
@@ -6574,7 +6574,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (!this.ReconstructSelectedInterBlock(
                     writer,
                     in tables,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     transformWorkspace,
                     in interWorkspace,
@@ -6656,7 +6656,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     writer,
                     in tables,
                     in modeWorkspace,
-                    forwardCoefficients,
+                    transformCoefficients,
                     dequantizedCoefficients,
                     transformWorkspace,
                     macroBlock,
@@ -6711,7 +6711,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="workspace">The mode decision buffers of the block.</param>
+        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -6722,7 +6722,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private void ReconstructSelectedIntraBlock(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -6735,7 +6735,7 @@ internal static partial class Av1IntraSuperblockEncoder
             this.SetCodedBlockSegment(blockOrigin, snapshot.ModeInfo.Block.BlockSize, snapshot.ModeInfo.Block.SegmentId);
             Av1BlockSize blockSize = snapshot.ModeInfo.Block.BlockSize;
             bool usesChromaFromLuma = snapshot.Block.HasChroma && snapshot.ModeInfo.Block.UvMode == Av1ChromaPredictionMode.ChromaFromLuma;
-            Span<short> lumaQ3 = workspace.ChromaFromLumaSamples;
+            Span<short> lumaQ3 = modeWorkspace.ChromaFromLumaSamples;
             int planeCount = snapshot.Block.HasChroma ? 3 : 1;
             int chromaArea = 0;
             for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
@@ -6773,14 +6773,14 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 // Prediction stays outside transient CfL storage. The zero-mean luma surface survives
                 // both chroma planes while the residual and inverse-transform workspaces are reused.
-                Span<TSample> prediction = workspace.GetCandidateReconstruction(0)[..sampleCount];
-                Span<short> residual = workspace.Residual[..sampleCount];
-                Span<TSample> aboveStorage = workspace.GetReferenceSamples(0);
-                Span<TSample> leftStorage = workspace.GetReferenceSamples(1);
+                Span<TSample> prediction = modeWorkspace.GetCandidateReconstruction(0)[..sampleCount];
+                Span<short> residual = modeWorkspace.Residual[..sampleCount];
+                Span<TSample> aboveStorage = modeWorkspace.GetReferenceSamples(0);
+                Span<TSample> leftStorage = modeWorkspace.GetReferenceSamples(1);
                 Av1PlaneType planeType = planeIndex == 0 ? Av1PlaneType.Y : Av1PlaneType.Uv;
                 int contextWidth = planeBlockSize.Get4x4WideCount();
                 int contextHeight = planeBlockSize.Get4x4HighCount();
-                Span<byte> transformContexts = workspace.TransformContexts;
+                Span<byte> transformContexts = modeWorkspace.TransformContexts;
                 Span<byte> topContexts = transformContexts[..contextWidth];
                 Span<byte> leftContexts = transformContexts.Slice(contextWidth, contextHeight);
                 Av1NeighborArrayUnit<byte> neighborArray = plane switch
@@ -7510,10 +7510,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Inserts a completed candidate into the ordered winner list and retains its palette indices.
         /// </summary>
-        /// <param name="workspace">The mode decision buffers that hold the retained palette maps.</param>
+        /// <param name="modeWorkspace">The mode decision buffers that hold the retained palette maps.</param>
         /// <param name="candidate">The candidate syntax and completed search cost.</param>
         /// <param name="blockSize">The coding block dimensions.</param>
-        private void RetainLumaCandidate(in Av1EncoderModeDecisionWorkspace<TSample> workspace, LumaCandidate candidate, Av1BlockSize blockSize)
+        private void RetainLumaCandidate(in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace, LumaCandidate candidate, Av1BlockSize blockSize)
         {
             if (candidate.Cost == long.MaxValue)
             {
@@ -7542,7 +7542,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.lumaCandidates[index] = this.lumaCandidates[index - 1];
                 if (this.lumaCandidates[index].Palette.PaletteSizes[0] > 0)
                 {
-                    workspace.GetWinnerPaletteMap(index - 1)[..sampleCount].CopyTo(workspace.GetWinnerPaletteMap(index));
+                    modeWorkspace.GetWinnerPaletteMap(index - 1)[..sampleCount].CopyTo(modeWorkspace.GetWinnerPaletteMap(index));
                 }
             }
 
@@ -7552,7 +7552,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 this.superblock.Workspace.GetPaletteMaps()
                     .GetMap(Av1PlaneType.Y, blockSize.GetWidth(), blockSize.GetHeight())
-                    .CopyTo(workspace.GetWinnerPaletteMap(position));
+                    .CopyTo(modeWorkspace.GetWinnerPaletteMap(position));
             }
         }
 
@@ -7561,7 +7561,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="workspace">The mode decision buffers of the block.</param>
+        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -7581,7 +7581,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1PredictionMode SelectLumaMode(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -7601,7 +7601,7 @@ internal static partial class Av1IntraSuperblockEncoder
             return this.SelectLumaModeCore(
                 writer,
                 in tables,
-                in workspace,
+                in modeWorkspace,
                 transformCoefficients,
                 dequantizedCoefficients,
                 transformWorkspace,
@@ -7625,7 +7625,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="workspace">The mode decision buffers of the block.</param>
+        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -7645,7 +7645,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1PredictionMode SelectLumaModeCore(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -7667,7 +7667,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PredictionMode mode = this.SelectLumaPrediction(
                 writer,
                 in tables,
-                in workspace,
+                in modeWorkspace,
                 transformCoefficients,
                 dequantizedCoefficients,
                 transformWorkspace,
@@ -7705,7 +7705,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 : this.RefineLumaMode(
                     writer,
                     in tables,
-                    in workspace,
+                    in modeWorkspace,
                     transformCoefficients,
                     dequantizedCoefficients,
                     transformWorkspace,
@@ -7766,7 +7766,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.ReconstructSelectedIntraBlock(
                     writer,
                     in tables,
-                    in workspace,
+                    in modeWorkspace,
                     transformCoefficients,
                     dequantizedCoefficients,
                     transformWorkspace,
@@ -7805,7 +7805,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="workspace">The mode decision buffers of the block.</param>
+        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -7825,7 +7825,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1PredictionMode RefineLumaMode(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -7845,7 +7845,7 @@ internal static partial class Av1IntraSuperblockEncoder
             return this.RefineLumaModeCore(
                 writer,
                 in tables,
-                in workspace,
+                in modeWorkspace,
                 transformCoefficients,
                 dequantizedCoefficients,
                 transformWorkspace,
@@ -7869,7 +7869,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="workspace">The mode decision buffers of the block.</param>
+        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -7889,7 +7889,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1PredictionMode RefineLumaModeCore(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -7913,7 +7913,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (refine && settings.PruneIntraWinnerByVariance)
             {
                 int varianceThreshold = 64 - (48 * this.blockQIndex / 256);
-                refine = this.GetSourceVariance(workspace.GetCandidateReconstruction(0), blockOrigin, blockSize) >= varianceThreshold;
+                refine = this.GetSourceVariance(modeWorkspace.GetCandidateReconstruction(0), blockOrigin, blockSize) >= varianceThreshold;
             }
 
             int selectedMapIndex = paletteInfo.PaletteSizes[0] > 0 ? 0 : -1;
@@ -7947,10 +7947,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     : 0;
 
                 int sourceVariance = maximumDepth > 1 || settings.PruneIntraTransformDepth
-                    ? this.GetSourceVariance(workspace.GetCandidateReconstruction(0), blockOrigin, blockSize)
+                    ? this.GetSourceVariance(modeWorkspace.GetCandidateReconstruction(0), blockOrigin, blockSize)
                     : 0;
 
-                Span<TSample> samples = workspace.GetCandidateReconstruction(0);
+                Span<TSample> samples = modeWorkspace.GetCandidateReconstruction(0);
 
                 // Every retained predictor of the block shares these neighbor values, so they are read once.
                 LumaBlockState blockState = this.GetLumaBlockState(in tables, macroBlock, blockOrigin, blockSize);
@@ -7966,7 +7966,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     int paletteSize = candidate.Palette.PaletteSizes[0];
                     if (paletteSize > 0)
                     {
-                        map.CopyFrom(workspace.GetWinnerPaletteMap(index));
+                        map.CopyFrom(modeWorkspace.GetWinnerPaletteMap(index));
                     }
 
                     // With the breakout, the depths are bounded by the best candidate so far; without it the winner
@@ -7975,7 +7975,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1RateDistortionStatistics statistics = this.ChooseUniformTransformSize(
                         writer,
                         in tables,
-                        in workspace,
+                        in modeWorkspace,
                         transformCoefficients,
                         dequantizedCoefficients,
                         transformWorkspace,
@@ -8001,7 +8001,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         settings.UseIntraTransformRdBreakout ? candidateLimit : long.MaxValue,
                         candidateLimit,
                         samples,
-                        workspace.CandidateTransformBlocks,
+                        modeWorkspace.CandidateTransformBlocks,
                         retainedStates,
                         out Av1TransformSize size);
 
@@ -8035,7 +8035,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (selectedMapIndex >= 0 && !this.picture.Parent.FrameHeader.CodedLossless)
             {
-                map.CopyFrom(workspace.GetWinnerPaletteMap(selectedMapIndex));
+                map.CopyFrom(modeWorkspace.GetWinnerPaletteMap(selectedMapIndex));
             }
 
             return mode;
@@ -8046,7 +8046,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="workspace">The mode decision buffers of the block.</param>
+        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -8066,7 +8066,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1PredictionMode SelectLumaPrediction(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -8086,7 +8086,7 @@ internal static partial class Av1IntraSuperblockEncoder
             return this.SelectLumaPredictionCore(
                 writer,
                 in tables,
-                in workspace,
+                in modeWorkspace,
                 transformCoefficients,
                 dequantizedCoefficients,
                 transformWorkspace,
@@ -8110,7 +8110,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="workspace">The mode decision buffers of the block.</param>
+        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -8130,7 +8130,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1PredictionMode SelectLumaPredictionCore(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -8163,7 +8163,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
             int sampleCount = width * height;
-            Span<TSample> samples = workspace.GetCandidateReconstruction(0)[..sampleCount];
+            Span<TSample> samples = modeWorkspace.GetCandidateReconstruction(0)[..sampleCount];
             int sizeContext = Av1TileWriter.GetTransformSizeContext(
                 this.picture.TransformFunctionContexts[tileIndex].GetEdges(), macroBlock, blockOrigin, blockSize);
 
@@ -8183,7 +8183,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     ? 0
                     : width == height ? settings.IntraSquareTransformSearchDepth : settings.IntraRectangularTransformSearchDepth;
 
-            int sourceVariance = maximumDepth > 1 ? this.GetSourceVariance(workspace.GetCandidateReconstruction(0), blockOrigin, blockSize) : 0;
+            int sourceVariance = maximumDepth > 1 ? this.GetSourceVariance(modeWorkspace.GetCandidateReconstruction(0), blockOrigin, blockSize) : 0;
             int visibleWidth = width + (Math.Min(0, macroBlock.ToRightEdge) >> 3);
             int visibleHeight = height + (Math.Min(0, macroBlock.ToBottomEdge) >> 3);
             byte directionalMask = this.GetDirectionalModeSkipMask(sourcePlane, blockOrigin, visibleHeight, visibleWidth);
@@ -8214,7 +8214,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // of the left and above neighbors, and the inter frame syntax rate of an intra block.
             LumaBlockState blockState = this.GetLumaBlockState(in tables, macroBlock, blockOrigin, blockSize);
             LumaModelInputs modelInputs = new(
-                in workspace,
+                in modeWorkspace,
                 transformCoefficients,
                 transformWorkspace,
                 sourcePlane,
@@ -8246,7 +8246,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         if (this.SelectLumaPalette(
                             writer,
                             in tables,
-                            in workspace,
+                            in modeWorkspace,
                             transformCoefficients,
                             dequantizedCoefficients,
                             transformWorkspace,
@@ -8454,7 +8454,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1RateDistortionStatistics modeStatistics = this.ChooseUniformTransformSize(
                     writer,
                     in tables,
-                    in workspace,
+                    in modeWorkspace,
                     transformCoefficients,
                     dequantizedCoefficients,
                     transformWorkspace,
@@ -8480,7 +8480,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     intraFrame ? Math.Min(bestStatistics.Cost, interCostLimit) : interCostLimit,
                     long.MaxValue,
                     samples,
-                    workspace.CandidateTransformBlocks,
+                    modeWorkspace.CandidateTransformBlocks,
                     retainedStates,
                     out Av1TransformSize bestSize);
 
@@ -8603,7 +8603,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (intraFrame || improves)
                 {
                     this.RetainLumaCandidate(
-                        in workspace,
+                        in modeWorkspace,
                         new LumaCandidate { Mode = mode, AngleDelta = angleDelta, FilterMode = filterMode, Cost = modeStatistics.Cost },
                         blockSize);
                 }
@@ -8656,7 +8656,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </remarks>
         /// <param name="writer">The tile symbol encoder.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
-        /// <param name="workspace">The mode decision buffers of the block.</param>
+        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the type estimates.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -8689,7 +8689,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics ChooseUniformTransformSize(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -8732,7 +8732,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1RateDistortionStatistics statistics = this.GetUniformLumaCandidateCost(
                     writer,
                     in tables,
-                    in workspace,
+                    in modeWorkspace,
                     transformCoefficients,
                     dequantizedCoefficients,
                     transformWorkspace,
@@ -8790,7 +8790,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="writer">The tile symbol encoder.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
-        /// <param name="workspace">The mode decision buffers of the block.</param>
+        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the type estimates.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
@@ -8820,7 +8820,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics GetUniformLumaCandidateCost(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -8850,7 +8850,7 @@ internal static partial class Av1IntraSuperblockEncoder
             return this.GetUniformLumaCandidateCostCore(
                 writer,
                 in tables,
-                in workspace,
+                in modeWorkspace,
                 transformCoefficients,
                 dequantizedCoefficients,
                 transformWorkspace,
@@ -8882,7 +8882,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private Av1RateDistortionStatistics GetUniformLumaCandidateCostCore(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -8927,7 +8927,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Reuse the second candidate plane for one prediction and two transform reconstructions.
             // Their disjoint spans remain live while the first candidate plane accumulates the block mosaic.
-            Span<TSample> transformSamples = workspace.GetCandidateReconstruction(1);
+            Span<TSample> transformSamples = modeWorkspace.GetCandidateReconstruction(1);
             Span<TSample> prediction = transformSamples[..transformSampleCount];
             Span<TSample> candidateTransformReconstruction = transformSamples.Slice(
                 transformSampleCount,
@@ -8940,7 +8940,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // The second coefficient plane holds four transform-sized spans: the candidate and best quantized
             // coefficients, and the candidate and best dequantized coefficients. Swapping spans on improvement
             // keeps the winner's reconstruction input without copying it, as search_tx_type swaps dqcoeff.
-            Span<int> transformCoefficientStorage = workspace.GetCandidateCoefficients(1);
+            Span<int> transformCoefficientStorage = modeWorkspace.GetCandidateCoefficients(1);
             Span<int> candidateTransformCoefficients = transformCoefficientStorage[..transformSampleCount];
             Span<int> bestTransformCoefficients = transformCoefficientStorage.Slice(
                 transformSampleCount,
@@ -8954,8 +8954,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformSampleCount * 3,
                 transformSampleCount);
 
-            Span<short> residual = (paletteSize > 0 ? workspace.Palette.GetResidual(0) : workspace.Residual)[..transformSampleCount];
-            Span<byte> contexts = workspace.TransformContexts;
+            Span<short> residual = (paletteSize > 0 ? modeWorkspace.Palette.GetResidual(0) : modeWorkspace.Residual)[..transformSampleCount];
+            Span<byte> contexts = modeWorkspace.TransformContexts;
             Span<byte> topContexts = contexts[..contextWidth];
             Span<byte> leftContexts = contexts.Slice(contextWidth, contextHeight);
             Av1NeighborEdges<byte> coefficientEdges = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].GetEdges();
@@ -9057,8 +9057,8 @@ internal static partial class Av1IntraSuperblockEncoder
             // The prediction scratch and the reference edge slots serve every transform block, so they are read
             // once. The parent mode search retains reference slots 0 and 1. Use the other pair here because these
             // transform edges also include earlier reconstructions in this candidate.
-            Span<TSample> aboveStorage = workspace.GetReferenceSamples(2);
-            Span<TSample> leftStorage = workspace.GetReferenceSamples(3);
+            Span<TSample> aboveStorage = modeWorkspace.GetReferenceSamples(2);
+            Span<TSample> leftStorage = modeWorkspace.GetReferenceSamples(3);
             for (int regionY = 0; regionY < codedExtent.Height; regionY += Av1Constants.MaxTransformSize)
             {
                 int bottom = Math.Min(regionY + Av1Constants.MaxTransformSize, codedExtent.Height);
@@ -10285,7 +10285,7 @@ internal static partial class Av1IntraSuperblockEncoder
             /// <summary>
             /// Initializes a new instance of the <see cref="LumaModelInputs"/> struct.
             /// </summary>
-            /// <param name="workspace">The mode decision workspace of the block.</param>
+            /// <param name="modeWorkspace">The mode decision workspace of the block.</param>
             /// <param name="transformCoefficients">The forward transform output of the block.</param>
             /// <param name="transformWorkspace">The transform intermediate buffer of the block.</param>
             /// <param name="sourcePlane">The source luma plane.</param>
@@ -10295,7 +10295,7 @@ internal static partial class Av1IntraSuperblockEncoder
             /// <param name="smoothEdges">Whether a neighbor of the block uses a smooth mode, which selects the edge filter strength.</param>
             /// <param name="enableEdgeFilter">Whether the sequence enables the intra edge filter.</param>
             public LumaModelInputs(
-                in Av1EncoderModeDecisionWorkspace<TSample> workspace,
+                in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
                 Span<int> transformCoefficients,
                 Span<int> transformWorkspace,
                 Av1PlaneRegion<TSample> sourcePlane,
@@ -10305,10 +10305,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 bool smoothEdges,
                 bool enableEdgeFilter)
             {
-                this.Prediction = workspace.Prediction;
-                this.Residual = workspace.Residual;
-                this.AboveStorage = workspace.GetReferenceSamples(2);
-                this.LeftStorage = workspace.GetReferenceSamples(3);
+                this.Prediction = modeWorkspace.Prediction;
+                this.Residual = modeWorkspace.Residual;
+                this.AboveStorage = modeWorkspace.GetReferenceSamples(2);
+                this.LeftStorage = modeWorkspace.GetReferenceSamples(3);
                 this.TransformCoefficients = transformCoefficients;
                 this.TransformWorkspace = transformWorkspace;
                 this.SourceSamples = sourcePlane.Samples;

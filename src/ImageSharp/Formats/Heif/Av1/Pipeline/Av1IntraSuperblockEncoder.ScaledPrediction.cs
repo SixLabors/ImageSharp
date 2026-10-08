@@ -66,12 +66,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="referenceFrame">The reference type.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
-        /// <param name="intermediateRows">The intermediate rows of the scaled convolution.</param>
+        /// <param name="filterRows">The intermediate rows of the scaled convolution.</param>
         /// <returns>The scaled search reference.</returns>
         private readonly Av1MotionSearchBase.ScaledReference<TSample> GetScaledSearchReference(
             Av1ReferenceFrameType referenceFrame,
             Point blockOrigin,
-            Span<short> intermediateRows)
+            Span<short> filterRows)
         {
             if (!this.IsScaledReference(referenceFrame))
             {
@@ -88,7 +88,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 new Size(reference.Width, reference.Height),
                 new Av1ReferenceScale(reference.Width, reference.Height, frameSize.FrameWidth, frameSize.FrameHeight),
                 blockOrigin,
-                intermediateRows);
+                filterRows);
         }
 
         /// <summary>
@@ -136,7 +136,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="predictionStride">The destination stride.</param>
         /// <param name="width">The rectangle width.</param>
         /// <param name="height">The rectangle height.</param>
-        /// <param name="predictionScratch">The intermediate storage of the two-dimensional convolution.</param>
+        /// <param name="filterRows">The intermediate storage of the two-dimensional convolution.</param>
         private readonly void PredictScaledInter(
             Av1ReferenceFrameType referenceFrame,
             Av1Plane plane,
@@ -150,7 +150,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int predictionStride,
             int width,
             int height,
-            Span<short> predictionScratch)
+            Span<short> filterRows)
         {
             Av1EncoderFrame<TSample> reference = this.references.Span[(int)referenceFrame];
             ObuFrameSize frameSize = this.picture.Parent.FrameHeader.FrameSize;
@@ -179,7 +179,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 predictionStride,
                 width,
                 height,
-                predictionScratch,
+                filterRows,
                 this.bitDepth);
         }
 
@@ -198,7 +198,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="predictionSize">The plane block size.</param>
         /// <param name="prediction">The packed prediction destination.</param>
         /// <param name="residual">The packed source-minus-prediction destination.</param>
-        /// <param name="predictionScratch">The intermediate storage of the two-dimensional convolution.</param>
+        /// <param name="filterRows">The intermediate storage of the two-dimensional convolution.</param>
         private readonly void PrepareScaledInterPrediction(
             Av1ReferenceFrameType referenceFrame,
             Av1Plane plane,
@@ -211,7 +211,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize predictionSize,
             Span<TSample> prediction,
             Span<short> residual,
-            Span<short> predictionScratch)
+            Span<short> filterRows)
         {
             int width = predictionSize.GetWidth();
             int height = predictionSize.GetHeight();
@@ -229,7 +229,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 width,
                 width,
                 height,
-                predictionScratch);
+                filterRows);
 
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
             TOperator.SubtractPrediction(

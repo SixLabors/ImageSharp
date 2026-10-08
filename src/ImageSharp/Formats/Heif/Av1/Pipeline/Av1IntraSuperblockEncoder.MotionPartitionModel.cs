@@ -1857,7 +1857,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Uses whole and quarter-block motion errors to restrict square and rectangular partition searches.
         /// </summary>
         /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
-        /// <param name="predictionScratch">The intermediate rows of the prediction filters.</param>
+        /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -1872,7 +1872,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="pruneVertical">Whether the vertical partitions are dropped.</param>
         private void PrunePartitionsBySimpleMotion(
             Span<TSample> motionSearchPrediction,
-            Span<short> predictionScratch,
+            Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
@@ -1955,7 +1955,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 InlineArray2<float> output = default;
                 this.GetSimpleMotionFeatures(
                     motionSearchPrediction,
-                    predictionScratch,
+                    filterRows,
                     in motionVectorCosts,
                     macroBlock,
                     blockOrigin,
@@ -2066,7 +2066,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Span<float> scores = output[..bias1.Length];
                 this.GetSimpleMotionFeatures(
                     motionSearchPrediction,
-                    predictionScratch,
+                    filterRows,
                     in motionVectorCosts,
                     macroBlock,
                     blockOrigin,

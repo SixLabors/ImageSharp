@@ -26,8 +26,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// state must be armed for the block. Reference: av1_single_motion_search() with OBMC_CAUSAL, using
         /// calc_target_weighted_pred(), av1_obmc_full_pixel_search() and av1_find_best_obmc_sub_pixel_tree_up().
         /// </summary>
-        /// <param name="prediction">The motion search prediction buffer.</param>
-        /// <param name="predictionScratch">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionSearchPrediction">The motion search prediction buffer.</param>
+        /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -37,8 +37,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="spatialMagnitude">The largest full-sample magnitude of the reference's spatial predictors.</param>
         /// <returns>The searched vector.</returns>
         private Av1MotionVector SearchObmcVector(
-            Span<TSample> prediction,
-            Span<short> predictionScratch,
+            Span<TSample> motionSearchPrediction,
+            Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -51,7 +51,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height = blockSize.GetHeight();
             Span<int> weightedSource = this.blockWorkspace.ObmcWeightedSource.AsSpan(0, width * height);
             Span<int> mask = this.blockWorkspace.ObmcMask.AsSpan(0, width * height);
-            this.CalculateObmcTarget(blockSize, weightedSource, mask, predictionScratch);
+            this.CalculateObmcTarget(blockSize, weightedSource, mask, filterRows);
 
             // The full-sample search reads a reference of another size through its copy resized to the frame size, and
             // the fractional search the reference itself. Reference: the scaled_ref_frame of
@@ -163,11 +163,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 referenceOrigin,
                 bestVector,
                 referenceVector,
-                in motionVectorCosts,
                 weightedSource,
                 mask,
-                prediction,
-                predictionScratch,
+                motionSearchPrediction,
+                filterRows,
+                in motionVectorCosts,
                 width,
                 height,
                 taps);
@@ -183,11 +183,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     referencePlane.Stride,
                     referenceOrigin,
                     referenceVector,
-                    in motionVectorCosts,
                     weightedSource,
                     mask,
-                    prediction,
-                    predictionScratch,
+                    motionSearchPrediction,
+                    filterRows,
+                    in motionVectorCosts,
                     width,
                     height,
                     taps,
@@ -202,11 +202,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     referencePlane.Stride,
                     referenceOrigin,
                     referenceVector,
-                    in motionVectorCosts,
                     weightedSource,
                     mask,
-                    prediction,
-                    predictionScratch,
+                    motionSearchPrediction,
+                    filterRows,
+                    in motionVectorCosts,
                     width,
                     height,
                     taps,
@@ -221,11 +221,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     referencePlane.Stride,
                     referenceOrigin,
                     referenceVector,
-                    in motionVectorCosts,
                     weightedSource,
                     mask,
-                    prediction,
-                    predictionScratch,
+                    motionSearchPrediction,
+                    filterRows,
+                    in motionVectorCosts,
                     width,
                     height,
                     taps,
@@ -240,11 +240,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     referencePlane.Stride,
                     referenceOrigin,
                     referenceVector,
-                    in motionVectorCosts,
                     weightedSource,
                     mask,
-                    prediction,
-                    predictionScratch,
+                    motionSearchPrediction,
+                    filterRows,
+                    in motionVectorCosts,
                     width,
                     height,
                     taps,
@@ -261,11 +261,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     referencePlane.Stride,
                     referenceOrigin,
                     referenceVector,
-                    in motionVectorCosts,
                     weightedSource,
                     mask,
-                    prediction,
-                    predictionScratch,
+                    motionSearchPrediction,
+                    filterRows,
+                    in motionVectorCosts,
                     width,
                     height,
                     taps,
@@ -294,11 +294,11 @@ internal static partial class Av1IntraSuperblockEncoder
                         referencePlane.Stride,
                         referenceOrigin,
                         referenceVector,
-                        in motionVectorCosts,
                         weightedSource,
                         mask,
-                        prediction,
-                        predictionScratch,
+                        motionSearchPrediction,
+                        filterRows,
+                        in motionVectorCosts,
                         width,
                         height,
                         taps,
@@ -313,11 +313,11 @@ internal static partial class Av1IntraSuperblockEncoder
                         referencePlane.Stride,
                         referenceOrigin,
                         referenceVector,
-                        in motionVectorCosts,
                         weightedSource,
                         mask,
-                        prediction,
-                        predictionScratch,
+                        motionSearchPrediction,
+                        filterRows,
+                        in motionVectorCosts,
                         width,
                         height,
                         taps,
@@ -334,11 +334,11 @@ internal static partial class Av1IntraSuperblockEncoder
                             referencePlane.Stride,
                             referenceOrigin,
                             referenceVector,
-                            in motionVectorCosts,
                             weightedSource,
                             mask,
-                            prediction,
-                            predictionScratch,
+                            motionSearchPrediction,
+                            filterRows,
+                            in motionVectorCosts,
                             width,
                             height,
                             taps,
@@ -594,11 +594,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="referenceStride">The reference plane stride.</param>
         /// <param name="referenceOrigin">The index of the block origin in the reference plane.</param>
         /// <param name="referenceVector">The reference of the new vector.</param>
-        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="weightedSource">The source with the neighbor predictions removed.</param>
         /// <param name="mask">The OBMC blend weights.</param>
-        /// <param name="prediction">The prediction buffer of the candidate.</param>
-        /// <param name="predictionScratch">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionSearchPrediction">The prediction buffer of the candidate.</param>
+        /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         /// <param name="taps">The interpolation filter length.</param>
@@ -613,11 +613,11 @@ internal static partial class Av1IntraSuperblockEncoder
             int referenceStride,
             int referenceOrigin,
             Av1MotionVector referenceVector,
-            in Av1MotionVectorCosts motionVectorCosts,
             ReadOnlySpan<int> weightedSource,
             ReadOnlySpan<int> mask,
-            Span<TSample> prediction,
-            Span<short> predictionScratch,
+            Span<TSample> motionSearchPrediction,
+            Span<short> filterRows,
+            in Av1MotionVectorCosts motionVectorCosts,
             int width,
             int height,
             int taps,
@@ -637,11 +637,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 referenceOrigin,
                 vector,
                 referenceVector,
-                in motionVectorCosts,
                 weightedSource,
                 mask,
-                prediction,
-                predictionScratch,
+                motionSearchPrediction,
+                filterRows,
+                in motionVectorCosts,
                 width,
                 height,
                 taps);
@@ -665,11 +665,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="referenceOrigin">The index of the block origin in the reference plane.</param>
         /// <param name="vector">The fractional vector.</param>
         /// <param name="referenceVector">The reference of the new vector.</param>
-        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="weightedSource">The source with the neighbor predictions removed.</param>
         /// <param name="mask">The OBMC blend weights.</param>
-        /// <param name="prediction">The prediction buffer of the vector.</param>
-        /// <param name="predictionScratch">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionSearchPrediction">The prediction buffer of the vector.</param>
+        /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         /// <param name="taps">The interpolation filter length.</param>
@@ -680,11 +680,11 @@ internal static partial class Av1IntraSuperblockEncoder
             int referenceOrigin,
             Av1MotionVector vector,
             Av1MotionVector referenceVector,
-            in Av1MotionVectorCosts motionVectorCosts,
             ReadOnlySpan<int> weightedSource,
             ReadOnlySpan<int> mask,
-            Span<TSample> prediction,
-            Span<short> predictionScratch,
+            Span<TSample> motionSearchPrediction,
+            Span<short> filterRows,
+            in Av1MotionVectorCosts motionVectorCosts,
             int width,
             int height,
             int taps)
@@ -693,16 +693,26 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 // A scaled reference predicts each candidate from the reference itself with its scale factors.
                 // Reference: aom_upsampled_pred_scaled() in upsampled_obmc_pref_error().
-                this.GetScaledSearchReference(this.obmcSearchReference, this.obmcBlockOrigin, predictionScratch)
-                    .Predict<TOperator>(vector, prediction, new Size(width, height), this.bitDepth.GetBitCount());
+                this.GetScaledSearchReference(this.obmcSearchReference, this.obmcBlockOrigin, filterRows)
+                    .Predict<TOperator>(vector, motionSearchPrediction, new Size(width, height), this.bitDepth.GetBitCount());
             }
             else
             {
                 int index = referenceOrigin + ((vector.Row >> 3) * referenceStride) + (vector.Column >> 3);
-                TOperator.Predict(reference, referenceStride, index, prediction, width, height, vector.Column & 7, vector.Row & 7, taps, this.bitDepth.GetBitCount());
+                TOperator.Predict(
+                    reference,
+                    referenceStride,
+                    index,
+                    motionSearchPrediction,
+                    width,
+                    height,
+                    vector.Column & 7,
+                    vector.Row & 7,
+                    taps,
+                    this.bitDepth.GetBitCount());
             }
 
-            int variance = this.GetObmcVariance(prediction, width, weightedSource, mask, width, height);
+            int variance = this.GetObmcVariance(motionSearchPrediction, width, weightedSource, mask, width, height);
             return variance + Av1RateDistortion.GetMotionSearchCost(this.rateMultiplier, motionVectorCosts.GetCost(vector, referenceVector), 0);
         }
 

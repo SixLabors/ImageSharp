@@ -116,11 +116,11 @@ internal struct Av1EstimatedInterSearchState
     /// <summary>
     /// Initializes validity and comparison state for the next block.
     /// </summary>
-    /// <param name="costs">The mode rate tables of the tile.</param>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
     /// <param name="intraInterContext">The neighboring intra/inter context.</param>
     /// <param name="compoundTypeContext">The neighboring compound-reference type context.</param>
     /// <param name="selectReferenceMode">Whether this block can select single or compound prediction.</param>
-    public void Reset(Av1ModeCosts costs, int intraInterContext, int compoundTypeContext, bool selectReferenceMode)
+    public void Reset(Av1ModeCosts modeCosts, int intraInterContext, int compoundTypeContext, bool selectReferenceMode)
     {
         // Motion and syntax entries are filled only for admitted references. Clear their validity,
         // not their unused payloads; a rejected or unavailable reference must never consume an entry.
@@ -142,18 +142,18 @@ internal struct Av1EstimatedInterSearchState
         this.SuperblockMotionTested = false;
         this.EndSearch = false;
         this.MinimumChromaDistortion = long.MaxValue;
-        this.ReferenceCosts[(int)Av1ReferenceFrameType.Intra] = Av1SymbolEncoder.GetIsInterCost(costs, false, intraInterContext);
-        int baseCost = Av1SymbolEncoder.GetIsInterCost(costs, true, intraInterContext);
+        this.ReferenceCosts[(int)Av1ReferenceFrameType.Intra] = Av1SymbolEncoder.GetIsInterCost(modeCosts, false, intraInterContext);
+        int baseCost = Av1SymbolEncoder.GetIsInterCost(modeCosts, true, intraInterContext);
         if (selectReferenceMode)
         {
-            baseCost += costs.GetCompoundReferenceType(compoundTypeContext, 1);
+            baseCost += modeCosts.GetCompoundReferenceType(compoundTypeContext, 1);
         }
 
         // Estimated reference costs share three branches. The mode search deliberately retains
         // these estimates until publication rather than mixing them with the complete syntax tree.
-        int lastCost = baseCost + costs.GetSingleReference(0, 0, 0);
-        int goldenCost = baseCost + costs.GetSingleReference(0, 0, 1) + costs.GetSingleReference(0, 1, 0);
-        int alternateCost = baseCost + costs.GetSingleReference(0, 0, 1) + costs.GetSingleReference(0, 2, 0);
+        int lastCost = baseCost + modeCosts.GetSingleReference(0, 0, 0);
+        int goldenCost = baseCost + modeCosts.GetSingleReference(0, 0, 1) + modeCosts.GetSingleReference(0, 1, 0);
+        int alternateCost = baseCost + modeCosts.GetSingleReference(0, 0, 1) + modeCosts.GetSingleReference(0, 2, 0);
         this.ReferenceCosts[(int)Av1ReferenceFrameType.Last] = lastCost;
         this.ReferenceCosts[(int)Av1ReferenceFrameType.Last2] = lastCost;
         this.ReferenceCosts[(int)Av1ReferenceFrameType.Last3] = lastCost;
@@ -228,7 +228,7 @@ internal struct Av1EstimatedInterSearchState
     /// <summary>
     /// Adds single-reference syntax costs and records a completed candidate.
     /// </summary>
-    /// <param name="costs">The mode rate tables of the tile.</param>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
     /// <param name="referenceVectors">The candidate reference-vector context.</param>
     /// <param name="rateMultiplier">The block rate-distortion multiplier.</param>
     /// <param name="mode">The searched mode, replaced when equivalent global syntax costs less.</param>
@@ -241,7 +241,7 @@ internal struct Av1EstimatedInterSearchState
     /// <param name="checkGlobalMotion">Whether subsequent candidates still need an explicit global-motion trial.</param>
     /// <returns>Whether the candidate replaced the current winner.</returns>
     public bool CompleteSingleCandidate(
-        Av1ModeCosts costs,
+        Av1ModeCosts modeCosts,
         Av1ReferenceMotionVectors referenceVectors,
         int rateMultiplier,
         ref Av1PredictionMode mode,
@@ -272,7 +272,7 @@ internal struct Av1EstimatedInterSearchState
             if (mode is Av1PredictionMode.NewMotionVector or Av1PredictionMode.NearMotionVector && referenceVectors.Count > 1)
             {
                 int context = Av1SymbolContextHelper.GetDrlContext(referenceVectors.Weights, 0);
-                alternativeRate += Av1SymbolEncoder.GetDynamicReferenceListCost(costs, false, context);
+                alternativeRate += Av1SymbolEncoder.GetDynamicReferenceListCost(modeCosts, false, context);
             }
 
             if (alternativeRate > this.ModeCosts[globalIndex][slot])

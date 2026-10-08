@@ -48,8 +48,19 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Estimates one luma transform without inverse reconstruction or coefficient refinement.
         /// </summary>
+        /// <param name="buffers">The transform buffers, rate tables and symbol encoder that the caller read once for its loop.</param>
+        /// <param name="residual">The residual samples.</param>
+        /// <param name="stride">The number of residual samples between rows.</param>
+        /// <param name="size">The transform size.</param>
+        /// <param name="type">The transform type to estimate.</param>
+        /// <param name="context">The coefficient contexts of the transform block.</param>
+        /// <param name="mode">The prediction mode that selects the transform-type context.</param>
+        /// <param name="filterMode">The filter intra mode, or <see cref="Av1FilterIntraMode.AllFilterIntraModes"/>.</param>
+        /// <param name="isInter">Whether the block is inter predicted.</param>
+        /// <param name="quantized">The storage that the estimate quantizes into.</param>
+        /// <returns>The estimated rate-distortion cost.</returns>
         private long EstimateTransformTypeCost(
-            Av1SymbolEncoder writer,
+            in Av1TransformBlockBuffers buffers,
             ReadOnlySpan<short> residual,
             int stride,
             Av1TransformSize size,
@@ -61,10 +72,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> quantized)
         {
             int count = size.GetAdjusted().GetSize2d();
-            Span<int> transformed = this.blockWorkspace.TransformCoefficients[..count];
-            Span<int> dequantized = this.blockWorkspace.DequantizedCoefficients[..count];
+            Span<int> transformed = buffers.TransformCoefficients[..count];
+            Span<int> dequantized = buffers.DequantizedCoefficients[..count];
             Av1ForwardTransformer.Transform2d(
-                residual, transformed, (uint)stride, type, size, this.bitDepth.GetBitCount(), this.blockWorkspace.TransformWorkspace);
+                residual, transformed, (uint)stride, type, size, this.bitDepth.GetBitCount(), buffers.TransformWorkspace);
 
             ushort endOfBlock = Av1ForwardQuantizer.QuantizeRegular(
                 transformed,
@@ -80,8 +91,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.blockWorkspace.GetQuantizationMatrix(Av1ComponentType.Luminance, size, type),
                 this.blockWorkspace.GetInverseQuantizationMatrix(Av1ComponentType.Luminance, size, type));
 
-            int rate = writer.EstimateLumaCoefficientRate(
-                quantized, endOfBlock, size, type, context, this.picture.Parent.FrameHeader.UseReducedTransformSet, filterMode, mode, isInter);
+            int rate = buffers.Writer.EstimateLumaCoefficientRate(
+                buffers.Tables, quantized, endOfBlock, size, type, context, this.picture.Parent.FrameHeader.UseReducedTransformSet, filterMode, mode, isInter);
 
             // The squared error is normalized to eight-bit precision with rounding, then loses the transform
             // scale, so it has the same four fractional bits as pixel-domain distortion.
@@ -94,8 +105,22 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Prunes and orders legal luma transforms using complete or separated-axis estimates.
         /// </summary>
+        /// <param name="buffers">The transform buffers, rate tables and symbol encoder that the caller read once for its loop.</param>
+        /// <param name="residual">The residual samples.</param>
+        /// <param name="stride">The number of residual samples between rows.</param>
+        /// <param name="size">The transform size.</param>
+        /// <param name="context">The coefficient contexts of the transform block.</param>
+        /// <param name="mode">The prediction mode that selects the transform-type context.</param>
+        /// <param name="filterMode">The filter intra mode, or <see cref="Av1FilterIntraMode.AllFilterIntraModes"/>.</param>
+        /// <param name="isInter">Whether the block is inter predicted.</param>
+        /// <param name="allowedMask">The transform types that the search permits, one bit for each type.</param>
+        /// <param name="pruningLevel">The pruning level of the current evaluation stage.</param>
+        /// <param name="bestCost">The budget left for the transform block.</param>
+        /// <param name="quantized">The storage that the estimates quantize into.</param>
+        /// <param name="order">The search order, which the estimates sort by cost.</param>
+        /// <returns>The transform types that remain after the pruning.</returns>
         private ushort PruneTransformTypesByEstimatedCost(
-            Av1SymbolEncoder writer,
+            in Av1TransformBlockBuffers buffers,
             ReadOnlySpan<short> residual,
             int stride,
             Av1TransformSize size,
@@ -132,7 +157,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     order[count] = type;
                     costs[count++] = Math.Max(1, this.EstimateTransformTypeCost(
-                        writer, residual, stride, size, type, context, mode, filterMode, isInter, quantized));
+                        in buffers, residual, stride, size, type, context, mode, filterMode, isInter, quantized));
                 }
             }
             else
@@ -166,7 +191,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     horizontalOrder[axis] = verticalOrder[axis] = axis;
                     long cost = this.EstimateTransformTypeCost(
-                        writer, residual, stride, size, typeMap[axis], context, mode, filterMode, isInter, quantized);
+                        in buffers, residual, stride, size, typeMap[axis], context, mode, filterMode, isInter, quantized);
 
                     horizontalCosts[axis] = cost;
                     skipHorizontal[axis] = cost - (cost >> 2) > bestCost;
@@ -190,7 +215,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 for (int axis = 1; axis < 4; axis++)
                 {
                     long cost = this.EstimateTransformTypeCost(
-                        writer,
+                        in buffers,
                         residual,
                         stride,
                         size,
@@ -257,7 +282,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// keeps the type it derives. A full search is pruned by the frame's type statistics and then by estimated
         /// costs or, for an inter block, by the separable type model. Reference: get_tx_mask().
         /// </summary>
-        /// <param name="writer">The tile symbol encoder that prices the estimates.</param>
+        /// <param name="buffers">The transform buffers and rate tables that the caller read once.</param>
         /// <param name="plane">The plane of the transform block.</param>
         /// <param name="isInter">Whether the block is inter predicted.</param>
         /// <param name="transformSize">The transform size.</param>
@@ -273,7 +298,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="singleTypeAllowed">Whether one type is allowed. Reference: txk_allowed &lt; TX_TYPES.</param>
         /// <returns>The types to search.</returns>
         private ushort GetTransformMask(
-            Av1SymbolEncoder writer,
+            in Av1TransformBlockBuffers buffers,
             Av1Plane plane,
             bool isInter,
             Av1TransformSize transformSize,
@@ -398,7 +423,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (allowedCount > 2 && settings.EstimateTransformTypeRateDistortion)
                 {
                     allowedMask = this.PruneTransformTypesByEstimatedCost(
-                        writer,
+                        in buffers,
                         residual,
                         residualStride,
                         transformSize,
@@ -444,7 +469,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// On return the best span arguments hold the winner. The best reconstruction is valid only when the winner has coefficients and
         /// <paramref name="reconstructWinner"/> is set, or when the search measured the winner in pixels.
         /// </remarks>
-        /// <param name="writer">The tile symbol encoder that prices the syntax.</param>
+        /// <param name="buffers">The transform buffers, rate tables and symbol encoder that the caller read once for its loop.</param>
         /// <param name="plane">The plane of the transform block.</param>
         /// <param name="isInter">Whether the block is inter predicted, which selects the transform set and the trellis weights.</param>
         /// <param name="blockContext">The coefficient contexts of the transform block.</param>
@@ -472,7 +497,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="bestDequantized">The dequantized coefficients of the winner.</param>
         /// <returns>The winner.</returns>
         private TransformTypeSearchResult SearchTransformType(
-            Av1SymbolEncoder writer,
+            in Av1TransformBlockBuffers buffers,
             Av1Plane plane,
             bool isInter,
             Av1TransformBlockContext blockContext,
@@ -578,7 +603,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 candidateTransformMask = dcOnlyBlock || dctOnly
                     ? (ushort)1
                     : this.GetTransformMask(
-                        writer,
+                        in buffers,
                         plane,
                         isInter,
                         transformSize,
@@ -623,9 +648,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int codedCoefficientCount = transformSize.GetAdjusted().GetSize2d();
 
-            // The forward transform output and its workspace are read once, outside the type loop.
-            Span<int> transformCoefficients = this.blockWorkspace.TransformCoefficients;
-            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
+            // The forward transform output is the same buffer for every type of the loop.
+            Span<int> transformCoefficients = buffers.TransformCoefficients;
             long highEnergyThreshold = 128L * 128 * transformSampleCount;
             bool isHighEnergy = !dcOnlyBlock && blockError >= highEnergyThreshold;
             int adaptiveSearchLevel = settings.InterAdaptiveTransformSearchLevel;
@@ -645,7 +669,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 best.Type = Av1TransformType.DctDct;
                 best.State.TransformType = plane == Av1Plane.Y ? Av1TransformType.DctDct : derivedType;
                 best.ReconstructionState = best.State;
-                best.Rate = writer.GetTransformBlockSkipCost(
+                best.Rate = buffers.Writer.GetTransformBlockSkipCost(
                     true, Av1SymbolContextHelper.GetTransformSizeContext(transformSize), originContext.SkipContext, componentType);
 
                 best.Distortion = blockError;
@@ -662,13 +686,13 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformTypeTrial trial = new()
             {
                 Workspace = this.blockWorkspace,
-                Writer = writer,
-                Tables = writer.GetCoefficientTables(),
+                Writer = buffers.Writer,
+                Tables = buffers.Tables,
                 Context = blockContext,
                 Residual = residual,
                 ResidualStride = inputStride,
                 TransformCoefficients = transformCoefficients,
-                TransformWorkspace = transformWorkspace,
+                TransformWorkspace = buffers.TransformWorkspace,
                 TransformSize = transformSize,
                 IntraDirection = mode,
                 FilterIntraMode = filterIntraMode,

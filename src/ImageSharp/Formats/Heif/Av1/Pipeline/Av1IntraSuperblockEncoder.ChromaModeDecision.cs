@@ -99,6 +99,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
             long distortion = 0;
             bool hasCoefficients = false;
+
+            // Both chroma planes read the same transform buffers and rate tables.
+            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
             for (int planeIndex = 1; planeIndex < 3; planeIndex++)
             {
                 Av1Plane plane = (Av1Plane)planeIndex;
@@ -174,7 +177,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     states[0] = default;
                     distortion += this.GetChromaFromLumaPlaneCost(
-                        writer,
+                        in transformBuffers,
                         modeInfo.Block.Mode,
                         plane,
                         origin,
@@ -628,6 +631,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // The workspace buffers and the rate tables of every chroma candidate of the block, read once.
             Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
+            Av1ModeCosts modeCosts = transformBuffers.Tables.ModeCosts;
             Span<int> blockTransformCoefficients = transformBuffers.TransformCoefficients;
             Span<int> blockTransformWorkspace = transformBuffers.TransformWorkspace;
 
@@ -700,7 +704,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         (chromaModeMask & (1 << (int)Av1ChromaPredictionMode.ChromaFromLuma)) != 0 &&
                         Av1RateDistortion.GetCost(
                             this.rateMultiplier,
-                            writer.GetChromaModeCost(Av1ChromaPredictionMode.ChromaFromLuma, true, lumaMode),
+                            Av1SymbolEncoder.GetChromaModeCost(modeCosts, Av1ChromaPredictionMode.ChromaFromLuma, true, lumaMode),
                             0) <= bestStatistics.Cost)
                     {
                         Span<short> lumaQ3 = workspace.ChromaFromLumaSamples;
@@ -800,8 +804,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                 int packedIndex = Av1ChromaFromLumaMath.PackIndices(
                                     Av1ChromaFromLumaMath.AlphaToMagnitudeIndex(alphaU), Av1ChromaFromLumaMath.AlphaToMagnitudeIndex(alphaV));
 
-                                int headerRate = writer.GetChromaModeCost(Av1ChromaPredictionMode.ChromaFromLuma, true, lumaMode) +
-                                    writer.GetChromaFromLumaCost(packedIndex, jointSign);
+                                int headerRate = Av1SymbolEncoder.GetChromaModeCost(modeCosts, Av1ChromaPredictionMode.ChromaFromLuma, true, lumaMode) +
+                                    Av1SymbolEncoder.GetChromaFromLumaCost(modeCosts, packedIndex, jointSign);
 
                                 evaluateAlpha = Av1RateDistortion.GetCost(this.rateMultiplier, headerRate, 0) <= bestStatistics.Cost;
                             }
@@ -825,7 +829,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                             Av1EncoderTransformBlockState candidateBlueState = default;
                             blueDistortions[alphaCandidateIndex] = this.GetChromaFromLumaPlaneCost(
-                                writer,
+                                in transformBuffers,
                                 lumaMode,
                                 Av1Plane.U,
                                 chromaOrigin,
@@ -852,7 +856,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                             Av1EncoderTransformBlockState candidateRedState = default;
                             redDistortions[alphaCandidateIndex] = this.GetChromaFromLumaPlaneCost(
-                                writer,
+                                in transformBuffers,
                                 lumaMode,
                                 Av1Plane.V,
                                 chromaOrigin,
@@ -870,7 +874,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         }
 
                         int chromaFromLumaModeRate = Av1TileWriter.GetChromaModeCost(
-                            writer,
+                            modeCosts,
                             this.picture.Parent.FrameHeader,
                             colorConfig,
                             modeInfo,
@@ -909,7 +913,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                                 // Alpha syntax is part of the CfL residual decision; the UV mode symbol is separate.
                                 int residualRate = blueRates[blueCandidateIndex] + redRates[redCandidateIndex] +
-                                    writer.GetChromaFromLumaCost(packedIndex, jointSign);
+                                    Av1SymbolEncoder.GetChromaFromLumaCost(modeCosts, packedIndex, jointSign);
 
                                 long distortion = blueDistortions[blueCandidateIndex] + redDistortions[redCandidateIndex];
 
@@ -959,7 +963,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             // their coefficients. This is not a libaom trial, so it does not write the frame.
                             Av1EncoderTransformBlockState candidateBlueState = default;
                             _ = this.GetChromaFromLumaPlaneCost(
-                                writer,
+                                in transformBuffers,
                                 lumaMode,
                                 Av1Plane.U,
                                 chromaOrigin,
@@ -979,7 +983,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                             Av1EncoderTransformBlockState candidateRedState = default;
                             _ = this.GetChromaFromLumaPlaneCost(
-                                writer,
+                                in transformBuffers,
                                 lumaMode,
                                 Av1Plane.V,
                                 chromaOrigin,
@@ -1020,7 +1024,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
-                int modeRate = writer.GetChromaModeCost(chromaMode, chromaFromLumaAllowed, lumaMode);
+                int modeRate = Av1SymbolEncoder.GetChromaModeCost(modeCosts, chromaMode, chromaFromLumaAllowed, lumaMode);
                 if (Av1RateDistortion.GetCost(this.rateMultiplier, modeRate, 0) > bestStatistics.Cost)
                 {
                     continue;
@@ -1208,6 +1212,8 @@ internal static partial class Av1IntraSuperblockEncoder
             selectedChromaFromLumaIndex = 0;
             selectedChromaFromLumaSigns = 0;
 
+            // Every chroma mode of the block reads the same mode rates.
+            Av1ModeCosts modeCosts = writer.ModeCosts;
             Span<long> angleCosts = stackalloc long[7];
             for (int modeIndex = 0; modeIndex < ChromaModeSearchOrder.Length; modeIndex++)
             {
@@ -1231,7 +1237,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
-                int modeRate = writer.GetChromaModeCost(chromaMode, false, lumaMode);
+                int modeRate = Av1SymbolEncoder.GetChromaModeCost(modeCosts, chromaMode, false, lumaMode);
                 if (Av1RateDistortion.GetCost(this.rateMultiplier, modeRate, 0) > bestStatistics.Cost)
                 {
                     continue;
@@ -1358,7 +1364,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     distortion += redDistortion;
 
                     int rate = Av1TileWriter.GetChromaModeCost(
-                        writer,
+                        modeCosts,
                         this.picture.Parent.FrameHeader,
                         colorConfig,
                         modeInfo,
@@ -1569,6 +1575,9 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> reconstructionBlock = reconstructionSamples[reconstruction.GetOffset(chromaOrigin.X, chromaOrigin.Y)..];
             Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(0).Block.PartitionType;
 
+            // Every transform block of the plane reads the same transform buffers and rate tables.
+            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
+
             // Residual syntax completes each bounded 64x64 luma region, scaled for chroma, before
             // moving to the next region. Candidate coefficients and states must retain that exact order.
             for (int regionRow = 0; regionRow < codedExtent.Height; regionRow += maximumUnitHeight)
@@ -1665,7 +1674,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             // A chroma block of an intra mode searches the one type that it derives from its mode.
                             // Reference: the uv_tx_type of get_tx_mask(), from av1_get_tx_type().
                             TransformTypeSearchResult searchResult = this.SearchTransformType(
-                                writer,
+                                in transformBuffers,
                                 plane,
                                 false,
                                 blockContext,
@@ -1782,7 +1791,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Codes one chroma-from-luma alpha for one chroma plane, as one transform block at the block origin.
         /// Reference: cfl_compute_rd() with full transform search.
         /// </summary>
-        /// <param name="writer">The coefficient entropy costs.</param>
+        /// <param name="buffers">The transform buffers, rate tables and symbol encoder that the caller read once.</param>
         /// <param name="lumaMode">The luma prediction mode of the block.</param>
         /// <param name="plane">The chroma plane.</param>
         /// <param name="chromaOrigin">The block origin in chroma samples.</param>
@@ -1802,7 +1811,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="rate">The coefficient rate.</param>
         /// <returns>The distortion.</returns>
         private long GetChromaFromLumaPlaneCost(
-            Av1SymbolEncoder writer,
+            in Av1TransformBlockBuffers buffers,
             Av1PredictionMode lumaMode,
             Av1Plane plane,
             Point chromaOrigin,
@@ -1836,13 +1845,13 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> bestReconstruction = this.blockWorkspace.GetSearchReconstruction<TSample>(1)[..sampleCount];
             Span<int> candidateCoefficients = coefficients;
             Span<int> bestCoefficients = this.blockWorkspace.SearchCoefficients;
-            Span<int> candidateDequantized = this.blockWorkspace.DequantizedCoefficients;
+            Span<int> candidateDequantized = buffers.DequantizedCoefficients;
             Span<int> bestDequantized = this.blockWorkspace.SearchDequantizedCoefficients;
 
             // A CfL block is one transform at the block origin, and searches the DCT_DCT that its chroma mode
             // derives. Reference: av1_txfm_rd_in_plane() of cfl_compute_rd().
             TransformTypeSearchResult result = this.SearchTransformType(
-                writer,
+                in buffers,
                 plane,
                 false,
                 context,
@@ -2180,7 +2189,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // The mode and angle are written once for the UV pair; coefficient syntax remains independent
             // because each plane has its own EOB, scan values, and neighboring coefficient context.
             int rate = Av1TileWriter.GetChromaModeCost(
-                writer,
+                blue.Buffers.Tables.ModeCosts,
                 this.picture.Parent.FrameHeader,
                 this.picture.Sequence.SequenceHeader.ColorConfig,
                 modeInfo,

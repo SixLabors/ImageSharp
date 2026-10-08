@@ -147,6 +147,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TileWriter.GetYModeContext(macroBlock, out byte aboveContext, out byte leftContext);
             Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
 
+            // Every intra mode of the block reads the same mode rates.
+            Av1ModeCosts modeCosts = writer.ModeCosts;
+
             foreach (Av1PredictionMode mode in EstimatedIntraModes)
             {
                 if (sourceVariance == 0 && blockOrigin == Point.Empty &&
@@ -275,7 +278,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 // Prediction estimates charge the mode symbol only. Angle syntax belongs to the
                 // full transform search and would unfairly penalize horizontal and vertical estimates.
-                rate += writer.GetLumaModeCost(mode, aboveContext, leftContext);
+                rate += Av1SymbolEncoder.GetLumaModeCost(modeCosts, mode, aboveContext, leftContext);
                 Av1RateDistortionStatistics statistics = new(this.rateMultiplier, rate, distortion);
                 if (statistics.Cost < bestStatistics.Cost)
                 {
@@ -312,7 +315,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     tileIndex,
                     states,
                     normalizedSad < 500 ? 32 : 64,
-                    writer.GetInterFrameLumaModeCost(Av1PredictionMode.DC, blockSize),
+                    Av1SymbolEncoder.GetInterFrameLumaModeCost(modeCosts, Av1PredictionMode.DC, blockSize),
                     ref paletteStatistics,
                     ref paletteInfo,
                     ref paletteTransformSize);

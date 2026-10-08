@@ -2648,12 +2648,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Gets the current fixed-point cost of a key-frame luma prediction mode.
     /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="lumaMode">The luma prediction mode.</param>
     /// <param name="topContext">The reduced above-mode context.</param>
     /// <param name="leftContext">The reduced left-mode context.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetLumaModeCost(Av1PredictionMode lumaMode, byte topContext, byte leftContext)
-        => this.ModeCosts.GetKeyFrameYMode(topContext, leftContext, (int)lumaMode);
+    public static int GetLumaModeCost(Av1ModeCosts modeCosts, Av1PredictionMode lumaMode, byte topContext, byte leftContext)
+        => modeCosts.GetKeyFrameYMode(topContext, leftContext, (int)lumaMode);
 
     /// <summary>
     /// Writes a key-frame luma prediction mode using the above and left mode contexts.
@@ -2673,11 +2674,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Gets the cost of an intra luma mode coded inside an inter frame.
     /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="lumaMode">The intra luma mode.</param>
     /// <param name="blockSize">The coding block size selecting the size group.</param>
     /// <returns>The syntax cost in 1/512-bit units.</returns>
-    public int GetInterFrameLumaModeCost(Av1PredictionMode lumaMode, Av1BlockSize blockSize)
-        => this.ModeCosts.GetFrameYMode(blockSize.GetSizeGroup(), (int)lumaMode);
+    public static int GetInterFrameLumaModeCost(Av1ModeCosts modeCosts, Av1PredictionMode lumaMode, Av1BlockSize blockSize)
+        => modeCosts.GetFrameYMode(blockSize.GetSizeGroup(), (int)lumaMode);
 
     /// <summary>
     /// Writes an intra luma mode coded inside an inter frame.
@@ -3261,11 +3263,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Gets the current fixed-point cost of a directional angle-delta symbol.
     /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="angleDelta">The signed angle delta offset by <see cref="Av1Constants.MaxAngleDelta"/>.</param>
     /// <param name="context">The directional prediction mode selecting the distribution.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetAngleDeltaCost(int angleDelta, Av1PredictionMode context)
-        => this.ModeCosts.GetAngleDelta(context - Av1PredictionMode.Vertical, angleDelta);
+    public static int GetAngleDeltaCost(Av1ModeCosts modeCosts, int angleDelta, Av1PredictionMode context)
+        => modeCosts.GetAngleDelta(context - Av1PredictionMode.Vertical, angleDelta);
 
     /// <summary>
     /// Writes an unsigned directional angle-delta symbol.
@@ -3301,24 +3304,26 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Gets the current fixed-point cost of a chroma intra prediction mode.
     /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="chromaMode">The chroma prediction mode.</param>
     /// <param name="isChromaFromLumaAllowed">Indicates whether chroma-from-luma is valid for the block.</param>
     /// <param name="lumaMode">The block's luma prediction mode.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetChromaModeCost(Av1ChromaPredictionMode chromaMode, bool isChromaFromLumaAllowed, Av1PredictionMode lumaMode)
+    public static int GetChromaModeCost(Av1ModeCosts modeCosts, Av1ChromaPredictionMode chromaMode, bool isChromaFromLumaAllowed, Av1PredictionMode lumaMode)
     {
         int cflAllowed = isChromaFromLumaAllowed ? 1 : 0;
-        return this.ModeCosts.GetUvMode(cflAllowed, (int)lumaMode, (int)chromaMode);
+        return modeCosts.GetUvMode(cflAllowed, (int)lumaMode, (int)chromaMode);
     }
 
     /// <summary>
     /// Gets the current fixed-point cost of joint chroma-from-luma alpha syntax.
     /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="chromaFromLumaIndex">The packed U/V alpha-magnitude indices.</param>
     /// <param name="joinedSign">The joint U/V sign symbol.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetChromaFromLumaCost(int chromaFromLumaIndex, int joinedSign)
-        => this.ModeCosts.GetChromaFromLuma(chromaFromLumaIndex, joinedSign);
+    public static int GetChromaFromLumaCost(Av1ModeCosts modeCosts, int chromaFromLumaIndex, int joinedSign)
+        => modeCosts.GetChromaFromLuma(chromaFromLumaIndex, joinedSign);
 
     /// <summary>
     /// Writes a chroma intra prediction mode conditioned on the luma mode and chroma-from-luma availability.

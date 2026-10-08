@@ -4353,7 +4353,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     tileIndex,
                     retainedLumaStates,
                     64,
-                    writer.GetInterFrameLumaModeCost(Av1PredictionMode.DC, blockSize),
+                    Av1SymbolEncoder.GetInterFrameLumaModeCost(writer.ModeCosts, Av1PredictionMode.DC, blockSize),
                     ref paletteStatistics,
                     ref candidatePalette,
                     ref paletteTransformSize))
@@ -6356,6 +6356,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 : Av1PredictionMode.DC;
 
             int interFrameSyntaxRate = intraFrame ? 0 : blockState.IntraInterRate + blockState.NoSkipRate;
+            Av1ModeCosts modeCosts = writer.ModeCosts;
 
             // A predictor first chooses its own transform grid. Only that completed result competes
             // with other predictors, so an empty residual cannot change ranking midway through type search.
@@ -6375,7 +6376,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             tileIndex,
                             retainedStates,
                             64,
-                            Av1TileWriter.GetLumaModeCost(writer, macroBlock, blockSize, Av1PredictionMode.DC, 0, intraFrame),
+                            Av1TileWriter.GetLumaModeCost(modeCosts, macroBlock, blockSize, Av1PredictionMode.DC, 0, intraFrame),
                             ref bestStatistics,
                             ref paletteInfo,
                             ref selectedTransformSize))
@@ -6502,7 +6503,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (!intraFrame)
                     {
-                        int knownRate = writer.GetInterFrameLumaModeCost(mode, blockSize) + interFrameSyntaxRate;
+                        int knownRate = Av1SymbolEncoder.GetInterFrameLumaModeCost(modeCosts, mode, blockSize) + interFrameSyntaxRate;
 
                         // A mode whose known syntax already exceeds the bound is not searched, and the search stops
                         // unless the intra-in-inter pruning is off. The test comes before the directional pruning.
@@ -7056,6 +7057,9 @@ internal static partial class Av1IntraSuperblockEncoder
             bool selectsTransformSize = !this.picture.Parent.SpeedSettings.DeferTransformSizeSearch ||
                 this.blockWorkspace.EvaluationStage != Av1EncoderEvaluationStage.Candidate;
 
+            // The mode syntax and every transform block of the candidate read the same buffers and rate tables.
+            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
+            Av1ModeCosts modeCosts = transformBuffers.Tables.ModeCosts;
             int rate = !codedLossless && blockSize > Av1BlockSize.Block4x4 && selectsTransformSize &&
                 this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select
                 ? writer.GetTransformSizeCost(blockSize, transformSize, transformSizeContext)
@@ -7069,7 +7073,7 @@ internal static partial class Av1IntraSuperblockEncoder
             else
             {
                 rate += Av1TileWriter.GetLumaModeCost(
-                    writer,
+                    modeCosts,
                     blockSize,
                     mode,
                     angleDelta,
@@ -7129,7 +7133,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // The prediction scratch and the reference edge slots serve every transform block, so they are read
             // once. The parent mode search retains reference slots 0 and 1. Use the other pair here because these
             // transform edges also include earlier reconstructions in this candidate.
-            Span<int> transformWorkspace = this.blockWorkspace.TransformWorkspace;
+            Span<int> transformWorkspace = transformBuffers.TransformWorkspace;
             Span<TSample> aboveStorage = workspace.GetReferenceSamples(2);
             Span<TSample> leftStorage = workspace.GetReferenceSamples(3);
             for (int regionY = 0; regionY < codedExtent.Height; regionY += Av1Constants.MaxTransformSize)
@@ -7262,7 +7266,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             bool laterBlockPredicts = (y + transformHeight) < blockHeight || (x + transformWidth) < blockWidth;
                             this.blockWorkspace.LumaNoisePattern = this.IsLumaNoisePattern(reconstructionPlane, blockOrigin, blockSize);
                             TransformTypeSearchResult searchResult = this.SearchTransformType(
-                                writer,
+                                in transformBuffers,
                                 Av1Plane.Y,
                                 false,
                                 blockContext,

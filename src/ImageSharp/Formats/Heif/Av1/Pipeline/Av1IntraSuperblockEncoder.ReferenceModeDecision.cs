@@ -2840,7 +2840,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (tryNoSplit)
             {
                 this.EvaluateInterTransform(
-                    writer,
+                    in buffers,
                     Av1Plane.Y,
                     modeInfo.Mode,
                     origin,
@@ -10380,6 +10380,9 @@ internal static partial class Av1IntraSuperblockEncoder
             long currentCost = 0;
             Av1TransformSize chromaRootSize = transformSize;
             int chromaLeafCount = planeBlockSize.GetWidth() * planeBlockSize.GetHeight() / sampleCount;
+
+            // Every transform block of the plane reads the same transform buffers and rate tables.
+            Av1TransformBlockBuffers transformBuffers = new(this.blockWorkspace, writer);
             for (int chromaLeaf = 0; chromaLeaf < chromaLeafCount; chromaLeaf++)
             {
                 Point chromaOffset = chromaRootSize.GetBlockPartitionOrigin(planeBlockSize, transformSize, chromaLeaf, subX, subY);
@@ -10443,7 +10446,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     int coefficientOffset = transformIndex * sampleCount;
                     Span<int> coefficients = selectedCoefficients.Slice(coefficientOffset, sampleCount);
                     this.EvaluateInterTransform(
-                        writer,
+                        in transformBuffers,
                         plane,
                         predictionMode,
                         planeOrigin + new Size(x, y),
@@ -11343,8 +11346,28 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Evaluates transform types over strided prediction and residual samples at one transform origin.
         /// </summary>
+        /// <param name="buffers">The transform buffers, rate tables and symbol encoder that the caller read once for its loop.</param>
+        /// <param name="plane">The plane of the transform block.</param>
+        /// <param name="predictionMode">The prediction mode that selects the transform-type context.</param>
+        /// <param name="planeOrigin">The transform block origin in plane samples.</param>
+        /// <param name="transformSize">The transform size.</param>
+        /// <param name="derivedTransformType">The type a chroma block derives.</param>
+        /// <param name="blockContext">The coefficient contexts of the transform block.</param>
+        /// <param name="originContext">The coefficient contexts at the origin of the coding block.</param>
+        /// <param name="prediction">The prediction samples.</param>
+        /// <param name="residual">The residual samples.</param>
+        /// <param name="inputStride">The number of prediction and residual samples between rows.</param>
+        /// <param name="costLimit">The budget left for the transform block.</param>
+        /// <param name="transformReconstruction">The reconstruction storage of the candidate.</param>
+        /// <param name="transformCoefficients">The coefficient storage of the candidate.</param>
+        /// <param name="selectedReconstruction">The reconstruction storage of the winner.</param>
+        /// <param name="selectedCoefficients">The coefficient storage of the winner.</param>
+        /// <param name="selectedState">The transform state of the winner.</param>
+        /// <param name="selectedRate">The coefficient rate of the winner.</param>
+        /// <param name="selectedDistortion">The distortion of the winner.</param>
+        /// <param name="predictionDistortion">The distortion of the prediction alone.</param>
         private void EvaluateInterTransform(
-            Av1SymbolEncoder writer,
+            in Av1TransformBlockBuffers buffers,
             Av1Plane plane,
             Av1PredictionMode predictionMode,
             Point planeOrigin,
@@ -11374,10 +11397,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> candidateCoefficients = transformCoefficients[..sampleCount];
             Span<TSample> bestReconstruction = selectedReconstruction[..sampleCount];
             Span<int> bestCoefficients = selectedCoefficients[..sampleCount];
-            Span<int> candidateDequantized = this.blockWorkspace.DequantizedCoefficients;
+            Span<int> candidateDequantized = buffers.DequantizedCoefficients;
             Span<int> bestDequantized = this.blockWorkspace.SearchDequantizedCoefficients;
             TransformTypeSearchResult result = this.SearchTransformType(
-                writer,
+                in buffers,
                 plane,
                 true,
                 blockContext,

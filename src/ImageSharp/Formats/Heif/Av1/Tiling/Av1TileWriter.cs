@@ -1842,9 +1842,9 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// Gets the chroma prediction-mode and directional-angle rate from the live tile probabilities.
+    /// Gets the chroma prediction-mode and directional-angle rate from the mode rates that the caller read once.
     /// </summary>
-    /// <param name="writer">The live tile symbol encoder.</param>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="frameHeader">The current frame syntax and segment lossless state.</param>
     /// <param name="colorConfig">The sequence chroma subsampling configuration.</param>
     /// <param name="macroBlockModeInfo">The selected block modes.</param>
@@ -1854,7 +1854,7 @@ internal partial class Av1TileWriter
     /// <param name="angleDelta">The signed directional-angle adjustment.</param>
     /// <returns>The chroma mode and directional-angle rate in 1/512-bit units.</returns>
     public static int GetChromaModeCost(
-        Av1SymbolEncoder writer,
+        Av1ModeCosts modeCosts,
         ObuFrameHeader frameHeader,
         ObuColorConfig colorConfig,
         Av1MacroBlockModeInfo macroBlockModeInfo,
@@ -1869,10 +1869,10 @@ internal partial class Av1TileWriter
             macroBlockModeInfo,
             blockSize);
 
-        int cost = writer.GetChromaModeCost(chromaMode, isChromaFromLumaAllowed, lumaMode);
+        int cost = Av1SymbolEncoder.GetChromaModeCost(modeCosts, chromaMode, isChromaFromLumaAllowed, lumaMode);
         if (blockSize >= Av1BlockSize.Block8x8 && chromaMode.IsDirectional())
         {
-            cost += writer.GetAngleDeltaCost(angleDelta + Av1Constants.MaxAngleDelta, chromaMode.ToLumaMode());
+            cost += Av1SymbolEncoder.GetAngleDeltaCost(modeCosts, angleDelta + Av1Constants.MaxAngleDelta, chromaMode.ToLumaMode());
         }
 
         return cost;
@@ -1966,7 +1966,7 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Gets the luma mode rate from the frame-appropriate distribution.
     /// </summary>
-    /// <param name="writer">The live tile symbol encoder.</param>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="macroBlock">The current block's mapped neighbor state.</param>
     /// <param name="blockSize">The selected block size.</param>
     /// <param name="mode">The candidate luma mode.</param>
@@ -1974,7 +1974,7 @@ internal partial class Av1TileWriter
     /// <param name="isIntraFrame">Whether the frame uses key-frame neighbor-conditioned mode syntax.</param>
     /// <returns>The luma mode and directional-angle rate in 1/512-bit units.</returns>
     public static int GetLumaModeCost(
-        Av1SymbolEncoder writer,
+        Av1ModeCosts modeCosts,
         Av1MacroBlockD macroBlock,
         Av1BlockSize blockSize,
         Av1PredictionMode mode,
@@ -1988,14 +1988,14 @@ internal partial class Av1TileWriter
             GetYModeContext(macroBlock, out topContext, out leftContext);
         }
 
-        return GetLumaModeCost(writer, blockSize, mode, angleDelta, isIntraFrame, topContext, leftContext);
+        return GetLumaModeCost(modeCosts, blockSize, mode, angleDelta, isIntraFrame, topContext, leftContext);
     }
 
     /// <summary>
     /// Gets the luma mode rate from the frame-appropriate distribution, with the neighbor contexts that the caller
     /// read once for all modes of the block.
     /// </summary>
-    /// <param name="writer">The live tile symbol encoder.</param>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="blockSize">The selected block size.</param>
     /// <param name="mode">The candidate luma mode.</param>
     /// <param name="angleDelta">The signed directional angle adjustment.</param>
@@ -2004,7 +2004,7 @@ internal partial class Av1TileWriter
     /// <param name="leftContext">The mode context of the block to the left, used only in an intra frame.</param>
     /// <returns>The rate of the luma mode and its angle adjustment.</returns>
     public static int GetLumaModeCost(
-        Av1SymbolEncoder writer,
+        Av1ModeCosts modeCosts,
         Av1BlockSize blockSize,
         Av1PredictionMode mode,
         int angleDelta,
@@ -2013,12 +2013,12 @@ internal partial class Av1TileWriter
         byte leftContext)
     {
         int cost = isIntraFrame
-            ? writer.GetLumaModeCost(mode, topContext, leftContext)
-            : writer.GetInterFrameLumaModeCost(mode, blockSize);
+            ? Av1SymbolEncoder.GetLumaModeCost(modeCosts, mode, topContext, leftContext)
+            : Av1SymbolEncoder.GetInterFrameLumaModeCost(modeCosts, mode, blockSize);
 
         if (blockSize >= Av1BlockSize.Block8x8 && mode.IsDirectional())
         {
-            cost += writer.GetAngleDeltaCost(angleDelta + Av1Constants.MaxAngleDelta, mode);
+            cost += Av1SymbolEncoder.GetAngleDeltaCost(modeCosts, angleDelta + Av1Constants.MaxAngleDelta, mode);
         }
 
         return cost;

@@ -175,6 +175,9 @@ internal static partial class Av1IntraSuperblockEncoder
             int cacheThreshold = 4 << (this.bitDepth.GetBitCount() - 8);
             bool paletteSelected = false;
 
+            // Every palette size of the block reads the same mode rates.
+            Av1ModeCosts modeCosts = writer.ModeCosts;
+
             // A paired centroid assigns one index to both components. Larger palettes are considered only
             // while their shared syntax can still beat the current complete chroma decision.
             for (int paletteSize = 2; paletteSize <= maximumPaletteSize; paletteSize++)
@@ -273,7 +276,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 int rate = Av1TileWriter.GetChromaModeCost(
-                    writer,
+                    modeCosts,
                     this.picture.Parent.FrameHeader,
                     colorConfig,
                     modeInfo,

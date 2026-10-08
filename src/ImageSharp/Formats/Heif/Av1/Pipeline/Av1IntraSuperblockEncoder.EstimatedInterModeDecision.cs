@@ -805,7 +805,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 tileIndex,
                 states,
                 colorThreshold,
-                writer.GetInterFrameLumaModeCost(Av1PredictionMode.DC, blockSize),
+                Av1SymbolEncoder.GetInterFrameLumaModeCost(writer.ModeCosts, Av1PredictionMode.DC, blockSize),
                 ref paletteStatistics,
                 ref palette,
                 ref transformSize);
@@ -1141,6 +1141,9 @@ internal static partial class Av1IntraSuperblockEncoder
             int modeMask = speed.GetEstimatedIntraModeMask(blockSize, screenChange);
             Av1PredictionMode chromaMode = Av1PredictionMode.DC;
             Span<int> modeThresholdFactors = this.blockWorkspace.ModeThresholdFactors;
+
+            // Every intra mode of the block reads the same mode rates.
+            Av1ModeCosts modeCosts = writer.ModeCosts;
             foreach (Av1PredictionMode mode in EstimatedIntraModes)
             {
                 // Forced intra keeps DC, vertical, and horizontal available even when the ordinary
@@ -1189,7 +1192,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int rate = residual.Rate + referenceRate + penalty;
                 if ((mode == Av1PredictionMode.Vertical || mode == Av1PredictionMode.Horizontal) && blockSize >= Av1BlockSize.Block8x8)
                 {
-                    rate += writer.GetAngleDeltaCost(Av1Constants.MaxAngleDelta, mode);
+                    rate += Av1SymbolEncoder.GetAngleDeltaCost(modeCosts, Av1Constants.MaxAngleDelta, mode);
                 }
 
                 if (mode == Av1PredictionMode.DC &&

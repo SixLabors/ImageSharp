@@ -567,6 +567,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The superblock's neighboring syntax and frame edges.</param>
         /// <param name="origin">The superblock's luma origin.</param>
         /// <param name="predictionStride">The row stride of the returned luma prediction.</param>
@@ -581,6 +582,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> compoundMask,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Av1MacroBlockD macroBlock,
             Point origin,
             out int predictionStride,
@@ -715,7 +717,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Point neighborPosition = position + (index == 0 ? new Size(0, -1) : new Size(-1, 0));
 
                     // get_fullmv_from_mv() rounds the clamped vector to the nearest full sample (GET_MV_RAWPEL).
-                    Av1MotionVector motion = this.picture.GetDisplacementVector(neighborPosition);
+                    Av1MotionVector motion = this.picture.GetDisplacementVector(modeInfoGrid, displacementVectors, neighborPosition);
                     int row = Math.Clamp(motion.Row, fractionalBounds.Top, fractionalBounds.Bottom - 1);
                     int column = Math.Clamp(motion.Column, fractionalBounds.Left, fractionalBounds.Right - 1);
                     motion = new Av1MotionVector(
@@ -814,7 +816,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         secondIntermediate,
                         compoundMask,
                         modeInfoGrid,
-                        modeInfoAllocation);
+                        modeInfoAllocation,
+                        displacementVectors);
                 }
             }
 
@@ -914,11 +917,13 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The superblock's already-encoded neighbors.</param>
         /// <param name="origin">The superblock's luma origin.</param>
         private void FilterTemporalSource(
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Av1MacroBlockD macroBlock,
             Point origin)
         {
@@ -934,7 +939,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (neighbor.ReferenceFrame > Av1ReferenceFrameType.Intra)
                     {
-                        Av1MotionVector vector = this.picture.GetDisplacementVector(position + (index == 0 ? new Size(0, -1) : new Size(-1, 0)));
+                        Point neighborPosition = position + (index == 0 ? new Size(0, -1) : new Size(-1, 0));
+                        Av1MotionVector vector = this.picture.GetDisplacementVector(modeInfoGrid, displacementVectors, neighborPosition);
                         if (Math.Abs(vector.Row) > 24 || Math.Abs(vector.Column) > 24)
                         {
                             return;
@@ -1056,6 +1062,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The neighbor availability of the superblock.</param>
         /// <param name="superblockOrigin">The luma superblock origin.</param>
         private void PrepareVariancePartitions(
@@ -1067,6 +1074,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> compoundMask,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Av1MacroBlockD macroBlock,
             Point superblockOrigin)
         {
@@ -1074,7 +1082,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 if (this.filterTemporalSource)
                 {
-                    this.FilterTemporalSource(modeInfoGrid, modeInfoAllocation, macroBlock, superblockOrigin);
+                    this.FilterTemporalSource(modeInfoGrid, modeInfoAllocation, displacementVectors, macroBlock, superblockOrigin);
                 }
 
                 Av1PictureParentControlSet parent = this.picture.Parent;
@@ -1109,6 +1117,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     compoundMask,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    displacementVectors,
                     macroBlock,
                     superblockOrigin,
                     out int predictionStride,

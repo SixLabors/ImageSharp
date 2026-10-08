@@ -2318,6 +2318,10 @@ internal partial class Av1TileWriter
                         ref Av1ReferenceMotionVectors referenceMotionVectors = ref tb_ptr.Workspace.ReferenceMotionVectors;
                         referenceMotionVectors.Build(
                             pcs,
+                            modeInfoGrid,
+                            modeInfoAllocation,
+                            displacementVectors,
+                            referenceContexts,
                             macroBlock,
                             modeInfoPosition,
                             blockSize,
@@ -2633,6 +2637,7 @@ internal partial class Av1TileWriter
                     macroBlockModeInfo,
                     TBlockEncoder.UsesRetainedDecisions,
                     modeInfoGrid,
+                    modeInfoAllocation,
                     displacementVectors,
                     referenceContexts);
             }
@@ -3643,6 +3648,7 @@ internal partial class Av1TileWriter
     /// <param name="macroBlockModeInfo">The selected block modes.</param>
     /// <param name="useRetainedContext">Whether the reference vector context comes from completed block analysis.</param>
     /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
     /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
     /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
     public static void WriteIntraBlockCopyInfo<TOperation>(
@@ -3654,6 +3660,7 @@ internal partial class Av1TileWriter
         Av1MacroBlockModeInfo macroBlockModeInfo,
         bool useRetainedContext,
         ReadOnlySpan<int> modeInfoGrid,
+        ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
         ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
         Span<Av1EncoderReferenceContext> referenceContexts)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
@@ -3676,6 +3683,9 @@ internal partial class Av1TileWriter
                 Span<int> weights = stackalloc int[8];
                 reference = Av1IntraBlockCopy.FindReference(
                     picture,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
                     macroBlock,
                     modeInfoPosition,
                     macroBlockModeInfo.Block.BlockSize,

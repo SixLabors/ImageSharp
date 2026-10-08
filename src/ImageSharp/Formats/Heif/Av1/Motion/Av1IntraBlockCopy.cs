@@ -50,6 +50,9 @@ internal static class Av1IntraBlockCopy
     /// Finds the spatial reference used to differentially encode an intra-block-copy displacement vector.
     /// </summary>
     /// <param name="picture">The encoded frame's mapped mode and displacement state.</param>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+    /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
     /// <param name="macroBlock">The current block's frame edges and tile availability.</param>
     /// <param name="modeInfoPosition">The current block origin in 4x4 mode-information units.</param>
     /// <param name="blockSize">The current block size.</param>
@@ -59,6 +62,9 @@ internal static class Av1IntraBlockCopy
     /// <returns>The nearest nonzero spatial candidate, or the normative tile-relative fallback.</returns>
     public static Av1MotionVector FindReference(
         Av1PictureControlSet picture,
+        ReadOnlySpan<int> modeInfoGrid,
+        ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
+        ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
         Av1MacroBlockD macroBlock,
         Point modeInfoPosition,
         Av1BlockSize blockSize,
@@ -69,6 +75,9 @@ internal static class Av1IntraBlockCopy
         int superblockModeInfoSize = picture.Sequence.SequenceHeader.SuperblockModeInfoSize;
         ReferenceContext context = new(
             picture,
+            modeInfoGrid,
+            modeInfoAllocation,
+            displacementVectors,
             macroBlock,
             modeInfoPosition,
             blockSize,
@@ -533,8 +542,24 @@ internal static class Av1IntraBlockCopy
             this.HasTopRight = partitionInfo.HasTopRight(superblockModeInfoSize);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReferenceContext"/> struct over the encoder picture state,
+        /// which the caller read once.
+        /// </summary>
+        /// <param name="picture">The encoded frame's mapped mode and displacement state.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="macroBlock">The current block's frame edges and tile availability.</param>
+        /// <param name="modeInfoPosition">The current block origin in 4x4 mode-information units.</param>
+        /// <param name="blockSize">The current block size.</param>
+        /// <param name="partitionType">The partition type that produced the block.</param>
+        /// <param name="superblockModeInfoSize">The superblock size in 4x4 mode-information units.</param>
         public ReferenceContext(
             Av1PictureControlSet picture,
+            ReadOnlySpan<int> modeInfoGrid,
+            ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
+            ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Av1MacroBlockD macroBlock,
             Point modeInfoPosition,
             Av1BlockSize blockSize,
@@ -543,9 +568,9 @@ internal static class Av1IntraBlockCopy
         {
             this.decodedSuperblock = default;
             this.encodedPicture = picture;
-            this.encodedGrid = picture.ModeInfoGrid.Span;
-            this.encodedModeInfo = picture.ModeInfoAllocation.Span;
-            this.encodedVectors = picture.DisplacementVectors.Span;
+            this.encodedGrid = modeInfoGrid;
+            this.encodedModeInfo = modeInfoAllocation;
+            this.encodedVectors = displacementVectors;
             this.encodedStride = picture.ModeInfoStride;
             this.BlockSize = blockSize;
             this.RowIndex = modeInfoPosition.Y;

@@ -31,6 +31,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="referenceFrame">The reference of the block.</param>
@@ -44,6 +45,7 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1MotionVectorCosts motionVectorCosts,
             ReadOnlySpan<int> modeInfoGrid,
             ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
+            ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Point blockOrigin,
             Av1BlockSize blockSize,
             Av1ReferenceFrameType referenceFrame,
@@ -55,7 +57,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height = blockSize.GetHeight();
             Span<int> weightedSource = this.blockWorkspace.ObmcWeightedSource.AsSpan(0, width * height);
             Span<int> mask = this.blockWorkspace.ObmcMask.AsSpan(0, width * height);
-            this.CalculateObmcTarget(blockSize, weightedSource, mask, filterRows, modeInfoGrid, modeInfoAllocation);
+            this.CalculateObmcTarget(blockSize, weightedSource, mask, filterRows, modeInfoGrid, modeInfoAllocation, displacementVectors);
 
             // The full-sample search reads a reference of another size through its copy resized to the frame size, and
             // the fractional search the reference itself. Reference: the scaled_ref_frame of
@@ -776,13 +778,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="filterRows">The intermediate rows of the neighbor prediction filters.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         private void CalculateObmcTarget(
             Av1BlockSize blockSize,
             Span<int> weightedSource,
             Span<int> mask,
             Span<short> filterRows,
             ReadOnlySpan<int> modeInfoGrid,
-            ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation)
+            ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
+            ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors)
         {
             ReadOnlySpan<int> maximumNeighbors = [0, 1, 2, 3, 4, 4];
             int width = blockSize.GetWidth();
@@ -793,8 +797,7 @@ internal static partial class Av1IntraSuperblockEncoder
             weightedSource.Clear();
             mask.Fill(BlendMaximumAlpha);
 
-            // The vectors are read once. A neighbor and its vector share the allocation index at the grid cell.
-            ReadOnlySpan<Av1EncoderDisplacementVector> vectors = this.picture.DisplacementVectors.Span;
+            // A neighbor and its vector share the allocation index at the grid cell.
             int stride = this.picture.ModeInfoStride;
             if (this.obmcAboveAvailable)
             {
@@ -829,7 +832,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Av1Plane.Y,
                         0,
                         0,
-                        new Av1MotionVector(vectors[neighborIndex].Row, vectors[neighborIndex].Column),
+                        new Av1MotionVector(displacementVectors[neighborIndex].Row, displacementVectors[neighborIndex].Column),
                         neighbor,
                         new Point(column << Av1Constants.ModeInfoSizeLog2, position.Y << Av1Constants.ModeInfoSizeLog2),
                         neighborWidth,
@@ -886,7 +889,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Av1Plane.Y,
                         0,
                         0,
-                        new Av1MotionVector(vectors[neighborIndex].Row, vectors[neighborIndex].Column),
+                        new Av1MotionVector(displacementVectors[neighborIndex].Row, displacementVectors[neighborIndex].Column),
                         neighbor,
                         new Point(position.X << Av1Constants.ModeInfoSizeLog2, row << Av1Constants.ModeInfoSizeLog2),
                         predictionWidth,

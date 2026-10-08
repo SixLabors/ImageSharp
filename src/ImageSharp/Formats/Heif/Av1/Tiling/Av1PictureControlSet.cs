@@ -172,14 +172,6 @@ internal class Av1PictureControlSet
         => ref modeInfoAllocation[modeInfoGrid[(position.Y * this.ModeInfoStride) + position.X]];
 
     /// <summary>
-    /// Gets the displacement vector mapped to a frame position.
-    /// </summary>
-    /// <param name="position">The frame position in 4x4 mode-information units.</param>
-    /// <returns>The displacement vector retained for the covering block.</returns>
-    public Av1MotionVector GetDisplacementVector(Point position)
-        => this.GetDisplacementVector(this.ModeInfoGrid.Span, this.DisplacementVectors.Span, position);
-
-    /// <summary>
     /// Gets the displacement vector mapped to a frame position from the grid and vectors, which the caller read once.
     /// </summary>
     /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
@@ -191,14 +183,6 @@ internal class Av1PictureControlSet
         Av1EncoderDisplacementVector vector = displacementVectors[modeInfoGrid[(position.Y * this.ModeInfoStride) + position.X]];
         return new Av1MotionVector(vector.Row, vector.Column);
     }
-
-    /// <summary>
-    /// Gets the secondary displacement vector mapped to a compound block.
-    /// </summary>
-    /// <param name="position">The frame position in 4x4 mode-information units.</param>
-    /// <returns>The secondary vector retained for the covering block.</returns>
-    public Av1MotionVector GetSecondaryDisplacementVector(Point position)
-        => this.GetSecondaryDisplacementVector(this.ModeInfoGrid.Span, this.ReferenceContexts.Span, position);
 
     /// <summary>
     /// Gets the secondary displacement vector mapped to a compound block from the grid and reference contexts, which
@@ -218,39 +202,34 @@ internal class Av1PictureControlSet
     }
 
     /// <summary>
-    /// Stores the displacement vector selected at a block origin.
+    /// Stores the displacement vector selected at a block origin in the vectors, which the caller read once.
     /// </summary>
+    /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
     /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
     /// <param name="vector">The selected integer displacement vector.</param>
-    public void SetDisplacementVector(Point modeInfoPosition, Av1MotionVector vector)
-    {
-        int modeInfoStride = this.ModeInfoStride;
-        int disallow4x4 = this.Disallow4x4AllFrames ? 1 : 0;
-        int allocationOffset = ((modeInfoPosition.Y >> disallow4x4) * (modeInfoStride >> disallow4x4)) + (modeInfoPosition.X >> disallow4x4);
-        this.DisplacementVectors.Span[allocationOffset] = new Av1EncoderDisplacementVector
+    public void SetDisplacementVector(Span<Av1EncoderDisplacementVector> displacementVectors, Point modeInfoPosition, Av1MotionVector vector)
+        => displacementVectors[this.GetAllocationOffset(modeInfoPosition)] = new Av1EncoderDisplacementVector
         {
             Row = (short)vector.Row,
             Column = (short)vector.Column
         };
-    }
 
+#pragma warning disable CA1517 // False positive: https://github.com/dotnet/sdk/issues/53388
     /// <summary>
-    /// Stores the secondary displacement vector selected at a compound block origin.
+    /// Stores the secondary displacement vector selected at a compound block origin in the reference contexts, which
+    /// the caller read once.
     /// </summary>
+    /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
     /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
     /// <param name="vector">The selected secondary vector.</param>
-    public void SetSecondaryDisplacementVector(Point modeInfoPosition, Av1MotionVector vector)
-    {
-        int disallow4x4 = this.Disallow4x4AllFrames ? 1 : 0;
-        int allocationOffset = ((modeInfoPosition.Y >> disallow4x4) * (this.ModeInfoStride >> disallow4x4)) +
-            (modeInfoPosition.X >> disallow4x4);
-
-        this.ReferenceContexts.Span[allocationOffset].SecondaryVector = new Av1EncoderDisplacementVector
+    public void SetSecondaryDisplacementVector(Span<Av1EncoderReferenceContext> referenceContexts, Point modeInfoPosition, Av1MotionVector vector)
+        => referenceContexts[this.GetAllocationOffset(modeInfoPosition)].SecondaryVector = new Av1EncoderDisplacementVector
         {
             Row = (short)vector.Row,
             Column = (short)vector.Column
         };
-    }
+
+#pragma warning restore CA1517
 
     /// <summary>
     /// Gets the macroblock mode information allocated at a block origin.

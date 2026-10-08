@@ -855,6 +855,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             compoundMask,
                             modeInfoGrid,
                             modeInfoAllocation,
+                            displacementVectors,
                             macroBlock,
                             blockOrigin);
                     }
@@ -893,6 +894,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             in redCoefficientEdges,
                             modeInfoGrid,
                             modeInfoAllocation,
+                            displacementVectors,
+                            referenceContexts,
                             macroBlock,
                             blockOrigin,
                             blockSize,
@@ -935,6 +938,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         in redCoefficientEdges,
                         modeInfoGrid,
                         modeInfoAllocation,
+                        displacementVectors,
+                        referenceContexts,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -996,6 +1001,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in redCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -1048,6 +1055,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -1083,6 +1092,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             Span<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -1160,6 +1171,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in redCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
+                displacementVectors,
+                referenceContexts,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -1250,6 +1263,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         in redCoefficientEdges,
                         modeInfoGrid,
                         modeInfoAllocation,
+                        displacementVectors,
+                        referenceContexts,
                         macroBlock,
                         childOrigin,
                         childSize,
@@ -1405,6 +1420,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -1444,6 +1461,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             Span<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -1507,6 +1526,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in redCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
+                displacementVectors,
+                referenceContexts,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -1854,6 +1875,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -1893,6 +1916,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             Span<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -1935,6 +1960,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1ReferenceMotionVectors starts = default;
                 starts.Build(
                     this.picture,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
                     macroBlock,
                     modeInfoPosition,
                     blockSize,
@@ -2578,6 +2607,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in redCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -3189,6 +3220,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -3225,6 +3258,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             Span<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -3268,6 +3303,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in redCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
+                displacementVectors,
+                referenceContexts,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -3313,6 +3350,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -3349,6 +3388,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             Span<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -3406,6 +3447,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         in redCoefficientEdges,
                         modeInfoGrid,
                         modeInfoAllocation,
+                        displacementVectors,
+                        referenceContexts,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -3450,6 +3493,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         in redCoefficientEdges,
                         modeInfoGrid,
                         modeInfoAllocation,
+                        displacementVectors,
+                        referenceContexts,
                         macroBlock,
                         blockOrigin,
                         subSize,
@@ -3490,6 +3535,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                 in redCoefficientEdges,
                                 modeInfoGrid,
                                 modeInfoAllocation,
+                                displacementVectors,
+                                referenceContexts,
                                 macroBlock,
                                 blockOrigin,
                                 first,
@@ -3562,6 +3609,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             in redCoefficientEdges,
                             modeInfoGrid,
                             modeInfoAllocation,
+                            displacementVectors,
+                            referenceContexts,
                             macroBlock,
                             secondOrigin,
                             subSize,
@@ -3610,6 +3659,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             in redCoefficientEdges,
                             modeInfoGrid,
                             modeInfoAllocation,
+                            displacementVectors,
+                            referenceContexts,
                             macroBlock,
                             childOrigin,
                             childSize,
@@ -3665,6 +3716,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in redCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -3717,6 +3770,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -3757,6 +3812,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             Span<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -3802,6 +3859,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in redCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -3852,6 +3911,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in redCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
+                displacementVectors,
+                referenceContexts,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -3945,6 +4006,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -3988,6 +4051,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             Span<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -4107,6 +4172,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         in redCoefficientEdges,
                         modeInfoGrid,
                         modeInfoAllocation,
+                        displacementVectors,
+                        referenceContexts,
                         macroBlock,
                         leafOrigin,
                         leafSize,
@@ -4147,6 +4214,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             in redCoefficientEdges,
                             modeInfoGrid,
                             modeInfoAllocation,
+                            displacementVectors,
+                            referenceContexts,
                             macroBlock,
                             leafOrigin,
                             leafSize,
@@ -4177,6 +4246,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             in redCoefficientEdges,
                             modeInfoGrid,
                             modeInfoAllocation,
+                            displacementVectors,
+                            referenceContexts,
                             macroBlock,
                             leafOrigin,
                             this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex),
@@ -4319,6 +4390,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             in redCoefficientEdges,
                             modeInfoGrid,
                             modeInfoAllocation,
+                            displacementVectors,
+                            referenceContexts,
                             macroBlock,
                             leafOrigin,
                             sibling,
@@ -4916,6 +4989,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in redCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
+                displacementVectors,
+                referenceContexts,
                 macroBlock,
                 blockOrigin,
                 ref modeInfo,
@@ -4956,6 +5031,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -4990,6 +5067,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -5026,6 +5105,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in redCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
+                displacementVectors,
+                referenceContexts,
                 macroBlock,
                 blockOrigin,
                 ref modeInfo,
@@ -5099,6 +5180,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -5133,6 +5216,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -5168,6 +5253,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in redCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
+                displacementVectors,
+                referenceContexts,
                 macroBlock,
                 blockOrigin,
                 ref modeInfo,
@@ -5207,6 +5294,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -5242,6 +5331,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -5387,6 +5478,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         in redCoefficientEdges,
                         modeInfoGrid,
                         modeInfoAllocation,
+                        displacementVectors,
                         macroBlock,
                         blockOrigin,
                         modeInfo,
@@ -5399,10 +5491,10 @@ internal static partial class Av1IntraSuperblockEncoder
                         blockOrigin.X >> Av1Constants.ModeInfoSizeLog2,
                         blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
 
-                    this.picture.SetDisplacementVector(replayModeInfoPosition, context.Snapshot.Displacement);
+                    this.picture.SetDisplacementVector(displacementVectors, replayModeInfoPosition, context.Snapshot.Displacement);
                     if (modeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
                     {
-                        this.picture.SetSecondaryDisplacementVector(replayModeInfoPosition, context.Snapshot.SecondaryDisplacement);
+                        this.picture.SetSecondaryDisplacementVector(referenceContexts, replayModeInfoPosition, context.Snapshot.SecondaryDisplacement);
                     }
 
                     this.codedAreaLuma += replayArea;
@@ -5521,6 +5613,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         in redCoefficientEdges,
                         modeInfoGrid,
                         modeInfoAllocation,
+                        displacementVectors,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -5560,6 +5653,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in redCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
                     macroBlock,
                     blockOrigin,
                     ref modeInfo,
@@ -5603,6 +5698,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     in redCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    displacementVectors,
+                    referenceContexts,
                     macroBlock,
                     blockOrigin,
                     ref modeInfo,
@@ -5934,6 +6031,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         in redCoefficientEdges,
                         modeInfoGrid,
                         modeInfoAllocation,
+                        displacementVectors,
                         macroBlock,
                         blockOrigin,
                         ref modeInfo,
@@ -5975,6 +6073,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         in redCoefficientEdges,
                         modeInfoGrid,
                         modeInfoAllocation,
+                        displacementVectors,
                         macroBlock,
                         blockOrigin,
                         regularStatistics,
@@ -6353,6 +6452,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             compoundMask,
                             modeInfoGrid,
                             modeInfoAllocation,
+                            displacementVectors,
+                            referenceContexts,
                             macroBlock,
                             blockOrigin,
                             skipModeContext,
@@ -6413,6 +6514,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         in redCoefficientEdges,
                         modeInfoGrid,
                         modeInfoAllocation,
+                        displacementVectors,
                         macroBlock,
                         blockOrigin,
                         modeInfo,
@@ -6422,12 +6524,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         interStates);
 
                     this.keepSearchedZeroBlockTypes = false;
-                    this.picture.SetDisplacementVector(modeInfoPosition, interVector);
+                    this.picture.SetDisplacementVector(displacementVectors, modeInfoPosition, interVector);
                     if (modeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
                     {
                         // The encoder's spatial motion stack must retain both vectors of the selected pair; otherwise
                         // later compound blocks would derive a different nearest pair than the decoder.
-                        this.picture.SetSecondaryDisplacementVector(modeInfoPosition, interSecondaryVector);
+                        this.picture.SetSecondaryDisplacementVector(referenceContexts, modeInfoPosition, interSecondaryVector);
                     }
                 }
             }
@@ -6493,6 +6595,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -6532,6 +6636,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             Span<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -6604,6 +6710,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in redCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
+                displacementVectors,
+                referenceContexts,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -6692,6 +6800,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -6731,6 +6841,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             Span<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -6790,6 +6902,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 in redCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
+                displacementVectors,
+                referenceContexts,
                 macroBlock,
                 blockOrigin,
                 ref modeInfo,
@@ -6807,16 +6921,18 @@ internal static partial class Av1IntraSuperblockEncoder
                 Block = block,
                 Palette = paletteInfo,
                 Statistics = this.SelectedBlockStatistics,
-                Displacement = modeInfo.Block.UseIntraBlockCopy ? this.picture.GetDisplacementVector(modeInfoPosition) : default,
+                Displacement = modeInfo.Block.UseIntraBlockCopy
+                    ? this.picture.GetDisplacementVector(modeInfoGrid, displacementVectors, modeInfoPosition)
+                    : default,
                 SecondaryDisplacement = default,
                 Ready = false
             };
 
             if (modeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra || modeInfo.Block.UseIntraBlockCopy)
             {
-                context.Snapshot.Displacement = this.picture.GetDisplacementVector(modeInfoPosition);
+                context.Snapshot.Displacement = this.picture.GetDisplacementVector(modeInfoGrid, displacementVectors, modeInfoPosition);
                 context.Snapshot.SecondaryDisplacement = modeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra
-                    ? this.picture.GetSecondaryDisplacementVector(modeInfoPosition)
+                    ? this.picture.GetSecondaryDisplacementVector(modeInfoGrid, referenceContexts, modeInfoPosition)
                     : default;
             }
 
@@ -6993,6 +7109,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="context">The context that keeps the decisions of the leaf.</param>
@@ -7021,6 +7139,8 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             Span<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
+            Span<Av1EncoderReferenceContext> referenceContexts,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1EncoderPartitionTree.ModeContext context,
@@ -7123,6 +7243,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     in redCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    displacementVectors,
                     macroBlock,
                     blockOrigin,
                     snapshot.ModeInfo,
@@ -7143,10 +7264,10 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.Y).Slice(lumaArea / unit, retainedArea / unit));
                 }
 
-                this.picture.SetDisplacementVector(modeInfoPosition, snapshot.Displacement);
+                this.picture.SetDisplacementVector(displacementVectors, modeInfoPosition, snapshot.Displacement);
                 if (snapshot.ModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra)
                 {
-                    this.picture.SetSecondaryDisplacementVector(modeInfoPosition, snapshot.SecondaryDisplacement);
+                    this.picture.SetSecondaryDisplacementVector(referenceContexts, modeInfoPosition, snapshot.SecondaryDisplacement);
                 }
 
                 this.codedAreaLuma += retainedArea;

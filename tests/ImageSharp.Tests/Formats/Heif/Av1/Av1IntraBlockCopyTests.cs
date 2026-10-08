@@ -115,7 +115,7 @@ public class Av1IntraBlockCopyTests
 
         Av1MotionVector displacement = new(0, -3072);
         picture.MapModeInfoBlock(modeInfoPosition, modeInfo.Block.BlockSize);
-        picture.SetDisplacementVector(modeInfoPosition, displacement);
+        picture.SetDisplacementVector(picture.DisplacementVectors.Span, modeInfoPosition, displacement);
         Av1TileInfo tileInfo = new(0, 0, frameHeader);
         Av1MacroBlockD macroBlock = new() { Tile = tileInfo };
         Av1TileWriter.SetModeInfoRowAndColumn(
@@ -138,6 +138,7 @@ public class Av1IntraBlockCopyTests
             modeInfo,
             useRetainedContext: false,
             picture.ModeInfoGrid.Span,
+            picture.ModeInfoAllocation.Span,
             picture.DisplacementVectors.Span,
             picture.ReferenceContexts.Span);
 

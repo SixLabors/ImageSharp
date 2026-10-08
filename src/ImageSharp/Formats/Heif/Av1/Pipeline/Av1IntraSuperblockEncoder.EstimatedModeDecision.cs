@@ -112,6 +112,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -140,6 +141,7 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<Av1EncoderDisplacementVector> displacementVectors,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -422,6 +424,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 InlineArray8<int> referenceWeights = default;
                 Av1MotionVector reference = Av1IntraBlockCopy.FindReference(
                     this.picture,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    displacementVectors,
                     macroBlock,
                     position,
                     blockSize,
@@ -473,7 +478,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         secondIntermediate,
                         compoundMask,
                         modeInfoGrid,
-                        modeInfoAllocation);
+                        modeInfoAllocation,
+                        displacementVectors);
 
                     Size extent = new(
                         width + (Math.Min(0, macroBlock.ToRightEdge) >> 3),
@@ -536,7 +542,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                 secondIntermediate,
                                 compoundMask,
                                 modeInfoGrid,
-                                modeInfoAllocation);
+                                modeInfoAllocation,
+                                displacementVectors);
                         }
 
                         Av1RateDistortionStatistics chroma = this.EstimateInterChroma(
@@ -586,6 +593,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     in redCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
+                    displacementVectors,
                     macroBlock,
                     blockOrigin,
                     ref modeInfo.Block,
@@ -597,8 +605,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     interWorkspace.LumaPrediction,
                     Av1TransformType.DctDct);
 
-                this.picture.SetDisplacementVector(
-                    new Point(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2), copyVector);
+                Point copyPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
+                this.picture.SetDisplacementVector(displacementVectors, copyPosition, copyVector);
             }
             else
             {

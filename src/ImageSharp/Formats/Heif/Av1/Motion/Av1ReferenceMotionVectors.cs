@@ -135,6 +135,10 @@ internal struct Av1ReferenceMotionVectors
     /// Derives the spatial single-reference motion-vector candidates for an encoder block.
     /// </summary>
     /// <param name="picture">The encoder picture state containing previously coded neighbors.</param>
+    /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+    /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+    /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+    /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
     /// <param name="macroBlock">The current block geometry and tile availability.</param>
     /// <param name="modeInfoPosition">The current block origin in 4x4 mode-information units.</param>
     /// <param name="blockSize">The current coding-block size.</param>
@@ -145,6 +149,10 @@ internal struct Av1ReferenceMotionVectors
     /// <param name="secondaryReferenceFrame">The secondary compound reference, or <see cref="Av1ReferenceFrameType.None"/>.</param>
     public void Build(
         Av1PictureControlSet picture,
+        ReadOnlySpan<int> modeInfoGrid,
+        ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
+        ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+        ReadOnlySpan<Av1EncoderReferenceContext> referenceContexts,
         Av1MacroBlockD macroBlock,
         Point modeInfoPosition,
         Av1BlockSize blockSize,
@@ -156,6 +164,10 @@ internal struct Av1ReferenceMotionVectors
     {
         ReferenceContext context = new(
             picture,
+            modeInfoGrid,
+            modeInfoAllocation,
+            displacementVectors,
+            referenceContexts,
             macroBlock,
             modeInfoPosition,
             blockSize,
@@ -1493,8 +1505,26 @@ internal struct Av1ReferenceMotionVectors
             this.HasTopRight = partitionInfo.HasTopRight(superblockModeInfoSize);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReferenceContext"/> struct over the encoder picture state,
+        /// which the caller read once.
+        /// </summary>
+        /// <param name="picture">The encoder picture state containing previously coded neighbors.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
+        /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
+        /// <param name="macroBlock">The current block geometry and tile availability.</param>
+        /// <param name="modeInfoPosition">The current block origin in 4x4 mode-information units.</param>
+        /// <param name="blockSize">The current coding-block size.</param>
+        /// <param name="partitionType">The partition that produced the current block.</param>
+        /// <param name="superblockModeInfoSize">The superblock size in 4x4 mode-information units.</param>
         public ReferenceContext(
             Av1PictureControlSet picture,
+            ReadOnlySpan<int> modeInfoGrid,
+            ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
+            ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
+            ReadOnlySpan<Av1EncoderReferenceContext> referenceContexts,
             Av1MacroBlockD macroBlock,
             Point modeInfoPosition,
             Av1BlockSize blockSize,
@@ -1504,10 +1534,10 @@ internal struct Av1ReferenceMotionVectors
             this.decodedSuperblock = default;
             this.encodedPicture = picture;
             this.decodedFrame = null;
-            this.encodedGrid = picture.ModeInfoGrid.Span;
-            this.encodedModeInfo = picture.ModeInfoAllocation.Span;
-            this.encodedVectors = picture.DisplacementVectors.Span;
-            this.encodedReferenceContexts = picture.ReferenceContexts.Span;
+            this.encodedGrid = modeInfoGrid;
+            this.encodedModeInfo = modeInfoAllocation;
+            this.encodedVectors = displacementVectors;
+            this.encodedReferenceContexts = referenceContexts;
             this.encodedStride = picture.ModeInfoStride;
             this.BlockSize = blockSize;
             this.RowIndex = modeInfoPosition.Y;

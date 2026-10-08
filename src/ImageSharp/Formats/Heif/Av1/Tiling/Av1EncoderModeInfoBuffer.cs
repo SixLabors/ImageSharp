@@ -14,27 +14,9 @@ internal sealed class Av1EncoderModeInfoBuffer : IDisposable
 {
     private const int CodedDimensionAlignmentLog2 = 3;
     private const int ModeInfoAlignmentLog2 = Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2;
-
-    /// <summary>
-    /// Owns the packed grid and mode-information storage.
-    /// </summary>
     private IMemoryOwner<byte>? owner;
-
-    /// <summary>
-    /// Keeps <see cref="owner"/> pinned for the life of the frame, so the two views below stay valid.
-    /// </summary>
-    private MemoryHandle storageHandle;
-
-    /// <summary>
-    /// The grid view over the pinned storage. Every neighbor lookup of the encoder reads the grid, and a span of a
-    /// pointer view is one call, not the chain of calls of a reinterpreted byte view.
-    /// </summary>
-    private readonly UnmanagedMemoryManager<int> grid;
-
-    /// <summary>
-    /// The mode-information view over the pinned storage, after the grid.
-    /// </summary>
-    private readonly UnmanagedMemoryManager<Av1MacroBlockModeInfo> allocation;
+    private readonly ByteMemoryManager<int> grid;
+    private readonly ByteMemoryManager<Av1MacroBlockModeInfo> allocation;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1EncoderModeInfoBuffer"/> class.
@@ -63,14 +45,9 @@ internal sealed class Av1EncoderModeInfoBuffer : IDisposable
         // The pointer grid and value allocation share one frame lifetime. Packing both regions into one clean
         // owner retains libaom's independent typed layouts without its separate allocation and cleanup paths.
         this.owner = configuration.MemoryAllocator.Allocate<byte>(storageLength, AllocationOptions.Clean);
-        this.storageHandle = this.owner.Memory.Pin();
-        unsafe
-        {
-            byte* storage = (byte*)this.storageHandle.Pointer;
-            this.grid = new UnmanagedMemoryManager<int>(storage, gridLength);
-            this.allocation = new UnmanagedMemoryManager<Av1MacroBlockModeInfo>(storage + gridByteLength, allocationLength);
-        }
-
+        Memory<byte> storage = this.owner.Memory[..storageLength];
+        this.grid = new ByteMemoryManager<int>(storage[..gridByteLength]);
+        this.allocation = new ByteMemoryManager<Av1MacroBlockModeInfo>(storage.Slice(gridByteLength, allocationByteLength));
         this.Disallow4x4AllFrames = disallow4x4AllFrames;
     }
 
@@ -109,7 +86,6 @@ internal sealed class Av1EncoderModeInfoBuffer : IDisposable
     /// </summary>
     public void Dispose()
     {
-        this.storageHandle.Dispose();
         this.owner?.Dispose();
         this.owner = null;
     }

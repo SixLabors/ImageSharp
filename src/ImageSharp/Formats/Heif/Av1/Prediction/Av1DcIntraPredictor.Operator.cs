@@ -123,35 +123,6 @@ internal static class Av1DcIntraPredictor
         => Predictor<DcOperator>.Predict(hasLeft, hasAbove, destination, destinationStride, above, left, width, height, bitDepth);
 
     /// <summary>
-    /// Predicts an 8-bit DC block without hardware intrinsics.
-    /// </summary>
-    /// <param name="hasLeft">Whether the left reference is available.</param>
-    /// <param name="hasAbove">Whether the top reference is available.</param>
-    /// <param name="destination">The destination block.</param>
-    /// <param name="destinationStride">The distance between destination rows.</param>
-    /// <param name="above">The top reference.</param>
-    /// <param name="left">The left reference.</param>
-    /// <param name="width">The block width.</param>
-    /// <param name="height">The block height.</param>
-    public static void PredictScalar(bool hasLeft, bool hasAbove, Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int width, int height)
-        => Predictor<DcOperator>.PredictScalar(hasLeft, hasAbove, destination, destinationStride, above, left, width, height);
-
-    /// <summary>
-    /// Predicts a high-bit-depth DC block without hardware intrinsics.
-    /// </summary>
-    /// <param name="hasLeft">Whether the left reference is available.</param>
-    /// <param name="hasAbove">Whether the top reference is available.</param>
-    /// <param name="destination">The destination block.</param>
-    /// <param name="destinationStride">The distance between destination rows.</param>
-    /// <param name="above">The top reference.</param>
-    /// <param name="left">The left reference.</param>
-    /// <param name="width">The block width.</param>
-    /// <param name="height">The block height.</param>
-    /// <param name="bitDepth">The reconstructed sample precision.</param>
-    public static void PredictScalar(bool hasLeft, bool hasAbove, Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, int width, int height, int bitDepth)
-        => Predictor<DcOperator>.PredictScalar(hasLeft, hasAbove, destination, destinationStride, above, left, width, height, bitDepth);
-
-    /// <summary>
     /// Calculates the DC value from the available neighboring samples.
     /// </summary>
     internal readonly struct DcOperator : IDcPredictionOperator
@@ -285,61 +256,6 @@ internal static class Av1DcIntraPredictor
         }
 
         /// <summary>
-        /// Predicts an 8-bit DC block without hardware intrinsics.
-        /// </summary>
-        /// <param name="hasLeft">Whether the left reference is available.</param>
-        /// <param name="hasAbove">Whether the top reference is available.</param>
-        /// <param name="destination">The destination block.</param>
-        /// <param name="destinationStride">The distance between destination rows.</param>
-        /// <param name="above">The top reference.</param>
-        /// <param name="left">The left reference.</param>
-        /// <param name="width">The block width.</param>
-        /// <param name="height">The block height.</param>
-        public static void PredictScalar(bool hasLeft, bool hasAbove, Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int width, int height)
-        {
-            int count = (hasAbove ? width : 0) + (hasLeft ? height : 0);
-            int sum = (hasAbove ? SumScalar(above[..width]) : 0) + (hasLeft ? SumScalar(left[..height]) : 0);
-            byte prediction = TOperator.Predict(sum, count);
-
-            for (int row = 0; row < height; row++)
-            {
-                ref byte destinationRow = ref destination[row * destinationStride];
-                for (int column = 0; column < width; column++)
-                {
-                    Unsafe.Add(ref destinationRow, column) = prediction;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Predicts a high-bit-depth DC block without hardware intrinsics.
-        /// </summary>
-        /// <param name="hasLeft">Whether the left reference is available.</param>
-        /// <param name="hasAbove">Whether the top reference is available.</param>
-        /// <param name="destination">The destination block.</param>
-        /// <param name="destinationStride">The distance between destination rows.</param>
-        /// <param name="above">The top reference.</param>
-        /// <param name="left">The left reference.</param>
-        /// <param name="width">The block width.</param>
-        /// <param name="height">The block height.</param>
-        /// <param name="bitDepth">The reconstructed sample precision.</param>
-        public static void PredictScalar(bool hasLeft, bool hasAbove, Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, int width, int height, int bitDepth)
-        {
-            int count = (hasAbove ? width : 0) + (hasLeft ? height : 0);
-            int sum = (hasAbove ? SumScalar(above[..width]) : 0) + (hasLeft ? SumScalar(left[..height]) : 0);
-            short prediction = TOperator.Predict(sum, count, bitDepth);
-
-            for (int row = 0; row < height; row++)
-            {
-                ref short destinationRow = ref destination[row * destinationStride];
-                for (int column = 0; column < width; column++)
-                {
-                    Unsafe.Add(ref destinationRow, column) = prediction;
-                }
-            }
-        }
-
-        /// <summary>
         /// Sums 8-bit references through the widest available SIMD widths.
         /// </summary>
         /// <param name="samples">The reference samples.</param>
@@ -427,42 +343,6 @@ internal static class Av1DcIntraPredictor
             }
 
             for (; index < samples.Length; index++)
-            {
-                sum += TOperator.Sum(Unsafe.Add(ref samplesBase, index));
-            }
-
-            return sum;
-        }
-
-        /// <summary>
-        /// Sums 8-bit references without hardware intrinsics.
-        /// </summary>
-        /// <param name="samples">The reference samples.</param>
-        /// <returns>The exact sum.</returns>
-        private static int SumScalar(ReadOnlySpan<byte> samples)
-        {
-            ref byte samplesBase = ref MemoryMarshal.GetReference(samples);
-            int sum = 0;
-
-            for (int index = 0; index < samples.Length; index++)
-            {
-                sum += TOperator.Sum(Unsafe.Add(ref samplesBase, index));
-            }
-
-            return sum;
-        }
-
-        /// <summary>
-        /// Sums high-bit-depth references without hardware intrinsics.
-        /// </summary>
-        /// <param name="samples">The reference samples.</param>
-        /// <returns>The exact sum.</returns>
-        private static int SumScalar(ReadOnlySpan<short> samples)
-        {
-            ref short samplesBase = ref MemoryMarshal.GetReference(samples);
-            int sum = 0;
-
-            for (int index = 0; index < samples.Length; index++)
             {
                 sum += TOperator.Sum(Unsafe.Add(ref samplesBase, index));
             }

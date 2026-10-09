@@ -205,14 +205,4 @@ internal static class Av1GlobalMotionEstimator
 
         return count;
     }
-
-    /// <summary>
-    /// Fills a pyramid from an eight-bit frame, which needs no conversion.
-    /// </summary>
-    internal readonly struct ByteFillOperator : IAv1PyramidFillOperator<byte>
-    {
-        /// <inheritdoc/>
-        public static int Fill(Av1ImagePyramid pyramid, ReadOnlySpan<byte> source, int stride, int bitDepth, int levels)
-            => pyramid.Fill(source, stride, levels);
-    }
 }

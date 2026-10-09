@@ -93,84 +93,6 @@ internal static partial class Av1IntraBlockCopyPredictor
     }
 
     /// <summary>
-    /// Reconstructs an 8-bit intra-block-copy prediction without explicit hardware intrinsics.
-    /// </summary>
-    /// <param name="source">The source region beginning at the integer sample preceding any half-sample phase.</param>
-    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
-    /// <param name="destination">The destination block origin.</param>
-    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
-    /// <param name="width">The prediction width in samples.</param>
-    /// <param name="height">The prediction height in samples.</param>
-    /// <param name="halfX">Indicates whether the horizontal source phase is one half-sample.</param>
-    /// <param name="halfY">Indicates whether the vertical source phase is one half-sample.</param>
-    public static void PredictScalar(
-        ReadOnlySpan<byte> source,
-        int sourceStride,
-        Span<byte> destination,
-        int destinationStride,
-        int width,
-        int height,
-        bool halfX,
-        bool halfY)
-    {
-        if (!halfX && !halfY)
-        {
-            CopyScalar(source, sourceStride, destination, destinationStride, width, height);
-        }
-        else if (halfX && halfY)
-        {
-            Av1IntraBlockCopyBilinearPredictor.PredictScalar(source, sourceStride, destination, destinationStride, width, height);
-        }
-        else if (halfX)
-        {
-            Av1IntraBlockCopyHorizontalPredictor.PredictScalar(source, sourceStride, destination, destinationStride, width, height);
-        }
-        else
-        {
-            Av1IntraBlockCopyVerticalPredictor.PredictScalar(source, sourceStride, destination, destinationStride, width, height);
-        }
-    }
-
-    /// <summary>
-    /// Reconstructs a high-bit-depth intra-block-copy prediction without explicit hardware intrinsics.
-    /// </summary>
-    /// <param name="source">The source region beginning at the integer sample preceding any half-sample phase.</param>
-    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
-    /// <param name="destination">The destination block origin.</param>
-    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
-    /// <param name="width">The prediction width in samples.</param>
-    /// <param name="height">The prediction height in samples.</param>
-    /// <param name="halfX">Indicates whether the horizontal source phase is one half-sample.</param>
-    /// <param name="halfY">Indicates whether the vertical source phase is one half-sample.</param>
-    public static void PredictScalar(
-        ReadOnlySpan<short> source,
-        int sourceStride,
-        Span<short> destination,
-        int destinationStride,
-        int width,
-        int height,
-        bool halfX,
-        bool halfY)
-    {
-        if (!halfX && !halfY)
-        {
-            CopyScalar(source, sourceStride, destination, destinationStride, width, height);
-        }
-        else if (halfX && halfY)
-        {
-            Av1IntraBlockCopyBilinearPredictor.PredictScalar(source, sourceStride, destination, destinationStride, width, height);
-        }
-        else if (halfX)
-        {
-            Av1IntraBlockCopyHorizontalPredictor.PredictScalar(source, sourceStride, destination, destinationStride, width, height);
-        }
-        else
-        {
-            Av1IntraBlockCopyVerticalPredictor.PredictScalar(source, sourceStride, destination, destinationStride, width, height);
-        }
-    }
-
-    /// <summary>
     /// Copies an 8-bit whole-sample source block to its destination.
     /// </summary>
     /// <param name="source">The source block origin.</param>
@@ -203,52 +125,6 @@ internal static partial class Av1IntraBlockCopyPredictor
         for (int row = 0; row < height; row++)
         {
             source.Slice(row * sourceStride, width).CopyTo(destination.Slice(row * destinationStride, width));
-        }
-    }
-
-    /// <summary>
-    /// Copies an 8-bit whole-sample source block with scalar sample assignments.
-    /// </summary>
-    /// <param name="source">The source block origin.</param>
-    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
-    /// <param name="destination">The destination block origin.</param>
-    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
-    /// <param name="width">The block width in samples.</param>
-    /// <param name="height">The block height in samples.</param>
-    private static void CopyScalar(ReadOnlySpan<byte> source, int sourceStride, Span<byte> destination, int destinationStride, int width, int height)
-    {
-        for (int row = 0; row < height; row++)
-        {
-            for (int column = 0; column < width; column++)
-            {
-                destination[(row * destinationStride) + column] = source[(row * sourceStride) + column];
-            }
-        }
-    }
-
-    /// <summary>
-    /// Copies a high-bit-depth whole-sample source block with scalar sample assignments.
-    /// </summary>
-    /// <param name="source">The source block origin.</param>
-    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
-    /// <param name="destination">The destination block origin.</param>
-    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
-    /// <param name="width">The block width in samples.</param>
-    /// <param name="height">The block height in samples.</param>
-    private static void CopyScalar(
-        ReadOnlySpan<short> source,
-        int sourceStride,
-        Span<short> destination,
-        int destinationStride,
-        int width,
-        int height)
-    {
-        for (int row = 0; row < height; row++)
-        {
-            for (int column = 0; column < width; column++)
-            {
-                destination[(row * destinationStride) + column] = source[(row * sourceStride) + column];
-            }
         }
     }
 }

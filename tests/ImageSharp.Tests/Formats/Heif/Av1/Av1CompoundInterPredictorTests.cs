@@ -189,12 +189,10 @@ public class Av1CompoundInterPredictorTests
             int secondStride = width + 7;
             byte[] expected = new byte[destinationStride * height];
             byte[] actual = new byte[destinationStride * height];
-            byte[] scalar = new byte[destinationStride * height];
             byte[] second = new byte[secondStride * height];
 
             FillByteInputs(expected, second, destinationStride, secondStride, width, height);
             expected.CopyTo(actual, 0);
-            expected.CopyTo(scalar, 0);
 
             for (int row = 0; row < height; row++)
             {
@@ -207,10 +205,8 @@ public class Av1CompoundInterPredictorTests
             }
 
             Av1CompoundAveragePredictor.Average(actual, destinationStride, second, secondStride, width, height);
-            Av1CompoundAveragePredictor.AverageScalar(scalar, destinationStride, second, secondStride, width, height);
 
             Assert.Equal(expected, actual);
-            Assert.Equal(expected, scalar);
         }
     }
 
@@ -230,12 +226,10 @@ public class Av1CompoundInterPredictorTests
                 int secondStride = width + 5;
                 ushort[] expected = new ushort[destinationStride * height];
                 ushort[] actual = new ushort[destinationStride * height];
-                ushort[] scalar = new ushort[destinationStride * height];
                 ushort[] second = new ushort[secondStride * height];
 
                 FillHighBitDepthInputs(expected, second, destinationStride, secondStride, width, height, bitDepth);
                 expected.CopyTo(actual, 0);
-                expected.CopyTo(scalar, 0);
 
                 for (int row = 0; row < height; row++)
                 {
@@ -248,10 +242,8 @@ public class Av1CompoundInterPredictorTests
                 }
 
                 Av1CompoundAveragePredictor.Average(actual, destinationStride, second, secondStride, width, height);
-                Av1CompoundAveragePredictor.AverageScalar(scalar, destinationStride, second, secondStride, width, height);
 
                 Assert.Equal(expected, actual);
-                Assert.Equal(expected, scalar);
             }
         }
     }

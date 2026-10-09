@@ -156,34 +156,6 @@ internal static partial class Av1DirectionalIntraPredictor
             destination, destinationStride, transformSize, above, left, upsampleAbove, upsampleLeft, angle, transposedBlock);
 
     /// <summary>
-    /// Predicts an 8-bit directional block without hardware intrinsics.
-    /// </summary>
-    /// <param name="destination">The destination block origin.</param>
-    /// <param name="destinationStride">The destination row stride in samples.</param>
-    /// <param name="transformSize">The predicted block dimensions.</param>
-    /// <param name="above">The prepared top reference, including any required extension.</param>
-    /// <param name="left">The prepared left reference, including any required extension.</param>
-    /// <param name="upsampleAbove">Whether the top edge contains half-sample positions.</param>
-    /// <param name="upsampleLeft">Whether the left edge contains half-sample positions.</param>
-    /// <param name="angle">The adjusted prediction angle.</param>
-    public static void PredictScalar(Span<byte> destination, int destinationStride, Av1TransformSize transformSize, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, bool upsampleAbove, bool upsampleLeft, int angle)
-        => Predictor<DirectionalOperator>.PredictScalar(destination, destinationStride, transformSize, above, left, upsampleAbove, upsampleLeft, angle);
-
-    /// <summary>
-    /// Predicts a high-bit-depth directional block without hardware intrinsics.
-    /// </summary>
-    /// <param name="destination">The destination block origin.</param>
-    /// <param name="destinationStride">The destination row stride in samples.</param>
-    /// <param name="transformSize">The predicted block dimensions.</param>
-    /// <param name="above">The prepared top reference, including any required extension.</param>
-    /// <param name="left">The prepared left reference, including any required extension.</param>
-    /// <param name="upsampleAbove">Whether the top edge contains half-sample positions.</param>
-    /// <param name="upsampleLeft">Whether the left edge contains half-sample positions.</param>
-    /// <param name="angle">The adjusted prediction angle.</param>
-    public static void PredictScalar(Span<short> destination, int destinationStride, Av1TransformSize transformSize, ReadOnlySpan<short> above, ReadOnlySpan<short> left, bool upsampleAbove, bool upsampleLeft, int angle)
-        => Predictor<DirectionalOperator>.PredictScalar(destination, destinationStride, transformSize, above, left, upsampleAbove, upsampleLeft, angle);
-
-    /// <summary>
     /// Interpolates projected neighboring samples for all directional prediction zones.
     /// </summary>
     internal readonly struct DirectionalOperator : IDirectionalPredictionOperator

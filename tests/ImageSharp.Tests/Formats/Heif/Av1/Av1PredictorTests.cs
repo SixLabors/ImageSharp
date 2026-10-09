@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -30,6 +32,17 @@ public class Av1PredictorTests
     /// Gets the cardinal, base, and adjusted angles covering every directional projection zone.
     /// </summary>
     private static ReadOnlySpan<int> DirectionalAngles => [36, 45, 54, 67, 90, 104, 113, 126, 135, 148, 157, 166, 180, 194, 203, 212];
+
+    /// <summary>
+    /// Gets the normative AV1 Q6 directional derivatives indexed by acute prediction angle. Zero entries are angles that AV1 never signals.
+    /// </summary>
+    private static ReadOnlySpan<int> DirectionalDerivatives =>
+    [
+        0, 0, 0, 1023, 0, 0, 547, 0, 0, 372, 0, 0, 0, 0, 273, 0, 0, 215, 0, 0, 178, 0, 0,
+        151, 0, 0, 132, 0, 0, 116, 0, 0, 102, 0, 0, 0, 90, 0, 0, 80, 0, 0, 71, 0, 0, 64, 0, 0,
+        57, 0, 0, 51, 0, 0, 45, 0, 0, 0, 40, 0, 0, 35, 0, 0, 31, 0, 0, 27, 0, 0, 23, 0, 0,
+        19, 0, 0, 15, 0, 0, 0, 0, 11, 0, 0, 7, 0, 0, 3, 0, 0,
+    ];
 
     /// <summary>
     /// Gets the complete set of AV1 filter-intra coefficient modes.
@@ -159,15 +172,71 @@ public class Av1PredictorTests
                 short[] expectedHigh = CreateHighBitDepthDestination(stride, height);
                 short[] actualHigh = CreateHighBitDepthDestination(stride, height);
 
-                Av1DcIntraPredictor.PredictScalar(hasLeft, hasAbove, expected, stride, above, left, width, height);
+                int dc = GetDcReference(hasLeft, hasAbove, above, left, width, height, 8);
+                int dcHigh = GetDcReference(hasLeft, hasAbove, aboveHigh, leftHigh, width, height, 12);
+                for (int row = 0; row < height; row++)
+                {
+                    expected.AsSpan(row * stride, width).Fill((byte)dc);
+                    expectedHigh.AsSpan(row * stride, width).Fill((short)dcHigh);
+                }
+
                 Av1DcIntraPredictor.Predict(hasLeft, hasAbove, actual, stride, above, left, width, height);
-                Av1DcIntraPredictor.PredictScalar(hasLeft, hasAbove, expectedHigh, stride, aboveHigh, leftHigh, width, height, 12);
                 Av1DcIntraPredictor.Predict(hasLeft, hasAbove, actualHigh, stride, aboveHigh, leftHigh, width, height, 12);
 
                 Assert.Equal(expected, actual);
                 Assert.Equal(expectedHigh, actualHigh);
             }
         }
+    }
+
+    /// <summary>
+    /// Calculates the DC prediction value: the rounded mean of the available neighbors, or the middle of the sample range when no
+    /// neighbor is available.
+    /// </summary>
+    /// <typeparam name="T">The reference sample type.</typeparam>
+    /// <param name="hasLeft">Whether the left reference is available.</param>
+    /// <param name="hasAbove">Whether the top reference is available.</param>
+    /// <param name="above">The top reference.</param>
+    /// <param name="left">The left reference.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
+    /// <param name="bitDepth">The sample precision.</param>
+    /// <returns>The DC prediction value.</returns>
+    private static int GetDcReference<T>(
+        bool hasLeft,
+        bool hasAbove,
+        ReadOnlySpan<T> above,
+        ReadOnlySpan<T> left,
+        int width,
+        int height,
+        int bitDepth)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        int count = (hasAbove ? width : 0) + (hasLeft ? height : 0);
+        if (count == 0)
+        {
+            return 1 << (bitDepth - 1);
+        }
+
+        int sum = 0;
+        if (hasAbove)
+        {
+            for (int i = 0; i < width; i++)
+            {
+                sum += int.CreateTruncating(above[i]);
+            }
+        }
+
+        if (hasLeft)
+        {
+            for (int i = 0; i < height; i++)
+            {
+                sum += int.CreateTruncating(left[i]);
+            }
+        }
+
+        // The mean rounds half up: adding half the divisor before the integer division.
+        return (sum + (count >> 1)) / count;
     }
 
     /// <summary>
@@ -482,13 +551,127 @@ public class Av1PredictorTests
         byte[] transposeBuffer = new byte[Av1DirectionalIntraPredictor.TransposeBufferLength];
         short[] transposeBufferHigh = new short[Av1DirectionalIntraPredictor.TransposeBufferLength];
 
-        Av1DirectionalIntraPredictor.PredictScalar(expected, stride, transformSize, above, left, upsampleAbove, upsampleLeft, angle);
+        PredictDirectionalReference(expected, stride, width, height, above, left, upsampleAbove, upsampleLeft, angle);
         Av1DirectionalIntraPredictor.Predict(actual, stride, transformSize, above, left, upsampleAbove, upsampleLeft, angle, transposeBuffer);
-        Av1DirectionalIntraPredictor.PredictScalar(expectedHigh, stride, transformSize, aboveHigh, leftHigh, upsampleAbove, upsampleLeft, angle);
+        PredictDirectionalReference(expectedHigh, stride, width, height, aboveHigh, leftHigh, upsampleAbove, upsampleLeft, angle);
         Av1DirectionalIntraPredictor.Predict(actualHigh, stride, transformSize, aboveHigh, leftHigh, upsampleAbove, upsampleLeft, angle, transposeBufferHigh);
 
         Assert.Equal(expected, actual);
         Assert.Equal(expectedHigh, actualHigh);
+    }
+
+    /// <summary>
+    /// Predicts a directional block one sample at a time with the projection equations of the AV1 specification.
+    /// </summary>
+    /// <typeparam name="T">The sample type.</typeparam>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="stride">The destination row stride.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
+    /// <param name="above">The prepared top reference. Zone 2 reads the samples before its origin.</param>
+    /// <param name="left">The prepared left reference. Zone 2 reads the samples before its origin.</param>
+    /// <param name="upsampleAbove">Whether the top edge contains half-sample positions.</param>
+    /// <param name="upsampleLeft">Whether the left edge contains half-sample positions.</param>
+    /// <param name="angle">The adjusted prediction angle.</param>
+    private static void PredictDirectionalReference<T>(
+        Span<T> destination,
+        int stride,
+        int width,
+        int height,
+        ReadOnlySpan<T> above,
+        ReadOnlySpan<T> left,
+        bool upsampleAbove,
+        bool upsampleLeft,
+        int angle)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        // Zone 2 reads one or two samples before each edge origin, so the reference is addressed from the edge origin with signed offsets.
+        ref T aboveBase = ref MemoryMarshal.GetReference(above);
+        ref T leftBase = ref MemoryMarshal.GetReference(left);
+        int aboveShift = upsampleAbove ? 1 : 0;
+        int leftShift = upsampleLeft ? 1 : 0;
+        int dx = angle switch
+        {
+            < 90 => DirectionalDerivatives[angle],
+            > 90 and < 180 => DirectionalDerivatives[180 - angle],
+            _ => 1,
+        };
+
+        int dy = angle switch
+        {
+            > 90 and < 180 => DirectionalDerivatives[angle - 90],
+            > 180 => DirectionalDerivatives[270 - angle],
+            _ => 1,
+        };
+
+        for (int row = 0; row < height; row++)
+        {
+            for (int column = 0; column < width; column++)
+            {
+                int value;
+                if (angle == 90)
+                {
+                    value = int.CreateTruncating(above[column]);
+                }
+                else if (angle == 180)
+                {
+                    value = int.CreateTruncating(left[row]);
+                }
+                else if (angle < 90)
+                {
+                    // Zone 1 projects each row onto the top edge. Positions past the last edge sample repeat that sample.
+                    int projection = (row + 1) * dx;
+                    int basis = (projection >> (6 - aboveShift)) + (column << aboveShift);
+                    int maximumBasis = (width + height - 1) << aboveShift;
+                    value = basis < maximumBasis
+                        ? InterpolateDirectional(ref aboveBase, basis, ((projection << aboveShift) & 0x3F) >> 1)
+                        : int.CreateTruncating(Unsafe.Add(ref aboveBase, maximumBasis));
+                }
+                else if (angle < 180)
+                {
+                    // Zone 2 uses the top edge while the projection stays at or right of the corner, and the left edge after that.
+                    int topProjection = -(row + 1) * dx;
+                    int topBasis = (topProjection >> (6 - aboveShift)) + (column << aboveShift);
+                    if (topBasis >= -(1 << aboveShift))
+                    {
+                        value = InterpolateDirectional(ref aboveBase, topBasis, ((topProjection << aboveShift) & 0x3F) >> 1);
+                    }
+                    else
+                    {
+                        int leftProjection = (row << 6) - ((column + 1) * dy);
+                        value = InterpolateDirectional(ref leftBase, leftProjection >> (6 - leftShift), ((leftProjection << leftShift) & 0x3F) >> 1);
+                    }
+                }
+                else
+                {
+                    // Zone 3 projects each column onto the left edge. Positions past the last edge sample repeat that sample.
+                    int projection = (column + 1) * dy;
+                    int basis = (projection >> (6 - leftShift)) + (row << leftShift);
+                    int maximumBasis = (width + height - 1) << leftShift;
+                    value = basis < maximumBasis
+                        ? InterpolateDirectional(ref leftBase, basis, ((projection << leftShift) & 0x3F) >> 1)
+                        : int.CreateTruncating(Unsafe.Add(ref leftBase, maximumBasis));
+                }
+
+                destination[(row * stride) + column] = T.CreateTruncating(value);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Interpolates between two adjacent edge samples with a 1/32-sample weight and rounding.
+    /// </summary>
+    /// <typeparam name="T">The sample type.</typeparam>
+    /// <param name="edge">The edge origin.</param>
+    /// <param name="basis">The signed position of the first sample relative to the edge origin.</param>
+    /// <param name="weight">The weight of the second sample, from 0 to 31.</param>
+    /// <returns>The interpolated sample.</returns>
+    private static int InterpolateDirectional<T>(ref T edge, int basis, int weight)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        int first = int.CreateTruncating(Unsafe.Add(ref edge, basis));
+        int second = int.CreateTruncating(Unsafe.Add(ref edge, basis + 1));
+        return ((first * (32 - weight)) + (second * weight) + 16) >> 5;
     }
 
     /// <summary>

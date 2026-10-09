@@ -67,7 +67,7 @@ public class Av1GlobalMotionTests
         }
 
         Av1MotionModel[] models = [new Av1MotionModel()];
-        bool fitted = Av1GlobalMotionEstimator.Compute<byte, Av1GlobalMotionEstimator.ByteFillOperator, Av1Ransac.RotationZoomModel>(
+        bool fitted = Av1GlobalMotionEstimator.Compute<byte, ByteFillOperator, Av1Ransac.RotationZoomModel>(
             allocator, source, reference, Width, Height, Stride, origin, 8, 0, models);
 
         Assert.True(fitted);
@@ -77,5 +77,15 @@ public class Av1GlobalMotionTests
         // right. One sample of tolerance covers the interpolation the flow field goes through.
         Assert.Equal(Shift, models[0].Parameters[0], 1);
         Assert.Equal(0, models[0].Parameters[1], 1);
+    }
+
+    /// <summary>
+    /// Fills a pyramid from an eight-bit frame, which needs no conversion.
+    /// </summary>
+    private readonly struct ByteFillOperator : Av1GlobalMotionEstimator.IAv1PyramidFillOperator<byte>
+    {
+        /// <inheritdoc/>
+        public static int Fill(Av1ImagePyramid pyramid, ReadOnlySpan<byte> source, int stride, int bitDepth, int levels)
+            => pyramid.Fill(source, stride, levels);
     }
 }

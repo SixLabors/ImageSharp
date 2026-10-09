@@ -49,42 +49,6 @@ internal static partial class Av1IntraBlockCopyVerticalPredictor
         => Predict<IntraBlockCopyVerticalOperator>(source, sourceStride, destination, destinationStride, width, height);
 
     /// <summary>
-    /// Reconstructs an 8-bit filtered intra-block-copy prediction without explicit hardware intrinsics.
-    /// </summary>
-    /// <param name="source">The source region that starts at the integer sample above the first half-sample position.</param>
-    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
-    /// <param name="destination">The destination block origin.</param>
-    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
-    /// <param name="width">The prediction width in samples.</param>
-    /// <param name="height">The prediction height in samples.</param>
-    public static void PredictScalar(
-        ReadOnlySpan<byte> source,
-        int sourceStride,
-        Span<byte> destination,
-        int destinationStride,
-        int width,
-        int height)
-        => PredictScalar<IntraBlockCopyVerticalOperator>(source, sourceStride, destination, destinationStride, width, height);
-
-    /// <summary>
-    /// Reconstructs a high-bit-depth filtered intra-block-copy prediction without explicit hardware intrinsics.
-    /// </summary>
-    /// <param name="source">The source region that starts at the integer sample above the first half-sample position.</param>
-    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
-    /// <param name="destination">The destination block origin.</param>
-    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
-    /// <param name="width">The prediction width in samples.</param>
-    /// <param name="height">The prediction height in samples.</param>
-    public static void PredictScalar(
-        ReadOnlySpan<short> source,
-        int sourceStride,
-        Span<short> destination,
-        int destinationStride,
-        int width,
-        int height)
-        => PredictScalar<IntraBlockCopyVerticalOperator>(source, sourceStride, destination, destinationStride, width, height);
-
-    /// <summary>
     /// Applies one closed interpolation operator to an 8-bit source block.
     /// </summary>
     /// <typeparam name="TOperator">The source-phase-specific interpolation arithmetic.</typeparam>
@@ -343,72 +307,6 @@ internal static partial class Av1IntraBlockCopyVerticalPredictor
                 short bottomLeft = Unsafe.Add(ref sourceRow, sourceStride + column);
 
                 Unsafe.Add(ref destinationRow, column) = TOperator.Filter(topLeft, bottomLeft);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Applies one closed interpolation operator to an 8-bit source block without explicit hardware intrinsics.
-    /// </summary>
-    /// <typeparam name="TOperator">The source-phase-specific interpolation arithmetic.</typeparam>
-    /// <param name="source">The source region that starts at the integer sample above the first half-sample position.</param>
-    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
-    /// <param name="destination">The destination block origin.</param>
-    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
-    /// <param name="width">The prediction width in samples.</param>
-    /// <param name="height">The prediction height in samples.</param>
-    private static void PredictScalar<TOperator>(
-        ReadOnlySpan<byte> source,
-        int sourceStride,
-        Span<byte> destination,
-        int destinationStride,
-        int width,
-        int height)
-        where TOperator : struct, IAv1IntraBlockCopyVerticalOperator
-    {
-        for (int row = 0; row < height; row++)
-        {
-            int sourceRow = row * sourceStride;
-            int destinationRow = row * destinationStride;
-
-            for (int column = 0; column < width; column++)
-            {
-                byte topLeft = source[sourceRow + column];
-                byte bottomLeft = source[sourceRow + sourceStride + column];
-                destination[destinationRow + column] = TOperator.Filter(topLeft, bottomLeft);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Applies one closed interpolation operator to a high-bit-depth source block without explicit hardware intrinsics.
-    /// </summary>
-    /// <typeparam name="TOperator">The source-phase-specific interpolation arithmetic.</typeparam>
-    /// <param name="source">The source region that starts at the integer sample above the first half-sample position.</param>
-    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
-    /// <param name="destination">The destination block origin.</param>
-    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
-    /// <param name="width">The prediction width in samples.</param>
-    /// <param name="height">The prediction height in samples.</param>
-    private static void PredictScalar<TOperator>(
-        ReadOnlySpan<short> source,
-        int sourceStride,
-        Span<short> destination,
-        int destinationStride,
-        int width,
-        int height)
-        where TOperator : struct, IAv1IntraBlockCopyVerticalOperator
-    {
-        for (int row = 0; row < height; row++)
-        {
-            int sourceRow = row * sourceStride;
-            int destinationRow = row * destinationStride;
-
-            for (int column = 0; column < width; column++)
-            {
-                short topLeft = source[sourceRow + column];
-                short bottomLeft = source[sourceRow + sourceStride + column];
-                destination[destinationRow + column] = TOperator.Filter(topLeft, bottomLeft);
             }
         }
     }

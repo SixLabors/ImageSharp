@@ -62,15 +62,20 @@ public class Av1IntraBlockCopyPredictorTests
                 bool halfX = (phase & 1) != 0;
                 bool halfY = (phase & 2) != 0;
 
-                Av1IntraBlockCopyPredictor.PredictScalar(
-                    source,
-                    sourceStride,
-                    expected,
-                    destinationStride,
-                    width,
-                    height,
-                    halfX,
-                    halfY);
+                for (int row = 0; row < height; row++)
+                {
+                    for (int column = 0; column < width; column++)
+                    {
+                        int offset = (row * sourceStride) + column;
+                        expected[(row * destinationStride) + column] = (byte)Interpolate(
+                            source[offset],
+                            source[offset + 1],
+                            source[offset + sourceStride],
+                            source[offset + sourceStride + 1],
+                            halfX,
+                            halfY);
+                    }
+                }
 
                 Av1IntraBlockCopyPredictor.Predict(
                     source,
@@ -113,15 +118,20 @@ public class Av1IntraBlockCopyPredictorTests
                 bool halfX = (phase & 1) != 0;
                 bool halfY = (phase & 2) != 0;
 
-                Av1IntraBlockCopyPredictor.PredictScalar(
-                    source,
-                    sourceStride,
-                    expected,
-                    destinationStride,
-                    width,
-                    height,
-                    halfX,
-                    halfY);
+                for (int row = 0; row < height; row++)
+                {
+                    for (int column = 0; column < width; column++)
+                    {
+                        int offset = (row * sourceStride) + column;
+                        expected[(row * destinationStride) + column] = (short)Interpolate(
+                            source[offset],
+                            source[offset + 1],
+                            source[offset + sourceStride],
+                            source[offset + sourceStride + 1],
+                            halfX,
+                            halfY);
+                    }
+                }
 
                 Av1IntraBlockCopyPredictor.Predict(
                     source,
@@ -227,5 +237,31 @@ public class Av1IntraBlockCopyPredictorTests
 
         Av1IntraBlockCopyPredictor.Predict(highBitDepthSource, sourceStride, highBitDepthActual, 4, 4, 4, halfX, halfY);
         Assert.Equal(highBitDepthExpected, highBitDepthActual);
+    }
+
+    /// <summary>
+    /// Calculates one intra-block-copy sample with the normative rounded averages, independently of the predictor operators.
+    /// </summary>
+    /// <param name="topLeft">The integer source sample.</param>
+    /// <param name="topRight">The source sample to the right.</param>
+    /// <param name="bottomLeft">The source sample below.</param>
+    /// <param name="bottomRight">The source sample below and to the right.</param>
+    /// <param name="halfX">Indicates whether the horizontal phase is one half-sample.</param>
+    /// <param name="halfY">Indicates whether the vertical phase is one half-sample.</param>
+    /// <returns>The predicted sample.</returns>
+    private static int Interpolate(int topLeft, int topRight, int bottomLeft, int bottomRight, bool halfX, bool halfY)
+    {
+        // A half-sample phase averages the two neighbors on that axis with rounding. Both phases average all four neighbors.
+        if (halfX && halfY)
+        {
+            return (topLeft + topRight + bottomLeft + bottomRight + 2) >> 2;
+        }
+
+        if (halfX)
+        {
+            return (topLeft + topRight + 1) >> 1;
+        }
+
+        return halfY ? (topLeft + bottomLeft + 1) >> 1 : topLeft;
     }
 }

@@ -15,7 +15,8 @@ internal static partial class Av1Inverse2dTransformer
     /// </summary>
     /// <remarks>
     /// Each overload performs the same staged fixed-point transform. Vector fields identify coefficient positions. Vector lanes identify independent rows or
-    /// columns. Each overload reads all input values before it writes the stage buffer, so the input and stage storage can alias.
+    /// columns. Each overload reads all input values before it writes the stage buffer, so the input and stage storage can alias. The butterfly operators write
+    /// their stage network once over a lane type. Each overload runs that network with the matching <see cref="IAv1TransformLaneOperator{TLanes}"/>.
     /// </remarks>
     internal interface IAv1Transform1dOperator
     {
@@ -27,6 +28,9 @@ internal static partial class Av1Inverse2dTransformer
         /// <summary>
         /// Transforms one axis when hardware vectorization is unavailable.
         /// </summary>
+        /// <remarks>
+        /// Each span holds at least the transform length. The butterfly operators address the spans without bounds checks.
+        /// </remarks>
         /// <param name="input">The source values for the transform axis.</param>
         /// <param name="output">The destination values for the transform axis.</param>
         /// <param name="step">The fixed stage storage for the transform axis.</param>

@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -21,45 +23,7 @@ internal static partial class Av1Inverse2dTransformer
 
         /// <inheritdoc/>
         public static void Transform(ReadOnlySpan<int> input, Span<int> output, Span<int> step, int cosBit, InlineArray12<byte> stageRange)
-        {
-            // Only the DC basis survives. The remaining butterflies copy that value into every output.
-            // Inverse stage ranges are uniform within an axis, so one clamp covers the repeated merges.
-            int cosine = Av1SinusConstants.CosinusPi(cosBit)[32];
-            int value = Av1Transform1dMath.Clamp(Av1Math.RoundShift((long)input[0] * cosine, cosBit), stageRange[7]);
-
-            output[..16].Fill(value);
-        }
-
-        /// <inheritdoc/>
-        public static void Transform(
-            ref Av1TransformVector<Vector256<int>> input,
-            ref Av1TransformVector<Vector256<int>> output,
-            ref Av1TransformVector<Vector256<int>> step,
-            int cosBit,
-            InlineArray12<byte> stageRange)
-        {
-            // Only the DC basis survives. The remaining butterflies copy that value into every output.
-            // Inverse stage ranges are uniform within an axis, so one clamp covers the repeated merges.
-            int cosine = Av1SinusConstants.CosinusPi(cosBit)[32];
-            Vector256<int> value = Av1Transform1dMath.Clamp(Av1Transform1dMath.MultiplyRound(input.V0, cosine, cosBit), stageRange[7]);
-
-            output.V0 = value;
-            output.V1 = value;
-            output.V2 = value;
-            output.V3 = value;
-            output.V4 = value;
-            output.V5 = value;
-            output.V6 = value;
-            output.V7 = value;
-            output.V8 = value;
-            output.V9 = value;
-            output.V10 = value;
-            output.V11 = value;
-            output.V12 = value;
-            output.V13 = value;
-            output.V14 = value;
-            output.V15 = value;
-        }
+            => TransformLanes<int, ScalarLaneOperator>(ref AsPositions(input), ref AsPositions(output), cosBit, stageRange);
 
         /// <inheritdoc/>
         public static void Transform(
@@ -68,28 +32,41 @@ internal static partial class Av1Inverse2dTransformer
             ref Av1TransformVector<Vector128<int>> step,
             int cosBit,
             InlineArray12<byte> stageRange)
-        {
-            // Only the DC basis survives. The remaining butterflies copy that value into every output.
-            // Inverse stage ranges are uniform within an axis, so one clamp covers the repeated merges.
-            int cosine = Av1SinusConstants.CosinusPi(cosBit)[32];
-            Vector128<int> value = Av1Transform1dMath.Clamp(Av1Transform1dMath.MultiplyRound(input.V0, cosine, cosBit), stageRange[7]);
+            => TransformLanes<Vector128<int>, Vector128LaneOperator>(ref input, ref output, cosBit, stageRange);
 
-            output.V0 = value;
-            output.V1 = value;
-            output.V2 = value;
-            output.V3 = value;
-            output.V4 = value;
-            output.V5 = value;
-            output.V6 = value;
-            output.V7 = value;
-            output.V8 = value;
-            output.V9 = value;
-            output.V10 = value;
-            output.V11 = value;
-            output.V12 = value;
-            output.V13 = value;
-            output.V14 = value;
-            output.V15 = value;
+        /// <inheritdoc/>
+        public static void Transform(
+            ref Av1TransformVector<Vector256<int>> input,
+            ref Av1TransformVector<Vector256<int>> output,
+            ref Av1TransformVector<Vector256<int>> step,
+            int cosBit,
+            InlineArray12<byte> stageRange)
+            => TransformLanes<Vector256<int>, Vector256LaneOperator>(ref input, ref output, cosBit, stageRange);
+
+        /// <summary>
+        /// Applies the 16-point inverse DCT with one nonzero input to every lane.
+        /// </summary>
+        /// <typeparam name="TLanes">The lane type. Each lane holds one transform axis.</typeparam>
+        /// <typeparam name="TLaneOperator">The arithmetic for <typeparamref name="TLanes"/>.</typeparam>
+        /// <param name="input">The frequency-domain coefficients. Only the DC position is read.</param>
+        /// <param name="output">The sixteen spatial-domain residual values.</param>
+        /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+        /// <param name="stageRange">The signed-bit range assigned to each transform stage.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void TransformLanes<TLanes, TLaneOperator>(
+            ref Av1TransformVector<TLanes> input,
+            ref Av1TransformVector<TLanes> output,
+            int cosBit,
+            InlineArray12<byte> stageRange)
+            where TLanes : unmanaged
+            where TLaneOperator : struct, IAv1TransformLaneOperator<TLanes>
+        {
+            // Only the DC basis survives. The remaining butterflies copy that value into every output. Inverse stage ranges are uniform within an axis, so one
+            // clamp covers the repeated merges.
+            int cosine = Av1SinusConstants.CosinusPi(cosBit)[32];
+            TLanes value = TLaneOperator.Clamp(TLaneOperator.MultiplyRound(input.V0, cosine, cosBit), stageRange[7]);
+
+            MemoryMarshal.CreateSpan(ref output.V0, 16).Fill(value);
         }
     }
 }

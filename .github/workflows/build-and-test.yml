@@ -19,41 +19,17 @@ jobs:
         isARM:
           - ${{ contains(github.event.pull_request.labels.*.name, 'arch:arm32') || contains(github.event.pull_request.labels.*.name, 'arch:arm64') }}
         options:
-          - os: ubuntu-latest
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: macos-26-intel
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: windows-latest
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: buildjet-4vcpu-ubuntu-2204-arm
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: ubuntu-latest
+          - os: ubuntu-22.04-arm
             framework: net6.0
             sdk: 6.0.x
             runtime: -x64
             codecov: false
-          - os: macos-26-intel
+          - os: ubuntu-22.04
             framework: net6.0
             sdk: 6.0.x
             runtime: -x64
             codecov: false
-          - os: windows-latest
+          - os: windows-2022
             framework: net6.0
             sdk: 6.0.x
             runtime: -x64
@@ -61,7 +37,7 @@ jobs:
         exclude:
           - isARM: false
             options:
-              os: buildjet-4vcpu-ubuntu-2204-arm
+              os: ubuntu-22.04-arm
 
     runs-on: ${{matrix.options.os}}
 
@@ -71,18 +47,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get -y install libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
-
-      - name: Install libgdi+, which is required for tests running on macos
-        if: ${{ contains(matrix.options.os, 'macos-26') }}
-        run: |
-          brew update
-          brew install mono-libgdiplus
-          # Create symlinks to make libgdiplus discoverable
-          sudo mkdir -p /usr/local/lib
-          sudo ln -sf $(brew --prefix)/lib/libgdiplus.dylib /usr/local/lib/libgdiplus.dylib
-          # Verify installation
-          ls -la $(brew --prefix)/lib/libgdiplus* || echo "libgdiplus not found in brew prefix"
-          ls -la /usr/local/lib/libgdiplus* || echo "libgdiplus not found in /usr/local/lib"
 
       - name: Git Config
         shell: bash
@@ -101,7 +65,7 @@ jobs:
         run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
 
       - name: Git Setup LFS Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: lfs-cache
         with:
           path: .git/lfs
@@ -114,7 +78,7 @@ jobs:
         uses: NuGet/setup-nuget@v1
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: nuget-cache
         with:
           path: ~/.nuget
@@ -126,50 +90,32 @@ jobs:
         with:
           dotnet-version: |
             8.0.x
-            7.0.x
             6.0.x
 
       - name: DotNet Build
-        if: ${{ matrix.options.sdk-preview != true }}
         shell: pwsh
         run: ./ci-build.ps1 "${{matrix.options.framework}}"
         env:
           SIXLABORS_TESTING: True
-
-      - name: DotNet Build Preview
-        if: ${{ matrix.options.sdk-preview == true }}
-        shell: pwsh
-        run: ./ci-build.ps1 "${{matrix.options.framework}}"
-        env:
-          SIXLABORS_TESTING_PREVIEW: True
 
       - name: DotNet Test
-        if: ${{ matrix.options.sdk-preview != true }}
         shell: pwsh
         run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
         env:
           SIXLABORS_TESTING: True
-          XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
-
-      - name: DotNet Test Preview
-        if: ${{ matrix.options.sdk-preview == true }}
-        shell: pwsh
-        run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
-        env:
-          SIXLABORS_TESTING_PREVIEW: True
           XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
       - name: Export Failed Output
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: actual_output_${{ runner.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
+          name: actual_output_${{ matrix.options.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
           path: tests/Images/ActualOutput/
 
   Publish:
     needs: [Build]
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     if: (github.event_name == 'push')
 
@@ -190,7 +136,7 @@ jobs:
         uses: NuGet/setup-nuget@v1
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: nuget-cache
         with:
           path: ~/.nuget

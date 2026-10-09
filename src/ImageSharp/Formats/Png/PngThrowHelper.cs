@@ -8,6 +8,14 @@ namespace SixLabors.ImageSharp.Formats.Png;
 
 internal static class PngThrowHelper
 {
+    /// <summary>
+    /// Throws an exception for invalid PNG content.
+    /// </summary>
+    /// <param name="errorMessage">The reason the content is invalid.</param>
+    [DoesNotReturn]
+    public static void ThrowInvalidImageContentException(string errorMessage)
+        => throw new InvalidImageContentException(errorMessage);
+
     [DoesNotReturn]
     public static void ThrowInvalidImageContentException(string errorMessage, Exception innerException)
         => throw new InvalidImageContentException(errorMessage, innerException);

@@ -163,7 +163,7 @@ internal sealed class T6TiffCompression : TiffBaseDecompressor
                     int runLength = (int)bitReader.RunLength;
                     if (runLength > (uint)(scanline.Length - unpacked))
                     {
-                        TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error");
+                        TiffThrowHelper.ThrowImageFormatException("CCITT compression parsing error: decoded more pixels than the image width.");
                     }
 
                     scanline.Slice(unpacked, runLength).Fill(fillByte);
@@ -175,7 +175,7 @@ internal sealed class T6TiffCompression : TiffBaseDecompressor
                     runLength = (int)bitReader.RunLength;
                     if (runLength > (uint)(scanline.Length - unpacked))
                     {
-                        TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error");
+                        TiffThrowHelper.ThrowImageFormatException("CCITT compression parsing error: decoded more pixels than the image width.");
                     }
 
                     scanline.Slice(unpacked, runLength).Fill(fillByte);

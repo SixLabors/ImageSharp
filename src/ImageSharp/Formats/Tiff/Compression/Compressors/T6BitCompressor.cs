@@ -132,6 +132,14 @@ internal sealed class T6BitCompressor : TiffCcittCompressor
     }
 
     /// <inheritdoc />
+    protected override long GetMaximumEncodedBits(int rowsPerStrip)
+    {
+        // Alternating pixels use at most 29 bits per two-pixel horizontal mode.
+        // Allow 16 bits per pixel, row transition overhead, and the final 24-bit EOFB.
+        return ((((long)this.Width * 16) + 24) * rowsPerStrip) + 24;
+    }
+
+    /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
         this.referenceLineBuffer?.Dispose();

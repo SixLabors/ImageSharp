@@ -77,6 +77,19 @@ public partial class PngDecoderTests
         }
     }
 
+    [Fact]
+    public void DecodeAndIdentify_WithDuplicateHeader_ThrowInvalidImageContentException()
+    {
+        using MemoryStream payloadStream = new();
+        payloadStream.Write(Raw1X1PngIhdrAndpHYs);
+        payloadStream.Write(Raw1X1PngIhdrAndpHYs.AsSpan(8, 25));
+        payloadStream.Write(Raw1X1PngIdatAndIend);
+        byte[] payload = payloadStream.ToArray();
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Load(payload));
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(payload));
+    }
+
     private static string GetChunkTypeName(uint value)
     {
         byte[] data = new byte[4];

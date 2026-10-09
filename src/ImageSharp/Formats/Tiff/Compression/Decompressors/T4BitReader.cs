@@ -319,7 +319,7 @@ internal class T4BitReader
         {
             if (this.CurValueBitsRead > this.maxCodeLength)
             {
-                TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error: invalid code length read");
+                TiffThrowHelper.ThrowImageFormatException("CCITT compression parsing error: invalid code length read.");
             }
 
             bool isMakeupCode = this.IsMakeupCode();
@@ -401,7 +401,7 @@ internal class T4BitReader
 
             if (!this.IsEndOfScanLine)
             {
-                TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error: expected start of data marker not found");
+                TiffThrowHelper.ThrowImageFormatException("CCITT compression parsing error: expected start of data marker not found.");
             }
 
             this.Reset();

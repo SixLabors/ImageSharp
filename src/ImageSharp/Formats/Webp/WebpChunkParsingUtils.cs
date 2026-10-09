@@ -289,6 +289,12 @@ internal static class WebpChunkParsingUtils
         if (stream.Read(buffer) is 4)
         {
             uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
+            if (chunkSize == uint.MaxValue)
+            {
+                // The mandatory padding byte cannot fit in the returned 32-bit extent.
+                WebpThrowHelper.ThrowInvalidImageContentException("Invalid WebP chunk size.");
+            }
+
             return chunkSize % 2 is 0 ? chunkSize : chunkSize + 1;
         }
 
@@ -326,11 +332,12 @@ internal static class WebpChunkParsingUtils
         long streamLength = stream.Length;
         while (stream.Position < streamLength)
         {
-            uint chunkLength = ReadChunkSize(stream, buffer);
+            int chunkLength = ValidateMetadataChunkSize(stream, ReadChunkSize(stream, buffer));
 
             if (ignoreMetaData)
             {
                 stream.Skip((int)chunkLength);
+                continue;
             }
 
             int bytesRead;
@@ -379,6 +386,22 @@ internal static class WebpChunkParsingUtils
                     break;
             }
         }
+    }
+
+    /// <summary>
+    /// Validates a metadata extent before allocating or skipping its payload.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the payload.</param>
+    /// <param name="chunkSize">The declared size including padding.</param>
+    /// <returns>The size supported by the array and stream read APIs.</returns>
+    public static int ValidateMetadataChunkSize(BufferedReadStream stream, uint chunkSize)
+    {
+        if (chunkSize > int.MaxValue || chunkSize > stream.Length - stream.Position)
+        {
+            WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the metadata chunk.");
+        }
+
+        return (int)chunkSize;
     }
 
     private static double GetExifResolutionValue(ExifProfile exifProfile, ExifTag<Rational> tag)

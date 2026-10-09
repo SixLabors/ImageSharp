@@ -4823,6 +4823,9 @@ internal static partial class Av1FrameEncoder
             this.ConfigureReferenceTools(parent);
             this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
             this.SearchGlobalMotion<ushort, UInt16GlobalMotionSearchOperator>(frameSource.Frame, this.references, parent);
+
+            // The 8-bit encoder also sets the previous source and updates the noise estimate here. A high-bit-depth frame needs neither: the
+            // superblock comparison with the previous source and the noise estimate run only for 8-bit samples.
             this.BeginCyclicRefreshSegmentation(this.referencePool, current, parent);
             this.PrepareFilmGrain();
             this.PrepareSsimRateMultiplierFactors<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(this.source.Frame, parent);

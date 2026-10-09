@@ -181,11 +181,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     switch (chunk.Type)
                     {
                         case PngChunkType.Header:
-                            if (!Equals(this.header, default(PngHeader)))
-                            {
-                                PngThrowHelper.ThrowInvalidHeader();
-                            }
-
                             this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.AnimationControl:
@@ -1334,6 +1329,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="data">The <see cref="T:ReadOnlySpan{byte}"/> containing data.</param>
     private void ReadHeaderChunk(PngMetadata pngMetadata, ReadOnlySpan<byte> data)
     {
+        if (!Equals(this.header, default(PngHeader)))
+        {
+            PngThrowHelper.ThrowInvalidHeader();
+        }
+
         this.header = PngHeader.Parse(data);
 
         this.header.Validate();

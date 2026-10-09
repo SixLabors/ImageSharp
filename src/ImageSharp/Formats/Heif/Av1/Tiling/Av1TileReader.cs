@@ -224,8 +224,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// The retained primary-reference entropy context, or <see langword="null"/> when the frame selects defaults.
     /// </param>
     /// <param name="referenceFrames">The retained reconstructed frames.</param>
-    /// <param name="lumaPaletteColorIndexMap">The decoder-session luma palette scratch map.</param>
-    /// <param name="chromaPaletteColorIndexMap">The decoder-session chroma palette scratch map.</param>
+    /// <param name="lumaPaletteColorIndexMap">The decoder-session map of luma palette color indices.</param>
+    /// <param name="chromaPaletteColorIndexMap">The decoder-session map of chroma palette color indices.</param>
     public Av1TileReader(
         Configuration configuration,
         ObuSequenceHeader sequenceHeader,
@@ -276,7 +276,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         this.entropyContexts.BeginFrame(frameHeader.QuantizationParameters.BaseQIndex, primaryReferenceContext);
         this.inverseQuantizer = new(sequenceHeader, frameHeader);
 
-        // FrameInfo owns traversal records for this coded frame and one superblock of coefficient scratch.
+        // FrameInfo owns traversal records for this coded frame and the coefficients of one superblock.
         this.FrameInfo = new(this.configuration, this.SequenceHeader, this.FrameHeader);
         if (referenceFrames is not null)
         {
@@ -351,7 +351,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         }
         catch
         {
-            // The coefficient scratch allocation follows both neighbor contexts. Unwind those successful rents when
+            // The superblock coefficient allocation follows both neighbor contexts. Unwind those successful rents when
             // construction cannot publish an owning tile reader.
             this.aboveNeighborContext.Dispose();
             this.leftNeighborContext.Dispose();
@@ -561,7 +561,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Span<byte> aboveContextStorage = this.aboveNeighborContext.GetStorage();
         Span<byte> leftContextStorage = this.leftNeighborContext.GetStorage();
 
-        // The coefficient and transform-information scratch is the same storage for every superblock of the tile.
+        // The coefficient and transform-information buffers are the same storage for every superblock of the tile.
         Span<int> coefficientsY = this.FrameInfo.GetCoefficientsY();
         Span<int> coefficientsU = this.FrameInfo.GetCoefficientsU();
         Span<int> coefficientsV = this.FrameInfo.GetCoefficientsV();
@@ -854,11 +854,11 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="levelStorage">The coefficient level storage of the tile, read once by the tile reader.</param>
     /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
     /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
-    /// <param name="coefficientsY">The luma coefficient scratch of the superblock, read once by the tile reader.</param>
-    /// <param name="coefficientsU">The blue-difference coefficient scratch of the superblock, read once by the tile reader.</param>
-    /// <param name="coefficientsV">The red-difference coefficient scratch of the superblock, read once by the tile reader.</param>
-    /// <param name="transformInfoY">The luma transform-information scratch of the superblock, read once by the tile reader.</param>
-    /// <param name="transformInfoUv">The chroma transform-information scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="coefficientsY">The luma coefficients of the superblock, read once by the tile reader.</param>
+    /// <param name="coefficientsU">The blue-difference coefficients of the superblock, read once by the tile reader.</param>
+    /// <param name="coefficientsV">The red-difference coefficients of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoY">The luma transform information of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoUv">The chroma transform information of the superblock, read once by the tile reader.</param>
     /// <param name="decoderWorkspace">The inverse-transform and prediction storage of the frame decoder, read once by the tile reader.</param>
     /// <param name="frameLuma">The luma samples of the reconstructed frame, read once by the tile reader.</param>
     /// <param name="frameBlue">The blue-difference samples of the reconstructed frame, read once by the tile reader.</param>
@@ -1458,11 +1458,11 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="levelStorage">The coefficient level storage of the tile, read once by the tile reader.</param>
     /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
     /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
-    /// <param name="coefficientsY">The luma coefficient scratch of the superblock, read once by the tile reader.</param>
-    /// <param name="coefficientsU">The blue-difference coefficient scratch of the superblock, read once by the tile reader.</param>
-    /// <param name="coefficientsV">The red-difference coefficient scratch of the superblock, read once by the tile reader.</param>
-    /// <param name="transformInfoY">The luma transform-information scratch of the superblock, read once by the tile reader.</param>
-    /// <param name="transformInfoUv">The chroma transform-information scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="coefficientsY">The luma coefficients of the superblock, read once by the tile reader.</param>
+    /// <param name="coefficientsU">The blue-difference coefficients of the superblock, read once by the tile reader.</param>
+    /// <param name="coefficientsV">The red-difference coefficients of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoY">The luma transform information of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoUv">The chroma transform information of the superblock, read once by the tile reader.</param>
     /// <param name="decoderWorkspace">The inverse-transform and prediction storage of the frame decoder, read once by the tile reader.</param>
     /// <param name="frameLuma">The luma samples of the reconstructed frame, read once by the tile reader.</param>
     /// <param name="frameBlue">The blue-difference samples of the reconstructed frame, read once by the tile reader.</param>
@@ -1615,11 +1615,11 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="levelStorage">The coefficient level storage of the tile, read once by the tile reader.</param>
     /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
     /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
-    /// <param name="coefficientsY">The luma coefficient scratch of the superblock, read once by the tile reader.</param>
-    /// <param name="coefficientsU">The blue-difference coefficient scratch of the superblock, read once by the tile reader.</param>
-    /// <param name="coefficientsV">The red-difference coefficient scratch of the superblock, read once by the tile reader.</param>
-    /// <param name="transformInfoY">The luma transform-information scratch of the superblock, read once by the tile reader.</param>
-    /// <param name="transformInfoUv">The chroma transform-information scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="coefficientsY">The luma coefficients of the superblock, read once by the tile reader.</param>
+    /// <param name="coefficientsU">The blue-difference coefficients of the superblock, read once by the tile reader.</param>
+    /// <param name="coefficientsV">The red-difference coefficients of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoY">The luma transform information of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoUv">The chroma transform information of the superblock, read once by the tile reader.</param>
     /// <param name="decoderWorkspace">The inverse-transform and prediction storage of the frame decoder, read once by the tile reader.</param>
     /// <param name="frameLuma">The luma samples of the reconstructed frame, read once by the tile reader.</param>
     /// <param name="frameBlue">The blue-difference samples of the reconstructed frame, read once by the tile reader.</param>
@@ -2248,8 +2248,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
     /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
-    /// <param name="transformInfoY">The luma transform-information scratch of the superblock, read once by the tile reader.</param>
-    /// <param name="transformInfoUv">The chroma transform-information scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoY">The luma transform information of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoUv">The chroma transform information of the superblock, read once by the tile reader.</param>
     /// <param name="modeInfoLocation">The block origin in 4x4 mode-information units.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
@@ -2326,8 +2326,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
     /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
-    /// <param name="transformInfoY">The luma transform-information scratch of the superblock, read once by the tile reader.</param>
-    /// <param name="transformInfoUv">The chroma transform-information scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoY">The luma transform information of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoUv">The chroma transform information of the superblock, read once by the tile reader.</param>
     /// <param name="modeInfoLocation">The coding-block origin in frame mode-information units.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
@@ -2398,7 +2398,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
     /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
-    /// <param name="transformInfoY">The luma transform-information scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoY">The luma transform information of the superblock, read once by the tile reader.</param>
     /// <param name="modeInfoLocation">The coding-block origin in frame mode-information units.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
@@ -2518,8 +2518,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="superblockInfo">The containing superblock and transform storage.</param>
-    /// <param name="transformInfoY">The luma transform-information scratch of the superblock, read once by the tile reader.</param>
-    /// <param name="transformInfoUv">The chroma transform-information scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoY">The luma transform information of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoUv">The chroma transform information of the superblock, read once by the tile reader.</param>
     /// <param name="blockSize">The coding block size.</param>
     /// <param name="transformSize">The selected luma transform size.</param>
     /// <param name="preserveLuma">Indicates whether variable-transform traversal already populated luma descriptors.</param>

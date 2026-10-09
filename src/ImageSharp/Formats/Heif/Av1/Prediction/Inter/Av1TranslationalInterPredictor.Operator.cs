@@ -42,7 +42,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalFilter">The vertical interpolation filter.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned intermediate rows sized by <see cref="GetIntermediateRowLength"/> when both phases are nonzero.</param>
     private static void DispatchVertical<THorizontal>(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -133,7 +133,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned intermediate rows sized by <see cref="GetIntermediateRowLength"/> when both phases are nonzero.</param>
     private static void DispatchVertical<THorizontal>(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -228,7 +228,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalFilter">The vertical interpolation filter.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned intermediate rows sized by <see cref="GetIntermediateRowLength"/> when both phases are nonzero.</param>
     private static void DispatchVerticalScalar<THorizontal>(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -319,7 +319,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned intermediate rows sized by <see cref="GetIntermediateRowLength"/> when both phases are nonzero.</param>
     private static void DispatchVerticalScalar<THorizontal>(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -414,7 +414,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="height">The prediction height in samples.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned intermediate rows sized by <see cref="GetIntermediateRowLength"/> when both phases are nonzero.</param>
     private static void Predict<THorizontal, TVertical>(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -521,7 +521,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned intermediate rows sized by <see cref="GetIntermediateRowLength"/> when both phases are nonzero.</param>
     private static void Predict<THorizontal, TVertical>(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -634,7 +634,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="height">The prediction height in samples.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned intermediate rows sized by <see cref="GetIntermediateRowLength"/> when both phases are nonzero.</param>
     private static void PredictScalar<THorizontal, TVertical>(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -740,7 +740,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned intermediate rows sized by <see cref="GetIntermediateRowLength"/> when both phases are nonzero.</param>
     private static void PredictScalar<THorizontal, TVertical>(
         ReadOnlySpan<ushort> source,
         int sourceStride,

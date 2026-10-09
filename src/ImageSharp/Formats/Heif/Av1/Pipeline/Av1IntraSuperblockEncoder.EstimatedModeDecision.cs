@@ -78,7 +78,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         /// <param name="bitDepth">The coded sample precision.</param>
-        /// <param name="midpoint">Scratch for one row of mid-gray samples, at least <paramref name="width"/> long.</param>
+        /// <param name="midpoint">A buffer for one row of mid-gray samples, at least <paramref name="width"/> long.</param>
         /// <returns>The rounded per-sample variance.</returns>
         private static int GetPerPixelVariance(
             Av1PlaneRegion<TSample> source,

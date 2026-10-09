@@ -136,7 +136,7 @@ internal static class Av1LoopRestorationFilter
                 // The typed source and destination keep byte frames byte-backed through both filters.
                 if (unit.FilterType == Av1RestorationFilterType.Wiener)
                 {
-                    int storageLength = Av1WienerFilter.GetScratchLength(blockWidth, stripeHeight);
+                    int storageLength = Av1WienerFilter.GetIntermediateRowLength(blockWidth, stripeHeight);
                     Av1WienerFilter.FilterStripe(
                         filterSource,
                         sourceStride,
@@ -151,7 +151,7 @@ internal static class Av1LoopRestorationFilter
                 }
                 else
                 {
-                    int storageLength = Av1SelfGuidedFilter.GetScratchLength(blockWidth, stripeHeight);
+                    int storageLength = Av1SelfGuidedFilter.GetFilterStorageLength(blockWidth, stripeHeight);
                     Av1SelfGuidedFilter.FilterBlock(
                         filterSource,
                         sourceStride,

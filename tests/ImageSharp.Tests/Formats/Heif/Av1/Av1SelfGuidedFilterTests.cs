@@ -97,9 +97,9 @@ public class Av1SelfGuidedFilterTests
                 byte[] byteSource = new byte[source.Length];
                 byte[] byteActual = new byte[actual.Length + 2];
                 byte[] byteExpected = new byte[actual.Length + 2];
-                int scratchLength = Av1SelfGuidedFilter.GetScratchLength(width, height);
-                int[] scratchStorage = new int[scratchLength + 2];
-                Span<int> scratch = scratchStorage.AsSpan(1, scratchLength);
+                int filterStorageLength = Av1SelfGuidedFilter.GetFilterStorageLength(width, height);
+                int[] paddedFilterStorage = new int[filterStorageLength + 2];
+                Span<int> filterStorage =paddedFilterStorage.AsSpan(1, filterStorageLength);
                 int[] projectionCoefficients = new int[2];
 
                 FillSource(source, sourceStride, maximumSample);
@@ -112,7 +112,7 @@ public class Av1SelfGuidedFilterTests
                 {
                     expected.AsSpan().Fill(ushort.MaxValue);
                     actual.AsSpan().Fill(ushort.MaxValue);
-                    scratchStorage.AsSpan().Fill(int.MinValue);
+                    paddedFilterStorage.AsSpan().Fill(int.MinValue);
                     projectionCoefficients[0] = -96 + ((parameterSetIndex * 17) & 127);
                     projectionCoefficients[1] = -32 + ((parameterSetIndex * 29) & 127);
 
@@ -137,11 +137,11 @@ public class Av1SelfGuidedFilterTests
                         bitDepth,
                         parameterSetIndex,
                         projectionCoefficients,
-                        scratch);
+                        filterStorage);
 
                     AssertBlockEqual(expected, actual, destinationStride, width, height, bitDepth, parameterSetIndex);
-                    Assert.Equal(int.MinValue, scratchStorage[0]);
-                    Assert.Equal(int.MinValue, scratchStorage[^1]);
+                    Assert.Equal(int.MinValue, paddedFilterStorage[0]);
+                    Assert.Equal(int.MinValue, paddedFilterStorage[^1]);
 
                     if (bitDepth == 8)
                     {
@@ -154,7 +154,7 @@ public class Av1SelfGuidedFilterTests
                             byteExpected[index + 1] = (byte)expected[index];
                         }
 
-                        scratchStorage.AsSpan().Fill(int.MinValue);
+                        paddedFilterStorage.AsSpan().Fill(int.MinValue);
                         Av1SelfGuidedFilter.FilterBlock<byte>(
                             byteSource,
                             sourceStride,
@@ -165,14 +165,14 @@ public class Av1SelfGuidedFilterTests
                             bitDepth,
                             parameterSetIndex,
                             projectionCoefficients,
-                            scratch);
+                            filterStorage);
 
                         Assert.True(
                             byteExpected.AsSpan().SequenceEqual(byteActual),
                             $"Byte width={width}, height={height}, parameterSet={parameterSetIndex}");
 
-                        Assert.Equal(int.MinValue, scratchStorage[0]);
-                        Assert.Equal(int.MinValue, scratchStorage[^1]);
+                        Assert.Equal(int.MinValue, paddedFilterStorage[0]);
+                        Assert.Equal(int.MinValue, paddedFilterStorage[^1]);
                     }
                 }
             }

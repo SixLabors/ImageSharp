@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 /// </para>
 /// <para>
 /// Two-dimensional filtering uses caller-owned work storage, so block reconstruction does not allocate.
-/// That span must contain at least <see cref="GetScratchLength(int, int)"/> elements when both phases are nonzero.
+/// That span must contain at least <see cref="GetIntermediateRowLength(int, int)"/> elements when both phases are nonzero.
 /// It can be empty for copy or one-dimensional filtering.
 /// </para>
 /// </remarks>
@@ -39,7 +39,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// The minimum intermediate row stride that lets a 128-bit byte kernel handle four- and eight-sample blocks.
     /// </summary>
-    internal const int MinimumScratchStride = 16;
+    internal const int MinimumIntermediateStride = 16;
 
     /// <summary>
     /// Gets the maximum number of signed 16-bit elements required for one two-dimensional prediction block.
@@ -47,7 +47,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="width">The prediction width in samples.</param>
     /// <param name="height">The prediction height in samples.</param>
     /// <returns>The intermediate row capacity required by either sample-storage overload.</returns>
-    public static int GetScratchLength(int width, int height) => Math.Max(width, MinimumScratchStride) * (height + MaximumExtraRows);
+    public static int GetIntermediateRowLength(int width, int height) => Math.Max(width, MinimumIntermediateStride) * (height + MaximumExtraRows);
 
     /// <summary>
     /// Reconstructs an 8-bit translational prediction using the widest supported SIMD kernel.
@@ -63,7 +63,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalFilter">The vertical interpolation filter.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned intermediate rows sized by <see cref="GetIntermediateRowLength"/> when both phases are nonzero.</param>
     public static void Predict(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -106,7 +106,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The decoded sample precision: 8, 10, or 12 bits.</param>
-    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned intermediate rows sized by <see cref="GetIntermediateRowLength"/> when both phases are nonzero.</param>
     public static void Predict(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -150,7 +150,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalFilter">The vertical interpolation filter.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned intermediate rows sized by <see cref="GetIntermediateRowLength"/> when both phases are nonzero.</param>
     public static void PredictScalar(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -193,7 +193,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The decoded sample precision: 8, 10, or 12 bits.</param>
-    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned intermediate rows sized by <see cref="GetIntermediateRowLength"/> when both phases are nonzero.</param>
     public static void PredictScalar(
         ReadOnlySpan<ushort> source,
         int sourceStride,

@@ -239,7 +239,7 @@ internal static partial class Av1TemporalFilter
     /// <param name="blockRow">The filter block row.</param>
     /// <param name="blockColumn">The filter block column.</param>
     /// <param name="subblockVectors">The sixteen sub-block motion vectors in eighth-sample luma units.</param>
-    /// <param name="intermediate">Scratch for the two-dimensional intermediate, <see cref="PredictionIntermediateLength"/> values.</param>
+    /// <param name="intermediate">The intermediate rows of the two-dimensional filter, <see cref="PredictionIntermediateLength"/> values.</param>
     /// <param name="prediction">The prediction of all planes, each packed at its block width, in plane order.</param>
     internal static void BuildPredictor<TSample, TOperator>(
         Av1EncoderFrame<TSample> reference,
@@ -326,7 +326,7 @@ internal static partial class Av1TemporalFilter
     /// <param name="width">The sub-block width.</param>
     /// <param name="height">The sub-block height.</param>
     /// <param name="terms">The rounding of the sample precision.</param>
-    /// <param name="intermediate">Scratch for the two-dimensional intermediate.</param>
+    /// <param name="intermediate">The intermediate rows of the two-dimensional filter.</param>
     /// <param name="destination">The first predicted sample.</param>
     /// <param name="destinationStride">The prediction row stride.</param>
     internal static void PredictSubblock<TSample, TOperator>(

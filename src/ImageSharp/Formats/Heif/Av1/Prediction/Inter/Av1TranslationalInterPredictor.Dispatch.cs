@@ -27,7 +27,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalFilter">The vertical interpolation filter.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned intermediate rows sized by <see cref="GetIntermediateRowLength"/> when both phases are nonzero.</param>
     private static void Dispatch(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -43,8 +43,8 @@ internal static partial class Av1TranslationalInterPredictor
         Span<short> intermediateRows)
     {
         DebugGuard.IsTrue(
-            horizontalPhase == 0 || verticalPhase == 0 || intermediateRows.Length >= GetScratchLength(width, height),
-            "The two-dimensional intermediate rows hold fewer samples than GetScratchLength requires.");
+            horizontalPhase == 0 || verticalPhase == 0 || intermediateRows.Length >= GetIntermediateRowLength(width, height),
+            "The two-dimensional intermediate rows hold fewer samples than GetIntermediateRowLength requires.");
 
         switch (horizontalFilter)
         {
@@ -126,7 +126,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned intermediate rows sized by <see cref="GetIntermediateRowLength"/> when both phases are nonzero.</param>
     private static void Dispatch(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -143,8 +143,8 @@ internal static partial class Av1TranslationalInterPredictor
         Span<short> intermediateRows)
     {
         DebugGuard.IsTrue(
-            horizontalPhase == 0 || verticalPhase == 0 || intermediateRows.Length >= GetScratchLength(width, height),
-            "The two-dimensional intermediate rows hold fewer samples than GetScratchLength requires.");
+            horizontalPhase == 0 || verticalPhase == 0 || intermediateRows.Length >= GetIntermediateRowLength(width, height),
+            "The two-dimensional intermediate rows hold fewer samples than GetIntermediateRowLength requires.");
 
         switch (horizontalFilter)
         {
@@ -229,7 +229,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalFilter">The vertical interpolation filter.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned intermediate rows sized by <see cref="GetIntermediateRowLength"/> when both phases are nonzero.</param>
     private static void DispatchScalar(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -326,7 +326,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned intermediate rows sized by <see cref="GetIntermediateRowLength"/> when both phases are nonzero.</param>
     private static void DispatchScalar(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -857,7 +857,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalTapCount">The number of applied vertical taps.</param>
     /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetIntermediateRowLength"/> elements.</param>
     private static void Filter2D(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -984,7 +984,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
-    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetIntermediateRowLength"/> elements.</param>
     private static void Filter2D(
         ReadOnlySpan<ushort> source,
         int sourceStride,

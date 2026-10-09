@@ -62,7 +62,7 @@ public class Av1WarpedInterPredictorTests
             byte[] actual = new byte[destinationStride * height];
             Array.Fill(expected, (byte)0xD3);
             Array.Fill(actual, (byte)0xD3);
-            short[] actualScratch = new short[Av1WarpedInterPredictor.WarpedScratchLength];
+            short[] actualIntermediate = new short[Av1WarpedInterPredictor.WarpedIntermediateLength];
             Point destinationPosition = subsampling == 0 ? new Point(32, 24) : new Point(16, 12);
 
             PredictReference(
@@ -96,7 +96,7 @@ public class Av1WarpedInterPredictorTests
                 subsampling,
                 subsampling,
                 parameters,
-                actualScratch);
+                actualIntermediate);
 
             Assert.Equal(expected, actual);
 
@@ -136,7 +136,7 @@ public class Av1WarpedInterPredictorTests
                 subsampling,
                 subsampling,
                 parameters,
-                actualScratch);
+                actualIntermediate);
 
             Assert.Equal(expectedCompound, actualCompound);
         }
@@ -173,7 +173,7 @@ public class Av1WarpedInterPredictorTests
                 ushort[] actual = new ushort[destinationStride * height];
                 Array.Fill(expected, (ushort)0xDEAD);
                 Array.Fill(actual, (ushort)0xDEAD);
-                short[] actualScratch = new short[Av1WarpedInterPredictor.WarpedScratchLength];
+                short[] actualIntermediate = new short[Av1WarpedInterPredictor.WarpedIntermediateLength];
                 Point destinationPosition = subsampling == 0 ? new Point(32, 24) : new Point(16, 12);
 
                 PredictReference(
@@ -208,7 +208,7 @@ public class Av1WarpedInterPredictorTests
                     subsampling,
                     bitDepth,
                     parameters,
-                    actualScratch);
+                    actualIntermediate);
 
                 Assert.Equal(expected, actual);
 
@@ -249,7 +249,7 @@ public class Av1WarpedInterPredictorTests
                     subsampling,
                     bitDepth,
                     parameters,
-                    actualScratch);
+                    actualIntermediate);
 
                 Assert.Equal(expectedCompound, actualCompound);
             }

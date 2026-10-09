@@ -243,7 +243,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         this.previousArfSource = this.CreateFrameBuffer();
         this.previousArfReconstruction = this.CreateFrameBuffer();
         this.PreviousArfDisplayOrder = -1;
-        this.CreateScratch();
+        this.CreateBlockBuffers();
     }
 
     /// <summary>
@@ -377,7 +377,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Releases the pools and the scratch storage.
+    /// Releases the pools and the block buffers.
     /// </summary>
     public void Dispose()
     {
@@ -395,7 +395,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
         this.previousArfSource.Dispose();
         this.previousArfReconstruction.Dispose();
-        this.DisposeScratch();
+        this.DisposeBlockBuffers();
     }
 
     /// <summary>

@@ -144,7 +144,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="width">The destination processing-unit width.</param>
     /// <param name="height">The destination processing-unit height.</param>
     /// <returns>The required filter storage length.</returns>
-    public static int GetScratchLength(int width, int height)
+    public static int GetFilterStorageLength(int width, int height)
     {
         int filteredLength = width * height;
         int bufferLength = GetBufferLength(width, height);
@@ -164,7 +164,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="bitDepth">The encoded sample bit depth.</param>
     /// <param name="parameterSetIndex">The decoded self-guided parameter-set index.</param>
     /// <param name="projectionCoefficients">The two transmitted projection coefficients.</param>
-    /// <param name="filterStorage">Integer storage sized according to <see cref="GetScratchLength"/>.</param>
+    /// <param name="filterStorage">Integer storage sized according to <see cref="GetFilterStorageLength"/>.</param>
     public static void FilterBlock<TSample>(
         ReadOnlySpan<TSample> source,
         int sourceStride,

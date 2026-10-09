@@ -118,11 +118,11 @@ internal static class Av1YuvConverter
     /// <summary>
     /// Selects a native alpha row reader for the exact color region.
     /// </summary>
-    /// <param name="configuration">The configuration providing scratch storage.</param>
+    /// <param name="configuration">The configuration providing the normalized row buffer.</param>
     /// <param name="frame">The native auxiliary samples retained by the caller.</param>
     /// <param name="outputSize">The complete color extent before cropping and orientation.</param>
     /// <param name="window">The color region within that extent.</param>
-    /// <returns>The row reader whose scratch storage must be disposed after conversion.</returns>
+    /// <returns>The row reader whose row buffer must be disposed after conversion.</returns>
     public static HeifAlphaRowSource CreateAlphaRowSource(
         Configuration configuration,
         Av1FrameBuffer<byte> frame,

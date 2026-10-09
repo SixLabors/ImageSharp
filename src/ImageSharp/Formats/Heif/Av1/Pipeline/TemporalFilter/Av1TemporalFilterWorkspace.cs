@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
 
 /// <summary>
-/// Owns the scratch storage of the temporal filter, allocated once and reused by every filtered frame so that the
+/// Owns the prediction, error, weight and motion buffers of the temporal filter, allocated once and reused by every filtered frame so that the
 /// per-block paths do not allocate.
 /// </summary>
 /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
@@ -126,7 +126,7 @@ internal sealed class Av1TemporalFilterWorkspace<TSample> : IDisposable
     public Span<int> SearchSites => this.motion!.Memory.Span.Slice(Av1MotionVectorCosts.IntegerStorageLength, Av1MotionSearchSites.StorageLength);
 
     /// <summary>
-    /// Releases the scratch storage.
+    /// Releases the filter buffers.
     /// </summary>
     public void Dispose()
     {

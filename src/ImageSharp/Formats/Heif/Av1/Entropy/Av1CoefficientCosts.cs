@@ -49,7 +49,7 @@ internal readonly ref struct Av1CoefficientCosts
     /// <param name="context">The entropy context.</param>
     public void Update(Av1FrameEntropyContext context)
     {
-        // This scratch holds the four symbols for one range distribution. It is reused for every
+        // This buffer holds the rates of the four symbols for one range distribution. It is reused for every
         // context and never allocated inside coefficient or candidate traversal.
         Span<int> rangeRates = stackalloc int[4];
         for (int size = 0; size < TransformSizeCount; size++)

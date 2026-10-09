@@ -48,7 +48,7 @@ internal static partial class Av1WarpedInterPredictor
     /// <summary>
     /// The number of signed 16-bit elements required by warped prediction.
     /// </summary>
-    public const int WarpedScratchLength = WarpedIntermediateRows * WarpedTileSize;
+    public const int WarpedIntermediateLength = WarpedIntermediateRows * WarpedTileSize;
 
     /// <summary>
     /// Reconstructs an 8-bit affine warped prediction with the widest supported convolution operator.
@@ -66,7 +66,7 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="subsamplingX">The horizontal subsampling shift of the plane.</param>
     /// <param name="subsamplingY">The vertical subsampling shift of the plane.</param>
     /// <param name="parameters">The affine warp model and its shear parameters.</param>
-    /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedScratchLength"/> elements.</param>
+    /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedIntermediateLength"/> elements.</param>
     public static void PredictWarped(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -115,7 +115,7 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="subsamplingX">The horizontal subsampling shift of the plane.</param>
     /// <param name="subsamplingY">The vertical subsampling shift of the plane.</param>
     /// <param name="parameters">The affine warp model and its shear parameters.</param>
-    /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedScratchLength"/> elements.</param>
+    /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedIntermediateLength"/> elements.</param>
     public static void PredictWarpedCompound(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -165,7 +165,7 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="subsamplingY">The vertical subsampling shift of the plane.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="parameters">The affine warp model and its shear parameters.</param>
-    /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedScratchLength"/> elements.</param>
+    /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedIntermediateLength"/> elements.</param>
     public static void PredictWarped(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -217,7 +217,7 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="subsamplingY">The vertical subsampling shift of the plane.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="parameters">The affine warp model and its shear parameters.</param>
-    /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedScratchLength"/> elements.</param>
+    /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedIntermediateLength"/> elements.</param>
     public static void PredictWarpedCompound(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -269,7 +269,7 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="subsamplingX">The horizontal subsampling shift of the plane.</param>
     /// <param name="subsamplingY">The vertical subsampling shift of the plane.</param>
     /// <param name="parameters">The affine warp model and its shear parameters.</param>
-    /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedScratchLength"/> elements.</param>
+    /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedIntermediateLength"/> elements.</param>
     /// <param name="useHardwareIntrinsics">Whether the SIMD kernels can run. False selects the scalar kernels.</param>
     private static void PredictWarped<TOperator>(
         ReadOnlySpan<byte> source,
@@ -291,7 +291,7 @@ internal static partial class Av1WarpedInterPredictor
     {
         ref byte sourceBase = ref MemoryMarshal.GetReference(source);
         ref byte destinationBase = ref MemoryMarshal.GetReference(destination);
-        Span<ushort> intermediate = MemoryMarshal.Cast<short, ushort>(intermediateTile)[..WarpedScratchLength];
+        Span<ushort> intermediate = MemoryMarshal.Cast<short, ushort>(intermediateTile)[..WarpedIntermediateLength];
         int horizontalBias = 1 << (8 + FilterBits - 1);
         int verticalBias = 1 << (8 + (2 * FilterBits) - Round0Bits);
         int verticalRound = (2 * FilterBits) - Round0Bits;
@@ -1044,7 +1044,7 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="subsamplingX">The horizontal subsampling shift of the plane.</param>
     /// <param name="subsamplingY">The vertical subsampling shift of the plane.</param>
     /// <param name="parameters">The affine warp model and its shear parameters.</param>
-    /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedScratchLength"/> elements.</param>
+    /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedIntermediateLength"/> elements.</param>
     /// <param name="useHardwareIntrinsics">Whether the SIMD kernels can run. False selects the scalar kernels.</param>
     private static void PredictWarpedCompound<TOperator>(
         ReadOnlySpan<byte> source,
@@ -1066,7 +1066,7 @@ internal static partial class Av1WarpedInterPredictor
     {
         ref byte sourceBase = ref MemoryMarshal.GetReference(source);
         ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
-        Span<ushort> intermediate = MemoryMarshal.Cast<short, ushort>(intermediateTile)[..WarpedScratchLength];
+        Span<ushort> intermediate = MemoryMarshal.Cast<short, ushort>(intermediateTile)[..WarpedIntermediateLength];
         int horizontalBias = 1 << (8 + FilterBits - 1);
         int verticalBias = 1 << (8 + (2 * FilterBits) - Round0Bits);
 
@@ -1142,7 +1142,7 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="subsamplingY">The vertical subsampling shift of the plane.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="parameters">The affine warp model and its shear parameters.</param>
-    /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedScratchLength"/> elements.</param>
+    /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedIntermediateLength"/> elements.</param>
     /// <param name="useHardwareIntrinsics">Whether the SIMD kernels can run. False selects the scalar kernels.</param>
     private static void PredictWarpedCompound<TOperator>(
         ReadOnlySpan<ushort> source,
@@ -1165,7 +1165,7 @@ internal static partial class Av1WarpedInterPredictor
     {
         ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
         ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
-        Span<ushort> intermediate = MemoryMarshal.Cast<short, ushort>(intermediateTile)[..WarpedScratchLength];
+        Span<ushort> intermediate = MemoryMarshal.Cast<short, ushort>(intermediateTile)[..WarpedIntermediateLength];
 
         // For 12-bit input, round0 grows so that every biased horizontal sample fits in the 16-bit intermediate tile.
         // Compound prediction keeps round1 at 7. The final blend removes the remaining bits of the Q14 shift.
@@ -1246,7 +1246,7 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="subsamplingY">The vertical subsampling shift of the plane.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="parameters">The affine warp model and its shear parameters.</param>
-    /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedScratchLength"/> elements.</param>
+    /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedIntermediateLength"/> elements.</param>
     /// <param name="useHardwareIntrinsics">Whether the SIMD kernels can run. False selects the scalar kernels.</param>
     private static void PredictWarped<TOperator>(
         ReadOnlySpan<ushort> source,
@@ -1269,7 +1269,7 @@ internal static partial class Av1WarpedInterPredictor
     {
         ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
         ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
-        Span<ushort> intermediate = MemoryMarshal.Cast<short, ushort>(intermediateTile)[..WarpedScratchLength];
+        Span<ushort> intermediate = MemoryMarshal.Cast<short, ushort>(intermediateTile)[..WarpedIntermediateLength];
 
         // For 12-bit prediction, round0 grows by two so that the biased horizontal intermediate fits in 16 bits.
         // round1 shrinks by the same amount, so the total shift stays Q14.

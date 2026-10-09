@@ -370,8 +370,8 @@ public class Av1CompoundInterPredictorTests
                         }
                     }
 
-                    int scratchStride = Math.Max(width, 128);
-                    short[] scratch = new short[scratchStride * (height + 8)];
+                    int filterRowStride = Math.Max(width, 128);
+                    short[] filterRows = new short[filterRowStride * (height + 8)];
                     Av1CompoundInterPredictor.PredictCompound(
                         firstSource,
                         sourceStride,
@@ -385,7 +385,7 @@ public class Av1CompoundInterPredictorTests
                         horizontalPhase,
                         verticalPhase,
                         bitDepth,
-                        scratch);
+                        filterRows);
 
                     Av1CompoundInterPredictor.PredictCompound(
                         secondSource,
@@ -400,7 +400,7 @@ public class Av1CompoundInterPredictorTests
                         horizontalPhase,
                         verticalPhase,
                         bitDepth,
-                        scratch);
+                        filterRows);
 
                     Av1CompoundInterPredictor.PredictCompoundScalar(
                         firstSource,
@@ -415,7 +415,7 @@ public class Av1CompoundInterPredictorTests
                         horizontalPhase,
                         verticalPhase,
                         bitDepth,
-                        scratch);
+                        filterRows);
 
                     Av1CompoundInterPredictor.PredictCompoundScalar(
                         secondSource,
@@ -430,7 +430,7 @@ public class Av1CompoundInterPredictorTests
                         horizontalPhase,
                         verticalPhase,
                         bitDepth,
-                        scratch);
+                        filterRows);
 
                     Assert.Equal(expectedFirst, actualFirst);
                     Assert.Equal(expectedSecond, actualSecond);

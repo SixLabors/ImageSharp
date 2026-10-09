@@ -59,8 +59,8 @@ public class Av1WienerFilterTests
                     byte[] byteSource = new byte[source.Length];
                     byte[] byteActual = new byte[actual.Length];
                     byte[] byteExpected = new byte[expected.Length];
-                    int scratchLength = Av1WienerFilter.GetScratchLength(width, height);
-                    ushort[] scratch = new ushort[scratchLength + 2];
+                    int intermediateLength = Av1WienerFilter.GetIntermediateRowLength(width, height);
+                    ushort[] intermediateRows =new ushort[intermediateLength + 2];
                     for (int pattern = 0; pattern < 4; pattern++)
                     {
                         for (int row = 0; row < height + 7; row++)
@@ -87,10 +87,10 @@ public class Av1WienerFilterTests
                             for (int vertical = 0; vertical < Filters.Length; vertical += 3)
                             {
                                 // Outer sentinels and row padding distinguish a numerical match from an
-                                // over-wide store. Poisoned scratch also exposes incomplete intermediate writes.
+                                // over-wide store. Poisoned intermediate rows also expose incomplete intermediate writes.
                                 actual.AsSpan().Fill(ushort.MaxValue);
                                 expected.AsSpan().Fill(ushort.MaxValue);
-                                scratch.AsSpan().Fill(ushort.MaxValue);
+                                intermediateRows.AsSpan().Fill(ushort.MaxValue);
                                 FilterReference(
                                     source,
                                     sourceStride,
@@ -114,14 +114,14 @@ public class Av1WienerFilterTests
                                     bitDepth,
                                     Filters.Slice(horizontal, 3),
                                     Filters.Slice(vertical, 3),
-                                    scratch.AsSpan(1, scratchLength));
+                                    intermediateRows.AsSpan(1, intermediateLength));
 
                                 Assert.True(
                                     expected.AsSpan().SequenceEqual(actual),
                                     $"Depth={bitDepth}, width={width}, height={height}, pattern={pattern}, horizontal={horizontal}, vertical={vertical}");
 
-                                Assert.Equal(ushort.MaxValue, scratch[0]);
-                                Assert.Equal(ushort.MaxValue, scratch[^1]);
+                                Assert.Equal(ushort.MaxValue, intermediateRows[0]);
+                                Assert.Equal(ushort.MaxValue, intermediateRows[^1]);
 
                                 if (bitDepth == 8)
                                 {
@@ -133,7 +133,7 @@ public class Av1WienerFilterTests
                                         byteExpected[index] = (byte)expected[index];
                                     }
 
-                                    scratch.AsSpan().Fill(ushort.MaxValue);
+                                    intermediateRows.AsSpan().Fill(ushort.MaxValue);
                                     Av1WienerFilter.FilterStripe<byte>(
                                         byteSource,
                                         sourceStride,
@@ -144,14 +144,14 @@ public class Av1WienerFilterTests
                                         bitDepth,
                                         Filters.Slice(horizontal, 3),
                                         Filters.Slice(vertical, 3),
-                                        scratch.AsSpan(1, scratchLength));
+                                        intermediateRows.AsSpan(1, intermediateLength));
 
                                     Assert.True(
                                         byteExpected.AsSpan().SequenceEqual(byteActual),
                                         $"Byte width={width}, height={height}, pattern={pattern}, horizontal={horizontal}, vertical={vertical}");
 
-                                    Assert.Equal(ushort.MaxValue, scratch[0]);
-                                    Assert.Equal(ushort.MaxValue, scratch[^1]);
+                                    Assert.Equal(ushort.MaxValue, intermediateRows[0]);
+                                    Assert.Equal(ushort.MaxValue, intermediateRows[^1]);
                                 }
                             }
                         }

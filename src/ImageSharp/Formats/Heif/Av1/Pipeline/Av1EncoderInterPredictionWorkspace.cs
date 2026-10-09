@@ -27,8 +27,8 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     /// The signed intermediate capacity needed when both interpolation axes are filtered: one row per filtered
     /// source row, each as wide as the largest block. A prediction from a reference twice the size of the frame
     /// filters twice as many source rows, so the capacity equals
-    /// <see cref="Av1ScaledInterPredictor.GetMaximumScaledScratchLength(int, int)"/> for the largest block, which
-    /// also covers <see cref="Av1TranslationalInterPredictor.GetScratchLength(int, int)"/>.
+    /// <see cref="Av1ScaledInterPredictor.GetMaximumScaledIntermediateRowLength(int, int)"/> for the largest block, which
+    /// also covers <see cref="Av1TranslationalInterPredictor.GetIntermediateRowLength(int, int)"/>.
     /// </summary>
     public const int FilterRowCount =
         MaximumBlockDimension * ((MaximumBlockDimension * 2) + Av1TranslationalInterPredictor.FilterCoefficientCount);
@@ -119,7 +119,7 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     public Span<TSample> TransformReconstruction => this.samples.Slice(SampleBufferCount * MaximumSampleCount, TransformSampleCount);
 
     /// <summary>
-    /// Gets the residual scratch shared by sequential plane evaluations.
+    /// Gets the residual buffer shared by sequential plane evaluations.
     /// </summary>
     public Span<short> Residual => this.residual;
 

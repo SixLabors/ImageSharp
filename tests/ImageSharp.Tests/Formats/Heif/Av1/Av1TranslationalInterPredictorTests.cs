@@ -112,8 +112,8 @@ public class Av1TranslationalInterPredictorTests
             byte[] expected = CreateByteDestination(testCase, destinationStride);
             byte[] actual = (byte[])expected.Clone();
             byte[] scalar = (byte[])expected.Clone();
-            short[] simdScratch = CreateScratch(testCase);
-            short[] scalarScratch = CreateScratch(testCase);
+            short[] simdIntermediateRows = CreateIntermediateRows(testCase);
+            short[] scalarIntermediateRows = CreateIntermediateRows(testCase);
 
             ApplyReference(source, sourceStride, sourceOrigin, expected, DestinationPrefix, destinationStride, testCase, 8);
 
@@ -129,7 +129,7 @@ public class Av1TranslationalInterPredictorTests
                 testCase.VerticalFilter,
                 testCase.HorizontalPhase,
                 testCase.VerticalPhase,
-                simdScratch);
+                simdIntermediateRows);
 
             Av1TranslationalInterPredictor.PredictScalar(
                 source,
@@ -143,7 +143,7 @@ public class Av1TranslationalInterPredictorTests
                 testCase.VerticalFilter,
                 testCase.HorizontalPhase,
                 testCase.VerticalPhase,
-                scalarScratch);
+                scalarIntermediateRows);
 
             AssertEqual(expected, actual, testCase, "SIMD-first byte");
             AssertEqual(expected, scalar, testCase, "scalar byte");
@@ -165,8 +165,8 @@ public class Av1TranslationalInterPredictorTests
                 ushort[] expected = CreateHighBitDepthDestination(testCase, destinationStride);
                 ushort[] actual = (ushort[])expected.Clone();
                 ushort[] scalar = (ushort[])expected.Clone();
-                short[] simdScratch = CreateScratch(testCase);
-                short[] scalarScratch = CreateScratch(testCase);
+                short[] simdIntermediateRows = CreateIntermediateRows(testCase);
+                short[] scalarIntermediateRows = CreateIntermediateRows(testCase);
 
                 ApplyReference(source, sourceStride, sourceOrigin, expected, DestinationPrefix, destinationStride, testCase, bitDepth);
 
@@ -183,7 +183,7 @@ public class Av1TranslationalInterPredictorTests
                     testCase.HorizontalPhase,
                     testCase.VerticalPhase,
                     bitDepth,
-                    simdScratch);
+                    simdIntermediateRows);
 
                 Av1TranslationalInterPredictor.PredictScalar(
                     source,
@@ -198,7 +198,7 @@ public class Av1TranslationalInterPredictorTests
                     testCase.HorizontalPhase,
                     testCase.VerticalPhase,
                     bitDepth,
-                    scalarScratch);
+                    scalarIntermediateRows);
 
                 AssertEqual(expected, actual, testCase, $"SIMD-first {bitDepth}-bit ushort");
                 AssertEqual(expected, scalar, testCase, $"scalar {bitDepth}-bit ushort");
@@ -217,8 +217,8 @@ public class Av1TranslationalInterPredictorTests
             int destinationStride = testCase.Width + DestinationRowPadding;
             ushort[] expected = CreateHighBitDepthDestination(testCase, destinationStride);
             ushort[] actual = (ushort[])expected.Clone();
-            short[] simdScratch = CreateScratch(testCase);
-            short[] scalarScratch = CreateScratch(testCase);
+            short[] simdIntermediateRows = CreateIntermediateRows(testCase);
+            short[] scalarIntermediateRows = CreateIntermediateRows(testCase);
 
             Av1CompoundInterPredictor.PredictCompoundScalar(
                 source,
@@ -232,7 +232,7 @@ public class Av1TranslationalInterPredictorTests
                 testCase.VerticalFilter,
                 testCase.HorizontalPhase,
                 testCase.VerticalPhase,
-                scalarScratch);
+                scalarIntermediateRows);
 
             Av1CompoundInterPredictor.PredictCompound(
                 source,
@@ -246,7 +246,7 @@ public class Av1TranslationalInterPredictorTests
                 testCase.VerticalFilter,
                 testCase.HorizontalPhase,
                 testCase.VerticalPhase,
-                simdScratch);
+                simdIntermediateRows);
 
             AssertEqual(expected, actual, testCase, "SIMD-first compound intermediate");
         }
@@ -363,8 +363,8 @@ public class Av1TranslationalInterPredictorTests
     /// Creates caller-owned two-dimensional intermediate storage using AV1's eight-tap vertical extent.
     /// </summary>
     /// <param name="testCase">The prediction geometry and fractional phases.</param>
-    /// <returns>The required scratch storage, or an empty array for copy and one-dimensional predictions.</returns>
-    private static short[] CreateScratch(PredictionCase testCase)
+    /// <returns>The required intermediate rows, or an empty array for copy and one-dimensional predictions.</returns>
+    private static short[] CreateIntermediateRows(PredictionCase testCase)
         => testCase.HorizontalPhase == 0 || testCase.VerticalPhase == 0
             ? []
             : new short[Math.Max(testCase.Width, 16) * (testCase.Height + FilterTapCount - 1)];

@@ -39,7 +39,7 @@ internal static partial class Av1WienerFilter
     /// <param name="width">The destination stripe width.</param>
     /// <param name="height">The destination stripe height.</param>
     /// <returns>The required intermediate row length.</returns>
-    public static int GetScratchLength(int width, int height) => width * (height + IntermediateRowExtension);
+    public static int GetIntermediateRowLength(int width, int height) => width * (height + IntermediateRowExtension);
 
     /// <summary>
     /// Filters one restoration stripe from a source rectangle containing the required three-sample borders.
@@ -54,7 +54,7 @@ internal static partial class Av1WienerFilter
     /// <param name="bitDepth">The encoded sample bit depth.</param>
     /// <param name="horizontalCoefficients">The three transmitted horizontal coefficients.</param>
     /// <param name="verticalCoefficients">The three transmitted vertical coefficients.</param>
-    /// <param name="intermediateRows">Intermediate sample storage sized according to <see cref="GetScratchLength"/>.</param>
+    /// <param name="intermediateRows">Intermediate sample storage sized according to <see cref="GetIntermediateRowLength"/>.</param>
     public static void FilterStripe<TSample>(
         ReadOnlySpan<TSample> source,
         int sourceStride,

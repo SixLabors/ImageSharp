@@ -35,7 +35,7 @@ internal static class Av1IntraEdgePreparation
     /// <param name="leftCount">The number of available left samples before extension.</param>
     /// <param name="filterType">Whether a relevant neighbor uses smooth prediction.</param>
     /// <param name="bitDepth">The coded sample precision.</param>
-    /// <param name="originalEdge">The original-edge workspace with at least <see cref="Av1IntraEdgeFilter.ScratchLength"/> samples.</param>
+    /// <param name="originalEdge">The original-edge workspace with at least <see cref="Av1IntraEdgeFilter.PaddedEdgeLength"/> samples.</param>
     /// <param name="upsampleAbove">Whether the top edge contains half-sample positions.</param>
     /// <param name="upsampleLeft">Whether the left edge contains half-sample positions.</param>
     public static void Prepare<T>(

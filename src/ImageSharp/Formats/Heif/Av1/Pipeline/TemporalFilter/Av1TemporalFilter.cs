@@ -197,7 +197,7 @@ internal static partial class Av1TemporalFilter
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
     /// <typeparam name="TSearch">The motion search sample arithmetic.</typeparam>
-    /// <param name="workspace">The filter scratch storage.</param>
+    /// <param name="workspace">The prediction, error and accumulator buffers of the filter.</param>
     /// <param name="lookahead">The look-ahead frames in display order. Index <c>i</c> holds the frame at look-ahead offset <c>i</c>.
     /// Every frame shares one plane layout and is edge-extended from its visible size through at least
     /// <see cref="Av1TemporalFilterFrameParameters.BorderInPixels"/> samples.</param>
@@ -438,7 +438,7 @@ internal static partial class Av1TemporalFilter
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
     /// <typeparam name="TSearch">The motion search sample arithmetic.</typeparam>
-    /// <param name="workspace">The filter scratch storage.</param>
+    /// <param name="workspace">The prediction, error and accumulator buffers of the filter.</param>
     /// <param name="frames">The frames filtered together.</param>
     /// <param name="filterFrame">The index of the frame to filter in <paramref name="frames"/>.</param>
     /// <param name="blockRow">The block row.</param>
@@ -659,7 +659,7 @@ internal static partial class Av1TemporalFilter
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
-    /// <param name="workspace">The filter scratch storage holding the prediction and the accumulators.</param>
+    /// <param name="workspace">The filter buffers holding the prediction and the accumulators.</param>
     /// <param name="frameToFilter">The frame to filter.</param>
     /// <param name="frameToFilterLuma">The luma samples of <paramref name="frameToFilter"/>, which the caller reads once outside its block loop.</param>
     /// <param name="frameToFilterBlue">

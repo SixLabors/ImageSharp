@@ -247,7 +247,7 @@ internal static partial class Av1TemporalFilter
         /// <param name="reference">The complete bordered luma plane of the reference frame.</param>
         /// <param name="referenceOrigin">The index of the top-left visible sample of <paramref name="reference"/>.</param>
         /// <param name="stride">The row stride of both planes.</param>
-        /// <param name="fractionalBuffer">Scratch for fractional predictions.</param>
+        /// <param name="fractionalBuffer">The buffer that holds each fractional prediction.</param>
         /// <param name="zeros">At least 64 zero samples.</param>
         /// <param name="searchSiteStorage">Storage for the n-step search sites, configured for <paramref name="stride"/>.</param>
         /// <param name="costStorage">The L1 motion-rate table from <see cref="FillL1MotionCosts"/>.</param>

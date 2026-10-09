@@ -30,12 +30,12 @@ internal sealed class Av1PredictionDecoder
     /// <summary>
     /// The padded sample count required by the widest intra-edge SIMD loads.
     /// </summary>
-    private const int EdgeScratchLength = Av1IntraEdgeFilter.ScratchLength;
+    private const int EdgeFilterStorageLength = Av1IntraEdgeFilter.PaddedEdgeLength;
 
     /// <summary>
     /// The number of high-bit-depth samples required by the reusable prediction workspace.
     /// </summary>
-    public const int ScratchLength = Av1DirectionalIntraPredictor.ScratchLength + (2 * ReferenceBufferLength) + EdgeScratchLength;
+    public const int PredictorStorageLength = Av1DirectionalIntraPredictor.TransposeBufferLength + (2 * ReferenceBufferLength) + EdgeFilterStorageLength;
 
     /// <summary>
     /// The sequence-level syntax that controls chroma sampling, bit depth, superblock size, and intra-edge filtering.
@@ -664,9 +664,11 @@ internal sealed class Av1PredictionDecoder
         // The workspace allocation has a size in high-bit-depth samples. As T, the byte path gets more capacity, and the sample offsets stay the same as for
         // short samples.
         Span<T> predictorSamples = MemoryMarshal.Cast<short, T>(predictorStorage);
-        Span<T> aboveData = predictorSamples.Slice(Av1DirectionalIntraPredictor.ScratchLength, ReferenceBufferLength);
-        Span<T> leftData = predictorSamples.Slice(Av1DirectionalIntraPredictor.ScratchLength + ReferenceBufferLength, ReferenceBufferLength);
-        Span<T> edgeFilterStorage = predictorSamples.Slice(Av1DirectionalIntraPredictor.ScratchLength + (2 * ReferenceBufferLength), EdgeScratchLength);
+        Span<T> aboveData = predictorSamples.Slice(Av1DirectionalIntraPredictor.TransposeBufferLength, ReferenceBufferLength);
+        Span<T> leftData = predictorSamples.Slice(Av1DirectionalIntraPredictor.TransposeBufferLength + ReferenceBufferLength, ReferenceBufferLength);
+        Span<T> edgeFilterStorage = predictorSamples.Slice(
+            Av1DirectionalIntraPredictor.TransposeBufferLength + (2 * ReferenceBufferLength),
+            EdgeFilterStorageLength);
 
         // AV1 reads the shared top-left sample at offset -1 and writes upsampled edge samples back to offset -2. Thus each edge needs prefix storage.
         aboveData.Fill(T.CreateChecked(baseValue - 1));
@@ -1013,7 +1015,7 @@ internal sealed class Av1PredictionDecoder
     {
         if (typeof(T) == typeof(byte))
         {
-            Span<byte> directionalStorage = MemoryMarshal.AsBytes(predictorStorage)[..Av1DirectionalIntraPredictor.ScratchLength];
+            Span<byte> directionalStorage = MemoryMarshal.AsBytes(predictorStorage)[..Av1DirectionalIntraPredictor.TransposeBufferLength];
             Av1DirectionalIntraPredictor.Predict(
                 MemoryMarshal.Cast<T, byte>(destination),
                 (int)destinationStride,
@@ -1069,7 +1071,7 @@ internal sealed class Av1PredictionDecoder
 
         if (typeof(T) == typeof(byte))
         {
-            Span<byte> filterStorage = MemoryMarshal.AsBytes(predictorStorage)[..Av1FilterIntraPredictorBase.ScratchLength];
+            Span<byte> filterStorage = MemoryMarshal.AsBytes(predictorStorage)[..Av1FilterIntraPredictorBase.BufferLength];
             predictor.Predict(
                 MemoryMarshal.Cast<T, byte>(destination),
                 (int)destinationStride,
@@ -1089,7 +1091,7 @@ internal sealed class Av1PredictionDecoder
                 width,
                 height,
                 bitDepth,
-                predictorStorage[..Av1FilterIntraPredictorBase.ScratchLength]);
+                predictorStorage[..Av1FilterIntraPredictorBase.BufferLength]);
         }
     }
 

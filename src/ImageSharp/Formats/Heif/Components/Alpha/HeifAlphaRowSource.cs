@@ -41,7 +41,7 @@ internal sealed class HeifAlphaRowSource<TBuffer, TSample, TLoader> : HeifAlphaR
     /// <summary>
     /// Initializes a new instance of the <see cref="HeifAlphaRowSource{TBuffer, TSample, TLoader}"/> class.
     /// </summary>
-    /// <param name="configuration">The configuration providing scratch storage.</param>
+    /// <param name="configuration">The configuration providing the normalized row buffer.</param>
     /// <param name="buffer">The native auxiliary plane retained by the decoder.</param>
     /// <param name="parameters">The auxiliary sample range.</param>
     /// <param name="window">The exact color region within that extent.</param>

@@ -1544,7 +1544,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<float> retained = this.blockWorkspace.GetIntraPartitionFeatures(workspaceStorage);
             if (blockSize == Av1BlockSize.Block64x64)
             {
-                Span<float> convolutionStorage = Av1EncoderBlockWorkspace.GetIntraPartitionScratch(workspaceStorage);
+                Span<float> convolutionStorage = Av1EncoderBlockWorkspace.GetIntraPartitionConvolutionStorage(workspaceStorage);
                 Span<float> input = convolutionStorage[..(65 * 65)];
                 Span<float> firstLayer = convolutionStorage[(65 * 65)..];
                 Av1PlaneRegion<TSample> source = this.source.GetPlane(Av1Plane.Y);

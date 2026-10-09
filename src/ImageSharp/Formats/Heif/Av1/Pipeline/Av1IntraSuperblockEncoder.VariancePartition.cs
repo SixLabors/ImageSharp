@@ -217,7 +217,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="prediction">The selected superblock prediction, including its edge padding.</param>
         /// <param name="predictionStride">The prediction row stride.</param>
         /// <param name="thresholds">The four square-size variance thresholds.</param>
-        /// <param name="nodes">Scratch moments retained until low-variance flags have been derived.</param>
+        /// <param name="nodes">The moment-tree nodes, retained until low-variance flags have been derived.</param>
         private void BuildInterVariancePartitions(
             ReadOnlySpan<TSample> sourceLuma,
             ReadOnlySpan<TSample> sourceBlue,
@@ -1149,7 +1149,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     out int predictionStride);
 
                 Span<VariancePartitionNode> temporalNodes = MemoryMarshal.Cast<int, VariancePartitionNode>(
-                    Av1EncoderBlockWorkspace.GetPartitionAnalysisScratch(workspaceStorage));
+                    Av1EncoderBlockWorkspace.GetPartitionAnalysisStorage(workspaceStorage));
 
                 this.BuildInterVariancePartitions(
                     sourceLuma,
@@ -1196,7 +1196,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // The partition analysis runs before residual coding. Its compact moment tree borrows the coefficient storage for this pass
             // only. The selected partition bytes stay valid after the transform trials use that storage again.
             Span<VariancePartitionNode> nodes =
-                MemoryMarshal.Cast<int, VariancePartitionNode>(Av1EncoderBlockWorkspace.GetPartitionAnalysisScratch(workspaceStorage));
+                MemoryMarshal.Cast<int, VariancePartitionNode>(Av1EncoderBlockWorkspace.GetPartitionAnalysisStorage(workspaceStorage));
 
             this.BuildVariancePartitions(
                 sourceLuma,

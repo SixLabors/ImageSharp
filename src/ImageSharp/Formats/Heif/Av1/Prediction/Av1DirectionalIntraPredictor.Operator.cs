@@ -15,7 +15,7 @@ internal static partial class Av1DirectionalIntraPredictor
     /// <summary>
     /// The largest number of samples required to transpose a directional prediction block.
     /// </summary>
-    public const int ScratchLength = 64 * 64;
+    public const int TransposeBufferLength = 64 * 64;
 
     /// <summary>
     /// Defines scalar and SIMD interpolation for AV1 directional intra prediction.
@@ -130,7 +130,7 @@ internal static partial class Av1DirectionalIntraPredictor
     /// <param name="upsampleAbove">Whether the top edge contains half-sample positions.</param>
     /// <param name="upsampleLeft">Whether the left edge contains half-sample positions.</param>
     /// <param name="angle">The adjusted prediction angle.</param>
-    /// <param name="transposedBlock">The caller-owned block transposition workspace of at least <see cref="ScratchLength"/> samples.</param>
+    /// <param name="transposedBlock">The caller-owned block transposition workspace of at least <see cref="TransposeBufferLength"/> samples.</param>
     public static void Predict(
         Span<byte> destination,
         int destinationStride,
@@ -155,7 +155,7 @@ internal static partial class Av1DirectionalIntraPredictor
     /// <param name="upsampleAbove">Whether the top edge contains half-sample positions.</param>
     /// <param name="upsampleLeft">Whether the left edge contains half-sample positions.</param>
     /// <param name="angle">The adjusted prediction angle.</param>
-    /// <param name="transposedBlock">The caller-owned block transposition workspace of at least <see cref="ScratchLength"/> samples.</param>
+    /// <param name="transposedBlock">The caller-owned block transposition workspace of at least <see cref="TransposeBufferLength"/> samples.</param>
     public static void Predict(
         Span<short> destination,
         int destinationStride,

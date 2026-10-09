@@ -1224,12 +1224,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="referenceMotionVectors">The reference vector list of the reference frame.</param>
         /// <param name="candidate">The block decisions. The motion mode and, for warped motion, the filters are set.</param>
         /// <param name="vector">The motion vector, which a new vector search can change.</param>
-        /// <param name="lumaReconstruction">The luma reconstruction scratch.</param>
-        /// <param name="lumaCoefficients">The luma coefficient scratch.</param>
-        /// <param name="blueReconstruction">The blue reconstruction scratch.</param>
-        /// <param name="blueCoefficients">The blue coefficient scratch.</param>
-        /// <param name="redReconstruction">The red reconstruction scratch.</param>
-        /// <param name="redCoefficients">The red coefficient scratch.</param>
+        /// <param name="lumaReconstruction">The candidate luma reconstruction.</param>
+        /// <param name="lumaCoefficients">The candidate luma coefficients.</param>
+        /// <param name="blueReconstruction">The candidate blue reconstruction.</param>
+        /// <param name="blueCoefficients">The candidate blue coefficients.</param>
+        /// <param name="redReconstruction">The candidate red reconstruction.</param>
+        /// <param name="redCoefficients">The candidate red coefficients.</param>
         /// <param name="skip">Whether the result codes no residual.</param>
         /// <param name="lumaStates">The luma transform states.</param>
         /// <param name="lumaSizes">The luma transform sizes.</param>
@@ -5880,7 +5880,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // Candidate pixels and coefficients remain scratch. Preserve the transform decisions so final
+            // Candidate pixels and coefficients stay in shared candidate storage. Preserve the transform decisions so final
             // reconstruction can regenerate only the winner after other mode families reuse this storage.
             selectedLumaStates[..].CopyTo(selectedStates);
             selectedLumaSizes[..].CopyTo(modeInfo.Block.InterTransformSizes);
@@ -13047,7 +13047,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="subsamplingY">The vertical subsampling shift.</param>
         /// <param name="prediction">The contiguous plane prediction, blended in place.</param>
         /// <param name="residual">The contiguous residual, rebuilt from the blended prediction.</param>
-        /// <param name="filterRows">The interpolation scratch.</param>
+        /// <param name="filterRows">The intermediate rows of the interpolation filter.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
@@ -13211,7 +13211,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="width">The rectangle width.</param>
         /// <param name="height">The rectangle height.</param>
         /// <param name="destination">The contiguous destination.</param>
-        /// <param name="filterRows">The interpolation scratch.</param>
+        /// <param name="filterRows">The intermediate rows of the interpolation filter.</param>
         /// <param name="bitDepth">The coded bit depth.</param>
         private void PredictObmcNeighbor(
             Av1Plane plane,
@@ -13286,7 +13286,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockSize">The luma block size.</param>
         /// <param name="prediction">The contiguous prediction destination.</param>
         /// <param name="residual">The contiguous residual destination.</param>
-        /// <param name="filterRows">The interpolation scratch.</param>
+        /// <param name="filterRows">The intermediate rows of the interpolation filter.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
@@ -14037,7 +14037,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
             int sampleCount = transformSize.GetSize2d();
 
-            // The candidate uses the transform scratch and the winner the caller's selected storage. The search swaps
+            // The candidate uses the transform reconstruction storage and the winner the caller's selected storage. The search swaps
             // them on each improvement, so the winner is copied at most once, after the search.
             Span<TSample> candidateReconstruction = transformReconstruction[..sampleCount];
             Span<int> candidateCoefficients = trialCoefficients[..sampleCount];

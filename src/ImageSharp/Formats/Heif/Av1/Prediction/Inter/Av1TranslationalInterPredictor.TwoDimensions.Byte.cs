@@ -30,7 +30,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
-    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetIntermediateRowLength"/> elements.</param>
     /// <param name="initial">The start value of each accumulator lane. The vector type selects this overload.</param>
     private static void Filter2D(
         ReadOnlySpan<byte> source,
@@ -56,7 +56,7 @@ internal static partial class Av1TranslationalInterPredictor
         ref short intermediateBase = ref MemoryMarshal.GetReference(intermediateRows);
         ref short horizontalCoefficientBase = ref MemoryMarshal.GetReference(horizontalCoefficients);
         ref short verticalCoefficientBase = ref MemoryMarshal.GetReference(verticalCoefficients);
-        int intermediateStride = Math.Max(width, MinimumScratchStride);
+        int intermediateStride = Math.Max(width, MinimumIntermediateStride);
         int intermediateHeight = height + verticalTapCount - 1;
 
         // The horizontal bias of 2^(bitDepth + 6) keeps every intermediate value nonnegative and inside a signed 16-bit lane.
@@ -228,7 +228,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
-    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetIntermediateRowLength"/> elements.</param>
     /// <param name="initial">The start value of each accumulator lane. The vector type selects this overload.</param>
     private static void Filter2D(
         ReadOnlySpan<byte> source,
@@ -254,7 +254,7 @@ internal static partial class Av1TranslationalInterPredictor
         ref short intermediateBase = ref MemoryMarshal.GetReference(intermediateRows);
         ref short horizontalCoefficientBase = ref MemoryMarshal.GetReference(horizontalCoefficients);
         ref short verticalCoefficientBase = ref MemoryMarshal.GetReference(verticalCoefficients);
-        int intermediateStride = Math.Max(width, MinimumScratchStride);
+        int intermediateStride = Math.Max(width, MinimumIntermediateStride);
         int intermediateHeight = height + verticalTapCount - 1;
         Vector256<int> horizontalInitial = initial + Vector256.Create(1 << (bitDepth + FilterBits - 1));
         int vectorEnd = (int)(Numerics.Vector256Count<byte>(width) * (nuint)Vector256<byte>.Count);
@@ -371,7 +371,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
-    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetIntermediateRowLength"/> elements.</param>
     /// <param name="initial">The start value of each accumulator lane. The vector type selects this overload.</param>
     private static void Filter2D(
         ReadOnlySpan<byte> source,
@@ -397,7 +397,7 @@ internal static partial class Av1TranslationalInterPredictor
         ref short intermediateBase = ref MemoryMarshal.GetReference(intermediateRows);
         ref short horizontalCoefficientBase = ref MemoryMarshal.GetReference(horizontalCoefficients);
         ref short verticalCoefficientBase = ref MemoryMarshal.GetReference(verticalCoefficients);
-        int intermediateStride = Math.Max(width, MinimumScratchStride);
+        int intermediateStride = Math.Max(width, MinimumIntermediateStride);
         int intermediateHeight = height + verticalTapCount - 1;
         Vector512<int> horizontalInitial = initial + Vector512.Create(1 << (bitDepth + FilterBits - 1));
         int vectorEnd = (int)(Numerics.Vector512Count<byte>(width) * (nuint)Vector512<byte>.Count);
@@ -579,7 +579,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
-    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetIntermediateRowLength"/> elements.</param>
     private static void Filter2DScalar(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -603,7 +603,7 @@ internal static partial class Av1TranslationalInterPredictor
         ref short intermediateBase = ref MemoryMarshal.GetReference(intermediateRows);
         ref short horizontalCoefficientBase = ref MemoryMarshal.GetReference(horizontalCoefficients);
         ref short verticalCoefficientBase = ref MemoryMarshal.GetReference(verticalCoefficients);
-        int intermediateStride = Math.Max(width, MinimumScratchStride);
+        int intermediateStride = Math.Max(width, MinimumIntermediateStride);
         int intermediateHeight = height + verticalTapCount - 1;
         int horizontalBias = 1 << (bitDepth + FilterBits - 1);
 

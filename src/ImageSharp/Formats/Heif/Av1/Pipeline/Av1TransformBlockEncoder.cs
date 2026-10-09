@@ -853,7 +853,7 @@ internal static partial class Av1TransformBlockEncoder
                     hasLeft ? height : 0,
                     smoothIntraEdges,
                     8,
-                    predictionWorkspace.Slice(predictionLength + (2 * edgeLength), Av1IntraEdgeFilter.ScratchLength),
+                    predictionWorkspace.Slice(predictionLength + (2 * edgeLength), Av1IntraEdgeFilter.PaddedEdgeLength),
                     out upsampleAbove,
                     out upsampleLeft);
 
@@ -991,7 +991,7 @@ internal static partial class Av1TransformBlockEncoder
                     hasLeft ? height : 0,
                     smoothIntraEdges,
                     bitDepth.GetBitCount(),
-                    predictionWorkspace.Slice(predictionLength + (2 * edgeLength), Av1IntraEdgeFilter.ScratchLength),
+                    predictionWorkspace.Slice(predictionLength + (2 * edgeLength), Av1IntraEdgeFilter.PaddedEdgeLength),
                     out upsampleAbove,
                     out upsampleLeft);
 

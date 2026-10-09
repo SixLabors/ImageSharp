@@ -18,7 +18,7 @@ internal static partial class Av1IntraEdgeUpsampler
     /// <summary>
     /// The sample count required for the original edge, corner, and repeated endpoints.
     /// </summary>
-    public const int ScratchLength = MaximumCount + 3;
+    public const int PaddedEdgeLength = MaximumCount + 3;
 
     /// <summary>
     /// Defines signed four-tap interpolation before sample narrowing.
@@ -75,7 +75,7 @@ internal static partial class Av1IntraEdgeUpsampler
     /// </summary>
     /// <param name="edge">The edge with writable prefix samples at -2 and -1 and room for the doubled extent.</param>
     /// <param name="count">The number of original edge samples, at most <see cref="MaximumCount"/>.</param>
-    /// <param name="originalSamples">The original-sample workspace with at least <see cref="ScratchLength"/> samples.</param>
+    /// <param name="originalSamples">The original-sample workspace with at least <see cref="PaddedEdgeLength"/> samples.</param>
     public static void Apply(Span<byte> edge, int count, Span<byte> originalSamples)
         => Upsampler<FourTapOperator>.Apply(edge, count, originalSamples);
 
@@ -85,7 +85,7 @@ internal static partial class Av1IntraEdgeUpsampler
     /// <param name="edge">The edge with writable prefix samples at -2 and -1 and room for the doubled extent.</param>
     /// <param name="count">The number of original edge samples, at most <see cref="MaximumCount"/>.</param>
     /// <param name="bitDepth">The coded precision used to clamp interpolation.</param>
-    /// <param name="originalSamples">The original-sample workspace with at least <see cref="ScratchLength"/> samples.</param>
+    /// <param name="originalSamples">The original-sample workspace with at least <see cref="PaddedEdgeLength"/> samples.</param>
     public static void Apply(Span<short> edge, int count, int bitDepth, Span<short> originalSamples)
         => Upsampler<FourTapOperator>.Apply(edge, count, (1 << bitDepth) - 1, originalSamples);
 }

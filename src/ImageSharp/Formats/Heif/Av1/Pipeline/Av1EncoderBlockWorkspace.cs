@@ -105,10 +105,10 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
 
     // Motion search and compound evaluation run one after the other. The larger compound region holds two unsigned predictions and a byte mask.
     // Transform trials borrow its prediction area.
-    private const int CompoundScratchStorageLength =
+    private const int CompoundPredictionStorageLength =
         Av1EncoderInterPredictionWorkspace<ushort>.MaximumSampleCount * ((2 * sizeof(ushort)) + sizeof(byte)) / sizeof(int);
 
-    private const int InterSearchStorageLength = InterPredictionStorageLength + CompoundScratchStorageLength;
+    private const int InterSearchStorageLength = InterPredictionStorageLength + CompoundPredictionStorageLength;
 
     private const int SharedModeDecisionStorageLength = ModeDecisionStorageLength > InterSearchStorageLength
         ? ModeDecisionStorageLength
@@ -218,7 +218,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     {
         this.Configuration = configuration;
 
-        // Motion rates belong to the worker, not to a block candidate or a frame. Both precision pairs follow the scratch regions,
+        // Motion rates belong to the worker, not to a block candidate or a frame. Both precision pairs follow the block search regions,
         // so sequence frames can change precision with one owner. Intra block copy appends its own integer pair at the end of the same allocation.
         this.motionSearchSiteStorageOffset = StorageLength + (allocateInterMotionCosts ? Av1MotionVectorCosts.StorageLength : 0);
         bool allocateSearchSites = allocateInterMotionCosts || allocateDisplacementCosts;
@@ -244,7 +244,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         }
 
         // Prediction records survive all mode trials in a block. Fitted models survive superblocks until the tile ends.
-        // Both stay outside the scratch regions that transforms overwrite.
+        // Both stay outside the prediction and coefficient regions that transforms overwrite.
         this.interModeStorageOffset = (length + 1) & ~1;
         this.interModeModelStorageOffset = this.interModeStorageOffset +
             ((((Av1InterModeCandidate.Capacity * Unsafe.SizeOf<Av1InterModeCandidate>()) + 7) & ~7) / sizeof(int));
@@ -789,7 +789,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public Span<TSample> GetMotionSearchPrediction<TSample>()
         where TSample : unmanaged
     {
-        // Motion search borrows the compound scratch before compound candidates use it. The extra
+        // Motion search borrows the compound prediction region before compound candidates use it. The extra
         // eight rows accommodate separable filtering of a 128x128 prediction.
         int offset = InterPredictionSampleStorageOffset + InterPredictionStorageLength;
         return MemoryMarshal.Cast<int, TSample>(this.owner.Memory.Span[offset..])[..MotionSearchPredictionSampleCount];
@@ -900,7 +900,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public Av1EncoderModeDecisionWorkspace<TSample> GetModeDecisionWorkspace<TSample>()
         where TSample : unmanaged
     {
-        // Inter and intra searches run one after the other for each block. Their prediction and coefficient scratch share this region.
+        // Inter and intra searches run one after the other for each block. Their predictions and coefficients share this region.
         // Only the retained syntax survives the transition between the two search families.
         Span<int> storage = this.owner.Memory.Span.Slice(
             InterPredictionSampleStorageOffset,
@@ -943,7 +943,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     }
 
     /// <summary>
-    /// Gets the intra winner retained while a later palette candidate reuses prediction scratch, from the workspace storage.
+    /// Gets the intra winner retained while a later palette candidate reuses the prediction storage, from the workspace storage.
     /// </summary>
     /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
     /// <param name="planeCount">The number of component planes in this block.</param>
@@ -951,7 +951,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public static Av1EncoderPartitionTree.ModeContext GetIntraWinnerContext(Span<int> storage, int planeCount)
     {
         // Inter search has finished before this context becomes live. Its larger shared allocation
-        // leaves room beyond intra scratch for the retained winner, without another owner or allocation.
+        // leaves room beyond the intra mode-decision storage for the retained winner, without another owner or allocation.
         Span<byte> winnerStorage = MemoryMarshal.AsBytes(storage.Slice(
             InterPredictionSampleStorageOffset + ModeDecisionStorageLength,
             SharedModeDecisionStorageLength - ModeDecisionStorageLength));
@@ -979,7 +979,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// </summary>
     /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
     /// <returns>The temporary convolution storage.</returns>
-    public static Span<float> GetIntraPartitionScratch(Span<int> storage)
+    public static Span<float> GetIntraPartitionConvolutionStorage(Span<int> storage)
         => MemoryMarshal.Cast<int, float>(storage.Slice(InterPredictionSampleStorageOffset, (65 * 65) + (20 * 16 * 16)));
 
     /// <summary>
@@ -1064,12 +1064,12 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         => MemoryMarshal.Cast<int, Av1SimpleMotionData>(storage.Slice(this.simpleMotionStorageOffset, this.simpleMotionStorageLength));
 
     /// <summary>
-    /// Gets the scratch storage of partition analysis from the workspace storage. Partition analysis completes before
+    /// Gets the variance tree storage of partition analysis from the workspace storage. Partition analysis completes before
     /// any transform of the superblock, so it spans the forward and dequantized coefficient workspaces.
     /// </summary>
     /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
     /// <returns>The partition analysis storage.</returns>
-    public static Span<int> GetPartitionAnalysisScratch(Span<int> storage) => storage.Slice(TransformCoefficientOffset, 2 * MaximumCoefficientCount);
+    public static Span<int> GetPartitionAnalysisStorage(Span<int> storage) => storage.Slice(TransformCoefficientOffset, 2 * MaximumCoefficientCount);
 
     /// <summary>
     /// Releases the reusable block workspace.

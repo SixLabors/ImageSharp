@@ -1312,7 +1312,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // Prediction finishes before transform search, so its temporary rows can borrow the transform workspace.
             Span<byte> filterRows = MemoryMarshal.AsBytes(transformWorkspace).Slice(
                 0,
-                Av1FilterIntraPredictorBase.ScratchLength);
+                Av1FilterIntraPredictorBase.BufferLength);
 
             Av1FilterIntraPredictorBase.GetPredictor(filterIntraMode)
                 .Predict(prediction, predictionStride, above, left, width, height, filterRows);
@@ -2433,7 +2433,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // Prediction finishes before transform search, so its temporary rows can borrow the transform workspace.
             Span<short> filterRows = MemoryMarshal.Cast<int, short>(transformWorkspace).Slice(
                 0,
-                Av1FilterIntraPredictorBase.ScratchLength);
+                Av1FilterIntraPredictorBase.BufferLength);
 
             Av1FilterIntraPredictorBase.GetPredictor(filterIntraMode)
                 .Predict(

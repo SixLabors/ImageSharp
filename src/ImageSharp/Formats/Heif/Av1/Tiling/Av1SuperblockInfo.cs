@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 internal readonly struct Av1SuperblockInfo
 {
     /// <summary>
-    /// Provides the frame-owned state and current-superblock scratch used by this view.
+    /// Provides the frame-owned state and the current-superblock coefficients and transform information used by this view.
     /// </summary>
     private readonly Av1FrameInfo frameInfo;
 
@@ -45,17 +45,17 @@ internal readonly struct Av1SuperblockInfo
     public Av1BlockModeInfo SuperblockModeInfo => this.GetModeInfo(new Point(0, 0));
 
     /// <summary>
-    /// Gets the luma coefficient scratch for the current superblock.
+    /// Gets the luma coefficients of the current superblock.
     /// </summary>
     public Span<int> CoefficientsY => this.frameInfo.GetCoefficientsY();
 
     /// <summary>
-    /// Gets the blue-difference chroma coefficient scratch for the current superblock.
+    /// Gets the blue-difference chroma coefficients of the current superblock.
     /// </summary>
     public Span<int> CoefficientsU => this.frameInfo.GetCoefficientsU();
 
     /// <summary>
-    /// Gets the red-difference chroma coefficient scratch for the current superblock.
+    /// Gets the red-difference chroma coefficients of the current superblock.
     /// </summary>
     public Span<int> CoefficientsV => this.frameInfo.GetCoefficientsV();
 
@@ -75,13 +75,13 @@ internal readonly struct Av1SuperblockInfo
     public int BlockCount => this.frameInfo.GetModeInfoCount(this.Position);
 
     /// <summary>
-    /// Gets the luma transform-information scratch for the current superblock.
+    /// Gets the luma transform information of the current superblock.
     /// </summary>
     /// <returns>The current-superblock luma transform-information span.</returns>
     public Span<Av1TransformInfo> GetTransformInfoY() => this.frameInfo.GetSuperblockTransformY();
 
     /// <summary>
-    /// Gets the shared chroma transform-information scratch for the current superblock.
+    /// Gets the shared chroma transform information of the current superblock.
     /// </summary>
     /// <returns>The current-superblock chroma transform-information span.</returns>
     public Span<Av1TransformInfo> GetTransformInfoUv() => this.frameInfo.GetSuperblockTransformUv();

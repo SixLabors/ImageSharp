@@ -531,7 +531,7 @@ internal partial class Av1FrameInfo
         if (state is null)
         {
             // Future frames need the segment map, the 8x8 motion field, and the original reference order hints. The method transfers their owners without a
-            // copy. Reconstruction scratch stays local to this frame.
+            // copy. The coefficient and transform buffers of reconstruction stay local to this frame.
             state = new ReferenceState(
                 this.segmentIds,
                 this.segmentIdColumnCount,

@@ -314,7 +314,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 // Every palette candidate starts from the same external coefficient contexts. Transform
-                // traversal updates only these scratch edges, including all transforms of a lossless block.
+                // traversal updates only these copied context edges, including all transforms of a lossless block.
                 blueCoefficientEdges.Top.Slice(blueTopIndex, contextWidth).CopyTo(blueTopContexts);
                 blueCoefficientEdges.Left.Slice(blueLeftIndex, contextHeight).CopyTo(blueLeftContexts);
                 redCoefficientEdges.Top.Slice(redTopIndex, contextWidth).CopyTo(redTopContexts);

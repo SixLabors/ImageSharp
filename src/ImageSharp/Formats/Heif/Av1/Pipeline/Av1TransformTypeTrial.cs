@@ -26,7 +26,7 @@ internal readonly ref struct Av1TransformTypeTrial
     public Av1SymbolEncoder Writer { get; init; }
 
     /// <summary>
-    /// Gets the rate tables and scratch storage of the writer, read once for the type loop.
+    /// Gets the rate tables and the context and level storage of the writer, read once for the type loop.
     /// </summary>
     public Av1CoefficientTables Tables { get; init; }
 

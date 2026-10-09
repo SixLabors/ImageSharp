@@ -1409,7 +1409,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         // The tables and the level storage are read once for this block.
         Av1CoefficientTables tables = this.GetCoefficientTables();
-        Av1LevelBuffer levels = this.PrepareCoefficientScratch(
+        Av1LevelBuffer levels = this.PrepareCoefficientLevels(
             tables,
             width,
             height,
@@ -1549,7 +1549,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// Gets the complete rate of a transform block whose coefficient rate the trellis already measured. It uses the rate tables that the caller
     /// read once for its search loop.
     /// </summary>
-    /// <param name="tables">The rate tables and scratch storage, from <see cref="GetCoefficientTables"/>.</param>
+    /// <param name="tables">The rate tables and the context and level storage, from <see cref="GetCoefficientTables"/>.</param>
     /// <param name="transformSize">The signaled transform size.</param>
     /// <param name="transformType">The transform type.</param>
     /// <param name="intraDirection">The block's intra prediction mode.</param>
@@ -1607,7 +1607,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// Gets the current fixed-point rate cost of the complete coefficient syntax of one transform block. It uses the rate tables that the caller
     /// read once for its search loop.
     /// </summary>
-    /// <param name="tables">The rate tables and scratch storage, from <see cref="GetCoefficientTables"/>.</param>
+    /// <param name="tables">The rate tables and the context and level storage, from <see cref="GetCoefficientTables"/>.</param>
     /// <param name="transformSize">The signaled transform size.</param>
     /// <param name="transformType">The transform type selecting the scan and context class.</param>
     /// <param name="intraDirection">The block's intra prediction mode.</param>
@@ -1656,7 +1656,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Av1TransformClass transformClass = transformType.ToClass();
         ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
         bool needsLevelMap = endOfBlock > 1;
-        Av1LevelBuffer levels = this.PrepareCoefficientScratch(
+        Av1LevelBuffer levels = this.PrepareCoefficientLevels(
             tables,
             width,
             height,
@@ -1804,22 +1804,22 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the rate tables and the scratch storage of the coefficient search. A search loop reads them once and
+    /// Gets the rate tables and the context and level storage of the coefficient search. A search loop reads them once and
     /// passes them to every trial, so no trial reads the encoder buffers again.
     /// </summary>
-    /// <returns>The rate tables and scratch storage.</returns>
+    /// <returns>The rate tables and the context and level storage.</returns>
     public Av1CoefficientTables GetCoefficientTables() => new(this.entropyWorkspace.Memory.Span, this.levels.GetStorage());
 
     /// <summary>
-    /// Selects the active size of the level plane and gets the context scratch of one transform block from tables
+    /// Selects the active size of the level plane and gets the coefficient context storage of one transform block from tables
     /// that the caller read once.
     /// </summary>
-    /// <param name="tables">The rate tables and scratch storage, from <see cref="GetCoefficientTables"/>.</param>
+    /// <param name="tables">The rate tables and the context and level storage, from <see cref="GetCoefficientTables"/>.</param>
     /// <param name="width">The coded transform width.</param>
     /// <param name="height">The coded transform height.</param>
-    /// <param name="coefficientContexts">The context scratch of the block.</param>
+    /// <param name="coefficientContexts">The coefficient context storage of the block.</param>
     /// <returns>The level buffer with its new active size.</returns>
-    private Av1LevelBuffer PrepareCoefficientScratch(
+    private Av1LevelBuffer PrepareCoefficientLevels(
         Av1CoefficientTables tables,
         int width,
         int height,
@@ -2061,7 +2061,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         => this.writer.GetTileOutput(tileIndex, length);
 
     /// <summary>
-    /// Releases the tile buffers of the range coder and coefficient scratch memory.
+    /// Releases the tile buffers of the range coder and the coefficient level and rate storage.
     /// </summary>
     public void Dispose()
     {

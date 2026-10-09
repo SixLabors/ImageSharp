@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
 /// <summary>
-/// Holds the rate tables and the scratch storage that the coefficient search reads for every transform block. A
+/// Holds the rate tables and the context and level storage that the coefficient search reads for every transform block. A
 /// search loop reads them once from <see cref="Av1SymbolEncoder.GetCoefficientTables"/> and passes them to each trial,
 /// so no trial reads the encoder buffers again.
 /// </summary>
@@ -36,7 +36,7 @@ internal readonly ref struct Av1CoefficientTables
     public Av1CoefficientCosts CoefficientCosts { get; }
 
     /// <summary>
-    /// Gets the scratch storage for the coefficient contexts of one transform block.
+    /// Gets the storage for the coefficient contexts of one transform block.
     /// </summary>
     public Span<sbyte> Contexts { get; }
 

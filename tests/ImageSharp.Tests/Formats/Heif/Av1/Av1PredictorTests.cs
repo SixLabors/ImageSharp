@@ -63,7 +63,7 @@ public class Av1PredictorTests
         byte[] expected = (byte[])edge.Clone();
         byte[] unusedEdge = CreateUpsampleByteEdge(Count);
         byte[] expectedUnused = (byte[])unusedEdge.Clone();
-        byte[] scratch = new byte[Av1IntraEdgeFilter.ScratchLength];
+        byte[] filterEdge = new byte[Av1IntraEdgeFilter.PaddedEdgeLength];
 
         // At 23 degrees from the cardinal direction and width + height = 12, an ordinary neighbor
         // selects unfiltered half samples. A smooth neighbor selects strength one without upsampling.
@@ -90,7 +90,7 @@ public class Av1PredictorTests
             transpose ? 4 : 8,
             smoothNeighbor,
             8,
-            scratch,
+            filterEdge,
             out bool upsampleAbove,
             out bool upsampleLeft);
 
@@ -418,8 +418,8 @@ public class Av1PredictorTests
         ReadOnlySpan<byte> left = leftStorage[1..];
 
         byte[] actual = new byte[16];
-        byte[] scratch = new byte[Av1DirectionalIntraPredictor.ScratchLength];
-        Av1DirectionalIntraPredictor.Predict(actual, 4, Av1TransformSize.Size4x4, above, left, false, false, angle, scratch);
+        byte[] transposeBuffer = new byte[Av1DirectionalIntraPredictor.TransposeBufferLength];
+        Av1DirectionalIntraPredictor.Predict(actual, 4, Av1TransformSize.Size4x4, above, left, false, false, angle, transposeBuffer);
 
         Assert.Equal(expected, actual);
 
@@ -428,7 +428,7 @@ public class Av1PredictorTests
         short[] leftHighStorage = new short[leftStorage.Length];
         short[] expectedHigh = new short[expected.Length];
         short[] actualHigh = new short[16];
-        short[] scratchHigh = new short[Av1DirectionalIntraPredictor.ScratchLength];
+        short[] transposeBufferHigh = new short[Av1DirectionalIntraPredictor.TransposeBufferLength];
 
         for (int i = 0; i < aboveStorage.Length; i++)
         {
@@ -454,7 +454,7 @@ public class Av1PredictorTests
             false,
             false,
             angle,
-            scratchHigh);
+            transposeBufferHigh);
 
         Assert.Equal(expectedHigh, actualHigh);
     }
@@ -479,13 +479,13 @@ public class Av1PredictorTests
         byte[] actual = CreateByteDestination(stride, height);
         short[] expectedHigh = CreateHighBitDepthDestination(stride, height);
         short[] actualHigh = CreateHighBitDepthDestination(stride, height);
-        byte[] scratch = new byte[Av1DirectionalIntraPredictor.ScratchLength];
-        short[] scratchHigh = new short[Av1DirectionalIntraPredictor.ScratchLength];
+        byte[] transposeBuffer = new byte[Av1DirectionalIntraPredictor.TransposeBufferLength];
+        short[] transposeBufferHigh = new short[Av1DirectionalIntraPredictor.TransposeBufferLength];
 
         Av1DirectionalIntraPredictor.PredictScalar(expected, stride, transformSize, above, left, upsampleAbove, upsampleLeft, angle);
-        Av1DirectionalIntraPredictor.Predict(actual, stride, transformSize, above, left, upsampleAbove, upsampleLeft, angle, scratch);
+        Av1DirectionalIntraPredictor.Predict(actual, stride, transformSize, above, left, upsampleAbove, upsampleLeft, angle, transposeBuffer);
         Av1DirectionalIntraPredictor.PredictScalar(expectedHigh, stride, transformSize, aboveHigh, leftHigh, upsampleAbove, upsampleLeft, angle);
-        Av1DirectionalIntraPredictor.Predict(actualHigh, stride, transformSize, aboveHigh, leftHigh, upsampleAbove, upsampleLeft, angle, scratchHigh);
+        Av1DirectionalIntraPredictor.Predict(actualHigh, stride, transformSize, aboveHigh, leftHigh, upsampleAbove, upsampleLeft, angle, transposeBufferHigh);
 
         Assert.Equal(expected, actual);
         Assert.Equal(expectedHigh, actualHigh);
@@ -518,15 +518,15 @@ public class Av1PredictorTests
                 byte[] actual = CreateByteDestination(stride, height);
                 short[] expectedHigh = CreateHighBitDepthDestination(stride, height);
                 short[] actualHigh = CreateHighBitDepthDestination(stride, height);
-                byte[] expectedScratch = new byte[Av1FilterIntraPredictorBase.ScratchLength];
-                byte[] actualScratch = new byte[Av1FilterIntraPredictorBase.ScratchLength];
-                short[] expectedHighScratch = new short[Av1FilterIntraPredictorBase.ScratchLength];
-                short[] actualHighScratch = new short[Av1FilterIntraPredictorBase.ScratchLength];
+                byte[] expectedBuffer = new byte[Av1FilterIntraPredictorBase.BufferLength];
+                byte[] actualBuffer = new byte[Av1FilterIntraPredictorBase.BufferLength];
+                short[] expectedHighBuffer = new short[Av1FilterIntraPredictorBase.BufferLength];
+                short[] actualHighBuffer = new short[Av1FilterIntraPredictorBase.BufferLength];
 
-                predictor.PredictScalar(expected, stride, aboveStorage.AsSpan(1), left, width, height, expectedScratch);
-                predictor.Predict(actual, stride, aboveStorage.AsSpan(1), left, width, height, actualScratch);
-                predictor.PredictScalar(expectedHigh, stride, aboveHighStorage.AsSpan(1), leftHigh, width, height, 12, expectedHighScratch);
-                predictor.Predict(actualHigh, stride, aboveHighStorage.AsSpan(1), leftHigh, width, height, 12, actualHighScratch);
+                predictor.PredictScalar(expected, stride, aboveStorage.AsSpan(1), left, width, height, expectedBuffer);
+                predictor.Predict(actual, stride, aboveStorage.AsSpan(1), left, width, height, actualBuffer);
+                predictor.PredictScalar(expectedHigh, stride, aboveHighStorage.AsSpan(1), leftHigh, width, height, 12, expectedHighBuffer);
+                predictor.Predict(actualHigh, stride, aboveHighStorage.AsSpan(1), leftHigh, width, height, 12, actualHighBuffer);
 
                 Assert.Equal(expected, actual);
                 Assert.Equal(expectedHigh, actualHigh);
@@ -560,20 +560,20 @@ public class Av1PredictorTests
         for (int modeIndex = 0; modeIndex < FilterIntraModes.Length; modeIndex++)
         {
             byte[] actual = new byte[16];
-            byte[] scratch = new byte[Av1FilterIntraPredictorBase.ScratchLength];
+            byte[] predictionBuffer = new byte[Av1FilterIntraPredictorBase.BufferLength];
             short[] actualHigh = new short[16];
             short[] expectedHigh = new short[16];
-            short[] scratchHigh = new short[Av1FilterIntraPredictorBase.ScratchLength];
+            short[] predictionBufferHigh = new short[Av1FilterIntraPredictorBase.BufferLength];
             Av1FilterIntraPredictorBase predictor = Av1FilterIntraPredictorBase.GetPredictor(FilterIntraModes[modeIndex]);
 
-            predictor.Predict(actual, 4, aboveStorage.AsSpan(1), left, 4, 4, scratch);
+            predictor.Predict(actual, 4, aboveStorage.AsSpan(1), left, 4, 4, predictionBuffer);
 
             for (int i = 0; i < expectedHigh.Length; i++)
             {
                 expectedHigh[i] = (short)(expectedByMode[modeIndex][i] + 512);
             }
 
-            predictor.Predict(actualHigh, 4, aboveHighStorage.AsSpan(1), leftHigh, 4, 4, 10, scratchHigh);
+            predictor.Predict(actualHigh, 4, aboveHighStorage.AsSpan(1), leftHigh, 4, 4, 10, predictionBufferHigh);
 
             Assert.Equal(expectedByMode[modeIndex], actual);
             Assert.Equal(expectedHigh, actualHigh);
@@ -590,10 +590,10 @@ public class Av1PredictorTests
         {
             byte[] actual = CreateUpsampleByteEdge(count);
             byte[] expected = (byte[])actual.Clone();
-            byte[] scratch = new byte[Av1IntraEdgeUpsampler.ScratchLength];
+            byte[] edgeBuffer = new byte[Av1IntraEdgeUpsampler.PaddedEdgeLength];
 
             UpsampleEdgeScalar(expected, count, 8);
-            Av1IntraEdgeUpsampler.Apply(actual.AsSpan(2), count, scratch);
+            Av1IntraEdgeUpsampler.Apply(actual.AsSpan(2), count, edgeBuffer);
 
             Assert.Equal(expected, actual);
 
@@ -603,10 +603,10 @@ public class Av1PredictorTests
             {
                 short[] actualHigh = CreateUpsampleHighBitDepthEdge(count, bitDepth);
                 short[] expectedHigh = (short[])actualHigh.Clone();
-                short[] scratchHigh = new short[Av1IntraEdgeUpsampler.ScratchLength];
+                short[] edgeBufferHigh = new short[Av1IntraEdgeUpsampler.PaddedEdgeLength];
 
                 UpsampleEdgeScalar(expectedHigh, count, bitDepth);
-                Av1IntraEdgeUpsampler.Apply(actualHigh.AsSpan(2), count, bitDepth, scratchHigh);
+                Av1IntraEdgeUpsampler.Apply(actualHigh.AsSpan(2), count, bitDepth, edgeBufferHigh);
 
                 Assert.Equal(expectedHigh, actualHigh);
             }
@@ -626,20 +626,20 @@ public class Av1PredictorTests
                 byte[] actual = CreateByteSamples(count, 31);
                 byte[] expected = (byte[])actual.Clone();
                 byte[] source = (byte[])actual.Clone();
-                byte[] scratch = new byte[Av1IntraEdgeFilter.ScratchLength];
+                byte[] edgeBuffer = new byte[Av1IntraEdgeFilter.PaddedEdgeLength];
 
                 FilterEdgeScalar(source, expected, strength);
-                Av1IntraEdgeFilter.Apply(ref actual[0], count, strength, scratch);
+                Av1IntraEdgeFilter.Apply(ref actual[0], count, strength, edgeBuffer);
 
                 Assert.Equal(expected, actual);
 
                 short[] actualHigh = CreateHighBitDepthSamples(count, 31);
                 short[] expectedHigh = (short[])actualHigh.Clone();
                 short[] sourceHigh = (short[])actualHigh.Clone();
-                short[] scratchHigh = new short[Av1IntraEdgeFilter.ScratchLength];
+                short[] edgeBufferHigh = new short[Av1IntraEdgeFilter.PaddedEdgeLength];
 
                 FilterEdgeScalar(sourceHigh, expectedHigh, strength);
-                Av1IntraEdgeFilter.Apply(ref actualHigh[0], count, strength, scratchHigh);
+                Av1IntraEdgeFilter.Apply(ref actualHigh[0], count, strength, edgeBufferHigh);
 
                 Assert.Equal(expectedHigh, actualHigh);
             }

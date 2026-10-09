@@ -91,7 +91,7 @@ internal sealed partial class Av1SymbolEncoder
     /// Reduces coefficient levels and the coded end position when their combined rate and distortion decrease. It uses the rate tables that the
     /// caller read once for its search loop.
     /// </summary>
-    /// <param name="tables">The rate tables and scratch storage, from <see cref="GetCoefficientTables"/>.</param>
+    /// <param name="tables">The rate tables and the context and level storage, from <see cref="GetCoefficientTables"/>.</param>
     /// <param name="original">The forward-transform coefficients.</param>
     /// <param name="quantized">The quantized coefficients to refine.</param>
     /// <param name="dequantized">The corresponding reconstruction coefficients to refine.</param>
@@ -131,7 +131,7 @@ internal sealed partial class Av1SymbolEncoder
         Av1TransformSize adjusted = transformSize.GetAdjusted();
         int width = adjusted.GetWidth();
         int height = adjusted.GetHeight();
-        Av1LevelBuffer levels = this.PrepareCoefficientScratch(tables, width, height, out _);
+        Av1LevelBuffer levels = this.PrepareCoefficientLevels(tables, width, height, out _);
         Span<byte> levelStorage = tables.LevelStorage;
         if (endOfBlock > 1)
         {

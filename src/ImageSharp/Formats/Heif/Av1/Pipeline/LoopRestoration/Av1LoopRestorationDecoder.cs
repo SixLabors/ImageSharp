@@ -100,7 +100,7 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
         // covers the full frame. If a later allocation fails, the owners that exist stay in this object for Dispose. Old capacity is released first.
         int maximumBlockWidth = Math.Min(Av1LoopRestorationBoundary.ProcessingStripeSize, frameHeader.FrameSize.SuperResolutionUpscaledWidth);
         int maximumStripeHeight = Av1LoopRestorationBoundary.ProcessingStripeSize;
-        int wienerStorageLength = Av1WienerFilter.GetScratchLength(maximumBlockWidth, maximumStripeHeight);
+        int wienerStorageLength = Av1WienerFilter.GetIntermediateRowLength(maximumBlockWidth, maximumStripeHeight);
         IMemoryOwner<ushort>? wiener = this.wienerOwner;
         if (wiener is null || this.wienerLength < wienerStorageLength)
         {
@@ -112,7 +112,7 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
             this.wienerLength = wienerStorageLength;
         }
 
-        int selfGuidedStorageLength = Av1SelfGuidedFilter.GetScratchLength(maximumBlockWidth, maximumStripeHeight);
+        int selfGuidedStorageLength = Av1SelfGuidedFilter.GetFilterStorageLength(maximumBlockWidth, maximumStripeHeight);
         IMemoryOwner<int>? selfGuided = this.selfGuidedOwner;
         if (selfGuided is null || this.selfGuidedLength < selfGuidedStorageLength)
         {

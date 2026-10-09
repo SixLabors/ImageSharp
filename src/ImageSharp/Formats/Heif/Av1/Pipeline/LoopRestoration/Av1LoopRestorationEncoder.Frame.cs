@@ -146,8 +146,8 @@ internal static partial class Av1LoopRestorationEncoder
         int maximumUnitWidth = Math.Min(source.Width, ((settings.MaximumUnitSize * 3) / 2) - 1);
         int maximumUnitHeight = Math.Min(source.Height, ((settings.MaximumUnitSize * 3) / 2) + 7);
         int projectionLength = maximumUnitWidth * maximumUnitHeight;
-        int selfGuidedLength = Av1SelfGuidedFilter.GetScratchLength(64, 64);
-        int wienerLength = Av1WienerFilter.GetScratchLength(64, 64);
+        int selfGuidedLength = Av1SelfGuidedFilter.GetFilterStorageLength(64, 64);
+        int wienerLength = Av1WienerFilter.GetIntermediateRowLength(64, 64);
         using IMemoryOwner<int> filterOwner = allocator.Allocate<int>(
             (2 * projectionLength) + selfGuidedLength + ((wienerLength + 1) / 2));
 

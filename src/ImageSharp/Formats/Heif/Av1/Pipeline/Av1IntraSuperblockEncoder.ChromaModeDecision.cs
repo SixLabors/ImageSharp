@@ -1872,7 +1872,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? Av1ComponentType.Luminance
                 : Av1ComponentType.Chroma;
 
-            // Palette samples and centroids remain live across size candidates. Its residual scratch
+            // Palette samples and centroids remain live across size candidates. Its residual buffer
             // is disjoint from those inputs, whereas ordinary residuals can use the transient workspace.
             Span<short> residual = (paletteColors.IsEmpty ? modeWorkspace.Residual : modeWorkspace.Palette.GetResidual(0))[..transformSampleCount];
             Span<TSample> aboveStorage = modeWorkspace.GetReferenceSamples(0);

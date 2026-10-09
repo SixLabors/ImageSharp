@@ -57,7 +57,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
             int height,
             Span<byte> predictionStorage)
         {
-            Span<byte> buffer = predictionStorage[..ScratchLength];
+            Span<byte> buffer = predictionStorage[..BufferLength];
             ref byte bufferBase = ref MemoryMarshal.GetReference(buffer);
             ref byte aboveBase = ref MemoryMarshal.GetReference(above);
             ref byte leftBase = ref MemoryMarshal.GetReference(left);
@@ -165,7 +165,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
             int bitDepth,
             Span<short> predictionStorage)
         {
-            Span<short> buffer = predictionStorage[..ScratchLength];
+            Span<short> buffer = predictionStorage[..BufferLength];
             ref short bufferBase = ref MemoryMarshal.GetReference(buffer);
             ref short aboveBase = ref MemoryMarshal.GetReference(above);
             ref sbyte taps = ref MemoryMarshal.GetReference(TOperator.Taps);
@@ -270,7 +270,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
             int height,
             Span<byte> predictionStorage)
         {
-            Span<byte> buffer = predictionStorage[..ScratchLength];
+            Span<byte> buffer = predictionStorage[..BufferLength];
             ref byte aboveBase = ref MemoryMarshal.GetReference(above);
             ref sbyte taps = ref MemoryMarshal.GetReference(TOperator.Taps);
             Initialize(buffer, above, left, width, height, Unsafe.Subtract(ref aboveBase, 1));
@@ -289,7 +289,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
             int bitDepth,
             Span<short> predictionStorage)
         {
-            Span<short> buffer = predictionStorage[..ScratchLength];
+            Span<short> buffer = predictionStorage[..BufferLength];
             ref short aboveBase = ref MemoryMarshal.GetReference(above);
             ref sbyte taps = ref MemoryMarshal.GetReference(TOperator.Taps);
             Initialize(buffer, above, left, width, height, Unsafe.Subtract(ref aboveBase, 1));

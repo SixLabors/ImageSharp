@@ -29,7 +29,7 @@ internal static partial class Av1IntraEdgeUpsampler
             ref byte source = ref MemoryMarshal.GetReference(originalSamples);
 
             // The workspace holds the corner twice, then the original samples, then the final sample once more.
-            // Each SIMD load reads exactly its input lanes. Thus `ScratchLength` samples suffice for the widest interpolation.
+            // Each SIMD load reads exactly its input lanes. Thus `PaddedEdgeLength` samples suffice for the widest interpolation.
             source = Unsafe.Subtract(ref destination, 1);
             Unsafe.Add(ref source, 1) = source;
             edge[..count].CopyTo(originalSamples[2..]);
@@ -167,7 +167,7 @@ internal static partial class Av1IntraEdgeUpsampler
             ref short source = ref MemoryMarshal.GetReference(originalSamples);
 
             // The workspace holds the corner twice, then the original samples, then the final sample once more.
-            // Each SIMD load reads exactly its input lanes. Thus `ScratchLength` samples suffice for the widest interpolation.
+            // Each SIMD load reads exactly its input lanes. Thus `PaddedEdgeLength` samples suffice for the widest interpolation.
             source = Unsafe.Subtract(ref destination, 1);
             Unsafe.Add(ref source, 1) = source;
             edge[..count].CopyTo(originalSamples[2..]);

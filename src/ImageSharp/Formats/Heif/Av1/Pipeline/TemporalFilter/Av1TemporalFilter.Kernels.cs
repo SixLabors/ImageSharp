@@ -204,7 +204,7 @@ internal static partial class Av1TemporalFilter
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
     /// <param name="shift">The high-bit-depth shift, 2 * (bit depth - 8).</param>
-    /// <param name="columns">Scratch for one edge-padded row of column sums, at least <paramref name="width"/> + 4 values.</param>
+    /// <param name="columns">A buffer for one edge-padded row of column sums, at least <paramref name="width"/> + 4 values.</param>
     /// <param name="destination">The window errors to write, packed at the block width.</param>
     internal static void BuildWindowErrors<TSample, TOperator>(
         ReadOnlySpan<uint> errors,

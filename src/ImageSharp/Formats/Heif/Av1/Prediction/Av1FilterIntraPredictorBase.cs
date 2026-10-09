@@ -21,7 +21,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
     /// <summary>
     /// The number of samples in the recursive prediction workspace.
     /// </summary>
-    public const int ScratchLength = BufferStride * BufferStride;
+    public const int BufferLength = BufferStride * BufferStride;
 
     /// <summary>
     /// The DC filter-intra predictor.
@@ -78,7 +78,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
     /// <param name="left">The prepared left reference.</param>
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
-    /// <param name="predictionStorage">The caller-owned recursive prediction workspace of at least <see cref="ScratchLength"/> samples.</param>
+    /// <param name="predictionStorage">The caller-owned recursive prediction workspace of at least <see cref="BufferLength"/> samples.</param>
     public abstract void Predict(
         Span<byte> destination,
         int destinationStride,
@@ -98,7 +98,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
     /// <param name="bitDepth">The reconstructed sample precision.</param>
-    /// <param name="predictionStorage">The caller-owned recursive prediction workspace of at least <see cref="ScratchLength"/> samples.</param>
+    /// <param name="predictionStorage">The caller-owned recursive prediction workspace of at least <see cref="BufferLength"/> samples.</param>
     public abstract void Predict(
         Span<short> destination,
         int destinationStride,
@@ -118,7 +118,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
     /// <param name="left">The prepared left reference.</param>
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
-    /// <param name="predictionStorage">The caller-owned recursive prediction workspace of at least <see cref="ScratchLength"/> samples.</param>
+    /// <param name="predictionStorage">The caller-owned recursive prediction workspace of at least <see cref="BufferLength"/> samples.</param>
     public abstract void PredictScalar(
         Span<byte> destination,
         int destinationStride,
@@ -138,7 +138,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
     /// <param name="bitDepth">The reconstructed sample precision.</param>
-    /// <param name="predictionStorage">The caller-owned recursive prediction workspace of at least <see cref="ScratchLength"/> samples.</param>
+    /// <param name="predictionStorage">The caller-owned recursive prediction workspace of at least <see cref="BufferLength"/> samples.</param>
     public abstract void PredictScalar(
         Span<short> destination,
         int destinationStride,

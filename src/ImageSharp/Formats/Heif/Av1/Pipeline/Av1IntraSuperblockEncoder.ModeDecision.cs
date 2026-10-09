@@ -6825,7 +6825,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.SelectedBlockStatistics.Cost != long.MaxValue)
             {
                 // Winner refinement and palette search follow the family comparison. Retain syntax and
-                // transform states in idle inter storage while these trials reuse intra scratch.
+                // transform states in idle inter storage while these trials reuse the intra prediction storage.
                 this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Default;
                 Av1EncoderPartitionTree.ModeContext winner = Av1EncoderBlockWorkspace.GetIntraWinnerContext(workspaceStorage, block.HasChroma ? 3 : 1);
                 winner.Snapshot = new Av1EncoderPartitionTree.ModeSnapshot
@@ -7845,7 +7845,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Retains transform states and palette maps before the next candidate overwrites shared scratch.
+        /// Retains transform states and palette maps before the next candidate overwrites the shared candidate storage.
         /// </summary>
         /// <summary>
         /// Copies the palette index map of a retained decision into its own storage, leaving every other
@@ -9130,7 +9130,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
-            // Metadata and color indices move together. The map storage is outside prediction scratch,
+            // Metadata and color indices move together. The map storage is outside the prediction storage,
             // so palette clustering and later filter prediction cannot overwrite a retained candidate.
             int last = Math.Min(this.lumaCandidateCount, limit - 1);
             for (int index = last; index > position; index--)
@@ -10568,7 +10568,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Size codedExtent = GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0);
             int transformIndex = 0;
 
-            // The prediction scratch and the reference edge slots serve every transform block, so they are read
+            // The prediction storage and the reference edge slots serve every transform block, so they are read
             // once. The parent mode search retains reference slots 0 and 1. Use the other pair here because these
             // transform edges also include earlier reconstructions in this candidate.
             Span<TSample> aboveStorage = modeWorkspace.GetReferenceSamples(2);
@@ -11054,7 +11054,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 left.Fill(hasAbove ? above[0] : TOperator.CreateSample(midpoint + 1));
             }
 
-            // Only an interior transform corner belongs to decision scratch. Boundary corners continue
+            // Only an interior transform corner comes from the candidate reconstruction. Boundary corners continue
             // to read the already reconstructed neighboring block so candidate trials remain isolated.
             TSample corner = hasAbove && hasLeft
                 ? transformRow > 0 && transformColumn > 0

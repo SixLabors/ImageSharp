@@ -49,7 +49,7 @@ internal static partial class Av1CompoundInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="intermediateRows">
-    /// Caller-owned signed intermediate storage sized by <see cref="Av1TranslationalInterPredictor.GetScratchLength(int, int)"/> when both phases are nonzero.
+    /// Caller-owned intermediate rows sized by <see cref="Av1TranslationalInterPredictor.GetIntermediateRowLength(int, int)"/> when both phases are nonzero.
     /// </param>
     public static void PredictCompound(
         ReadOnlySpan<byte> source,
@@ -95,7 +95,7 @@ internal static partial class Av1CompoundInterPredictor
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The decoded sample precision: 8, 10, or 12 bits.</param>
     /// <param name="intermediateRows">
-    /// Caller-owned signed intermediate storage sized by <see cref="Av1TranslationalInterPredictor.GetScratchLength(int, int)"/> when both phases are nonzero.
+    /// Caller-owned intermediate rows sized by <see cref="Av1TranslationalInterPredictor.GetIntermediateRowLength(int, int)"/> when both phases are nonzero.
     /// </param>
     public static void PredictCompound(
         ReadOnlySpan<ushort> source,
@@ -405,7 +405,7 @@ internal static partial class Av1CompoundInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="intermediateRows">
-    /// Caller-owned signed intermediate storage sized by <see cref="Av1TranslationalInterPredictor.GetScratchLength(int, int)"/> when both phases are nonzero.
+    /// Caller-owned intermediate rows sized by <see cref="Av1TranslationalInterPredictor.GetIntermediateRowLength(int, int)"/> when both phases are nonzero.
     /// </param>
     public static void PredictCompoundScalar(
         ReadOnlySpan<byte> source,
@@ -451,7 +451,7 @@ internal static partial class Av1CompoundInterPredictor
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The decoded sample precision: 8, 10, or 12 bits.</param>
     /// <param name="intermediateRows">
-    /// Caller-owned signed intermediate storage sized by <see cref="Av1TranslationalInterPredictor.GetScratchLength(int, int)"/> when both phases are nonzero.
+    /// Caller-owned intermediate rows sized by <see cref="Av1TranslationalInterPredictor.GetIntermediateRowLength(int, int)"/> when both phases are nonzero.
     /// </param>
     public static void PredictCompoundScalar(
         ReadOnlySpan<ushort> source,
@@ -917,7 +917,7 @@ internal static partial class Av1CompoundInterPredictor
     /// <param name="verticalSourceOffset">The row offset from each output row to the source row of the first vertical tap.</param>
     /// <param name="intermediateRows">
     /// Caller-owned signed storage for <paramref name="height"/> + <paramref name="verticalTapCount"/> - 1 rows of horizontal intermediates.
-    /// The row stride is the larger of <paramref name="width"/> and <see cref="Av1TranslationalInterPredictor.MinimumScratchStride"/>.
+    /// The row stride is the larger of <paramref name="width"/> and <see cref="Av1TranslationalInterPredictor.MinimumIntermediateStride"/>.
     /// </param>
     /// <param name="useSimd"><see langword="true"/> to use the vector loops. <see langword="false"/> to use only the scalar loops.</param>
     private static void FilterCompound2D<TOperator>(
@@ -943,7 +943,7 @@ internal static partial class Av1CompoundInterPredictor
         ref short intermediateBase = ref MemoryMarshal.GetReference(intermediateRows);
         ref short horizontalCoefficientBase = ref MemoryMarshal.GetReference(horizontalCoefficients);
         ref short verticalCoefficientBase = ref MemoryMarshal.GetReference(verticalCoefficients);
-        int intermediateStride = Math.Max(width, MinimumScratchStride);
+        int intermediateStride = Math.Max(width, MinimumIntermediateStride);
         int intermediateHeight = height + verticalTapCount - 1;
 
         // The horizontal pass shifts the Q7 sums right by Round0Bits and stores Q4 values in the signed buffer.
@@ -1135,7 +1135,7 @@ internal static partial class Av1CompoundInterPredictor
     /// <param name="round0">The first-pass right shift for <paramref name="bitDepth"/>.</param>
     /// <param name="intermediateRows">
     /// Caller-owned signed storage for <paramref name="height"/> + <paramref name="verticalTapCount"/> - 1 rows of horizontal intermediates.
-    /// The row stride is the larger of <paramref name="width"/> and <see cref="Av1TranslationalInterPredictor.MinimumScratchStride"/>.
+    /// The row stride is the larger of <paramref name="width"/> and <see cref="Av1TranslationalInterPredictor.MinimumIntermediateStride"/>.
     /// </param>
     /// <param name="useSimd"><see langword="true"/> to use the vector loops. <see langword="false"/> to use only the scalar loops.</param>
     private static void FilterCompound2D<TOperator>(
@@ -1163,7 +1163,7 @@ internal static partial class Av1CompoundInterPredictor
         ref short intermediateBase = ref MemoryMarshal.GetReference(intermediateRows);
         ref short horizontalCoefficientBase = ref MemoryMarshal.GetReference(horizontalCoefficients);
         ref short verticalCoefficientBase = ref MemoryMarshal.GetReference(verticalCoefficients);
-        int intermediateStride = Math.Max(width, MinimumScratchStride);
+        int intermediateStride = Math.Max(width, MinimumIntermediateStride);
         int intermediateHeight = height + verticalTapCount - 1;
         int horizontalBias = 1 << (bitDepth + FilterBits - 1);
         int verticalBias = 1 << (bitDepth + (2 * FilterBits) - round0);

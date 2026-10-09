@@ -327,7 +327,7 @@ internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
     /// <summary>
     /// Writes one decoded auxiliary tile into the native grid plane.
     /// </summary>
-    /// <param name="configuration">The configuration providing row scratch storage.</param>
+    /// <param name="configuration">The configuration providing the normalized row buffer.</param>
     /// <param name="source">The decoded tile samples.</param>
     /// <param name="destination">The native grid plane.</param>
     /// <param name="extent">The tile's presentation extent.</param>

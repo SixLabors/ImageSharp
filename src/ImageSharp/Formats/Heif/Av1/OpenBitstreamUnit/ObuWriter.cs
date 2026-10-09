@@ -153,7 +153,7 @@ internal sealed class ObuWriter : IDisposable
     /// <param name="sequenceHeader">The sequence header governing frame syntax.</param>
     /// <param name="frameHeader">The uncompressed frame header.</param>
     /// <param name="tileWriter">The encoded tile source.</param>
-    /// <param name="headerBuffer">The reusable OBU header scratch.</param>
+    /// <param name="headerBuffer">The reusable buffer that holds the OBU header.</param>
     /// <param name="writer">The bit writer over <paramref name="headerBuffer"/>.</param>
     private static void WriteFrameObu<TTileWriter>(
         Stream stream,

@@ -13,7 +13,7 @@ internal static partial class Av1IntraEdgeFilter
     /// <summary>
     /// The sample count required for a maximal edge and its repeated endpoints.
     /// </summary>
-    public const int ScratchLength = (2 * Av1Constants.MaxTransformSize) + 4;
+    public const int PaddedEdgeLength = (2 * Av1Constants.MaxTransformSize) + 4;
 
     /// <summary>
     /// Defines the rounded smoothing arithmetic for one AV1 filter strength.
@@ -71,7 +71,7 @@ internal static partial class Av1IntraEdgeFilter
     /// <param name="edge">The first edge sample, including the common corner when present.</param>
     /// <param name="count">The number of edge samples.</param>
     /// <param name="strength">The smoothing strength from zero through three.</param>
-    /// <param name="originalEdge">The source workspace with at least <see cref="ScratchLength"/> samples.</param>
+    /// <param name="originalEdge">The source workspace with at least <see cref="PaddedEdgeLength"/> samples.</param>
     public static void Apply(ref byte edge, int count, int strength, Span<byte> originalEdge)
     {
         switch (strength)
@@ -94,7 +94,7 @@ internal static partial class Av1IntraEdgeFilter
     /// <param name="edge">The first edge sample, including the common corner when present.</param>
     /// <param name="count">The number of edge samples.</param>
     /// <param name="strength">The smoothing strength from zero through three.</param>
-    /// <param name="originalEdge">The source workspace with at least <see cref="ScratchLength"/> samples.</param>
+    /// <param name="originalEdge">The source workspace with at least <see cref="PaddedEdgeLength"/> samples.</param>
     public static void Apply(ref short edge, int count, int strength, Span<short> originalEdge)
     {
         switch (strength)

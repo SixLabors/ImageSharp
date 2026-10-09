@@ -57,7 +57,7 @@ public class Av1FrameBufferTests
                 boundary.SaveDeblockedRows(sequence, header, source);
                 boundary.SaveFrameEdgeRows(sequence, header, source);
 
-                // Each geometry needs an output, convolution scratch, and projection scratch. Reject
+                // Each geometry needs an output, a convolution buffer and a projection buffer. Reject
                 // each initial/growth rent in turn; later successful owners must remain reachable for disposal.
                 if ((width == 8 && failureAllocationNumber <= 3) || (width == 64 && failureAllocationNumber > 3))
                 {

@@ -22,7 +22,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <param name="verticalPhase">The Q10 vertical position of the first output row, relative to the origin row.</param>
     /// <param name="verticalStep">The Q10 vertical distance between consecutive output rows.</param>
     /// <returns>The number of signed 16-bit elements.</returns>
-    public static int GetScaledScratchLength(int width, int height, int verticalPhase, int verticalStep)
+    public static int GetScaledIntermediateRowLength(int width, int height, int verticalPhase, int verticalStep)
     {
         // The intermediate rows cover every source row from the first to the last output row, plus the eight-tap support.
         int intermediateHeight = ((((height - 1) * verticalStep) + verticalPhase) >> Av1ReferenceScale.SubpixelBits) + FilterCoefficientCount;
@@ -35,7 +35,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <param name="width">The prediction width in samples.</param>
     /// <param name="height">The prediction height in samples.</param>
     /// <returns>The number of signed 16-bit elements.</returns>
-    public static int GetMaximumScaledScratchLength(int width, int height)
+    public static int GetMaximumScaledIntermediateRowLength(int width, int height)
         => Math.Max(width, Vector128<short>.Count) * ((height * 2) + FilterCoefficientCount);
 
     /// <summary>
@@ -54,7 +54,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <param name="horizontalStep">The Q10 horizontal distance between consecutive output columns.</param>
     /// <param name="verticalPhase">The Q10 vertical position of the first output row, relative to the origin row.</param>
     /// <param name="verticalStep">The Q10 vertical distance between consecutive output rows.</param>
-    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledIntermediateRowLength"/> elements.</param>
     public static void PredictScaled(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -104,7 +104,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <param name="verticalPhase">The Q10 vertical position of the first output row, relative to the origin row.</param>
     /// <param name="verticalStep">The Q10 vertical distance between consecutive output rows.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledIntermediateRowLength"/> elements.</param>
     public static void PredictScaled(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -154,7 +154,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <param name="horizontalStep">The Q10 horizontal distance between consecutive output columns.</param>
     /// <param name="verticalPhase">The Q10 vertical position of the first output row, relative to the origin row.</param>
     /// <param name="verticalStep">The Q10 vertical distance between consecutive output rows.</param>
-    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledIntermediateRowLength"/> elements.</param>
     public static void PredictScaledCompound(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -204,7 +204,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <param name="verticalPhase">The Q10 vertical position of the first output row, relative to the origin row.</param>
     /// <param name="verticalStep">The Q10 vertical distance between consecutive output rows.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledIntermediateRowLength"/> elements.</param>
     public static void PredictScaledCompound(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -258,7 +258,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <param name="verticalPhase">The Q10 vertical position of the first output row, relative to the origin row.</param>
     /// <param name="verticalStep">The Q10 vertical distance between consecutive output rows.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledIntermediateRowLength"/> elements.</param>
     private static void DispatchScaled<TSource, TDestination, TOperator>(
         ReadOnlySpan<TSource> source,
         int sourceStride,
@@ -376,7 +376,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <param name="verticalPhase">The Q10 vertical position of the first output row, relative to the origin row.</param>
     /// <param name="verticalStep">The Q10 vertical distance between consecutive output rows.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledIntermediateRowLength"/> elements.</param>
     private static void DispatchScaledVertical<TSource, TDestination, TOperator, THorizontal>(
         ReadOnlySpan<TSource> source,
         int sourceStride,
@@ -490,7 +490,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <param name="verticalPhase">The Q10 vertical position of the first output row, relative to the origin row.</param>
     /// <param name="verticalStep">The Q10 vertical distance between consecutive output rows.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledIntermediateRowLength"/> elements.</param>
     private static void PredictScaled<TSource, TDestination, TOperator, THorizontal, TVertical>(
         ReadOnlySpan<TSource> source,
         int sourceStride,

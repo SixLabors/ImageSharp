@@ -447,7 +447,7 @@ internal static partial class Av1GlobalMotionSearch
         parameters.Type = GetModelType(parameters);
 
         using IMemoryOwner<TSample> warpedOwner = allocator.Allocate<TSample>(ErrorBlock * ErrorBlock);
-        using IMemoryOwner<short> intermediateTileOwner = allocator.Allocate<short>(Av1WarpedInterPredictor.WarpedScratchLength);
+        using IMemoryOwner<short> intermediateTileOwner = allocator.Allocate<short>(Av1WarpedInterPredictor.WarpedIntermediateLength);
         Span<TSample> warped = warpedOwner.Memory.Span;
         Span<short> intermediateTile = intermediateTileOwner.Memory.Span;
 

@@ -166,7 +166,7 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder
     /// <param name="frameLuma">The luma samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
     /// <param name="frameBlue">The blue-difference samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
     /// <param name="frameRed">The red-difference samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
-    /// <param name="planeCoefficients">The coefficient scratch of the plane in the superblock, read once by the caller.</param>
+    /// <param name="planeCoefficients">The decoded coefficients of the plane in the superblock, read once by the caller.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     public void DecodeTransform(
         ref Av1PartitionInfo partitionInfo,

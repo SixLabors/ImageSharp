@@ -17,7 +17,7 @@ internal sealed class HeifSequenceParser
     /// <summary>
     /// The size of the reusable read buffer of sequential table reads.
     /// </summary>
-    private const int ScratchLength = 4096;
+    private const int ReadBufferLength = 4096;
 
     /// <summary>
     /// The configured allocator used for the parser read buffer and bounded table state.
@@ -76,7 +76,7 @@ internal sealed class HeifSequenceParser
         long movieEnd = checked(movieStart + boxLength);
         HeifBoxReader.EnsureInsideParent(boxLength, stream.Length - movieStart);
 
-        using IMemoryOwner<byte> readBufferOwner = this.allocator.Allocate<byte>(ScratchLength);
+        using IMemoryOwner<byte> readBufferOwner = this.allocator.Allocate<byte>(ReadBufferLength);
         Span<byte> readBuffer = readBufferOwner.GetSpan();
         BoxReference movieHeader = default;
         uint colorTrackId = 0;

@@ -12,7 +12,7 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 
 /// <content>
-/// Owns the per-run state and the block scratch storage, which the model allocates once so that no block allocates.
+/// Owns the per-run state and the prediction, residual and coefficient buffers of a block, which the model allocates once so that no block allocates.
 /// </content>
 internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOperator>
 {
@@ -213,9 +213,9 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     private static ReadOnlySpan<byte> DisableOrder => [3, 2, 6, 5];
 
     /// <summary>
-    /// Allocates the block scratch storage.
+    /// Allocates the prediction, edge, residual, coefficient and motion rate buffers of a block.
     /// </summary>
-    private void CreateScratch()
+    private void CreateBlockBuffers()
     {
         const int Area = Av1TplModelConstants.BlockArea;
         this.predictor = new TSample[2 * Area];
@@ -223,10 +223,12 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         this.searchPrediction = new TSample[SearchPredictionLength];
         this.aboveEdge = new TSample[EdgeLength];
         this.leftEdge = new TSample[EdgeLength];
-        this.originalEdge = new TSample[Av1IntraEdgeFilter.ScratchLength];
+        this.originalEdge = new TSample[Av1IntraEdgeFilter.PaddedEdgeLength];
         this.transposedBlock = new TSample[Area];
         this.residual = new short[Area];
-        this.intermediateRows = new short[Av1TranslationalInterPredictor.GetScratchLength(Av1TplModelConstants.BlockSize, Av1TplModelConstants.BlockSize)];
+        this.intermediateRows = new short[
+            Av1TranslationalInterPredictor.GetIntermediateRowLength(Av1TplModelConstants.BlockSize, Av1TplModelConstants.BlockSize)];
+
         this.firstIntermediate = new ushort[Area];
         this.secondIntermediate = new ushort[Area];
         this.coefficients = new int[Area];
@@ -240,9 +242,9 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Releases the pooled scratch storage.
+    /// Releases the pooled motion rate buffers.
     /// </summary>
-    private void DisposeScratch()
+    private void DisposeBlockBuffers()
     {
         this.motionVectorCostStorage.Dispose();
         this.zeroCostStorage.Dispose();

@@ -32,7 +32,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     private readonly ObuReader obuReader;
 
     /// <summary>
-    /// The configuration used for decoded image and scratch-memory allocation.
+    /// The configuration used for decoded image and working buffer allocation.
     /// </summary>
     private readonly Configuration configuration;
 
@@ -109,7 +109,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1Decoder"/> class.
     /// </summary>
-    /// <param name="configuration">The configuration used for image and scratch-memory allocation.</param>
+    /// <param name="configuration">The configuration used for image and working buffer allocation.</param>
     public Av1Decoder(Configuration configuration)
         : this(configuration, 0)
     {
@@ -118,7 +118,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1Decoder"/> class for one selected AV1 operating point.
     /// </summary>
-    /// <param name="configuration">The configuration used for image and scratch-memory allocation.</param>
+    /// <param name="configuration">The configuration used for image and working buffer allocation.</param>
     /// <param name="operatingPointIndex">The zero-based sequence-header operating-point index to decode.</param>
     public Av1Decoder(Configuration configuration, byte operatingPointIndex)
     {

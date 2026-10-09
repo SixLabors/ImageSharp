@@ -197,7 +197,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // The gradients, magnitudes and bins of a row are computed with vectors. The histogram and total
                 // then add the magnitudes one sample at a time in row order, because they are floats and the
                 // reference accumulates them in that order.
-                // A block is at most 128 samples wide, so each row's scratch holds 128 values and the Sobel window
+                // A block is at most 128 samples wide, so each window row holds 128 values and the Sobel window
                 // holds the three rows around the current one.
                 Span<short> window = stackalloc short[3 * 128];
                 Span<short> magnitudes = stackalloc short[128];

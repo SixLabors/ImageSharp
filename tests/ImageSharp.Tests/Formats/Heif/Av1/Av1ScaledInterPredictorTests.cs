@@ -127,8 +127,8 @@ public class Av1ScaledInterPredictorTests
             int destinationStride = testCase.Width + DestinationRowPadding;
             byte[] expected = CreateByteDestination(testCase, destinationStride);
             byte[] actual = (byte[])expected.Clone();
-            short[] scratch = new short[
-                Av1ScaledInterPredictor.GetScaledScratchLength(
+            short[] intermediateRows = new short[
+                Av1ScaledInterPredictor.GetScaledIntermediateRowLength(
                     testCase.Width,
                     testCase.Height,
                     testCase.VerticalPhase,
@@ -150,7 +150,7 @@ public class Av1ScaledInterPredictorTests
                 testCase.HorizontalStep,
                 testCase.VerticalPhase,
                 testCase.VerticalStep,
-                scratch);
+                intermediateRows);
 
             Assert.Equal(expected, actual);
         }
@@ -170,8 +170,8 @@ public class Av1ScaledInterPredictorTests
                 int destinationStride = testCase.Width + DestinationRowPadding;
                 ushort[] expected = CreateUInt16Destination(testCase, destinationStride);
                 ushort[] actual = (ushort[])expected.Clone();
-                short[] scratch = new short[
-                    Av1ScaledInterPredictor.GetScaledScratchLength(
+                short[] intermediateRows = new short[
+                    Av1ScaledInterPredictor.GetScaledIntermediateRowLength(
                         testCase.Width,
                         testCase.Height,
                         testCase.VerticalPhase,
@@ -194,7 +194,7 @@ public class Av1ScaledInterPredictorTests
                     testCase.VerticalPhase,
                     testCase.VerticalStep,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 Assert.Equal(expected, actual);
             }
@@ -212,8 +212,8 @@ public class Av1ScaledInterPredictorTests
             int destinationStride = testCase.Width + DestinationRowPadding;
             ushort[] expected = CreateUInt16Destination(testCase, destinationStride);
             ushort[] actual = (ushort[])expected.Clone();
-            short[] scratch = new short[
-                Av1ScaledInterPredictor.GetScaledScratchLength(
+            short[] intermediateRows = new short[
+                Av1ScaledInterPredictor.GetScaledIntermediateRowLength(
                     testCase.Width,
                     testCase.Height,
                     testCase.VerticalPhase,
@@ -235,7 +235,7 @@ public class Av1ScaledInterPredictorTests
                 testCase.HorizontalStep,
                 testCase.VerticalPhase,
                 testCase.VerticalStep,
-                scratch);
+                intermediateRows);
 
             Assert.Equal(expected, actual);
         }
@@ -255,8 +255,8 @@ public class Av1ScaledInterPredictorTests
                 int destinationStride = testCase.Width + DestinationRowPadding;
                 ushort[] expected = CreateUInt16Destination(testCase, destinationStride);
                 ushort[] actual = (ushort[])expected.Clone();
-                short[] scratch = new short[
-                    Av1ScaledInterPredictor.GetScaledScratchLength(
+                short[] intermediateRows = new short[
+                    Av1ScaledInterPredictor.GetScaledIntermediateRowLength(
                         testCase.Width,
                         testCase.Height,
                         testCase.VerticalPhase,
@@ -279,7 +279,7 @@ public class Av1ScaledInterPredictorTests
                     testCase.VerticalPhase,
                     testCase.VerticalStep,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 Assert.Equal(expected, actual);
             }

@@ -162,10 +162,10 @@ internal sealed class Av1BlockDecoder
     /// <returns>The largest working length, in signed-short elements, of the intra, translational inter and scaled inter predictors.</returns>
     private static int GetPredictorWorkingLength(int maximumBlockLength)
         => Math.Max(
-            Av1PredictionDecoder.ScratchLength,
+            Av1PredictionDecoder.PredictorStorageLength,
             Math.Max(
-                Av1TranslationalInterPredictor.GetScratchLength(maximumBlockLength, maximumBlockLength),
-                Av1ScaledInterPredictor.GetMaximumScaledScratchLength(maximumBlockLength, maximumBlockLength)));
+                Av1TranslationalInterPredictor.GetIntermediateRowLength(maximumBlockLength, maximumBlockLength),
+                Av1ScaledInterPredictor.GetMaximumScaledIntermediateRowLength(maximumBlockLength, maximumBlockLength)));
 
     /// <summary>
     /// Resets the per-plane coefficient-region cursors before reconstructing a superblock.

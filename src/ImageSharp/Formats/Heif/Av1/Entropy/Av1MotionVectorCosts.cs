@@ -40,7 +40,7 @@ internal readonly ref struct Av1MotionVectorCosts
     public Av1MotionVectorCosts(Span<int> storage, Av1MotionVectorPrecision precision)
     {
         // Integer and quarter-sample frames share one pair. The eighth-sample pair remains separate so changing
-        // frame precision does not change the worker's allocation or the layout of its other scratch regions.
+        // frame precision does not change the worker's allocation or the layout of its other workspace regions.
         int offset = 4 + (precision == Av1MotionVectorPrecision.EighthSample ? 2 * ComponentCount : 0);
         this.joint = storage[..4];
         this.row = storage.Slice(offset, ComponentCount);

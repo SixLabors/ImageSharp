@@ -662,6 +662,14 @@ internal static partial class Av1IntraSuperblockEncoder
     /// <summary>
     /// Prunes and orders two-dimensional transform candidates from residual energy and correlation.
     /// </summary>
+    /// <param name="residual">The residual samples.</param>
+    /// <param name="stride">The residual row stride.</param>
+    /// <param name="transformSize">The transform size.</param>
+    /// <param name="transformSet">The transform set of the block.</param>
+    /// <param name="pruningLevel">The pruning level, one to five.</param>
+    /// <param name="allowedMask">The transform types that are allowed before the model runs.</param>
+    /// <param name="order">Receives the kept transform types, most likely first.</param>
+    /// <returns>The transform types that stay allowed, one bit per type.</returns>
     private static ushort PruneInterTransformTypes(
         ReadOnlySpan<short> residual,
         int stride,
@@ -735,17 +743,23 @@ internal static partial class Av1IntraSuperblockEncoder
 
         // Approximate exponentials through the IEEE exponent field after subtracting the
         // maximum. The correction calibrates this approximation; clamping prevents underflow.
+        // The x64 reference rounds the scaled value to the nearest integer, ties to even, and sums the sixteen values
+        // in four lanes: lane j adds values j, j + 4, j + 8 and j + 12 in turn, then lanes 0 and 2 and lanes 1 and 3
+        // add before the two sums add.
         const float exponentScale = (1 << 23) / 0.69314718056F;
         const int exponentBias = 127 << 23;
         const int exponentialCorrection = 60801;
-        float sum = 0;
+        InlineArray4<float> laneStorage = default;
+        Span<float> lanes = laneStorage;
         for (int index = 0; index < 16; index++)
         {
             float normalized = MathF.Max(scores[index] - maximum, -10F);
-            float score = BitConverter.Int32BitsToSingle((int)(normalized * exponentScale) + exponentBias - exponentialCorrection);
+            float score = BitConverter.Int32BitsToSingle((int)MathF.Round(normalized * exponentScale) + exponentBias - exponentialCorrection);
             scores[index] = score;
-            sum += score;
+            lanes[index & 3] = index < 4 ? score : lanes[index & 3] + score;
         }
+
+        float sum = (lanes[0] + lanes[2]) + (lanes[1] + lanes[3]);
 
         for (int index = 0; index < 16; index++)
         {
@@ -943,6 +957,10 @@ internal static partial class Av1IntraSuperblockEncoder
     /// <summary>
     /// Evaluates the four one-dimensional transform scores for one axis.
     /// </summary>
+    /// <param name="transformSize">The transform size, which selects the model.</param>
+    /// <param name="vertical">Whether the scores are for the vertical axis.</param>
+    /// <param name="features">The energy and correlation features of the axis.</param>
+    /// <param name="scores">Receives the four rounded scores.</param>
     private static void EvaluateTransformAxis(
         Av1TransformSize transformSize,
         bool vertical,
@@ -1011,32 +1029,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 break;
         }
 
-        InlineArray16<float> hiddenStorage = default;
-        Span<float> hidden = hiddenStorage;
-        for (int node = 0; node < bias.Length; node++)
-        {
-            float value = bias[node];
-            ReadOnlySpan<float> nodeWeights = weights.Slice(node * features.Length, features.Length);
-            for (int feature = 0; feature < features.Length; feature++)
-            {
-                value += nodeWeights[feature] * features[feature];
-            }
-
-            hidden[node] = value > 0 ? value : 0;
-        }
-
-        // Reuse the rectified hidden outputs for all four transform families. Each output is
-        // rounded independently before horizontal and vertical scores are combined.
-        for (int output = 0; output < 4; output++)
-        {
-            float value = outputBias[output];
-            ReadOnlySpan<float> nodeWeights = outputWeights.Slice(output * bias.Length, bias.Length);
-            for (int node = 0; node < bias.Length; node++)
-            {
-                value += nodeWeights[node] * hidden[node];
-            }
-
-            scores[output] = (int)((value * 512F) + 0.5F) * (1F / 512F);
-        }
+        Av1NeuralNetwork.Predict(features, weights, bias, outputWeights, outputBias, scores);
     }
 }

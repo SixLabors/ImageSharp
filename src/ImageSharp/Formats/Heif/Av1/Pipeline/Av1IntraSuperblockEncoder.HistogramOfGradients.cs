@@ -387,21 +387,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 features[bin] = (histogram[bin] / total) * histogramScale;
             }
 
-            byte mask = 0;
-            ReadOnlySpan<float> weights = GradientModelWeights;
-            ReadOnlySpan<float> bias = GradientModelBias;
-            for (int mode = 0; mode < bias.Length; mode++)
-            {
-                float score = bias[mode];
-                int weightOffset = mode * GradientBinCount;
-                for (int bin = 0; bin < GradientBinCount; bin++)
-                {
-                    score += weights[weightOffset + bin] * features[bin];
-                }
+            InlineArray8<float> scoreStorage = default;
+            Span<float> scores = scoreStorage;
+            Av1NeuralNetwork.Predict(features, GradientModelWeights, GradientModelBias, scores);
 
-                // Reduce neural outputs to Q9 before comparing the speed-dependent threshold.
-                score = (int)((score * 512F) + 0.5F) / 512F;
-                if (score <= threshold)
+            byte mask = 0;
+            for (int mode = 0; mode < scores.Length; mode++)
+            {
+                if (scores[mode] <= threshold)
                 {
                     mask |= (byte)(1 << mode);
                 }

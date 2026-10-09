@@ -224,6 +224,32 @@ internal static class Vector256_
     }
 
     /// <summary>
+    /// Horizontally adds adjacent pairs of single-precision values in <paramref name="left"/> and
+    /// <paramref name="right"/> within each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The vector whose pair sums fill the two lower values of each 128-bit lane.</param>
+    /// <param name="right">The vector whose pair sums fill the two upper values of each 128-bit lane.</param>
+    /// <returns>
+    /// The vector (l0 + l1, l2 + l3, r0 + r1, r2 + r3, l4 + l5, l6 + l7, r4 + r5, r6 + r7).
+    /// </returns>
+    /// <remarks>
+    /// The pairs never cross a 128-bit lane, which is what the x86 instruction does. The portable form applies the
+    /// 128-bit operation to each half, so it gives the same bits.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> HorizontalAdd(Vector256<float> left, Vector256<float> right)
+    {
+        if (Avx.IsSupported)
+        {
+            return Avx.HorizontalAdd(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.HorizontalAdd(left.GetLower(), right.GetLower()),
+            Vector128_.HorizontalAdd(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
     /// Multiply packed signed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
     /// intermediate signed 32-bit integers. Horizontally add adjacent pairs of intermediate 32-bit integers, and
     /// pack the results.

@@ -20,11 +20,6 @@ internal sealed partial class Av1MotionVectorStatistics
     private const int FeatureCount = 18;
 
     /// <summary>
-    /// The number of hidden network nodes. Reference: MV_PREC_LAYER_SIZE_0.
-    /// </summary>
-    private const int HiddenCount = 32;
-
-    /// <summary>
     /// The quantizer below which a frame uses eighth-sample vectors without statistics. Reference:
     /// HIGH_PRECISION_MV_QTHRESH.
     /// </summary>
@@ -231,6 +226,11 @@ internal sealed partial class Av1MotionVectorStatistics
     ];
 
     /// <summary>
+    /// Gets the output layer bias, one value for the single output.
+    /// </summary>
+    private static ReadOnlySpan<float> OutputBiases => [-0.341771735378258f];
+
+    /// <summary>
     /// Chooses whether an inter frame codes eighth-sample vectors: below the quantizer threshold, or by the network
     /// over the statistics of the last coded frame when the speed features read them. Reference:
     /// av1_pick_and_set_high_precision_mv() with av1_frame_allows_smart_mv().
@@ -390,10 +390,13 @@ internal sealed partial class Av1MotionVectorStatistics
     }
 
     /// <summary>
-    /// Evaluates the network over the normalized statistics with the float arithmetic order of the x64 reference
-    /// build, and rounds the score to nine fractional bits. Reference: get_smart_mv_prec() with av1_nn_predict_avx2()
-    /// and av1_nn_output_prec_reduce().
+    /// Evaluates the network over the normalized statistics of the last coded inter frame and chooses the precision
+    /// from the sign of its rounded score.
     /// </summary>
+    /// <param name="qIndex">The quantizer index of the next frame.</param>
+    /// <param name="orderHint">The order hint of the next frame.</param>
+    /// <param name="frameSize">The frame size, which normalizes the counts and rates.</param>
+    /// <returns><see langword="true"/> when the next frame codes eighth-sample vectors.</returns>
     private bool GetSmartPrecision(int qIndex, int orderHint, Size frameSize)
     {
         float area = frameSize.Width * frameSize.Height;
@@ -424,63 +427,9 @@ internal sealed partial class Av1MotionVectorStatistics
             features[feature] = (features[feature] - means[feature]) / deviations[feature];
         }
 
-        // The first sixteen inputs of each hidden node go through the eight-by-eight propagation: in each group of
-        // eight, adjacent products add, then the pairs, then the two halves; the second group adds onto the first,
-        // then the bias. The two remaining inputs add one at a time before the node is clipped.
-        ReadOnlySpan<float> hiddenWeights = HiddenWeights;
-        ReadOnlySpan<float> hiddenBiases = HiddenBiases;
-        Span<float> hidden = stackalloc float[HiddenCount];
-        for (int node = 0; node < HiddenCount; node++)
-        {
-            ReadOnlySpan<float> weights = hiddenWeights.Slice(node * FeatureCount, FeatureCount);
-            float value = (SumEightProducts(features, weights, 0) + SumEightProducts(features, weights, 8)) + hiddenBiases[node];
-            value += features[16] * weights[16];
-            value += features[17] * weights[17];
-            hidden[node] = Math.Max(value, 0f);
-        }
-
-        // The output accumulates the hidden nodes in eight lanes, lane j holding nodes j, j + 8, j + 16 and j + 24.
-        // The high half adds onto the low half, then adjacent pairs, then the two pair sums.
-        ReadOnlySpan<float> outputWeights = OutputWeights;
-        Span<float> lanes = stackalloc float[8];
-        lanes.Clear();
-        for (int chunk = 0; chunk < HiddenCount; chunk += 8)
-        {
-            for (int lane = 0; lane < 8; lane++)
-            {
-                lanes[lane] += hidden[chunk + lane] * outputWeights[chunk + lane];
-            }
-        }
-
-        float sum0 = lanes[0] + lanes[4];
-        float sum1 = lanes[1] + lanes[5];
-        float sum2 = lanes[2] + lanes[6];
-        float sum3 = lanes[3] + lanes[7];
-        const float OutputBias = -0.341771735378258f;
-        float score = OutputBias + ((sum2 + sum3) + (sum0 + sum1));
-
-        // The float product widens to double before the half is added, and the truncated integer multiplies the float
-        // reciprocal.
-        const int Precision = 1 << 9;
-        const float InversePrecision = (float)(1.0 / Precision);
-        score = (int)((double)(score * Precision) + 0.5) * InversePrecision;
+        float score = 0f;
+        Av1NeuralNetwork.Predict(features, HiddenWeights, HiddenBiases, OutputWeights, OutputBiases, new Span<float>(ref score));
         return score >= 0f;
-    }
-
-    /// <summary>
-    /// Sums eight products of one input group in the pairwise order of the horizontal additions.
-    /// </summary>
-    private static float SumEightProducts(ReadOnlySpan<float> inputs, ReadOnlySpan<float> weights, int start)
-    {
-        float p0 = inputs[start] * weights[start];
-        float p1 = inputs[start + 1] * weights[start + 1];
-        float p2 = inputs[start + 2] * weights[start + 2];
-        float p3 = inputs[start + 3] * weights[start + 3];
-        float p4 = inputs[start + 4] * weights[start + 4];
-        float p5 = inputs[start + 5] * weights[start + 5];
-        float p6 = inputs[start + 6] * weights[start + 6];
-        float p7 = inputs[start + 7] * weights[start + 7];
-        return ((p0 + p1) + (p2 + p3)) + ((p4 + p5) + (p6 + p7));
     }
 
     /// <summary>

@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Memory;
 
@@ -1513,135 +1511,6 @@ internal static partial class Av1IntraSuperblockEncoder
         1.730044F
     ];
 
-    /// <summary>
-    /// Applies a valid convolution and rectification to channel-major planes.
-    /// </summary>
-    private static void ConvolveIntraPartition(
-        ReadOnlySpan<float> input,
-        int inputWidth,
-        int inputChannels,
-        int filterWidth,
-        int step,
-        ReadOnlySpan<float> weights,
-        ReadOnlySpan<float> biases,
-        Span<float> output)
-    {
-        int outputChannels = biases.Length;
-        int outputWidth = ((inputWidth - filterWidth) / step) + 1;
-        int inputArea = inputWidth * inputWidth;
-        int outputArea = outputWidth * outputWidth;
-        int weightStep = inputChannels * outputChannels;
-
-        // Each lane holds one output channel. Kernel positions and input channels are accumulated in the same order
-        // for every lane, so the channel groups of every width give the same sums; channel-major output is scattered
-        // only after rectification. Output channel counts are multiples of four.
-        int channel = 0;
-        if (Vector512.IsHardwareAccelerated)
-        {
-            for (; channel <= outputChannels - Vector512<float>.Count; channel += Vector512<float>.Count)
-            {
-                Vector512<float> bias = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(biases), (nuint)channel);
-                for (int y = 0; y < outputWidth; y++)
-                {
-                    for (int x = 0; x < outputWidth; x++)
-                    {
-                        Vector512<float> sum = bias;
-                        for (int inputChannel = 0; inputChannel < inputChannels; inputChannel++)
-                        {
-                            int weightIndex = (inputChannel * outputChannels) + channel;
-                            for (int filterY = 0; filterY < filterWidth; filterY++)
-                            {
-                                int inputIndex = (inputChannel * inputArea) + (((y * step) + filterY) * inputWidth) + (x * step);
-                                for (int filterX = 0; filterX < filterWidth; filterX++)
-                                {
-                                    Vector512<float> weight = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(weights), (nuint)weightIndex);
-                                    sum += weight * Vector512.Create(input[inputIndex + filterX]);
-                                    weightIndex += weightStep;
-                                }
-                            }
-                        }
-
-                        sum = Vector512.Max(sum, Vector512<float>.Zero);
-                        int outputIndex = (channel * outputArea) + (y * outputWidth) + x;
-                        for (int lane = 0; lane < Vector512<float>.Count; lane++)
-                        {
-                            output[outputIndex + (lane * outputArea)] = sum.GetElement(lane);
-                        }
-                    }
-                }
-            }
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            for (; channel <= outputChannels - Vector256<float>.Count; channel += Vector256<float>.Count)
-            {
-                Vector256<float> bias = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(biases), (nuint)channel);
-                for (int y = 0; y < outputWidth; y++)
-                {
-                    for (int x = 0; x < outputWidth; x++)
-                    {
-                        Vector256<float> sum = bias;
-                        for (int inputChannel = 0; inputChannel < inputChannels; inputChannel++)
-                        {
-                            int weightIndex = (inputChannel * outputChannels) + channel;
-                            for (int filterY = 0; filterY < filterWidth; filterY++)
-                            {
-                                int inputIndex = (inputChannel * inputArea) + (((y * step) + filterY) * inputWidth) + (x * step);
-                                for (int filterX = 0; filterX < filterWidth; filterX++)
-                                {
-                                    Vector256<float> weight = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(weights), (nuint)weightIndex);
-                                    sum += weight * Vector256.Create(input[inputIndex + filterX]);
-                                    weightIndex += weightStep;
-                                }
-                            }
-                        }
-
-                        sum = Vector256.Max(sum, Vector256<float>.Zero);
-                        int outputIndex = (channel * outputArea) + (y * outputWidth) + x;
-                        for (int lane = 0; lane < Vector256<float>.Count; lane++)
-                        {
-                            output[outputIndex + (lane * outputArea)] = sum.GetElement(lane);
-                        }
-                    }
-                }
-            }
-        }
-
-        for (; channel < outputChannels; channel += 4)
-        {
-            Vector128<float> bias = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(biases), (nuint)channel);
-            for (int y = 0; y < outputWidth; y++)
-            {
-                for (int x = 0; x < outputWidth; x++)
-                {
-                    Vector128<float> sum = bias;
-                    for (int inputChannel = 0; inputChannel < inputChannels; inputChannel++)
-                    {
-                        int weightIndex = (inputChannel * outputChannels) + channel;
-                        for (int filterY = 0; filterY < filterWidth; filterY++)
-                        {
-                            int inputIndex = (inputChannel * inputArea) + (((y * step) + filterY) * inputWidth) + (x * step);
-                            for (int filterX = 0; filterX < filterWidth; filterX++)
-                            {
-                                Vector128<float> weight = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(weights), (nuint)weightIndex);
-                                sum += weight * Vector128.Create(input[inputIndex + filterX]);
-                                weightIndex += weightStep;
-                            }
-                        }
-                    }
-
-                    sum = Vector128.Max(sum, Vector128<float>.Zero);
-                    int outputIndex = (channel * outputArea) + (y * outputWidth) + x;
-                    output[outputIndex] = sum.GetElement(0);
-                    output[outputIndex + outputArea] = sum.GetElement(1);
-                    output[outputIndex + (2 * outputArea)] = sum.GetElement(2);
-                    output[outputIndex + (3 * outputArea)] = sum.GetElement(3);
-                }
-            }
-        }
-    }
-
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
         where TOperator : struct, IBlockEncodingOperator<TSample>
@@ -1725,14 +1594,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                 }
 
-                ConvolveIntraPartition(input, 65, 1, 5, 4, IntraPartitionCnnLayer0Kernel, IntraPartitionCnnLayer0Bias, firstLayer);
+                Av1NeuralNetwork.Convolve(input, 65, 1, 5, 4, IntraPartitionCnnLayer0Kernel, IntraPartitionCnnLayer0Bias, firstLayer);
 
                 // Retain each later layer at its final branch offset. Child searches borrow those planes;
                 // only the normalized input and first layer occupy reusable arithmetic scratch.
-                ConvolveIntraPartition(firstLayer, 16, 20, 2, 2, IntraPartitionCnnLayer1Kernel, IntraPartitionCnnLayer1Bias, retained[356..]);
-                ConvolveIntraPartition(retained[356..], 8, 20, 2, 2, IntraPartitionCnnLayer2Kernel, IntraPartitionCnnLayer2Bias, retained[36..356]);
-                ConvolveIntraPartition(retained[36..356], 4, 20, 2, 2, IntraPartitionCnnLayer3Kernel, IntraPartitionCnnLayer3Bias, retained[20..36]);
-                ConvolveIntraPartition(retained[20..36], 2, 4, 2, 2, IntraPartitionCnnLayer4Kernel, IntraPartitionCnnLayer4Bias, retained[..20]);
+                Av1NeuralNetwork.Convolve(firstLayer, 16, 20, 2, 2, IntraPartitionCnnLayer1Kernel, IntraPartitionCnnLayer1Bias, retained[356..]);
+                Av1NeuralNetwork.Convolve(retained[356..], 8, 20, 2, 2, IntraPartitionCnnLayer2Kernel, IntraPartitionCnnLayer2Bias, retained[36..356]);
+                Av1NeuralNetwork.Convolve(retained[36..356], 4, 20, 2, 2, IntraPartitionCnnLayer3Kernel, IntraPartitionCnnLayer3Bias, retained[20..36]);
+                Av1NeuralNetwork.Convolve(retained[20..36], 2, 4, 2, 2, IntraPartitionCnnLayer4Kernel, IntraPartitionCnnLayer4Bias, retained[..20]);
                 int dcStep = Av1QuantizationLookup.GetDcQuant(this.blockQIndex, 0, this.bitDepth) >> (this.bitDepth.GetBitCount() - 8);
                 this.intraPartitionLogQuantizer = (float.LogP1((dcStep * dcStep) / 256F) - IntraPartitionMean[0]) / IntraPartitionStd[0];
                 this.intraPartitionFeaturesValid = true;
@@ -1754,7 +1623,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<float> weights1;
             ReadOnlySpan<float> bias1;
             ReadOnlySpan<float> outputWeights;
-            float score;
+            ReadOnlySpan<float> outputBias;
             switch (blockSize)
             {
                 case Av1BlockSize.Block64x64:
@@ -1773,7 +1642,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     weights1 = IntraPartitionBranch0DnnLayer1Kernel;
                     bias1 = IntraPartitionBranch0DnnLayer1Bias;
                     outputWeights = IntraPartitionBranch0LogitsKernel;
-                    score = IntraPartitionBranch0LogitsBias[0];
+                    outputBias = IntraPartitionBranch0LogitsBias;
                     break;
                 case Av1BlockSize.Block32x32:
                     retained[..20].CopyTo(features);
@@ -1789,7 +1658,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     weights1 = IntraPartitionBranch1DnnLayer1Kernel;
                     bias1 = IntraPartitionBranch1DnnLayer1Bias;
                     outputWeights = IntraPartitionBranch1LogitsKernel;
-                    score = IntraPartitionBranch1LogitsBias[0];
+                    outputBias = IntraPartitionBranch1LogitsBias;
                     break;
                 case Av1BlockSize.Block16x16:
                     int parentPosition16 = ((localY / 32) * 2) + (localX / 32);
@@ -1809,7 +1678,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     weights1 = IntraPartitionBranch2DnnLayer1Kernel;
                     bias1 = IntraPartitionBranch2DnnLayer1Bias;
                     outputWeights = IntraPartitionBranch2LogitsKernel;
-                    score = IntraPartitionBranch2LogitsBias[0];
+                    outputBias = IntraPartitionBranch2LogitsBias;
                     break;
                 case Av1BlockSize.Block8x8:
                     int parentPosition8 = ((localY / 16) * 4) + (localX / 16);
@@ -1829,38 +1698,15 @@ internal static partial class Av1IntraSuperblockEncoder
                     weights1 = IntraPartitionBranch3DnnLayer1Kernel;
                     bias1 = IntraPartitionBranch3DnnLayer1Bias;
                     outputWeights = IntraPartitionBranch3LogitsKernel;
-                    score = IntraPartitionBranch3LogitsBias[0];
+                    outputBias = IntraPartitionBranch3LogitsBias;
                     break;
                 default:
                     return false;
             }
 
             features[featureCount++] = this.intraPartitionLogQuantizer;
-            InlineArray16<float> hiddenStorage = default;
-            Span<float> hidden = hiddenStorage;
-            for (int node = 0; node < 16; node++)
-            {
-                float activation = bias0[node];
-                for (int feature = 0; feature < featureCount; feature++)
-                {
-                    activation += weights0[(node * featureCount) + feature] * features[feature];
-                }
-
-                hidden[node] = Math.Max(activation, 0F);
-            }
-
-            for (int node = 0; node < 24; node++)
-            {
-                float activation = bias1[node];
-                for (int feature = 0; feature < 16; feature++)
-                {
-                    activation += weights1[(node * 16) + feature] * hidden[feature];
-                }
-
-                score += Math.Max(activation, 0F) * outputWeights[node];
-            }
-
-            score = (int)((score * 512F) + 0.5F) * (1F / 512F);
+            float score = 0F;
+            Av1NeuralNetwork.Predict(features[..featureCount], weights0, bias0, weights1, bias1, outputWeights, outputBias, new Span<float>(ref score));
             int sizeIndex = ((int)Av1BlockSize.Block128x128 - (int)blockSize) / 3;
             int resolution = this.picture.Parent.SpeedSettings.FourStripPartitionResolutionIndex;
             float splitThreshold = resolution == 2 ? IntraPartitionSplitThreshHdres[sizeIndex]

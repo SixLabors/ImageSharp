@@ -582,6 +582,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Evaluates the unsplit block's rate, error, variance, and quantizer against its breakout model.
         /// </summary>
+        /// <param name="blockSize">The square block size.</param>
+        /// <param name="statistics">The rate and distortion of the unsplit block.</param>
+        /// <returns><see langword="true"/> when the split and rectangular searches stop.</returns>
         private bool ShouldStopPartitionSearch(Av1BlockSize blockSize, Av1RateDistortionStatistics statistics)
         {
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
@@ -615,38 +618,38 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<float> weights;
             ReadOnlySpan<float> biases;
             ReadOnlySpan<float> outputWeights;
-            float outputBias;
+            ReadOnlySpan<float> outputBias;
             switch (blockSize)
             {
                 case Av1BlockSize.Block8x8:
                     weights = normalized ? BreakoutHigh8Weights0 : BreakoutLow8Weights0;
                     biases = normalized ? BreakoutHigh8Bias0 : BreakoutLow8Bias0;
                     outputWeights = normalized ? BreakoutHigh8Weights1 : BreakoutLow8Weights1;
-                    outputBias = normalized ? BreakoutHigh8Bias1[0] : BreakoutLow8Bias1[0];
+                    outputBias = normalized ? BreakoutHigh8Bias1 : BreakoutLow8Bias1;
                     break;
                 case Av1BlockSize.Block16x16:
                     weights = normalized ? BreakoutHigh16Weights0 : BreakoutLow16Weights0;
                     biases = normalized ? BreakoutHigh16Bias0 : BreakoutLow16Bias0;
                     outputWeights = normalized ? BreakoutHigh16Weights1 : BreakoutLow16Weights1;
-                    outputBias = normalized ? BreakoutHigh16Bias1[0] : BreakoutLow16Bias1[0];
+                    outputBias = normalized ? BreakoutHigh16Bias1 : BreakoutLow16Bias1;
                     break;
                 case Av1BlockSize.Block32x32:
                     weights = normalized ? BreakoutHigh32Weights0 : BreakoutLow32Weights0;
                     biases = normalized ? BreakoutHigh32Bias0 : BreakoutLow32Bias0;
                     outputWeights = normalized ? BreakoutHigh32Weights1 : BreakoutLow32Weights1;
-                    outputBias = normalized ? BreakoutHigh32Bias1[0] : BreakoutLow32Bias1[0];
+                    outputBias = normalized ? BreakoutHigh32Bias1 : BreakoutLow32Bias1;
                     break;
                 case Av1BlockSize.Block64x64:
                     weights = normalized ? BreakoutHigh64Weights0 : BreakoutLow64Weights0;
                     biases = normalized ? BreakoutHigh64Bias0 : BreakoutLow64Bias0;
                     outputWeights = normalized ? BreakoutHigh64Weights1 : BreakoutLow64Weights1;
-                    outputBias = normalized ? BreakoutHigh64Bias1[0] : BreakoutLow64Bias1[0];
+                    outputBias = normalized ? BreakoutHigh64Bias1 : BreakoutLow64Bias1;
                     break;
                 default:
                     weights = normalized ? BreakoutHigh128Weights0 : BreakoutLow128Weights0;
                     biases = normalized ? BreakoutHigh128Bias0 : BreakoutLow128Bias0;
                     outputWeights = normalized ? BreakoutHigh128Weights1 : BreakoutLow128Weights1;
-                    outputBias = normalized ? BreakoutHigh128Bias1[0] : BreakoutLow128Bias1[0];
+                    outputBias = normalized ? BreakoutHigh128Bias1 : BreakoutLow128Bias1;
                     break;
             }
 
@@ -676,23 +679,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // Each hidden node has four inputs and a rectified-linear activation. Consume its output
-            // immediately in node order: the single output layer needs no retained hidden-node buffer.
-            float score = outputBias;
-            for (int node = 0; node < biases.Length; node++)
-            {
-                float value = biases[node];
-                for (int feature = 0; feature < 4; feature++)
-                {
-                    value += weights[(node * 4) + feature] * features[feature];
-                }
-
-                score += outputWeights[node] * Math.Max(value, 0F);
-            }
-
-            // Reduce the score to nine fractional bits using truncation after adding one half.
             // Comparing against the log-odds threshold avoids evaluating a sigmoid for every block.
-            score = (int)((score * 512F) + 0.5) * (1F / 512F);
+            float score = 0F;
+            Av1NeuralNetwork.Predict(features, weights, biases, outputWeights, outputBias, new Span<float>(ref score));
             float thresholdScore = (float)Math.Log(threshold / (1 - threshold));
             return score >= thresholdScore;
         }

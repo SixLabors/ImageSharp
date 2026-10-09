@@ -1004,37 +1004,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
+            // The normalized models have three outputs; the unnormalized models encode four masks.
             InlineArray4<float> scoreStorage = default;
             Span<float> scores = scoreStorage;
-            int outputCount = outputBiases.Length;
-            int hiddenCount = biases.Length;
-            for (int output = 0; output < outputCount; output++)
-            {
-                scores[output] = outputBiases[output];
-            }
-
-            // The normalized models have three outputs; the unnormalized models encode four masks.
-            // Both consume each hidden activation directly in ascending order without an activation buffer.
-            for (int node = 0; node < hiddenCount; node++)
-            {
-                float value = biases[node];
-                int offset = node * features.Length;
-                for (int feature = 0; feature < features.Length; feature++)
-                {
-                    value += weights[offset + feature] * features[feature];
-                }
-
-                value = Math.Max(value, 0);
-                for (int output = 0; output < outputCount; output++)
-                {
-                    scores[output] += outputWeights[(output * hiddenCount) + node] * value;
-                }
-            }
-
-            for (int output = 0; output < outputCount; output++)
-            {
-                scores[output] = (int)((scores[output] * 512F) + 0.5) * (1F / 512F);
-            }
+            Av1NeuralNetwork.Predict(features, weights, biases, outputWeights, outputBiases, scores);
 
             if (!normalized)
             {

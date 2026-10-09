@@ -695,7 +695,7 @@ internal static partial class Av1IntraSuperblockEncoder
         ReadOnlySpan<float> weights;
         ReadOnlySpan<float> bias;
         ReadOnlySpan<float> outputWeights;
-        float outputBias;
+        ReadOnlySpan<float> outputBias;
         switch (transformSize)
         {
             case Av1TransformSize.Size4x8:
@@ -703,73 +703,73 @@ internal static partial class Av1IntraSuperblockEncoder
                 weights = TransformSplit4x8Weights0;
                 bias = TransformSplit4x8Bias0;
                 outputWeights = TransformSplit4x8Weights1;
-                outputBias = TransformSplit4x8Bias1[0];
+                outputBias = TransformSplit4x8Bias1;
                 break;
             case Av1TransformSize.Size8x8:
                 weights = TransformSplit8x8Weights0;
                 bias = TransformSplit8x8Bias0;
                 outputWeights = TransformSplit8x8Weights1;
-                outputBias = TransformSplit8x8Bias1[0];
+                outputBias = TransformSplit8x8Bias1;
                 break;
             case Av1TransformSize.Size8x16:
             case Av1TransformSize.Size16x8:
                 weights = TransformSplit8x16Weights0;
                 bias = TransformSplit8x16Bias0;
                 outputWeights = TransformSplit8x16Weights1;
-                outputBias = TransformSplit8x16Bias1[0];
+                outputBias = TransformSplit8x16Bias1;
                 break;
             case Av1TransformSize.Size16x16:
                 weights = TransformSplit16x16Weights0;
                 bias = TransformSplit16x16Bias0;
                 outputWeights = TransformSplit16x16Weights1;
-                outputBias = TransformSplit16x16Bias1[0];
+                outputBias = TransformSplit16x16Bias1;
                 break;
             case Av1TransformSize.Size32x32:
                 weights = TransformSplit32x32Weights0;
                 bias = TransformSplit32x32Bias0;
                 outputWeights = TransformSplit32x32Weights1;
-                outputBias = TransformSplit32x32Bias1[0];
+                outputBias = TransformSplit32x32Bias1;
                 break;
             case Av1TransformSize.Size64x64:
                 weights = TransformSplit64x64Weights0;
                 bias = TransformSplit64x64Bias0;
                 outputWeights = TransformSplit64x64Weights1;
-                outputBias = TransformSplit64x64Bias1[0];
+                outputBias = TransformSplit64x64Bias1;
                 break;
             case Av1TransformSize.Size4x16:
             case Av1TransformSize.Size16x4:
                 weights = TransformSplit4x16Weights0;
                 bias = TransformSplit4x16Bias0;
                 outputWeights = TransformSplit4x16Weights1;
-                outputBias = TransformSplit4x16Bias1[0];
+                outputBias = TransformSplit4x16Bias1;
                 break;
             case Av1TransformSize.Size16x32:
             case Av1TransformSize.Size32x16:
                 weights = TransformSplit16x32Weights0;
                 bias = TransformSplit16x32Bias0;
                 outputWeights = TransformSplit16x32Weights1;
-                outputBias = TransformSplit16x32Bias1[0];
+                outputBias = TransformSplit16x32Bias1;
                 break;
             case Av1TransformSize.Size32x64:
             case Av1TransformSize.Size64x32:
                 weights = TransformSplit32x64Weights0;
                 bias = TransformSplit32x64Bias0;
                 outputWeights = TransformSplit32x64Weights1;
-                outputBias = TransformSplit32x64Bias1[0];
+                outputBias = TransformSplit32x64Bias1;
                 break;
             case Av1TransformSize.Size8x32:
             case Av1TransformSize.Size32x8:
                 weights = TransformSplit8x32Weights0;
                 bias = TransformSplit8x32Bias0;
                 outputWeights = TransformSplit8x32Weights1;
-                outputBias = TransformSplit8x32Bias1[0];
+                outputBias = TransformSplit8x32Bias1;
                 break;
             case Av1TransformSize.Size16x64:
             case Av1TransformSize.Size64x16:
                 weights = TransformSplit16x64Weights0;
                 bias = TransformSplit16x64Bias0;
                 outputWeights = TransformSplit16x64Weights1;
-                outputBias = TransformSplit16x64Bias1[0];
+                outputBias = TransformSplit16x64Bias1;
                 break;
             default:
                 return -1;
@@ -778,7 +778,8 @@ internal static partial class Av1IntraSuperblockEncoder
         InlineArray16<float> featureStorage = default;
         Span<float> features = featureStorage;
         int featureCount = GetTransformSplitFeatures(residual, transformSize, features);
-        float score = EvaluateTransformSplitModel(features[..featureCount], weights, bias, outputWeights, outputBias);
+        float score = 0F;
+        Av1NeuralNetwork.Predict(features[..featureCount], weights, bias, outputWeights, outputBias, new Span<float>(ref score));
         return Math.Clamp((int)(score * 10000F), -80000, 80000);
     }
 
@@ -833,41 +834,11 @@ internal static partial class Av1IntraSuperblockEncoder
     }
 
     /// <summary>
-    /// Evaluates a rectified hidden layer and one output with nine fractional bits.
-    /// </summary>
-    private static float EvaluateTransformSplitModel(
-        ReadOnlySpan<float> features,
-        ReadOnlySpan<float> weights,
-        ReadOnlySpan<float> bias,
-        ReadOnlySpan<float> outputWeights,
-        float outputBias)
-    {
-        int featureCount = features.Length;
-
-        // A rectified hidden layer feeds a single linear output. Accumulate each hidden node
-        // directly into that output, preserving node order without a second scratch buffer.
-        float score = outputBias;
-        for (int node = 0; node < bias.Length; node++)
-        {
-            float value = bias[node];
-            ReadOnlySpan<float> nodeWeights = weights.Slice(node * featureCount, featureCount);
-            for (int feature = 0; feature < featureCount; feature++)
-            {
-                value += nodeWeights[feature] * features[feature];
-            }
-
-            score += outputWeights[node] * (value > 0 ? value : 0);
-        }
-
-        // Round the model output onto a nine-bit fractional grid before converting to the
-        // integer decision scale. The cast intentionally truncates after adding one half.
-        score = (int)((score * 512F) + 0.5F) * (1F / 512F);
-        return score;
-    }
-
-    /// <summary>
     /// Classifies the eight-bit 8x8 intra residual as unsplit, split, or undecided.
     /// </summary>
+    /// <param name="residual">The residual samples in contiguous transform rows.</param>
+    /// <param name="sourceVariance">The source variance of the block.</param>
+    /// <param name="dcQuantizer">The DC quantizer step, scaled to eight bits.</param>
     /// <returns>Minus one to omit the smaller size, one to omit the largest size, or zero to evaluate both.</returns>
     private static int PredictIntraTransformDepth(ReadOnlySpan<short> residual, int sourceVariance, int dcQuantizer)
     {
@@ -881,8 +852,14 @@ internal static partial class Av1IntraSuperblockEncoder
             features[index] = (features[index] - IntraTransformFeatureMeans[index]) / IntraTransformFeatureDeviations[index];
         }
 
-        float score = EvaluateTransformSplitModel(
-            features[..featureCount], IntraTransformWeights, IntraTransformBias, IntraTransformOutputWeights, IntraTransformOutputBias[0]);
+        float score = 0F;
+        Av1NeuralNetwork.Predict(
+            features[..featureCount],
+            IntraTransformWeights,
+            IntraTransformBias,
+            IntraTransformOutputWeights,
+            IntraTransformOutputBias,
+            new Span<float>(ref score));
 
         return score <= -0.405465F ? -1 : score > 0.405465F ? 1 : 0;
     }

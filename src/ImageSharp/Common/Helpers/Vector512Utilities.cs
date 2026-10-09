@@ -229,6 +229,39 @@ internal static class Vector512_
     }
 
     /// <summary>
+    /// Horizontally adds adjacent pairs of single-precision values in <paramref name="left"/> and
+    /// <paramref name="right"/> within each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The vector whose pair sums fill the two lower values of each 128-bit lane.</param>
+    /// <param name="right">The vector whose pair sums fill the two upper values of each 128-bit lane.</param>
+    /// <returns>
+    /// For each 128-bit lane k, the values (l[4k] + l[4k + 1], l[4k + 2] + l[4k + 3], r[4k] + r[4k + 1],
+    /// r[4k + 2] + r[4k + 3]).
+    /// </returns>
+    /// <remarks>
+    /// This extends the 128-bit lane layout of the narrower horizontal additions to four lanes. There is no 512-bit
+    /// horizontal addition instruction, so two two-source permutes gather the first and the second value of every
+    /// pair, and one addition adds them. The portable form applies the 256-bit operation to each half.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> HorizontalAdd(Vector512<float> left, Vector512<float> right)
+    {
+        if (Avx512F.IsSupported)
+        {
+            // Indices 0 to 15 select from left and 16 to 31 from right. Each group of four fills one 128-bit lane.
+            Vector512<int> first = Vector512.Create(0, 2, 16, 18, 4, 6, 20, 22, 8, 10, 24, 26, 12, 14, 28, 30);
+            Vector512<int> second = Vector512.Create(1, 3, 17, 19, 5, 7, 21, 23, 9, 11, 25, 27, 13, 15, 29, 31);
+            Vector512<float> firstValues = Avx512F.PermuteVar16x32x2(left, first, right);
+            Vector512<float> secondValues = Avx512F.PermuteVar16x32x2(left, second, right);
+            return firstValues + secondValues;
+        }
+
+        return Vector512.Create(
+            Vector256_.HorizontalAdd(left.GetLower(), right.GetLower()),
+            Vector256_.HorizontalAdd(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
     /// Selects each 64-bit element from one of two vectors by index.
     /// </summary>
     /// <param name="lower">The vector that supplies indices 0 through 7.</param>

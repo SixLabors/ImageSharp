@@ -644,7 +644,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<float> weights0;
             ReadOnlySpan<float> bias0;
             ReadOnlySpan<float> weights1;
-            float score;
+            ReadOnlySpan<float> bias1;
             float threshold;
             switch (blockSize)
             {
@@ -653,28 +653,28 @@ internal static partial class Av1IntraSuperblockEncoder
                     weights0 = AfterSplit64Weights0;
                     bias0 = AfterSplit64Bias0;
                     weights1 = AfterSplit64Weights1;
-                    score = AfterSplit64Bias1[0];
+                    bias1 = AfterSplit64Bias1;
                     threshold = largeFrame ? -2F : -1.2F;
                     break;
                 case Av1BlockSize.Block32x32:
                     weights0 = AfterSplit32Weights0;
                     bias0 = AfterSplit32Bias0;
                     weights1 = AfterSplit32Weights1;
-                    score = AfterSplit32Bias1[0];
+                    bias1 = AfterSplit32Bias1;
                     threshold = largeFrame ? -2.6F : -2.3F;
                     break;
                 case Av1BlockSize.Block16x16:
                     weights0 = AfterSplit16Weights0;
                     bias0 = AfterSplit16Bias0;
                     weights1 = AfterSplit16Weights1;
-                    score = AfterSplit16Bias1[0];
+                    bias1 = AfterSplit16Bias1;
                     threshold = largeFrame ? -2F : -2.4F;
                     break;
                 case Av1BlockSize.Block8x8:
                     weights0 = AfterSplit8Weights0;
                     bias0 = AfterSplit8Bias0;
                     weights1 = AfterSplit8Weights1;
-                    score = AfterSplit8Bias1[0];
+                    bias1 = AfterSplit8Bias1;
                     threshold = largeFrame ? -1F : -1.4F;
                     break;
                 default:
@@ -746,20 +746,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 features[featureIndex++] = float.LogP1(nodes[nodeIndex].RectangleVariances[rectangle]);
             }
 
-            // Consume each activated hidden node immediately; the single output needs no intermediate array.
-            for (int node = 0; node < bias0.Length; node++)
-            {
-                float activation = bias0[node];
-                for (int feature = 0; feature < 31; feature++)
-                {
-                    activation += weights0[(node * 31) + feature] * features[feature];
-                }
-
-                score += Math.Max(activation, 0F) * weights1[node];
-            }
-
-            // The model's output precision is nine fractional bits, including truncation for negative scores.
-            score = (int)((score * 512F) + 0.5F) * (1F / 512F);
+            float score = 0F;
+            Av1NeuralNetwork.Predict(features[..31], weights0, bias0, weights1, bias1, new Span<float>(ref score));
             return score < threshold;
         }
 

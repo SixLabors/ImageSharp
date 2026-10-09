@@ -19,11 +19,6 @@ internal static class Av1TplModePruning
     private const int FeatureCount = 6;
 
     /// <summary>
-    /// The number of hidden nodes of the intra pruning network. Reference: NUM_LAYER_0_UNITS_12.
-    /// </summary>
-    private const int HiddenCount = 24;
-
-    /// <summary>
     /// The largest number of dynamic reference vectors searched. Reference: MAX_REF_MV_SEARCH.
     /// </summary>
     private const int MaximumReferenceVectorSearch = 3;
@@ -403,7 +398,7 @@ internal static class Av1TplModePruning
 
         Span<float> scores = stackalloc float[2];
         bool smallFrame = minimumFrameDimension <= 480;
-        Predict(
+        Av1NeuralNetwork.Predict(
             features,
             smallFrame ? IntraHiddenWeights : HighDefinitionHiddenWeights,
             smallFrame ? IntraHiddenBiases : HighDefinitionHiddenBiases,
@@ -415,63 +410,5 @@ internal static class Av1TplModePruning
         // pruning level uses the same threshold.
         const float Threshold = 1.4f;
         return scores[1] > scores[0] + Threshold;
-    }
-
-    /// <summary>
-    /// Evaluates the one hidden layer network with the float arithmetic order of the x64 reference build: the six
-    /// inputs of the hidden layer accumulate one by one onto the bias, and the 24 hidden nodes of each output accumulate
-    /// in eight lanes whose sums add pairwise. Reference: av1_nn_predict_avx2() with its scalar fallback for inputs that
-    /// are not a multiple of four and nn_propagate_8to1() for the output layer.
-    /// </summary>
-    private static void Predict(
-        ReadOnlySpan<float> features,
-        ReadOnlySpan<float> hiddenWeights,
-        ReadOnlySpan<float> hiddenBiases,
-        ReadOnlySpan<float> outputWeights,
-        ReadOnlySpan<float> outputBiases,
-        Span<float> scores)
-    {
-        Span<float> hidden = stackalloc float[HiddenCount];
-        for (int node = 0; node < HiddenCount; node++)
-        {
-            float value = hiddenBiases[node];
-            for (int input = 0; input < FeatureCount; input++)
-            {
-                value += features[input] * hiddenWeights[(node * FeatureCount) + input];
-            }
-
-            hidden[node] = Math.Max(value, 0f);
-        }
-
-        Span<float> lanes = stackalloc float[8];
-        for (int output = 0; output < scores.Length; output++)
-        {
-            // Lane j holds inputs j, j + 8 and j + 16, each product added in turn.
-            lanes.Clear();
-            for (int chunk = 0; chunk < HiddenCount; chunk += 8)
-            {
-                for (int lane = 0; lane < 8; lane++)
-                {
-                    lanes[lane] += hidden[chunk + lane] * outputWeights[(output * HiddenCount) + chunk + lane];
-                }
-            }
-
-            // The high half adds onto the low half, then adjacent pairs add, then the two pair sums.
-            float sum0 = lanes[0] + lanes[4];
-            float sum1 = lanes[1] + lanes[5];
-            float sum2 = lanes[2] + lanes[6];
-            float sum3 = lanes[3] + lanes[7];
-            float total = (sum2 + sum3) + (sum0 + sum1);
-            scores[output] = outputBiases[output] + total;
-        }
-
-        // The outputs are rounded to nine fractional bits: the float product widens to double before the half is
-        // added, and the truncated integer multiplies the float reciprocal. Reference: av1_nn_output_prec_reduce().
-        const int Precision = 1 << 9;
-        const float InversePrecision = (float)(1.0 / Precision);
-        for (int output = 0; output < scores.Length; output++)
-        {
-            scores[output] = (int)((double)(scores[output] * Precision) + 0.5) * InversePrecision;
-        }
     }
 }

@@ -1816,39 +1816,6 @@ internal static partial class Av1IntraSuperblockEncoder
         1.63404F, -0.715866F, -1.0132F, -2.08745F
     ];
 
-    /// <summary>
-    /// Evaluates a one-hidden-layer partition model without allocating hidden-node storage.
-    /// </summary>
-    private static void EvaluateMotionPartitionModel(
-        ReadOnlySpan<float> features,
-        ReadOnlySpan<float> weights0,
-        ReadOnlySpan<float> bias0,
-        ReadOnlySpan<float> weights1,
-        ReadOnlySpan<float> bias1,
-        Span<float> scores)
-    {
-        bias1.CopyTo(scores);
-        for (int node = 0; node < bias0.Length; node++)
-        {
-            float activation = bias0[node];
-            for (int feature = 0; feature < features.Length; feature++)
-            {
-                activation += weights0[(node * features.Length) + feature] * features[feature];
-            }
-
-            activation = Math.Max(activation, 0F);
-            for (int output = 0; output < scores.Length; output++)
-            {
-                scores[output] += activation * weights1[(output * bias0.Length) + node];
-            }
-        }
-
-        for (int output = 0; output < scores.Length; output++)
-        {
-            scores[output] = (int)((scores[output] * 512F) + 0.5F) * (1F / 512F);
-        }
-    }
-
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
         where TOperator : struct, IBlockEncodingOperator<TSample>
@@ -1996,7 +1963,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     features[feature] = (features[feature] - means[(modelIndex * 17) + feature]) / deviations[(modelIndex * 17) + feature];
                 }
 
-                EvaluateMotionPartitionModel(
+                Av1NeuralNetwork.Predict(
                     features,
                     weights0.Slice(modelIndex * weights0.Length / 2, weights0.Length / 2),
                     bias0.Slice(modelIndex * bias0.Length / 2, bias0.Length / 2),
@@ -2116,7 +2083,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     features[feature] = (features[feature] - means[feature]) / deviations[feature];
                 }
 
-                EvaluateMotionPartitionModel(features, weights0, bias0, weights1, bias1, scores);
+                Av1NeuralNetwork.Predict(features, weights0, bias0, weights1, bias1, scores);
                 float maximum = scores[0];
                 for (int index = 1; index < scores.Length; index++)
                 {

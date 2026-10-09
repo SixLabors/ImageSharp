@@ -564,6 +564,48 @@ internal static class Vector128_
     }
 
     /// <summary>
+    /// Horizontally adds adjacent pairs of single-precision values in <paramref name="left"/> and
+    /// <paramref name="right"/>.
+    /// </summary>
+    /// <param name="left">The vector whose pair sums fill the two lower lanes of the result.</param>
+    /// <param name="right">The vector whose pair sums fill the two upper lanes of the result.</param>
+    /// <returns>
+    /// The vector (left[0] + left[1], left[2] + left[3], right[0] + right[1], right[2] + right[3]).
+    /// </returns>
+    /// <remarks>
+    /// Each lane is one rounded addition of two adjacent values, so every path gives the same bits. The portable
+    /// form gathers the even and the odd values of both sources and adds the two vectors once. It must not add a
+    /// zero to a pair sum, because that would change a negative zero.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> HorizontalAdd(Vector128<float> left, Vector128<float> right)
+    {
+        if (Sse3.IsSupported)
+        {
+            return Sse3.HorizontalAdd(left, right);
+        }
+
+        if (AdvSimd.Arm64.IsSupported)
+        {
+            return AdvSimd.Arm64.AddPairwise(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            Vector64<float> leftPairs = AdvSimd.AddPairwise(left.GetLower(), left.GetUpper());
+            Vector64<float> rightPairs = AdvSimd.AddPairwise(right.GetLower(), right.GetUpper());
+            return Vector128.Create(leftPairs, rightPairs);
+        }
+
+        // Each shuffle puts the even values of a source in its lower half and the odd values in its upper half.
+        Vector128<float> leftSorted = Vector128.Shuffle(left, Vector128.Create(0, 2, 1, 3));
+        Vector128<float> rightSorted = Vector128.Shuffle(right, Vector128.Create(0, 2, 1, 3));
+        Vector128<float> even = Vector128.Create(leftSorted.GetLower(), rightSorted.GetLower());
+        Vector128<float> odd = Vector128.Create(leftSorted.GetUpper(), rightSorted.GetUpper());
+        return even + odd;
+    }
+
+    /// <summary>
     /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
     /// </summary>
     /// <param name="left">The left hand source vector.</param>

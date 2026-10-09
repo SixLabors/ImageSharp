@@ -455,6 +455,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
+            // The cost ratios divide by a best cost of at least one, so a zero cost cannot make them infinite.
             bestCost = Math.Max(bestCost, 1);
             Span<float> features = stackalloc float[9];
             features[..5].Fill(1);
@@ -527,35 +528,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     break;
             }
 
-            // Accumulate each output in hidden-node order. Consuming a node immediately avoids
-            // retaining an intermediate activation buffer while preserving each output's addition order.
             InlineArray3<float> scoreStorage = default;
             Span<float> scores = scoreStorage;
-            for (int output = 0; output < 3; output++)
-            {
-                scores[output] = outputBiases[output];
-            }
-
-            for (int node = 0; node < 32; node++)
-            {
-                float value = biases[node];
-                int offset = node * 9;
-                for (int feature = 0; feature < 9; feature++)
-                {
-                    value += weights[offset + feature] * features[feature];
-                }
-
-                value = Math.Max(value, 0);
-                for (int output = 0; output < 3; output++)
-                {
-                    scores[output] += outputWeights[(output * 32) + node] * value;
-                }
-            }
-
-            for (int output = 0; output < 3; output++)
-            {
-                scores[output] = (int)((scores[output] * 512F) + 0.5) * (1F / 512F);
-            }
+            Av1NeuralNetwork.Predict(features, weights, biases, outputWeights, outputBiases, scores);
 
             // Subtract the largest score before exponentiation, then bound the negative tail.
             // The three classes represent neither direction, horizontal, and vertical respectively.

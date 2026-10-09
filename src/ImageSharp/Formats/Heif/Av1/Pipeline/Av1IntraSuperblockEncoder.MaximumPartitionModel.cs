@@ -276,7 +276,7 @@ internal static partial class Av1IntraSuperblockEncoder
             features[12] = (rowSquares / 64F) - (meanRow * meanRow);
             InlineArray4<float> scoreStorage = default;
             Span<float> scores = scoreStorage;
-            EvaluateMotionPartitionModel(
+            Av1NeuralNetwork.Predict(
                 features[..13],
                 MaximumPartitionLayer0Kernel,
                 MaximumPartitionLayer0Bias,

@@ -1002,6 +1002,14 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Selects the asymmetric partition mask from the winning shape and preceding subblock costs.
         /// </summary>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="winner">The partition type of the best candidate so far.</param>
+        /// <param name="bestCost">The best partition cost of the block.</param>
+        /// <param name="horizontalCosts">The costs of the two horizontal halves.</param>
+        /// <param name="verticalCosts">The costs of the two vertical halves.</param>
+        /// <param name="splitNoneCosts">The unsplit costs of the four split children.</param>
+        /// <param name="currentMask">The asymmetric partitions that are allowed before the model runs.</param>
+        /// <returns>The asymmetric partitions that stay allowed, one bit per partition type.</returns>
         private int ClassifyAsymmetricPartitions(
             Av1BlockSize blockSize,
             Av1PartitionType winner,
@@ -1063,38 +1071,17 @@ internal static partial class Av1IntraSuperblockEncoder
                     break;
             }
 
+            // Each output encodes one four-bit partition mask.
             InlineArray16<float> scoreStorage = default;
             Span<float> scores = scoreStorage;
-            for (int output = 0; output < 16; output++)
-            {
-                scores[output] = outputBiases[output];
-            }
-
-            // Each output encodes one four-bit partition mask. Stream hidden activations directly
-            // into the sixteen outputs, preserving the trained model's accumulation order.
-            for (int node = 0; node < 64; node++)
-            {
-                float value = biases[node];
-                int offset = node * 10;
-                for (int feature = 0; feature < 10; feature++)
-                {
-                    value += weights[offset + feature] * features[feature];
-                }
-
-                value = Math.Max(value, 0);
-                for (int output = 0; output < 16; output++)
-                {
-                    scores[output] += outputWeights[(output * 64) + node] * value;
-                }
-            }
+            Av1NeuralNetwork.Predict(features, weights, biases, outputWeights, outputBiases, scores);
 
             InlineArray16<int> integerScoreStorage = default;
             Span<int> integerScores = integerScoreStorage;
             int maximum = -1000;
             for (int output = 0; output < 16; output++)
             {
-                float score = (int)((scores[output] * 512F) + 0.5) * (1F / 512F);
-                integerScores[output] = (int)(100 * score);
+                integerScores[output] = (int)(100 * scores[output]);
                 maximum = Math.Max(maximum, integerScores[output]);
             }
 

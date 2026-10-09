@@ -96,8 +96,7 @@ internal static partial class Av1WarpedInterPredictor
             subsamplingX,
             subsamplingY,
             parameters,
-            intermediateTile,
-            useHardwareIntrinsics: true);
+            intermediateTile);
 
     /// <summary>
     /// Reconstructs an 8-bit affine warped reference into the unsigned AV1 compound intermediate format.
@@ -145,8 +144,7 @@ internal static partial class Av1WarpedInterPredictor
             subsamplingX,
             subsamplingY,
             parameters,
-            intermediateTile,
-            useHardwareIntrinsics: true);
+            intermediateTile);
 
     /// <summary>
     /// Reconstructs a high-bit-depth affine warped prediction with the widest supported convolution operator.
@@ -197,8 +195,7 @@ internal static partial class Av1WarpedInterPredictor
             subsamplingY,
             bitDepth,
             parameters,
-            intermediateTile,
-            useHardwareIntrinsics: true);
+            intermediateTile);
 
     /// <summary>
     /// Reconstructs a high-bit-depth affine warped reference into the unsigned AV1 compound intermediate format.
@@ -249,8 +246,7 @@ internal static partial class Av1WarpedInterPredictor
             subsamplingY,
             bitDepth,
             parameters,
-            intermediateTile,
-            useHardwareIntrinsics: true);
+            intermediateTile);
 
     /// <summary>
     /// Reconstructs one 8-bit warped block through a closed convolution operator.
@@ -270,7 +266,6 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="subsamplingY">The vertical subsampling shift of the plane.</param>
     /// <param name="parameters">The affine warp model and its shear parameters.</param>
     /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedIntermediateLength"/> elements.</param>
-    /// <param name="useHardwareIntrinsics">Whether the SIMD kernels can run. False selects the scalar kernels.</param>
     private static void PredictWarped<TOperator>(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -285,8 +280,7 @@ internal static partial class Av1WarpedInterPredictor
         int subsamplingX,
         int subsamplingY,
         Av1GlobalMotionParameters parameters,
-        Span<short> intermediateTile,
-        bool useHardwareIntrinsics)
+        Span<short> intermediateTile)
         where TOperator : struct, IAv1WarpedPredictionOperator
     {
         ref byte sourceBase = ref MemoryMarshal.GetReference(source);
@@ -323,8 +317,7 @@ internal static partial class Av1WarpedInterPredictor
                     parameters,
                     intermediate,
                     horizontalBias,
-                    Round0Bits,
-                    useHardwareIntrinsics);
+                    Round0Bits);
 
                 int tileHeight = Math.Min(WarpedTileSize, destinationPosition.Y + height - tileRow);
                 int tileWidth = Math.Min(WarpedTileSize, destinationPosition.X + width - tileColumn);
@@ -344,8 +337,7 @@ internal static partial class Av1WarpedInterPredictor
                         phase,
                         parameters.Gamma,
                         verticalBias,
-                        verticalRound,
-                        useHardwareIntrinsics);
+                        verticalRound);
                 }
             }
         }
@@ -367,7 +359,6 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="intermediate">Receives the 15 rows of 8 intermediate samples.</param>
     /// <param name="bias">The bias added to each sum before rounding.</param>
     /// <param name="round">The rounding shift of the horizontal pass.</param>
-    /// <param name="useHardwareIntrinsics">Whether the SIMD kernels can run. False selects the scalar kernels.</param>
     private static void FilterWarpedHorizontal<TOperator>(
         ref byte sourceBase,
         int sourceStride,
@@ -380,8 +371,7 @@ internal static partial class Av1WarpedInterPredictor
         Av1GlobalMotionParameters parameters,
         Span<ushort> intermediate,
         int bias,
-        int round,
-        bool useHardwareIntrinsics)
+        int round)
         where TOperator : struct, IAv1WarpedPredictionOperator
     {
         // The AV1 specification clamps every horizontal tap to the frame: sample_x = clamp(ix + m, 0, width - 1).
@@ -429,7 +419,7 @@ internal static partial class Av1WarpedInterPredictor
 
             // The eight windows of a row use different warped phases. Each SIMD width packs complete eight-tap windows with their own coefficients.
             // Thus no buffer for each row is necessary.
-            if (useHardwareIntrinsics && Vector512.IsHardwareAccelerated)
+            if (Vector512.IsHardwareAccelerated)
             {
                 int oneVectorFromEnd = WarpedTileSize - 4;
                 for (; column <= oneVectorFromEnd; column += 4)
@@ -447,7 +437,7 @@ internal static partial class Av1WarpedInterPredictor
                 }
             }
 
-            if (useHardwareIntrinsics && Vector256.IsHardwareAccelerated)
+            if (Vector256.IsHardwareAccelerated)
             {
                 int oneVectorFromEnd = WarpedTileSize - 2;
                 for (; column <= oneVectorFromEnd; column += 2)
@@ -462,7 +452,7 @@ internal static partial class Av1WarpedInterPredictor
                 }
             }
 
-            if (useHardwareIntrinsics && Vector128.IsHardwareAccelerated)
+            if (Vector128.IsHardwareAccelerated)
             {
                 for (; column < WarpedTileSize; column++)
                 {
@@ -499,7 +489,6 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="intermediate">Receives the 15 rows of 8 intermediate samples.</param>
     /// <param name="bias">The bias added to each sum before rounding.</param>
     /// <param name="round">The rounding shift of the horizontal pass.</param>
-    /// <param name="useHardwareIntrinsics">Whether the SIMD kernels can run. False selects the scalar kernels.</param>
     private static void FilterWarpedHorizontal<TOperator>(
         ref ushort sourceBase,
         int sourceStride,
@@ -512,8 +501,7 @@ internal static partial class Av1WarpedInterPredictor
         Av1GlobalMotionParameters parameters,
         Span<ushort> intermediate,
         int bias,
-        int round,
-        bool useHardwareIntrinsics)
+        int round)
         where TOperator : struct, IAv1WarpedPredictionOperator
     {
         // The AV1 specification clamps every horizontal tap to the frame: sample_x = clamp(ix + m, 0, width - 1).
@@ -559,7 +547,7 @@ internal static partial class Av1WarpedInterPredictor
             int phase = phaseX + (parameters.Beta * (row + 4));
             int column = 0;
 
-            if (useHardwareIntrinsics && Vector512.IsHardwareAccelerated)
+            if (Vector512.IsHardwareAccelerated)
             {
                 int oneVectorFromEnd = WarpedTileSize - 4;
                 for (; column <= oneVectorFromEnd; column += 4)
@@ -578,7 +566,7 @@ internal static partial class Av1WarpedInterPredictor
                 }
             }
 
-            if (useHardwareIntrinsics && Vector256.IsHardwareAccelerated)
+            if (Vector256.IsHardwareAccelerated)
             {
                 int oneVectorFromEnd = WarpedTileSize - 2;
                 for (; column <= oneVectorFromEnd; column += 2)
@@ -594,7 +582,7 @@ internal static partial class Av1WarpedInterPredictor
                 }
             }
 
-            if (useHardwareIntrinsics && Vector128.IsHardwareAccelerated)
+            if (Vector128.IsHardwareAccelerated)
             {
                 for (; column < WarpedTileSize; column++)
                 {
@@ -627,7 +615,6 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="phaseStep">The phase change from one column to the next.</param>
     /// <param name="bias">The bias added to each sum before rounding.</param>
     /// <param name="round">The rounding shift of the vertical pass.</param>
-    /// <param name="useHardwareIntrinsics">Whether the SIMD kernels can run. False selects the scalar kernels.</param>
     private static void FilterWarpedVertical<TOperator>(
         ref ushort source,
         ref byte destination,
@@ -635,12 +622,11 @@ internal static partial class Av1WarpedInterPredictor
         int phase,
         int phaseStep,
         int bias,
-        int round,
-        bool useHardwareIntrinsics)
+        int round)
         where TOperator : struct, IAv1WarpedPredictionOperator
     {
         int column = 0;
-        if (useHardwareIntrinsics && Vector512.IsHardwareAccelerated)
+        if (Vector512.IsHardwareAccelerated)
         {
             int oneVectorFromEnd = width - 4;
             for (; column <= oneVectorFromEnd; column += 4)
@@ -658,7 +644,7 @@ internal static partial class Av1WarpedInterPredictor
             }
         }
 
-        if (useHardwareIntrinsics && Vector256.IsHardwareAccelerated)
+        if (Vector256.IsHardwareAccelerated)
         {
             int oneVectorFromEnd = width - 2;
             for (; column <= oneVectorFromEnd; column += 2)
@@ -674,7 +660,7 @@ internal static partial class Av1WarpedInterPredictor
             }
         }
 
-        if (useHardwareIntrinsics && Vector128.IsHardwareAccelerated)
+        if (Vector128.IsHardwareAccelerated)
         {
             for (; column < width; column++)
             {
@@ -705,19 +691,17 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="phase">The reduced vertical phase of column zero.</param>
     /// <param name="phaseStep">The phase change from one column to the next.</param>
     /// <param name="bias">The bias added to each sum before rounding.</param>
-    /// <param name="useHardwareIntrinsics">Whether the SIMD kernels can run. False selects the scalar kernels.</param>
     private static void FilterWarpedCompoundVertical<TOperator>(
         ref ushort source,
         ref ushort destination,
         int width,
         int phase,
         int phaseStep,
-        int bias,
-        bool useHardwareIntrinsics)
+        int bias)
         where TOperator : struct, IAv1WarpedPredictionOperator
     {
         int column = 0;
-        if (useHardwareIntrinsics && Vector512.IsHardwareAccelerated)
+        if (Vector512.IsHardwareAccelerated)
         {
             int oneVectorFromEnd = width - 4;
             for (; column <= oneVectorFromEnd; column += 4)
@@ -735,7 +719,7 @@ internal static partial class Av1WarpedInterPredictor
             }
         }
 
-        if (useHardwareIntrinsics && Vector256.IsHardwareAccelerated)
+        if (Vector256.IsHardwareAccelerated)
         {
             int oneVectorFromEnd = width - 2;
             for (; column <= oneVectorFromEnd; column += 2)
@@ -751,7 +735,7 @@ internal static partial class Av1WarpedInterPredictor
             }
         }
 
-        if (useHardwareIntrinsics && Vector128.IsHardwareAccelerated)
+        if (Vector128.IsHardwareAccelerated)
         {
             for (; column < width; column++)
             {
@@ -785,7 +769,6 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="round">The rounding shift of the vertical pass.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="maximum">The largest sample value of the bit depth.</param>
-    /// <param name="useHardwareIntrinsics">Whether the SIMD kernels can run. False selects the scalar kernels.</param>
     private static void FilterWarpedVertical<TOperator>(
         ref ushort source,
         ref ushort destination,
@@ -795,12 +778,11 @@ internal static partial class Av1WarpedInterPredictor
         int bias,
         int round,
         int bitDepth,
-        int maximum,
-        bool useHardwareIntrinsics)
+        int maximum)
         where TOperator : struct, IAv1WarpedPredictionOperator
     {
         int column = 0;
-        if (useHardwareIntrinsics && Vector512.IsHardwareAccelerated)
+        if (Vector512.IsHardwareAccelerated)
         {
             int oneVectorFromEnd = width - 4;
             for (; column <= oneVectorFromEnd; column += 4)
@@ -818,7 +800,7 @@ internal static partial class Av1WarpedInterPredictor
             }
         }
 
-        if (useHardwareIntrinsics && Vector256.IsHardwareAccelerated)
+        if (Vector256.IsHardwareAccelerated)
         {
             int oneVectorFromEnd = width - 2;
             for (; column <= oneVectorFromEnd; column += 2)
@@ -834,7 +816,7 @@ internal static partial class Av1WarpedInterPredictor
             }
         }
 
-        if (useHardwareIntrinsics && Vector128.IsHardwareAccelerated)
+        if (Vector128.IsHardwareAccelerated)
         {
             for (; column < width; column++)
             {
@@ -1045,7 +1027,6 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="subsamplingY">The vertical subsampling shift of the plane.</param>
     /// <param name="parameters">The affine warp model and its shear parameters.</param>
     /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedIntermediateLength"/> elements.</param>
-    /// <param name="useHardwareIntrinsics">Whether the SIMD kernels can run. False selects the scalar kernels.</param>
     private static void PredictWarpedCompound<TOperator>(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -1060,8 +1041,7 @@ internal static partial class Av1WarpedInterPredictor
         int subsamplingX,
         int subsamplingY,
         Av1GlobalMotionParameters parameters,
-        Span<short> intermediateTile,
-        bool useHardwareIntrinsics)
+        Span<short> intermediateTile)
         where TOperator : struct, IAv1WarpedPredictionOperator
     {
         ref byte sourceBase = ref MemoryMarshal.GetReference(source);
@@ -1097,8 +1077,7 @@ internal static partial class Av1WarpedInterPredictor
                     parameters,
                     intermediate,
                     horizontalBias,
-                    Round0Bits,
-                    useHardwareIntrinsics);
+                    Round0Bits);
 
                 int tileHeight = Math.Min(WarpedTileSize, destinationPosition.Y + height - tileRow);
                 int tileWidth = Math.Min(WarpedTileSize, destinationPosition.X + width - tileColumn);
@@ -1117,8 +1096,7 @@ internal static partial class Av1WarpedInterPredictor
                         tileWidth,
                         phase,
                         parameters.Gamma,
-                        verticalBias,
-                        useHardwareIntrinsics);
+                        verticalBias);
                 }
             }
         }
@@ -1143,7 +1121,6 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="parameters">The affine warp model and its shear parameters.</param>
     /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedIntermediateLength"/> elements.</param>
-    /// <param name="useHardwareIntrinsics">Whether the SIMD kernels can run. False selects the scalar kernels.</param>
     private static void PredictWarpedCompound<TOperator>(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -1159,8 +1136,7 @@ internal static partial class Av1WarpedInterPredictor
         int subsamplingY,
         int bitDepth,
         Av1GlobalMotionParameters parameters,
-        Span<short> intermediateTile,
-        bool useHardwareIntrinsics)
+        Span<short> intermediateTile)
         where TOperator : struct, IAv1WarpedPredictionOperator
     {
         ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
@@ -1201,8 +1177,7 @@ internal static partial class Av1WarpedInterPredictor
                     parameters,
                     intermediate,
                     horizontalBias,
-                    round0,
-                    useHardwareIntrinsics);
+                    round0);
 
                 int tileHeight = Math.Min(WarpedTileSize, destinationPosition.Y + height - tileRow);
                 int tileWidth = Math.Min(WarpedTileSize, destinationPosition.X + width - tileColumn);
@@ -1221,8 +1196,7 @@ internal static partial class Av1WarpedInterPredictor
                         tileWidth,
                         phase,
                         parameters.Gamma,
-                        verticalBias,
-                        useHardwareIntrinsics);
+                        verticalBias);
                 }
             }
         }
@@ -1247,7 +1221,6 @@ internal static partial class Av1WarpedInterPredictor
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="parameters">The affine warp model and its shear parameters.</param>
     /// <param name="intermediateTile">Signed intermediate storage of at least <see cref="WarpedIntermediateLength"/> elements.</param>
-    /// <param name="useHardwareIntrinsics">Whether the SIMD kernels can run. False selects the scalar kernels.</param>
     private static void PredictWarped<TOperator>(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -1263,8 +1236,7 @@ internal static partial class Av1WarpedInterPredictor
         int subsamplingY,
         int bitDepth,
         Av1GlobalMotionParameters parameters,
-        Span<short> intermediateTile,
-        bool useHardwareIntrinsics)
+        Span<short> intermediateTile)
         where TOperator : struct, IAv1WarpedPredictionOperator
     {
         ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
@@ -1307,8 +1279,7 @@ internal static partial class Av1WarpedInterPredictor
                     parameters,
                     intermediate,
                     horizontalBias,
-                    round0,
-                    useHardwareIntrinsics);
+                    round0);
 
                 int tileHeight = Math.Min(WarpedTileSize, destinationPosition.Y + height - tileRow);
                 int tileWidth = Math.Min(WarpedTileSize, destinationPosition.X + width - tileColumn);
@@ -1330,8 +1301,7 @@ internal static partial class Av1WarpedInterPredictor
                         verticalBias,
                         verticalRound,
                         bitDepth,
-                        maximum,
-                        useHardwareIntrinsics);
+                        maximum);
                 }
             }
         }

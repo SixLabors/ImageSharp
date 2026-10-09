@@ -4,28 +4,27 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// The perceptual metric the encoder tunes its decisions for. Reference: aom_tune_metric.
+/// The perceptual metric the encoder tunes its decisions for.
 /// </summary>
 internal enum Av1Tuning
 {
     /// <summary>
-    /// Peak signal-to-noise ratio, the libaom default. Reference: AOM_TUNE_PSNR.
+    /// Peak signal-to-noise ratio. This is the default tune.
     /// </summary>
     Psnr,
 
     /// <summary>
-    /// Structural similarity. Reference: AOM_TUNE_SSIM.
+    /// Structural similarity.
     /// </summary>
     Ssim,
 
     /// <summary>
-    /// Image quality, tuned for still images. Reference: AOM_TUNE_IQ.
+    /// Image quality, tuned for still images.
     /// </summary>
     Iq,
 
     /// <summary>
-    /// The SSIMULACRA 2 metric, which uses the image quality tools with its own luma quantization matrices and a
-    /// larger 4:2:0 chroma quantizer decrease. Reference: AOM_TUNE_SSIMULACRA2.
+    /// The SSIMULACRA 2 metric. It uses the image quality tools with its own luma quantization matrices and a larger 4:2:0 chroma quantizer decrease.
     /// </summary>
     Ssimulacra2,
 }

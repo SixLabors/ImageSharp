@@ -11,10 +11,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 internal static partial class Av1QuantizationMatrixLookup
 {
     /// <summary>
-    /// Gets the forward weights of <see cref="WeightTable"/>, with each stored matrix in the order in which the
-    /// weighted distortion measure pairs it with the raster coefficients here: coefficient <c>(row, column)</c> takes
-    /// the entry at default scan position <c>column * height + row</c>. Reference: the <c>qmatrix[scan[i]]</c> read of
-    /// av1_block_error_qm(), whose coefficient <c>i</c> is in column-major order.
+    /// Gets the forward weights of <see cref="WeightTable"/>, with each stored matrix in the order in which the weighted distortion
+    /// measure pairs it with the raster coefficients here: coefficient <c>(row, column)</c> takes the entry at default scan position
+    /// <c>column * height + row</c>. The measure numbers its coefficients in column-major order.
     /// </summary>
     private static ReadOnlySpan<byte> DistortionWeightTable =>
     [

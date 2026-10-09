@@ -27,7 +27,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public const int MaximumResidualCount = (1 << Av1Constants.MaxSuperBlockSizeLog2) * (1 << Av1Constants.MaxSuperBlockSizeLog2);
 
     /// <summary>
-    /// The largest number of 16x16 temporal dependency blocks in a superblock. Reference: MAX_TPL_BLK_IN_SB squared.
+    /// The largest number of 16x16 temporal dependency blocks in a superblock. A 128x128 superblock holds 8x8 of these blocks.
     /// </summary>
     public const int TplSuperblockBlockCount = 8 * 8;
 
@@ -103,8 +103,8 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
 
     private const int ModeDecisionStorageLength = Av1EncoderModeDecisionWorkspace<ushort>.StorageLength;
 
-    // Motion search and compound evaluation run sequentially. The larger compound region holds
-    // two unsigned predictions and a byte mask; transform trials borrow its prediction area.
+    // Motion search and compound evaluation run one after the other. The larger compound region holds two unsigned predictions and a byte mask.
+    // Transform trials borrow its prediction area.
     private const int CompoundScratchStorageLength =
         Av1EncoderInterPredictionWorkspace<ushort>.MaximumSampleCount * ((2 * sizeof(ushort)) + sizeof(byte)) / sizeof(int);
 
@@ -218,9 +218,8 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     {
         this.Configuration = configuration;
 
-        // Motion rates belong to the worker, not a block candidate or frame. Keep both precision pairs after
-        // the existing scratch regions so sequence frames can change precision while retaining one owner.
-        // Block-copy capacity appends its independent integer pair at the end of that same allocation.
+        // Motion rates belong to the worker, not to a block candidate or a frame. Both precision pairs follow the scratch regions,
+        // so sequence frames can change precision with one owner. Intra block copy appends its own integer pair at the end of the same allocation.
         this.motionSearchSiteStorageOffset = StorageLength + (allocateInterMotionCosts ? Av1MotionVectorCosts.StorageLength : 0);
         bool allocateSearchSites = allocateInterMotionCosts || allocateDisplacementCosts;
         int length = this.motionSearchSiteStorageOffset +
@@ -244,8 +243,8 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
             length += (int)Av1BlockSize.AllSizes * Av1ModeThresholds.ModeCount;
         }
 
-        // Prediction records survive all mode trials in a block; fitted models survive superblocks
-        // until the tile ends. Keep both outside scratch regions that transforms overwrite.
+        // Prediction records survive all mode trials in a block. Fitted models survive superblocks until the tile ends.
+        // Both stay outside the scratch regions that transforms overwrite.
         this.interModeStorageOffset = (length + 1) & ~1;
         this.interModeModelStorageOffset = this.interModeStorageOffset +
             ((((Av1InterModeCandidate.Capacity * Unsafe.SizeOf<Av1InterModeCandidate>()) + 7) & ~7) / sizeof(int));
@@ -259,8 +258,8 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         this.singleReferenceFilterCostStorageOffset = this.interpolationSearchStorageOffset +
             (Av1InterpolationSearchRecord.Capacity * Unsafe.SizeOf<Av1InterpolationSearchRecord>() / sizeof(int));
 
-        // Modeled filter costs and complete translation costs share the same mode/DRL/reference indexing.
-        // Both survive compound trials but are reset at the next coding block.
+        // Modeled filter costs and complete translation costs use the same index order: mode, DRL index, then reference.
+        // Both survive compound trials. The next coding block resets them.
         int singleReferenceCostLength = 4 * 3 * Av1Constants.ReferenceFrameCount * sizeof(long) / sizeof(int);
         this.singleReferenceSimpleCostStorageOffset = this.singleReferenceFilterCostStorageOffset + singleReferenceCostLength;
         if (allocateInterMotionCosts)
@@ -271,8 +270,8 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         this.simpleMotionStorageOffset = length;
         if (allocateInterMotionCosts)
         {
-            // Include the 4x4 leaves used by simple-motion split features, even though those leaves
-            // do not own further partition searches. Geometry fixes this storage for the worker's lifetime.
+            // Include the 4x4 leaves that the simple-motion split features use, although these leaves own no further partition search.
+            // The superblock geometry fixes this storage for the lifetime of the worker. A full quad tree over the leaves has (4 * leaves - 1) / 3 nodes.
             int leafCount = superblockSize.GetWidth() * superblockSize.GetHeight() / 16;
             int nodeCount = ((4 * leafCount) - 1) / 3;
             this.simpleMotionStorageLength = nodeCount * Unsafe.SizeOf<Av1SimpleMotionData>() / sizeof(int);
@@ -292,8 +291,8 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         this.CodedLoopFilterLevels.Clear();
         if (allocateSearchSites)
         {
-            // Each shape retains its offsets across frames. A zero stride marks its first use; every populated
-            // site and stage is subsequently overwritten when the reference stride changes.
+            // Each shape retains its offsets across frames. A zero stride marks its first use.
+            // When the reference stride changes, the search writes every populated site and stage again.
             Span<int> storage = this.owner.Memory.Span;
             for (int index = 0; index < MotionSearchSiteCount; index++)
             {
@@ -385,7 +384,6 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
 
     /// <summary>
     /// Gets the unwrapped display order of the frame retained in each decoded reference slot.
-    /// Reference: the display_order_hint of each RefCntBuffer.
     /// </summary>
     public Span<int> ReferenceFrameNumbers => this.GetReferenceFrameNumbers(this.owner.Memory.Span);
 
@@ -395,33 +393,30 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public int[] ReferenceBaseQIndices { get; } = new int[Av1Constants.ReferenceFrameCount];
 
     /// <summary>
-    /// Gets the luma transform search results of the recent inter blocks of the superblock. Reference:
-    /// x->txfm_search_info.mb_rd_record.
+    /// Gets the luma transform search results of the recent inter blocks of the superblock.
     /// </summary>
     public Av1MacroblockRateDistortionRecord MacroblockRateDistortionRecord { get; } = new();
 
     /// <summary>
     /// Gets the references that the square blocks of the current superblock picked, one bit per reference type,
-    /// for each 4x4 position in a 32 by 32 grid. Reference: x->picked_ref_frames_mask.
+    /// for each 4x4 position in a 32 by 32 grid.
     /// </summary>
     public int[] PickedReferenceFrameMasks { get; } = new int[32 * 32];
 
     /// <summary>
-    /// Gets the OBMC search target of the current block, one entry per luma sample. Reference: obmc_buffer.wsrc.
+    /// Gets the OBMC search target of the current block, one entry per luma sample.
     /// </summary>
     public int[] ObmcWeightedSource { get; } = new int[128 * 128];
 
     /// <summary>
-    /// Gets the OBMC prediction weights of the current block, one entry per luma sample. Reference: obmc_buffer.mask.
+    /// Gets the OBMC prediction weights of the current block, one entry per luma sample.
     /// </summary>
     public int[] ObmcMask { get; } = new int[128 * 128];
 
     /// <summary>
-    /// Gets the average-removed subsampled luma that the chroma mode search of the current intra block predicted
-    /// chroma-from-luma with, at the fixed stride of the chroma-from-luma buffer. The winner refinement of an intra
-    /// block in an inter frame predicts from it again, because the reference stores luma for chroma-from-luma only
-    /// before the chroma mode search. Reference: the store_y encode of av1_encode_intra_block_plane() in
-    /// search_intra_uv_modes_in_interframe(), which refine_winner_mode_tx() does not repeat.
+    /// Gets the average-removed subsampled luma that the chroma mode search of the current intra block used for chroma-from-luma prediction.
+    /// The samples use the fixed stride of the chroma-from-luma buffer. The winner refinement of an intra block in an inter frame predicts from them again.
+    /// The encoder stores luma for chroma-from-luma only before the chroma mode search, and the winner refinement does not store it again.
     /// </summary>
     public short[] ChromaFromLumaSearchSamples { get; } = new short[Prediction.ChromaFromLuma.Av1ChromaFromLumaContext.BufferLength];
 
@@ -429,8 +424,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// Gets the luma vertical, luma horizontal, U, and V deblocking levels retained from the preceding frame.
     /// </summary>
     /// <remarks>
-    /// This mirrors libaom <c>ppi-&gt;filter_level[0..1]</c>, <c>filter_level_u</c>, and <c>filter_level_v</c>,
-    /// which a full-image level search of an inter frame uses as its starting point.
+    /// A full-image level search of an inter frame starts from these levels.
     /// </remarks>
     public Span<int> PreviousLoopFilterLevels => this.owner.Memory.Span.Slice(
         this.loopFilterLevelStorageOffset, LoopFilterLevelCount);
@@ -439,60 +433,55 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// Gets the luma vertical, luma horizontal, U, and V deblocking levels that the last coded frame header carried.
     /// </summary>
     /// <remarks>
-    /// This mirrors libaom <c>cm-&gt;lf.filter_level[0..1]</c>, <c>filter_level_u</c>, and <c>filter_level_v</c> between
-    /// the loop filter of one frame and that of the next, which the measuring pack of the recode loop writes.
+    /// The levels stay from the loop filter of one frame to the loop filter of the next frame. The measuring pack of the recode loop writes them.
     /// </remarks>
     public Span<int> CodedLoopFilterLevels => this.owner.Memory.Span.Slice(
         this.loopFilterLevelStorageOffset + LoopFilterLevelCount, LoopFilterLevelCount);
 
     /// <summary>
-    /// Gets or sets the unwrapped display order of the current frame. Without a lookahead it is the number of
-    /// completed coded frames. Reference: cm->current_frame.display_order_hint.
+    /// Gets or sets the unwrapped display order of the current frame. Without a lookahead, it is the number of completed coded frames.
     /// </summary>
     public int EncodedFrameCount { get; set; }
 
     /// <summary>
-    /// Gets or sets the number of frames shown before the current frame. Without a lookahead it equals
-    /// <see cref="EncodedFrameCount"/>. Reference: cm->current_frame.frame_number.
+    /// Gets or sets the number of frames shown before the current frame. Without a lookahead, it equals <see cref="EncodedFrameCount"/>.
     /// </summary>
     public int FrameNumber { get; set; }
 
     /// <summary>
-    /// Gets or sets the frame rate multiplier of the preceding coded frame. Reference: td.mb.rdmult, which
-    /// loopfilter_frame() sets to cpi->rd.RDMULT after each frame and the block searches restore after use.
+    /// Gets or sets the frame rate multiplier of the preceding coded frame. The loop filter stage sets it after each frame.
+    /// The block searches restore it after use.
     /// </summary>
     public int PreviousFrameRateMultiplier { get; set; }
 
     /// <summary>
     /// Gets or sets the regularized importance of the latest superblock whose temporal dependency statistics gave one.
-    /// It persists across superblocks and frames and starts at zero, which leaves coding block rate multipliers
-    /// unscaled. Reference: x->rb, which av1_get_q_for_deltaq_objective() sets.
+    /// It persists across superblocks and frames. It starts at zero, which leaves the rate multipliers of coding blocks unscaled.
     /// </summary>
     public double RegularizedImportance { get; set; }
 
     /// <summary>
-    /// Gets or sets the rate multiplier that the motion vector error per bit derives from. It persists across blocks,
-    /// superblocks and frames: the frame setup, the superblock quantizer setup, the block setups of the SSIM tunes and
-    /// each block mode search set it, and the simple motion searches of the partition search read the value set last.
-    /// Reference: x->errorperbit, which av1_set_error_per_bit() derives.
+    /// Gets or sets the rate multiplier that the motion vector error per bit derives from. It persists across blocks, superblocks and frames.
+    /// The frame setup, the superblock quantizer setup, the block setups of the SSIM tunes and each block mode search set it.
+    /// The simple motion searches of the partition search read the value set last.
     /// </summary>
     public int ErrorPerBitRateMultiplier { get; set; }
 
     /// <summary>
-    /// Gets the temporal dependency inter cost of each 16x16 block of the current superblock, scaled by sixteen, in
-    /// raster order with the superblock's block stride. Reference: sb_enc->tpl_inter_cost.
+    /// Gets the temporal dependency inter cost of each 16x16 block of the current superblock, scaled by sixteen.
+    /// The costs are in raster order with the block stride of the superblock.
     /// </summary>
     public long[] TplSuperblockInterCosts { get; } = new long[TplSuperblockBlockCount];
 
     /// <summary>
-    /// Gets the temporal dependency intra cost of each 16x16 block of the current superblock, scaled by sixteen, at
-    /// the indices of <see cref="TplSuperblockInterCosts"/>. Reference: sb_enc->tpl_intra_cost.
+    /// Gets the temporal dependency intra cost of each 16x16 block of the current superblock, scaled by sixteen,
+    /// at the indices of <see cref="TplSuperblockInterCosts"/>.
     /// </summary>
     public long[] TplSuperblockIntraCosts { get; } = new long[TplSuperblockBlockCount];
 
     /// <summary>
-    /// Gets the temporal dependency motion vectors of each 16x16 block of the current superblock, seven per block, one
-    /// for each reference LAST to ALTREF. Reference: sb_enc->tpl_mv.
+    /// Gets the temporal dependency motion vectors of each 16x16 block of the current superblock.
+    /// Each block has seven vectors, one for each reference from LAST to ALTREF.
     /// </summary>
     public Av1MotionVector[] TplSuperblockVectors { get; } =
         new Av1MotionVector[TplSuperblockBlockCount * Tpl.Av1TplModelConstants.InterReferenceCount];
@@ -503,34 +492,31 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public Span<int> ModeThresholdFactors => this.GetModeThresholdFactors(this.owner.Memory.Span);
 
     /// <summary>
-    /// Gets the quantizer-dependent base scale of the frame's mode thresholds, one per segment. Reference: the
-    /// segment loop of set_block_thresholds().
+    /// Gets the quantizer-dependent base scale of the mode thresholds of the frame, one per segment.
     /// </summary>
     public Span<int> ModeThresholdQuantizerFactors => this.modeThresholdQuantizerFactors;
 
     /// <summary>
-    /// Gets or sets the variance segment that the last 16x16 partition node measured, which the blocks of 16x16 and
-    /// smaller take. Like the reference's, it keeps its value across superblocks and frames. Reference: x->mb_energy.
+    /// Gets or sets the variance segment that the last 16x16 partition node measured. The blocks of 16x16 and smaller take this segment.
+    /// It keeps its value across superblocks and frames.
     /// </summary>
     public int MacroblockEnergy { get; set; }
 
     /// <summary>
-    /// Gets or sets the block size of the measure in <see cref="SubBlockEnergyDifference"/>. As in the reference, it keeps its value across blocks and frames.
-    /// So a later block of the same size uses the stored difference again. It starts as the smallest block size, as a zeroed macroblock does.
-    /// Reference: x->sub_block_energy_bsize.
+    /// Gets or sets the block size of the measure in <see cref="SubBlockEnergyDifference"/>. It keeps its value across blocks and frames.
+    /// So a later block of the same size uses the stored difference again. It starts as the smallest block size.
     /// </summary>
     public Av1BlockSize SubBlockEnergyBlockSize { get; set; }
 
     /// <summary>
     /// Gets or sets the sub-block energy difference measured for <see cref="SubBlockEnergyBlockSize"/>.
-    /// Reference: x->sub_block_energy_diff.
     /// </summary>
     public int SubBlockEnergyDifference { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the luma in the transform is a noise pattern.
     /// At high bit depth sharpness 3, a noise pattern is a block destination that is smoother than a source with low detail.
-    /// The block search sets this value for the residual trials that it measures. Reference: is_noise_pattern in av1_optimize_txb().
+    /// The block search sets this value for the residual trials that it measures. A noise pattern keeps more coefficients in the coefficient optimization.
     /// </summary>
     public bool LumaNoisePattern { get; set; }
 
@@ -560,26 +546,24 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public Av1EncoderOptions EncoderOptions { get; set; } = Av1EncoderOptions.Create(HeifEncodingSpeed.Level6);
 
     /// <summary>
-    /// Gets or sets a value indicating whether the last transform candidate was quantized without its quantization
-    /// matrices. Reference: the av1_setup_quant() call of skip_trellis_opt_based_on_satd().
+    /// Gets or sets a value indicating whether the last transform candidate was quantized without its quantization matrices.
+    /// The SATD gate of the coefficient optimization can drop the matrices.
     /// </summary>
     public bool CandidateMatricesDropped { get; set; }
 
     /// <summary>
-    /// Gets or sets the quantization matrix level of the luma plane; the flat level 15 turns the matrix off.
-    /// Reference: qmatrix_level_y, or NUM_QM_LEVELS - 1 when av1_use_qmatrix() is false.
+    /// Gets or sets the quantization matrix level of the luma plane. The flat level 15 turns the matrix off.
+    /// A frame without quantization matrices and a lossless segment use the flat level.
     /// </summary>
     public int LumaQuantizationMatrixLevel { get; set; } = Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1;
 
     /// <summary>
     /// Gets or sets the quantization matrix level of the chroma planes, which share one level.
-    /// Reference: qmatrix_level_u.
     /// </summary>
     public int ChromaQuantizationMatrixLevel { get; set; } = Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1;
 
     /// <summary>
     /// Gets or sets a value indicating whether the residual beyond the frame edge is filled from its visible part.
-    /// Reference: cpi->do_border_pad.
     /// </summary>
     public bool BorderPad { get; set; }
 
@@ -628,9 +612,8 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public Span<int> PartitionAnalysisScratch => GetPartitionAnalysisScratch(this.owner.Memory.Span);
 
     /// <summary>
-    /// Gets the coefficients of one row of mode-estimation transforms across the widest block, eight 16x16
-    /// transforms of a 128-sample row. It spans the forward and dequantized coefficient workspaces. Reference: the
-    /// coeff buffer that av1_block_yrd() fills.
+    /// Gets the coefficients of one row of mode-estimation transforms across the widest block, eight 16x16 transforms of a 128-sample row.
+    /// It spans the forward and dequantized coefficient workspaces.
     /// </summary>
     public Span<int> EstimationRowCoefficients
         => this.owner.Memory.Span.Slice(TransformCoefficientOffset, 2 * MaximumCoefficientCount);
@@ -705,11 +688,10 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
 
     /// <summary>
     /// Gets the forward quantization matrix of a transform block, or an empty span for a flat matrix.
-    /// Reference: av1_get_qmatrix().
     /// </summary>
     /// <param name="componentType">The luma or chroma component.</param>
     /// <param name="transformSize">The transform size.</param>
-    /// <param name="transformType">The transform type; one-dimensional and identity transforms use a flat matrix.</param>
+    /// <param name="transformType">The transform type. One-dimensional and identity transforms use a flat matrix.</param>
     /// <returns>The raster-order weights.</returns>
     public ReadOnlySpan<byte> GetQuantizationMatrix(Av1ComponentType componentType, Av1TransformSize transformSize, Av1TransformType transformType)
     {
@@ -720,12 +702,12 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     }
 
     /// <summary>
-    /// Gets the forward quantization matrix of a transform block in the order of the weighted distortion measure, or
-    /// an empty span for a flat matrix. Reference: the qmatrix and scan that av1_block_error_qm() reads.
+    /// Gets the forward quantization matrix of a transform block in the order of the weighted distortion measure,
+    /// or an empty span for a flat matrix.
     /// </summary>
     /// <param name="componentType">The luma or chroma component.</param>
     /// <param name="transformSize">The transform size.</param>
-    /// <param name="transformType">The transform type; one-dimensional and identity transforms use a flat matrix.</param>
+    /// <param name="transformType">The transform type. One-dimensional and identity transforms use a flat matrix.</param>
     /// <returns>The weight of each raster coefficient.</returns>
     public ReadOnlySpan<byte> GetDistortionWeights(Av1ComponentType componentType, Av1TransformSize transformSize, Av1TransformType transformType)
     {
@@ -737,11 +719,10 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
 
     /// <summary>
     /// Gets the inverse quantization matrix of a transform block, or an empty span for a flat matrix.
-    /// Reference: av1_get_iqmatrix().
     /// </summary>
     /// <param name="componentType">The luma or chroma component.</param>
     /// <param name="transformSize">The transform size.</param>
-    /// <param name="transformType">The transform type; one-dimensional and identity transforms use a flat matrix.</param>
+    /// <param name="transformType">The transform type. One-dimensional and identity transforms use a flat matrix.</param>
     /// <returns>The raster-order weights.</returns>
     public ReadOnlySpan<byte> GetInverseQuantizationMatrix(Av1ComponentType componentType, Av1TransformSize transformSize, Av1TransformType transformType)
     {
@@ -752,8 +733,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     }
 
     /// <summary>
-    /// Gets the coefficient optimization weights of a transform block. Reference: the configuration reads of
-    /// av1_optimize_txb().
+    /// Gets the coefficient optimization weights of a transform block from the encoder options and the quantization matrix levels.
     /// </summary>
     /// <param name="componentType">The luma or chroma component.</param>
     /// <param name="transformSize">The transform size.</param>
@@ -769,8 +749,8 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
             ? this.GetQuantizationMatrix(componentType, transformSize, transformType)
             : default;
 
-        // A luma noise pattern keeps more coefficients. The shift of the image tunes has priority over it.
-        // Reference: the is_noise_pattern rshift and min_eob_cutoff of av1_optimize_txb() and update_coeff_eob().
+        // A luma noise pattern keeps more coefficients. It uses a larger rate shift and a larger minimum end-of-block cutoff.
+        // The rate shift of the image tunes has priority over the noise pattern.
         bool noisePattern = componentType == Av1ComponentType.Luminance && this.LumaNoisePattern;
         int rateShift = options.Tuning.IsImageTuning() ? 7 : noisePattern ? 6 : 5;
         ReadOnlySpan<byte> inverseWeights = this.GetInverseQuantizationMatrix(componentType, transformSize, transformType);
@@ -889,6 +869,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// <summary>
     /// Borrows the luma-resolution compound mask storage following both intermediate blocks.
     /// </summary>
+    /// <returns>The compound mask storage, one byte per luma sample of the largest block.</returns>
     public Span<byte> GetCompoundPredictionMask()
     {
         int offset = InterPredictionSampleStorageOffset + InterPredictionStorageLength;
@@ -900,6 +881,10 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// <summary>
     /// Borrows one inter-intra predictor and two extended reference edges after motion search has completed.
     /// </summary>
+    /// <typeparam name="TSample">The unsigned sample storage type of the frame.</typeparam>
+    /// <param name="prediction">Receives the predictor storage for the largest transform block.</param>
+    /// <param name="above">Receives the storage of the above edge.</param>
+    /// <param name="left">Receives the storage of the left edge.</param>
     public void GetInterIntraStorage<TSample>(
         out Span<TSample> prediction,
         out Span<TSample> above,
@@ -975,8 +960,8 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public Av1EncoderModeDecisionWorkspace<TSample> GetModeDecisionWorkspace<TSample>()
         where TSample : unmanaged
     {
-        // Inter and intra searches run sequentially for each block. Their prediction and coefficient
-        // scratch share this region; only retained syntax survives the transition between families.
+        // Inter and intra searches run one after the other for each block. Their prediction and coefficient scratch share this region.
+        // Only the retained syntax survives the transition between the two search families.
         Span<int> storage = this.owner.Memory.Span.Slice(
             InterPredictionSampleStorageOffset,
             SharedModeDecisionStorageLength);
@@ -1175,7 +1160,6 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
 
     /// <summary>
     /// Gets the number of columns and rows of a block that lie inside the visible boundary, never less than zero.
-    /// Reference: get_visible_dimensions() with clip_dims set.
     /// </summary>
     /// <param name="plane">The plane.</param>
     /// <param name="origin">The block origin in plane samples.</param>

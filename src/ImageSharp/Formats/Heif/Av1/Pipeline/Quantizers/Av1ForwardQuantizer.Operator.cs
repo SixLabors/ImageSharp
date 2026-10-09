@@ -89,7 +89,7 @@ internal static partial class Av1ForwardQuantizer
     }
 
     /// <summary>
-    /// Implements libaom's fast no-matrix quantizer for lossy transform blocks.
+    /// Implements the fast no-matrix quantizer for lossy 8-bit transform blocks.
     /// </summary>
     /// <remarks>
     /// Every SIMD overload preserves the scalar operation order: magnitude threshold, saturating round, Q16 reciprocal
@@ -109,8 +109,8 @@ internal static partial class Av1ForwardQuantizer
             Vector128<int> coefficientSign = Vector128.ShiftRightArithmetic(coefficients, 31);
             Vector128<int> magnitude = Vector128.Abs(coefficients);
 
-            // libaom retains equality at the dequantizer threshold. Reversing the comparison and complementing its mask
-            // expresses scaledMagnitude >= dequantizer with the vector operations available for every supported ISA.
+            // A coefficient can stay nonzero only when magnitude << (1 + logScale) is at least the dequantizer, equality included.
+            // The complement of dequantizer > scaledMagnitude gives that test with the vector operations of every supported ISA.
             Vector128<int> thresholdMask = ~Vector128.GreaterThan(dequantizer, magnitude << (1 + logScale));
 
             // Clamp the rounded magnitude to 32,767 so the following Q16 product remains within a signed 32-bit lane.
@@ -207,8 +207,8 @@ internal static partial class Av1ForwardQuantizer
     /// Implements fast no-matrix quantization without truncating high-bit-depth transform magnitudes.
     /// </summary>
     /// <remarks>
-    /// The reciprocal product is widened to 64 bits because 10-bit and 12-bit transforms can exceed the signed
-    /// 16-bit range. Each SIMD overload preserves the scalar fixed-point operation order in every lane.
+    /// The reciprocal product widens to 64 bits, because 10-bit and 12-bit transforms can exceed the signed 16-bit range.
+    /// Each SIMD overload keeps the scalar fixed-point operation order in every lane.
     /// </remarks>
     internal readonly struct HighBitDepthFastQuantizationOperator : IForwardQuantizationOperator
     {

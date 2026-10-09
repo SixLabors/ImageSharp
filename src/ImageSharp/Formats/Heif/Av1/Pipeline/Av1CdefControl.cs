@@ -4,27 +4,27 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// The CDEF control of the encoder. Reference: CDEF_CONTROL.
+/// The CDEF control of the encoder.
 /// </summary>
 internal enum Av1CdefControl
 {
     /// <summary>
-    /// CDEF is disabled. Reference: CDEF_NONE.
+    /// The encoder disables CDEF.
     /// </summary>
     None,
 
     /// <summary>
-    /// CDEF is enabled for every frame. Reference: CDEF_ALL.
+    /// The encoder enables CDEF for every frame.
     /// </summary>
     All,
 
     /// <summary>
-    /// CDEF is enabled for reference frames only. Reference: CDEF_REFERENCE.
+    /// The encoder enables CDEF for reference frames only.
     /// </summary>
     Reference,
 
     /// <summary>
-    /// CDEF strength adapts to the frame quantizer. Reference: CDEF_ADAPTIVE.
+    /// The CDEF strength adapts to the frame quantizer.
     /// </summary>
     Adaptive,
 }

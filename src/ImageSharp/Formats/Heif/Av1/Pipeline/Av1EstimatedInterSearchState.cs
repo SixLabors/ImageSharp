@@ -117,8 +117,8 @@ internal struct Av1EstimatedInterSearchState
     /// <param name="selectReferenceMode">Whether this block can select single or compound prediction.</param>
     public void Reset(Av1ModeCosts modeCosts, int intraInterContext, int compoundTypeContext, bool selectReferenceMode)
     {
-        // Motion and syntax entries are filled only for admitted references. Clear their validity,
-        // not their unused payloads; a rejected or unavailable reference must never consume an entry.
+        // The search fills motion and syntax entries only for admitted references. The reset clears their validity, not
+        // their unused payloads. A rejected or unavailable reference must never consume an entry.
         this.EvaluatedModes[..].Clear();
         this.UseReference[..].Clear();
         this.PredictorSad[..].Fill(int.MaxValue);
@@ -143,8 +143,8 @@ internal struct Av1EstimatedInterSearchState
             baseCost += modeCosts.GetCompoundReferenceType(compoundTypeContext, 1);
         }
 
-        // Estimated reference costs share three branches. The mode search deliberately retains
-        // these estimates until publication rather than mixing them with the complete syntax tree.
+        // The estimated reference costs use only three branches of the single-reference tree, so the seven references share
+        // three costs. The mode search keeps these estimates until publication and does not mix them with the complete tree.
         int lastCost = baseCost + modeCosts.GetSingleReference(0, 0, 0);
         int goldenCost = baseCost + modeCosts.GetSingleReference(0, 0, 1) + modeCosts.GetSingleReference(0, 1, 0);
         int alternateCost = baseCost + modeCosts.GetSingleReference(0, 0, 1) + modeCosts.GetSingleReference(0, 2, 0);
@@ -163,11 +163,10 @@ internal struct Av1EstimatedInterSearchState
     /// <param name="mode">The single-reference mode.</param>
     /// <param name="reference">The reference slot.</param>
     /// <param name="referencePruning">
-    /// The reference pruning level of the speed features, not the block's level that the partition reference
-    /// choice clears. Reference: rt_sf->nonrd_prune_ref_frame_search in skip_inter_mode_nonrd() and the
-    /// thresh_sad_pred setup of av1_nonrd_pick_inter_mode_sb().
+    /// The reference pruning level of the speed configuration. It is not the block level, which the partition reference
+    /// choice can clear. Level 1 allows a margin of one quarter above twice the last-reference error.
     /// </param>
-    /// <returns>Whether the candidate can be omitted.</returns>
+    /// <returns>Whether the search can omit the candidate.</returns>
     public readonly bool SkipByPredictorSad(Av1PredictionMode mode, Av1ReferenceFrameType reference, int referencePruning)
     {
         int slot = (int)reference;
@@ -190,13 +189,12 @@ internal struct Av1EstimatedInterSearchState
 
     /// <summary>
     /// Sets the block state that biases the cost of single-reference candidates in constant-bitrate coding.
-    /// Reference: the arguments of newmv_diff_bias() in handle_inter_mode_nonrd().
     /// </summary>
-    /// <param name="enabled">Whether the bias applies. Reference: rc_cfg.mode == AOM_CBR.</param>
+    /// <param name="enabled">Whether the bias applies. The bias applies only in constant-bitrate coding.</param>
     /// <param name="blockSize">The block size.</param>
     /// <param name="speed">The encoding speed.</param>
-    /// <param name="sourceVariance">The source variance of the block. Reference: x->source_variance.</param>
-    /// <param name="highSourceSad">Whether the superblock source change is high. Reference: source_sad_nonrd.</param>
+    /// <param name="sourceVariance">The source variance of the block.</param>
+    /// <param name="highSourceSad">Whether the source change of the superblock is high.</param>
     /// <param name="aboveVector">The first vector of the above inter block, or <see langword="null"/>.</param>
     /// <param name="leftVector">The first vector of the left inter block, or <see langword="null"/>.</param>
     public void SetMotionVectorBias(
@@ -276,8 +274,8 @@ internal struct Av1EstimatedInterSearchState
             }
         }
 
-        // The motion estimate remains part of the candidate rate even if equivalent global syntax
-        // wins. This decision changes the selected syntax, not the search result that produced it.
+        // The motion estimate stays part of the candidate rate when equivalent global syntax wins. This decision changes the
+        // selected syntax, not the search result that produced it.
         statistics.Add(
             rateMultiplier,
             new Av1RateDistortionStatistics(rateMultiplier, motionRate + this.ModeCosts[modeIndex][slot] + this.ReferenceCosts[slot], 0));
@@ -306,9 +304,14 @@ internal struct Av1EstimatedInterSearchState
     }
 
     /// <summary>
-    /// Raises the cost of a NEWMV vector that differs much from the above and left vectors, or of a long vector
-    /// in a flat block at speed 8 and above. Reference: newmv_diff_bias().
+    /// Raises the cost of a new motion vector that differs much from the above and left vectors. It also raises the cost
+    /// of a long vector in a flat block at speed 8 and above.
     /// </summary>
+    /// <remarks>
+    /// In a 64x64 or larger block with a source variance less than 300 and no high source change, a new vector with a
+    /// component outside -16 to 16 costs four times as much. Otherwise, a new vector with a component more than 80 from
+    /// the neighbor average costs two times as much in a 32x32 or larger block, and 1.25 times as much in a smaller block.
+    /// </remarks>
     /// <param name="mode">The candidate mode.</param>
     /// <param name="vector">The candidate vector.</param>
     /// <param name="statistics">The candidate statistics, with a biased cost.</param>
@@ -440,9 +443,8 @@ internal struct Av1EstimatedInterSearchState
     }
 
     /// <summary>
-    /// Gets the luma variance above which a compound candidate is dropped: the smaller variance of its two
-    /// single-reference modes. Reference: var_threshold in handle_inter_mode_nonrd() under
-    /// prune_compoundmode_with_singlecompound_var.
+    /// Gets the luma variance above which the search drops a compound candidate. The threshold is the smaller variance of
+    /// the two single-reference modes of the candidate.
     /// </summary>
     /// <param name="mode">The compound mode.</param>
     /// <param name="first">The first reference.</param>

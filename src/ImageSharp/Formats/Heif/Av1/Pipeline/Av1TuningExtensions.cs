@@ -10,7 +10,6 @@ internal static class Av1TuningExtensions
 {
     /// <summary>
     /// Returns whether a tune uses the image quality tools: the image quality tune or the SSIMULACRA 2 tune.
-    /// Reference: the tuning == AOM_TUNE_IQ || tuning == AOM_TUNE_SSIMULACRA2 tests.
     /// </summary>
     /// <param name="tuning">The tune.</param>
     /// <returns>Whether the tune uses the image quality tools.</returns>

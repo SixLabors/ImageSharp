@@ -7,95 +7,89 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Chooses the reference slots, the refreshed slots, and the primary reference of good-quality frames coded without
-/// lookahead. A golden group holds up to 32 frames without an alternate reference, and the frames of a group form
-/// a low-delay pyramid of layer depths that ranks the frames for reference mapping. Reference: the no-stats path of
-/// av1_get_second_pass_params(), with define_gf_group_pass0(), set_ld_layer_depth(), av1_get_ref_frames(),
-/// av1_get_refresh_frame_flags(), choose_primary_ref_frame(), and update_fb_of_context_type().
+/// Chooses the reference slots, the refreshed slots, and the primary reference of good-quality frames. A golden group coded without lookahead holds up to 32
+/// frames without an alternate reference. The frames of such a group form a low-delay pyramid of layer depths that ranks the frames for reference mapping.
 /// </summary>
 internal sealed class Av1GoodQualityReferenceStructure
 {
     /// <summary>
-    /// The number of reference buffer slots. Reference: REF_FRAMES.
+    /// The number of reference buffer slots.
     /// </summary>
     private const int SlotCount = Av1Constants.ReferenceFrameCount;
 
     /// <summary>
-    /// The number of named references. Reference: INTER_REFS_PER_FRAME.
+    /// The number of named references.
     /// </summary>
     private const int ReferenceCount = Av1Constants.ReferencesPerFrame;
 
     /// <summary>
-    /// The largest layer depth of a pyramid. Reference: MAX_ARF_LAYERS.
+    /// The largest layer depth of a pyramid.
     /// </summary>
     private const int MaximumLayers = 6;
 
     /// <summary>
-    /// The lowest pyramid level that reference mapping uses. Reference: MIN_PYR_LEVEL.
+    /// The lowest pyramid level that reference mapping uses.
     /// </summary>
     private const int MinimumPyramidLevel = 1;
 
     /// <summary>
-    /// The golden interval of lag-0 coding. get_default_max_gf_interval() never returns less than
-    /// MAX_GF_INTERVAL, and av1_get_second_pass_params() uses it as the group length without lookahead.
+    /// The length of a golden group coded without lookahead. The default largest golden interval is never less than 32, and a group without lookahead takes
+    /// that length.
     /// </summary>
     private const int MaximumGoldenInterval = 32;
 
     /// <summary>
-    /// The unassigned slot marker. Reference: INVALID_IDX.
+    /// The unassigned slot marker.
     /// </summary>
     private const int InvalidIndex = -1;
 
     /// <summary>
-    /// The display order of the frame in each slot, or -1 for an empty slot. Reference: the display_order_hint
-    /// of cm->ref_frame_map.
+    /// The display order of the frame in each slot, or -1 for an empty slot.
     /// </summary>
     private readonly int[] slotDisplayOrder = [-1, -1, -1, -1, -1, -1, -1, -1];
 
     /// <summary>
-    /// The pyramid level of the frame in each slot. Reference: the pyramid_level of cm->ref_frame_map.
+    /// The pyramid level of the frame in each slot.
     /// </summary>
     private readonly int[] slotPyramidLevel = new int[SlotCount];
 
     /// <summary>
-    /// The identity of the buffer in each slot. A key frame stores one buffer in every slot. Reference: the
-    /// RefCntBuffer pointers of cm->ref_frame_map.
+    /// The identity of the buffer in each slot, or -1 for an empty slot. A key frame stores one buffer in every slot.
     /// </summary>
     private readonly int[] slotBuffer = [-1, -1, -1, -1, -1, -1, -1, -1];
 
     /// <summary>
-    /// The slot that holds the most recent frame of each reference type. Reference: ppi->fb_of_context_type.
+    /// The slot that holds the most recent frame of each reference type, or -1. The primary reference context comes from this slot.
     /// </summary>
     private readonly int[] contextTypeSlots = [-1, -1, -1, -1, -1, -1, -1, -1];
 
     /// <summary>
-    /// The slot of each named reference of the last frame that mapped its references, LAST first. A frame whose
-    /// external flags request a refresh keeps this map. Reference: cm->remapped_ref_idx.
+    /// The slot of each named reference of the last frame that mapped its references, LAST first. A frame with layer flags keeps this map.
     /// </summary>
     private readonly int[] remappedSlots = new int[ReferenceCount];
 
     /// <summary>
-    /// The frame's index in its golden group. Reference: cpi->gf_frame_index.
+    /// The index of the frame in its golden group.
     /// </summary>
     private int groupIndex;
 
     /// <summary>
-    /// The number of frames in the current golden group. Reference: gf_group->size.
+    /// The number of frames in the current golden group.
     /// </summary>
     private int groupLength;
 
     /// <summary>
-    /// The layer depth of the current frame. Reference: gf_group->layer_depth[cpi->gf_frame_index].
+    /// The layer depth of the current frame.
     /// </summary>
     private int layerDepth;
 
     /// <summary>
-    /// The pyramid level of the current frame. Reference: cm->current_frame.pyramid_level.
+    /// The pyramid level of the current frame.
     /// </summary>
     private int pyramidLevel;
 
     /// <summary>
-    /// The display order of the current frame. Reference: cm->current_frame.display_order_hint.
+    /// The display order of the current frame.
     /// </summary>
     private int displayOrder;
 
@@ -105,52 +99,47 @@ internal sealed class Av1GoodQualityReferenceStructure
     private int nextBuffer;
 
     /// <summary>
-    /// Gets the update type of the current frame. Reference: gf_group->update_type[cpi->gf_frame_index].
+    /// Gets the update type of the current frame.
     /// </summary>
     public Av1FrameUpdateType UpdateType { get; private set; }
 
     /// <summary>
-    /// Gets a value indicating whether the current golden group ends at the next key frame. Reference:
-    /// p_rc->constrained_gf_group.
+    /// Gets a value indicating whether the current golden group ends at the next key frame.
     /// </summary>
     public bool IsConstrainedGroup { get; private set; }
 
     /// <summary>
-    /// Gets the number of frames in the current golden group. Reference: p_rc->baseline_gf_interval.
+    /// Gets the number of frames in the current golden group.
     /// </summary>
     public int GroupLength => this.groupLength;
 
     /// <summary>
-    /// Gets the pyramid level of the frame being coded. Reference: cm->cur_frame->pyramid_level.
+    /// Gets the pyramid level of the frame being coded.
     /// </summary>
     public int PyramidLevel => this.pyramidLevel;
 
     /// <summary>
-    /// Gets the pyramid level of the frame in each reference slot. Reference: the pyramid_level of each RefCntBuffer.
+    /// Gets the pyramid level of the frame in each reference slot.
     /// </summary>
     public ReadOnlySpan<int> SlotPyramidLevels => this.slotPyramidLevel;
 
     /// <summary>
-    /// Chooses the golden-group position, the reference slots, the refreshed slots, and the primary reference of a
-    /// frame.
+    /// Chooses the golden-group position, the reference slots, the refreshed slots, and the primary reference of a frame coded without lookahead.
     /// </summary>
     /// <param name="frameHeader">The frame header that receives the slots and the primary reference.</param>
-    /// <param name="framesSinceKey">The number of frames since the last key frame. Reference: frame_number.</param>
-    /// <param name="framesToKey">The number of frames left before the next key frame. Reference: rc->frames_to_key.</param>
+    /// <param name="framesSinceKey">The number of frames since the last key frame. This is also the display order of the frame.</param>
+    /// <param name="framesToKey">The number of frames left before the next key frame.</param>
     /// <param name="usesLayerFlags">
-    /// Whether the frame is a layer after the first. Its flags refresh only LAST, so the frame keeps the reference map
-    /// of the frame before it and refreshes the slot of LAST. Reference: the update_pending tests of
-    /// av1_encode_strategy() and av1_get_refresh_frame_flags(), with the ext_refresh_frame_flags that
-    /// av1_apply_encoding_flags() sets for AOM_EFLAG_NO_UPD_GF and AOM_EFLAG_NO_UPD_ARF.
+    /// Whether the frame is a layer after the first. Its flags refresh only LAST, so the frame keeps the reference map of the frame before it and refreshes the
+    /// slot of LAST.
     /// </param>
     public void Configure(ObuFrameHeader frameHeader, int framesSinceKey, int framesToKey, bool usesLayerFlags = false)
     {
         bool keyFrame = frameHeader.FrameType == ObuFrameType.KeyFrame;
         this.displayOrder = framesSinceKey;
 
-        // define_gf_group_pass0(): a new group starts at a key frame and after the last frame of a group. Its
-        // length is the lag-0 golden interval, bounded by the frames left before the next key frame. A group that
-        // reaches the next key frame is constrained.
+        // A new group starts at a key frame and after the last frame of a group. Its length is the golden interval without lookahead, limited by the frames
+        // left before the next key frame. A group that reaches the next key frame is constrained.
         if (keyFrame || this.groupIndex == this.groupLength)
         {
             this.groupIndex = 0;
@@ -172,8 +161,7 @@ internal sealed class Av1GoodQualityReferenceStructure
         Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
         if (usesLayerFlags && !keyFrame)
         {
-            // A pending external refresh maps no references, so the frame keeps the map of the frame before it, and
-            // only the LAST refresh of the external flags is set.
+            // A frame with layer flags maps no references. It keeps the map of the frame before it and refreshes only the slot of LAST.
             for (int reference = 0; reference < ReferenceCount; reference++)
             {
                 referenceFrameIndices[reference] = (uint)this.remappedSlots[reference];
@@ -198,14 +186,12 @@ internal sealed class Av1GoodQualityReferenceStructure
     }
 
     /// <summary>
-    /// Chooses the reference slots, the refreshed slots, and the primary reference of a frame of a lookahead golden
-    /// group. Reference: the reference setup of av1_encode_strategy(), with av1_get_ref_frames(),
-    /// av1_get_refresh_frame_flags(), and choose_primary_ref_frame().
+    /// Chooses the reference slots, the refreshed slots, and the primary reference of a frame of a lookahead golden group. A non-reference frame refreshes no
+    /// slot and takes no primary reference.
     /// </summary>
     /// <param name="frameHeader">The frame header that receives the slots and the primary reference.</param>
     /// <param name="frame">The role of the frame in its golden group.</param>
-    /// <param name="skipFrameRefresh">The display orders that the frame must not replace. Reference:
-    /// gf_group->skip_frame_refresh[gf_index].</param>
+    /// <param name="skipFrameRefresh">The display orders that the frame must not replace.</param>
     public void ConfigureLagged(ObuFrameHeader frameHeader, in GroupFrame frame, ReadOnlySpan<int> skipFrameRefresh)
     {
         bool keyFrame = frameHeader.FrameType == ObuFrameType.KeyFrame;
@@ -238,7 +224,6 @@ internal sealed class Av1GoodQualityReferenceStructure
 
     /// <summary>
     /// Fills the display order and pyramid level of the frame in each slot, as the frame about to be coded sees them.
-    /// Reference: init_ref_map_pair().
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame, which sees no references.</param>
     /// <param name="pairOrder">Receives the display order of each slot, or -1.</param>
@@ -247,7 +232,7 @@ internal sealed class Av1GoodQualityReferenceStructure
         => this.InitializeReferenceMapPairs(keyFrame, pairOrder, pairLevel);
 
     /// <summary>
-    /// Maps the named references of a frame to slots. Reference: av1_get_ref_frames().
+    /// Maps the named references of a frame to slots.
     /// </summary>
     /// <param name="pairOrder">The display order of each slot, or -1.</param>
     /// <param name="pairLevel">The pyramid level of each slot, or -1.</param>
@@ -257,7 +242,7 @@ internal sealed class Av1GoodQualityReferenceStructure
         => GetReferenceFrames(pairOrder, pairLevel, displayOrder, remapped);
 
     /// <summary>
-    /// Chooses the slots a frame of a lookahead golden group refreshes. Reference: av1_get_refresh_frame_flags().
+    /// Chooses the slots that a frame of a lookahead golden group refreshes. A non-reference frame refreshes no slot.
     /// </summary>
     /// <param name="pairOrder">The display order of each slot, or -1.</param>
     /// <param name="pairLevel">The pyramid level of each slot, or -1.</param>
@@ -274,8 +259,7 @@ internal sealed class Av1GoodQualityReferenceStructure
     public int GetSlotDisplayOrder(int slot) => this.slotDisplayOrder[slot];
 
     /// <summary>
-    /// Returns the slot of the frame that a show-existing frame displays. Reference: the existing_fb_idx_to_show
-    /// search of av1_encode_strategy().
+    /// Returns the slot of the frame that a show-existing frame displays.
     /// </summary>
     /// <param name="displayOrder">The display order of the frame to show.</param>
     /// <returns>The last slot that holds the frame, or -1.</returns>
@@ -294,8 +278,8 @@ internal sealed class Av1GoodQualityReferenceStructure
     }
 
     /// <summary>
-    /// Records the coded frame in its refreshed slots and advances the golden group. Reference: the
-    /// ref_frame_map update of av1_update_ref_frame_map() and update_fb_of_context_type().
+    /// Records the coded frame in its refreshed slots and advances the golden group. It also records the slot that holds the newest frame of the reference type
+    /// of the frame.
     /// </summary>
     /// <param name="frameHeader">The header of the coded frame.</param>
     public void Complete(ObuFrameHeader frameHeader)
@@ -305,8 +289,7 @@ internal sealed class Av1GoodQualityReferenceStructure
         {
             this.contextTypeSlots.AsSpan().Fill(-1);
 
-            // A shown intra frame records the slot of GOLDEN and a hidden one the slot of ALTREF. A key frame maps
-            // every reference to slot 0.
+            // A shown intra frame records the slot of GOLDEN and a hidden one the slot of ALTREF. A key frame maps every reference to slot 0.
             Av1ReferenceFrameType recorded = frameHeader.ShowFrame ? Av1ReferenceFrameType.Golden : Av1ReferenceFrameType.Alternate;
             this.contextTypeSlots[referenceType] = (int)frameHeader.GetReferenceFrameIndices()[(int)recorded - 1];
         }
@@ -318,7 +301,7 @@ internal sealed class Av1GoodQualityReferenceStructure
         }
         else
         {
-            // The first refreshed slot. A frame that refreshes no slot keeps the previous one.
+            // Record the first refreshed slot. A frame that refreshes no slot keeps the previous one.
             for (int slot = 0; slot < SlotCount; slot++)
             {
                 if ((frameHeader.RefreshFrameFlags & (1U << slot)) != 0)
@@ -344,12 +327,12 @@ internal sealed class Av1GoodQualityReferenceStructure
     }
 
     /// <summary>
-    /// Gets the layer depth of a frame in a low-delay pyramid. The depth falls by one for each trailing zero bit of
-    /// the frame's index. Reference: set_ld_layer_depth().
+    /// Gets the layer depth of a frame in a low-delay pyramid. The depth starts at the base-2 logarithm of the group length, rounded up. It falls by one for
+    /// each trailing zero bit of the frame's index, and never goes below zero.
     /// </summary>
     /// <param name="groupLength">The number of frames in the group.</param>
     /// <param name="index">The frame's index in the group.</param>
-    /// <param name="maximumLayerDepth">Receives the largest depth of the group. Reference: max_layer_depth.</param>
+    /// <param name="maximumLayerDepth">Receives the largest depth of the group.</param>
     /// <returns>The layer depth.</returns>
     private static int GetLayerDepth(int groupLength, int index, out int maximumLayerDepth)
     {
@@ -373,8 +356,13 @@ internal sealed class Av1GoodQualityReferenceStructure
     }
 
     /// <summary>
-    /// Gets the pyramid level that ranks a frame for reference mapping. Reference: get_true_pyr_level().
+    /// Gets the pyramid level that ranks a frame for reference mapping. The first frame and a frame one layer past the largest depth take the lowest level. A
+    /// frame at the largest depth takes the largest layer depth of its group. Other frames take their layer depth, but not less than the lowest level.
     /// </summary>
+    /// <param name="frameLevel">The layer depth of the frame.</param>
+    /// <param name="frameOrder">The display order of the frame.</param>
+    /// <param name="maximumLayerDepth">The largest layer depth of the golden group.</param>
+    /// <returns>The pyramid level.</returns>
     private static int GetTruePyramidLevel(int frameLevel, int frameOrder, int maximumLayerDepth)
     {
         if (frameOrder == 0)
@@ -391,8 +379,10 @@ internal sealed class Av1GoodQualityReferenceStructure
     }
 
     /// <summary>
-    /// Gets the reference type that selects the primary reference context. Reference: get_current_frame_ref_type().
+    /// Gets the reference type that selects the primary reference context.
     /// </summary>
+    /// <param name="layerDepth">The layer depth of the frame.</param>
+    /// <returns>The index in the slot table of reference types: 0 and 1 for depths 0 and 1, 4 for the two deepest layers, and 7 otherwise.</returns>
     private static int GetReferenceType(int layerDepth) => layerDepth switch
     {
         0 => 0,
@@ -402,9 +392,12 @@ internal sealed class Av1GoodQualityReferenceStructure
     };
 
     /// <summary>
-    /// Records the display order and pyramid level of each slot. A key frame empties every slot, and a buffer that
-    /// several slots hold counts once, in its first slot. Reference: init_ref_map_pair().
+    /// Records the display order and pyramid level of each slot. A key frame empties every slot, and a buffer that several slots hold counts once, in its first
+    /// slot.
     /// </summary>
+    /// <param name="keyFrame">Whether the frame is a key frame, which sees no references.</param>
+    /// <param name="pairOrder">Receives the display order of each slot, or -1.</param>
+    /// <param name="pairLevel">Receives the pyramid level of each slot, or -1.</param>
     private void InitializeReferenceMapPairs(bool keyFrame, Span<int> pairOrder, Span<int> pairLevel)
     {
         if (keyFrame)
@@ -446,10 +439,13 @@ internal sealed class Av1GoodQualityReferenceStructure
     }
 
     /// <summary>
-    /// Maps the named references to slots. GOLDEN takes the newest past frame at the lowest pyramid level, LAST to
-    /// LAST3 take the remaining past frames newest first, and every empty reference falls back to slot 0.
-    /// Reference: av1_get_ref_frames() without external maps or parallel coding.
+    /// Maps the named references to slots. GOLDEN takes the newest past frame at the lowest pyramid level, and ALTREF the farthest future frame at that level.
+    /// LAST to LAST3 take the remaining past frames newest first. Every empty reference falls back to slot 0.
     /// </summary>
+    /// <param name="pairOrder">The display order of each slot, or -1.</param>
+    /// <param name="pairLevel">The pyramid level of each slot, or -1.</param>
+    /// <param name="currentOrder">The display order of the frame.</param>
+    /// <param name="remapped">Receives the slot of each named reference, LAST first.</param>
     private static void GetReferenceFrames(ReadOnlySpan<int> pairOrder, ReadOnlySpan<int> pairLevel, int currentOrder, Span<int> remapped)
     {
         remapped.Fill(InvalidIndex);
@@ -471,7 +467,7 @@ internal sealed class Av1GoodQualityReferenceStructure
 
             minimumLevel = Math.Min(minimumLevel, pairLevel[slot]);
 
-            // compare_map_idx_pair_asc() is a stable insertion by display order for the distinct orders here.
+            // Insert the buffer in ascending display order. The display orders are distinct, so the sort has no ties.
             int position = bufferCount;
             while (position > 0 && mapOrder[position - 1] > order)
             {
@@ -559,7 +555,7 @@ internal sealed class Av1GoodQualityReferenceStructure
             AddToSlot(mapSlot, used, next, remapped, frame);
         }
 
-        // Future frames fill BWDREF and ALTREF2 in increasing display order.
+        // Future frames fill the empty references of BWDREF, ALTREF2, and ALTREF in increasing display order.
         for (Av1ReferenceFrameType frame = Av1ReferenceFrameType.Backward; frame <= Av1ReferenceFrameType.Alternate; frame++)
         {
             if (remapped[(int)frame - 1] != InvalidIndex)
@@ -646,8 +642,13 @@ internal sealed class Av1GoodQualityReferenceStructure
     }
 
     /// <summary>
-    /// Maps one buffer to a named reference. Reference: add_ref_to_slot().
+    /// Maps one buffer to a named reference and marks the buffer as used.
     /// </summary>
+    /// <param name="mapSlot">The slot of each distinct buffer, in ascending display order.</param>
+    /// <param name="used">The used flag of each distinct buffer.</param>
+    /// <param name="index">The index of the buffer in <paramref name="mapSlot"/>.</param>
+    /// <param name="remapped">Receives the slot of the named reference.</param>
+    /// <param name="frame">The named reference.</param>
     private static void AddToSlot(ReadOnlySpan<int> mapSlot, Span<bool> used, int index, Span<int> remapped, Av1ReferenceFrameType frame)
     {
         remapped[(int)frame - 1] = mapSlot[index];
@@ -655,9 +656,15 @@ internal sealed class Av1GoodQualityReferenceStructure
     }
 
     /// <summary>
-    /// Leaves one buffer out of the named mapping when there are more buffers than named references. The farthest
-    /// buffer above the lowest level goes first. Reference: set_unmapped_ref() with LOW_LEVEL_FRAMES_TR of 5.
+    /// Leaves one buffer out of the named mapping when there are more buffers than named references. The unused buffer farthest in display order from the frame
+    /// goes out. A buffer at the lowest level can go out only when at least five buffers are at that level.
     /// </summary>
+    /// <param name="mapOrder">The display order of each distinct buffer, ascending.</param>
+    /// <param name="mapLevel">The pyramid level of each distinct buffer.</param>
+    /// <param name="used">The used flag of each distinct buffer. The method marks the left-out buffer as used.</param>
+    /// <param name="minimumLevelCount">The number of buffers at the lowest level.</param>
+    /// <param name="minimumLevel">The lowest pyramid level of the buffers.</param>
+    /// <param name="currentOrder">The display order of the frame.</param>
     private static void SetUnmappedReference(
         ReadOnlySpan<int> mapOrder,
         ReadOnlySpan<int> mapLevel,
@@ -695,10 +702,13 @@ internal sealed class Av1GoodQualityReferenceStructure
     }
 
     /// <summary>
-    /// Chooses the slot that the frame refreshes: the first empty slot, or else the oldest frame outside the three
-    /// newest past frames, preferring frames above the lowest pyramid level. Reference: av1_get_refresh_frame_flags()
-    /// and get_refresh_idx() for a frame that is not an alternate reference.
+    /// Chooses the slot that a frame coded without lookahead refreshes. Such a frame is never an alternate reference. The choice is the first empty slot.
+    /// Otherwise it is the oldest frame at least three display orders before the current frame. Frames above the lowest pyramid level go first.
     /// </summary>
+    /// <param name="pairOrder">The display order of each slot, or -1.</param>
+    /// <param name="pairLevel">The pyramid level of each slot, or -1.</param>
+    /// <param name="currentOrder">The display order of the frame.</param>
+    /// <returns>The refresh mask, with one bit set.</returns>
     private static uint GetRefreshFrameFlags(ReadOnlySpan<int> pairOrder, ReadOnlySpan<int> pairLevel, int currentOrder)
     {
         for (int slot = 0; slot < SlotCount; slot++)
@@ -743,8 +753,15 @@ internal sealed class Av1GoodQualityReferenceStructure
     }
 
     /// <summary>
-    /// Chooses the slots that a frame of a lookahead golden group refreshes. Reference: av1_get_refresh_frame_flags().
+    /// Chooses the slots that a frame of a lookahead golden group refreshes. A frame that resets the references refreshes every slot. A show-existing frame and
+    /// an overlay refresh no slot. Other frames refresh the first empty slot, or else the slot that <see cref="GetRefreshIndex"/> chooses.
     /// </summary>
+    /// <param name="pairOrder">The display order of each slot, or -1.</param>
+    /// <param name="pairLevel">The pyramid level of each slot, or -1.</param>
+    /// <param name="currentOrder">The display order of the frame.</param>
+    /// <param name="frame">The role of the frame in its golden group.</param>
+    /// <param name="skipFrameRefresh">The display orders that the frame must not replace.</param>
+    /// <returns>The refresh mask, one bit per slot.</returns>
     private static uint GetLaggedRefreshFrameFlags(
         ReadOnlySpan<int> pairOrder,
         ReadOnlySpan<int> pairLevel,
@@ -778,10 +795,15 @@ internal sealed class Av1GoodQualityReferenceStructure
     }
 
     /// <summary>
-    /// Chooses the slot to replace: the oldest frame outside the three newest past frames and the frames the group
-    /// keeps, preferring frames above the lowest pyramid level. An alternate reference replaces the oldest lowest-level
-    /// frame when more than two are held. Reference: get_refresh_idx() with enable_refresh_skip.
+    /// Chooses the slot to replace: the oldest frame at least three display orders before the current frame that the group does not keep. Frames above the
+    /// lowest pyramid level go first. An alternate reference replaces the oldest lowest-level frame when more than two of them are candidates.
     /// </summary>
+    /// <param name="pairOrder">The display order of each slot, or -1.</param>
+    /// <param name="pairLevel">The pyramid level of each slot, or -1.</param>
+    /// <param name="updateAlternate">Whether the frame is an alternate reference.</param>
+    /// <param name="currentOrder">The display order of the frame.</param>
+    /// <param name="skipFrameRefresh">The display orders that the group keeps. The list ends at its length or at the first -1.</param>
+    /// <returns>The slot to replace.</returns>
     private static int GetRefreshIndex(
         ReadOnlySpan<int> pairOrder,
         ReadOnlySpan<int> pairLevel,
@@ -845,9 +867,11 @@ internal sealed class Av1GoodQualityReferenceStructure
     }
 
     /// <summary>
-    /// Chooses the reference whose slot holds the most recent frame of the current frame's reference type.
-    /// Reference: choose_primary_ref_frame().
+    /// Chooses the reference whose slot holds the most recent frame of the reference type of the current frame. When several references map to that slot, the
+    /// last one wins. Intra and error-resilient frames take no primary reference.
     /// </summary>
+    /// <param name="frameHeader">The frame header with the mapped reference slots.</param>
+    /// <returns>The primary reference, or <see cref="Av1Constants.PrimaryReferenceFrameNone"/>.</returns>
     private uint ChoosePrimaryReferenceFrame(ObuFrameHeader frameHeader)
     {
         if (frameHeader.IsIntra || frameHeader.ErrorResilientMode)
@@ -870,20 +894,20 @@ internal sealed class Av1GoodQualityReferenceStructure
     }
 
     /// <summary>
-    /// The role of one frame in a lookahead golden group. Reference: the entries of GF_GROUP at gf_index.
+    /// The role of one frame in a lookahead golden group.
     /// </summary>
     public readonly struct GroupFrame
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="GroupFrame"/> struct.
         /// </summary>
-        /// <param name="updateType">The update type. Reference: update_type.</param>
-        /// <param name="layerDepth">The layer depth. Reference: layer_depth.</param>
-        /// <param name="maximumLayerDepth">The largest layer depth of the group. Reference: max_layer_depth.</param>
-        /// <param name="displayOrder">The display order of the frame. Reference: cur_frame_disp.</param>
-        /// <param name="resetsReferences">Whether the frame refreshes every slot. Reference: REFBUF_RESET.</param>
-        /// <param name="isNonReference">Whether no later frame references the frame. Reference: is_frame_non_ref.</param>
-        /// <param name="showExisting">Whether the frame shows a frame already coded. Reference: show_existing_frame.</param>
+        /// <param name="updateType">The update type.</param>
+        /// <param name="layerDepth">The layer depth.</param>
+        /// <param name="maximumLayerDepth">The largest layer depth of the group.</param>
+        /// <param name="displayOrder">The display order of the frame.</param>
+        /// <param name="resetsReferences">Whether the frame refreshes every slot.</param>
+        /// <param name="isNonReference">Whether no later frame references the frame.</param>
+        /// <param name="showExisting">Whether the frame shows a frame already coded.</param>
         public GroupFrame(
             Av1FrameUpdateType updateType,
             int layerDepth,

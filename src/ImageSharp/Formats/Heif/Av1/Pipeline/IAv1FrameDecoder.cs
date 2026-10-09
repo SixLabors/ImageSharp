@@ -17,8 +17,8 @@ internal interface IAv1FrameDecoder
     Span<short> Workspace { get; }
 
     /// <summary>
-    /// Gets the samples of one plane of the reconstructed frame. The tile reader reads each plane once per tile and passes it
-    /// to <see cref="BeginBlock"/>, <see cref="DecodeTransform"/> and <see cref="EndBlock"/>.
+    /// Gets the samples of one plane of the reconstructed frame. The tile reader reads each plane once per tile and passes it to
+    /// <see cref="BeginBlock"/>, <see cref="DecodeTransform"/> and <see cref="EndBlock"/>.
     /// </summary>
     /// <param name="plane">The plane.</param>
     /// <returns>The plane samples, or an empty span for a chroma plane of a monochrome frame.</returns>
@@ -71,7 +71,7 @@ internal interface IAv1FrameDecoder
         Av1TileInfo tileInfo);
 
     /// <summary>
-    /// Completes reconstruction after all residuals of the coding block have been read.
+    /// Completes reconstruction after the tile reader reads all residuals of the coding block.
     /// </summary>
     /// <param name="partitionInfo">The reconstructed block modes and geometry.</param>
     /// <param name="workspace">The inverse-transform and prediction storage, from <see cref="Workspace"/>.</param>

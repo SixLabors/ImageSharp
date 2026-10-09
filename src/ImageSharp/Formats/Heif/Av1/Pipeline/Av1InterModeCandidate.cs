@@ -42,8 +42,10 @@ internal struct Av1InterModeCandidate : IComparable<Av1InterModeCandidate>
     public int SearchIndex;
 
     /// <summary>
-    /// Orders predictions by estimated cost, retaining their original order on ties.
+    /// Orders predictions by estimated cost. Predictions of equal cost keep their search order.
     /// </summary>
+    /// <param name="other">The prediction to compare with.</param>
+    /// <returns>A negative value if this prediction sorts first, zero if both are equal, and a positive value otherwise.</returns>
     public readonly int CompareTo(Av1InterModeCandidate other)
     {
         int comparison = this.EstimatedCost.CompareTo(other.EstimatedCost);

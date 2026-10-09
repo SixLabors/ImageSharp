@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal static partial class Av1PaletteKMeans
 {
     /// <summary>
-    /// The iteration limit used by the reference encoder for palette clustering.
+    /// The maximum number of palette clustering iterations.
     /// </summary>
     public const int MaximumIterations = 50;
 
@@ -27,8 +27,13 @@ internal static partial class Av1PaletteKMeans
         => Assign<NearestOperator>.Apply(samples, centroids, indices);
 
     /// <summary>
-    /// Refines initialized palette colors through the reference encoder's deterministic clustering sequence.
+    /// Refines initialized palette colors with a deterministic k-means sequence.
     /// </summary>
+    /// <remarks>
+    /// Each iteration recalculates the centroids and then assigns the samples again. The sequence stops when the centroids
+    /// do not change, when the distortion increases, or after <see cref="MaximumIterations"/> iterations. The method keeps
+    /// the last centroids that did not increase the distortion.
+    /// </remarks>
     /// <param name="samples">The active block samples.</param>
     /// <param name="centroids">The initialized colors, replaced with the best refined colors.</param>
     /// <param name="indices">The palette indices belonging to the retained colors.</param>
@@ -94,8 +99,11 @@ internal static partial class Av1PaletteKMeans
     }
 
     /// <summary>
-    /// Recalculates each centroid from its assigned samples.
+    /// Recalculates each centroid as the rounded mean of its assigned samples.
     /// </summary>
+    /// <param name="samples">The active block samples.</param>
+    /// <param name="indices">The palette index of each sample.</param>
+    /// <param name="centroids">Receives the recalculated colors. An empty cluster receives a pseudo-random sample.</param>
     private static void CalculateCentroids(
         ReadOnlySpan<short> samples,
         ReadOnlySpan<byte> indices,

@@ -13,11 +13,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal static partial class Av1ResidualBuilder
 {
     /// <summary>
-    /// Defines the sum and the square sum of signed sixteen-bit residuals across hardware widths.
+    /// Defines the sum and the square sum of signed 16-bit residuals across hardware widths.
     /// </summary>
     /// <remarks>
-    /// Every total is held in sixty-four-bit lanes, so it stays exact for a span of any length. The spread
-    /// of a total across the lanes is not defined; only the sum of all lanes is.
+    /// Every total uses 64-bit lanes, so it stays exact for a span of any length. The split of a total across the lanes is not defined.
+    /// Only the sum of all lanes is defined, and it equals the scalar total.
     /// </remarks>
     internal interface IResidualSquaresOperator
     {
@@ -126,9 +126,9 @@ internal static partial class Av1ResidualBuilder
     /// Sums signed residuals and their squares with the pairwise multiply-add.
     /// </summary>
     /// <remarks>
-    /// Reference: aom_sum_squares_i16, aom_sum_squares_2d_i16 and aom_sum_sse_2d_i16. The pairwise multiply-add
-    /// squares every lane and adds the pairs in one instruction, and multiplying by one reuses it to fold eight
-    /// lanes into four for the plain sum. Widening the pairs keeps both totals exact.
+    /// The pairwise multiply-add squares every 16-bit lane and adds each adjacent pair into one 32-bit lane in one instruction.
+    /// A multiply by one reuses the same instruction to fold each adjacent pair for the plain sum.
+    /// The 32-bit pair sums then widen to 64-bit lanes, so both totals stay exact.
     /// </remarks>
     internal readonly struct ResidualSquaresOperator : IResidualSquaresOperator
     {
@@ -136,6 +136,8 @@ internal static partial class Av1ResidualBuilder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<long> AccumulateSquares(Vector128<short> values, Vector128<long> total)
         {
+            // The multiply-add turns 16-bit lanes 2n and 2n + 1 into the 32-bit lane n. A residual has at most 13 bits, so each pair
+            // sum is far below 2^31. The widening splits the four 32-bit lanes into two 64-bit halves, and both halves add to the total.
             (Vector128<long> lower, Vector128<long> upper) = Vector128.Widen(Vector128_.MultiplyAddAdjacent(values, values));
             return total + lower + upper;
         }
@@ -164,6 +166,7 @@ internal static partial class Av1ResidualBuilder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<long> AccumulateSum(Vector128<short> values, Vector128<long> total)
         {
+            // A multiply by one makes the multiply-add a pairwise add into 32-bit lanes. The lane layout matches the squares overload.
             (Vector128<long> lower, Vector128<long> upper) = Vector128.Widen(Vector128_.MultiplyAddAdjacent(values, Vector128.Create((short)1)));
             return total + lower + upper;
         }
@@ -192,7 +195,7 @@ internal static partial class Av1ResidualBuilder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<long> AccumulateProducts(Vector128<short> first, Vector128<short> second, Vector128<long> total)
         {
-            // A residual has at most thirteen bits, so a pairwise sum of products is far below 2^31.
+            // A residual has at most 13 bits, so a pairwise sum of products is far below 2^31. The lane layout matches the squares overload.
             (Vector128<long> lower, Vector128<long> upper) = Vector128.Widen(Vector128_.MultiplyAddAdjacent(first, second));
             return total + lower + upper;
         }

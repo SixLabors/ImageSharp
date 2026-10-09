@@ -17,48 +17,45 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <content>
-/// Codes a good-quality sequence through the lookahead: the frames of each golden group leave display order, the
-/// alternate references are coded hidden and shown later, and each temporal unit ends with a shown frame.
+/// Codes a good-quality sequence through the lookahead. The frames of each golden group leave display order. The encoder codes the alternate
+/// references hidden and shows them later. Each temporal unit ends with a shown frame.
 /// </content>
 internal static partial class Av1FrameEncoder
 {
     /// <summary>
-    /// The time-stamp ticks per second. Reference: TICKS_PER_SEC.
+    /// The time-stamp ticks per second.
     /// </summary>
     private const long TicksPerSecond = 10000000;
 
     /// <summary>
-    /// The size of an empty temporal delimiter: its OBU header and a zero size. libaom writes it outside the frame,
-    /// so the rate control does not count it. Reference: the obu_header_size of encoder_encode().
+    /// The size of an empty temporal delimiter: its OBU header and a zero size. The rate control does not count the delimiter as part of the frame.
     /// </summary>
     private const int TemporalDelimiterBytes = 2;
 
     internal abstract partial class SequenceEncoder
     {
         /// <summary>
-        /// Whether each update type found a global motion model in the current golden group, or
-        /// <see cref="int.MaxValue"/> before its first frame. Reference: ppi->valid_gm_model_found.
+        /// Whether each update type found a global motion model in the current golden group, or <see cref="int.MaxValue"/> before its first frame.
         /// </summary>
         private readonly int[] validGlobalMotionFound = new int[(int)Av1FrameUpdateType.Count];
 
         /// <summary>
-        /// The motion vector statistics of the last coded frame. Reference: ppi->mv_stats.
+        /// The motion vector statistics of the last coded frame.
         /// </summary>
         private readonly Av1MotionVectorStatistics motionVectorStatistics = new();
 
         /// <summary>
-        /// Whether the current frame skips the global motion search. Reference: disable_gm_search_based_on_stats().
+        /// Whether the statistics of earlier frames turn the global motion search of the current frame off.
         /// </summary>
         private bool globalMotionDisabledByStatistics;
 
         /// <summary>
-        /// The stream a frame is packed into to measure its size before the recode decision, created on first use.
-        /// Reference: the dummy pack of encode_with_recode_loop() into the output buffer.
+        /// The stream that holds a packed frame to measure its size before the recode decision. The encoder creates it on first use.
         /// </summary>
         private MemoryStream? measuredFrameStream;
 
         /// <summary>
-        /// Gets the constant-quality index of the sequence. Reference: cq_level.
+        /// Gets the constant-quality index of the sequence.
         /// </summary>
         private protected int ConstantQualityIndex => this.constantQualityIndex;
 
@@ -68,9 +65,8 @@ internal static partial class Av1FrameEncoder
         internal int RecodedFrameCount { get; private set; }
 
         /// <summary>
-        /// Gets a value indicating whether the encoder replaces residuals outside the visible frame. Good-quality
-        /// usage does so with the default objective delta-q mode and the temporal dependency model on, without adaptive
-        /// quantization, unless the sharpness is 3. Reference: the do_border_pad test of av1_encode().
+        /// Gets a value indicating whether the encoder replaces residuals outside the visible frame. Good-quality usage below speed 7 does this when
+        /// the delta-q mode is objective, the temporal dependency model is on, adaptive quantization is off, and the sharpness is not 3.
         /// </summary>
         private protected bool UsesBorderPad =>
             !this.Options.IsAllIntra &&
@@ -81,15 +77,14 @@ internal static partial class Av1FrameEncoder
             this.Options.Sharpness != 3;
 
         /// <summary>
-        /// Encodes the frames of a sequence with the lookahead of <see cref="Av1EncoderOptions.LagInFrames"/> and
-        /// records where each sample ends. Reference: the encoder_encode() loop of the good-quality usage with a lag,
-        /// which pushes one frame, runs the lookahead stage, and codes frames until one is shown.
+        /// Encodes the frames of a sequence with the lookahead of <see cref="Av1EncoderOptions.LagInFrames"/> and records where each sample ends.
+        /// For each input frame, the loop pushes the frame, runs the lookahead stage, and codes frames until one is shown.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
         /// <param name="image">The image that holds the frames.</param>
         /// <param name="firstFrameIndex">The index of the first frame to encode.</param>
         /// <param name="frameCount">The number of frames to encode.</param>
-        /// <param name="frameDurationTicks">The frame duration in time-stamp ticks. Reference: ts_duration.</param>
+        /// <param name="frameDurationTicks">The frame duration in time-stamp ticks.</param>
         /// <param name="stream">The destination stream.</param>
         /// <param name="sampleEnds">Receives the stream length after each sample, one per frame.</param>
         /// <param name="syncSamples">Receives whether each sample holds a shown key frame.</param>
@@ -106,9 +101,7 @@ internal static partial class Av1FrameEncoder
             where TPixel : unmanaged, IPixel<TPixel>;
 
         /// <summary>
-        /// Returns whether every reference of the current frame precedes it in display order while the sequence
-        /// codes with a lookahead. Reference: refs_are_one_sided() and the lag_in_frames test of
-        /// check_skip_mode_enabled().
+        /// Returns whether no reference of the current inter frame follows it in display order while the sequence codes with a lookahead.
         /// </summary>
         /// <returns><see langword="true"/> when skip mode is off for one-sided references.</returns>
         private protected bool HasOnlyPastReferencesWithLag()
@@ -162,11 +155,10 @@ internal static partial class Av1FrameEncoder
         private protected abstract Av1FrameEntropyContext? BindReferences(Av1PictureParentControlSet parent);
 
         /// <summary>
-        /// Analyzes a lagged frame and, under a bit budget, packs each coding to measure its size and codes the frame
-        /// again at the quantizer the rate control picks while the size misses its target. A discarded coding moves
-        /// the frame probabilities as libaom's does, and the next coding starts from a clean picture. The frame before a
-        /// forced key frame records its unfiltered error. The frame is then ready for its loop filters and final pack.
-        /// Reference: encode_with_recode_loop() and the ambient_err of encode_with_recode_loop_and_filter().
+        /// Analyzes a lagged frame. Under a bit budget, the method packs each coding to measure its size. While the size misses its target, it codes
+        /// the frame again at the quantizer that the rate control picks. A discarded coding still moves the frame probabilities, and the next coding
+        /// starts from a clean picture. The frame before a forced key frame records its unfiltered error. After this method, the frame is ready for
+        /// its loop filters and final pack.
         /// </summary>
         /// <typeparam name="TSample">The native sample storage type.</typeparam>
         /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
@@ -210,15 +202,14 @@ internal static partial class Av1FrameEncoder
 
             while (secondPass.UsesRecodeLoop)
             {
-                // Each measuring pack finalizes the frame, which steps the film grain seed. Reference: the
-                // av1_finalize_encoded_frame() call of the dummy pack.
+                // Each measuring pack finalizes the frame, and this steps the film grain seed.
                 this.PrepareFilmGrain();
                 Av1TileEncoder.PackFrame<TSample, TOperator>(
                     this.SymbolEncoder, source, references, searchReferences, current.Buffer.Frame, picture, this.Coefficients, this.TileWorkspace, this.BlockWorkspace);
 
                 long packedBits = this.MeasureLaggedFrame(Av1TileEncoder.FromPackedTiles(picture, this.SymbolEncoder), writeSequenceHeader);
 
-                // av1_collect_mv_stats() gathers the statistics of each coding, which the next coding reads.
+                // Each coding gathers its motion vector statistics. The next coding reads them.
                 this.CompleteLaggedMotionVectorStatistics<TSample, TTextureOperator>(parent, source);
                 long keyFrameError = secondPass.MatchesAmbientError
                     ? GetLumaSquaredError<TSample, TOperator>(source, current.Buffer.Frame)
@@ -230,7 +221,7 @@ internal static partial class Av1FrameEncoder
                     break;
                 }
 
-                // The discarded coding moved the frame probabilities at the end of its encode_frame_internal().
+                // The discarded coding moved the frame probabilities at the end of its analysis. This update keeps that effect.
                 Av1TileEncoder.UpdateFrameProbabilities(picture, this.BlockWorkspace, switchableBeforeFix);
                 this.UpdateMotionModeProbabilities(parent);
                 this.RecodedFrameCount++;
@@ -240,7 +231,7 @@ internal static partial class Av1FrameEncoder
                 this.BeginLaggedRecode(parent, in frame, qIndex, frameSize);
                 this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
 
-                // A change of vector precision searches global motion again. Reference: the last_loop_allow_hp test.
+                // The global motion models depend on the vector precision. If the precision changes, the encoder searches global motion again.
                 if (frameHeader.AllowHighPrecisionMotionVector != highPrecision)
                 {
                     this.SearchGlobalMotion<TSample, TGlobalMotionOperator>(source, references, parent);
@@ -270,9 +261,8 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Returns the size in bits of the frame OBUs of a packed frame, with the sequence header of a shown key frame
-        /// and without a temporal delimiter. Reference: the size of the dummy av1_pack_bitstream() of
-        /// encode_with_recode_loop().
+        /// Returns the size in bits of the frame OBUs of a packed frame. The size includes the sequence header of a shown key frame, but not the
+        /// temporal delimiter.
         /// </summary>
         /// <param name="tiles">The packed tiles of the frame.</param>
         /// <param name="writeSequenceHeader">Whether a sequence header OBU precedes the frame.</param>
@@ -340,9 +330,8 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Writes the OBUs of a coded frame: a shown key frame after a temporal delimiter and the sequence header, the
-        /// first frame of a temporal unit after a temporal delimiter, and any other frame alone. Reference:
-        /// av1_pack_bitstream() with the temporal delimiter of encoder_encode().
+        /// Writes the OBUs of a coded frame. A shown key frame follows a temporal delimiter and the sequence header. The first frame of a temporal
+        /// unit follows a temporal delimiter. Any other frame stands alone.
         /// </summary>
         /// <param name="stream">The destination stream.</param>
         /// <param name="tiles">The packed tiles of the frame.</param>
@@ -365,10 +354,9 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Prepares a frame to be coded again at a new quantizer: the picture state starts clean while the frame
-        /// keeps its probabilities, motion search step and the tools a coding can only turn off, the quantizer and the
-        /// speed features follow the new quantizer, and the motion vector precision is chosen again from the
-        /// statistics of the last coding. Reference: the start of each pass of the encode_with_recode_loop() loop.
+        /// Prepares a frame to be coded again at a new quantizer. The picture state starts clean. The frame keeps its probabilities, its motion
+        /// search step, and the tools that a coding can only turn off. The quantizer and the speed features follow the new quantizer. The encoder
+        /// chooses the motion vector precision again from the statistics of the last coding.
         /// </summary>
         /// <param name="parent">The frame state.</param>
         /// <param name="frame">The decisions of the frame.</param>
@@ -391,16 +379,14 @@ internal static partial class Av1FrameEncoder
                 sharpness: this.Options.Sharpness,
                 tuning: this.Options.Tuning);
 
-            // Intra block copy stays as the last coding left it, because libaom sets allow_intrabc once per frame and a
-            // coding that used no copy turns it off.
+            // Intra block copy stays as the last coding left it. The encoder sets this flag once per frame, and a coding that used no copy turns it off.
             this.ConfigureRecodedReferenceTools(parent);
             this.BeginLaggedMotionVectorStatistics(in frame, parent, frameSize);
             this.CommonBaseQIndex = frameHeader.QuantizationParameters.BaseQIndex;
         }
 
         /// <summary>
-        /// Returns the luma squared error of the visible samples of a reconstruction. Reference: aom_get_y_sse() and
-        /// aom_highbd_get_y_sse().
+        /// Returns the luma squared error of the visible samples of a reconstruction.
         /// </summary>
         /// <typeparam name="TSample">The native sample storage type.</typeparam>
         /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
@@ -414,7 +400,6 @@ internal static partial class Av1FrameEncoder
 
         /// <summary>
         /// Returns the bits a frame added to the stream, without the temporal delimiter that starts its temporal unit.
-        /// Reference: the frame_size of av1_get_compressed_data(), in bits.
         /// </summary>
         /// <param name="stream">The destination stream.</param>
         /// <param name="start">The stream length before the frame.</param>
@@ -424,11 +409,9 @@ internal static partial class Av1FrameEncoder
             => (stream.Length - start - (wroteTemporalDelimiter ? TemporalDelimiterBytes : 0)) * 8;
 
         /// <summary>
-        /// Encodes the frames of a sequence through the lookahead at one sample type: frames enter the lookahead and
-        /// the first pass measures them, the lookahead decisions order each golden group, the temporal filter and the
-        /// temporal dependency model run at the start of each group, and each temporal unit ends with a shown frame.
-        /// Reference: the encoder_encode() loop of the good-quality usage with a lag, av1_get_compressed_data() and
-        /// av1_encode_strategy().
+        /// Encodes the frames of a sequence through the lookahead at one sample type. Frames enter the lookahead, and the first pass measures them.
+        /// The lookahead decisions order each golden group. The temporal filter and the temporal dependency model run at the start of each group.
+        /// Each temporal unit ends with a shown frame.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
         /// <typeparam name="TSample">The sample type.</typeparam>
@@ -441,7 +424,7 @@ internal static partial class Av1FrameEncoder
         /// <param name="image">The image that holds the frames.</param>
         /// <param name="firstFrameIndex">The index of the first frame to encode.</param>
         /// <param name="frameCount">The number of frames to encode.</param>
-        /// <param name="frameDurationTicks">The frame duration in time-stamp ticks. Reference: ts_duration.</param>
+        /// <param name="frameDurationTicks">The frame duration in time-stamp ticks.</param>
         /// <param name="stream">The destination stream.</param>
         /// <param name="sampleEnds">Receives the stream length after each sample, one per frame.</param>
         /// <param name="syncSamples">Receives whether each sample holds a shown key frame.</param>
@@ -498,10 +481,8 @@ internal static partial class Av1FrameEncoder
                     ? new(this.Configuration, image.Width, image.Height, bitDepth, colorFormat, lumaBorder, this.Options, this.ConstantQualityIndex)
                     : null;
 
-            // Before the first frame the filter and the model read the motion settings of a key frame, which no
-            // quantizer-dependent update has changed yet. High precision vectors are always allowed. Reference: the
-            // speed features of av1_change_config(), and the av1_set_high_precision_mv(cpi, 1, 0) call that starts
-            // av1_get_compressed_data().
+            // Before the first frame, the filter and the model read the motion settings of a key frame without any quantizer-dependent update.
+            // High precision vectors are always allowed.
             Av1MotionSearchSettings keyFrameMotionSettings = new(this.Options.Speed, false, image.Size, -1, true, false);
             using LookaheadTemporalModel<TSample, TSearchOperator, TTplOperator>? temporalModel =
                 this.Options.EnableTemporalModel && this.Options.LagInFrames > 1
@@ -522,8 +503,7 @@ internal static partial class Av1FrameEncoder
                 cancellationToken.ThrowIfCancellationRequested();
                 if (pushed < frameCount)
                 {
-                    // av1_lookahead_push(): the source joins the lookahead with its border extended, and the lookahead
-                    // stage measures it at once.
+                    // The source joins the lookahead with its border extended. The first pass of the lookahead stage measures it at once.
                     Av1EncoderFrameBuffer<TSample> buffer = lookahead.BeginPush();
                     PrepareSource<TPixel, TSample, TStorer>(
                         this.Configuration,
@@ -558,16 +538,15 @@ internal static partial class Av1FrameEncoder
                     }
                     else
                     {
-                        // The filter reads the motion settings and frame flags the encoder holds from the previous
-                        // frame.
+                        // The filter reads the motion settings and frame flags that the encoder holds from the previous frame.
                         Av1MotionSearchSettings motionSettings = codedFrames == 0
                             ? keyFrameMotionSettings
                             : this.PictureBuffer.Picture.Parent.MotionSearchSettings;
 
                         if (filter is not null && frame.GroupIndex == 0)
                         {
-                            // With the model, the lookahead decisions discard the previous group's filtered frames
-                            // before the group length test filters the trial group.
+                            // With the model, the lookahead decisions discard the filtered frames of the previous group before the group length test
+                            // filters the trial group. Without the model, this code discards them when a new group starts.
                             if (temporalModel is null && frame.StartsGroup)
                             {
                                 filter.Reset();
@@ -582,14 +561,13 @@ internal static partial class Av1FrameEncoder
                                 motionSettings);
                         }
 
-                        // An intra frame decides its screen content from the unfiltered source before its quantizer,
-                        // filtering and model read the decision. Reference: av1_set_screen_content_options() before
-                        // denoise_and_encode() in av1_encode_strategy().
+                        // An intra frame decides its screen content from the unfiltered source. Its quantizer choice, filter and model read the
+                        // decision later.
                         Av1EncoderFrameBuffer<TSample> source = lookahead.Peek(frame.SourceOffset)!;
                         bool isScreenContent = coder.DecideLaggedScreenContent(source, frame.IsKeyFrame);
                         secondPass.SetScreenContentType(isScreenContent);
 
-                        // denoise_and_encode() picks the quantizer and the filtered source first.
+                        // The filter picks the quantizer and the filtered source first.
                         if (filter is not null)
                         {
                             source = filter.SelectSource(
@@ -604,15 +582,14 @@ internal static partial class Av1FrameEncoder
                                 isScreenContent);
                         }
 
-                        // It then sets the motion search step of a key frame, an alternate reference or a golden frame
-                        // once before the frame sets it again for its own search.
+                        // Then the encoder sets the motion search step of a key frame, an alternate reference or a golden frame once. The frame sets
+                        // it again later for its own search.
                         if (frame.IsKeyFrame || frame.UpdateType is Av1FrameUpdateType.Alternate or Av1FrameUpdateType.Golden)
                         {
                             this.PrepareMotionSearchStep(frame.IsKeyFrame, image.Size, motionSettings);
                         }
 
-                        // The model measures a new group after its frames are filtered. Reference: the "perform tpl after
-                        // filtering" block of av1_encode_strategy().
+                        // The model measures a new group after the filter processed its frames, so that the model reads the filtered frames.
                         temporalModel?.BeginFrame(secondPass, in frame);
 
                         Av1EncoderFrameBuffer<TSample>? lastSource = frame.ShowFrame && frame.SourceOffset == 0 && frame.FrameNumber > 0
@@ -642,9 +619,8 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Sets the frame header fields of a frame of a lookahead golden group before its source analysis: the frame
-        /// type, the show flags, and the order hint of its display position. Reference: the frame parameters that
-        /// av1_encode_strategy() passes to av1_encode(), with current_frame->order_hint.
+        /// Sets the frame header fields of a frame of a lookahead golden group before its source analysis. These fields are the frame type, the
+        /// show flags, and the order hint of its display position.
         /// </summary>
         /// <param name="frame">The decisions of the frame.</param>
         private protected void ConfigureLaggedFrameHeader(in Av1SecondPassFrame frame)
@@ -658,9 +634,8 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Selects the reference slots, the refreshed slots, and the primary reference of a frame of a lookahead
-        /// golden group. Reference: the reference setup of av1_encode_strategy(), and copy_frame_prob_info() at a key
-        /// frame.
+        /// Selects the reference slots, the refreshed slots, and the primary reference of a frame of a lookahead golden group. A key frame also
+        /// resets the warped motion and OBMC probabilities to their defaults.
         /// </summary>
         /// <param name="parent">The frame state.</param>
         /// <param name="frame">The decisions of the frame.</param>
@@ -680,11 +655,11 @@ internal static partial class Av1FrameEncoder
             parent.FrameUpdateType = frame.UpdateType;
             parent.StartsGoldenGroup = frame.UpdateType == Av1FrameUpdateType.Golden;
 
-            // av1_configure_buffer_updates(): the golden refresh of the update role.
+            // The update type decides the golden refresh. An alternate reference that resets the references also refreshes golden.
             parent.RefreshesGolden = frame.UpdateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or
                 Av1FrameUpdateType.Overlay || (frame.UpdateType == Av1FrameUpdateType.Alternate && frame.ResetsReferences);
 
-            // av1_configure_buffer_updates(): the alternate reference refresh of the update role.
+            // The update type decides the alternate reference refresh. An overlay that resets the references also refreshes the alternate reference.
             parent.RefreshesAlternate = frame.UpdateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Alternate ||
                 (frame.UpdateType == Av1FrameUpdateType.Overlay && frame.ResetsReferences);
 
@@ -696,10 +671,9 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Sets the motion search step of a key frame, an alternate reference or a golden frame once before the frame
-        /// sets it again for its own search. Only the vector magnitude it leaves behind lasts: a key frame seeds it with
-        /// the frame range, and an inter frame discards the previous frame's maximum, so the frame's own search starts
-        /// from the default step. Reference: the av1_set_mv_search_params() call of denoise_and_encode().
+        /// Sets the motion search step of a key frame, an alternate reference or a golden frame once, before the frame sets it again for its own
+        /// search. Only the maximum vector magnitude that this call leaves stays in effect. A key frame sets it to the larger frame dimension. An
+        /// inter frame discards the maximum of the previous frame, so that its own search starts from the default step.
         /// </summary>
         /// <param name="isKeyFrame">Whether the frame is a key frame.</param>
         /// <param name="frameSize">The frame dimensions.</param>
@@ -717,10 +691,9 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Decides whether the frame searches global motion from the models its golden group found so far. A group
-        /// with an alternate reference stops searching once its alternate, intermediate alternate and leaf frames
-        /// have all been coded without a model. Reference: the valid_gm_model_found reset of
-        /// av1_compute_global_motion_facade() and disable_gm_search_based_on_stats().
+        /// Decides whether the frame searches global motion from the models that its golden group found so far. The first frame of a group clears
+        /// the record. A group with an alternate reference stops the search after its alternate, intermediate alternate and leaf frames all coded
+        /// without a model.
         /// </summary>
         /// <param name="frame">The decisions of the frame.</param>
         /// <param name="group">The golden group of the frame.</param>
@@ -738,10 +711,8 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Chooses the motion vector precision of an inter frame from its quantizer and the statistics of the last
-        /// coded frame, then discards those statistics and, at the speeds that read them, lets the packing pass
-        /// collect the frame's own. Reference: the av1_pick_and_set_high_precision_mv() call of
-        /// encode_with_recode_loop() and the mv_stats reset and collection after av1_encode_frame().
+        /// Chooses the motion vector precision of an inter frame from its quantizer and the statistics of the last coded frame. Then the method
+        /// discards those statistics. At the speeds that read the statistics, the packing pass then collects the statistics of this frame.
         /// </summary>
         /// <param name="frame">The decisions of the frame.</param>
         /// <param name="parent">The frame state.</param>
@@ -775,8 +746,7 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Completes the motion vector statistics the packing pass collected from a frame. Reference: the texture sums
-        /// of collect_mv_stats_b() and the end of av1_collect_mv_stats().
+        /// Completes the motion vector statistics that the packing pass collected from a frame. This step adds the texture sums of the source.
         /// </summary>
         /// <typeparam name="TSample">The sample type.</typeparam>
         /// <typeparam name="TOperator">The texture operator of the sample type.</typeparam>
@@ -801,7 +771,7 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Records whether the coded frame found a global motion model for its update type. Reference: update_gm_stats().
+        /// Records whether the coded frame found a global motion model for its update type.
         /// </summary>
         /// <param name="updateType">The update type of the frame.</param>
         private protected void CompleteLaggedGlobalMotion(Av1FrameUpdateType updateType)
@@ -822,8 +792,7 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Applies the quantizer that the lookahead chose for the frame. Reference: av1_set_quantizer() with the q of
-        /// av1_rc_pick_q_and_bounds().
+        /// Applies the quantizer that the lookahead chose for the frame.
         /// </summary>
         /// <param name="qIndex">The base quantizer index.</param>
         private protected void ApplyLaggedQuantizer(int qIndex)
@@ -831,15 +800,13 @@ internal static partial class Av1FrameEncoder
             this.QIndex = qIndex;
             ApplyFrameQuantizer(this.FrameHeader, this.SequenceHeader, qIndex, this.Options);
 
-            // The delta quantizer of each tile's first superblock is measured from the frame quantizer, which the
-            // picture reset read before this frame chose it. Reference: the current_base_qindex set at the start of
-            // each tile.
+            // The delta quantizer of the first superblock of each tile is relative to the frame quantizer. The picture reset read the quantizer before
+            // this frame chose it, so the code sets the new value here.
             this.PictureBuffer.Picture.Parent.PreviousQIndex.Span.Fill(qIndex);
         }
 
         /// <summary>
-        /// Writes a frame that shows the coded frame of a display position, and leaves the references unchanged.
-        /// Reference: encode_show_existing_frame() and the OBU_FRAME_HEADER of av1_pack_bitstream().
+        /// Writes a frame header that shows the coded frame of a display position. The references do not change.
         /// </summary>
         /// <param name="stream">The destination stream.</param>
         /// <param name="frame">The decisions of the frame.</param>
@@ -918,8 +885,7 @@ internal static partial class Av1FrameEncoder
             parent.HighSourceSad = false;
             parent.FrameSourceSad = 0;
 
-            // The rate control keeps the key and golden counters. Reference: rc->frames_since_key and
-            // rc->frames_since_golden.
+            // The rate control keeps the counters of frames since the last key frame and since the last golden frame.
             parent.FramesSinceKey = secondPass.FramesSinceKey;
             parent.FramesSinceGolden = secondPass.FramesSinceGolden;
             parent.IsScreenContent = isScreenContent;
@@ -927,13 +893,11 @@ internal static partial class Av1FrameEncoder
 
             this.ConfigureLaggedReferenceStructure(parent, in frame);
 
-            // Reference distances follow display order, and a hidden frame keeps the count of the frames shown
-            // before it. Reference: current_frame->display_order_hint and current_frame->frame_number.
+            // Reference distances follow display order. A hidden frame keeps the count of the frames shown before it.
             this.BlockWorkspace.EncodedFrameCount = frame.DisplayOrder;
             this.BlockWorkspace.FrameNumber = frame.DisplayOrder - frame.SourceOffset;
 
-            // The model statistics of the frame feed its quantizer choice. Reference: process_tpl_stats_frame() before
-            // av1_rc_pick_q_and_bounds() in set_size_dependent_vars().
+            // The model statistics of the frame feed its quantizer choice, so the frame takes them first.
             double qStepRatio = 1;
             bool tplFrameValid = false;
             bool tplReady = temporalModel?.ApplyToFrame(parent, frame.GroupIndex, out qStepRatio, out tplFrameValid) ?? false;
@@ -946,8 +910,8 @@ internal static partial class Av1FrameEncoder
             int qIndex = secondPass.ChooseBaseQIndex(isScreenContent, tplReady, tplFrameValid, parent.TplImportance, qStepRatio);
             this.ApplyLaggedQuantizer(qIndex);
 
-            // The lookahead makes this a statistics-consuming stage, so inter frames scale the rate multiplier by
-            // their layer depth and the golden boost. Reference: is_stat_consumption_stage() in av1_compute_rd_mult().
+            // The lookahead makes this a statistics-consuming stage. Thus inter frames scale the rate multiplier by their layer depth and the golden
+            // boost.
             parent.IsStatConsumptionStage = true;
             parent.LayerDepth = frame.LayerDepth;
             parent.GoldenBoost = secondPass.GoldenBoost;
@@ -971,8 +935,7 @@ internal static partial class Av1FrameEncoder
             this.ConfigureReferenceTools(parent);
             this.ResetIntraSegmentation();
 
-            // Reference: the av1_determine_sc_tools_with_encoding() call of encode_with_recode_loop(), which a
-            // lookahead sequence reaches because its statistics allow recoding.
+            // A lookahead sequence has statistics that allow recoding. Thus a key frame can test the screen content tools with two trial encodes.
             isScreenContent = this.DetermineScreenContentWithEncoding<byte, Av1IntraSuperblockEncoder.ByteOperator>(
                 source.Frame,
                 current.Buffer.Frame,
@@ -1101,8 +1064,7 @@ internal static partial class Av1FrameEncoder
             parent.HighSourceSad = false;
             parent.FrameSourceSad = 0;
 
-            // The rate control keeps the key and golden counters. Reference: rc->frames_since_key and
-            // rc->frames_since_golden.
+            // The rate control keeps the counters of frames since the last key frame and since the last golden frame.
             parent.FramesSinceKey = secondPass.FramesSinceKey;
             parent.FramesSinceGolden = secondPass.FramesSinceGolden;
             parent.IsScreenContent = isScreenContent;
@@ -1110,13 +1072,11 @@ internal static partial class Av1FrameEncoder
 
             this.ConfigureLaggedReferenceStructure(parent, in frame);
 
-            // Reference distances follow display order, and a hidden frame keeps the count of the frames shown
-            // before it. Reference: current_frame->display_order_hint and current_frame->frame_number.
+            // Reference distances follow display order. A hidden frame keeps the count of the frames shown before it.
             this.BlockWorkspace.EncodedFrameCount = frame.DisplayOrder;
             this.BlockWorkspace.FrameNumber = frame.DisplayOrder - frame.SourceOffset;
 
-            // The model statistics of the frame feed its quantizer choice. Reference: process_tpl_stats_frame() before
-            // av1_rc_pick_q_and_bounds() in set_size_dependent_vars().
+            // The model statistics of the frame feed its quantizer choice, so the frame takes them first.
             double qStepRatio = 1;
             bool tplFrameValid = false;
             bool tplReady = temporalModel?.ApplyToFrame(parent, frame.GroupIndex, out qStepRatio, out tplFrameValid) ?? false;
@@ -1129,8 +1089,8 @@ internal static partial class Av1FrameEncoder
             int qIndex = secondPass.ChooseBaseQIndex(isScreenContent, tplReady, tplFrameValid, parent.TplImportance, qStepRatio);
             this.ApplyLaggedQuantizer(qIndex);
 
-            // The lookahead makes this a statistics-consuming stage, so inter frames scale the rate multiplier by
-            // their layer depth and the golden boost. Reference: is_stat_consumption_stage() in av1_compute_rd_mult().
+            // The lookahead makes this a statistics-consuming stage. Thus inter frames scale the rate multiplier by their layer depth and the golden
+            // boost.
             parent.IsStatConsumptionStage = true;
             parent.LayerDepth = frame.LayerDepth;
             parent.GoldenBoost = secondPass.GoldenBoost;
@@ -1154,8 +1114,7 @@ internal static partial class Av1FrameEncoder
             this.ConfigureReferenceTools(parent);
             this.ResetIntraSegmentation();
 
-            // Reference: the av1_determine_sc_tools_with_encoding() call of encode_with_recode_loop(), which a
-            // lookahead sequence reaches because its statistics allow recoding.
+            // A lookahead sequence has statistics that allow recoding. Thus a key frame can test the screen content tools with two trial encodes.
             isScreenContent = this.DetermineScreenContentWithEncoding<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(
                 source.Frame,
                 current.Buffer.Frame,

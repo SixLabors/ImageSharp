@@ -20,7 +20,7 @@ internal static partial class Av1ResidualBuilder
     private const int SearchBlockDimension = 8;
 
     /// <summary>
-    /// Measures absolute prediction error over a rectangular block, optionally sampling alternate rows.
+    /// Measures absolute prediction error over a rectangular block. It can measure every second row only.
     /// </summary>
     /// <param name="source">Source samples beginning at the block origin.</param>
     /// <param name="sourceStride">The source row stride, in samples.</param>
@@ -28,7 +28,7 @@ internal static partial class Av1ResidualBuilder
     /// <param name="predictionStride">The prediction row stride, in samples.</param>
     /// <param name="width">The block width, in samples.</param>
     /// <param name="height">The block height, in samples.</param>
-    /// <param name="rowStep">One for every row, or two for alternating rows with doubled error.</param>
+    /// <param name="rowStep">One for every row, or two for every second row with a doubled error.</param>
     /// <returns>The unnormalized absolute difference over the block.</returns>
     public static int SumAbsoluteDifferences(
         ReadOnlySpan<byte> source,
@@ -63,7 +63,7 @@ internal static partial class Av1ResidualBuilder
         => GetMoments<byte, ByteOperator>(source, sourceStride, prediction, predictionStride, width, height, out sum, out sumOfSquares);
 
     /// <summary>
-    /// Measures absolute prediction error over a rectangular block, optionally sampling alternate rows.
+    /// Measures absolute prediction error over a rectangular high bit depth block. It can measure every second row only.
     /// </summary>
     /// <param name="source">Source samples beginning at the block origin.</param>
     /// <param name="sourceStride">The source row stride, in samples.</param>
@@ -71,7 +71,7 @@ internal static partial class Av1ResidualBuilder
     /// <param name="predictionStride">The prediction row stride, in samples.</param>
     /// <param name="width">The block width, in samples.</param>
     /// <param name="height">The block height, in samples.</param>
-    /// <param name="rowStep">One for every row, or two for alternating rows with doubled error.</param>
+    /// <param name="rowStep">One for every row, or two for every second row with a doubled error.</param>
     /// <returns>The unnormalized absolute difference over the block.</returns>
     public static int SumAbsoluteDifferences(
         ReadOnlySpan<ushort> source,
@@ -106,8 +106,18 @@ internal static partial class Av1ResidualBuilder
         => GetMoments<ushort, UInt16Operator>(source, sourceStride, prediction, predictionStride, width, height, out sum, out sumOfSquares);
 
     /// <summary>
-    /// Traverses rectangular SAD candidates using the selected sample operator and descending vector widths.
+    /// Traverses rectangular SAD candidates with the selected sample operator and descending vector widths.
     /// </summary>
+    /// <typeparam name="TSample">The source and prediction sample type.</typeparam>
+    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <param name="source">Source samples beginning at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">Prediction samples beginning at the block origin.</param>
+    /// <param name="predictionStride">The prediction row stride, in samples.</param>
+    /// <param name="width">The block width, in samples.</param>
+    /// <param name="height">The block height, in samples.</param>
+    /// <param name="rowStep">One for every row, or two for every second row with a doubled error.</param>
+    /// <returns>The unnormalized absolute difference over the block.</returns>
     private static int SumAbsoluteDifferences<TSample, TOperator>(
         ReadOnlySpan<TSample> source,
         int sourceStride,
@@ -119,9 +129,8 @@ internal static partial class Av1ResidualBuilder
         where TSample : unmanaged
         where TOperator : struct, IResidualOperator<TSample>
     {
-        // The running total stays in lanes for the whole block and is reduced once at the end.
-        // One 32-bit lane takes a twelve-bit difference more than a million times, and the largest
-        // AV1 block holds 16384 samples, so the block needs no intermediate fold.
+        // The running total stays in lanes for the whole block, and one reduction at the end gives the sum. One 32-bit lane can take
+        // a 12-bit difference more than a million times. The largest AV1 block holds 16384 samples, so the block needs no intermediate fold.
         Vector512<uint> total512 = Vector512<uint>.Zero;
         Vector256<uint> total256 = Vector256<uint>.Zero;
         Vector128<uint> total128 = Vector128<uint>.Zero;
@@ -129,9 +138,8 @@ internal static partial class Av1ResidualBuilder
         int y = 0;
         if (width == 4 && Vector128.IsHardwareAccelerated)
         {
-            // A row of four samples fills only half a vector, so this path takes two sampled rows at a time. The second
-            // row of a pair is one row step below the first. The search can sample every other row, so a row step can be
-            // two rows.
+            // A row of four samples fills only half a vector, so this path takes two sampled rows at a time. The second row of a pair
+            // is one row step below the first. The search can sample every second row, so a row step can be two rows.
             Vector128<short> ones = Vector128.Create((short)1);
             ref TSample sourceStart = ref MemoryMarshal.GetReference(source);
             ref TSample predictionStart = ref MemoryMarshal.GetReference(prediction);
@@ -145,14 +153,14 @@ internal static partial class Av1ResidualBuilder
                     ref Unsafe.Add(ref predictionStart, (nuint)y * (nuint)predictionStride),
                     predictionStep);
 
-                // The vector holds the four differences of the first row, then the four of the second row. Abs makes
-                // each difference positive. A multiply-add with ones adds each pair of neighbors into one 32-bit lane.
+                // The vector holds the four differences of the first row, then the four of the second row. Abs makes each difference
+                // positive. A multiply-add with ones adds each pair of neighbors into one 32-bit lane.
                 total128 += Vector128_.MultiplyAddAdjacent(Vector128.Abs(difference), ones).AsUInt32();
             }
         }
 
-        // Wider blocks use complete native loads. The eight-sample tail retains the existing compact load,
-        // which reads eight bytes or eight words without crossing a short row's boundary.
+        // Wider blocks use full native loads. A tail of eight samples uses the compact load. This load reads eight bytes or eight words
+        // and does not read past the end of a short row.
         for (; y < height; y += rowStep)
         {
             ReadOnlySpan<TSample> sourceRow = source.Slice(y * sourceStride, width);
@@ -194,9 +202,8 @@ internal static partial class Av1ResidualBuilder
                 }
             }
 
-            // A row of eight bytes fills half of a byte vector, so the compact load pads it with
-            // zeros. The padding is identical on both sides, so its difference is zero and it adds
-            // nothing to the total.
+            // A row of eight bytes fills half of a byte vector, so the compact load pads it with zeros. The padding is the same on both
+            // sides, so its difference is zero and it adds nothing to the total.
             if (Vector128.IsHardwareAccelerated && x <= width - SearchBlockDimension)
             {
                 total128 = TOperator.AccumulateAbsoluteDifferences(
@@ -211,20 +218,30 @@ internal static partial class Av1ResidualBuilder
             }
         }
 
-        // Folding the wide totals down costs four adds and no branch. A width the hardware does not
-        // have contributes a zero vector, so the unused stages drop out of the result on their own.
+        // The fold of the wide totals costs four adds and no branch. A width that the hardware does not have holds a zero vector,
+        // so the unused stages add nothing to the result.
         total256 += total512.GetLower() + total512.GetUpper();
         total128 += total256.GetLower() + total256.GetUpper();
         sum += (int)Vector128.Sum(total128);
 
-        // Alternate-row search represents the complete even-height block by doubling the sampled row total.
-        // Precision normalization follows this scaling so fractional error units are truncated only once.
+        // When the search reads every second row, the doubled total estimates the full block of even height. A precision normalization
+        // comes after this scaling, so the truncation of fractional error units happens only once.
         return sum * rowStep;
     }
 
     /// <summary>
     /// Accumulates rectangular residual moments without storing an intermediate residual plane.
     /// </summary>
+    /// <typeparam name="TSample">The source and prediction sample type.</typeparam>
+    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <param name="source">Source samples beginning at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">Prediction samples beginning at the block origin.</param>
+    /// <param name="predictionStride">The prediction row stride, in samples.</param>
+    /// <param name="width">The block width, in samples.</param>
+    /// <param name="height">The block height, in samples.</param>
+    /// <param name="sum">The unnormalized signed residual sum.</param>
+    /// <param name="sumOfSquares">The unnormalized squared residual sum.</param>
     private static void GetMoments<TSample, TOperator>(
         ReadOnlySpan<TSample> source,
         int sourceStride,
@@ -240,20 +257,19 @@ internal static partial class Av1ResidualBuilder
         sum = 0;
         sumOfSquares = 0;
 
-        // The signed total stays in lanes for the whole block. One lane takes two differences per
-        // vector, so a lane holds at most 8190 per vector and cannot overflow inside any AV1 block.
+        // The signed total stays in lanes for the whole block. One lane takes two differences for each vector. A lane therefore gains
+        // at most 8190 for each vector, and it cannot overflow inside any AV1 block.
         Vector512<int> sum512 = Vector512<int>.Zero;
         Vector256<int> sum256 = Vector256<int>.Zero;
         Vector128<int> sum128 = Vector128<int>.Zero;
         int y = 0;
         if (width == 4 && height <= 64 && Vector128.IsHardwareAccelerated)
         {
-            // A row of four samples fills only half a vector, so this path takes two rows at a time. Each pair gives
-            // one vector of eight differences. The path collects the sum of the differences and the sum of their
-            // squares. The variance uses both totals.
+            // A row of four samples fills only half a vector, so this path takes two rows at a time. Each pair gives one vector of eight
+            // differences. The path collects the sum of the differences and the sum of their squares. The variance uses both totals.
             //
-            // The largest difference at 12 bits is 4095, so one lane gains at most 2 * 4095 * 4095 = 33538050 for each
-            // row pair. A block of 64 rows has 32 pairs, so a lane stays below 2^31. An odd last row goes to the row loop.
+            // The largest difference at 12 bits is 4095, so one lane gains at most 2 * 4095 * 4095 = 33538050 for each row pair.
+            // A block of 64 rows has 32 pairs, so a lane stays below 2^31. An odd last row goes to the row loop.
             Vector128<short> ones = Vector128.Create((short)1);
             Vector128<int> squares = Vector128<int>.Zero;
             ref TSample sourceStart = ref MemoryMarshal.GetReference(source);
@@ -268,20 +284,20 @@ internal static partial class Av1ResidualBuilder
                     ref Unsafe.Add(ref predictionStart, (nuint)y * predictionStep),
                     predictionStep);
 
-                // A multiply-add with ones adds each pair of neighbor differences into one 32-bit lane. A multiply-add
-                // of the vector with itself squares each difference and adds each pair of neighbor squares.
+                // A multiply-add with ones adds each pair of neighbor differences into one 32-bit lane. A multiply-add of the vector with
+                // itself squares each difference and adds each pair of neighbor squares.
                 sum128 += Vector128_.MultiplyAddAdjacent(difference, ones);
                 squares += Vector128_.MultiplyAddAdjacent(difference, difference);
             }
 
-            // One lane fits in 32 bits, but the total of four lanes can be more than 2^32. Thus the lanes widen to
-            // 64 bits before the final sum.
+            // One lane fits in 32 bits, but the total of four lanes can be more than 2^32. The lanes therefore widen to 64 bits before
+            // the final sum.
             Vector128<uint> squareLanes = squares.AsUInt32();
             sumOfSquares = (long)Vector128.Sum(Vector128.WidenLower(squareLanes) + Vector128.WidenUpper(squareLanes));
         }
 
-        // Wider blocks use complete native loads. The eight-sample tail retains the existing compact load,
-        // which reads eight bytes or eight words without crossing a short row's boundary.
+        // Wider blocks use full native loads. A tail of eight samples uses the compact load. This load reads eight bytes or eight words
+        // and does not read past the end of a short row.
         for (; y < height; y++)
         {
             ReadOnlySpan<TSample> sourceRow = source.Slice(y * sourceStride, width);
@@ -290,9 +306,8 @@ internal static partial class Av1ResidualBuilder
             ref TSample predictionBase = ref MemoryMarshal.GetReference(predictionRow);
             int x = 0;
 
-            // The squared total folds at the end of each row. A lane takes two squares per vector, so
-            // it holds at most 33538050 per vector and overflows after 64 of them. A row of the widest
-            // AV1 block is 16 vectors at the narrowest width, which keeps a wide margin.
+            // The squared total folds at the end of each row. A lane takes two squares for each vector, so it gains at most 33538050 for
+            // each vector and overflows after 64 vectors. A row of the widest AV1 block is 16 vectors at the narrowest width.
             Vector512<int> squares512 = Vector512<int>.Zero;
             Vector256<int> squares256 = Vector256<int>.Zero;
             Vector128<int> squares128 = Vector128<int>.Zero;
@@ -333,8 +348,7 @@ internal static partial class Av1ResidualBuilder
                 }
             }
 
-            // The padding the compact load adds is identical on both sides, so it contributes a zero
-            // difference and a zero square.
+            // The padding of the compact load is the same on both sides, so it adds a zero difference and a zero square.
             if (Vector128.IsHardwareAccelerated && x <= width - SearchBlockDimension)
             {
                 TOperator.AccumulateMoments(
@@ -435,6 +449,13 @@ internal static partial class Av1ResidualBuilder
     /// <summary>
     /// Traverses an 8x8 block while its closed operator calculates scalar or eight-sample row costs.
     /// </summary>
+    /// <typeparam name="TSample">The source and prediction sample type.</typeparam>
+    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <param name="source">The source samples starting at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">The prediction samples starting at the block origin.</param>
+    /// <param name="predictionStride">The prediction row stride, in samples.</param>
+    /// <returns>The sum of absolute sample differences.</returns>
     private static int SumAbsoluteDifferences8x8<TSample, TOperator>(
         ReadOnlySpan<TSample> source, int sourceStride, ReadOnlySpan<TSample> prediction, int predictionStride)
         where TSample : unmanaged
@@ -443,10 +464,9 @@ internal static partial class Av1ResidualBuilder
         int sum = 0;
         if (Vector128.IsHardwareAccelerated)
         {
-            // Eight widened AV1 samples exactly fill 128 bits. Wider loads would cross the row boundary;
-            // byte storage is loaded as eight bytes and ushort storage as eight native-order words.
-            // The total stays in lanes across all eight rows, so the block reduces once. Eight rows of
-            // eight bytes reach 16320 in one lane, which is far inside the 32-bit range.
+            // Eight widened AV1 samples fill 128 bits exactly. A wider load reads past the end of the row. Byte storage loads as eight
+            // bytes, and 16-bit storage loads as eight native-order words. The total stays in lanes across all eight rows, so the block
+            // reduces once. Sixty-four 12-bit differences reach at most 262080, which is far inside the 32-bit range.
             Vector128<uint> total = Vector128<uint>.Zero;
             for (int row = 0; row < SearchBlockDimension; row++)
             {
@@ -475,8 +495,15 @@ internal static partial class Av1ResidualBuilder
     }
 
     /// <summary>
-    /// Traverses four adjacent candidates together, retaining one source load per row or scalar sample.
+    /// Traverses four adjacent candidates together, with one source load for each row or scalar sample.
     /// </summary>
+    /// <typeparam name="TSample">The source and prediction sample type.</typeparam>
+    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <param name="source">The source samples starting at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">The first prediction, with three additional samples available at the right of each row.</param>
+    /// <param name="predictionStride">The prediction row stride, in samples.</param>
+    /// <param name="sums">The four results in increasing horizontal-offset order.</param>
     private static void SumFourAbsoluteDifferences8x8<TSample, TOperator>(
         ReadOnlySpan<TSample> source, int sourceStride, ReadOnlySpan<TSample> prediction, int predictionStride, Span<int> sums)
         where TSample : unmanaged
@@ -490,8 +517,8 @@ internal static partial class Av1ResidualBuilder
                 ReadOnlySpan<TSample> predictionRow = prediction[(row * predictionStride)..];
                 Vector128<TSample> sourceRow = LoadSearchRow(source[(row * sourceStride)..]);
 
-                // The four prediction windows overlap, but each candidate owns one result lane. The operator
-                // widens the source only once and reuses it for all four independent absolute-difference sums.
+                // The four prediction windows overlap, but each candidate owns one result lane. The operator widens the source once and
+                // uses it for all four independent sums of absolute differences.
                 totals += TOperator.SumFourAbsoluteDifferences(
                     sourceRow,
                     LoadSearchRow(predictionRow),
@@ -530,8 +557,16 @@ internal static partial class Av1ResidualBuilder
     }
 
     /// <summary>
-    /// Accumulates both residual moments in one traversal without materializing a residual buffer.
+    /// Accumulates both residual moments of an 8x8 block in one traversal, without a residual buffer.
     /// </summary>
+    /// <typeparam name="TSample">The source and prediction sample type.</typeparam>
+    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <param name="source">The source samples starting at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">The prediction samples starting at the block origin.</param>
+    /// <param name="predictionStride">The prediction row stride, in samples.</param>
+    /// <param name="sum">The signed sum of sample differences.</param>
+    /// <param name="sumOfSquares">The sum of squared sample differences.</param>
     private static void GetMoments8x8<TSample, TOperator>(
         ReadOnlySpan<TSample> source, int sourceStride, ReadOnlySpan<TSample> prediction, int predictionStride, out int sum, out int sumOfSquares)
         where TSample : unmanaged
@@ -540,12 +575,12 @@ internal static partial class Av1ResidualBuilder
         sum = 0;
         sumOfSquares = 0;
 
-        // Even 64 maximum twelve-bit residual squares fit in a signed int. Preserve the unnormalized
-        // moments here; the caller applies the frame's precision-dependent rounding before deriving variance.
+        // The squares of 64 maximum 12-bit residuals fit a signed 32-bit integer. The moments stay unnormalized here. The caller
+        // applies the rounding for the precision of the frame before it derives the variance.
         if (Vector128.IsHardwareAccelerated)
         {
-            // Sixty-four squared twelve-bit residuals reach 1073217600, so both totals stay in lanes
-            // for the whole block and reduce once rather than once per row.
+            // Sixty-four squared 12-bit residuals reach 1073217600, so both totals stay in lanes for the whole block. They reduce once,
+            // not once for each row.
             Vector128<int> sums = Vector128<int>.Zero;
             Vector128<int> squares = Vector128<int>.Zero;
             for (int row = 0; row < SearchBlockDimension; row++)
@@ -576,14 +611,17 @@ internal static partial class Av1ResidualBuilder
     }
 
     /// <summary>
-    /// Loads exactly eight native-order samples; byte rows occupy the lower half of the returned vector.
+    /// Loads exactly eight native-order samples. Byte rows use the lower half of the returned vector, and the upper half is zero.
     /// </summary>
+    /// <typeparam name="TSample">The sample type.</typeparam>
+    /// <param name="source">The row, starting at the first sample to load.</param>
+    /// <returns>The eight samples in increasing column order.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<TSample> LoadSearchRow<TSample>(ReadOnlySpan<TSample> source)
         where TSample : unmanaged
     {
-        // The closed byte/ushort instantiation removes this storage-width choice. The eight-byte load
-        // never consumes padding or a following row; the operator widens only its eight populated lanes.
+        // The JIT removes this branch for each closed sample type. The 8-byte load for bytes never reads padding or the next row.
+        // The operator widens only the eight loaded lanes.
         return Vector128<TSample>.Count == SearchBlockDimension
             ? Vector128.Create(source)
             : Vector128.Create(Vector64.Create(source), Vector64<TSample>.Zero);
@@ -636,10 +674,9 @@ internal static partial class Av1ResidualBuilder
         => Subtract<ushort, UInt16Operator>(source, sourceStride, prediction, predictionStride, residual, residualStride, width, height);
 
     /// <summary>
-    /// Replaces the residual of a transform block outside the frame with values derived from its visible part, so
-    /// the transform codes no edge that the frame does not show. A two-dimensional transform takes the mean of the
-    /// visible residual, and a one-dimensional transform takes the mean of each visible row or column along its
-    /// identity direction. Reference: fill_residue_outside_frame().
+    /// Replaces the residual of a transform block outside the frame with values derived from its visible part. The transform then codes
+    /// no edge that the frame does not show. A two-dimensional transform takes the mean of the visible residual. A one-dimensional
+    /// transform takes the mean of each visible row or column along its identity direction. The plain identity transform takes zero.
     /// </summary>
     /// <param name="residual">The residual block.</param>
     /// <param name="residualStride">The residual row stride.</param>
@@ -688,7 +725,7 @@ internal static partial class Av1ResidualBuilder
 
         if (IsHorizontalIdentity(transformType))
         {
-            // The rows are coded by the identity, so each hidden row repeats the mean of its visible column.
+            // The identity codes each row, so each hidden row repeats the mean of each visible column. Hidden columns get zero.
             if (visibleRows < rows)
             {
                 // A transform is at most 64 samples wide.
@@ -728,7 +765,7 @@ internal static partial class Av1ResidualBuilder
             return;
         }
 
-        // The columns are coded by the identity, so each hidden column repeats the mean of its visible row.
+        // The identity codes each column, so the hidden columns of each visible row repeat the mean of that row. Hidden rows get zero.
         if (rightPixels != 0)
         {
             for (int row = 0; row < visibleRows; row++)
@@ -849,14 +886,19 @@ internal static partial class Av1ResidualBuilder
     }
 
     /// <summary>
-    /// Divides and rounds half away from zero. Reference: DIVIDE_AND_ROUND_SIGNED.
+    /// Divides and rounds half away from zero.
     /// </summary>
+    /// <param name="numerator">The signed numerator.</param>
+    /// <param name="denominator">The positive denominator.</param>
+    /// <returns>The rounded quotient.</returns>
     private static int DivideAndRoundSigned(int numerator, int denominator)
         => numerator < 0 ? (numerator - (denominator / 2)) / denominator : (numerator + (denominator / 2)) / denominator;
 
     /// <summary>
-    /// Gets whether the horizontal one-dimensional transform of a type is the identity. Reference: htx_tab.
+    /// Gets whether the horizontal one-dimensional transform of a type is the identity.
     /// </summary>
+    /// <param name="transformType">The transform type.</param>
+    /// <returns><see langword="true"/> when the type transforms only the columns.</returns>
     private static bool IsHorizontalIdentity(Av1TransformType transformType)
         => transformType is Av1TransformType.VerticalDct or Av1TransformType.VerticalAdst or Av1TransformType.VerticalFlipAdst;
 
@@ -901,7 +943,7 @@ internal static partial class Av1ResidualBuilder
         => SumSquaredError<ushort, UInt16Operator>(source, sourceStride, prediction, predictionStride, width, height);
 
     /// <summary>
-    /// Sums the squares of a contiguous signed residual block. Reference: aom_sum_squares_i16.
+    /// Sums the squares of a contiguous signed residual block.
     /// </summary>
     /// <param name="residual">The residual samples.</param>
     /// <returns>The exact sum of squared sample differences.</returns>
@@ -909,7 +951,7 @@ internal static partial class Av1ResidualBuilder
         => SumSquares<ResidualSquaresOperator>(residual, residual.Length, residual.Length, 1);
 
     /// <summary>
-    /// Sums the squares of a rectangle of a signed residual plane. Reference: aom_sum_squares_2d_i16.
+    /// Sums the squares of a rectangle of a signed residual plane.
     /// </summary>
     /// <param name="residual">The residual samples at the rectangle origin.</param>
     /// <param name="stride">The residual row stride.</param>
@@ -923,8 +965,7 @@ internal static partial class Av1ResidualBuilder
     /// Sums a contiguous signed residual block and the squares of its samples.
     /// </summary>
     /// <remarks>
-    /// This is <c>aom_sum_sse_2d_i16</c>, which <c>pixel_diff_stats</c> uses to derive the mean and the
-    /// variance of one transform block's residual without a second pass over it.
+    /// A caller derives the mean and the variance of the residual of one transform block from both sums, without a second pass.
     /// </remarks>
     /// <param name="residual">The residual samples.</param>
     /// <param name="sum">The exact sum of the samples.</param>
@@ -933,8 +974,7 @@ internal static partial class Av1ResidualBuilder
         => SumAndSumSquares<ResidualSquaresOperator>(residual, residual.Length, residual.Length, 1, out sum);
 
     /// <summary>
-    /// Sums a rectangle of a signed residual plane and the squares of its samples. Reference:
-    /// aom_get_blk_sse_sum.
+    /// Sums a rectangle of a signed residual plane and the squares of its samples.
     /// </summary>
     /// <param name="residual">The residual samples at the rectangle origin.</param>
     /// <param name="stride">The residual row stride.</param>
@@ -948,15 +988,20 @@ internal static partial class Av1ResidualBuilder
     /// <summary>
     /// Traverses the square sum of a residual rectangle at descending register widths.
     /// </summary>
+    /// <typeparam name="TOperator">The lane arithmetic.</typeparam>
+    /// <param name="residual">The residual samples at the rectangle origin.</param>
+    /// <param name="stride">The residual row stride.</param>
+    /// <param name="width">The rectangle width.</param>
+    /// <param name="height">The rectangle height.</param>
+    /// <returns>The exact sum of squared samples.</returns>
     private static long SumSquares<TOperator>(ReadOnlySpan<short> residual, int stride, int width, int height)
         where TOperator : struct, IResidualSquaresOperator
     {
         // The slice checks every bound once, so the rows below can load by reference.
         ref short residualBase = ref MemoryMarshal.GetReference(residual[..(height == 0 ? 0 : ((height - 1) * stride) + width)]);
 
-        // The squares accumulate in 64-bit lanes and reduce once at the end. A horizontal sum inside
-        // the loop costs a chain of shuffles and adds, which is more than the lane work it reduces,
-        // and a 32-bit lane would overflow after 64 vectors of twelve-bit residuals.
+        // The squares accumulate in 64-bit lanes and reduce once at the end. A horizontal sum inside the loop costs a chain of shuffles
+        // and adds, which is more than the lane work that it reduces. A 32-bit lane overflows after 64 vectors of 12-bit residuals.
         Vector512<long> total512 = Vector512<long>.Zero;
         Vector256<long> total256 = Vector256<long>.Zero;
         Vector128<long> total128 = Vector128<long>.Zero;
@@ -1003,14 +1048,21 @@ internal static partial class Av1ResidualBuilder
     /// <summary>
     /// Traverses the sum and the square sum of a residual rectangle at descending register widths.
     /// </summary>
+    /// <typeparam name="TOperator">The lane arithmetic.</typeparam>
+    /// <param name="residual">The residual samples at the rectangle origin.</param>
+    /// <param name="stride">The residual row stride.</param>
+    /// <param name="width">The rectangle width.</param>
+    /// <param name="height">The rectangle height.</param>
+    /// <param name="sum">The exact sum of the samples.</param>
+    /// <returns>The exact sum of squared samples.</returns>
     private static long SumAndSumSquares<TOperator>(ReadOnlySpan<short> residual, int stride, int width, int height, out long sum)
         where TOperator : struct, IResidualSquaresOperator
     {
+        // The slice checks every bound once, so the rows below can load by reference.
         ref short residualBase = ref MemoryMarshal.GetReference(residual[..(height == 0 ? 0 : ((height - 1) * stride) + width)]);
 
-        // Both totals accumulate in 64-bit lanes and reduce once at the end, for the reason the
-        // square sum gives: a reduction belongs outside the loop, and a 32-bit lane is too narrow
-        // for a complete encoder block.
+        // Both totals accumulate in 64-bit lanes and reduce once at the end, as in the square sum. The reduction stays outside the loop,
+        // and a 32-bit lane is too narrow for a full encoder block.
         Vector512<long> squares512 = Vector512<long>.Zero;
         Vector256<long> squares256 = Vector256<long>.Zero;
         Vector128<long> squares128 = Vector128<long>.Zero;
@@ -1069,6 +1121,18 @@ internal static partial class Av1ResidualBuilder
         return sumOfSquares + Vector128.Sum(squares128);
     }
 
+    /// <summary>
+    /// Traverses the squared error between two strided sample planes at descending register widths.
+    /// </summary>
+    /// <typeparam name="TSample">The source and prediction sample type.</typeparam>
+    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The source row stride.</param>
+    /// <param name="prediction">The prediction or reconstruction samples.</param>
+    /// <param name="predictionStride">The prediction row stride.</param>
+    /// <param name="width">The number of samples per row.</param>
+    /// <param name="height">The number of rows.</param>
+    /// <returns>The sum of squared sample differences.</returns>
     private static long SumSquaredError<TSample, TOperator>(
         ReadOnlySpan<TSample> source,
         int sourceStride,
@@ -1086,8 +1150,7 @@ internal static partial class Av1ResidualBuilder
             return SumSquaredErrorNarrow<TSample, TOperator>(ref sourceBase, sourceStride, ref predictionBase, predictionStride, width, height);
         }
 
-        // Every row of a block has the same width, so the stage boundaries are taken once rather
-        // than per row.
+        // Every row of a block has the same width, so the code finds the stage boundaries once, not once for each row.
         int end512 = width - Vector512<short>.Count;
         int end256 = width - Vector256<short>.Count;
         int end128 = width - Vector128<short>.Count;
@@ -1098,17 +1161,15 @@ internal static partial class Av1ResidualBuilder
 
         for (int y = 0; y < height; y++)
         {
-            // The rows are addressed by offset rather than sliced. A transform block is small, so
-            // constructing two spans and recomputing their vector counts for every row costs more
-            // than the row of arithmetic it guards.
+            // The code addresses each row by offset and does not slice it. A transform block is small. Two new spans and their vector
+            // counts for each row cost more than the arithmetic of the row.
             ref TSample sourceRow = ref Unsafe.Add(ref sourceBase, (nuint)y * (nuint)sourceStride);
             ref TSample predictionRow = ref Unsafe.Add(ref predictionBase, (nuint)y * (nuint)predictionStride);
             int x = 0;
 
-            // The squares accumulate in lanes and fold once per row. A row holds at most 64 samples
-            // and a squared difference of twelve-bit samples reaches 16769025, so a row total stays
-            // inside a 32-bit lane at either sample depth. Carrying the lanes across the whole block
-            // was measured and made no difference, so the simpler bound stands.
+            // The squares accumulate in lanes and fold once for each row. A row holds at most 64 samples, and a squared difference of
+            // 12-bit samples reaches 16769025. A row total therefore stays inside a 32-bit lane at either sample depth.
+            // A measurement showed no gain from lanes that carry across the whole block, so the code keeps the simpler bound.
             if (use512)
             {
                 Vector512<int> squares = Vector512<int>.Zero;
@@ -1156,14 +1217,14 @@ internal static partial class Av1ResidualBuilder
     }
 
     /// <summary>
-    /// Sums the squared differences between a source block and a prediction block that is narrower than sixteen
-    /// samples. A vector holds eight differences. A row of four samples fills only half a vector, so two rows load
-    /// together. A row of eight or more samples loads its first eight samples as one vector. Each vector lane keeps a
-    /// running total for the whole block, and the lanes are added together once at the end.
+    /// Sums the squared differences between a source block and a prediction block that is narrower than sixteen samples.
+    /// A vector holds eight differences. A row of four samples fills only half a vector, so two rows load together.
+    /// A row of eight or more samples loads its first eight samples as one vector. Each vector lane keeps a running total for the whole block.
+    /// The lanes add together once at the end.
     /// </summary>
     /// <remarks>
-    /// The largest difference at 12 bits is 4095. One lane gains at most two squares of 4095 for each row, so after
-    /// 64 rows a lane is still less than 2^32.
+    /// The largest difference at 12 bits is 4095. One lane gains at most two squares of 4095 for each row, so after 64 rows a lane is
+    /// still less than 2^32.
     /// </remarks>
     /// <typeparam name="TSample">The sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample operations.</typeparam>
@@ -1189,14 +1250,14 @@ internal static partial class Av1ResidualBuilder
         nuint predictionStep = (nuint)predictionStride;
         nuint columns = (nuint)width;
 
-        // laneSquares keeps the squares that the vectors calculate. scalarSquares keeps the squares of the columns
-        // after the first eight, which the scalar loop calculates one at a time.
+        // `laneSquares` keeps the squares that the vectors calculate. `scalarSquares` keeps the squares of the columns after the first
+        // eight, which the scalar loop calculates one at a time.
         Vector128<int> laneSquares = Vector128<int>.Zero;
         long scalarSquares = 0;
         int row = 0;
 
-        // Step 1: if the block is four samples wide, load two rows at a time. The vector holds the four differences of
-        // the first row, then the four differences of the second row. If the height is odd, step 2 does the last row.
+        // Step 1: if the block is four samples wide, the code loads two rows at a time. The vector holds the four differences of the
+        // first row, then the four differences of the second row. If the height is odd, step 2 does the last row.
         if (width == 4)
         {
             for (; row + 1 < height; row += 2)
@@ -1205,15 +1266,15 @@ internal static partial class Av1ResidualBuilder
                 ref TSample predictionPair = ref Unsafe.Add(ref predictionBase, (nuint)row * predictionStep);
                 Vector128<short> difference = TOperator.LoadDifferenceRowPair(ref sourcePair, sourceStep, ref predictionPair, predictionStep);
 
-                // A multiply-add of the vector with itself squares each difference, then adds each pair of neighbor
-                // squares into one 32-bit lane.
+                // A multiply-add of the vector with itself squares each difference, then adds each pair of neighbor squares into one
+                // 32-bit lane.
                 laneSquares += Vector128_.MultiplyAddAdjacent(difference, difference);
             }
         }
 
-        // Step 2: do each remaining row. If the row has eight or more samples, load its first eight differences as one
-        // vector. Then add the squares of the remaining columns one at a time. For example, a row of twelve samples
-        // does eight columns in the vector and four in the scalar loop.
+        // Step 2: the code does each remaining row. If the row has eight or more samples, its first eight differences load as one vector.
+        // The squares of the remaining columns then add one at a time. For example, a row of twelve samples does eight columns in the
+        // vector and four in the scalar loop.
         bool rowFillsVector = width >= Vector128<short>.Count;
         for (; row < height; row++)
         {
@@ -1234,12 +1295,25 @@ internal static partial class Av1ResidualBuilder
             }
         }
 
-        // Step 3: add the four lanes together. One lane stays less than 2^32 for 64 rows, but the total of four lanes
-        // can be more than 2^32. Thus the lanes widen to 64 bits before the sum.
+        // Step 3: the code adds the four lanes together. One lane stays less than 2^32 for 64 rows, but the total of four lanes can be
+        // more than 2^32. The lanes therefore widen to 64 bits before the sum.
         Vector128<uint> lanes = laneSquares.AsUInt32();
         return scalarSquares + (long)Vector128.Sum(Vector128.WidenLower(lanes) + Vector128.WidenUpper(lanes));
     }
 
+    /// <summary>
+    /// Subtracts a prediction plane from its source plane at descending register widths.
+    /// </summary>
+    /// <typeparam name="TSample">The source and prediction sample type.</typeparam>
+    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The source row stride.</param>
+    /// <param name="prediction">The prediction samples.</param>
+    /// <param name="predictionStride">The prediction row stride.</param>
+    /// <param name="residual">The destination residual samples.</param>
+    /// <param name="residualStride">The residual row stride.</param>
+    /// <param name="width">The number of samples per row.</param>
+    /// <param name="height">The number of rows.</param>
     private static void Subtract<TSample, TOperator>(
         ReadOnlySpan<TSample> source,
         int sourceStride,
@@ -1256,10 +1330,9 @@ internal static partial class Av1ResidualBuilder
         ref TSample predictionBase = ref MemoryMarshal.GetReference(prediction);
         ref short residualBase = ref MemoryMarshal.GetReference(residual);
 
-        // Every row of a block has the same width, so which stages run, and where each one stops,
-        // are settled once rather than per row. One vector of sixteen-bit lanes is one vector of
-        // residuals whatever the sample depth, so a row of eight samples fills a vector and no
-        // transform width falls to the scalar loop on its own.
+        // Every row of a block has the same width, so the code selects the stages and their end points once, not once for each row.
+        // One vector of 16-bit lanes is one vector of residuals for both sample depths. A row of eight samples therefore fills a vector,
+        // and no transform width goes to the scalar loop alone.
         int end512 = width - Vector512<short>.Count;
         int end256 = width - Vector256<short>.Count;
         int end128 = width - Vector128<short>.Count;
@@ -1269,9 +1342,9 @@ internal static partial class Av1ResidualBuilder
         int y = 0;
         if (width == 4 && Vector128.IsHardwareAccelerated)
         {
-            // A row of four samples fills only half a vector, so this path takes two rows at a time. The vector holds
-            // the four residuals of the first row in its low 64 bits and the four residuals of the second row in its
-            // high 64 bits. Each half is written to its own residual row as one 64-bit store.
+            // A row of four samples fills only half a vector, so this path takes two rows at a time. The vector holds the four residuals
+            // of the first row in its low 64 bits and the four residuals of the second row in its high 64 bits.
+            // One 64-bit store writes each half to its own residual row.
             nuint sourceStep = (nuint)sourceStride;
             nuint predictionStep = (nuint)predictionStride;
             nuint residualStep = (nuint)residualStride;
@@ -1291,8 +1364,8 @@ internal static partial class Av1ResidualBuilder
 
         for (; y < height; y++)
         {
-            // The rows are addressed by offset for the same reason the squared error addresses
-            // them that way: a transform row is short, so per-row span work dominates.
+            // The code addresses each row by offset, as the squared error does. A transform row is short, so the span work for each row
+            // costs more than the row arithmetic.
             ref TSample sourceRow = ref Unsafe.Add(ref sourceBase, (nuint)y * (nuint)sourceStride);
             ref TSample predictionRow = ref Unsafe.Add(ref predictionBase, (nuint)y * (nuint)predictionStride);
             ref short residualRow = ref Unsafe.Add(ref residualBase, (nuint)y * (nuint)residualStride);

@@ -66,6 +66,10 @@ internal static class Av1ModeThresholds
     /// <summary>
     /// Gets the history entry for a syntax mode and its ordered reference pair.
     /// </summary>
+    /// <param name="mode">The prediction mode.</param>
+    /// <param name="primary">The first reference, or intra.</param>
+    /// <param name="secondary">The second reference, or a value at or below intra for a single-reference prediction.</param>
+    /// <returns>The index of the entry, below <see cref="ModeCount"/>.</returns>
     public static int GetIndex(Av1PredictionMode mode, Av1ReferenceFrameType primary, Av1ReferenceFrameType secondary)
     {
         if (primary == Av1ReferenceFrameType.Intra)
@@ -89,8 +93,18 @@ internal static class Av1ModeThresholds
     }
 
     /// <summary>
-    /// Determines whether the current winner is cheaper than a mode's adaptive search threshold.
+    /// Determines whether the current winner is cheaper than the adaptive search threshold of a mode.
     /// </summary>
+    /// <param name="factors">The block-size and mode history factors, with five fractional bits.</param>
+    /// <param name="quantizerFactor">The quantizer-dependent threshold scale.</param>
+    /// <param name="skippableMultiplier">The threshold multiplier, in Q12, that applies when the current winner skips its residual.</param>
+    /// <param name="blockSize">The current prediction block size.</param>
+    /// <param name="mode">The prediction mode.</param>
+    /// <param name="primary">The first reference, or intra.</param>
+    /// <param name="secondary">The second reference, or a value at or below intra for a single-reference prediction.</param>
+    /// <param name="bestCost">The best complete candidate cost.</param>
+    /// <param name="bestSkippable">Whether the current winner skips its residual.</param>
+    /// <returns>Whether to omit the mode.</returns>
     public static bool ShouldSkip(
         ReadOnlySpan<int> factors,
         int quantizerFactor,
@@ -102,12 +116,14 @@ internal static class Av1ModeThresholds
         long bestCost,
         bool bestSkippable)
     {
-        // All nearest single-reference predictors establish the initial bound and are never threshold-pruned.
+        // The nearest single-reference predictions set the initial bound, so this check never prunes them.
         if (mode == Av1PredictionMode.NearestMotionVector)
         {
             return false;
         }
 
+        // The block factors are in quarter units, so the product divides by 4. The threshold saturates at int.MaxValue
+        // when the product overflows. The history factor has five fractional bits.
         int index = GetIndex(mode, primary, secondary);
         int scale = quantizerFactor * BlockFactors[(int)blockSize];
         int multiplier = Multipliers[index];
@@ -160,8 +176,8 @@ internal static class Av1ModeThresholds
         threshold <<= extraShift + (bestSkippable ? 1 : 0);
         if (reference != Av1ReferenceFrameType.Last)
         {
-            // Older secondary references must justify more search work. Apply their age adjustment
-            // before multiplying by the mode history, preserving the threshold's integer rounding.
+            // References other than LAST need a larger threshold to justify more search work. The age adjustment comes before
+            // the multiply by the mode history, which keeps the integer rounding of the threshold.
             threshold <<= 1;
             if (reference == Av1ReferenceFrameType.Golden && framesSinceGolden > 4)
             {
@@ -200,8 +216,8 @@ internal static class Av1ModeThresholds
             int index = GetIndex(mode, reference, Av1ReferenceFrameType.None);
             for (int size = firstSize; size <= lastSize; size += 3)
             {
-                // Three enum positions separate adjacent square size classes. Only the winning
-                // reference's tested mode family contributes to this history update.
+                // Three enum positions separate adjacent square size classes. Only the tested mode family of the winning reference
+                // contributes to this history update.
                 ref int value = ref factors[(size * ModeCount) + index];
                 value = index == winnerIndex ? value - (value >> 4) : Math.Min(value + 1, adaptation * 64);
             }
@@ -211,6 +227,12 @@ internal static class Av1ModeThresholds
     /// <summary>
     /// Updates the winning mode and neighboring block sizes after one completed inter-picture block search.
     /// </summary>
+    /// <param name="factors">The retained block-size and mode history.</param>
+    /// <param name="blockSize">The selected coding-block size.</param>
+    /// <param name="superblockSize">The superblock size, which limits the updated size range.</param>
+    /// <param name="winner">The history entry of the selected mode, from <see cref="GetIndex"/>.</param>
+    /// <param name="singleReference">Whether the frame codes single references only, so the compound entries stay unchanged.</param>
+    /// <param name="adaptation">The configured threshold adaptation level.</param>
     public static void Update(
         Span<int> factors,
         Av1BlockSize blockSize,
@@ -220,7 +242,7 @@ internal static class Av1ModeThresholds
         int adaptation)
     {
         // Ordinary shapes share evidence with the two neighboring size entries in each direction.
-        // The trailing 1:4/4:1 shapes update only themselves; their enum neighbors are unrelated geometries.
+        // The trailing 1:4 and 4:1 shapes update only themselves, because their enum neighbors have unrelated geometries.
         int firstSize = blockSize > superblockSize ? (int)blockSize : Math.Max(0, (int)blockSize - 2);
         int lastSize = blockSize > superblockSize ? (int)blockSize : Math.Min((int)superblockSize, (int)blockSize + 2);
         int modeEnd = singleReference ? CompoundStart : ModeCount;
@@ -230,8 +252,8 @@ internal static class Av1ModeThresholds
             Span<int> row = factors.Slice(size * ModeCount, modeEnd);
             for (int index = 0; index < row.Length; index++)
             {
-                // Factors have five fractional bits. A winner decays by one sixteenth; other modes
-                // rise by one thirty-second up to the configured cap, making repeated losses cheaper to reject.
+                // Factors have five fractional bits. The factor of the winner decreases by one sixteenth. The factors of other modes
+                // increase by one thirty-second up to the configured cap. Then modes that lose again and again are cheaper to reject.
                 int value = row[index];
                 row[index] = index == winner ? value - (value >> 4) : Math.Min(value + 1, maximum);
             }

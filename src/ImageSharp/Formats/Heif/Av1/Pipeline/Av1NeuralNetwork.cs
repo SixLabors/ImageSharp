@@ -13,8 +13,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// </summary>
 /// <remarks>
 /// The encoder compares network outputs with thresholds, so a different float addition order can change a decision.
-/// The reference build evaluates the networks with its x64 kernels, and those kernels fix the order of every addition.
-/// This class reproduces that order on every hardware tier, so the encoder output does not depend on the hardware.
+/// This class fixes the order of every addition. The order matches the x64 output of other AV1 encoders.
+/// Every hardware tier uses the same order, so the encoder output does not depend on the hardware.
 /// <para>
 /// A dense layer has one weight row per output node: the weight of input i for node r is weights[(r * inputs) + i].
 /// The layer adds the bias after the input products. A hidden layer clips its outputs to zero from below.
@@ -114,8 +114,8 @@ internal static partial class Av1NeuralNetwork
     }
 
     /// <summary>
-    /// Rounds network outputs to nine fractional bits. The scaled float output widens to double before one half is
-    /// added, the sum truncates toward zero, and the integer multiplies the float reciprocal of the scale.
+    /// Rounds network outputs to nine fractional bits. The scaled float output widens to double before the code adds one half.
+    /// The sum truncates toward zero. Then the integer multiplies the float reciprocal of the scale.
     /// </summary>
     /// <param name="outputs">The outputs to round in place.</param>
     public static void ReduceOutputPrecision(Span<float> outputs)
@@ -124,15 +124,14 @@ internal static partial class Av1NeuralNetwork
         const float InversePrecision = 1F / Precision;
         for (int i = 0; i < outputs.Length; i++)
         {
-            // The product rounds in float. The half then adds in double, so a product just below one half stays
-            // below it; a float addition would round it up to one.
+            // The product rounds in float. The half then adds in double, so a product just below one half stays below it.
+            // A float addition rounds that sum up to one.
             outputs[i] = (int)((double)(outputs[i] * Precision) + 0.5) * InversePrecision;
         }
     }
 
     /// <summary>
-    /// Applies a valid convolution with rectification to channel-major planes, in the addition order of the
-    /// reference kernel of each layer shape.
+    /// Applies a valid convolution with rectification to channel-major planes, in the fixed addition order of each layer shape.
     /// </summary>
     /// <param name="input">The input planes, one square plane per input channel.</param>
     /// <param name="inputWidth">The width and height of each input plane.</param>
@@ -157,7 +156,7 @@ internal static partial class Av1NeuralNetwork
         => Convolve<NeuralNetworkOperator>(input, inputWidth, inputChannels, filterWidth, step, weights, biases, output);
 
     /// <summary>
-    /// Evaluates one dense layer in the addition order of the reference kernel for its shape.
+    /// Evaluates one dense layer in the fixed addition order for its shape.
     /// </summary>
     /// <typeparam name="TOperator">The network arithmetic.</typeparam>
     /// <param name="inputs">The layer inputs.</param>
@@ -180,8 +179,8 @@ internal static partial class Av1NeuralNetwork
         int inputCount = inputs.Length;
         int outputCount = biases.Length;
 
-        // The reference first takes the inputs in groups of eight. When inputs remain, those groups end without the
-        // activation, and the remaining inputs add onto the partial outputs before the activation.
+        // The layer first takes the inputs in groups of eight. When inputs remain, those groups end without the activation.
+        // Then the remaining inputs add onto the partial outputs before the activation.
         int groupedCount = inputCount & ~7;
         int remainingCount = inputCount & 7;
         if (groupedCount > 0)
@@ -240,7 +239,7 @@ internal static partial class Av1NeuralNetwork
         bool rectify)
         where TOperator : struct, INeuralNetworkOperator
     {
-        // Every width computes the same expression for each node, so the widths may share the nodes in any split.
+        // Every width computes the same expression for each node, so the widths can share the nodes in any split.
         nuint stride = (nuint)inputCount;
         nuint grouped = (nuint)groupedCount;
         int node = 0;
@@ -385,8 +384,8 @@ internal static partial class Av1NeuralNetwork
     }
 
     /// <summary>
-    /// Adds the inputs after the last whole group of eight to the outputs. Four inputs add as (p0 + p1) + (p2 + p3);
-    /// any other count adds its products one at a time.
+    /// Adds the inputs after the last whole group of eight to the outputs. Four inputs add as (p0 + p1) + (p2 + p3).
+    /// Any other count adds its products one at a time.
     /// </summary>
     /// <typeparam name="TOperator">The network arithmetic.</typeparam>
     /// <param name="inputBase">The first remaining input.</param>
@@ -455,7 +454,7 @@ internal static partial class Av1NeuralNetwork
             return;
         }
 
-        // The reference adds these products one at a time with scalar arithmetic, so there is no wider form.
+        // These products add one at a time in input order. This path uses scalar arithmetic only.
         nuint remaining = (nuint)remainingCount;
         for (; node < outputCount; node++)
         {
@@ -506,12 +505,12 @@ internal static partial class Av1NeuralNetwork
         nuint channelStep = (nuint)outputChannels;
         nuint weightStep = (nuint)(inputChannels * outputChannels);
 
-        // The reference has its own kernel for the five-by-five layer and for the two-by-two layers of 16 and 8
-        // samples; the other layers use the plain order: the bias, then each input channel, filter row and filter
-        // column. The five-by-five kernel takes its windows in groups of three while at least 13 samples remain in
-        // the row, and the last windows one at a time; the group position sets the order of the window sums. That
-        // kernel writes each input channel over the result of the previous one, and the only five-by-five layer has
-        // one input channel, so it reads only the first plane.
+        // The five-by-five layer and the two-by-two layers of 16 and 8 samples each have their own addition order.
+        // The other layers use the plain order: the bias, then each input channel, filter row and filter column.
+        // The five-by-five order takes the windows in groups of three while at least 13 samples remain in the row.
+        // It takes the last windows one at a time. The position in the group sets the order of the window sums.
+        // The five-by-five order writes each input channel over the result of the previous one. The only five-by-five
+        // layer has one input channel, so this code reads only the first plane.
         ConvolutionKind kind = filterWidth == 5 && step == 4 ? ConvolutionKind.FiveByFive
             : filterWidth == 2 && step == 2 && (inputWidth == 16 || inputWidth == 8) ? ConvolutionKind.TwoByTwo
             : ConvolutionKind.InOrder;

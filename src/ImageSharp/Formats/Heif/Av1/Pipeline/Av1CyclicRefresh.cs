@@ -8,130 +8,120 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Codes a rotating part of each real-time inter frame at a lower quantizer, so that static areas get sharper over a
-/// few frames without a costly key frame. Segment 1 holds the refreshed superblocks, and segment 2 a stronger boost
-/// for large static blocks. Reference: CYCLIC_REFRESH.
+/// Codes a rotating part of each real-time inter frame at a lower quantizer. Static areas then get sharper over a few frames without a costly key frame.
+/// Segment 1 holds the refreshed superblocks. Segment 2 holds a stronger boost for large static blocks.
 /// </summary>
 internal sealed class Av1CyclicRefresh
 {
     /// <summary>
-    /// The segment of blocks that are not refreshed. Reference: CR_SEGMENT_ID_BASE.
+    /// The segment of blocks that are not refreshed.
     /// </summary>
     public const int BaseSegment = 0;
 
     /// <summary>
-    /// The segment of refreshed blocks. Reference: CR_SEGMENT_ID_BOOST1.
+    /// The segment of refreshed blocks.
     /// </summary>
     public const int FirstBoostSegment = 1;
 
     /// <summary>
-    /// The segment of refreshed large static blocks. Reference: CR_SEGMENT_ID_BOOST2.
+    /// The segment of refreshed large static blocks.
     /// </summary>
     public const int SecondBoostSegment = 2;
 
     /// <summary>
-    /// The largest rate ratio of a segment quantizer change. Reference: CR_MAX_RATE_TARGET_RATIO.
+    /// The largest rate ratio of a segment quantizer change.
     /// </summary>
     private const double MaximumRateTargetRatio = 4.0;
 
     /// <summary>
-    /// The refresh state of each 4x4 unit: 1 for a unit that is no refresh candidate, 0 for a candidate, and a
-    /// negative count of frames to wait after a refresh. Reference: cr->map.
+    /// The refresh state of each 4x4 unit: 1 for a unit that is not a refresh candidate, 0 for a candidate, and a negative count of frames to wait after a
+    /// refresh.
     /// </summary>
     private readonly sbyte[] map;
 
     /// <summary>
-    /// The width of the current frame in 4x4 units, which is also the stride of the map. A scaled layer of a layered
-    /// image has a smaller grid than the sequence. Reference: mi_params.mi_cols.
+    /// The width of the current frame in 4x4 units, which is also the stride of the map. A scaled layer of a layered image has a smaller grid than the
+    /// sequence.
     /// </summary>
     private int modeInfoColumns;
 
     /// <summary>
-    /// The height of the current frame in 4x4 units. Reference: mi_params.mi_rows.
+    /// The height of the current frame in 4x4 units.
     /// </summary>
     private int modeInfoRows;
 
     /// <summary>
-    /// The quantizer change of each segment in the current frame: none for the base segment, then the two boosted
-    /// segments. Reference: cr->qindex_delta.
+    /// The quantizer change of each segment in the current frame: none for the base segment, then the two boosted segments.
     /// </summary>
     private InlineArray3<int> qIndexDelta;
 
     /// <summary>
-    /// The change to the refresh percentage that overshoots and undershoots move, from -5 to 5. Reference:
-    /// cr->percent_refresh_adjustment.
+    /// The change to the refresh percentage that overshoots and undershoots move, from -5 to 5.
     /// </summary>
     private int percentRefreshAdjustment = 5;
 
     /// <summary>
     /// The change to the rate ratio of the first boosted segment that overshoots and undershoots move, from 0 to 0.25.
-    /// Reference: cr->rate_ratio_qdelta_adjustment.
     /// </summary>
     private double rateRatioQDeltaAdjustment = 0.25;
 
     /// <summary>
-    /// The largest quantizer decrease of a boosted segment, as a percentage of the frame quantizer. Reference:
-    /// cr->max_qdelta_perc.
+    /// The largest quantizer decrease of a boosted segment, as a percentage of the frame quantizer.
     /// </summary>
     private int maximumQDeltaPercent;
 
     /// <summary>
-    /// The superblock where the next frame's refresh starts. Reference: cr->sb_index.
+    /// The superblock where the refresh of the next frame starts.
     /// </summary>
     private int superblockIndex;
 
     /// <summary>
-    /// The superblock where the current frame's refresh started. Reference: cr->last_sb_index.
+    /// The superblock where the refresh of the current frame started.
     /// </summary>
     private int lastSuperblockIndex;
 
     /// <summary>
-    /// The frames a refreshed block waits before it may be refreshed again, kept negative in the map. Reference:
-    /// cr->time_for_refresh.
+    /// The number of frames that a refreshed block waits before it can be refreshed again. The map keeps this count as a negative value.
     /// </summary>
     private int timeForRefresh;
 
     /// <summary>
-    /// The 4x4 units the current frame marked for refresh. Reference: cr->target_num_seg_blocks.
+    /// The 4x4 units that the current frame marked for refresh.
     /// </summary>
     private int targetSegmentBlockCount;
 
     /// <summary>
-    /// The rate under which a large static block takes the second boosted segment. Reference: cr->thresh_rate_sb.
+    /// The rate under which a large static block takes the second boosted segment.
     /// </summary>
     private long rateThreshold;
 
     /// <summary>
-    /// The distortion above which a single-reference block that moves far or is intra is not refreshed. Reference:
-    /// cr->thresh_dist_sb.
+    /// The distortion above which a single-reference block that moves far or is intra is not refreshed.
     /// </summary>
     private long distortionThreshold;
 
     /// <summary>
-    /// The motion vector component, in eighth samples, above which a block counts as moving far. Reference:
-    /// cr->motion_thresh.
+    /// The motion vector component, in eighth samples, above which a block counts as moving far.
     /// </summary>
     private int motionThreshold;
 
     /// <summary>
-    /// The rate ratio of the first boosted segment to the frame, which sets its quantizer decrease. Reference:
-    /// cr->rate_ratio_qdelta.
+    /// The rate ratio of the first boosted segment to the frame, which sets its quantizer decrease.
     /// </summary>
     private double rateRatioQDelta;
 
     /// <summary>
-    /// Ten times the factor by which the second boosted segment raises the rate ratio. Reference: cr->rate_boost_fac.
+    /// Ten times the factor by which the second boosted segment raises the rate ratio.
     /// </summary>
     private int rateBoostFactor;
 
     /// <summary>
-    /// Whether the source change of each 64x64 block can force or prevent its refresh. Reference:
-    /// cr->use_block_sad_scene_det.
+    /// Whether the source change of each 64x64 block can force or prevent its refresh.
     /// </summary>
     private bool useBlockSadSceneDetection;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1CyclicRefresh"/> class. Reference: av1_cyclic_refresh_alloc().
+    /// Initializes a new instance of the <see cref="Av1CyclicRefresh"/> class.
     /// </summary>
     /// <param name="modeInfoColumns">The sequence width in 4x4 units, which sizes the map.</param>
     /// <param name="modeInfoRows">The sequence height in 4x4 units, which sizes the map.</param>
@@ -143,70 +133,65 @@ internal sealed class Av1CyclicRefresh
     }
 
     /// <summary>
-    /// Gets the percentage of the frame each frame refreshes. Reference: cr->percent_refresh.
+    /// Gets the percentage of the frame that each frame refreshes.
     /// </summary>
     public int PercentRefresh { get; private set; }
 
     /// <summary>
-    /// Gets a value indicating whether the current frame refreshes any block. Reference: cr->apply_cyclic_refresh.
+    /// Gets a value indicating whether the current frame refreshes any block.
     /// </summary>
     public bool Apply { get; private set; }
 
     /// <summary>
-    /// Gets the rate multiplier of the first boosted segment. Reference: cr->rdmult.
+    /// Gets the rate multiplier of the first boosted segment.
     /// </summary>
     public int RateMultiplier { get; private set; }
 
     /// <summary>
-    /// Gets or sets the frames coded since the last scene change at the worst quantizer. Reference:
-    /// cr->counter_encode_maxq_scene_change.
+    /// Gets or sets the frames coded since the last scene change at the worst quantizer.
     /// </summary>
     public int SceneChangeFrameCount { get; set; }
 
     /// <summary>
-    /// Gets a value indicating whether the last frame moved the refresh position forward without wrapping to the
-    /// start of the frame, so the next refresh cycle has not begun. Reference: the sb_index and last_sb_index test of
-    /// adjust_q_cbr().
+    /// Gets a value indicating whether the last frame moved the refresh position forward without a wrap to the start of the frame. In that case the next
+    /// refresh cycle did not start yet.
     /// </summary>
     public bool CycleAdvanced => this.superblockIndex > this.lastSuperblockIndex;
 
     /// <summary>
-    /// Gets or sets the 4x4 units the current frame coded in the first boosted segment. Reference:
-    /// cr->actual_num_seg1_blocks.
+    /// Gets or sets the 4x4 units that the current frame coded in the first boosted segment.
     /// </summary>
     public int FirstSegmentBlockCount { get; set; }
 
     /// <summary>
-    /// Gets or sets the 4x4 units the current frame coded in the second boosted segment. Reference:
-    /// cr->actual_num_seg2_blocks.
+    /// Gets or sets the 4x4 units that the current frame coded in the second boosted segment.
     /// </summary>
     public int SecondSegmentBlockCount { get; set; }
 
     /// <summary>
-    /// Returns whether a segment is one of the boosted segments. Reference: cyclic_refresh_segment_id_boosted().
+    /// Returns whether a segment is one of the boosted segments.
     /// </summary>
     /// <param name="segmentId">The segment.</param>
     /// <returns>Whether the segment is boosted.</returns>
     public static bool IsBoosted(int segmentId) => segmentId is FirstBoostSegment or SecondBoostSegment;
 
     /// <summary>
-    /// Sets the refresh parameters of a frame before its quantizer is chosen, and decides whether the frame refreshes
-    /// any block. Reference: av1_cyclic_refresh_update_parameters() for a single layer without screen content tuning,
-    /// region of interest, active map or external rate control.
+    /// Sets the refresh parameters of a frame before its quantizer is chosen, and decides whether the frame refreshes any block. The method covers a single
+    /// layer without screen content tuning, region of interest, active map or external rate control.
     /// </summary>
     /// <param name="intraFrame">Whether the frame is intra only.</param>
-    /// <param name="sceneChange">Whether the frame is a scene change. Reference: rc->high_source_sad.</param>
+    /// <param name="sceneChange">Whether the frame is a scene change.</param>
     /// <param name="lossless">Whether lossless coding is requested.</param>
-    /// <param name="framesSinceKey">The frames since the last key frame. Reference: rc->frames_since_key.</param>
-    /// <param name="averageInterQIndex">The running inter quantizer. Reference: avg_frame_qindex[INTER_FRAME].</param>
-    /// <param name="bestQuality">The lowest allowed quantizer index. Reference: rc->best_quality.</param>
-    /// <param name="averageFrameLowMotion">The running zero motion percentage. Reference: rc->avg_frame_low_motion.</param>
+    /// <param name="framesSinceKey">The frames since the last key frame.</param>
+    /// <param name="averageInterQIndex">The running average quantizer index of inter frames.</param>
+    /// <param name="bestQuality">The lowest allowed quantizer index.</param>
+    /// <param name="averageFrameLowMotion">The running zero motion percentage.</param>
     /// <param name="width">The frame width.</param>
     /// <param name="height">The frame height.</param>
-    /// <param name="averageFrameBandwidth">The bits per frame. Reference: rc->avg_frame_bandwidth.</param>
+    /// <param name="averageFrameBandwidth">The bits per frame.</param>
     /// <param name="superblockSize">The superblock size.</param>
-    /// <param name="variableBitrate">Whether the frames code in the variable-bitrate mode. Reference: rc_cfg.mode == AOM_VBR.</param>
-    /// <param name="refreshesGolden">Whether the frame refreshes GOLDEN. Reference: refresh_frame.golden_frame.</param>
+    /// <param name="variableBitrate">Whether the frames code in the variable-bitrate mode.</param>
+    /// <param name="refreshesGolden">Whether the frame refreshes the golden reference frame.</param>
     public void UpdateParameters(
         bool intraFrame,
         bool sceneChange,
@@ -222,17 +207,14 @@ internal sealed class Av1CyclicRefresh
         bool variableBitrate,
         bool refreshesGolden)
     {
-        // The map keeps the size of the sequence and takes the grid of the frame as its stride. Reference: the
-        // cr->map indices of av1_cyclic_refresh_update_segment() and cyclic_refresh_update_map(), which use the
-        // mi_params of the frame.
+        // The map keeps the size of the sequence and takes the grid of the frame as its stride. The width and height round up to whole 8x8 blocks.
         this.modeInfoColumns = 2 * ((width + 7) >> 3);
         this.modeInfoRows = 2 * ((height + 7) >> 3);
 
-        // Below this quantizer the frame is already sharp enough that a refresh only costs bits. Reference: qp_thresh.
+        // Below this quantizer the frame is already sharp enough that a refresh only costs bits.
         int qpThreshold = Math.Max(16, bestQuality + 4);
 
         // Above this quantizer, held long after a scene change, the bits are better spent on the whole frame.
-        // Reference: qp_max_thresh.
         const int qpMaximumThreshold = (118 * Av1Constants.MaxQ) >> 7;
 
         // A scene change or key frame starts a refresh cycle.
@@ -243,9 +225,8 @@ internal sealed class Av1CyclicRefresh
             this.rateRatioQDeltaAdjustment = 0.25;
         }
 
-        // Intra frames, lossless coding and scene changes refresh nothing. Neither does a frame at a low running
-        // quantizer, a frame long after a scene change at a very high quantizer, or a frame with little zero motion
-        // long after a scene change.
+        // Intra frames, lossless coding and scene changes refresh nothing. Neither does a frame at a low running quantizer, a frame long after a scene change
+        // at a very high quantizer, or a frame with little zero motion long after a scene change.
         this.Apply = true;
         if (intraFrame ||
             lossless ||
@@ -277,8 +258,7 @@ internal sealed class Av1CyclicRefresh
             this.rateRatioQDelta = 2.25 + this.rateRatioQDeltaAdjustment;
         }
 
-        // Frames up to 352x288 refresh fewer moving blocks and boost less at a low bit rate, and limit the quantizer
-        // decrease at a higher bit rate.
+        // Frames up to 352x288 refresh fewer moving blocks and boost less at a low bit rate, and limit the quantizer decrease at a higher bit rate.
         if (width * height <= 352 * 288)
         {
             if (averageFrameBandwidth < 3000)
@@ -293,8 +273,8 @@ internal sealed class Av1CyclicRefresh
             }
         }
 
-        // The variable-bitrate mode refreshes fewer blocks with a smaller quantizer change, and refreshes nothing in a
-        // golden refresh, which is boosted already.
+        // The variable-bitrate mode refreshes fewer blocks with a smaller quantizer change, and refreshes nothing in a golden refresh, which is boosted
+        // already.
         if (variableBitrate)
         {
             this.PercentRefresh = 10;
@@ -309,19 +289,18 @@ internal sealed class Av1CyclicRefresh
     }
 
     /// <summary>
-    /// Sets the segment quantizers and the segment map of a frame after its quantizer is chosen. A frame that
-    /// refreshes nothing codes without segments. Reference: av1_cyclic_refresh_setup() for a single layer without
-    /// region of interest or active map.
+    /// Sets the segment quantizers and the segment map of a frame after its quantizer is chosen. A frame that refreshes nothing codes without segments. The
+    /// method covers a single layer without region of interest or active map.
     /// </summary>
     /// <param name="segmentation">The segmentation state of the frame.</param>
-    /// <param name="encoderSegmentMap">The segment map the encoder keeps across frames. Reference: cpi->enc_seg.map.</param>
+    /// <param name="encoderSegmentMap">The segment map that the encoder keeps across frames.</param>
     /// <param name="rateControl">The rate control of the sequence.</param>
     /// <param name="parent">The frame state.</param>
     /// <param name="intraFrame">Whether the frame is intra only.</param>
-    /// <param name="sceneChange">Whether the frame is a scene change. Reference: rc->high_source_sad.</param>
+    /// <param name="sceneChange">Whether the frame is a scene change.</param>
     /// <param name="speed">The encoding speed.</param>
-    /// <param name="framesSinceKey">The frames since the last key frame. Reference: rc->frames_since_key.</param>
-    /// <param name="superblockModeInfoSize">The superblock size in 4x4 units. Reference: mib_size.</param>
+    /// <param name="framesSinceKey">The frames since the last key frame.</param>
+    /// <param name="superblockModeInfoSize">The superblock size in 4x4 units.</param>
     /// <param name="superblockSads">The source SAD of each 64x64 block against the previous source, or empty.</param>
     public void Setup(
         ObuSegmentationParameters segmentation,
@@ -359,8 +338,8 @@ internal sealed class Av1CyclicRefresh
         int width = parent.FrameHeader.FrameSize.FrameWidth;
         int height = parent.FrameHeader.FrameSize.FrameHeight;
 
-        // The rate threshold is twice the superblock target in 1/256 units, and the distortion threshold is
-        // quadratic in the quantizer. Lower speeds and small frames do not use them.
+        // The rate threshold is four times the superblock target rate, in 1/256 units. The distortion threshold is four times the square of the quantizer step.
+        // At speed 7 and lower, and for frames smaller than 640x360, the distortion threshold is zero and the rate threshold has no limit.
         this.rateThreshold = ((long)rateControl.SuperblockTargetRate << 8) << 2;
         this.distortionThreshold = (long)(q * q) << 2;
         if (speed <= HeifEncodingSpeed.Level7 || width * height < 640 * 360)
@@ -369,7 +348,7 @@ internal sealed class Av1CyclicRefresh
             this.rateThreshold = long.MaxValue;
         }
 
-        // Reference: av1_enable_segmentation() and av1_clearall_segfeatures().
+        // The frame codes a new segment map and new segment data. Only the two boosted segments change the quantizer.
         segmentation.Enabled = true;
         segmentation.SegmentationUpdateMap = 1;
         segmentation.SegmentationUpdateData = 1;
@@ -403,26 +382,24 @@ internal sealed class Av1CyclicRefresh
     }
 
     /// <summary>
-    /// Returns the quantizer change of a boosted segment in the current frame. Reference: cr->qindex_delta.
+    /// Returns the quantizer change of a boosted segment in the current frame.
     /// </summary>
     /// <param name="segmentId">The boosted segment.</param>
     /// <returns>The quantizer index change.</returns>
     public int GetSegmentQDelta(int segmentId) => this.qIndexDelta[segmentId];
 
     /// <summary>
-    /// Returns the share of the frame the next frame expects in the first boosted segment: the average of the units
-    /// it targets and the units the previous frame coded. Reference: the weight_segment of
-    /// av1_cyclic_refresh_rc_bits_per_mb().
+    /// Returns the expected share of the frame in the boosted segments. The share is the average of the target unit count and the units that the last coded
+    /// frame put in both boosted segments.
     /// </summary>
-    /// <param name="macroblockCount">The 16x16 units of the frame. Reference: mi_params.MBs.</param>
+    /// <param name="macroblockCount">The 16x16 units of the frame. Each 16x16 unit holds 16 4x4 units.</param>
     /// <returns>The share of the frame.</returns>
     public double GetExpectedSegmentWeight(int macroblockCount)
         => (double)((this.targetSegmentBlockCount + this.FirstSegmentBlockCount + this.SecondSegmentBlockCount) >> 1) /
             (macroblockCount << 4);
 
     /// <summary>
-    /// Returns the quantizer change of the first boosted segment at a quantizer index. Reference: the
-    /// compute_deltaq() call of av1_cyclic_refresh_rc_bits_per_mb().
+    /// Returns the quantizer change of the first boosted segment at a quantizer index.
     /// </summary>
     /// <param name="rateControl">The rate control of the sequence.</param>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
@@ -433,8 +410,8 @@ internal sealed class Av1CyclicRefresh
         => this.ComputeQDelta(rateControl, keyFrame, screenContent, qIndex, this.rateRatioQDelta);
 
     /// <summary>
-    /// Moves the refresh amount and the quantizer change after an overshoot or undershoot of the frame target.
-    /// Reference: the cyclic refresh adjustment of av1_rc_update_rate_correction_factors().
+    /// Moves the refresh amount and the quantizer change after an overshoot or undershoot of the frame target. A large overshoot refreshes less with a smaller
+    /// quantizer change. A large undershoot refreshes more with a larger quantizer change.
     /// </summary>
     /// <param name="correctionFactor">The ratio of the coded size to the expected size.</param>
     public void AdjustForRate(double correctionFactor)
@@ -452,12 +429,11 @@ internal sealed class Av1CyclicRefresh
     }
 
     /// <summary>
-    /// Updates the segment of a coded block and the refresh map. A boosted block stays boosted only when it is a
-    /// refresh candidate that codes coefficients. A refreshed block waits before it may be refreshed again.
-    /// Reference: av1_cyclic_refresh_update_segment() and candidate_refresh_aq().
+    /// Updates the segment of a coded block and the refresh map. A boosted block stays boosted only when it is a refresh candidate that codes coefficients. A
+    /// refreshed block waits before it can be refreshed again.
     /// </summary>
-    /// <param name="encoderSegmentMap">The segment map the encoder keeps across frames. Reference: cpi->enc_seg.map.</param>
-    /// <param name="frameSegmentMap">The segment map of the frame buffer. Reference: cm->cur_frame->seg_map.</param>
+    /// <param name="encoderSegmentMap">The segment map that the encoder keeps across frames.</param>
+    /// <param name="frameSegmentMap">The segment map of the frame buffer.</param>
     /// <param name="modeInfoPosition">The block position in 4x4 units.</param>
     /// <param name="blockSize">The block size.</param>
     /// <param name="segmentId">The block's segment, updated in place.</param>
@@ -489,7 +465,7 @@ internal sealed class Av1CyclicRefresh
         int blockIndex = (modeInfoPosition.Y * this.modeInfoColumns) + modeInfoPosition.X;
         int refreshThisBlock = this.GetRefreshCandidate(interBlock, compound, vector, rate, distortion, blockSize, noiseLevel);
 
-        // Reference: the skip_over4x4 row step, which only speeds above 9 set.
+        // A step of two rows is a speed option for speeds above 9. The highest speed is 9, so every row of 4x4 units updates.
         const int rowStep = 1;
         int newMapValue = this.map[blockIndex];
 
@@ -505,7 +481,7 @@ internal sealed class Av1CyclicRefresh
         }
         else if (refreshThisBlock != BaseSegment)
         {
-            // A candidate that was refreshed before becomes a candidate for a later cleanup.
+            // A candidate that the map marks as no candidate becomes a candidate for a later refresh.
             if (this.map[blockIndex] == 1)
             {
                 newMapValue = 0;
@@ -531,15 +507,15 @@ internal sealed class Av1CyclicRefresh
     }
 
     /// <summary>
-    /// Gives a skipped block of a boosted superblock the predicted segment, so the map codes cheaply, and removes it
-    /// from the segment counts. Reference: av1_cyclic_reset_segment_skip() without skip_over4x4.
+    /// Gives a skipped block of a boosted superblock the predicted segment, so the map codes cheaply, and removes it from the segment counts. When the segment
+    /// changes, the block becomes a refresh candidate again.
     /// </summary>
-    /// <param name="encoderSegmentMap">The segment map the encoder keeps across frames. Reference: cpi->enc_seg.map.</param>
-    /// <param name="frameSegmentMap">The segment map of the frame buffer. Reference: cm->cur_frame->seg_map.</param>
+    /// <param name="encoderSegmentMap">The segment map that the encoder keeps across frames.</param>
+    /// <param name="frameSegmentMap">The segment map of the frame buffer.</param>
     /// <param name="modeInfoPosition">The block position in 4x4 units.</param>
     /// <param name="blockSize">The block size.</param>
     /// <param name="segmentId">The block's segment, updated in place.</param>
-    /// <param name="predictedSegmentId">The spatially predicted segment. Reference: av1_get_spatial_seg_pred().</param>
+    /// <param name="predictedSegmentId">The spatially predicted segment.</param>
     /// <param name="countBlocks">Whether the frame counts the segment units, which only the output encode does.</param>
     public void ResetSegmentSkip(
         Span<byte> encoderSegmentMap,
@@ -573,7 +549,7 @@ internal sealed class Av1CyclicRefresh
     }
 
     /// <summary>
-    /// Disables segmentation. Reference: av1_disable_segmentation().
+    /// Disables segmentation and the map and data updates of the frame.
     /// </summary>
     /// <param name="segmentation">The segmentation state of the frame.</param>
     private static void DisableSegmentation(ObuSegmentationParameters segmentation)
@@ -585,10 +561,8 @@ internal sealed class Av1CyclicRefresh
     }
 
     /// <summary>
-    /// Returns the segment a coded block may take: the base segment for a single-reference block with high
-    /// distortion that is intra or moves far, the second boosted segment for a low-noise compound block or a large
-    /// static inter block under the rate threshold, and the first boosted segment otherwise. Reference:
-    /// candidate_refresh_aq().
+    /// Returns the segment that a coded block can take: the base segment for a single-reference block with high distortion that is intra or moves far, the
+    /// second boosted segment for a low-noise compound block or a large static inter block under the rate threshold, and the first boosted segment otherwise.
     /// </summary>
     /// <param name="interBlock">Whether the block is inter predicted.</param>
     /// <param name="compound">Whether the block predicts from two references.</param>
@@ -607,7 +581,7 @@ internal sealed class Av1CyclicRefresh
         Av1BlockSize blockSize,
         int noiseLevel)
     {
-        // Reference: kMedium of NOISE_LEVEL.
+        // The medium level of the noise estimator. Compound blocks below this level take the second boosted segment.
         const int mediumNoise = 2;
         if (!compound && distortion > this.distortionThreshold &&
             (vector.Row > this.motionThreshold || vector.Row < -this.motionThreshold ||
@@ -628,8 +602,7 @@ internal sealed class Av1CyclicRefresh
     }
 
     /// <summary>
-    /// Returns the quantizer change of a segment that scales the expected rate by a ratio, at most the largest
-    /// allowed share of the quantizer. Reference: compute_deltaq().
+    /// Returns the quantizer change of a segment that scales the expected rate by a ratio, at most the largest allowed share of the quantizer.
     /// </summary>
     /// <param name="rateControl">The rate control of the sequence, which models the rate of each quantizer.</param>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
@@ -649,10 +622,9 @@ internal sealed class Av1CyclicRefresh
     }
 
     /// <summary>
-    /// Adds units to the count of a boosted segment. Reference: the actual_num_seg1_blocks and
-    /// actual_num_seg2_blocks updates.
+    /// Adds units to the count of a boosted segment.
     /// </summary>
-    /// <param name="segmentId">The segment of the units; the base segment is not counted.</param>
+    /// <param name="segmentId">The segment of the units. The base segment is not counted.</param>
     /// <param name="units">The number of 4x4 units to add, negative to remove them.</param>
     private void CountBlocks(int segmentId, int units)
     {
@@ -667,14 +639,13 @@ internal sealed class Av1CyclicRefresh
     }
 
     /// <summary>
-    /// Marks the superblocks the frame refreshes in the first boosted segment, going round the frame from where the
-    /// previous frame stopped until the refresh percentage is reached. A superblock is refreshed when at least half
-    /// of it is a candidate and its source changed little. Reference: cyclic_refresh_update_map() without active map.
+    /// Marks the superblocks that the frame refreshes in the first boosted segment. The scan goes round the frame from where the previous frame stopped, until
+    /// the refresh percentage is reached. A superblock is refreshed when at least half of it is a candidate and its source changed little.
     /// </summary>
     /// <param name="segmentation">The segmentation state, disabled when no superblock is refreshed.</param>
-    /// <param name="encoderSegmentMap">The segment map the encoder keeps across frames. Reference: cpi->enc_seg.map.</param>
-    /// <param name="superblockModeInfoSize">The superblock size in 4x4 units. Reference: mib_size.</param>
-    /// <param name="framesSinceKey">The frames since the last key frame. Reference: rc->frames_since_key.</param>
+    /// <param name="encoderSegmentMap">The segment map that the encoder keeps across frames.</param>
+    /// <param name="superblockModeInfoSize">The superblock size in 4x4 units.</param>
+    /// <param name="framesSinceKey">The frames since the last key frame.</param>
     /// <param name="superblockSads">The source SAD of each 64x64 block against the previous source, or empty.</param>
     /// <param name="width">The frame width.</param>
     /// <param name="height">The frame height.</param>
@@ -703,7 +674,7 @@ internal sealed class Av1CyclicRefresh
         ulong superblockSad = 0;
         ulong lowSadThreshold = 0;
 
-        // Without the scene detection no superblock is too changed to refresh. Reference: the INT64_MAX thresh_sad.
+        // Without the scene detection, no superblock has too much change to refresh.
         ulong sadThreshold = long.MaxValue;
         do
         {
@@ -716,9 +687,8 @@ internal sealed class Av1CyclicRefresh
             int visibleColumns = Math.Min(this.modeInfoColumns - modeInfoColumn, superblockModeInfoSize);
             int visibleRows = Math.Min(this.modeInfoRows - modeInfoRow, superblockModeInfoSize);
 
-            // Long after a key frame and a scene change, a superblock whose source barely changed is refreshed anyway,
-            // and one whose source changed a lot is not. The thresholds are a few units of change per sample over a
-            // 64x64 block.
+            // Long after a key frame and a scene change, a superblock whose source barely changed is refreshed anyway, and one whose source changed a lot is
+            // not. The thresholds are a few units of change per sample over a 64x64 block.
             if (this.useBlockSadSceneDetection && framesSinceKey > 30 && this.SceneChangeFrameCount > 30 && !superblockSads.IsEmpty)
             {
                 superblockSad = superblockSads[superblockColumn + (superblockColumns * superblockRow)];
@@ -727,7 +697,7 @@ internal sealed class Av1CyclicRefresh
                 lowSadThreshold = 2 * 64 * 64;
             }
 
-            // The refresh map is only kept at 8x8.
+            // The refresh map is kept at 8x8. The loop reads the first 4x4 unit of each 8x8 block and counts it as four units.
             for (int y = 0; y < visibleRows; y += 2)
             {
                 for (int x = 0; x < visibleColumns; x += 2)

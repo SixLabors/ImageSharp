@@ -7,11 +7,11 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Holds a mode-loop winner whose other motion modes are searched after the loop. Reference: motion_mode_candidate.
+/// Holds a mode-loop winner. The encoder searches the other motion modes of the winner after the loop.
 /// </summary>
 internal struct Av1MotionModeWinner
 {
-    /// <summary>The largest number of retained winners. Reference: MAX_WINNER_MOTION_MODES.</summary>
+    /// <summary>The largest number of retained winners.</summary>
     public const int Capacity = 10;
 
     /// <summary>The rate-distortion cost of the simple-translation result.</summary>
@@ -31,7 +31,6 @@ internal struct Av1MotionModeWinner
 
     /// <summary>
     /// Inserts a winner by cost, after any winner of equal cost, and drops the costliest winner past the limit.
-    /// Reference: handle_winner_cand().
     /// </summary>
     /// <param name="winners">The winners in increasing cost.</param>
     /// <param name="count">The number of winners, updated on insertion.</param>

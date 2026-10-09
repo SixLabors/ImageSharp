@@ -16,9 +16,8 @@ internal static partial class Av1PaletteKMeans
     /// Finds the palette color nearest to a sample.
     /// </summary>
     /// <remarks>
-    /// Every overload describes the same lane-wise search. The palette holds at most eight colors,
-    /// so the search is a short unrolled sweep rather than a lookup, and the comparison is strict so
-    /// that the first color wins a tie, which is what the scalar reference does.
+    /// Every overload describes the same lane-wise search. The palette holds at most eight colors, so the search is a
+    /// short sweep over the colors. The comparison is strict, so the first color wins a tie.
     /// </remarks>
     internal interface IAv1PaletteNearestOperator
     {
@@ -73,9 +72,9 @@ internal static partial class Av1PaletteKMeans
     /// </summary>
     /// <typeparam name="TOperator">The nearest-color search.</typeparam>
     /// <remarks>
-    /// One lane is one sample, and the palette is broadcast, so the traversal is a plain walk of the
-    /// samples at descending register widths with a scalar tail. The index of a color is below the
-    /// palette limit of eight, so narrowing the index lanes to bytes is exact.
+    /// One lane is one sample, and the operator broadcasts each palette color. Thus the traversal is a plain walk of the
+    /// samples at descending register widths with a scalar tail. The index of a color is less than the palette limit of
+    /// eight, so the narrowing of the index lanes to bytes is exact.
     /// </remarks>
     private static class Assign<TOperator>
         where TOperator : struct, IAv1PaletteNearestOperator
@@ -89,9 +88,9 @@ internal static partial class Av1PaletteKMeans
         /// <returns>The sum of the squared sample-to-color distances.</returns>
         public static long Apply(ReadOnlySpan<short> samples, ReadOnlySpan<short> centroids, Span<byte> indices)
         {
-            // Each vector's squared distances are pair-summed into 32-bit lanes and widened into 64-bit lane
-            // totals, which are reduced once at the end. A squared twelve-bit distance pair fits in 32 bits, and
-            // the total of a whole block needs 64.
+            // A multiply-add of the distances with themselves adds the squares of two adjacent lanes into one 32-bit lane.
+            // These sums widen into 64-bit lane totals, and one reduction at the end gives the distortion.
+            // The sum of two squared twelve-bit distances fits in 32 bits. The total of a whole block needs 64 bits.
             ref short sampleBase = ref MemoryMarshal.GetReference(samples);
             ref byte indexBase = ref MemoryMarshal.GetReference(indices);
 

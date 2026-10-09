@@ -28,8 +28,8 @@ internal static partial class Av1ForwardQuantizer
             Vector128<int> mask = ~Vector128.GreaterThan(zeroBin, magnitude);
             Vector128<int> rounded = magnitude + rounding;
 
-            // Preserve signed products in two widened halves. The reciprocal correction can be negative;
-            // an arithmetic Q16 shift restores its implicit leading bit before the second multiplication.
+            // The signed products do not fit in 32 bits, so the code forms them in two halves widened to 64-bit lanes.
+            // The reciprocal correction can be negative. The arithmetic Q16 shift and the add restore its implicit leading bit before the second multiply.
             Vector128<long> lower = Vector128.WidenLower(rounded);
             Vector128<long> upper = Vector128.WidenUpper(rounded);
             lower += (lower * Vector128.WidenLower(quantizer)) >> 16;
@@ -58,8 +58,8 @@ internal static partial class Av1ForwardQuantizer
             Vector256<int> mask = ~Vector256.GreaterThan(zeroBin, magnitude);
             Vector256<int> rounded = magnitude + rounding;
 
-            // Preserve signed products in two widened halves. The reciprocal correction can be negative;
-            // an arithmetic Q16 shift restores its implicit leading bit before the second multiplication.
+            // The signed products do not fit in 32 bits, so the code forms them in two halves widened to 64-bit lanes.
+            // The reciprocal correction can be negative. The arithmetic Q16 shift and the add restore its implicit leading bit before the second multiply.
             Vector256<long> lower = Vector256.WidenLower(rounded);
             Vector256<long> upper = Vector256.WidenUpper(rounded);
             lower += (lower * Vector256.WidenLower(quantizer)) >> 16;
@@ -88,8 +88,8 @@ internal static partial class Av1ForwardQuantizer
             Vector512<int> mask = ~Vector512.GreaterThan(zeroBin, magnitude);
             Vector512<int> rounded = magnitude + rounding;
 
-            // Preserve signed products in two widened halves. The reciprocal correction can be negative;
-            // an arithmetic Q16 shift restores its implicit leading bit before the second multiplication.
+            // The signed products do not fit in 32 bits, so the code forms them in two halves widened to 64-bit lanes.
+            // The reciprocal correction can be negative. The arithmetic Q16 shift and the add restore its implicit leading bit before the second multiply.
             Vector512<long> lower = Vector512.WidenLower(rounded);
             Vector512<long> upper = Vector512.WidenUpper(rounded);
             lower += (lower * Vector512.WidenLower(quantizer)) >> 16;

@@ -16,9 +16,8 @@ internal static partial class Av1TransformBlockEncoder
     /// Accumulates the energy of the original coefficients and the energy of the quantization error.
     /// </summary>
     /// <remarks>
-    /// Every overload describes the same lane-wise accumulation. A coefficient and a difference both
-    /// fit a thirty-two bit lane, but their squares do not for a twelve-bit transform, so each
-    /// overload widens before it squares and accumulates into sixty-four bit lanes.
+    /// Every overload does the same lane-wise accumulation. A coefficient and a difference both fit a 32-bit lane.
+    /// Their squares do not fit for a 12-bit transform. Each overload therefore widens to 64-bit lanes before it squares and accumulates.
     /// </remarks>
     internal interface IAv1TransformErrorOperator
     {
@@ -75,7 +74,7 @@ internal static partial class Av1TransformBlockEncoder
     /// Squares the coefficient and the quantization error of each lane.
     /// </summary>
     /// <remarks>
-    /// Reference: the accumulation of av1_block_error_c().
+    /// The scalar overload is the exact form. The vector overloads give the same totals because integer addition is associative.
     /// </remarks>
     private readonly struct TransformErrorOperator : IAv1TransformErrorOperator
     {
@@ -97,9 +96,8 @@ internal static partial class Av1TransformBlockEncoder
             ref Vector128<long> energies,
             ref Vector128<long> errors)
         {
-            // Each lane is one independent coefficient in raster order. The difference is taken
-            // before the widening, because it fits a thirty-two bit lane, and only the squares need
-            // the wider lanes.
+            // Each lane is one independent coefficient in raster order. The code subtracts before it widens, because the difference fits a
+            // 32-bit lane. Only the squares need the 64-bit lanes.
             Vector128<int> differences = values - dequantized;
             (Vector128<long> lower, Vector128<long> upper) = Vector128.Widen(values);
             (Vector128<long> lowerDifference, Vector128<long> upperDifference) = Vector128.Widen(differences);
@@ -115,8 +113,7 @@ internal static partial class Av1TransformBlockEncoder
             ref Vector256<long> energies,
             ref Vector256<long> errors)
         {
-            // Eight independent coefficients, with the lane layout and the arithmetic of the
-            // 128-bit overload.
+            // Eight independent coefficients, with the lane layout and the arithmetic of the 128-bit overload.
             Vector256<int> differences = values - dequantized;
             (Vector256<long> lower, Vector256<long> upper) = Vector256.Widen(values);
             (Vector256<long> lowerDifference, Vector256<long> upperDifference) = Vector256.Widen(differences);
@@ -132,8 +129,8 @@ internal static partial class Av1TransformBlockEncoder
             ref Vector512<long> energies,
             ref Vector512<long> errors)
         {
-            // Sixteen independent coefficients. Widening a vector of this width costs two
-            // operations on every supported path, which is why the difference is formed first.
+            // Sixteen independent coefficients, with the lane layout and the arithmetic of the 128-bit overload. One subtraction in 32-bit
+            // lanes replaces two subtractions in 64-bit lanes after the widening.
             Vector512<int> differences = values - dequantized;
             (Vector512<long> lower, Vector512<long> upper) = Vector512.Widen(values);
             (Vector512<long> lowerDifference, Vector512<long> upperDifference) = Vector512.Widen(differences);
@@ -147,10 +144,9 @@ internal static partial class Av1TransformBlockEncoder
     /// </summary>
     /// <typeparam name="TOperator">The lane-wise accumulation.</typeparam>
     /// <remarks>
-    /// One lane is one coefficient in raster order, so the traversal is a plain walk at descending
-    /// register widths with a scalar tail. Each width keeps its own vector of running totals and
-    /// folds them once, at the end of its stage, because integer addition is associative and the
-    /// lane order therefore cannot change the totals.
+    /// One lane is one coefficient in raster order. The traversal walks the block at descending register widths and ends with a scalar tail.
+    /// Each width keeps its own vector of running totals and folds it once, at the end of its stage.
+    /// Integer addition is associative, so the lane order does not change the totals.
     /// </remarks>
     private static class TransformError<TOperator>
         where TOperator : struct, IAv1TransformErrorOperator
@@ -225,6 +221,7 @@ internal static partial class Av1TransformBlockEncoder
                 error += Vector128.Sum(errors);
             }
 
+            // The scalar overload accumulates the coefficients that no vector stage covered.
             for (; i < coefficients.Length; i++)
             {
                 TOperator.Accumulate(coefficients[i], dequantized[i], ref energy, ref error);

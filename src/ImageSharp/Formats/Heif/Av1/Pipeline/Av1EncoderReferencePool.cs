@@ -8,9 +8,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
 /// Holds the eight reference-map slots of a sequence and the reconstructed frames they point at. A frame buffer
-/// stays alive while at least one slot points at it, and returns to the pool when the last slot is refreshed away.
-/// Reference: the RefCntBuffer pool behind cm->ref_frame_map, with assign_frame_buffer_p() and
-/// decrease_ref_count().
+/// stays alive while at least one slot points at it. The buffer returns to the pool when a refresh moves the last slot
+/// away from it.
 /// </summary>
 /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
 internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
@@ -68,16 +67,15 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
     }
 
     /// <summary>
-    /// Returns the unused frame buffer with the lowest index for a frame of the sequence size, which keeps whatever
-    /// segment map its last frame left. Reference: get_free_fb().
+    /// Returns the unused frame buffer with the lowest index for a frame of the sequence size. The buffer keeps the
+    /// segment map that its last frame left.
     /// </summary>
     /// <returns>A buffer that no slot points at.</returns>
     public Entry Acquire() => this.Acquire(this.width, this.height);
 
     /// <summary>
     /// Returns the unused frame buffer with the lowest index for a frame of the given size. A buffer of another size
-    /// gets new planes of the frame size and keeps its identity. Reference: get_free_fb(), and the
-    /// aom_realloc_frame_buffer() of the current frame buffer in av1_set_frame_size().
+    /// gets new planes of the frame size and keeps its identity. When no buffer is free, the pool creates a new one.
     /// </summary>
     /// <param name="frameWidth">The visible luma width of the frame.</param>
     /// <param name="frameHeight">The visible luma height of the frame.</param>
@@ -116,7 +114,6 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
 
     /// <summary>
     /// Allocates the planes of a frame of the given size, over the memory of an earlier buffer when it is large enough.
-    /// Reference: aom_realloc_frame_buffer().
     /// </summary>
     /// <param name="frameWidth">The visible luma width of the frame.</param>
     /// <param name="frameHeight">The visible luma height of the frame.</param>
@@ -142,8 +139,8 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
     public Entry? GetSlot(int slot) => this.slots[slot];
 
     /// <summary>
-    /// Points every slot selected by the refresh mask at the coded frame, and releases buffers that no slot points
-    /// at any more. Reference: the refresh_frame_flags loop of av1_update_reference_frames().
+    /// Points every slot that the refresh mask selects at the coded frame. Then the method releases the buffers that no
+    /// slot points at any more, including the coded frame when the mask is empty.
     /// </summary>
     /// <param name="current">The buffer holding the coded frame.</param>
     /// <param name="refreshFrameFlags">The eight-bit refresh mask of the coded frame.</param>
@@ -223,12 +220,12 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
         public Av1EncoderFrameBuffer<TSample> Buffer { get; private set; }
 
         /// <summary>
-        /// Gets the adapted distributions saved at the end of the frame. Reference: cur_frame->frame_context.
+        /// Gets the adapted distributions saved at the end of the frame.
         /// </summary>
         public Av1FrameEntropyContext Context { get; }
 
         /// <summary>
-        /// Gets the motion vectors saved at the end of the frame. Reference: cur_frame->mvs.
+        /// Gets the motion vectors saved at the end of the frame.
         /// </summary>
         public Av1EncoderMotionField.SavedMotionField MotionField { get; }
 
@@ -238,19 +235,19 @@ internal sealed class Av1EncoderReferencePool<TSample> : IDisposable
         public int ReferenceCount { get; set; }
 
         /// <summary>
-        /// Gets the segmentation state of the frame in the buffer. Reference: cur_frame->seg.
+        /// Gets the segmentation state of the frame in the buffer.
         /// </summary>
         public ObuSegmentationParameters Segmentation { get; } = new();
 
         /// <summary>
-        /// Replaces the frame storage with planes of another size. The new storage took the old memory or released it.
+        /// Replaces the frame storage with planes of another size. The new storage took over the old memory or released it.
         /// </summary>
         /// <param name="buffer">The new frame storage.</param>
         public void ReplaceBuffer(Av1EncoderFrameBuffer<TSample> buffer) => this.Buffer = buffer;
 
         /// <summary>
-        /// Gets the segment map that the last frame coded into the buffer left, one identifier per 4x4 block, or
-        /// zeros before any frame wrote it. Reference: cur_frame->seg_map, which aom_calloc() clears once.
+        /// Gets the segment map that the last frame coded into the buffer left, one identifier per 4x4 block. The map holds
+        /// zeros before any frame wrote it. A new length replaces the map with a new map of zeros.
         /// </summary>
         /// <param name="length">The number of 4x4 blocks in the frame.</param>
         /// <returns>The segment map.</returns>

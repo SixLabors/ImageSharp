@@ -10,23 +10,23 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Finds the motion modes an encoded inter block may signal from its coded neighbors.
+/// Finds the motion modes that an encoded inter block can signal from its coded neighbors.
 /// </summary>
 internal static class Av1EncoderMotionVariation
 {
     /// <summary>
-    /// The largest number of warped-motion samples. Reference: LEAST_SQUARES_SAMPLES_MAX.
+    /// The largest number of warped-motion samples.
     /// </summary>
     public const int MaximumSampleCount = 8;
 
     /// <summary>
-    /// The widest neighbor step, in 4x4 units, of the overlappable neighbor scans. Reference: mi_size_wide[BLOCK_64X64].
+    /// The widest neighbor step, in 4x4 units, of the overlappable neighbor scans. This is the width of a 64x64 block.
     /// </summary>
     private const int MaximumNeighborStep = 16;
 
     /// <summary>
-    /// Returns the last motion mode the block may signal. Reference: motion_mode_allowed(), with
-    /// overlappable_neighbors from av1_count_overlappable_neighbors() and num_proj_ref from av1_findSamples().
+    /// Returns the last motion mode that the block can signal. OBMC needs an overlappable neighbor.
+    /// Warped motion also needs an unscaled reference and at least one warped-motion sample.
     /// </summary>
     /// <param name="picture">The frame decisions, with every preceding block final.</param>
     /// <param name="macroBlock">The neighbor availability of the block.</param>
@@ -52,7 +52,7 @@ internal static class Av1EncoderMotionVariation
 
         if (!frameHeader.ForceIntegerMotionVector)
         {
-            // is_global_mv_block()
+            // A global motion block with a model other than a translation allows only simple translation.
             Av1GlobalMotionType globalMotionType = frameHeader.GetGlobalMotionParameters()[(int)mode.ReferenceFrame - 1].Type;
             if (mode.Mode == Av1PredictionMode.GlobalMotionVector && globalMotionType > Av1GlobalMotionType.Translation)
             {
@@ -60,8 +60,8 @@ internal static class Av1EncoderMotionVariation
             }
         }
 
-        // A reference of another size allows OBMC but not warped motion. Every reference of an encoded frame is at most
-        // twice and at least a sixteenth of the frame size, so its scale is valid.
+        // A reference of another size allows OBMC but not warped motion.
+        // Every reference of an encoded frame is at most twice and at least a sixteenth of the frame size, so its scale is valid.
         if (!IsReferenceScaled(frameHeader, mode.ReferenceFrame) &&
             frameHeader.AllowWarpedMotion &&
             !frameHeader.ForceIntegerMotionVector &&
@@ -74,9 +74,8 @@ internal static class Av1EncoderMotionVariation
     }
 
     /// <summary>
-    /// Returns whether a reference of the frame has a fixed-point scale factor other than one in either direction,
-    /// from the frame sizes the encoder records for each slot. Reference: av1_is_scaled() with
-    /// av1_setup_scale_factors_for_frame().
+    /// Returns whether a reference of the frame has a fixed-point scale factor other than one in either direction.
+    /// The scale comes from the frame sizes that the encoder records for each slot.
     /// </summary>
     /// <param name="frameHeader">The frame header with the reference slots and the slot sizes.</param>
     /// <param name="referenceFrame">The reference.</param>
@@ -92,7 +91,7 @@ internal static class Av1EncoderMotionVariation
     }
 
     /// <summary>
-    /// Returns whether a block size admits OBMC and warped motion. Reference: is_motion_variation_allowed_bsize().
+    /// Returns whether a block size admits OBMC and warped motion.
     /// </summary>
     /// <param name="blockSize">The block size.</param>
     /// <returns><see langword="true"/> when both dimensions are at least 8 samples.</returns>
@@ -100,8 +99,7 @@ internal static class Av1EncoderMotionVariation
         => Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8;
 
     /// <summary>
-    /// Returns whether an above or left neighbor is an inter block. Reference: av1_count_overlappable_neighbors()
-    /// with foreach_overlappable_nb_above() and foreach_overlappable_nb_left().
+    /// Returns whether an above or left neighbor is an inter block or an intra block copy block.
     /// </summary>
     /// <param name="picture">The frame decisions.</param>
     /// <param name="macroBlock">The neighbor availability of the block.</param>
@@ -116,7 +114,7 @@ internal static class Av1EncoderMotionVariation
     {
         ObuFrameHeader frameHeader = picture.Parent.FrameHeader;
 
-        // The mode-information grid is read once; a neighbor is its allocation entry at the grid cell.
+        // Read the mode-information grid once. A neighbor is the allocation entry at its grid cell.
         ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
         ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
         int stride = picture.ModeInfoStride;
@@ -154,6 +152,7 @@ internal static class Av1EncoderMotionVariation
                 int step = Math.Min(left.BlockSize.Get4x4HighCount(), MaximumNeighborStep);
                 if (step == 1)
                 {
+                    // A 4-high neighbor is read from the second cell of its 8-high pair.
                     row &= ~1;
                     left = ref allocation[grid[((row + 1) * stride) + position.X - 1]].Block;
                     step = 2;
@@ -172,9 +171,9 @@ internal static class Av1EncoderMotionVariation
     }
 
     /// <summary>
-    /// Collects the warped-motion samples of the neighbors that predict from the same single reference as the
-    /// block. Each sample is a neighbor center relative to the block origin, and that center displaced by the
-    /// neighbor's motion vector, both in eighth samples. Reference: av1_findSamples() with record_samples().
+    /// Collects the warped-motion samples of the neighbors that predict from the same single reference as the block.
+    /// Each sample is a neighbor center relative to the block origin, and that center moved by the motion vector of the neighbor.
+    /// Both points are in eighth samples.
     /// </summary>
     /// <param name="picture">The frame decisions.</param>
     /// <param name="macroBlock">The neighbor availability of the block.</param>
@@ -201,8 +200,7 @@ internal static class Av1EncoderMotionVariation
         bool doTopLeft = true;
         bool doTopRight = true;
 
-        // The mode-information grid and the vectors are read once. A neighbor and its vector share the allocation
-        // index at the grid cell.
+        // Read the mode-information grid and the vectors once. A neighbor and its vector share the allocation index at the grid cell.
         ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
         ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
         ReadOnlySpan<Av1EncoderDisplacementVector> vectors = picture.DisplacementVectors.Span;
@@ -215,6 +213,8 @@ internal static class Av1EncoderMotionVariation
             int aboveWidth = above.BlockSize.Get4x4WideCount();
             if (width <= aboveWidth)
             {
+                // The above neighbor is at least as wide as the block, so it starts at or before the block column.
+                // The offset is that start relative to the block, zero or negative. The corner samples are used only when the neighbor does not cover them.
                 int columnOffset = -column % aboveWidth;
                 doTopLeft &= columnOffset >= 0;
                 doTopRight &= columnOffset + aboveWidth <= width;
@@ -313,7 +313,6 @@ internal static class Av1EncoderMotionVariation
 
     /// <summary>
     /// Records one neighbor center and its displaced position, and reports whether the sample list is full.
-    /// Reference: record_samples().
     /// </summary>
     /// <param name="displacement">The motion vector of the neighbor.</param>
     /// <param name="neighbor">The neighbor decisions.</param>
@@ -346,15 +345,19 @@ internal static class Av1EncoderMotionVariation
     }
 
     /// <summary>
-    /// Returns whether a neighbor predicts from the given single reference. Reference: the ref_frame test of
-    /// av1_findSamples().
+    /// Returns whether a neighbor predicts from the given single reference.
     /// </summary>
+    /// <param name="neighbor">The neighbor decisions.</param>
+    /// <param name="referenceFrame">The reference of the block.</param>
+    /// <returns><see langword="true"/> when the neighbor has the same reference and no second reference.</returns>
     private static bool IsSample(Av1EncoderBlockModeInfo neighbor, Av1ReferenceFrameType referenceFrame)
         => neighbor.ReferenceFrame == referenceFrame && neighbor.SecondaryReferenceFrame == Av1ReferenceFrameType.None;
 
     /// <summary>
-    /// Returns whether a neighbor is an inter or intra block copy block. Reference: is_neighbor_overlappable().
+    /// Returns whether a neighbor is an inter block or an intra block copy block.
     /// </summary>
+    /// <param name="neighbor">The neighbor decisions.</param>
+    /// <returns><see langword="true"/> when the neighbor overlaps the block for OBMC.</returns>
     private static bool IsOverlappable(Av1EncoderBlockModeInfo neighbor)
         => neighbor.ReferenceFrame > Av1ReferenceFrameType.Intra || neighbor.UseIntraBlockCopy;
 }

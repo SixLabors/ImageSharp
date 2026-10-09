@@ -18,28 +18,26 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal static partial class Av1WedgeSearch
 {
     /// <summary>
-    /// The largest mask weight, MAX_MASK_VALUE.
+    /// The largest mask weight. The weights of the two predictions add up to this value.
     /// </summary>
     private const int MaximumMaskValue = 1 << MaximumMaskBits;
 
     /// <summary>
-    /// The precision of a mask weight, WEDGE_WEIGHT_BITS.
+    /// The number of fractional bits of a mask weight.
     /// </summary>
     private const int MaximumMaskBits = 6;
 
     /// <summary>
-    /// Replaces each sample of a first residual with the saturated difference of the squares of the two
-    /// residuals. Reference: av1_wedge_compute_delta_squares().
+    /// Replaces each sample of a first residual with the saturated difference of the squares of the two residuals.
     /// </summary>
-    /// <param name="destination">Receives the saturated differences; it can be <paramref name="first"/>.</param>
+    /// <param name="destination">Receives the saturated differences. It can be <paramref name="first"/>.</param>
     /// <param name="first">The residuals of the first prediction.</param>
     /// <param name="second">The residuals of the second prediction.</param>
     public static void ComputeDeltaSquares(Span<short> destination, ReadOnlySpan<short> first, ReadOnlySpan<short> second)
         => ComputeDeltaSquares<WedgeOperator>(destination, first, second);
 
     /// <summary>
-    /// Returns whether the wedge mask with the given weights must be inverted. Reference:
-    /// av1_wedge_sign_from_residuals().
+    /// Returns whether the encoder must invert the wedge mask with the given weights.
     /// </summary>
     /// <param name="deltaSquares">The saturated differences of squares of the two residuals.</param>
     /// <param name="mask">The weights of the non-inverted mask.</param>
@@ -50,18 +48,22 @@ internal static partial class Av1WedgeSearch
 
     /// <summary>
     /// Returns the rounded squared error of a wedge blend from the residual of the second prediction and the
-    /// difference of the predictions. Reference: av1_wedge_sse_from_residuals().
+    /// difference of the predictions.
     /// </summary>
     /// <param name="residual">The residuals of the second prediction.</param>
     /// <param name="difference">The second prediction minus the first.</param>
     /// <param name="mask">The weights of the first prediction.</param>
-    /// <returns>The squared error, rounded by 2 * WEDGE_WEIGHT_BITS.</returns>
+    /// <returns>The squared error of the blend, divided by 2^12 with rounding.</returns>
     public static ulong SumSquaredErrors(ReadOnlySpan<short> residual, ReadOnlySpan<short> difference, ReadOnlySpan<byte> mask)
         => SumSquaredErrors<WedgeOperator>(residual, difference, mask);
 
     /// <summary>
     /// Traverses <see cref="ComputeDeltaSquares(Span{short}, ReadOnlySpan{short}, ReadOnlySpan{short})"/> at descending register widths.
     /// </summary>
+    /// <typeparam name="TOperator">The wedge search arithmetic.</typeparam>
+    /// <param name="destination">Receives the saturated differences. It can be <paramref name="first"/>.</param>
+    /// <param name="first">The residuals of the first prediction.</param>
+    /// <param name="second">The residuals of the second prediction.</param>
     private static void ComputeDeltaSquares<TOperator>(Span<short> destination, ReadOnlySpan<short> first, ReadOnlySpan<short> second)
         where TOperator : struct, IWedgeOperator
     {
@@ -104,8 +106,12 @@ internal static partial class Av1WedgeSearch
     }
 
     /// <summary>
-    /// Returns the sum of the mask-weighted differences of squares, walking descending register widths.
+    /// Returns the sum of the mask-weighted differences of squares. The traversal walks descending register widths.
     /// </summary>
+    /// <typeparam name="TOperator">The wedge search arithmetic.</typeparam>
+    /// <param name="deltaSquares">The saturated differences of squares of the two residuals.</param>
+    /// <param name="mask">The weights of the non-inverted mask.</param>
+    /// <returns>The sum of each difference of squares multiplied by its mask weight.</returns>
     private static long GetWeightedDelta<TOperator>(ReadOnlySpan<short> deltaSquares, ReadOnlySpan<byte> mask)
         where TOperator : struct, IWedgeOperator
     {
@@ -157,6 +163,11 @@ internal static partial class Av1WedgeSearch
     /// <summary>
     /// Traverses <see cref="SumSquaredErrors(ReadOnlySpan{short}, ReadOnlySpan{short}, ReadOnlySpan{byte})"/> at descending register widths.
     /// </summary>
+    /// <typeparam name="TOperator">The wedge search arithmetic.</typeparam>
+    /// <param name="residual">The residuals of the second prediction.</param>
+    /// <param name="difference">The second prediction minus the first.</param>
+    /// <param name="mask">The weights of the first prediction.</param>
+    /// <returns>The squared error of the blend, divided by 2^12 with rounding.</returns>
     private static ulong SumSquaredErrors<TOperator>(ReadOnlySpan<short> residual, ReadOnlySpan<short> difference, ReadOnlySpan<byte> mask)
         where TOperator : struct, IWedgeOperator
     {
@@ -214,7 +225,7 @@ internal static partial class Av1WedgeSearch
         total128 += total256.GetLower() + total256.GetUpper();
         total += Vector128.Sum(total128);
 
-        // ROUND_POWER_OF_TWO(csse, 2 * WEDGE_WEIGHT_BITS): the blend carries two factors of 64.
+        // Each squared blend carries two factors of 64, so a rounded shift by twelve bits removes them.
         const int Shift = 2 * MaximumMaskBits;
         return (total + (1UL << (Shift - 1))) >> Shift;
     }

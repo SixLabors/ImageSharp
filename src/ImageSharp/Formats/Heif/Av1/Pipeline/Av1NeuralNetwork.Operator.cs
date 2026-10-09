@@ -21,10 +21,10 @@ internal static partial class Av1NeuralNetwork
     /// Defines the network arithmetic across hardware widths.
     /// </summary>
     /// <remarks>
-    /// Float addition is not associative, so each member fixes the exact order in which it adds its products. The
-    /// order is the one of the x64 reference kernels, and every width and the scalar overload use the same order for
-    /// each output. The width only sets how many outputs one call computes. No member fuses a multiplication with an
-    /// addition, because the reference rounds every product before it adds it.
+    /// Float addition is not associative, so each member fixes the exact order in which it adds its products. The order
+    /// matches the x64 output of other AV1 encoders. Every width and the scalar overload use the same order for each output.
+    /// The width only sets how many outputs one call computes. No member fuses a multiplication with an addition, because
+    /// that order rounds every product before it adds the product.
     /// <para>
     /// In the dense members one lane is one output node, and the weights of node r start r weight strides after the
     /// first node. In the convolution members one lane is one output channel, and the weights of consecutive channels
@@ -153,7 +153,7 @@ internal static partial class Av1NeuralNetwork
         /// <summary>
         /// Reduces the eight lane totals of one node to one sum.
         /// </summary>
-        /// <param name="lanes">The lane totals; lane j holds inputs j, j + 8, j + 16 and so on.</param>
+        /// <param name="lanes">The lane totals. Lane j holds the products of inputs j, j + 8, j + 16 and so on.</param>
         /// <returns>(s0 + s1) + (s2 + s3), where sj is lane j plus lane j + 4.</returns>
         public static abstract float SumLanes(Vector256<float> lanes);
 
@@ -327,7 +327,7 @@ internal static partial class Av1NeuralNetwork
     }
 
     /// <summary>
-    /// Evaluates the network arithmetic in the addition order of the x64 reference kernels.
+    /// Evaluates the network arithmetic in a fixed addition order that matches the x64 output of other AV1 encoders.
     /// </summary>
     internal readonly struct NeuralNetworkOperator : INeuralNetworkOperator
     {
@@ -335,10 +335,10 @@ internal static partial class Av1NeuralNetwork
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<float> AccumulateEightInputs(ref float inputs, ref float weights, nuint weightStride, Vector128<float> totals)
         {
-            // The reference multiplies one node row by all eight inputs and adds adjacent products in 128-bit lanes.
-            // Here the lower and the upper four inputs are kept apart. One horizontal addition of two nodes gives
-            // [r0(p0 + p1), r0(p2 + p3), r1(p0 + p1), r1(p2 + p3)], and a second one of two such vectors gives the sum
-            // of the four products of each of the four nodes, which is the sum the reference makes in one 128-bit lane.
+            // The fixed order sums the products of inputs zero to three and of inputs four to seven apart, then adds the two
+            // half sums. A 128-bit vector holds only four products, so the code keeps the lower and the upper four inputs apart.
+            // One horizontal addition of two nodes gives [r0(p0 + p1), r0(p2 + p3), r1(p0 + p1), r1(p2 + p3)].
+            // A second horizontal addition of two such vectors gives the half sum of each of the four nodes, in node order.
             Vector128<float> lowerInputs = Vector128.LoadUnsafe(ref inputs);
             Vector128<float> upperInputs = Vector128.LoadUnsafe(ref inputs, 4);
             ref float row1 = ref Unsafe.Add(ref weights, weightStride);
@@ -363,9 +363,9 @@ internal static partial class Av1NeuralNetwork
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<float> AccumulateEightInputs(ref float inputs, ref float weights, nuint weightStride, Vector256<float> totals)
         {
-            // This is the reference layout. Each product vector holds one node. The 256-bit horizontal addition works
-            // in two independent 128-bit lanes, so after two levels the lower lane holds four node sums of inputs zero
-            // to three and the upper lane the same four nodes for inputs four to seven.
+            // Each product vector holds the eight products of one node. The 256-bit horizontal addition works in two
+            // independent 128-bit lanes. After two levels, the lower lane holds four node sums of inputs zero to three.
+            // The upper lane holds the same four nodes for inputs four to seven.
             Vector256<float> values = Vector256.LoadUnsafe(ref inputs);
             Vector256<float> pairs01 = Vector256_.HorizontalAdd(
                 values * Vector256.LoadUnsafe(ref weights),
@@ -543,8 +543,8 @@ internal static partial class Av1NeuralNetwork
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float SumLanes(Vector128<float> lower, Vector128<float> upper)
         {
-            // The halves add first, then adjacent sums: lane 0 is s0 + s1 and lane 1 is s2 + s3. The reference adds
-            // the two pair sums in the other order, which gives the same bits because one addition commutes.
+            // The halves add first, then adjacent sums: lane 0 is s0 + s1 and lane 1 is s2 + s3. The final addition of the
+            // two pair sums is a single addition, which commutes, so its operand order does not change the bits.
             Vector128<float> halves = lower + upper;
             Vector128<float> pairs = Vector128_.HorizontalAdd(halves, halves);
             return pairs.ToScalar() + pairs.GetElement(1);
@@ -584,10 +584,9 @@ internal static partial class Av1NeuralNetwork
             Vector128<float> biases,
             int position)
         {
-            // Each column sum adds the five row products of one window column. The reference keeps one running
-            // vector per column for a group of three windows, which adds the rows one at a time onto zero. A single
-            // window keeps the first row apart and adds the other four rows in pairs; its last column is a scalar
-            // running sum, which again adds the rows one at a time onto zero.
+            // Each column sum adds the five row products of one window column. In a group of three windows, every column
+            // adds the rows one at a time onto zero. A single window keeps the first row apart and adds the other four rows
+            // in pairs. Its last column adds the rows one at a time onto zero, as in a group.
             bool single = position == SingleBlockPosition;
             Vector128<float> column0 = SumColumn128(ref input, inputStride, ref weights, weightStep, 0, single);
             Vector128<float> column1 = SumColumn128(ref input, inputStride, ref weights, weightStep, 1, single);
@@ -595,9 +594,8 @@ internal static partial class Av1NeuralNetwork
             Vector128<float> column3 = SumColumn128(ref input, inputStride, ref weights, weightStep, 3, single);
             Vector128<float> column4 = SumColumn128(ref input, inputStride, ref weights, weightStep, 4, false);
 
-            // The reference reduces the column sums of a group of three windows with one horizontal addition of its two
-            // column vectors and three additions of 128-bit halves, so each window position has its own grouping. The
-            // bias is added first, then the two partial sums.
+            // Each window position in a group of three has its own grouping of the column sums. The single window has
+            // a fourth grouping. Every grouping adds the first partial sum to the bias, then adds the second partial sum.
             return position switch
             {
                 0 => (biases + ((column0 + column1) + column4)) + (column2 + column3),
@@ -680,8 +678,8 @@ internal static partial class Av1NeuralNetwork
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<float> AccumulateTwoByTwo(ref float input, nuint inputStride, ref float weights, nuint weightStep, Vector128<float> totals)
         {
-            // The reference adds the top-row and the bottom-row products of each column first, then the two columns
-            // with one horizontal addition, then the window onto the running total of the output.
+            // The top-row and the bottom-row products of each column add first. Then the two column sums add.
+            // Then the window sum adds onto the running total of the output.
             Vector128<float> top0 = Vector128.Create(input) * Vector128.LoadUnsafe(ref weights);
             Vector128<float> top1 = Vector128.Create(Unsafe.Add(ref input, 1)) * Vector128.LoadUnsafe(ref weights, weightStep);
             Vector128<float> bottom0 = Vector128.Create(Unsafe.Add(ref input, inputStride)) * Vector128.LoadUnsafe(ref weights, 2 * weightStep);

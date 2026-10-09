@@ -23,17 +23,20 @@ internal struct Av1InterModeRateDistortionModel
     private double intercept;
 
     /// <summary>
-    /// Gets a value indicating whether enough completed transform searches have established an estimate.
+    /// Gets a value indicating whether the model has an estimate from enough completed transform searches.
     /// </summary>
     public bool IsReady { get; private set; }
 
     /// <summary>
     /// Accumulates a completed residual search without retaining its pixels or coefficients.
     /// </summary>
+    /// <param name="predictionError">The prediction error before the residual is coded.</param>
+    /// <param name="distortion">The reconstruction error after the residual is coded.</param>
+    /// <param name="rate">The residual syntax rate.</param>
     public void Add(long predictionError, long distortion, int rate)
     {
-        // Empty residuals do not define error removed per coded bit. The bounded sample count keeps
-        // a complex superblock from overwhelming the accumulated history before the next fit.
+        // An empty residual gives no error removed per coded bit, so the model skips it.
+        // The sample limit stops one complex superblock from dominating the history before the next fit.
         if (rate == 0 || predictionError == distortion || this.count >= 6400)
         {
             return;
@@ -50,6 +53,7 @@ internal struct Av1InterModeRateDistortionModel
 
     /// <summary>
     /// Updates the estimate at a superblock boundary when enough new samples are available.
+    /// The first fit needs 200 samples. Later fits need 64.
     /// </summary>
     public void Fit()
     {
@@ -60,8 +64,8 @@ internal struct Av1InterModeRateDistortionModel
 
         if (this.IsReady)
         {
-            // Retain three parts history to one part new observations so a single superblock does
-            // not abruptly change the ranking of prediction modes in the rest of the tile.
+            // Mix three parts history with one part new observations. Then one superblock cannot abruptly change the ranking
+            // of prediction modes in the rest of the tile.
             this.distortionMean = ((this.distortionMean * 3) + (this.distortionSum / this.count)) / 4;
             this.slopeSampleMean = ((this.slopeSampleMean * 3) + (this.slopeSampleSum / this.count)) / 4;
             this.errorMean = ((this.errorMean * 3) + (this.errorSum / this.count)) / 4;
@@ -77,6 +81,7 @@ internal struct Av1InterModeRateDistortionModel
             this.errorSlopeMean = this.errorSlopeSum / this.count;
         }
 
+        // Least-squares line through the samples: the error removed per bit as a function of the prediction error.
         double deviation = Math.Sqrt(this.errorSquareMean);
         this.slope = (this.errorSlopeMean - (this.errorMean * this.slopeSampleMean)) /
             ((deviation * deviation) - (this.errorMean * this.errorMean));
@@ -94,6 +99,9 @@ internal struct Av1InterModeRateDistortionModel
     /// <summary>
     /// Estimates residual syntax and distortion from the complete prediction error.
     /// </summary>
+    /// <param name="predictionError">The complete prediction error.</param>
+    /// <param name="rate">Receives the estimated residual syntax rate, or 0 when the prediction codes without a residual.</param>
+    /// <param name="distortion">Receives the estimated reconstruction error.</param>
     public readonly void Estimate(long predictionError, out int rate, out long distortion)
     {
         rate = 0;
@@ -115,8 +123,8 @@ internal struct Av1InterModeRateDistortionModel
             rate = estimate < 0 ? 0 : (int)Math.Min(Math.Round(estimate, MidpointRounding.AwayFromZero), int.MaxValue / 2);
         }
 
-        // A nonpositive residual rate describes prediction alone, so use its error rather than
-        // the learned reconstruction error. Both quantities use the same squared-error scale.
+        // A nonpositive residual rate describes prediction alone, so the estimate uses the prediction error and not the learned
+        // reconstruction error. Both quantities use the same squared-error scale.
         if (rate <= 0)
         {
             rate = 0;

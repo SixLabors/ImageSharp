@@ -114,7 +114,7 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     public Span<TSample> RedCandidateReconstruction => this.GetSamples(8);
 
     /// <summary>
-    /// Gets the reconstruction scratch overwritten by each transform trial.
+    /// Gets the reconstruction buffer that each transform trial overwrites.
     /// </summary>
     public Span<TSample> TransformReconstruction => this.samples.Slice(SampleBufferCount * MaximumSampleCount, TransformSampleCount);
 
@@ -195,13 +195,23 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     public Span<int> SpareRedCoefficients => this.GetCoefficients(8);
 
     /// <summary>
-    /// Gets the coefficient scratch overwritten by each transform trial.
+    /// Gets the coefficient buffer that each transform trial overwrites.
     /// </summary>
     public Span<int> TransformCoefficients => this.coefficients.Slice(CoefficientBufferCount * MaximumSampleCount, TransformSampleCount);
 
+    /// <summary>
+    /// Gets one block-sized sample buffer.
+    /// </summary>
+    /// <param name="index">The buffer index, less than <see cref="SampleBufferCount"/>.</param>
+    /// <returns>The sample buffer of <see cref="MaximumSampleCount"/> samples.</returns>
     private Span<TSample> GetSamples(int index)
         => this.samples.Slice(index * MaximumSampleCount, MaximumSampleCount);
 
+    /// <summary>
+    /// Gets one block-sized coefficient buffer.
+    /// </summary>
+    /// <param name="index">The buffer index, less than <see cref="CoefficientBufferCount"/>.</param>
+    /// <returns>The coefficient buffer of <see cref="MaximumSampleCount"/> coefficients.</returns>
     private Span<int> GetCoefficients(int index)
         => this.coefficients.Slice(index * MaximumSampleCount, MaximumSampleCount);
 }

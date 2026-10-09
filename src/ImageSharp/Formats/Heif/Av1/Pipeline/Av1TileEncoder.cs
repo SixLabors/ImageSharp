@@ -108,8 +108,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="source">The coded source frame.</param>
     /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
     /// <param name="searchReferences">
-    /// The frames the motion search reads, indexed by prediction reference identifier: each reference, or its copy
-    /// resized to the size of the coded frame.
+    /// The frames that the motion search reads, indexed by prediction reference identifier: each reference, or its copy resized to the coded frame size.
     /// </param>
     /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
     /// <param name="picture">The frame coding and mode-information state.</param>
@@ -219,8 +218,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="source">The coded source frame.</param>
     /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
     /// <param name="searchReferences">
-    /// The frames the motion search reads, indexed by prediction reference identifier: each reference, or its copy
-    /// resized to the size of the coded frame.
+    /// The frames that the motion search reads, indexed by prediction reference identifier: each reference, or its copy resized to the coded frame size.
     /// </param>
     /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
     /// <param name="picture">The frame coding and mode-information state.</param>
@@ -254,8 +252,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1TileEncoder"/> struct for tile data that a packing pass already
-    /// wrote.
+    /// Initializes a new instance of the <see cref="Av1TileEncoder"/> struct for tile data that a packing pass already wrote.
     /// </summary>
     /// <param name="picture">The frame coding state that holds the tile lengths.</param>
     /// <param name="writer">The symbol encoder that holds the tile buffers of the packing pass.</param>
@@ -294,9 +291,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     }
 
     /// <summary>
-    /// Records the display distance of each enabled reference, and keeps the best-ranked references out of the
-    /// block-level single-reference pruning. A reference ranks by its distance plus its base quantizer index.
-    /// Reference: set_rel_frame_dist() and setup_keep_ref_frame_mask().
+    /// Records the display distance of each enabled reference, and keeps the best-ranked references out of the block-level single-reference pruning. A
+    /// reference ranks by its distance plus its base quantizer index. The best-ranked references also form the compound pruning mask.
     /// </summary>
     /// <param name="parent">The frame state that receives the distances and the mask.</param>
     /// <param name="frameHeader">The frame header.</param>
@@ -326,7 +322,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             scores[index] = Math.Abs(distance) + blockWorkspace.ReferenceBaseQIndices[slot];
         }
 
-        // Ascending scores; equal scores keep the reference order.
+        // Sort by ascending score with an insertion sort. Equal scores keep the reference order.
         for (int i = 1; i < order.Length; i++)
         {
             int current = order[i];
@@ -340,6 +336,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             order[j + 1] = current;
         }
 
+        // Each single-reference pruning level keeps this number of the best-ranked references.
         ReadOnlySpan<int> keptCounts = [7, 5, 3, 0, 0];
         int kept = keptCounts[parent.SpeedSettings.GetPruneSingleReferenceLevel(parent.FrameUpdateType)];
         int mask = 0;
@@ -350,8 +347,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
         parent.KeepSingleReferenceMask = mask;
 
-        // The compound pruning keeps the pairs of the best three references at level one, and no pair above it.
-        // Reference: the keep_comp_ref_frame_mask of setup_keep_ref_frame_mask().
+        // The compound pruning keeps every pair at level zero, the pairs of the best three references at level one, and no pair above it.
         ReadOnlySpan<int> keptCompoundCounts = [7, 3, 0, 0];
         int keptCompound = keptCompoundCounts[parent.SpeedSettings.CompoundReferencePruningLevel];
         int compoundMask = 0;
@@ -364,8 +360,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     }
 
     /// <summary>
-    /// Determines whether any coded block predicts from two references. Reference: compound_ref_used_flag,
-    /// which the encoder sets while it encodes each block.
+    /// Determines whether any coded block predicts from two references.
     /// </summary>
     /// <param name="picture">The completed frame decisions.</param>
     /// <returns><see langword="true"/> when at least one block uses a compound reference.</returns>
@@ -389,7 +384,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     }
 
     /// <summary>
-    /// Determines whether any coded block uses skip mode. Reference: skip_mode_used_flag.
+    /// Determines whether any coded block uses skip mode.
     /// </summary>
     /// <param name="picture">The completed frame decisions.</param>
     /// <returns><see langword="true"/> when at least one block uses skip mode.</returns>
@@ -413,9 +408,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     }
 
     /// <summary>
-    /// Signals the one interpolation filter at frame level when every inter block uses it in both directions.
-    /// Reference: fix_interp_filter(), which reads the switchable_interp counts that update_filter_type_count()
-    /// gathers for every inter block while the frame filter is SWITCHABLE.
+    /// Signals the one interpolation filter at frame level when every inter block uses it in both directions. Only a frame with a switchable filter changes.
     /// </summary>
     /// <param name="picture">The completed frame decisions.</param>
     private static void FixInterpolationFilter(Av1PictureControlSet picture)
@@ -448,8 +441,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     }
 
     /// <summary>
-    /// Determines whether any coded block uses a transform smaller than the largest its size permits, the
-    /// condition under which the reference increments <c>txb_split_count</c> while it encodes each block.
+    /// Determines whether any coded block uses a transform smaller than the largest size that its block size permits.
     /// </summary>
     /// <param name="picture">The completed frame decisions.</param>
     /// <returns><see langword="true"/> when at least one transform is split.</returns>
@@ -460,8 +452,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
         bool selectable = header.TransformMode == Av1TransformMode.Select;
 
-        // An intra block has one transform size, and an inter block's transform tree has a size per 4x4 cell,
-        // so visiting every cell finds each split once or more.
+        // An intra block has one transform size. The transform tree of an inter block has a size for each 4x4 cell. A visit to every cell finds each split at
+        // least once.
         for (int row = 0; row < header.ModeInfoRowCount; row++)
         {
             for (int column = 0; column < header.ModeInfoColumnCount; column++)
@@ -473,8 +465,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                 Av1TransformSize size;
                 if (inter)
                 {
-                    // A skipped inter block uses the largest size, or 4x4 when lossless. Otherwise the
-                    // transform tree splits wherever the cell's size is below the largest.
+                    // A skipped, lossless or 4x4 inter block has one size, and so does every inter block when the frame does not select sizes. That size is 4x4
+                    // when lossless, and the largest size otherwise. Other blocks read the size of the cell from the transform tree.
                     if (mode.Skip || !selectable || lossless || mode.BlockSize == Av1BlockSize.Block4x4)
                     {
                         size = lossless ? Av1TransformSize.Size4x4 : largest;
@@ -505,10 +497,9 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// Establishes the frame-level decision state that every block decision of one picture reads.
     /// </summary>
     /// <remarks>
-    /// Block decisions assume this state: speed settings for the update role that the caller stores in
-    /// <see cref="Av1PictureParentControlSet.FrameUpdateType"/>, inter mode thresholds, transform-type and
-    /// interpolation statistics, nearest references, motion search settings, and cleared restoration choices.
-    /// The tile encoder calls it once before analysis. A caller that drives
+    /// Block decisions read this state: speed settings for the update role that the caller stores in
+    /// <see cref="Av1PictureParentControlSet.FrameUpdateType"/>, inter mode thresholds, transform-type and interpolation statistics, nearest references, motion
+    /// search settings, and cleared restoration choices. The tile encoder calls it once before analysis. A caller that drives
     /// <see cref="Av1IntraSuperblockEncoder.ModeDecision{TSample, TOperator}"/> directly must call it first.
     /// </remarks>
     /// <param name="picture">The picture whose parent state is prepared.</param>
@@ -531,7 +522,6 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             parent.EncoderOptions.Tuning);
 
         // Distortion stops at the coded boundary, or at the frame edge when the picture pads its border.
-        // Reference: set_pixels_to_frame_edge() with cpi->do_border_pad.
         ObuColorConfig colorConfig = picture.Sequence.SequenceHeader.ColorConfig;
         blockWorkspace.BorderPad = parent.BorderPad;
         blockWorkspace.LumaVisibleBoundary = parent.GetVisibleBoundary(0, 0);
@@ -540,9 +530,9 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
         if (!frameHeader.IsIntra)
         {
-            // DC steps are represented at four times sample precision. Normalize high-bit-depth
-            // steps before applying the nonlinear quantizer scale; retain truncation before the floor. Each segment
-            // scales its thresholds by its own quantizer. Reference: set_block_thresholds().
+            // The DC step has four times the sample precision, plus two bits for each bit-depth step above eight bits. The division brings the step to
+            // eight-bit sample units before the nonlinear scale. The scaled factor truncates to an integer before the lower limit of 8. Each segment scales its
+            // thresholds by its own quantizer.
             Av1BitDepth bitDepth = picture.Sequence.SequenceHeader.ColorConfig.BitDepth;
             ObuQuantizationParameters quantization = frameHeader.QuantizationParameters;
             Span<int> quantizerFactors = blockWorkspace.ModeThresholdQuantizerFactors;
@@ -558,9 +548,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             }
         }
 
-        // Variance Boost signals a superblock quantizer at the resolution the frame quantizer selects, and no loop
-        // filter deltas. The flag clears after analysis when no superblock moved. Reference: the delta_q_info setup of
-        // encode_frame_internal().
+        // Variance Boost signals a superblock quantizer at the resolution that the frame quantizer selects, and no loop filter deltas. The objective mode uses
+        // its own fixed resolution. The flag clears after analysis when every superblock kept the frame quantizer.
         ObuDeltaParameters deltaQ = frameHeader.DeltaQParameters;
         int baseQIndex = frameHeader.QuantizationParameters.BaseQIndex;
         bool varianceBoost = parent.EncoderOptions.DeltaQMode == Av1DeltaQMode.VarianceBoost;
@@ -572,9 +561,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             deltaQ.IsPresent = AllowsObjectiveDeltaQ(picture, blockWorkspace) && baseQIndex > 0;
         }
 
-        // Each coding block derives its rate multiplier from its superblock quantizer whenever the frame codes delta
-        // quantizers. Reference: enable_delta_rdmult() without disable_deltaq_for_intl_arfs(), which one-pass
-        // coding never enables.
+        // Each coding block derives its rate multiplier from its superblock quantizer when the frame codes delta quantizers.
         parent.CodingBlockDeltaRateMultiplier = deltaQ.IsPresent;
         frameHeader.DeltaLoopFilterParameters.IsPresent = false;
         parent.DeltaQUsed = false;
@@ -582,8 +569,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         parent.TransformTypeCounts = blockWorkspace.TransformTypeCounts;
         parent.TransformTypeCounts.Span.Clear();
 
-        // copy_frame_prob_info() runs at a key frame, and at a golden refresh when warped motion is pruned further. It
-        // runs once per frame, so a frame coded again after the screen content trial keeps what the trial updated.
+        // The frame probabilities reset to their defaults at a key frame, and at a golden refresh when warped motion is pruned further. The reset happens once
+        // per frame, so a frame coded again after the screen content trial keeps what the trial updated.
         bool restoreProbabilities = !parent.RetainsFrameProbabilities &&
             (frameHeader.FrameType == ObuFrameType.KeyFrame || (parent.SpeedSettings.ExtraPruneWarped && parent.RefreshesGolden));
 
@@ -616,7 +603,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         {
             SetKeepSingleReferenceMask(parent, frameHeader, blockWorkspace);
 
-            // Every reference, enabled or not, must precede the frame. Reference: refs_are_one_sided().
+            // The references are one-sided when no reference, enabled or not, comes after the frame.
             parent.AllOneSidedReferences = true;
             Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
             Span<int> referenceFrameNumbers = blockWorkspace.ReferenceFrameNumbers;
@@ -658,8 +645,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             }
         }
 
-        // The frame-size features read the screen content tools as the frame set them, before any trial, and the
-        // trial updates the quantizer-dependent features before the frame does.
+        // The frame-size features read the screen content tools as the frame set them, before any trial, and the trial updates the quantizer-dependent features
+        // before the frame does.
         bool screenContentToolsBeforeTrial = parent.ScreenContentToolsBeforeTrial ?? frameHeader.AllowScreenContentTools;
         Av1MotionSearchSettings motionSettings = new(
             parent.EncodingSpeed,
@@ -675,9 +662,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         int maximumDimension = Math.Max(sourceSize.Width, sourceSize.Height);
         int stepParameter = Av1MotionSearchBase.GetInitialStepParameter(maximumDimension);
 
-        // Only adaptive steps keep the vector magnitude between frames. A frame coded again keeps the step and the
-        // magnitude its packing passes gather, because av1_set_mv_search_params() runs once before the recode loop.
-        // Reference: the auto_mv_step_size test of av1_set_mv_search_params().
+        // Only adaptive steps keep the vector magnitude between frames. A frame coded again keeps the step and the magnitude that its packing passes gather,
+        // because the motion search setup runs once before the recode loop.
         if (parent.RecodesFrame)
         {
             stepParameter = parent.MotionSearchStepParameter;
@@ -689,8 +675,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         }
         else if (motionSettings.AutomaticStepSizeLevel != 0)
         {
-            // Shown frames and internal alternate references use the adaptive step. Reference: the use_auto_mv_step
-            // test of av1_set_mv_search_params().
+            // Shown frames and internal alternate references use the adaptive step.
             if ((frameHeader.ShowFrame || parent.FrameUpdateType == Av1FrameUpdateType.IntermediateAlternate) &&
                 motionSettings.AutomaticStepSizeLevel >= 2 && parent.MaximumMotionVectorMagnitude != -1)
             {
@@ -698,13 +683,13 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                 stepParameter = Av1MotionSearchBase.GetInitialStepParameter(range);
             }
 
-            // The packing pass accumulates actual NEWMV magnitudes. Trial candidates and inherited vectors
-            // do not contribute; a frame with no written NEWMV leaves a zero maximum for the next frame.
+            // The packing pass accumulates the magnitudes of the written NEWMV vectors. Trial candidates and inherited vectors do not contribute. A frame with
+            // no written NEWMV leaves a zero maximum for the next frame.
             parent.MaximumMotionVectorMagnitude = 0;
         }
 
-        // Restoration decisions belong to the completed reconstruction. A reused sequence header
-        // must not expose the preceding frame's choices during block analysis.
+        // Restoration decisions belong to the completed reconstruction. A reused frame header must not expose the choices of the previous frame during block
+        // analysis.
         for (int plane = 0; plane < picture.Sequence.SequenceHeader.ColorConfig.PlaneCount; plane++)
         {
             frameHeader.LoopRestorationParameters.Items[plane].Type = ObuRestorationType.None;
@@ -713,9 +698,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         frameHeader.LoopRestorationParameters.UsesLoopRestoration = false;
         frameHeader.LoopRestorationParameters.UsesChromaLoopRestoration = false;
 
-        // Deblocking levels are also chosen from the completed reconstruction. av1_encode_frame enables the
-        // reference and mode deltas from the encoder configuration, whose default is on, and keeps their
-        // default values.
+        // Deblocking levels also come from the completed reconstruction. The reference and mode deltas are on, as in the default encoder configuration, and
+        // keep their default values.
         ObuLoopFilterParameters loopFilter = frameHeader.LoopFilterParameters;
         loopFilter.FilterLevel.Clear();
         loopFilter.FilterLevelU = 0;
@@ -723,27 +707,24 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         loopFilter.ReferenceDeltaModeEnabled = true;
         parent.MotionSearchStepParameter = stepParameter;
 
-        // The frame starts its motion vector error per bit from the frame multiplier. Reference: the
-        // av1_set_error_per_bit() call of av1_initialize_rd_consts().
+        // The frame starts its motion vector error per bit from the frame multiplier.
         blockWorkspace.ErrorPerBitRateMultiplier = parent.GetRateMultiplier(
             frameHeader.QuantizationParameters.BaseQIndex + frameHeader.QuantizationParameters.DeltaQDc[0],
             colorConfig.BitDepth);
     }
 
     /// <summary>
-    /// Returns whether a frame of the objective delta quantizer mode keeps its delta quantizer syntax: a frame other
-    /// than a leaf frame whose objective superblock quantizers lower the estimated rate-distortion cost of the frame.
-    /// Without temporal dependency statistics every superblock estimate is zero, so the syntax stays off. The
-    /// estimate updates the regularized importance that the coding block rate multipliers divide by. Reference: the
-    /// DELTA_Q_OBJECTIVE tests of encode_frame_internal(), with enable_delta_q() and allow_deltaq_mode().
+    /// Returns whether a frame of the objective delta quantizer mode keeps its delta quantizer syntax. The frame must not be a leaf frame, and its objective
+    /// superblock quantizers must lower the estimated rate-distortion cost of the frame. Without temporal dependency statistics the syntax stays off. The
+    /// estimate updates the regularized importance that the coding block rate multipliers divide by.
     /// </summary>
     /// <param name="picture">The picture whose parent carries the temporal dependency state.</param>
     /// <param name="blockWorkspace">The workspace that holds the regularized importance.</param>
     /// <returns><see langword="true"/> when the frame codes delta quantizers.</returns>
     private static bool AllowsObjectiveDeltaQ(Av1PictureControlSet picture, Av1EncoderBlockWorkspace blockWorkspace)
     {
-        // One-pass coding never takes the pyramid level test of disable_deltaq_for_intl_arfs(), which needs two-pass
-        // statistics, so only leaf frames are excluded. Reference: enable_delta_q().
+        // One-pass coding has no pyramid level test, because that test needs two-pass statistics. Only leaf frames and frames without temporal dependency
+        // statistics are excluded.
         Av1PictureParentControlSet parent = picture.Parent;
         if (parent.FrameUpdateType == Av1FrameUpdateType.Last || parent.TplFrame is not { } frame)
         {
@@ -765,9 +746,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     }
 
     /// <summary>
-    /// Decides and reconstructs the blocks of an intra frame without filtering or packing it, as the screen content
-    /// trial does, and updates the frame probabilities that the coding keeps. Reference: av1_encode_frame() as
-    /// av1_determine_sc_tools_with_encoding() calls it.
+    /// Decides and reconstructs the blocks of an intra frame without filtering or packing it, as the screen content trial does. It also updates the frame
+    /// probabilities that the coding keeps.
     /// </summary>
     /// <typeparam name="TSample">The native sample storage type.</typeparam>
     /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
@@ -792,8 +772,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1PictureParentControlSet parent = picture.Parent;
         PrepareFrame(picture, new Size(source.Width, source.Height), blockWorkspace);
 
-        // Reference: the av1_set_mb_ssim_rdmult_scaling() call of encode_frame_to_data_rate(), which precedes the
-        // trial. A sequence encoder that codes frames of different sizes measures them itself.
+        // The SSIM rate multiplier factors come from the source before the trial. A sequence encoder that codes frames of different sizes measures the factors
+        // itself.
         if (!parent.HasPrecomputedSsimRateMultiplierFactors)
         {
             parent.SsimRateMultiplierFactors = null;
@@ -806,7 +786,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
             writer, source, default, default, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
 
-        // Reference: the tx_type_probs update at the end of encode_frame_internal().
+        // The trial moves the transform type probabilities of the update type toward its selections.
         if (parent.SpeedSettings.TrackTransformTypeProbabilities)
         {
             Av1TransformTypeProbabilities.Update(
@@ -817,8 +797,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     }
 
     /// <summary>
-    /// Decides and reconstructs every block of a frame, filters the reconstruction, and packs the tiles. Reference:
-    /// av1_encode_frame() followed by the loop filters and av1_pack_bitstream().
+    /// Decides and reconstructs every block of a frame, filters the reconstruction, and packs the tiles.
     /// </summary>
     /// <typeparam name="TSample">The native sample storage type.</typeparam>
     /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
@@ -829,8 +808,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="source">The coded source frame.</param>
     /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
     /// <param name="searchReferences">
-    /// The frames the motion search reads, indexed by prediction reference identifier: each reference, or its copy
-    /// resized to the size of the coded frame.
+    /// The frames that the motion search reads, indexed by prediction reference identifier: each reference, or its copy resized to the coded frame size.
     /// </param>
     /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
     /// <param name="picture">The frame coding and mode-information state.</param>
@@ -879,10 +857,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         => new(picture, writer);
 
     /// <summary>
-    /// Decides and reconstructs every block of a frame, then settles the frame-level syntax the decisions allow:
-    /// the delta quantizer flag, the segment map coding, intra block copy, the transform mode, the reference mode,
-    /// skip mode and the interpolation filter. The reconstruction is not yet filtered. Reference: av1_encode_frame()
-    /// with encode_frame_internal(), and the fix_interp_filter() of av1_finalize_encoded_frame().
+    /// Decides and reconstructs every block of a frame, then settles the frame-level syntax that the decisions allow: the delta quantizer flag, the segment map
+    /// coding, intra block copy, the transform mode, the reference mode, skip mode and the interpolation filter. The reconstruction is not yet filtered.
     /// </summary>
     /// <typeparam name="TSample">The native sample storage type.</typeparam>
     /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
@@ -890,8 +866,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="source">The coded source frame.</param>
     /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
     /// <param name="searchReferences">
-    /// The frames the motion search reads, indexed by prediction reference identifier: each reference, or its copy
-    /// resized to the size of the coded frame.
+    /// The frames that the motion search reads, indexed by prediction reference identifier: each reference, or its copy resized to the coded frame size.
     /// </param>
     /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
     /// <param name="picture">The frame coding and mode-information state.</param>
@@ -916,8 +891,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         ObuFrameHeader frameHeader = parent.FrameHeader;
         PrepareFrame(picture, new Size(source.Width, source.Height), blockWorkspace);
 
-        // Reference: the av1_set_mb_ssim_rdmult_scaling() call of encode_frame_to_data_rate(). A sequence encoder that
-        // codes frames of different sizes measures them itself, before it resizes the source.
+        // The SSIM rate multiplier factors come from the source. A sequence encoder that codes frames of different sizes measures the factors itself, before it
+        // resizes the source.
         if (!parent.HasPrecomputedSsimRateMultiplierFactors)
         {
             parent.SsimRateMultiplierFactors = null;
@@ -930,16 +905,14 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
             writer, source, references, searchReferences, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace);
 
-        // A frame whose superblocks all kept the frame quantizer codes no delta quantizers. Reference: the deltaq_used
-        // test at the end of encode_frame_internal().
+        // A frame whose superblocks all kept the frame quantizer codes no delta quantizers.
         if (frameHeader.DeltaQParameters.IsPresent && !parent.DeltaQUsed)
         {
             frameHeader.DeltaQParameters.IsPresent = false;
         }
 
-        // A frame that updates its segment map codes it against the primary reference's map unless the estimate says
-        // spatial coding costs less. Reference: the temporal_update choice at the end of encode_frame_internal() and
-        // at the start of av1_pack_bitstream().
+        // A frame that updates its segment map codes it against the map of the primary reference. The frame codes the map spatially when it has no primary
+        // reference, or when the estimate says that spatial coding costs less.
         ObuSegmentationParameters segmentation = frameHeader.SegmentationParameters;
         if (segmentation.Enabled && segmentation.SegmentationUpdateMap == 1)
         {
@@ -948,17 +921,14 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                 parent.SpatialSegmentCost < parent.TemporalSegmentCost ? 0 : 1;
         }
 
-        // A frame that allows intra block copy but never selects it stops allowing it, which also leaves the
-        // in-loop filters free to run. Reference: the intrabc_used test at the end of encode_frame_internal().
+        // A frame that allows intra block copy but never selects it stops allowing it. The in-loop filters can then run.
         if (frameHeader.AllowIntraBlockCopy && !UsesIntraBlockCopy(picture))
         {
             frameHeader.AllowIntraBlockCopy = false;
         }
 
-        // When no coded block split its transform, av1_encode_frame signals the largest transforms instead of
-        // selecting them per block. The frame parameter update that holds this runs
-        // outside realtime mode, and in realtime mode while estimated compound prediction is enabled
-        // (use_comp_ref_nonrd).
+        // When no coded block split its transform, the frame signals the largest transforms instead of a selection per block. This frame parameter update runs
+        // outside real-time mode, and in real-time mode when estimated compound prediction is on.
         Av1EncoderSpeedSettings speedSettings = parent.SpeedSettings;
         bool frameParameterUpdate = !speedSettings.UseEstimatedInterModeDecision || speedSettings.UseEstimatedCompound;
         if (frameHeader.TransformMode == Av1TransformMode.Select &&
@@ -968,13 +938,13 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             frameHeader.TransformMode = Av1TransformMode.Largest;
         }
 
-        // The filter probabilities update at the end of encode_frame_internal(), before fix_interp_filter() narrows
-        // the frame filter. Reference: the interp_filter == SWITCHABLE test of encode_frame_internal().
+        // The filter probabilities update only when the frame filter is switchable before the filter fix narrows it. The method returns that state for the
+        // update.
         bool switchableBeforeFix = frameHeader.InterpolationFilter == Av1InterpolationFilter.Switchable;
         if (!frameHeader.IsIntra)
         {
-            // The same branch of av1_encode_frame codes single references when no block used a compound
-            // reference, and then leaves skip mode off when it is not allowed or no block used it.
+            // The same frame parameter update codes single references when no block used a compound reference. A single-reference frame does not allow skip
+            // mode, so the flag turns off. Skip mode also turns off when no block used it.
             ObuSkipModeParameters skipMode = frameHeader.SkipModeParameters;
             if (frameParameterUpdate)
             {
@@ -995,7 +965,6 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                 }
             }
 
-            // Reference: fix_interp_filter() in av1_finalize_encoded_frame().
             FixInterpolationFilter(picture);
         }
 
@@ -1003,9 +972,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     }
 
     /// <summary>
-    /// Writes the symbols of every tile of an analyzed frame. Each tile starts from the frame's entropy context,
-    /// and the pass counts the selected transform types, warped and OBMC motion and interpolation filters afresh.
-    /// Reference: av1_pack_bitstream().
+    /// Writes the symbols of every tile of an analyzed frame. Each tile starts from the entropy context of the frame. The pass counts the selected transform
+    /// types, warped and OBMC motion, and interpolation filters again from zero.
     /// </summary>
     /// <typeparam name="TSample">The native sample storage type.</typeparam>
     /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
@@ -1013,8 +981,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="source">The coded source frame.</param>
     /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
     /// <param name="searchReferences">
-    /// The frames the motion search reads, indexed by prediction reference identifier: each reference, or its copy
-    /// resized to the size of the coded frame.
+    /// The frames that the motion search reads, indexed by prediction reference identifier: each reference, or its copy resized to the coded frame size.
     /// </param>
     /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
     /// <param name="picture">The frame coding and mode-information state.</param>
@@ -1034,9 +1001,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         where TSample : unmanaged
         where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
     {
-        // Analysis retains the selected modes, coefficients, palette tokens, and motion contexts. Packing starts
-        // from the same entropy edges and probabilities while the completed frame decisions remain available. A
-        // frame packed before to measure its size counts its selections again.
+        // Analysis retains the selected modes, coefficients, palette tokens, and motion contexts. Packing starts from the same entropy edges and probabilities
+        // while the completed frame decisions remain available. A frame packed before to measure its size counts its selections again.
         Av1PictureParentControlSet parent = picture.Parent;
         picture.ResetEntropyContexts();
         parent.LowMotionArea = 0;
@@ -1049,9 +1015,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     }
 
     /// <summary>
-    /// Moves the transform type and interpolation filter probabilities of the frame's update type halfway toward
-    /// the selections of the frame. Reference: the tx_type_probs and switchable_interp_probs updates at the end of
-    /// encode_frame_internal().
+    /// Moves the transform type and interpolation filter probabilities of the update type of the frame halfway toward the selections of the frame. The filter
+    /// probabilities change only in a frame that is not a key frame and had a switchable filter before the filter fix.
     /// </summary>
     /// <param name="picture">The frame coding state with the selection counts.</param>
     /// <param name="blockWorkspace">The workspace that holds the probabilities.</param>
@@ -1079,10 +1044,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     }
 
     /// <summary>
-    /// Filters the reconstruction of an analyzed frame, packs its tiles and records the frame in the workspace
-    /// history: the low motion share, the frame probabilities, and the frame number and quantizer of each refreshed
-    /// slot. Reference: the loop filters of encode_with_recode_loop_and_filter(), av1_pack_bitstream(), and the
-    /// frame updates that follow.
+    /// Filters the reconstruction of an analyzed frame, packs its tiles and records the frame in the workspace history: the low motion share, the frame
+    /// probabilities, and the frame number and quantizer of each refreshed slot.
     /// </summary>
     /// <typeparam name="TSample">The native sample storage type.</typeparam>
     /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
@@ -1093,8 +1056,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="source">The coded source frame.</param>
     /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
     /// <param name="searchReferences">
-    /// The frames the motion search reads, indexed by prediction reference identifier: each reference, or its copy
-    /// resized to the size of the coded frame.
+    /// The frames that the motion search reads, indexed by prediction reference identifier: each reference, or its copy resized to the coded frame size.
     /// </param>
     /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
     /// <param name="picture">The frame coding and mode-information state.</param>
@@ -1122,7 +1084,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1PictureParentControlSet parent = picture.Parent;
         ObuFrameHeader frameHeader = parent.FrameHeader;
 
-        // loopfilter_frame picks the levels against the source, then filters the frame.
+        // The deblocking filter picks its levels against the source, then filters the frame.
         Av1LoopFilterEncoder.PickFilterLevel<TSample, TVerticalOperator, THorizontalOperator>(
             blockWorkspace.MemoryAllocator, picture, source, reconstruction, blockWorkspace.PreviousLoopFilterLevels);
 
@@ -1151,6 +1113,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
         if (!frameHeader.IsIntra)
         {
+            // The running low motion percentage keeps three quarters of its history. A zero average takes the percentage of the frame.
             int percentage = (100 * parent.LowMotionArea) / (frameHeader.ModeInfoRowCount * frameHeader.ModeInfoColumnCount);
             parent.AverageFrameLowMotion = parent.AverageFrameLowMotion == 0
                 ? percentage
@@ -1178,8 +1141,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     }
 
     /// <summary>
-    /// Runs the superblocks of every tile in coding order, either deciding them and updating the probabilities, or
-    /// writing their symbols. Reference: encode_tiles() with encode_sb_row(), and write_tiles_in_tg_obus().
+    /// Runs the superblocks of every tile in coding order. The pass either decides them and updates the probabilities, or writes their symbols.
     /// </summary>
     /// <typeparam name="TSample">The native sample storage type.</typeparam>
     /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
@@ -1188,8 +1150,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     /// <param name="source">The coded source frame.</param>
     /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
     /// <param name="searchReferences">
-    /// The frames the motion search reads, indexed by prediction reference identifier: each reference, or its copy
-    /// resized to the size of the coded frame.
+    /// The frames that the motion search reads, indexed by prediction reference identifier: each reference, or its copy resized to the coded frame size.
     /// </param>
     /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
     /// <param name="picture">The frame coding and mode-information state.</param>
@@ -1227,6 +1188,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         bool allIntra = picture.Parent.EncoderOptions.IsAllIntra;
         if (allIntra && picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level9)
         {
+            // All-intra coding at speed 9 refreshes mode rates once per superblock row when the short side is 2160 samples or more, and never for smaller
+            // frames.
             modeCostUpdate = minimumDimension < 2160
                 ? Av1MotionSearchSettings.CostUpdateFrequency.Off
                 : Av1MotionSearchSettings.CostUpdateFrequency.SuperblockRow;
@@ -1234,20 +1197,18 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         else if (!allIntra && !picture.Parent.SpeedSettings.IsRealtime &&
             picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level6 && minimumDimension < 720)
         {
-            // Only GOOD mode refreshes rates once per superblock row. Real-time usage keeps the default
-            // refresh at every superblock. Reference: coeff_cost_upd_level and mode_cost_upd_level in
-            // set_good_speed_feature_framesize_dependent(), which set_rt_speed_features does not change.
+            // At speed 6 and higher, good-quality frames with a short side under 720 samples refresh mode rates once per superblock row. Real-time usage keeps
+            // the default refresh at every superblock.
             modeCostUpdate = Av1MotionSearchSettings.CostUpdateFrequency.SuperblockRow;
         }
 
-        // Only good-quality usage refreshes the displacement vector rates at each superblock. All-intra and
-        // real-time usage keep the rates of the tile start.
+        // Only good-quality usage refreshes the displacement vector rates at each superblock. All-intra and real-time usage keep the rates of the tile start.
         bool refreshDisplacementCosts = !allIntra && !picture.Parent.SpeedSettings.IsRealtime;
 
         if (!TSymbolOperation.WritesOutput && frameHeader.AllowIntraBlockCopy)
         {
-            // Hash the visible source once before reconstruction begins so candidate discovery never depends
-            // on coding order and the workspace can be reused as compact bucket links afterward.
+            // The visible source is hashed once before reconstruction starts. Candidate discovery then does not depend on coding order, and the workspace can
+            // serve as compact bucket links afterward.
             picture.IntraBlockCopySearch.Initialize<TSample, TOperator>(
                 source.View.GetPlane(Av1Plane.Y));
         }
@@ -1274,8 +1235,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Span<int> searchReconstructions = blockWorkspace.SearchReconstructions;
         Span<int> estimationRowCoefficients = blockWorkspace.EstimationRowCoefficients;
 
-        // The inter prediction buffers of the block searches. An intra frame prices no motion vector, and a worker
-        // that encodes only intra frames keeps no motion vector rates.
+        // The inter prediction buffers of the block searches. An intra frame prices no motion vector, and a worker that encodes only intra frames keeps no
+        // motion vector rates.
         Av1EncoderInterPredictionWorkspace<TSample> interWorkspace = blockWorkspace.GetInterPredictionWorkspace<TSample>();
         Span<TSample> motionSearchPrediction = blockWorkspace.GetMotionSearchPrediction<TSample>();
         Av1MotionVectorCosts motionVectorCosts = frameHeader.IsIntra ? default : blockWorkspace.GetMotionVectorCosts(frameHeader.MotionVectorPrecision);
@@ -1296,8 +1257,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Span<TSample> reconstructionBlue = reconstruction.CodedView.GetPlane(Av1Plane.U).Samples;
         Span<TSample> reconstructionRed = reconstruction.CodedView.GetPlane(Av1Plane.V).Samples;
 
-        // The mode information and the retained block decisions of the picture serve every block of the frame pass,
-        // so they are read once here.
+        // The mode information and the retained block decisions of the picture serve every block of the frame pass, so they are read once here.
         Span<int> modeInfoGrid = picture.ModeInfoGrid.Span;
         Span<Av1MacroBlockModeInfo> modeInfoAllocation = picture.ModeInfoAllocation.Span;
         Span<Av1EncoderDisplacementVector> displacementVectors = picture.DisplacementVectors.Span;
@@ -1324,16 +1284,15 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             {
                 tile.SetTileColumn(tileLayout, frameHeader.ModeInfoColumnCount, tileColumn);
 
-                // Each pass begins every tile from the same frame probabilities. Only the packing pass writes into
-                // the buffer of the tile; the analysis operation does not touch range-coder state.
+                // Each pass starts every tile from the same frame probabilities. Only the packing pass writes into the buffer of the tile. The analysis
+                // operation does not change the state of the range coder.
                 writer.Reset(tileIndex);
 
-                // The range coder of the tile writes into the tile buffer, which is read once here. A write that grows
-                // the buffer replaces this span.
+                // The range coder of the tile writes into the tile buffer, which is read once here. A write that grows the buffer replaces this span.
                 Span<byte> output = writer.GetTileBuffer();
 
-                // The neighbor context edges of the tile serve every block of the tile, so they are read once here. Only
-                // a frame with screen content tools has palette contexts.
+                // The neighbor context edges of the tile serve every block of the tile, so they are read once here. Only a frame with screen content tools has
+                // palette contexts.
                 Av1NeighborEdges<Av1PartitionContext> partitionEdges = picture.PartitionContexts[tileIndex].GetEdges();
                 Av1NeighborEdges<byte> transformEdges = picture.TransformFunctionContexts[tileIndex].GetEdges();
                 Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges = frameHeader.AllowScreenContentTools
@@ -1356,8 +1315,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                 int motionCostRowInterval = 1;
                 if (motionCostUpdate == Av1MotionSearchSettings.CostUpdateFrequency.SuperblockRowSet)
                 {
-                    // Target one update per 256 luma rows, then distribute those updates evenly over the
-                    // tile's superblock rows. Two rounded divisions keep short final tiles evenly spaced.
+                    // The tile takes one update per 256 luma rows, spread evenly over its superblock rows. Two divisions that round up keep short final tiles
+                    // evenly spaced.
                     int tileHeight = (tile.ModeInfoRowEnd - tile.ModeInfoRowStart) << Av1Constants.ModeInfoSizeLog2;
                     int updateCount = (tileHeight + 255) / 256;
                     int updateSpan = updateCount << sequenceHeader.SuperblockSizeLog2;
@@ -1374,8 +1333,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!TSymbolOperation.WritesOutput && !frameHeader.IsIntra)
                     {
-                        // Evidence is shared across this row's block searches, including partition trials.
-                        // Every row starts at unity in Q5; packing does not alter search history.
+                        // The block searches of this row share the mode threshold factors, partition trials included. Every row starts at 1.0 in Q5 format
+                        // (32). Packing does not change the search history.
                         modeThresholdFactors.Fill(32);
                     }
 
@@ -1391,8 +1350,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                         // The coefficients and transform block states of the superblock serve every block in it, so they are read once here.
                         Span<int> superblockCoefficients = coefficientBuffer.GetSuperblockSpan(superblock.Index);
 
-                        // Reference: the reset_mb_rd_record() and av1_zero(x->picked_ref_frames_mask) of
-                        // init_encode_rd_sb().
+                        // Each superblock starts with an empty rate-distortion record and no picked reference frames.
                         blockWorkspace.MacroblockRateDistortionRecord.Reset();
                         Array.Clear(blockWorkspace.PickedReferenceFrameMasks);
                         entropyContext.SuperblockOrigin = new Point(
@@ -1471,8 +1429,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
                             if (!firstSuperblock && !frameHeader.DisableCdfUpdate && refreshModeCosts)
                             {
-                                // Reset initialized this tile's first rates. Later boundaries consume only
-                                // preceding selected blocks; all candidates within the boundary share rates.
+                                // The tile reset gave the first rates of this tile. A later refresh uses only the selected blocks before it. All candidates
+                                // between two refreshes share the same rates.
                                 writer.RefreshCosts();
                             }
 
@@ -1482,17 +1440,17 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
                             if (!frameHeader.IsIntra && (firstSuperblock || (!frameHeader.DisableCdfUpdate && refreshMotionCosts)))
                             {
-                                // Initialize from each tile's starting CDF even when adaptation is disabled.
-                                // Later updates consume only preceding selected blocks at the configured boundary;
-                                // all candidate trials between boundaries share the same cost snapshot.
+                                // The first superblock of each tile takes its rates from the starting CDF of the tile, also when adaptation is off. A later
+                                // refresh at the configured interval uses only the selected blocks before it. All candidate trials between two refreshes share
+                                // the same rates.
                                 writer.FillMotionVectorCosts(motionVectorCosts);
                             }
 
                             if (frameHeader.AllowIntraBlockCopy &&
                                 (firstSuperblock || (refreshDisplacementCosts && !frameHeader.DisableCdfUpdate)))
                             {
-                                // All-intra and real-time usage retain the initial displacement rates. Good-quality
-                                // usage refreshes them at superblock boundaries while entropy coding continues to adapt.
+                                // All-intra and real-time usage keep the initial displacement rates. Good-quality usage refreshes them at each superblock while
+                                // entropy coding continues to adapt.
                                 writer.FillDisplacementVectorCosts(blockWorkspace.GetDisplacementVectorCosts(workspaceStorage));
                             }
 
@@ -1573,8 +1531,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                             if (!frameHeader.IsIntra && picture.Parent.SpeedSettings.InterModeEstimation == 1 &&
                                 tileLayout.TileColumnCount == 1 && tileLayout.TileRowCount == 1)
                             {
-                                // Fit only after all partition trials for this superblock have finished.
-                                // Every candidate inside the superblock uses the preceding fit.
+                                // The models fit only after all partition trials of this superblock finish. Every candidate inside the superblock uses the
+                                // previous fit.
                                 foreach (ref Av1InterModeRateDistortionModel model in interModeModels)
                                 {
                                     model.Fit();
@@ -1590,8 +1548,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                     int tileDataLength = writer.ExitTile();
                     tileDataLengths[tileIndex] = tileDataLength;
 
-                    // The largest tile, the first of equal sizes, updates the frame context. Reference: the
-                    // largest_tile_id and max_tile_size of write_tiles_in_tg_obus().
+                    // The largest tile, the first of equal sizes, updates the frame context.
                     if (tileCount > 1 && tileDataLength > largestTileLength)
                     {
                         largestTileLength = tileDataLength;
@@ -1606,8 +1563,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
 
         if (TSymbolOperation.WritesOutput && tileCount > 1)
         {
-            // Reference: write_tile_obu_size(), which writes context_update_tile_id and the tile size bytes that
-            // remux_tiles() chooses with choose_size_bytes() for the largest tile.
+            // The frame signals the largest tile as the context update tile. The tile size field uses the fewest bytes that hold the size of the largest tile.
             tileLayout.ContextUpdateTileId = (uint)largestTileIndex;
             tileLayout.TileSizeBytes = (uint)largestTileLength >> 24 != 0 ? 4
                 : (uint)largestTileLength >> 16 != 0 ? 3

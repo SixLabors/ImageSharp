@@ -8,18 +8,16 @@ using SixLabors.ImageSharp.Common.Helpers;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <content>
-/// Counts, ranks and dilates the colors of a 16x16 eight-bit block. Reference: av1_count_colors_with_threshold(),
-/// av1_find_dominant_value() and av1_dilate_block().
+/// Counts, ranks and dilates the colors of a 16x16 eight-bit block.
 /// </content>
 internal static partial class Av1ScreenContentDetector
 {
     /// <summary>
-    /// Counts the distinct values of a block, stopping once the count exceeds a threshold, as
-    /// <c>av1_count_colors_with_threshold</c> does.
+    /// Counts the distinct values of a block. The count stops when it exceeds a threshold.
     /// </summary>
     /// <remarks>
-    /// Each update depends on the sample value, so the count is a scalar bitset. A vector form that marks one color per
-    /// block comparison was measured 2.6 times slower on photographic blocks, where the scan stops after a few samples.
+    /// Each update depends on the sample value, so the count uses a scalar bitset. A measured vector form that marks one color
+    /// per block comparison ran 2.6 times slower on photographic blocks, where the scan stops after a few samples.
     /// </remarks>
     /// <param name="block">The 16x16 eight-bit block samples.</param>
     /// <param name="threshold">The largest count of interest.</param>
@@ -49,8 +47,7 @@ internal static partial class Av1ScreenContentDetector
     }
 
     /// <summary>
-    /// Finds the most frequent value of a block, as <c>av1_find_dominant_value</c> does. The first value to reach the
-    /// highest count is the dominant one.
+    /// Finds the most frequent value of a block. The first value to reach the highest count is the dominant one.
     /// </summary>
     /// <remarks>
     /// Each update depends on the sample value, so the histogram is scalar, like <see cref="CountColorsWithThreshold"/>.
@@ -77,12 +74,13 @@ internal static partial class Av1ScreenContentDetector
     }
 
     /// <summary>
-    /// Grows the most frequent value of a block over its eight neighbors, as <c>av1_dilate_block</c> does.
+    /// Grows the most frequent value of a block over its eight neighbors.
     /// </summary>
     /// <remarks>
     /// A sample takes the dominant value when it or any neighbor inside the block holds it. One 128-bit lane holds one
-    /// block row, so the horizontal neighbors come from byte shifts inside each lane, and the vertical neighbors come
-    /// from the rows above and below in a copy with one clear row at each end.
+    /// block row of sixteen bytes. Thus byte shifts inside each lane give the horizontal neighbors, and the shifts never
+    /// carry a neighbor across a row edge. The vertical neighbors come from the rows above and below in a copy of the
+    /// marks with one clear row at each end.
     /// </remarks>
     /// <param name="block">The 16x16 eight-bit block samples.</param>
     /// <param name="dilated">The dilated block.</param>
@@ -98,7 +96,8 @@ internal static partial class Av1ScreenContentDetector
         ref byte spreadBase = ref MemoryMarshal.GetReference(spread);
         ref byte dilatedBase = ref MemoryMarshal.GetReference(dilated);
 
-        // Marks each sample whose row holds the dominant value at it or beside it.
+        // The first pass marks each sample whose row holds the dominant value at it or beside it. The marks are 0xFF or 0
+        // and start one row into the copy, so the clear rows border the block.
         int i = 0;
         if (Vector512.IsHardwareAccelerated)
         {
@@ -143,7 +142,7 @@ internal static partial class Av1ScreenContentDetector
             spread[i + row] = marked ? byte.MaxValue : (byte)0;
         }
 
-        // Takes the dominant value wherever the row above, the row itself or the row below is marked.
+        // The second pass takes the dominant value wherever the mark above, the mark of the sample or the mark below is set.
         i = 0;
         if (Vector512.IsHardwareAccelerated)
         {

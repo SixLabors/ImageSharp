@@ -101,8 +101,8 @@ internal sealed class Av1InverseQuantizer
             this.ac = quantizer.deQuantsDeltaQ.GetAc(mode.SegmentId, plane);
             this.shift = transformSize.GetScale();
 
-            // Lossless segments and one-dimensional or identity transforms use the flat matrix. Matrix lookup
-            // happens once per transform, before the entropy loop supplies its nonzero magnitudes and signs.
+            // Lossless segments and one-dimensional or identity transforms use the flat matrix. The matrix lookup occurs once per
+            // transform, before the entropy loop supplies its nonzero magnitudes and signs.
             int matrixLevel = quantizer.frameHeader.LosslessArray[mode.SegmentId] ||
                 !quantizer.frameHeader.QuantizationParameters.IsUsingQMatrix ||
                 transformType >= Av1TransformType.Identity
@@ -123,9 +123,9 @@ internal sealed class Av1InverseQuantizer
         {
             int dequant = coefficientIndex == 0 ? this.dc : this.ac;
 
-            // Matrix weights have five fractional bits. Round the weighted quantizer first, then retain the
-            // normative 24-bit product before removing transform-size scaling. Sign and clipping follow the shift.
-            // The flat matrix has no table: its weight of 32 leaves the quantizer unchanged.
+            // Matrix weights have five fractional bits. The code rounds the weighted quantizer first. Then it keeps the normative
+            // 24-bit product before it removes the transform-size scale. Sign and clipping come after the shift.
+            // The flat matrix has no table, because its weight of 32 leaves the quantizer unchanged.
             if (!this.inverseMatrix.IsEmpty)
             {
                 const int bias = 1 << (Av1Constants.QuantizationMatrixElementBitCount - 1);

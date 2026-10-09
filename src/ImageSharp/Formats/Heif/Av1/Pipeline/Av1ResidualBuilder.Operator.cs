@@ -13,12 +13,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal static partial class Av1ResidualBuilder
 {
     /// <summary>
-    /// The maximum blend weight, AOM_BLEND_A64_MAX_ALPHA.
+    /// The maximum blend weight. A weight of 64 selects the first prediction alone.
     /// </summary>
     private const int BlendMaximumAlpha = 64;
 
     /// <summary>
-    /// The rounding shift of a six-bit blend, AOM_BLEND_A64_ROUND_BITS.
+    /// The rounding shift of a 6-bit blend.
     /// </summary>
     private const int BlendShift = 6;
 
@@ -32,11 +32,9 @@ internal static partial class Av1ResidualBuilder
     /// </summary>
     /// <typeparam name="TSample">The source and prediction sample type.</typeparam>
     /// <remarks>
-    /// Every measure this interface declares returns a lane-shaped total rather than a scalar one. A
-    /// scalar return would put a horizontal sum inside the traversal loop, and a horizontal sum is a
-    /// chain of shuffles and adds that costs far more than the lane work it reduces. The traversal
-    /// therefore carries the total in lanes and reduces it once, which is what a hand-written
-    /// specialization of the same measure does.
+    /// Every measure of this interface returns a total in lanes, not a scalar. A scalar return puts a horizontal sum inside the traversal loop.
+    /// A horizontal sum is a chain of shuffles and adds, and it costs much more than the lane work that it reduces.
+    /// The traversal therefore carries the total in lanes and reduces it once.
     /// </remarks>
     internal interface IResidualOperator<TSample>
         where TSample : unmanaged
@@ -49,7 +47,7 @@ internal static partial class Av1ResidualBuilder
         /// <param name="total">The running total in 32-bit lanes.</param>
         /// <returns>The updated running total.</returns>
         /// <remarks>
-        /// The spread of the total across the lanes is not defined. Only the sum of all lanes is.
+        /// The split of the total across the lanes is not defined. Only the sum of all lanes is defined.
         /// </remarks>
         public static abstract Vector128<uint> AccumulateAbsoluteDifferences(Vector128<TSample> source, Vector128<TSample> prediction, Vector128<uint> total);
 
@@ -87,7 +85,7 @@ internal static partial class Av1ResidualBuilder
         /// <param name="sum">The running signed total in 32-bit lanes.</param>
         /// <param name="squares">The running squared total in 32-bit lanes.</param>
         /// <remarks>
-        /// The spread of either total across the lanes is not defined. Only the sum of all lanes is.
+        /// The split of either total across the lanes is not defined. Only the sum of all lanes is defined.
         /// </remarks>
         public static abstract void AccumulateMoments(Vector128<TSample> source, Vector128<TSample> prediction, ref Vector128<int> sum, ref Vector128<int> squares);
 
@@ -118,10 +116,9 @@ internal static partial class Av1ResidualBuilder
         /// <param name="width">The overload-selection value.</param>
         /// <returns>The eight residuals in increasing column order.</returns>
         /// <remarks>
-        /// The residual of either sample depth is a signed sixteen-bit value, so one vector of
-        /// sixteen-bit lanes is eight samples whatever the depth. Loading at that width is what lets
-        /// a transform row of eight samples fill a vector: loading at the width of the sample type
-        /// would need sixteen eight-bit samples and would leave every narrow row to the scalar loop.
+        /// The residual of either sample depth is a signed 16-bit value. One vector of 16-bit lanes therefore holds eight samples for both depths.
+        /// At this width, a transform row of eight samples fills a vector. A load at the width of the sample type needs sixteen 8-bit samples.
+        /// Every narrow row then goes to the scalar loop.
         /// </remarks>
         public static abstract Vector128<short> LoadDifference(ref TSample source, ref TSample prediction, int offset, Vector128<short> width);
 
@@ -166,8 +163,7 @@ internal static partial class Av1ResidualBuilder
         public static abstract short Subtract(TSample source, TSample prediction);
 
         /// <summary>
-        /// Measures four eight-sample predictions, returning their costs in candidate order.
-        /// Byte inputs occupy only the lower eight lanes.
+        /// Measures four predictions of eight samples and returns their costs in candidate order. Byte inputs use only the lower eight lanes.
         /// </summary>
         /// <param name="source">The eight source samples.</param>
         /// <param name="prediction0">The eight samples for candidate 0.</param>
@@ -251,7 +247,7 @@ internal static partial class Av1ResidualBuilder
         public static abstract Vector512<TSample> LoadMask(ref byte mask, nuint offset, Vector512<TSample> lanes);
 
         /// <summary>
-        /// Loads exactly eight six-bit blend weights; byte weights occupy the lower half of the returned vector.
+        /// Loads exactly eight 6-bit blend weights. Byte weights use the lower half of the returned vector.
         /// </summary>
         /// <param name="mask">The mask row at the first weight.</param>
         /// <returns>The eight weights, with zero padding for byte samples.</returns>
@@ -295,7 +291,7 @@ internal static partial class Av1ResidualBuilder
     }
 
     /// <summary>
-    /// Widens 8-bit samples before subtraction so every residual is represented without precision loss.
+    /// Widens 8-bit samples before the subtraction, so that every residual keeps its full precision.
     /// </summary>
     internal readonly struct ByteOperator : IResidualOperator<byte>
     {
@@ -322,9 +318,10 @@ internal static partial class Av1ResidualBuilder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AccumulateMoments(Vector128<byte> source, Vector128<byte> prediction, ref Vector128<int> sum, ref Vector128<int> squares)
         {
-            // A byte vector holds twice as many samples as a 16-bit lane can take, so both halves are
-            // widened and folded apart. Multiplying a difference by one, and by itself, gives the
-            // signed total and the squared total from the same pairwise instruction.
+            // A byte vector holds twice as many samples as a vector of 16-bit lanes. The code therefore widens the lower and the upper half
+            // and folds each half on its own. The multiply-add puts the pair from 16-bit lanes 2n and 2n + 1 into the 32-bit lane n.
+            // A multiply by one gives the signed pair sums, and a multiply by itself gives the squared pair sums.
+            // A difference is at most 255 in magnitude, so a pair of squares is at most 130050 and fits a 32-bit lane.
             Vector128<short> lower = Vector128.WidenLower(source).AsInt16() - Vector128.WidenLower(prediction).AsInt16();
             Vector128<short> upper = Vector128.WidenUpper(source).AsInt16() - Vector128.WidenUpper(prediction).AsInt16();
             Vector128<short> ones = Vector128.Create((short)1);
@@ -358,15 +355,13 @@ internal static partial class Av1ResidualBuilder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<short> LoadDifference(ref byte source, ref byte prediction, int offset, Vector128<short> width)
         {
-            // Exactly eight bytes are read from each row, so a row of eight samples is covered
-            // without touching the row that follows it. The half-width load zero-extends into the
-            // register, which the move already does, so the defined form costs nothing over the
-            // undefined one.
+            // The load reads exactly eight bytes from each row. A row of eight samples is therefore covered, and no read touches the next row.
+            // The 64-bit load sets the upper half of the register to zero. The move instruction already does this, so the defined upper half
+            // costs nothing.
             Vector128<ushort> s = Vector128.WidenLower(Vector64.LoadUnsafe(ref source, (nuint)offset).ToVector128());
             Vector128<ushort> p = Vector128.WidenLower(Vector64.LoadUnsafe(ref prediction, (nuint)offset).ToVector128());
 
-            // Both operands are below 256, so the wrapped unsigned subtraction reinterprets as the
-            // signed difference the residual is defined to be.
+            // Both operands are less than 256. The wrapped unsigned subtraction, read as signed, is therefore the correct signed residual.
             return (s - p).AsInt16();
         }
 
@@ -394,8 +389,8 @@ internal static partial class Av1ResidualBuilder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<short> LoadDifferenceRowPair(ref byte source, nuint sourceStride, ref byte prediction, nuint predictionStride)
         {
-            // Read the four bytes of each row as one 32-bit integer. The two integers go into the low eight bytes of the
-            // vector. Each read stays inside its row, so no read goes past the block.
+            // The code reads the four bytes of each row as one 32-bit integer. The two integers go into the low eight bytes of the vector.
+            // Each read stays inside its row, so no read goes past the block.
             Vector128<byte> s = Vector128.Create(
                 Unsafe.ReadUnaligned<uint>(ref source),
                 Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref source, sourceStride)),
@@ -408,7 +403,7 @@ internal static partial class Av1ResidualBuilder
                 0,
                 0).AsByte();
 
-            // Widen the eight bytes to eight 16-bit values, then subtract. Both values are less than 256, so the
+            // The widening turns the eight bytes into eight 16-bit values before the subtraction. Both values are less than 256, so the
             // unsigned 16-bit result, read as signed, is the correct difference from -255 to 255.
             return (Vector128.WidenLower(s) - Vector128.WidenLower(p)).AsInt16();
         }
@@ -422,8 +417,8 @@ internal static partial class Av1ResidualBuilder
             Vector128<byte> prediction2,
             Vector128<byte> prediction3)
         {
-            // Reuse the source conversion across all four candidates. Each reduction contributes one independent
-            // 32-bit lane, allowing the traversal to accumulate all eight rows without extracting candidate costs.
+            // All four candidates use the same widened source. Each reduction gives one independent 32-bit lane in candidate order.
+            // The traversal can therefore add the results of all eight rows and extract the candidate costs once.
             Vector128<short> sourceSamples = Vector128.WidenLower(source).AsInt16();
             return Vector128.Create(
                 (int)Vector128.Sum(Vector128.Abs(sourceSamples - Vector128.WidenLower(prediction0).AsInt16())),
@@ -479,8 +474,8 @@ internal static partial class Av1ResidualBuilder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<byte> Blend(Vector128<byte> first, Vector128<byte> second, Vector128<byte> weights)
         {
-            // A weighted byte is at most 64 * 255, so the whole blend, its complement and the rounding
-            // bias fit a sixteen-bit lane, and the result fits a byte again.
+            // The weighted sum of both bytes is at most 64 * 255. With the rounding bias, it fits an unsigned 16-bit lane.
+            // The shift by 6 gives a value of at most 255, so the narrow back to bytes loses nothing. Lanes keep their column order.
             (Vector128<ushort> weightLower, Vector128<ushort> weightUpper) = Vector128.Widen(weights);
             (Vector128<ushort> firstLower, Vector128<ushort> firstUpper) = Vector128.Widen(first);
             (Vector128<ushort> secondLower, Vector128<ushort> secondUpper) = Vector128.Widen(second);
@@ -526,7 +521,7 @@ internal static partial class Av1ResidualBuilder
     }
 
     /// <summary>
-    /// Subtracts high-bit-depth samples directly because the AV1 10-bit and 12-bit ranges fit signed-short lanes.
+    /// Subtracts high bit depth samples without widening, because 10-bit and 12-bit samples and their differences fit signed 16-bit lanes.
     /// </summary>
     internal readonly struct UInt16Operator : IResidualOperator<ushort>
     {
@@ -534,9 +529,9 @@ internal static partial class Av1ResidualBuilder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<uint> AccumulateAbsoluteDifferences(Vector128<ushort> source, Vector128<ushort> prediction, Vector128<uint> total)
         {
-            // Unsigned lanes make the absolute difference the larger value minus the smaller one, which
-            // needs no sign handling. A twelve-bit difference reaches 4095, so the pairwise multiply-add
-            // by one folds eight lanes into four without leaving the signed range at any step.
+            // In unsigned lanes, the absolute difference is the larger value minus the smaller one. This needs no sign handling.
+            // A 12-bit difference is at most 4095, so it is also a valid signed 16-bit value. The multiply-add by one then folds
+            // 16-bit lanes 2n and 2n + 1 into the 32-bit lane n without overflow.
             Vector128<ushort> difference = Vector128.Max(source, prediction) - Vector128.Min(source, prediction);
             return total + Vector128_.MultiplyAddAdjacent(difference.AsInt16(), Vector128.Create((short)1)).AsUInt32();
         }
@@ -565,9 +560,9 @@ internal static partial class Av1ResidualBuilder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AccumulateMoments(Vector128<ushort> source, Vector128<ushort> prediction, ref Vector128<int> sum, ref Vector128<int> squares)
         {
-            // A twelve-bit residual fits a signed 16-bit lane, so the difference needs no widening.
-            // Multiplying it by one, and by itself, gives the signed total and the squared total from
-            // the same pairwise instruction.
+            // A 12-bit residual fits a signed 16-bit lane, so the difference needs no widening. The multiply-add puts the pair from
+            // 16-bit lanes 2n and 2n + 1 into the 32-bit lane n. A multiply by one gives the signed pair sums, and a multiply by itself
+            // gives the squared pair sums.
             Vector128<short> difference = source.AsInt16() - prediction.AsInt16();
             sum += Vector128_.MultiplyAddAdjacent(difference, Vector128.Create((short)1));
             squares += Vector128_.MultiplyAddAdjacent(difference, difference);
@@ -610,8 +605,8 @@ internal static partial class Av1ResidualBuilder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<short> LoadDifferenceRowPair(ref ushort source, nuint sourceStride, ref ushort prediction, nuint predictionStride)
         {
-            // Read the four 16-bit samples of each row as one 64-bit integer. The first row fills the low half of the
-            // vector and the second row fills the high half. Each read stays inside its row, so no read goes past the block.
+            // The code reads the four 16-bit samples of each row as one 64-bit integer. The first row fills the low half of the vector
+            // and the second row fills the high half. Each read stays inside its row, so no read goes past the block.
             Vector128<ushort> s = Vector128.Create(
                 Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref source)),
                 Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref source, sourceStride)))).AsUInt16();
@@ -633,8 +628,8 @@ internal static partial class Av1ResidualBuilder
             Vector128<ushort> prediction2,
             Vector128<ushort> prediction3)
         {
-            // Reuse the source conversion across all four candidates. Each reduction contributes one independent
-            // 32-bit lane, allowing the traversal to accumulate all eight rows without extracting candidate costs.
+            // All four candidates use the same source vector. Each reduction gives one independent 32-bit lane in candidate order.
+            // The traversal can therefore add the results of all eight rows and extract the candidate costs once.
             Vector128<short> sourceSamples = source.AsInt16();
             return Vector128.Create(
                 (int)Vector128.Sum(Vector128.Abs(sourceSamples - prediction0.AsInt16())),
@@ -693,8 +688,8 @@ internal static partial class Av1ResidualBuilder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<ushort> Blend(Vector128<ushort> first, Vector128<ushort> second, Vector128<ushort> weights)
         {
-            // A weighted twelve-bit sample is at most 64 * 4095, which needs a thirty-two-bit lane.
-            // The rounded blend is a sample again, so it narrows back without loss.
+            // A weighted 12-bit sample is at most 64 * 4095, so it needs a 32-bit lane. The rounded blend is a sample again,
+            // so the narrow back to 16-bit lanes loses nothing. Lanes keep their column order.
             (Vector128<uint> weightLower, Vector128<uint> weightUpper) = Vector128.Widen(weights);
             (Vector128<uint> firstLower, Vector128<uint> firstUpper) = Vector128.Widen(first);
             (Vector128<uint> secondLower, Vector128<uint> secondUpper) = Vector128.Widen(second);

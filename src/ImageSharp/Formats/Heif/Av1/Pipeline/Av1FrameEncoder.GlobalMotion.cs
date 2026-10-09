@@ -17,8 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal static partial class Av1FrameEncoder
 {
     /// <summary>
-    /// Searches a global motion model for the references of an inter frame and stores the chosen models in the frame
-    /// header. Reference: av1_compute_global_motion_facade().
+    /// Searches a global motion model for the references of an inter frame and stores the chosen models in the frame header.
     /// </summary>
     /// <typeparam name="TSample">The component sample type.</typeparam>
     /// <typeparam name="TOperator">The sample-specific measures the search needs.</typeparam>
@@ -38,8 +37,7 @@ internal static partial class Av1FrameEncoder
         where TSample : unmanaged
         where TOperator : struct, IGlobalMotionSearchOperator<TSample>
     {
-        // Every model starts as the identity. Reference: the default_warp_params reset of
-        // update_valid_ref_frames_for_gm().
+        // Every model starts as the identity. A frame that does not search, or a reference that the search skips, keeps the identity.
         Span<Av1GlobalMotionParameters> models = frameHeader.GetGlobalMotionParameters();
         models.Fill(Av1GlobalMotionParameters.Identity);
         Av1GlobalMotionSearchType searchType = search.SpeedSettings.GetGlobalMotionSearchType(search.Boosted);
@@ -48,7 +46,7 @@ internal static partial class Av1FrameEncoder
             return;
         }
 
-        // Past references come first, then future ones, each nearest first. Reference: setup_global_motion_info_params().
+        // The search visits past references first, then future references. Each list starts with the nearest reference.
         Span<int> pastFrames = stackalloc int[Av1Constants.ReferencesPerFrame];
         Span<int> pastDistances = stackalloc int[Av1Constants.ReferencesPerFrame];
         Span<int> futureFrames = stackalloc int[Av1Constants.ReferencesPerFrame];
@@ -73,7 +71,7 @@ internal static partial class Av1FrameEncoder
             }
         }
 
-        // Reference: global_motion_estimation() and compute_global_motion_for_references().
+        // When pruning is on, the search of one direction stops at the first reference whose model is a translation or the identity.
         bool prune = search.SpeedSettings.PrunesGlobalMotionReferences(search.Boosted);
         for (int direction = 0; direction < 2; direction++)
         {
@@ -93,12 +91,22 @@ internal static partial class Av1FrameEncoder
     }
 
     /// <summary>
-    /// Lists the references that the global motion search visits, with their distance from the frame. With one pass
-    /// and no statistics the encoder never recodes a frame, so a reference that the frame does not use is still
-    /// searched. An encoder with first-pass statistics may recode, and skips such a reference. Reference:
-    /// update_valid_ref_frames_for_gm(), and the DISALLOW_RECODE of has_no_stats_stage() in
-    /// av1_set_speed_features_framesize_independent().
+    /// Lists the references that the global motion search visits, with their distance from the frame. With one pass and no statistics, the
+    /// encoder never recodes a frame. In that case, the search also visits a reference that the frame does not use. An encoder with first-pass
+    /// statistics can recode a frame, and it skips such a reference.
     /// </summary>
+    /// <typeparam name="TSample">The component sample type.</typeparam>
+    /// <param name="source">The frame being coded.</param>
+    /// <param name="references">The reference frame of each reference type, indexed by reference type.</param>
+    /// <param name="frameHeader">The header of the frame being coded.</param>
+    /// <param name="searchType">The search type, which selects the reference types to visit.</param>
+    /// <param name="search">The per-frame inputs of the search.</param>
+    /// <param name="pastFrames">Receives the reference types that precede the frame in display order.</param>
+    /// <param name="pastDistances">Receives the display order distance of each past reference.</param>
+    /// <param name="pastCount">The number of past references, incremented for each added reference.</param>
+    /// <param name="futureFrames">Receives the reference types that follow the frame in display order.</param>
+    /// <param name="futureDistances">Receives the display order distance of each future reference.</param>
+    /// <param name="futureCount">The number of future references, incremented for each added reference.</param>
     private static void UpdateValidReferenceFrames<TSample>(
         Av1EncoderFrame<TSample> source,
         ReadOnlySpan<Av1EncoderFrame<TSample>> references,
@@ -116,17 +124,16 @@ internal static partial class Av1FrameEncoder
         ReadOnlySpan<uint> slots = frameHeader.GetReferenceFrameIndices();
         int selectiveLevel = search.SpeedSettings.SelectiveReferenceFrameLevel;
 
-        // The pruning of references applies to frames outside the temporal dependency model. Reference:
-        // is_frame_eligible_for_ref_pruning() with is_frame_tpl_eligible().
+        // The pruning of references applies only to frames outside the temporal dependency model. Thus it does not apply to key, golden and
+        // alternate reference frames.
         bool pruningEnabled = selectiveLevel > 0 &&
             search.UpdateType is not (Av1FrameUpdateType.Alternate or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Key);
 
-        // Reference: disable_gm_search_based_on_stats(), on for every good-quality speed.
+        // The statistics of earlier frames in the group can turn the search off. Every good-quality speed uses this check.
         bool searchDisabledByStatistics = search.DisabledByStatistics;
 
-        // Only the size of the reference must match. All frame buffers of the encoder have the same border.
-        // So a reference of that size also has the stride of the source, and the estimator uses this.
-        // Reference: the y_crop_width and y_crop_height tests of update_valid_ref_frames_for_gm().
+        // Only the size of the reference must match. All frame buffers of the encoder have the same border. Thus a reference of that size also has
+        // the stride of the source, and the estimator uses this stride for both planes.
         for (int frame = (int)Av1ReferenceFrameType.Alternate; frame >= (int)Av1ReferenceFrameType.Last; frame--)
         {
             Av1EncoderFrame<TSample> reference = references[frame];
@@ -158,7 +165,7 @@ internal static partial class Av1FrameEncoder
     }
 
     /// <summary>
-    /// Returns whether the search type visits a reference. Reference: do_gm_search_logic().
+    /// Returns whether the search type visits a reference.
     /// </summary>
     /// <param name="searchType">The search type.</param>
     /// <param name="frame">The reference type.</param>
@@ -173,10 +180,9 @@ internal static partial class Av1FrameEncoder
     };
 
     /// <summary>
-    /// Returns whether the selective reference search drops a single reference: from level two, LAST2 and LAST3 when
-    /// they precede GOLDEN, and from level three, ALTREF2 and BWDREF when they precede LAST. The frame-level call has
-    /// no block, so no predicted-vector result keeps a reference. Reference: prune_ref_by_selective_ref_frame() with a
-    /// null macroblock, and prune_ref().
+    /// Returns whether the selective reference search drops a single reference. From level 2, it drops LAST2 and LAST3 when they precede GOLDEN
+    /// in display order. From level 3, it also drops ALTREF2 and BWDREF when they precede LAST. The frame-level search has no block, so no
+    /// predicted motion vector keeps a reference.
     /// </summary>
     /// <param name="frame">The reference type.</param>
     /// <param name="slots">The slot of each reference type.</param>
@@ -200,11 +206,9 @@ internal static partial class Av1FrameEncoder
 
 #pragma warning disable CA1517 // False positive: https://github.com/dotnet/sdk/issues/53388
     /// <summary>
-    /// Sorts references by distance, nearest first. The reference encoder sorts with the C library qsort, and the x64
-    /// reference build is linked with the Microsoft C runtime, whose qsort sorts a list of up to eight entries by
-    /// repeatedly moving the first largest entry to the end. Equal distances therefore end in that order, not in the
-    /// order of the list. Every list here has at most seven entries. Reference: the qsort() calls with
-    /// compare_distance() in setup_global_motion_info_params().
+    /// Sorts references by distance, nearest first. The sort repeatedly moves the first largest entry to the end of the unsorted part. Thus equal
+    /// distances end in the order that this method gives, not in the order of the list. This matches the output of the x64 AVIF reference
+    /// encoder, whose C runtime sorts lists of up to eight entries with this method. Every list here has at most seven entries.
     /// </summary>
     /// <param name="frames">The reference types, sorted in place.</param>
     /// <param name="distances">The distance of each reference, sorted in place.</param>
@@ -228,12 +232,20 @@ internal static partial class Av1FrameEncoder
 #pragma warning restore CA1517
 
     /// <summary>
-    /// Fits the models of each searched family to one reference and keeps the one whose warped error is the smallest
-    /// share of the unwarped error, when that share also justifies the cost of coding the model against the model of
-    /// the primary reference frame. Only rotation-zoom models are searched. A model that reduces to a translation is
-    /// never taken, because the vector such a model gives a block has a published defect.
-    /// Reference: compute_global_motion_for_ref_frame().
+    /// Fits the models of each searched family to one reference. It keeps the model whose warped error is the smallest share of the unwarped
+    /// error, if that share also justifies the cost to code the model against the model of the primary reference frame. The search fits only
+    /// rotation-zoom models. It never takes a model that reduces to a translation, because the vector that such a model gives a block has a
+    /// published defect.
     /// </summary>
+    /// <typeparam name="TSample">The component sample type.</typeparam>
+    /// <typeparam name="TOperator">The sample-specific measures the search needs.</typeparam>
+    /// <param name="allocator">The allocator of every buffer the search uses.</param>
+    /// <param name="source">The frame being coded.</param>
+    /// <param name="reference">The reference frame to fit the models to.</param>
+    /// <param name="frameHeader">The header that receives the chosen model. Its previous models must be set.</param>
+    /// <param name="frame">The reference type of <paramref name="reference"/>.</param>
+    /// <param name="bitDepth">The coded sample depth.</param>
+    /// <param name="speedSettings">The speed settings of the frame.</param>
     private static void ComputeGlobalMotionForReference<TSample, TOperator>(
         MemoryAllocator allocator,
         Av1EncoderFrame<TSample> source,
@@ -245,8 +257,7 @@ internal static partial class Av1FrameEncoder
         where TSample : unmanaged
         where TOperator : struct, IGlobalMotionSearchOperator<TSample>
     {
-        // The search measures the visible frame, not its coded extent. Reference: the y_crop_width and
-        // y_crop_height of cpi->source that compute_global_motion_for_ref_frame() passes on.
+        // The search measures the visible frame, not its coded extent.
         Av1PlaneRegion<TSample> sourceLuma = source.CodedView.GetPlane(Av1Plane.Y);
         Av1PlaneRegion<TSample> referenceLuma = reference.CodedView.GetPlane(Av1Plane.Y);
         int width = source.Width;
@@ -258,8 +269,7 @@ internal static partial class Av1FrameEncoder
         int sourceOrigin = (sourceLuma.Bounds.Y * stride) + sourceLuma.Bounds.X;
         int referenceOrigin = (referenceLuma.Bounds.Y * stride) + referenceLuma.Bounds.X;
 
-        // The map holds one mark per error block, and a frame that does not divide evenly still has a partial block
-        // at its right and bottom edges.
+        // The map holds one mark per error block. A frame that does not divide evenly also has a partial block at its right and bottom edges.
         int mapWidth = (width + Av1GlobalMotionSearch.ErrorBlock - 1) >> Av1GlobalMotionSearch.ErrorBlockLog;
         int mapHeight = (height + Av1GlobalMotionSearch.ErrorBlock - 1) >> Av1GlobalMotionSearch.ErrorBlockLog;
         using IMemoryOwner<byte> mapOwner = allocator.Allocate<byte>(mapWidth * mapHeight);
@@ -291,8 +301,8 @@ internal static partial class Av1FrameEncoder
                 continue;
             }
 
-            // The error is measured only where the model was fitted, so the parts of the frame that move on their own
-            // do not decide whether the model is worth coding.
+            // The search measures the error only in the blocks where the model fits. Thus the parts of the frame that move on their own do not
+            // decide whether the model is worth its cost.
             Av1GlobalMotionSearch.ComputeFeatureSegmentationMap(map, mapWidth, mapHeight, fitted[motion].Inliers);
             long referenceError = Av1GlobalMotionSearch.GetSegmentedFrameError<TSample, TOperator>(
                 referencePlane[referenceOrigin..], stride, sourcePlane[sourceOrigin..], stride, width, height, map, mapWidth);
@@ -319,7 +329,7 @@ internal static partial class Av1FrameEncoder
                 mapWidth,
                 threshold);
 
-            // Refinement can move a model down to a simpler family, so the family is read again.
+            // Refinement can move a model down to a simpler family, so the loop reads the family again.
             if (candidate.Type <= Av1GlobalMotionType.Translation)
             {
                 continue;
@@ -347,6 +357,20 @@ internal static partial class Av1FrameEncoder
     /// </summary>
     private readonly ref struct GlobalMotionSearchInputs
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GlobalMotionSearchInputs"/> struct.
+        /// </summary>
+        /// <param name="enabled">Whether the encoder configuration searches global motion.</param>
+        /// <param name="speedSettings">The speed settings of the frame.</param>
+        /// <param name="updateType">The update type of the frame.</param>
+        /// <param name="boosted">Whether the frame is a key, golden or alternate reference frame.</param>
+        /// <param name="slotDisplayOrders">The display order of the frame in each reference slot.</param>
+        /// <param name="displayOrder">The display order of the frame being coded.</param>
+        /// <param name="slotPyramidLevels">The pyramid level of the frame in each reference slot.</param>
+        /// <param name="pyramidLevel">The pyramid level of the frame being coded.</param>
+        /// <param name="referenceFrameFlags">The references the frame uses, one bit per reference type.</param>
+        /// <param name="recodeAllowed">Whether the encoder can recode a frame.</param>
+        /// <param name="disabledByStatistics">Whether the statistics of earlier frames in the group turn the search off.</param>
         public GlobalMotionSearchInputs(
             bool enabled,
             Av1EncoderSpeedSettings speedSettings,
@@ -375,7 +399,6 @@ internal static partial class Av1FrameEncoder
 
         /// <summary>
         /// Gets a value indicating whether the encoder configuration searches global motion. Real-time usage does not.
-        /// Reference: tool_cfg.enable_global_motion.
         /// </summary>
         public bool Enabled { get; }
 
@@ -390,8 +413,7 @@ internal static partial class Av1FrameEncoder
         public Av1FrameUpdateType UpdateType { get; }
 
         /// <summary>
-        /// Gets a value indicating whether the frame is a key, golden or alternate reference frame. Reference:
-        /// frame_is_boosted().
+        /// Gets a value indicating whether the frame is a key, golden or alternate reference frame.
         /// </summary>
         public bool Boosted { get; }
 
@@ -416,19 +438,18 @@ internal static partial class Av1FrameEncoder
         public int PyramidLevel { get; }
 
         /// <summary>
-        /// Gets the references the frame uses, one bit per reference type. Reference: cpi->ref_frame_flags.
+        /// Gets the references the frame uses, one bit per reference type.
         /// </summary>
         public byte ReferenceFrameFlags { get; }
 
         /// <summary>
-        /// Gets a value indicating whether the encoder may recode a frame, which it may whenever it has first-pass
-        /// statistics. Reference: hl_sf.recode_loop != DISALLOW_RECODE.
+        /// Gets a value indicating whether the encoder can recode a frame. It can whenever it has first-pass statistics.
         /// </summary>
         public bool RecodeAllowed { get; }
 
         /// <summary>
-        /// Gets a value indicating whether a group with an alternate reference found no global motion in its
-        /// alternate, intermediate alternate and leaf frames so far. Reference: disable_gm_search_based_on_stats().
+        /// Gets a value indicating whether a group with an alternate reference found no global motion so far in its alternate, intermediate
+        /// alternate and leaf frames.
         /// </summary>
         public bool DisabledByStatistics { get; }
     }

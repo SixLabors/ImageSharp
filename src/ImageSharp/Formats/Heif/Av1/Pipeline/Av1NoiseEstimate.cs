@@ -7,103 +7,101 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Estimates the noise of a real-time source from the change between successive sources in areas that stayed still for
-/// a few frames. Cyclic refresh, the estimated search and variance partitioning read the level. Reference:
-/// NOISE_ESTIMATE.
+/// Estimates the noise of a real-time source from the change between successive sources in areas that stayed still for a few frames.
+/// Cyclic refresh, the estimated search and variance partitioning read the level.
 /// </summary>
 internal sealed class Av1NoiseEstimate
 {
     /// <summary>
-    /// The lowest noise level. Reference: kLowLow.
+    /// The lowest noise level.
     /// </summary>
     public const int LowestLevel = 0;
 
     /// <summary>
-    /// The low noise level. Reference: kLow.
+    /// The low noise level.
     /// </summary>
     public const int LowLevel = 1;
 
     /// <summary>
-    /// The medium noise level. Reference: kMedium.
+    /// The medium noise level.
     /// </summary>
     public const int MediumLevel = 2;
 
     /// <summary>
-    /// The high noise level. Reference: kHigh.
+    /// The high noise level.
     /// </summary>
     public const int HighLevel = 3;
 
     /// <summary>
-    /// The histogram bins of the block variances. Reference: MAX_VAR_HIST_BINS.
+    /// The number of histogram bins for the block variances.
     /// </summary>
     private const int VarianceBinCount = 20;
 
     /// <summary>
-    /// The frames between two estimates. Reference: the frame_period of av1_update_noise_estimate().
+    /// The number of frames between two estimates.
     /// </summary>
     private const int FramePeriod = 8;
 
     /// <summary>
-    /// The frames an 8x8 block must keep a small motion vector to count as still. Reference: thresh_consec_zeromv.
+    /// The number of frames that an 8x8 block must keep a small motion vector to count as still.
     /// </summary>
     private const int StillFrameThreshold = 2;
 
     /// <summary>
-    /// The frames each 8x8 block kept a small motion vector to the last frame, at most 255. Reference:
-    /// cpi->consec_zero_mv.
+    /// The number of frames that each 8x8 block kept a small motion vector to the last frame, at most 255.
     /// </summary>
     private readonly byte[] consecutiveZeroMotion;
 
     /// <summary>
-    /// The frame width in 4x4 units. Reference: mi_params.mi_cols.
+    /// The frame width in 4x4 units.
     /// </summary>
     private readonly int modeInfoColumns;
 
     /// <summary>
-    /// The frame height in 4x4 units. Reference: mi_params.mi_rows.
+    /// The frame height in 4x4 units.
     /// </summary>
     private readonly int modeInfoRows;
 
     /// <summary>
-    /// The frame width in samples. Reference: cm->width.
+    /// The frame width in samples.
     /// </summary>
     private readonly int width;
 
     /// <summary>
-    /// The frame height in samples. Reference: cm->height.
+    /// The frame height in samples.
     /// </summary>
     private readonly int height;
 
     /// <summary>
-    /// The running estimate above which the source counts as noisy: above half of it is low noise, above it medium
-    /// and above twice it high. Reference: ne->thresh.
+    /// The noise threshold of the running estimate. An estimate above half of it is low noise.
+    /// An estimate above the threshold is medium noise, and an estimate above twice the threshold is high noise.
     /// </summary>
     private readonly int threshold;
 
     /// <summary>
-    /// The running estimate above which a sudden rise completes the estimate at once. Reference: ne->adapt_thresh.
+    /// The running estimate above which a sudden rise completes the estimate at once.
     /// </summary>
     private readonly int adaptThreshold;
 
     /// <summary>
-    /// The running estimate: a weighted average of 40 times the largest histogram bin. Reference: ne->value.
+    /// The running estimate. This is a weighted average of 40 times the largest histogram bin.
     /// </summary>
     private int value;
 
     /// <summary>
-    /// The estimates since the level last changed. Reference: ne->count.
+    /// The number of estimates since the level last changed.
     /// </summary>
     private int count;
 
     /// <summary>
-    /// The estimates the level waits for before it changes: 15 at first, then 30. Reference: ne->num_frames_estimate.
+    /// The number of estimates that the level waits for before it changes.
+    /// The value is 15 at first, 30 after each level change, and 10 after high motion forces the lowest level.
     /// </summary>
     private int framesToEstimate = 15;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1NoiseEstimate"/> class for a sequence that allows the
-    /// estimate: one-pass constant bit rate cyclic refresh of 8-bit frames without layers. Reference:
-    /// av1_noise_estimate_init() with enable_noise_estimation().
+    /// Initializes a new instance of the <see cref="Av1NoiseEstimate"/> class for a sequence that allows the estimate.
+    /// Such a sequence uses one-pass constant bit rate with cyclic refresh, and has 8-bit frames without layers.
     /// </summary>
     /// <param name="width">The frame width.</param>
     /// <param name="height">The frame height.</param>
@@ -117,9 +115,9 @@ internal sealed class Av1NoiseEstimate
         this.modeInfoRows = modeInfoRows;
         this.consecutiveZeroMotion = new byte[(modeInfoRows * modeInfoColumns) >> 2];
 
-        // Larger frames start at a higher level and need a larger estimate to count as noisy, because their 16x16
-        // blocks change more between frames for the same noise. A rise half again above the threshold completes the
-        // estimate early.
+        // Larger frames start at a higher level and need a larger estimate to count as noisy.
+        // Their 16x16 blocks change more between frames for the same noise.
+        // A rise to 1.5 times the threshold completes the estimate early.
         long area = (long)width * height;
         this.Level = area < 1280 * 720 ? LowestLevel : LowLevel;
         this.threshold = area >= 1920 * 1080 ? 200 : area >= 1280 * 720 ? 140 : area >= 640 * 360 ? 115 : 90;
@@ -127,17 +125,17 @@ internal sealed class Av1NoiseEstimate
     }
 
     /// <summary>
-    /// Gets a value indicating whether the estimate is on, which it is from the first update. Reference: ne->enabled.
+    /// Gets a value indicating whether the estimate is on. The estimate is on from the first update.
     /// </summary>
     public bool Enabled { get; private set; }
 
     /// <summary>
-    /// Gets the noise level of the last completed estimate. Reference: ne->level.
+    /// Gets the noise level of the last completed estimate.
     /// </summary>
     public int Level { get; private set; }
 
     /// <summary>
-    /// Returns the noise level of the running estimate. Reference: av1_noise_estimate_extract_level().
+    /// Returns the noise level of the running estimate.
     /// </summary>
     /// <returns>The noise level.</returns>
     public int ExtractLevel()
@@ -147,19 +145,17 @@ internal sealed class Av1NoiseEstimate
             : LowestLevel;
 
     /// <summary>
-    /// Clears the still block counts at an intra frame. Reference: the consec_zero_mv reset of
-    /// encode_without_recode().
+    /// Clears the still block counts at an intra frame.
     /// </summary>
     public void ResetStillBlocks() => this.consecutiveZeroMotion.AsSpan().Clear();
 
     /// <summary>
-    /// Counts the frames each 8x8 unit of a coded block kept a small motion vector to the last frame. Reference:
-    /// update_zeromv_cnt().
+    /// Counts the frames that each 8x8 unit of a coded block kept a small motion vector to the last frame.
     /// </summary>
     /// <param name="modeInfoPosition">The block position in 4x4 units.</param>
     /// <param name="blockSize">The block size.</param>
     /// <param name="lastReference">Whether the block predicts from the last frame.</param>
-    /// <param name="vector">The block's first motion vector.</param>
+    /// <param name="vector">The first motion vector of the block.</param>
     public void CountStillBlock(Point modeInfoPosition, Av1BlockSize blockSize, bool lastReference, Av1MotionVector vector)
     {
         if (!lastReference)
@@ -171,6 +167,8 @@ internal sealed class Av1NoiseEstimate
         int columns = Math.Min((this.modeInfoColumns - modeInfoPosition.X) >> 1, blockSize.Get4x4WideCount() >> 1);
         int rows = Math.Min((this.modeInfoRows - modeInfoPosition.Y) >> 1, blockSize.Get4x4HighCount() >> 1);
         int blockIndex = ((modeInfoPosition.Y >> 1) * stride) + (modeInfoPosition.X >> 1);
+
+        // A vector shorter than 10 eighth-samples in each direction counts as still. Any other vector restarts the count.
         bool still = Math.Abs((int)vector.Row) < 10 && Math.Abs((int)vector.Column) < 10;
         for (int y = 0; y < rows; y++)
         {
@@ -183,18 +181,17 @@ internal sealed class Av1NoiseEstimate
     }
 
     /// <summary>
-    /// Updates the estimate every eighth frame from a histogram of the 16x16 source changes in still areas, and
-    /// changes the level after enough estimates. The frame size of a sequence never changes, so the resize check is
-    /// left out. Reference: av1_update_noise_estimate().
+    /// Updates the estimate every eighth frame from a histogram of the 16x16 source changes in still areas.
+    /// The level changes after enough estimates. The frame size of a sequence never changes, so no resize check occurs.
     /// </summary>
     /// <param name="frameNumber">
-    /// The index of the frame from its key frame, which a key frame restarts. Reference: current_frame.frame_number.
+    /// The index of the frame from its key frame. A key frame restarts the index.
     /// </param>
-    /// <param name="encodedFrameCount">The frames coded before this one. Reference: svc.num_encoded_top_layer.</param>
-    /// <param name="framesSinceKey">The frames since the last key frame. Reference: rc->frames_since_key.</param>
-    /// <param name="averageFrameLowMotion">The running zero motion percentage. Reference: rc->avg_frame_low_motion.</param>
-    /// <param name="sceneChange">Whether the frame is a scene change. Reference: rc->high_source_sad.</param>
-    /// <param name="source">The luma plane of the frame's source.</param>
+    /// <param name="encodedFrameCount">The number of frames coded before this one.</param>
+    /// <param name="framesSinceKey">The number of frames since the last key frame.</param>
+    /// <param name="averageFrameLowMotion">The running zero motion percentage.</param>
+    /// <param name="sceneChange">Whether the frame is a scene change.</param>
+    /// <param name="source">The luma plane of the source of the frame.</param>
     /// <param name="lastSource">The luma plane of the previous source.</param>
     /// <param name="hasLastSource">Whether a previous source exists, which the first frame lacks.</param>
     public void Update(
@@ -242,12 +239,12 @@ internal sealed class Av1NoiseEstimate
             }
         }
 
-        // The frame has (rows x columns) / 4 units of 8x8, so the bound is three eighths of them: the frame is still
-        // when at least that share of its 8x8 blocks are.
+        // The frame has (rows x columns) / 4 units of 8x8, so the bound is three eighths of them.
+        // The frame is still when at least that share of its 8x8 blocks are still.
         bool frameLowMotion = stillBlocks >= ((3 * (this.modeInfoRows * this.modeInfoColumns)) >> 2) >> 3;
 
-        // One 16x16 block in four, away from the right and bottom edges, adds its change against the previous source
-        // when its four 8x8 blocks stayed still.
+        // The loop visits the top-left 16x16 block of each 32x32 area, away from the right and bottom edges.
+        // The block adds its change against the previous source when its four 8x8 blocks stayed still.
         ReadOnlySpan<byte> sourceSamples = source.Samples;
         ReadOnlySpan<byte> lastSamples = lastSource.Samples;
         for (int row = 0; row < this.modeInfoRows - 3; row += 8)
@@ -274,6 +271,7 @@ internal sealed class Av1NoiseEstimate
                         out int sum,
                         out long squaredError);
 
+                    // The variance of the 256 sample differences is the squared error minus the squared sum divided by 256.
                     uint variance = (uint)(squaredError - (((long)sum * sum) >> 8));
                     uint bin = variance / binSize;
                     if (bin < VarianceBinCount)
@@ -282,7 +280,7 @@ internal sealed class Av1NoiseEstimate
                     }
                     else if (bin < 3 * (VarianceBinCount >> 1))
                     {
-                        // The tail.
+                        // A variance up to 1.5 times the histogram range counts in the last bin. A larger variance is not counted.
                         histogram[VarianceBinCount - 1]++;
                     }
                 }
@@ -319,7 +317,7 @@ internal sealed class Av1NoiseEstimate
             }
         }
 
-        // The scale of 40 matches the thresholds.
+        // The new estimate gets a weight of one quarter. The scale of 40 matches the thresholds.
         this.value = (int)(((3 * this.value) + (largestBin * 40)) >> 2);
 
         // A sudden rise completes the estimate at once.

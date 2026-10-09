@@ -8,8 +8,7 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Measures the magnitudes of transform coefficients with the arithmetic of an
-/// <see cref="ICoefficientMeasureOperator"/>.
+/// Measures the magnitudes of transform coefficients with the arithmetic of an <see cref="ICoefficientMeasureOperator"/>.
 /// </summary>
 /// <remarks>
 /// Each traversal walks the widest available register first and finishes in the scalar overload.
@@ -17,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal static partial class Av1CoefficientMeasures
 {
     /// <summary>
-    /// Returns the sum of the magnitudes of the coefficients. Reference: aom_satd.
+    /// Returns the sum of the magnitudes of the coefficients.
     /// </summary>
     /// <param name="coefficients">The coefficients.</param>
     /// <returns>The exact sum of the magnitudes.</returns>
@@ -25,8 +24,7 @@ internal static partial class Av1CoefficientMeasures
         => SumAbsolute<CoefficientMeasureOperator>(coefficients);
 
     /// <summary>
-    /// Returns the largest magnitude of the coefficients. Reference: the threshold scan of
-    /// predict_skip_txfm(), which fails on the first coefficient at or above its threshold.
+    /// Returns the largest magnitude of the coefficients. A caller compares it with a threshold to find whether any coefficient reaches that threshold.
     /// </summary>
     /// <param name="coefficients">The coefficients.</param>
     /// <returns>The largest magnitude, or zero for an empty span.</returns>
@@ -34,9 +32,8 @@ internal static partial class Av1CoefficientMeasures
         => GetMaximumAbsolute<CoefficientMeasureOperator>(coefficients);
 
     /// <summary>
-    /// Returns the level bits of the coefficients: for each, the floored base-two logarithm of its magnitude plus
-    /// one, and one more when it is nonzero. Reference: the per-coefficient terms of rate_estimator(), which are
-    /// independent of the scan order.
+    /// Returns the level bits of the coefficients. The level bits of one coefficient are the floored base-2 logarithm of one more than its magnitude.
+    /// A nonzero coefficient adds one more bit. The terms do not depend on the scan order.
     /// </summary>
     /// <param name="quantized">The quantized coefficients.</param>
     /// <returns>The sum of the level bits.</returns>
@@ -44,8 +41,8 @@ internal static partial class Av1CoefficientMeasures
         => SumLevelBits<CoefficientMeasureOperator>(quantized);
 
     /// <summary>
-    /// Returns the one-based scan position of the last nonzero coefficient. Reference: the eob search of
-    /// av1_quantize_fp_avx2, which takes the largest inverse-scan index of a nonzero lane.
+    /// Returns the one-based scan position of the last nonzero coefficient. The search takes the largest scan position of a nonzero coefficient,
+    /// so the raster order of the traversal does not change the result.
     /// </summary>
     /// <param name="quantized">The raster-order quantized coefficients.</param>
     /// <param name="inverseScan">The scan position of each raster-order coefficient.</param>
@@ -54,12 +51,11 @@ internal static partial class Av1CoefficientMeasures
         => GetEndOfBlock<CoefficientMeasureOperator>(quantized, inverseScan);
 
     /// <summary>
-    /// Returns the squared error between original and reconstructed coefficients. Reference: av1_block_error_lp,
-    /// which holds the reconstruction as int16, and av1_highbd_block_error.
+    /// Returns the squared error between original and reconstructed coefficients.
     /// </summary>
     /// <param name="coefficients">The original coefficients.</param>
     /// <param name="reconstructed">The reconstructed coefficients.</param>
-    /// <param name="reconstructedIsInt16">Whether the reconstruction is kept in int16 storage, which wraps it.</param>
+    /// <param name="reconstructedIsInt16">Whether the reconstruction is kept in 16-bit storage, which wraps each value to its low 16 bits.</param>
     /// <returns>The exact sum of the squared differences.</returns>
     public static long SumSquaredDifferences(ReadOnlySpan<int> coefficients, ReadOnlySpan<int> reconstructed, bool reconstructedIsInt16)
         => SumSquaredDifferences<CoefficientMeasureOperator>(coefficients, reconstructed, reconstructedIsInt16);
@@ -67,6 +63,9 @@ internal static partial class Av1CoefficientMeasures
     /// <summary>
     /// Traverses <see cref="SumAbsolute(ReadOnlySpan{int})"/> at descending register widths.
     /// </summary>
+    /// <typeparam name="TOperator">The lane arithmetic.</typeparam>
+    /// <param name="coefficients">The coefficients.</param>
+    /// <returns>The exact sum of the magnitudes.</returns>
     private static long SumAbsolute<TOperator>(ReadOnlySpan<int> coefficients)
         where TOperator : struct, ICoefficientMeasureOperator
     {
@@ -114,6 +113,9 @@ internal static partial class Av1CoefficientMeasures
     /// <summary>
     /// Traverses <see cref="SumLevelBits(ReadOnlySpan{int})"/> at descending register widths.
     /// </summary>
+    /// <typeparam name="TOperator">The lane arithmetic.</typeparam>
+    /// <param name="quantized">The quantized coefficients.</param>
+    /// <returns>The sum of the level bits.</returns>
     private static int SumLevelBits<TOperator>(ReadOnlySpan<int> quantized)
         where TOperator : struct, ICoefficientMeasureOperator
     {
@@ -162,6 +164,9 @@ internal static partial class Av1CoefficientMeasures
     /// <summary>
     /// Traverses <see cref="GetMaximumAbsolute(ReadOnlySpan{int})"/> at descending register widths.
     /// </summary>
+    /// <typeparam name="TOperator">The lane arithmetic.</typeparam>
+    /// <param name="coefficients">The coefficients.</param>
+    /// <returns>The largest magnitude, or zero for an empty span.</returns>
     private static int GetMaximumAbsolute<TOperator>(ReadOnlySpan<int> coefficients)
         where TOperator : struct, ICoefficientMeasureOperator
     {
@@ -215,6 +220,10 @@ internal static partial class Av1CoefficientMeasures
     /// <summary>
     /// Traverses <see cref="GetEndOfBlock(ReadOnlySpan{int}, ReadOnlySpan{short})"/> at descending register widths.
     /// </summary>
+    /// <typeparam name="TOperator">The lane arithmetic.</typeparam>
+    /// <param name="quantized">The raster-order quantized coefficients.</param>
+    /// <param name="inverseScan">The scan position of each raster-order coefficient.</param>
+    /// <returns>The end position in scan order, or zero for an empty block.</returns>
     private static ushort GetEndOfBlock<TOperator>(ReadOnlySpan<int> quantized, ReadOnlySpan<short> inverseScan)
         where TOperator : struct, ICoefficientMeasureOperator
     {
@@ -255,6 +264,7 @@ internal static partial class Av1CoefficientMeasures
             endOfBlock = TOperator.AccumulateEndOfBlock(Unsafe.Add(ref quantizedBase, i), Unsafe.Add(ref inverseScanBase, i), endOfBlock);
         }
 
+        // A width the hardware lacks holds zeros, and zero is the end position of an empty block.
         maximum256 = Vector256.Max(maximum256, Vector256.Max(maximum512.GetLower(), maximum512.GetUpper()));
         maximum128 = Vector128.Max(maximum128, Vector128.Max(maximum256.GetLower(), maximum256.GetUpper()));
         for (int lane = 0; lane < Vector128<int>.Count; lane++)
@@ -268,6 +278,11 @@ internal static partial class Av1CoefficientMeasures
     /// <summary>
     /// Traverses <see cref="SumSquaredDifferences(ReadOnlySpan{int}, ReadOnlySpan{int}, bool)"/> at descending register widths.
     /// </summary>
+    /// <typeparam name="TOperator">The lane arithmetic.</typeparam>
+    /// <param name="coefficients">The original coefficients.</param>
+    /// <param name="reconstructed">The reconstructed coefficients.</param>
+    /// <param name="reconstructedIsInt16">Whether the reconstruction is kept in 16-bit storage, which wraps each value to its low 16 bits.</param>
+    /// <returns>The exact sum of the squared differences.</returns>
     private static long SumSquaredDifferences<TOperator>(ReadOnlySpan<int> coefficients, ReadOnlySpan<int> reconstructed, bool reconstructedIsInt16)
         where TOperator : struct, ICoefficientMeasureOperator
     {

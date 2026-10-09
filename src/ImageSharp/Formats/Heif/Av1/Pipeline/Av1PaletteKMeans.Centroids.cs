@@ -18,15 +18,14 @@ internal static partial class Av1PaletteKMeans
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The colors are taken one at a time over the whole block, which stays in the first-level cache. For one color,
-    /// a vector of indices compares with the color once, and that mask selects the samples of both components and
-    /// counts them, so the three accumulators stay in registers for the whole pass and no lane depends on another.
+    /// The method takes the colors one at a time over the whole block, which stays in the first-level cache. For one color,
+    /// a vector of indices compares with the color once. That mask selects the samples of both components and counts them.
+    /// As a result, the three accumulators stay in registers for the whole pass, and no lane depends on another.
     /// </para>
     /// <para>
-    /// A sum of two adjacent masked samples is formed with one multiply-add by ones, so the sums use thirty-two-bit
-    /// lanes. A count lane subtracts the all-ones mask, which adds one per selected sample. A block holds at most
-    /// 4096 samples of at most twelve bits, so neither a sixteen-bit count lane nor a thirty-two-bit sum lane can
-    /// overflow.
+    /// One multiply-add by ones adds two adjacent masked samples into one thirty-two-bit sum lane. A count lane subtracts
+    /// the all-ones mask, which adds one per selected sample. A block holds at most 4096 samples of at most twelve bits.
+    /// Thus neither a sixteen-bit count lane nor a thirty-two-bit sum lane can overflow.
     /// </para>
     /// </remarks>
     /// <param name="first">The first component of each sample.</param>
@@ -49,8 +48,8 @@ internal static partial class Av1PaletteKMeans
         ref byte indexBase = ref MemoryMarshal.GetReference(indices);
         int length = first.Length;
 
-        // The widest vector covers the bulk of the block. The rest, fewer samples than one vector, is added by the
-        // scalar loop at the end, so every width shares one tail.
+        // The widest vector covers the bulk of the block. The scalar loop at the end adds the rest, which is fewer samples
+        // than one vector. Only one width runs, so the tail starts at the same place for every color.
         int vectorLength = 0;
         if (Vector512.IsHardwareAccelerated)
         {
@@ -154,7 +153,7 @@ internal static partial class Av1PaletteKMeans
             }
         }
 
-        // The samples past the last whole vector.
+        // The scalar tail adds the samples past the last whole vector to the totals of every color in one pass.
         for (int i = vectorLength; i < length; i++)
         {
             int color = Unsafe.Add(ref indexBase, (nuint)i);

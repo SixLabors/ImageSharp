@@ -21,8 +21,8 @@ internal sealed class Av1DeQuantizationContext
     private InlineArray8<InlineArray4<short>> acContent;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1DeQuantizationContext"/> class from the frame's base quantizer,
-    /// segment adjustments, plane deltas, and coded bit depth.
+    /// Initializes a new instance of the <see cref="Av1DeQuantizationContext"/> class from the base quantizer of the frame,
+    /// the segment adjustments, the plane deltas, and the coded bit depth.
     /// </summary>
     /// <param name="sequenceHeader">The sequence header that supplies the coded bit depth.</param>
     /// <param name="frameHeader">The frame header that supplies segmentation and quantization parameters.</param>

@@ -19,9 +19,9 @@ internal static partial class Av1TransformBlockEncoder
     /// Accumulates the weighted energy of the original coefficients and of the quantization error.
     /// </summary>
     /// <remarks>
-    /// Every overload describes the same lane-wise accumulation. Each weighted square is rounded down by the matrix
-    /// precision on its own. A weight is at most 34 and a coefficient of a 12-bit residual fits 21 bits, so a
-    /// weighted value or difference fits a thirty-two bit lane, and only its square takes a sixty-four bit lane.
+    /// Every overload does the same lane-wise accumulation. Each weighted square gets its own rounding shift by the matrix precision.
+    /// A weight is at most 34 and a coefficient of a 12-bit residual fits 21 bits. A weighted value or difference therefore fits a 32-bit lane.
+    /// Only its square needs a 64-bit lane.
     /// </remarks>
     internal interface IAv1WeightedTransformErrorOperator
     {
@@ -68,15 +68,15 @@ internal static partial class Av1TransformBlockEncoder
     }
 
     /// <summary>
-    /// Measures the weighted quantization error and energy in the transform distortion domain. Reference:
-    /// av1_block_error_qm() and the shift of dist_block_tx_domain().
+    /// Measures the weighted quantization error and energy in the transform distortion domain.
     /// </summary>
     /// <param name="coefficients">The original transform coefficients.</param>
     /// <param name="dequantized">The reconstructed transform coefficients.</param>
     /// <param name="transformSize">The transform dimensions controlling coefficient scaling.</param>
     /// <param name="bitDepth">The coded sample precision.</param>
-    /// <param name="weights">The matrix weight of each coefficient, in the order of the distortion measure. See
-    /// <see cref="Av1EncoderBlockWorkspace.GetDistortionWeights"/>.</param>
+    /// <param name="weights">
+    /// The matrix weight of each coefficient, in the order of the distortion measure. See <see cref="Av1EncoderBlockWorkspace.GetDistortionWeights"/>.
+    /// </param>
     /// <param name="sumOfSquares">The normalized weighted energy of the original coefficients.</param>
     /// <returns>The normalized weighted squared quantization error.</returns>
     public static long GetWeightedTransformError(
@@ -90,18 +90,21 @@ internal static partial class Av1TransformBlockEncoder
         WeightedTransformError<WeightedTransformErrorOperator>.Accumulate(
             coefficients, dequantized, weights, out long energy, out long error);
 
+        // The rounding shift removes the extra precision of a high bit depth, so the squares are in 8-bit sample units.
         int precisionShift = 2 * (bitDepth.GetBitCount() - 8);
         long rounding = (1L << precisionShift) >> 1;
         error = (error + rounding) >> precisionShift;
         energy = (energy + rounding) >> precisionShift;
+
+        // The scale shift puts the squares of every transform size in the units of a scale-1 transform. A scale-2 transform gives a
+        // negative shift, which becomes a left shift.
         int scaleShift = (1 - transformSize.GetScale()) * 2;
         sumOfSquares = scaleShift >= 0 ? energy >> scaleShift : energy << -scaleShift;
         return scaleShift >= 0 ? error >> scaleShift : error << -scaleShift;
     }
 
     /// <summary>
-    /// Squares the weighted coefficient and the weighted quantization error of each lane, each rounded down by the
-    /// matrix precision. Reference: the accumulation of av1_block_error_qm().
+    /// Squares the weighted coefficient and the weighted quantization error of each lane. Each square gets a rounding shift by the matrix precision.
     /// </summary>
     private readonly struct WeightedTransformErrorOperator : IAv1WeightedTransformErrorOperator
     {
@@ -159,14 +162,16 @@ internal static partial class Av1TransformBlockEncoder
         }
 
         /// <summary>
-        /// Squares each lane into sixty-four bits and rounds it down by the matrix precision, then adds the even and
-        /// the odd lane of each pair.
+        /// Squares each lane into 64 bits and applies a rounding shift by the matrix precision. Then it adds the even and the odd lane of each pair.
         /// </summary>
         /// <param name="weighted">The weighted values.</param>
         /// <returns>The rounded squares, one sum per lane pair.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<long> RoundedSquares(Vector128<int> weighted)
         {
+            // Each 64-bit pair holds an even lane in its low half and an odd lane in its high half. The logical 64-bit shift by 32 moves
+            // each odd lane to the even position. The even-lane widening multiply then squares each lane into a 64-bit product.
+            // Each product gets its own rounding shift before the add, as in the scalar overload. The vector width or order does not change the sum.
             Vector128<int> odd = (weighted.AsInt64() >>> 32).AsInt32();
             Vector128<long> rounding = Vector128.Create(Rounding);
             return ((Vector128_.MultiplyWideningEven(weighted, weighted) + rounding) >> Shift) +
@@ -223,6 +228,7 @@ internal static partial class Av1TransformBlockEncoder
             error = 0;
             int i = 0;
 
+            // Each stage widens the byte weights to 32-bit lanes, so lane n of the weights lines up with lane n of the coefficients.
             if (Vector512.IsHardwareAccelerated)
             {
                 Vector512<long> energies = Vector512<long>.Zero;
@@ -277,6 +283,7 @@ internal static partial class Av1TransformBlockEncoder
                 error += Vector128.Sum(errors);
             }
 
+            // The scalar overload accumulates the coefficients that no vector stage covered.
             for (; i < coefficients.Length; i++)
             {
                 TOperator.Accumulate(coefficients[i], dequantized[i], weights[i], ref energy, ref error);

@@ -6,8 +6,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Adjusts the reference slots that a coded frame refreshes, after its blocks are coded and before its header is
-/// written.
+/// Adjusts the reference slots that a coded frame refreshes, after its blocks are coded and before its header is written.
 /// </summary>
 internal interface IAv1ReferenceRefreshControl
 {

@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 internal static class Av1FrameQuantizer
 {
     /// <summary>
-    /// Sets the quantization parameters of a frame. Reference: av1_set_quantizer().
+    /// Sets the quantization parameters of a frame.
     /// </summary>
     /// <param name="quantization">The frame quantization parameters.</param>
     /// <param name="colorConfig">The color configuration of the sequence.</param>
@@ -25,8 +25,8 @@ internal static class Av1FrameQuantizer
         Av1EncoderOptions options,
         bool isAllIntra)
     {
-        // The delta quantizer syntax needs a nonzero base index, which the caller sets once the frame decides to
-        // use it; the frame quantizer starts from the configured index.
+        // The frame quantizer starts from the configured index. The delta quantizer syntax needs a nonzero base index.
+        // The caller sets that index when the frame decides to use delta quantizers.
         quantization.BaseQIndex = qIndex;
         quantization.DeltaQDc[(int)Av1Plane.Y] = 0;
         quantization.DeltaQAc[(int)Av1Plane.Y] = 0;
@@ -44,18 +44,20 @@ internal static class Av1FrameQuantizer
             {
                 if (subsamplingX && subsamplingY)
                 {
-                    // 4:2:0 chroma gets a finer quantizer, by up to 20 steps for the SSIMULACRA 2 tune and 16 for
-                    // the image tune, which ramps down at low quantizers.
+                    // 4:2:0 chroma gets a finer quantizer, by up to 20 steps for the SSIMULACRA 2 tune and 16 for the image tune.
+                    // The decrease ramps down to zero at low quantizers.
                     int offset = ssimulacra2Tune ? 20 : 16;
                     chromaDcDeltaQ = -Math.Clamp((qIndex / 2) - 14, 0, offset);
                     chromaAcDeltaQ = chromaDcDeltaQ;
                 }
                 else if (subsamplingX)
                 {
+                    // 4:2:2 chroma gets a coarser AC quantizer, by up to 6 steps.
                     chromaAcDeltaQ = Math.Clamp(qIndex / 2, 0, 6);
                 }
                 else if (!subsamplingY)
                 {
+                    // 4:4:4 chroma gets a coarser AC quantizer, by up to 24 steps.
                     chromaAcDeltaQ = Math.Clamp(qIndex / 2, 0, 24);
                 }
             }
@@ -95,7 +97,7 @@ internal static class Av1FrameQuantizer
             chroma = GetLevel(qIndex + chromaAcDeltaQ, minimum, maximum);
         }
 
-        // Reference: the using_qmatrix assignment of av1_encode_strategy().
+        // The frame uses the matrix levels only when the options enable quantization matrices.
         quantization.IsUsingQMatrix = options.EnableQuantizationMatrices;
         quantization.QMatrix[(int)Av1Plane.Y] = luma;
         quantization.QMatrix[(int)Av1Plane.U] = chroma;
@@ -103,7 +105,7 @@ internal static class Av1FrameQuantizer
     }
 
     /// <summary>
-    /// Gets the matrix level that grows linearly with the quantizer index. Reference: aom_get_qmlevel().
+    /// Gets the matrix level that grows linearly with the quantizer index.
     /// </summary>
     /// <param name="qIndex">The quantizer index.</param>
     /// <param name="first">The lowest allowed matrix level.</param>
@@ -113,8 +115,7 @@ internal static class Av1FrameQuantizer
         => first + ((qIndex * (last + 1 - first)) / (Av1Constants.MaxQ + 1));
 
     /// <summary>
-    /// Gets the matrix level of all-intra coding, which falls as the quantizer index grows. Reference:
-    /// aom_get_qmlevel_allintra().
+    /// Gets the matrix level of all-intra coding, which falls as the quantizer index grows.
     /// </summary>
     /// <param name="qIndex">The quantizer index.</param>
     /// <param name="first">The lowest allowed matrix level.</param>
@@ -137,8 +138,8 @@ internal static class Av1FrameQuantizer
     }
 
     /// <summary>
-    /// Gets the luma matrix level of the SSIMULACRA 2 tune, which falls faster than the all-intra level as the
-    /// quantizer index grows and reaches steeper matrices. Reference: aom_get_qmlevel_luma_ssimulacra2().
+    /// Gets the luma matrix level of the SSIMULACRA 2 tune. It falls faster than the all-intra level as the quantizer index grows,
+    /// and it reaches steeper matrices.
     /// </summary>
     /// <param name="qIndex">The quantizer index.</param>
     /// <param name="first">The lowest allowed matrix level.</param>
@@ -164,7 +165,6 @@ internal static class Av1FrameQuantizer
 
     /// <summary>
     /// Gets the chroma matrix level of 4:4:4 coding, which has four times the chroma coefficients of 4:2:0.
-    /// Reference: aom_get_qmlevel_444_chroma().
     /// </summary>
     /// <param name="qIndex">The chroma quantizer index.</param>
     /// <param name="first">The lowest allowed matrix level.</param>

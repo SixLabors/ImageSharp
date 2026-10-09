@@ -22,13 +22,12 @@ internal static partial class Av1FrameEncoder
         where TSample : unmanaged
     {
         /// <summary>
-        /// Discards the filtered frames of the previous group. Reference: av1_tf_info_reset().
+        /// Discards the filtered frames of the previous group.
         /// </summary>
         public void Reset();
 
         /// <summary>
         /// Filters the key frame and alternate reference of a golden group that are not filtered yet.
-        /// Reference: av1_tf_info_filtering().
         /// </summary>
         /// <param name="lookahead">The lookahead.</param>
         /// <param name="secondPass">The frame-level decisions.</param>
@@ -45,8 +44,7 @@ internal static partial class Av1FrameEncoder
             Av1MotionSearchSettings motionSettings);
 
         /// <summary>
-        /// Returns the filtered frame of a group entry, or <see langword="null"/>. Reference:
-        /// av1_tf_info_get_filtered_buf().
+        /// Returns the filtered frame of a group entry, or <see langword="null"/> when the entry has none.
         /// </summary>
         /// <param name="groupIndex">The group index of the entry.</param>
         /// <returns>The filtered frame.</returns>
@@ -69,10 +67,9 @@ internal static partial class Av1FrameEncoder
             /// <param name="groupIndex">The group index of the frame.</param>
             /// <param name="qStepRatio">Receives the quantizer step ratio of the frame.</param>
             /// <param name="frameValid">
-            /// Receives whether the frame's statistics entry is valid, ready or not, which gates the quantizer
-            /// replacement. Reference: tpl_frame[gf_frame_index].is_valid in av1_set_size_dependent_vars().
+            /// Receives whether the statistics entry of the frame is valid, ready or not. This value gates the quantizer replacement.
             /// </param>
-            /// <returns>Whether the frame has ready and valid statistics. Reference: av1_tpl_stats_ready().</returns>
+            /// <returns>Whether the frame has ready and valid statistics.</returns>
             public bool ApplyToFrame(Av1PictureParentControlSet parent, int groupIndex, out double qStepRatio, out bool frameValid);
 
             /// <summary>
@@ -104,10 +101,8 @@ internal static partial class Av1FrameEncoder
             public Av1EncoderReferencePool<TSample> ReferencePool { get; }
 
             /// <summary>
-            /// Classifies an intra frame as screen content from its unfiltered source, before the frame's quantizer,
-            /// filtering and temporal dependency model read the decision. An inter frame keeps the decision of the
-            /// last intra frame. Reference: the av1_set_screen_content_options() call of av1_encode_strategy() before
-            /// denoise_and_encode().
+            /// Classifies an intra frame as screen content from its unfiltered source. The quantizer choice, the filter and the temporal dependency
+            /// model of the frame read the decision later. An inter frame keeps the decision of the last intra frame.
             /// </summary>
             /// <param name="unfilteredSource">The lookahead source of the frame.</param>
             /// <param name="isKeyFrame">Whether the frame is a key frame.</param>
@@ -115,8 +110,7 @@ internal static partial class Av1FrameEncoder
             public bool DecideLaggedScreenContent(Av1EncoderFrameBuffer<TSample> unfilteredSource, bool isKeyFrame);
 
             /// <summary>
-            /// Codes one frame of a lookahead golden group from its source. Reference: av1_encode() through
-            /// encode_frame_to_data_rate() for a frame that is not a repeat.
+            /// Codes one frame of a lookahead golden group from its source. The frame is not a repeat of a frame that the encoder showed before.
             /// </summary>
             /// <param name="source">The source of the frame.</param>
             /// <param name="frame">The decisions of the frame.</param>
@@ -125,8 +119,7 @@ internal static partial class Av1FrameEncoder
             /// <param name="writeTemporalDelimiter">Whether the frame starts a temporal unit.</param>
             /// <param name="temporalModel">The temporal dependency model, or <see langword="null"/> without it.</param>
             /// <param name="lastSource">
-            /// The source of the frame shown before a shown frame, or <see langword="null"/> for the first frame and a
-            /// hidden frame. Reference: the last_source of choose_frame_source().
+            /// The source of the frame shown before a shown frame, or <see langword="null"/> for the first frame and a hidden frame.
             /// </param>
             public void EncodeLaggedFrame(
                 Av1EncoderFrameBuffer<TSample> source,
@@ -139,10 +132,8 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Holds the temporal dependency model of a lookahead sequence: it measures each golden group, answers the group
-        /// length test of the lookahead decisions, and hands each frame its statistics. Reference: the TPL parts of
-        /// av1_get_second_pass_params(), av1_encode_strategy(), set_size_dependent_vars() and
-        /// encode_frame_to_data_rate().
+        /// Holds the temporal dependency model of a lookahead sequence. It measures each golden group, answers the group length test of the
+        /// lookahead decisions, and hands each frame its statistics.
         /// </summary>
         /// <typeparam name="TSample">The sample type.</typeparam>
         /// <typeparam name="TSearchOperator">The motion search arithmetic.</typeparam>
@@ -168,15 +159,13 @@ internal static partial class Av1FrameEncoder
             private double importance;
 
             /// <summary>
-            /// Whether the statistics of the coded frame were ready before the frame processed them, which decides the
-            /// copy of the group's last frame. Reference: the av1_tpl_stats_ready() test of av1_encode(), which runs
-            /// before process_tpl_stats_frame().
+            /// Whether the statistics of the coded frame were ready before the frame processed them. This value decides whether the model keeps a
+            /// copy of the last frame of the group.
             /// </summary>
             private bool statisticsReadyBeforeCoding;
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="LookaheadTemporalModel{TSample, TSearchOperator, TTplOperator}"/>
-            /// class.
+            /// Initializes a new instance of the <see cref="LookaheadTemporalModel{TSample, TSearchOperator, TTplOperator}"/> class.
             /// </summary>
             /// <param name="owner">The sequence encoder that codes the frames.</param>
             /// <param name="lookahead">The lookahead.</param>
@@ -185,7 +174,7 @@ internal static partial class Av1FrameEncoder
             /// <param name="width">The frame width.</param>
             /// <param name="height">The frame height.</param>
             /// <param name="colorFormat">The sampling layout.</param>
-            /// <param name="lagInFrames">The effective look-ahead depth. Reference: gf_cfg->lag_in_frames.</param>
+            /// <param name="lagInFrames">The effective look-ahead depth in frames.</param>
             public LookaheadTemporalModel(
                 SequenceEncoder owner,
                 Av1LookaheadQueue<TSample> lookahead,
@@ -216,8 +205,7 @@ internal static partial class Av1FrameEncoder
             }
 
             /// <summary>
-            /// Gets or sets the motion search settings the encoder holds from the previous frame, which the model and the
-            /// filter reuse.
+            /// Gets or sets the motion search settings that the encoder holds from the previous frame. The model and the filter use them again.
             /// </summary>
             public Av1MotionSearchSettings MotionSettings { get; set; }
 
@@ -247,8 +235,8 @@ internal static partial class Av1FrameEncoder
             }
 
             /// <summary>
-            /// Leaves the encoder's base quantizer index at the model's leaf quantizer when the run measured a frame.
-            /// Reference: the cm->quant_params.base_qindex assignment of init_mc_flow_dispenser().
+            /// Sets the common base quantizer index of the encoder to the base layer quantizer of the model, if the run measured a frame. A later
+            /// key frame reads this value for its default coefficient models.
             /// </summary>
             private void RecordModelQuantizer()
             {
@@ -259,9 +247,8 @@ internal static partial class Av1FrameEncoder
             }
 
             /// <summary>
-            /// Measures a new golden group before its first frame is coded, unless the group length test already
-            /// measured it; a group the model does not cover loses its statistics. Reference: the TPL block of
-            /// av1_encode_strategy() for gf_frame_index 0.
+            /// Measures a new golden group before the encoder codes its first frame. The group length test runs only an approximate evaluation.
+            /// Thus this coding run always measures the group in full. A group that the model does not cover loses its statistics.
             /// </summary>
             /// <param name="secondPass">The frame-level decisions.</param>
             /// <param name="frame">The decisions of the first frame of the group.</param>
@@ -291,15 +278,13 @@ internal static partial class Av1FrameEncoder
             }
 
             /// <summary>
-            /// Hands a frame the statistics of its group entry, measures its importance, and returns the inputs of its
-            /// quantizer choice. A frame whose statistics show no dependency loses them. Reference: the
-            /// process_tpl_stats_frame() call of set_size_dependent_vars(), av1_tpl_stats_ready() and
-            /// av1_tpl_get_qstep_ratio().
+            /// Hands a frame the statistics of its group entry, measures its importance, and returns the inputs of its quantizer choice. A frame
+            /// whose statistics show no dependency loses them.
             /// </summary>
             /// <param name="parent">The frame state.</param>
             /// <param name="groupIndex">The group index of the frame.</param>
             /// <param name="qStepRatio">Receives the quantizer step ratio of the frame.</param>
-            /// <param name="frameValid">Receives whether the frame's statistics entry is valid, ready or not.</param>
+            /// <param name="frameValid">Receives whether the statistics entry of the frame is valid, ready or not.</param>
             /// <returns>Whether the frame has ready and valid statistics.</returns>
             public bool ApplyToFrame(Av1PictureParentControlSet parent, int groupIndex, out double qStepRatio, out bool frameValid)
             {
@@ -307,8 +292,7 @@ internal static partial class Av1FrameEncoder
                 this.statisticsReadyBeforeCoding = this.model.IsStatisticsReady(groupIndex);
                 if (this.model.IsStatisticsReady(groupIndex))
                 {
-                    // The golden boost blend of process_tpl_stats_frame() is part of the quantizer choice, so only
-                    // the importance is measured here.
+                    // The golden boost blend is part of the quantizer choice, so this call measures only the importance.
                     int boost = 0;
                     Av1TplDecisions.ProcessFrame(this.model.GetFrame(groupIndex), false, 0, 0, 0, ref this.importance, ref boost);
                 }
@@ -322,10 +306,8 @@ internal static partial class Av1FrameEncoder
             }
 
             /// <summary>
-            /// Records the state a coded frame leaves for the next model run: the source and model reconstruction of the
-            /// last displayed frame of a group, the frame's mode information, entropy context, quantizer and motion
-            /// search settings. Reference: the prev_gop_arf copy of encode_frame_to_data_rate(), and the mi_alloc,
-            /// cm->fc and speed features the next av1_tpl_setup_stats() reads.
+            /// Records the state a coded frame leaves for the next model run. This state is the source and model reconstruction of the last displayed
+            /// frame of a group, and the mode information, entropy context, quantizer and motion search settings of the frame.
             /// </summary>
             /// <param name="frame">The decisions of the coded frame.</param>
             /// <param name="source">The source the frame was coded from.</param>
@@ -367,7 +349,7 @@ internal static partial class Av1FrameEncoder
                 ReadOnlySpan<int> pairDisplayOrders,
                 ReadOnlySpan<int> pairPyramidLevels)
             {
-                // Entries past the group read what the group arrays hold there, as the reference does.
+                // Entries past the group size read the values that the group arrays hold at those positions.
                 Av1GoodQualityReferenceStructure.GroupFrame frame = new(
                     updateType,
                     this.group.LayerDepths[groupIndex],
@@ -384,12 +366,11 @@ internal static partial class Av1FrameEncoder
             public void Dispose() => this.model.Dispose();
 
             /// <summary>
-            /// Fills the model input from the lookahead, the filtered frames, the reference slots and the lookahead
-            /// decisions of the group. Reference: the state av1_tpl_setup_stats() and init_gop_frames_for_tpl() read.
+            /// Fills the model input from the lookahead, the filtered frames, the reference slots and the lookahead decisions of the group.
             /// </summary>
             /// <param name="secondPass">The frame-level decisions.</param>
-            /// <param name="keyFrame">Whether the frame about to be coded is a key frame. Reference: frame_params->frame_type.</param>
-            /// <param name="frameNumber">The number of frames shown since the last key frame. Reference: frame_number.</param>
+            /// <param name="keyFrame">Whether the frame about to be coded is a key frame.</param>
+            /// <param name="frameNumber">The number of frames shown since the last key frame.</param>
             private void BuildInput(Av1SecondPass secondPass, bool keyFrame, int frameNumber)
             {
                 Av1GopStructure group = secondPass.Group;
@@ -400,9 +381,8 @@ internal static partial class Av1FrameEncoder
                 tplGroup.MaximumLayerDepthAllowed = group.MaxLayerDepthAllowed;
                 tplGroup.ArfIndex = group.ArfIndex;
 
-                // The model reads the group's arrays past its size for the look-ahead frames it adds, so the whole
-                // arrays are copied, with what earlier groups left there. Reference: the gf_group entries that
-                // init_gop_frames_for_tpl() reads past gop_length.
+                // The model reads the group arrays past the group size for the look-ahead frames that it adds. Thus the loop copies the whole arrays,
+                // with the values that earlier groups left there. Only entries inside the group get a filtered frame.
                 int count = Math.Min(group.Size, tplGroup.UpdateType.Length);
                 for (int index = 0; index < tplGroup.UpdateType.Length; index++)
                 {
@@ -457,8 +437,7 @@ internal static partial class Av1FrameEncoder
                 this.input.WorstQuality = secondPass.WorstQuality;
                 this.input.AdjustLeafQuantizer = options.RateControlMode is Av1RateControlMode.Quality or Av1RateControlMode.VariableBitRate;
 
-                // Every frame starts with eighth-sample vectors allowed; the forced integer flag is the one the previous
-                // frame left. Reference: av1_set_high_precision_mv(cpi, 1, 0) in av1_get_compressed_data().
+                // Every frame starts with eighth-sample vectors allowed. The forced integer flag is the flag that the previous frame left.
                 this.input.AllowHighPrecisionMotionVector = true;
                 this.input.ForceIntegerMotionVector = this.owner.FrameHeader.ForceIntegerMotionVector;
                 this.input.QuantizerDeltaQIndex = this.owner.FrameHeader.DeltaQParameters.IsPresent
@@ -470,10 +449,8 @@ internal static partial class Av1FrameEncoder
                 this.input.TileModeInfoColumnEnd = firstTile.ModeInfoColumnEnd;
                 this.input.Tuning = options.Tuning;
 
-                // The quantizer tables are built when the compressor is created, before libavif sets the sharpness,
-                // and rebuilt with it only when a frame is coded. So the model of the first group rounds as sharpness
-                // zero. Reference: the av1_init_quantizer() calls of av1_create_compressor() and
-                // encode_without_recode().
+                // Before the first coded frame, the quantizer tables do not include the sharpness. Thus the model of the first group rounds as
+                // sharpness zero. This matches the output of the AVIF reference encoder, which sets the sharpness after it builds the tables.
                 this.input.Sharpness = options.Sharpness;
                 this.input.QuantizerSharpness = this.lastContext is null ? 0 : options.Sharpness;
                 this.input.SuperblockSize = this.owner.SequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
@@ -488,8 +465,7 @@ internal static partial class Av1FrameEncoder
             }
 
             /// <summary>
-            /// Takes the mode-information grid and records a coded frame left, which the model borrows. Reference: the
-            /// mi_grid_base and mi_alloc that set_mode_info_offsets() lends to mode_estimation().
+            /// Takes the mode information grid that a coded frame left. The model uses this grid in its next run.
             /// </summary>
             /// <param name="picture">The coded picture.</param>
             private void CaptureModeInfo(Av1PictureControlSet picture) => this.model.ModeInfo.Capture(picture);

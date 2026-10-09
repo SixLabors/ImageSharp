@@ -195,8 +195,8 @@ internal readonly struct Av1EncoderFrame<TSample>
     {
         Size codedSize = GetCodedSize(width, height);
 
-        // Align the complete luma row before deriving a subsampled plane's stride.
-        // Aligning chroma independently would produce a different physical layout for narrow or odd-sized frames.
+        // The code aligns the complete luma row before it derives the stride of a subsampled plane. An independent chroma
+        // alignment gives a different physical layout for narrow or odd-sized frames.
         int lumaStride = Av1Math.AlignPowerOf2(codedSize.Width + (2 * lumaBorder), LumaStrideAlignmentLog2);
         int planeStride = lumaStride >> subsamplingX;
         int planeBorderHeight = lumaBorder >> subsamplingY;
@@ -204,14 +204,17 @@ internal readonly struct Av1EncoderFrame<TSample>
     }
 
     /// <summary>
-    /// Extends the visible edge samples through the coded padding.
+    /// Extends the visible edge samples through the coded padding and the physical border of every plane.
     /// </summary>
     public void ExtendBorders()
         => this.CodedView.ExtendBorders(this.Width, this.Height);
 
     /// <summary>
-    /// Replicates the visible edge samples through a plane's complete physical border.
+    /// Replicates the visible edge samples through the complete physical border of a plane.
     /// </summary>
+    /// <param name="plane">The coded plane region inside its bordered plane.</param>
+    /// <param name="visibleWidth">The visible width of the plane.</param>
+    /// <param name="visibleHeight">The visible height of the plane.</param>
     private static void ExtendPlane(Av1PlaneRegion<TSample> plane, int visibleWidth, int visibleHeight)
     {
         Span<TSample> samples = plane.Samples;
@@ -221,12 +224,12 @@ internal readonly struct Av1EncoderFrame<TSample>
         {
             Span<TSample> row = samples.Slice((bounds.Y + y) * stride, stride);
 
-            // libaom fills both physical borders and the right-hand coded alignment from the nearest visible sample.
+            // Both physical borders and the right-hand coded alignment take the nearest visible sample.
             row[..bounds.X].Fill(row[bounds.X]);
             row[(bounds.X + visibleWidth)..].Fill(row[bounds.X + visibleWidth - 1]);
         }
 
-        // Horizontal extension runs first so copying the first and last visible rows also initializes both corners.
+        // The horizontal extension runs first, so the copies of the first and last visible rows also fill the corners.
         ReadOnlySpan<TSample> firstVisibleRow = samples.Slice(bounds.Y * stride, stride);
         for (int y = 0; y < bounds.Y; y++)
         {
@@ -263,6 +266,15 @@ internal readonly struct Av1EncoderFrame<TSample>
         /// <summary>
         /// Initializes a new instance of the <see cref="PlanarView"/> struct.
         /// </summary>
+        /// <param name="luma">The writable luma region.</param>
+        /// <param name="chromaBlue">The writable blue-difference region, or the default region for monochrome frames.</param>
+        /// <param name="chromaRed">The writable red-difference region, or the default region for monochrome frames.</param>
+        /// <param name="width">The luma width of the view.</param>
+        /// <param name="height">The luma height of the view.</param>
+        /// <param name="bitDepth">The native component precision.</param>
+        /// <param name="colorFormat">The native luma and chroma sampling layout.</param>
+        /// <param name="chromaPositionX">The horizontal chroma position in half-luma-sample units.</param>
+        /// <param name="chromaPositionY">The vertical chroma position in half-luma-sample units.</param>
         public PlanarView(
             Av1PlaneRegion<TSample> luma,
             Av1PlaneRegion<TSample> chromaBlue,
@@ -316,7 +328,7 @@ internal readonly struct Av1EncoderFrame<TSample>
         public int ChromaPositionY { get; }
 
         /// <summary>
-        /// Replicates the visible component edges through the coded padding.
+        /// Replicates the visible component edges through the coded padding and the physical border of every plane.
         /// </summary>
         /// <param name="visibleWidth">The visible luma width.</param>
         /// <param name="visibleHeight">The visible luma height.</param>

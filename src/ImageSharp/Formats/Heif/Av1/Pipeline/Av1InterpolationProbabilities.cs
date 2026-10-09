@@ -43,8 +43,9 @@ internal static class Av1InterpolationProbabilities
                 sum += counts[offset + filter];
             }
 
-            // Keep the fixed probability total after averaging; integer truncation's remainder
-            // belongs to the regular filter, including contexts not encountered in this frame.
+            // Each row averages the old probabilities with the observed frequencies and keeps the fixed total.
+            // Filter 0, the regular filter, gets the remainder of the integer truncation. A context with no counts in this frame
+            // observes the full total on the regular filter.
             int remainder = totalProbability;
             for (int filter = FilterCount - 1; filter >= 0; filter--)
             {

@@ -13,19 +13,18 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal static partial class Av1ResidualBuilder
 {
     /// <summary>
-    /// Measures the absolute error of a compound prediction, optionally sampling alternate rows. Reference:
-    /// aom_sad{W}x{H}_avg (comp_avg_pred) for equal weights, and masked_sad() of aom_masked_sad{W}x{H} for
-    /// mask weights.
+    /// Measures the absolute error of a compound prediction. It can measure every second row only.
+    /// Equal weights use the rounded average of both predictions. Mask weights use a rounded 6-bit blend.
     /// </summary>
     /// <param name="source">Source samples beginning at the block origin.</param>
     /// <param name="sourceStride">The source row stride, in samples.</param>
     /// <param name="prediction">The searched prediction samples beginning at the block origin.</param>
     /// <param name="predictionStride">The searched prediction row stride, in samples.</param>
     /// <param name="secondPrediction">The fixed second prediction, packed at the block width.</param>
-    /// <param name="mask">The six-bit weights of the searched prediction, packed at the block width; empty selects equal weights.</param>
+    /// <param name="mask">The 6-bit weights of the searched prediction, packed at the block width. An empty span selects equal weights.</param>
     /// <param name="width">The block width, in samples.</param>
     /// <param name="height">The block height, in samples.</param>
-    /// <param name="rowStep">One for every row, or two for alternating rows with doubled error.</param>
+    /// <param name="rowStep">One for every row, or two for every second row with a doubled error.</param>
     /// <returns>The unnormalized absolute difference over the block.</returns>
     public static int SumCompoundAbsoluteDifferences(
         ReadOnlySpan<byte> source,
@@ -41,18 +40,18 @@ internal static partial class Av1ResidualBuilder
             source, sourceStride, prediction, predictionStride, secondPrediction, mask, width, height, rowStep);
 
     /// <summary>
-    /// Measures the absolute error of a compound prediction, optionally sampling alternate rows. Reference:
-    /// aom_highbd_sad{W}x{H}_avg for equal weights, and highbd_masked_sad() for mask weights.
+    /// Measures the absolute error of a high bit depth compound prediction. It can measure every second row only.
+    /// Equal weights use the rounded average of both predictions. Mask weights use a rounded 6-bit blend.
     /// </summary>
     /// <param name="source">Source samples beginning at the block origin.</param>
     /// <param name="sourceStride">The source row stride, in samples.</param>
     /// <param name="prediction">The searched prediction samples beginning at the block origin.</param>
     /// <param name="predictionStride">The searched prediction row stride, in samples.</param>
     /// <param name="secondPrediction">The fixed second prediction, packed at the block width.</param>
-    /// <param name="mask">The six-bit weights of the searched prediction, packed at the block width; empty selects equal weights.</param>
+    /// <param name="mask">The 6-bit weights of the searched prediction, packed at the block width. An empty span selects equal weights.</param>
     /// <param name="width">The block width, in samples.</param>
     /// <param name="height">The block height, in samples.</param>
-    /// <param name="rowStep">One for every row, or two for alternating rows with doubled error.</param>
+    /// <param name="rowStep">One for every row, or two for every second row with a doubled error.</param>
     /// <returns>The unnormalized absolute difference over the block.</returns>
     public static int SumCompoundAbsoluteDifferences(
         ReadOnlySpan<ushort> source,
@@ -68,15 +67,15 @@ internal static partial class Av1ResidualBuilder
             source, sourceStride, prediction, predictionStride, secondPrediction, mask, width, height, rowStep);
 
     /// <summary>
-    /// Measures the signed and squared error of a compound prediction. Reference: the accumulation of
-    /// aom_variance after comp_avg_pred for equal weights, and of masked_variance() for mask weights.
+    /// Measures the signed and squared error of a compound prediction.
+    /// Equal weights use the rounded average of both predictions. Mask weights use a rounded 6-bit blend.
     /// </summary>
     /// <param name="source">Source samples beginning at the block origin.</param>
     /// <param name="sourceStride">The source row stride, in samples.</param>
     /// <param name="prediction">The searched prediction samples beginning at the block origin.</param>
     /// <param name="predictionStride">The searched prediction row stride, in samples.</param>
     /// <param name="secondPrediction">The fixed second prediction, packed at the block width.</param>
-    /// <param name="mask">The six-bit weights of the searched prediction, packed at the block width; empty selects equal weights.</param>
+    /// <param name="mask">The 6-bit weights of the searched prediction, packed at the block width. An empty span selects equal weights.</param>
     /// <param name="width">The block width, in samples.</param>
     /// <param name="height">The block height, in samples.</param>
     /// <param name="sum">The unnormalized signed residual sum.</param>
@@ -96,16 +95,15 @@ internal static partial class Av1ResidualBuilder
             source, sourceStride, prediction, predictionStride, secondPrediction, mask, width, height, out sum, out sumOfSquares);
 
     /// <summary>
-    /// Measures the signed and squared error of a compound prediction. Reference: the accumulation of
-    /// aom_highbd_variance after the high-bit-depth comp_avg_pred for equal weights, and of
-    /// highbd_masked_variance() for mask weights.
+    /// Measures the signed and squared error of a high bit depth compound prediction.
+    /// Equal weights use the rounded average of both predictions. Mask weights use a rounded 6-bit blend.
     /// </summary>
     /// <param name="source">Source samples beginning at the block origin.</param>
     /// <param name="sourceStride">The source row stride, in samples.</param>
     /// <param name="prediction">The searched prediction samples beginning at the block origin.</param>
     /// <param name="predictionStride">The searched prediction row stride, in samples.</param>
     /// <param name="secondPrediction">The fixed second prediction, packed at the block width.</param>
-    /// <param name="mask">The six-bit weights of the searched prediction, packed at the block width; empty selects equal weights.</param>
+    /// <param name="mask">The 6-bit weights of the searched prediction, packed at the block width. An empty span selects equal weights.</param>
     /// <param name="width">The block width, in samples.</param>
     /// <param name="height">The block height, in samples.</param>
     /// <param name="sum">The unnormalized signed residual sum.</param>
@@ -127,6 +125,18 @@ internal static partial class Av1ResidualBuilder
     /// <summary>
     /// Traverses a compound SAD with the selected sample operator and descending vector widths.
     /// </summary>
+    /// <typeparam name="TSample">The source and prediction sample type.</typeparam>
+    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <param name="source">Source samples beginning at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">The searched prediction samples beginning at the block origin.</param>
+    /// <param name="predictionStride">The searched prediction row stride, in samples.</param>
+    /// <param name="secondPrediction">The fixed second prediction, packed at the block width.</param>
+    /// <param name="mask">The 6-bit weights of the searched prediction, packed at the block width. An empty span selects equal weights.</param>
+    /// <param name="width">The block width, in samples.</param>
+    /// <param name="height">The block height, in samples.</param>
+    /// <param name="rowStep">One for every row, or two for every second row with a doubled error.</param>
+    /// <returns>The unnormalized absolute difference over the block.</returns>
     private static int SumCompoundAbsoluteDifferences<TSample, TOperator>(
         ReadOnlySpan<TSample> source,
         int sourceStride,
@@ -140,14 +150,15 @@ internal static partial class Av1ResidualBuilder
         where TSample : unmanaged
         where TOperator : struct, IResidualOperator<TSample>
     {
-        // The blend choice is the same for every vector of the block, so its branch always predicts.
+        // The blend choice is the same for every vector of the block, so its branch always predicts. One bounds check on the last
+        // weight covers the unchecked mask reads of the vector loops.
         bool equalWeights = mask.IsEmpty;
         if (!equalWeights)
         {
             _ = mask[((height - 1) * width) + width - 1];
         }
 
-        // The totals follow the bounds of the plain SAD traversal: the blend is a sample again.
+        // The blend is a sample of the same range again. The totals therefore have the same overflow bounds as the plain SAD traversal.
         Vector512<uint> total512 = Vector512<uint>.Zero;
         Vector256<uint> total256 = Vector256<uint>.Zero;
         Vector128<uint> total128 = Vector128<uint>.Zero;
@@ -206,9 +217,8 @@ internal static partial class Av1ResidualBuilder
                 }
             }
 
-            // An eight-byte row fills half of a byte vector. The compact loads pad the source, both
-            // predictions and the weights with zeros, and a blend of zeros is zero, so the padding adds
-            // nothing to the total.
+            // An eight-byte row fills half of a byte vector. The compact loads pad the source, both predictions and the weights with zeros.
+            // A blend of zeros is zero, so the padding adds nothing to the total.
             if (Vector128.IsHardwareAccelerated && x <= width - SearchBlockDimension)
             {
                 Vector128<TSample> searched = LoadSearchRow(predictionRow[x..]);
@@ -235,13 +245,25 @@ internal static partial class Av1ResidualBuilder
         total128 += total256.GetLower() + total256.GetUpper();
         sum += (int)Vector128.Sum(total128);
 
-        // Alternate-row sampling represents the full block. Normalize bit depth only after this scaling.
+        // When the traversal reads every second row, the doubled sum estimates the full block. A bit depth normalization comes after this scaling.
         return sum * rowStep;
     }
 
     /// <summary>
     /// Accumulates compound residual moments with the selected sample operator and descending vector widths.
     /// </summary>
+    /// <typeparam name="TSample">The source and prediction sample type.</typeparam>
+    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <param name="source">Source samples beginning at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">The searched prediction samples beginning at the block origin.</param>
+    /// <param name="predictionStride">The searched prediction row stride, in samples.</param>
+    /// <param name="secondPrediction">The fixed second prediction, packed at the block width.</param>
+    /// <param name="mask">The 6-bit weights of the searched prediction, packed at the block width. An empty span selects equal weights.</param>
+    /// <param name="width">The block width, in samples.</param>
+    /// <param name="height">The block height, in samples.</param>
+    /// <param name="sum">The unnormalized signed residual sum.</param>
+    /// <param name="sumOfSquares">The unnormalized squared residual sum.</param>
     private static void GetCompoundMoments<TSample, TOperator>(
         ReadOnlySpan<TSample> source,
         int sourceStride,
@@ -265,7 +287,7 @@ internal static partial class Av1ResidualBuilder
         sum = 0;
         sumOfSquares = 0;
 
-        // The totals follow the bounds of the plain moment traversal: the blend is a sample again.
+        // The blend is a sample of the same range again. The totals therefore have the same overflow bounds as the plain moment traversal.
         Vector512<int> sum512 = Vector512<int>.Zero;
         Vector256<int> sum256 = Vector256<int>.Zero;
         Vector128<int> sum128 = Vector128<int>.Zero;
@@ -326,8 +348,7 @@ internal static partial class Av1ResidualBuilder
                 }
             }
 
-            // The zero padding of the compact loads blends to zero, so it adds a zero difference and a
-            // zero square.
+            // The zero padding of the compact loads blends to zero, so it adds a zero difference and a zero square.
             if (Vector128.IsHardwareAccelerated && x <= width - SearchBlockDimension)
             {
                 Vector128<TSample> searched = LoadSearchRow(predictionRow[x..]);
@@ -340,6 +361,7 @@ internal static partial class Av1ResidualBuilder
                 x += SearchBlockDimension;
             }
 
+            // The 32-bit square lanes fold into the 64-bit total after each row. The squares of a whole high bit depth block can overflow a 32-bit lane.
             squares256 += squares512.GetLower() + squares512.GetUpper();
             squares128 += squares256.GetLower() + squares256.GetUpper();
             sumOfSquares += Vector128.Sum(squares128);

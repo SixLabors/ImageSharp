@@ -116,8 +116,7 @@ internal static class Av1IntraModeEstimator
         skip = true;
         for (int row = 0; row < extent.Height; row += width)
         {
-            // The whole row of blocks is transformed first, so the vector kernels can take several adjacent
-            // blocks per step, as av1_block_yrd() does with aom_hadamard_lp_8x8_dual().
+            // Transform the whole row of blocks first. Then the vector kernels can take several adjacent blocks per step.
             Av1ForwardTransformer.TransformRowForModeEstimation(
                 residual[(row * stride)..],
                 stride,
@@ -131,8 +130,8 @@ internal static class Av1IntraModeEstimator
             {
                 Span<int> coefficients = estimationRowCoefficients.Slice(block * sampleCount, sampleCount);
 
-                // The transform has finished with its scratch before quantization reuses that span.
-                // Estimation keeps its own scan order and never publishes these coefficients to the bitstream.
+                // The row transform is complete, so quantization can reuse its intermediate buffer for the levels.
+                // Estimation keeps its own scan order and never writes these coefficients to the bitstream.
                 ushort endOfBlock = Av1ForwardQuantizer.QuantizeForModeEstimation(
                     coefficients,
                     quantized,
@@ -149,8 +148,8 @@ internal static class Av1IntraModeEstimator
                 endOfBlockCost += BitOperations.Log2((uint)endOfBlock + 1);
                 magnitudeSum += TensorPrimitives.SumOfMagnitudes<int>(quantized);
 
-                // Low-precision reconstruction retains the signed sixteen-bit coefficient representation.
-                // High-bit-depth estimation retains int coefficients and normalizes only after accumulation.
+                // Eight-bit estimation keeps the signed 16-bit coefficient representation.
+                // High-bit-depth estimation keeps int coefficients and normalizes only after accumulation.
                 long squaredError = Av1CoefficientMeasures.SumSquaredDifferences(coefficients, reconstructed, !highBitDepth);
 
                 if (normalizationShift != 0)
@@ -162,10 +161,9 @@ internal static class Av1IntraModeEstimator
             }
         }
 
-        // Quantized magnitudes estimate token rate in four probability units; each transform adds
-        // a logarithmic end-position cost. Prediction and skip syntax are charged by the mode controller.
-        // The rate stays below the invalid-rate value, with space for the mode, vector and chroma rates that the callers add.
-        // Reference: the INT_MAX / 2 clamp of av1_block_yrd() and av1_block_yrd_idtx().
+        // The rate unit is 1/512 bit. Each unit of quantized magnitude costs four bits (shift 11).
+        // Each transform adds log2(end of block + 1) bits for its end position (shift 9). The mode controller adds the prediction and skip rates.
+        // The clamp to int.MaxValue / 2 keeps the rate below the invalid-rate value. It leaves space for the mode, vector and chroma rates that callers add.
         rate = (int)Math.Min(((long)magnitudeSum << 11) + ((long)endOfBlockCost << 9), int.MaxValue / 2);
     }
 }

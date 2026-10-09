@@ -8,14 +8,12 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <content>
-/// Filters the key frames and alternate references of a lookahead golden group and chooses the source each frame
-/// codes from.
+/// Filters the key frames and alternate references of a lookahead golden group and chooses the source each frame codes from.
 /// </content>
 internal static partial class Av1FrameEncoder
 {
     /// <summary>
-    /// Holds the filtered frames of the current golden group. Reference: TEMPORAL_FILTER_INFO with its key-frame and
-    /// alternate-reference buffers, and tf_buf_second_arf.
+    /// Holds the filtered frames of the current golden group: a key frame, an alternate reference and a second alternate reference.
     /// </summary>
     /// <typeparam name="TSample">The sample type.</typeparam>
     /// <typeparam name="TOperator">The filter arithmetic.</typeparam>
@@ -26,8 +24,8 @@ internal static partial class Av1FrameEncoder
         where TSearch : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
     {
         /// <summary>
-        /// The buffer of a filtered key frame, of a filtered alternate reference, and of a filtered second
-        /// alternate reference. Reference: tf_buf[0], tf_buf[1] and tf_buf_second_arf.
+        /// The number of filtered frame buffers. Buffer 0 holds a filtered key frame, buffer 1 a filtered alternate reference, and buffer 2 a
+        /// filtered second alternate reference.
         /// </summary>
         private const int BufferCount = 3;
 
@@ -44,6 +42,17 @@ internal static partial class Av1FrameEncoder
         private readonly int height;
         private readonly bool temporalFilterOn;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LookaheadTemporalFilter{TSample, TOperator, TSearch}"/> class.
+        /// </summary>
+        /// <param name="configuration">The configuration that supplies the memory allocator.</param>
+        /// <param name="width">The frame width in pixels.</param>
+        /// <param name="height">The frame height in pixels.</param>
+        /// <param name="bitDepth">The coded sample depth in bits.</param>
+        /// <param name="colorFormat">The chroma format of the frames.</param>
+        /// <param name="border">The border of each filtered frame buffer in pixels.</param>
+        /// <param name="options">The encoder options.</param>
+        /// <param name="constantQualityIndex">The constant quality quantizer index of the sequence.</param>
         public LookaheadTemporalFilter(
             Configuration configuration,
             int width,
@@ -80,7 +89,7 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Discards the filtered frames of the previous group. Reference: av1_tf_info_reset().
+        /// Discards the filtered frames of the previous group.
         /// </summary>
         public void Reset()
         {
@@ -89,8 +98,7 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Returns the filtered key frame or alternate reference of a group entry, or <see langword="null"/> when the
-        /// entry has none. Reference: av1_tf_info_get_filtered_buf().
+        /// Returns the filtered key frame or alternate reference of a group entry, or <see langword="null"/> when the entry has none.
         /// </summary>
         /// <param name="groupIndex">The group index of the entry.</param>
         /// <returns>The filtered frame.</returns>
@@ -101,9 +109,8 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Filters the key frame and alternate reference of a golden group that are not filtered yet. A frame keeps
-        /// the result of an earlier call for the same lookahead position, even from a trial group. Reference:
-        /// av1_tf_info_filtering().
+        /// Filters the key frame and alternate reference of a golden group that are not filtered yet. A frame keeps the result of an earlier call
+        /// for the same lookahead position, even when that call came from a trial group.
         /// </summary>
         /// <param name="lookahead">The lookahead.</param>
         /// <param name="secondPass">The frame-level decisions.</param>
@@ -156,9 +163,8 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Chooses the source that a coded frame uses: its filtered frame for a key frame with visible noise, an
-        /// alternate reference and a second alternate reference, and the lookahead frame otherwise. It also decides
-        /// whether the frame can be shown later. Reference: denoise_and_encode().
+        /// Chooses the source that a coded frame uses. A key frame with visible noise, an alternate reference and a second alternate reference
+        /// use their filtered frame. Other frames use the lookahead frame. The method also decides whether the frame can be shown later.
         /// </summary>
         /// <param name="lookahead">The lookahead.</param>
         /// <param name="secondPass">The frame-level decisions.</param>
@@ -204,15 +210,14 @@ internal static partial class Av1FrameEncoder
                 return source;
             }
 
-            // av1_rc_pick_q_and_bounds() before the filter decisions.
+            // The rate control picks the quantizer of the frame first, because the decision to show the filtered frame reads it.
             int qIndex = secondPass.PickQIndex(frame.GroupIndex, screenContent);
             if (frame.UpdateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Alternate)
             {
                 int buffer = this.FindFilteredBuffer(frame.GroupIndex);
                 if (buffer < 0)
                 {
-                    // Without a filtered frame an alternate reference is not shown again. Reference: the
-                    // show_existing_alt_ref store of denoise_and_encode() that follows a NULL filtered buffer.
+                    // Without a filtered frame, the encoder does not show an alternate reference again.
                     if (!frame.IsKeyFrame)
                     {
                         secondPass.ShowExistingAlternateReference = false;
@@ -233,8 +238,8 @@ internal static partial class Av1FrameEncoder
                 return this.buffers[buffer];
             }
 
-            // The second alternate reference is filtered when it is coded, and it is always shown from its filtered
-            // frame. Reference: the is_second_arf branch of denoise_and_encode().
+            // The filter processes the second alternate reference when the encoder codes it. The encoder always shows this frame from its filtered
+            // frame.
             this.Filter(
                 2,
                 lookahead,
@@ -262,9 +267,8 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Returns the key-frame or alternate-reference buffer that holds the filtered frame of a group entry, the
-        /// last one when both do, or -1 when the filter is off or neither does. Reference: the buffer loop of
-        /// av1_tf_info_get_filtered_buf().
+        /// Returns the key-frame or alternate-reference buffer that holds the filtered frame of a group entry. When both buffers hold it, the
+        /// method returns the alternate-reference buffer. When the filter is off or neither buffer holds it, the method returns -1.
         /// </summary>
         /// <param name="groupIndex">The group index of the entry.</param>
         /// <returns>The buffer index.</returns>
@@ -287,6 +291,19 @@ internal static partial class Av1FrameEncoder
             return found;
         }
 
+        /// <summary>
+        /// Filters one lookahead frame into a buffer and records the group entry that the buffer now holds.
+        /// </summary>
+        /// <param name="buffer">The buffer that receives the filtered frame.</param>
+        /// <param name="lookahead">The lookahead.</param>
+        /// <param name="lookaheadIndex">The lookahead position of the frame to filter.</param>
+        /// <param name="groupIndex">The group index of the filtered frame.</param>
+        /// <param name="currentIndex">The group index of the frame that the encoder codes at the time of the call.</param>
+        /// <param name="secondPass">The frame-level decisions.</param>
+        /// <param name="allowHighPrecisionMotion">The high precision flag the encoder holds.</param>
+        /// <param name="forceIntegerMotion">The integer motion flag of the last coded frame.</param>
+        /// <param name="allowScreenContentTools">The screen content flag the encoder holds.</param>
+        /// <param name="motionSettings">The motion search settings the encoder holds.</param>
         private void Filter(
             int buffer,
             Av1LookaheadQueue<TSample> lookahead,

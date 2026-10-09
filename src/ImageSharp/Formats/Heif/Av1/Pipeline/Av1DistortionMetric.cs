@@ -4,17 +4,17 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// The distortion metric of rate-distortion decisions. Reference: aom_dist_metric.
+/// The distortion metric of rate-distortion decisions.
 /// </summary>
 internal enum Av1DistortionMetric
 {
     /// <summary>
-    /// The plain squared error. Reference: AOM_DIST_METRIC_PSNR.
+    /// The plain squared error.
     /// </summary>
     Psnr,
 
     /// <summary>
-    /// The squared error weighted by the quantization matrices. Reference: AOM_DIST_METRIC_QM_PSNR.
+    /// The squared error weighted by the quantization matrices.
     /// </summary>
     QuantizationMatrixPsnr,
 }

@@ -10,7 +10,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
 /// Computes the Sobel gradients and histogram bins of the intra-mode gradient histogram.
-/// Reference: the per-sample gradient of lowbd_generate_hog() and highbd_generate_hog(), and get_hist_bin_idx().
 /// </summary>
 internal static class Av1GradientHistogram
 {
@@ -37,9 +36,9 @@ internal static class Av1GradientHistogram
     /// <param name="stride">The block row stride, which is also its width.</param>
     /// <param name="row">The interior row, at least one and at most two below the block height.</param>
     /// <param name="magnitudes">Receives |dx| + |dy| of each of the width minus two interior samples.</param>
-    /// <param name="bins">Receives each interior sample's bin, or <see cref="VerticalBin"/> when dx is zero.</param>
-    /// <param name="horizontal">Scratch for the horizontal gradients.</param>
-    /// <param name="vertical">Scratch for the vertical gradients.</param>
+    /// <param name="bins">Receives the bin of each interior sample, or <see cref="VerticalBin"/> when dx is zero.</param>
+    /// <param name="horizontal">Receives the horizontal gradient of each interior sample.</param>
+    /// <param name="vertical">Receives the vertical gradient of each interior sample.</param>
     public static void ComputeRow(
         ReadOnlySpan<short> block,
         int stride,
@@ -59,17 +58,17 @@ internal static class Av1GradientHistogram
             vertical);
 
     /// <summary>
-    /// Computes the gradient magnitude and histogram bin of every interior sample of one row from the row and the rows
-    /// above and below it, which need not be adjacent in memory.
+    /// Computes the gradient magnitude and histogram bin of every interior sample of one row from the row and the rows above and below it.
+    /// The three rows do not have to be adjacent in memory.
     /// </summary>
     /// <param name="aboveRow">The row above.</param>
     /// <param name="currentRow">The row whose interior samples are measured.</param>
     /// <param name="belowRow">The row below.</param>
     /// <param name="width">The number of samples in each row.</param>
     /// <param name="magnitudes">Receives |dx| + |dy| of each of the width minus two interior samples.</param>
-    /// <param name="bins">Receives each interior sample's bin, or <see cref="VerticalBin"/> when dx is zero.</param>
-    /// <param name="horizontal">Scratch for the horizontal gradients.</param>
-    /// <param name="vertical">Scratch for the vertical gradients.</param>
+    /// <param name="bins">Receives the bin of each interior sample, or <see cref="VerticalBin"/> when dx is zero.</param>
+    /// <param name="horizontal">Receives the horizontal gradient of each interior sample.</param>
+    /// <param name="vertical">Receives the vertical gradient of each interior sample.</param>
     public static void ComputeRow(
         ReadOnlySpan<short> aboveRow,
         ReadOnlySpan<short> currentRow,
@@ -88,8 +87,8 @@ internal static class Av1GradientHistogram
         ref short horizontalBase = ref MemoryMarshal.GetReference(horizontal);
         ref short verticalBase = ref MemoryMarshal.GetReference(vertical);
 
-        // A Sobel sum is at most four twelve-bit samples and a magnitude two such sums, so both fit in sixteen-bit
-        // lanes. Lane i holds interior column i + 1, whose left, centre and right neighbours start at i, i + 1, i + 2.
+        // A Sobel sum is at most four 12-bit samples and a magnitude is two such sums, so both fit in 16-bit lanes.
+        // Lane i holds interior column i + 1. Its left, center and right neighbors start at i, i + 1 and i + 2.
         int column = 0;
         if (Vector512.IsHardwareAccelerated)
         {
@@ -162,9 +161,9 @@ internal static class Av1GradientHistogram
     /// Finds the histogram bin of each gradient: the first bin whose threshold is at least the Q16 ratio dy / dx.
     /// </summary>
     /// <remarks>
-    /// The ratio is the truncated integer quotient (dy &lt;&lt; 16) / dx. Both operands are exact in a double, the
-    /// divisor is below 2^15 and the quotient below 2^31, so the correctly rounded double quotient truncates to the
-    /// integer quotient. The bin is then the number of thresholds below the ratio.
+    /// The ratio is the truncated integer quotient (dy &lt;&lt; 16) / dx. Both operands are exact in a double.
+    /// The divisor is below 2^15 and the quotient is below 2^31. As a result, the correctly rounded double quotient truncates to the integer quotient.
+    /// The bin is then the number of thresholds below the ratio.
     /// </remarks>
     /// <param name="horizontal">The horizontal gradients.</param>
     /// <param name="vertical">The vertical gradients.</param>
@@ -177,6 +176,10 @@ internal static class Av1GradientHistogram
         ReadOnlySpan<int> thresholds = Thresholds;
         int count = bins.Length;
         int index = 0;
+
+        // Each 64-bit lane holds one sample. GreaterThan sets a lane to -1 where the ratio is above the threshold, so subtracting
+        // the mask counts the thresholds below the ratio. A zero dx gives an undefined ratio, and the select replaces that lane
+        // with VerticalBin. Every bin fits in 32 bits, so the narrowing to int keeps the value.
         if (Vector512.IsHardwareAccelerated)
         {
             for (; index <= count - Vector512<long>.Count; index += Vector512<long>.Count)

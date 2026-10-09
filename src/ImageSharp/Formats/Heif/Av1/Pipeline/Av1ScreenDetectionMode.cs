@@ -4,18 +4,17 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// The screen content detection mode. Reference: aom_screen_detection_mode.
+/// The screen content detection mode.
 /// </summary>
 internal enum Av1ScreenDetectionMode
 {
     /// <summary>
-    /// The standard detection. Reference: AOM_SCREEN_DETECTION_STANDARD.
+    /// The standard detection.
     /// </summary>
     Standard,
 
     /// <summary>
-    /// The detection that also recognizes anti-aliased text and graphics. Reference:
-    /// AOM_SCREEN_DETECTION_ANTIALIASING_AWARE.
+    /// The detection that also recognizes anti-aliased text and graphics.
     /// </summary>
     AntialiasingAware,
 }

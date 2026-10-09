@@ -4,23 +4,22 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// The delta quantizer mode of the encoder. Reference: DELTAQ_MODE.
+/// The delta quantizer mode of the encoder.
 /// </summary>
 internal enum Av1DeltaQMode
 {
     /// <summary>
-    /// The frame quantizer applies to every superblock. Reference: NO_DELTA_Q.
+    /// The frame quantizer applies to every superblock.
     /// </summary>
     None,
 
     /// <summary>
-    /// The quantizer of each superblock follows its importance in the temporal dependency model, when the model has
-    /// statistics for the frame. Reference: DELTA_Q_OBJECTIVE.
+    /// The quantizer of each superblock follows its importance in the temporal dependency model, when the model has statistics for the frame.
     /// </summary>
     Objective,
 
     /// <summary>
-    /// The quantizer of each superblock follows its variance. Reference: DELTA_Q_VARIANCE_BOOST.
+    /// The quantizer of each superblock follows its variance.
     /// </summary>
     VarianceBoost,
 }

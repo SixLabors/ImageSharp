@@ -16,14 +16,11 @@ internal static partial class Av1PaletteKMeans
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The distance is the absolute difference, not its square, which is what the reference
-    /// compares. Squaring is left to the caller, which needs the squares only for the total
-    /// distortion and not for the comparison.
+    /// The distance is the absolute difference, not its square. The absolute difference gives the same order as the square.
+    /// The caller squares the distance, because it needs the squares only for the total distortion.
     /// </para>
     /// <para>
     /// The comparison is strict, so a sample equally close to two colors keeps the first of them.
-    /// The reference reaches the same choice, because its scalar loop replaces the best color only
-    /// on a strictly smaller distance.
     /// </para>
     /// </remarks>
     private readonly struct NearestOperator : IAv1PaletteNearestOperator
@@ -54,16 +51,16 @@ internal static partial class Av1PaletteKMeans
             ReadOnlySpan<short> centroids,
             out Vector128<short> distance)
         {
-            // Each lane is one independent sample. A palette color is broadcast to every lane, so
-            // the sweep is eight independent searches that share one sequence of comparisons.
+            // Each lane is one independent sample. The code broadcasts a palette color to every lane, so the sweep is
+            // eight independent searches that share one sequence of comparisons.
             distance = Vector128.Abs(sample - Vector128.Create(centroids[0]));
             Vector128<short> index = Vector128<short>.Zero;
             for (int candidate = 1; candidate < centroids.Length; candidate++)
             {
                 Vector128<short> current = Vector128.Abs(sample - Vector128.Create(centroids[candidate]));
 
-                // The mask is all ones only where the new color is strictly nearer, so a tie keeps
-                // the color already held and matches the scalar comparison.
+                // The mask is all ones only where the new color is strictly nearer, so a tie keeps the color already held.
+                // This matches the scalar comparison.
                 Vector128<short> replace = Vector128.LessThan(current, distance);
                 distance = Vector128.ConditionalSelect(replace, current, distance);
                 index = Vector128.ConditionalSelect(replace, Vector128.Create((short)candidate), index);
@@ -79,8 +76,7 @@ internal static partial class Av1PaletteKMeans
             ReadOnlySpan<short> centroids,
             out Vector256<short> distance)
         {
-            // Sixteen independent samples, with the lane layout and the arithmetic of the 128-bit
-            // overload.
+            // The vector holds sixteen independent samples. The lane layout and the arithmetic are the same as in the 128-bit overload.
             distance = Vector256.Abs(sample - Vector256.Create(centroids[0]));
             Vector256<short> index = Vector256<short>.Zero;
             for (int candidate = 1; candidate < centroids.Length; candidate++)
@@ -101,9 +97,8 @@ internal static partial class Av1PaletteKMeans
             ReadOnlySpan<short> centroids,
             out Vector512<short> distance)
         {
-            // Thirty-two independent samples. The comparison produces an all-ones or all-zero lane
-            // mask on every supported path, including AVX-512, where the JIT lowers the mask
-            // register back to a vector for the following select.
+            // The vector holds thirty-two independent samples. The comparison gives an all-ones or all-zero lane mask on
+            // every supported path. On AVX-512, the JIT converts the mask register back to a vector for the select.
             distance = Vector512.Abs(sample - Vector512.Create(centroids[0]));
             Vector512<short> index = Vector512<short>.Zero;
             for (int candidate = 1; candidate < centroids.Length; candidate++)

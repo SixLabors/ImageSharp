@@ -8,40 +8,38 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// The motion vector statistics of the last coded inter frame, and the network that chooses the motion vector
-/// precision of the next inter frame from them. Reference: MV_STATS, av1_collect_mv_stats(), get_smart_mv_prec() and
-/// av1_pick_and_set_high_precision_mv().
+/// The motion vector statistics of the last coded inter frame.
+/// A small neural network reads these statistics and chooses the motion vector precision of the next inter frame.
 /// </summary>
 internal sealed partial class Av1MotionVectorStatistics
 {
     /// <summary>
-    /// The number of network features. Reference: MV_PREC_FEATURE_SIZE.
+    /// The number of network features.
     /// </summary>
     private const int FeatureCount = 18;
 
     /// <summary>
-    /// The quantizer below which a frame uses eighth-sample vectors without statistics. Reference:
-    /// HIGH_PRECISION_MV_QTHRESH.
+    /// The quantizer below which a frame uses eighth-sample vectors without statistics.
     /// </summary>
     private const int HighPrecisionQThreshold = 128;
 
     /// <summary>
-    /// The number of vector joint types. Reference: MV_JOINTS.
+    /// The number of vector joint types.
     /// </summary>
     private const int JointCount = 4;
 
     /// <summary>
-    /// The default motion vector distributions, read by a frame without a primary reference.
+    /// The default motion vector distributions. A frame without a primary reference reads them.
     /// </summary>
     private static readonly Av1MotionVectorContext DefaultContext = new();
 
     /// <summary>
-    /// The distributions the collection prices vectors with. Every tile restarts them from the frame context.
+    /// The distributions that the collection prices vectors with. Every tile restarts them from the frame context.
     /// </summary>
     private readonly Av1MotionVectorContext context = new();
 
     /// <summary>
-    /// The number of vectors of each joint type. Reference: mv_joint_count.
+    /// The number of vectors of each joint type.
     /// </summary>
     private readonly int[] jointCounts = new int[JointCount];
 
@@ -67,7 +65,7 @@ internal sealed partial class Av1MotionVectorStatistics
     private int diagonalTexture;
 
     /// <summary>
-    /// Gets the network input means. Reference: av1_mv_prec_mean.
+    /// Gets the network input means. The network subtracts each mean from its feature.
     /// </summary>
     private static ReadOnlySpan<float> FeatureMeans =>
     [
@@ -80,7 +78,7 @@ internal sealed partial class Av1MotionVectorStatistics
     ];
 
     /// <summary>
-    /// Gets the network input deviations. Reference: av1_mv_prec_std.
+    /// Gets the network input deviations. The network divides each centered feature by its deviation.
     /// </summary>
     private static ReadOnlySpan<float> FeatureDeviations =>
     [
@@ -93,7 +91,7 @@ internal sealed partial class Av1MotionVectorStatistics
     ];
 
     /// <summary>
-    /// Gets the hidden layer weights, one row of eighteen weights per node. Reference: av1_mv_prec_nn_weights_layer_0.
+    /// Gets the hidden layer weights, one row of eighteen weights per node.
     /// </summary>
     private static ReadOnlySpan<float> HiddenWeights =>
     [
@@ -196,7 +194,7 @@ internal sealed partial class Av1MotionVectorStatistics
     ];
 
     /// <summary>
-    /// Gets the hidden layer biases. Reference: av1_mv_prec_nn_bias_layer_0.
+    /// Gets the hidden layer biases, one per node.
     /// </summary>
     private static ReadOnlySpan<float> HiddenBiases =>
     [
@@ -211,7 +209,7 @@ internal sealed partial class Av1MotionVectorStatistics
     ];
 
     /// <summary>
-    /// Gets the output layer weights. Reference: av1_mv_prec_nn_weights_layer_1.
+    /// Gets the output layer weights, one per hidden node.
     /// </summary>
     private static ReadOnlySpan<float> OutputWeights =>
     [
@@ -231,12 +229,11 @@ internal sealed partial class Av1MotionVectorStatistics
     private static ReadOnlySpan<float> OutputBiases => [-0.341771735378258f];
 
     /// <summary>
-    /// Chooses whether an inter frame codes eighth-sample vectors: below the quantizer threshold, or by the network
-    /// over the statistics of the last coded frame when the speed features read them. Reference:
-    /// av1_pick_and_set_high_precision_mv() with av1_frame_allows_smart_mv().
+    /// Chooses whether an inter frame codes eighth-sample vectors. A frame below the quantizer threshold uses them.
+    /// When the speed settings read the statistics of the last coded frame and these statistics are valid, the network makes the choice.
     /// </summary>
     /// <param name="qIndex">The frame quantizer index.</param>
-    /// <param name="readsLastFrameData">Whether the speed features select LAST_MV_DATA.</param>
+    /// <param name="readsLastFrameData">Whether the speed settings read the vector statistics of the last coded frame.</param>
     /// <param name="frameAllowsSmartPrecision">Whether the frame is neither intra-only nor an overlay.</param>
     /// <param name="orderHint">The order hint of the frame.</param>
     /// <param name="frameSize">The frame dimensions.</param>
@@ -253,8 +250,7 @@ internal sealed partial class Av1MotionVectorStatistics
     }
 
     /// <summary>
-    /// Discards the statistics of an earlier frame before a frame is coded. Reference: the av1_zero(cpi->mv_stats) of
-    /// encode_with_recode_loop(), which a valid set of statistics reaches after every coded frame.
+    /// Discards the valid statistics of an earlier frame before a frame is coded. Statistics that are not yet valid are kept.
     /// </summary>
     public void DiscardIfValid()
     {
@@ -291,22 +287,19 @@ internal sealed partial class Av1MotionVectorStatistics
     }
 
     /// <summary>
-    /// Restarts the vector distributions of the collection from the frame context at the start of a tile. Reference:
-    /// the tctx = *cm->fc copy of av1_collect_mv_stats().
+    /// Restarts the vector distributions of the collection from the frame context at the start of a tile.
     /// </summary>
-    /// <param name="frameContext">The motion vector distributions the frame starts from, or <see langword="null"/>
-    /// for the defaults.</param>
+    /// <param name="frameContext">The motion vector distributions that the frame starts from, or <see langword="null"/> for the defaults.</param>
     public void BeginTile(Av1MotionVectorContext? frameContext) => this.context.CopyFrom(frameContext ?? DefaultContext);
 
     /// <summary>
-    /// Counts an intra block of an inter frame. Reference: the intra branch of collect_mv_stats_b().
+    /// Counts an intra block of an inter frame.
     /// </summary>
     public void CollectIntraBlock() => this.intraCount++;
 
     /// <summary>
-    /// Adds the statistics of an inter block, in coding order: the new vectors are priced against the adapting
-    /// distributions, and the block is kept for the texture measure. Reference: collect_mv_stats_b() with
-    /// get_ref_mv_for_mv_stats().
+    /// Adds the statistics of an inter block, in coding order. The new vectors are priced against the adapting distributions.
+    /// The block is kept for the texture measure.
     /// </summary>
     /// <param name="mode">The prediction mode.</param>
     /// <param name="isCompound">Whether the block predicts from two references.</param>
@@ -326,6 +319,7 @@ internal sealed partial class Av1MotionVectorStatistics
         Point origin,
         Av1BlockSize blockSize)
     {
+        // Each new vector adds its rates. Each vector that the mode takes from the reference list counts as a default vector.
         this.interCount++;
         if (mode is Av1PredictionMode.NewMotionVector or Av1PredictionMode.NewNewMotionVector)
         {
@@ -354,8 +348,8 @@ internal sealed partial class Av1MotionVectorStatistics
     }
 
     /// <summary>
-    /// Completes the statistics of a coded frame: the source texture of its inter blocks, its quantizer and its order
-    /// hint. Reference: the texture sums of collect_mv_stats_b() and the end of av1_collect_mv_stats().
+    /// Completes the statistics of a coded frame with the source texture of its inter blocks, its quantizer and its order hint.
+    /// The statistics are then valid.
     /// </summary>
     /// <typeparam name="TSample">The sample type.</typeparam>
     /// <typeparam name="TOperator">The texture operator of the sample type.</typeparam>
@@ -367,6 +361,7 @@ internal sealed partial class Av1MotionVectorStatistics
         where TSample : unmanaged
         where TOperator : struct, ITextureOperator<TSample>
     {
+        // The shift scales high bit depth gradients down to the 8-bit range.
         int shift = bitDepth - 8;
         ReadOnlySpan<TSample> lumaSamples = luma.Samples;
         foreach (TextureBlock block in this.textureBlocks)
@@ -390,8 +385,7 @@ internal sealed partial class Av1MotionVectorStatistics
     }
 
     /// <summary>
-    /// Evaluates the network over the normalized statistics of the last coded inter frame and chooses the precision
-    /// from the sign of its rounded score.
+    /// Evaluates the network over the normalized statistics of the last coded inter frame. The sign of the score chooses the precision.
     /// </summary>
     /// <param name="qIndex">The quantizer index of the next frame.</param>
     /// <param name="orderHint">The order hint of the next frame.</param>
@@ -399,6 +393,7 @@ internal sealed partial class Av1MotionVectorStatistics
     /// <returns><see langword="true"/> when the next frame codes eighth-sample vectors.</returns>
     private bool GetSmartPrecision(int qIndex, int orderHint, Size frameSize)
     {
+        // The counts, rates and textures are per sample of the frame area, so the features do not depend on the frame size.
         float area = frameSize.Width * frameSize.Height;
         Span<float> features = stackalloc float[FeatureCount];
         features[0] = qIndex;
@@ -433,17 +428,19 @@ internal sealed partial class Av1MotionVectorStatistics
     }
 
     /// <summary>
-    /// Adds the rates and counts of one new vector against its reference, pricing it at the frame precision and at the
-    /// precisions without and with the eighth-sample bit. Reference: keep_one_mv_stat().
+    /// Adds the rates and counts of one new vector against its reference vector.
+    /// The vector is priced at the frame precision, and at the precisions without and with the eighth-sample bit.
     /// </summary>
+    /// <param name="reference">The reference vector that the new vector is coded against.</param>
+    /// <param name="vector">The new vector.</param>
     private void KeepMotionVector(Av1MotionVector reference, Av1MotionVector vector)
     {
         int row = vector.Row - reference.Row;
         int column = vector.Column - reference.Column;
         int joint = GetJoint(row, column);
 
-        // The eighth-sample difference is the coded one; the quarter-sample difference truncates each component to
-        // even units when the frame codes eighth-sample vectors.
+        // The coded difference is the eighth-sample difference. When the frame codes eighth-sample vectors,
+        // the quarter-sample difference truncates each component toward zero to even units.
         int lowRow = this.useHighPrecision ? (row / 2) * 2 : row;
         int lowColumn = this.useHighPrecision ? (column / 2) * 2 : column;
         int lowJoint = GetJoint(lowRow, lowColumn);
@@ -463,10 +460,12 @@ internal sealed partial class Av1MotionVectorStatistics
     }
 
     /// <summary>
-    /// Adds the rates of one vector component. The quarter-sample rate leaves out the eighth-sample bit of the coded
-    /// component and is zero when truncation empties the component. Reference: the component loop of
-    /// keep_one_mv_stat().
+    /// Adds the rates of one vector component. The quarter-sample rate leaves out the eighth-sample bit of the coded component.
+    /// The quarter-sample rate is zero when truncation empties the component.
     /// </summary>
+    /// <param name="value">The coded component difference.</param>
+    /// <param name="lowValue">The component difference truncated to quarter-sample precision.</param>
+    /// <param name="component">The distributions of the component.</param>
     private void KeepComponent(int value, int lowValue, Av1MotionVectorContext.Component component)
     {
         if (value == 0)
@@ -481,11 +480,15 @@ internal sealed partial class Av1MotionVectorStatistics
     }
 
     /// <summary>
-    /// Prices and adapts the symbols of one nonzero component, and counts its last bit. Reference:
-    /// keep_one_comp_stat().
+    /// Prices and adapts the symbols of one nonzero component, and counts its last bit.
     /// </summary>
+    /// <param name="value">The nonzero component difference.</param>
+    /// <param name="component">The distributions of the component.</param>
+    /// <param name="highPrecisionRate">Receives the rate of the eighth-sample bit, or zero when the frame does not code it.</param>
+    /// <returns>The total rate of the component symbols.</returns>
     private int KeepComponentRates(int value, Av1MotionVectorContext.Component component, out int highPrecisionRate)
     {
+        // The offset holds the integer part from bit 3 up, the two fraction bits in bits 1 and 2, and the eighth-sample bit in bit 0.
         int sign = value < 0 ? 1 : 0;
         int magnitude = sign != 0 ? -value : value;
         int magnitudeClass = GetMagnitudeClass(magnitude - 1, out int offset);
@@ -536,16 +539,22 @@ internal sealed partial class Av1MotionVectorStatistics
     }
 
     /// <summary>
-    /// Gets the joint type of a vector difference. Reference: av1_get_mv_joint().
+    /// Gets the joint type of a vector difference.
     /// </summary>
+    /// <param name="row">The row difference.</param>
+    /// <param name="column">The column difference.</param>
+    /// <returns>The joint type. Bit 1 is set for a nonzero row, and bit 0 is set for a nonzero column.</returns>
     private static int GetJoint(int row, int column) => (row != 0 ? 2 : 0) | (column != 0 ? 1 : 0);
 
     /// <summary>
-    /// Gets the magnitude class of a component magnitude less one, and its offset from the class base. Reference:
-    /// av1_get_mv_class().
+    /// Gets the magnitude class of a component magnitude less one, and its offset from the class base.
     /// </summary>
+    /// <param name="value">The component magnitude less one, in eighth samples.</param>
+    /// <param name="offset">Receives the offset from the class base.</param>
+    /// <returns>The magnitude class, from 0 to 10.</returns>
     private static int GetMagnitudeClass(int value, out int offset)
     {
+        // Class 0 holds values below 8 eighth samples. Class c above 0 starts at 2^(c + 3) eighth samples.
         const int MaximumClass = 10;
         int wholeSamples = value >> 3;
         int magnitudeClass = wholeSamples == 0 ? 0 : Math.Min(Av1Math.MostSignificantBit((uint)wholeSamples), MaximumClass);
@@ -558,14 +567,25 @@ internal sealed partial class Av1MotionVectorStatistics
     /// </summary>
     private readonly struct TextureBlock
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TextureBlock"/> struct.
+        /// </summary>
+        /// <param name="origin">The luma origin of the block.</param>
+        /// <param name="size">The block size.</param>
         public TextureBlock(Point origin, Av1BlockSize size)
         {
             this.Origin = origin;
             this.Size = size;
         }
 
+        /// <summary>
+        /// Gets the luma origin of the block.
+        /// </summary>
         public Point Origin { get; }
 
+        /// <summary>
+        /// Gets the block size.
+        /// </summary>
         public Av1BlockSize Size { get; }
     }
 }

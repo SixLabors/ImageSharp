@@ -23,8 +23,8 @@ internal static class Av1QuantizationLookup
     // it by two bits to preserve numeric range. Quantization applies the same reduction to its step, so every
     // reconstructed transform still reaches the inverse transform in Q3.
 
-    // Encoder rate decisions intentionally retain bit-depth-specific quantizer values. The minimum table value is
-    // four because a smaller step would round to zero during fixed-point quantization.
+    // Encoder rate decisions keep the quantizer values of each bit depth. The minimum table value is four,
+    // because a smaller step rounds to zero during fixed-point quantization.
 
     /// <summary>
     /// The Q3 AC dequantization values for 8-bit samples, indexed by quantizer index.
@@ -153,31 +153,30 @@ internal static class Av1QuantizationLookup
     /// The Q16 reciprocals of the dequantization values, in the table order DC 8, 10, 12 then AC 8, 10, 12.
     /// </summary>
     /// <remarks>
-    /// The fast quantizer multiplies by <c>(1 &lt;&lt; 16) / dequantizer</c>. libaom computes that reciprocal once for
-    /// each quantizer index in <c>av1_build_quantizer</c>; a division for each transform block would cost more
-    /// than the quantization itself.
+    /// The fast quantizer multiplies by <c>(1 &lt;&lt; 16) / dequantizer</c>. The table holds that reciprocal once for each quantizer index,
+    /// because a division for each transform block costs more than the quantization itself.
     /// </remarks>
     private static readonly int[] Reciprocals = BuildReciprocals();
 
     /// <summary>
-    /// The regular-quantizer multipliers of <c>invert_quant</c>, in the same table order as <see cref="Reciprocals"/>.
+    /// The regular-quantizer multipliers, in the same table order as <see cref="Reciprocals"/>.
     /// </summary>
     private static readonly int[] RegularQuantizers = BuildRegularQuantizers(out RegularShifts);
 
     /// <summary>
-    /// The regular-quantizer shifts of <c>invert_quant</c>, in the same table order as <see cref="Reciprocals"/>.
+    /// The regular-quantizer shifts, in the same table order as <see cref="Reciprocals"/>.
     /// </summary>
     private static readonly int[] RegularShifts;
 
     /// <summary>
-    /// Converts a quantizer on libaom's external zero-through-63 scale to an AV1 quantizer index.
+    /// Converts a quantizer on the external zero-through-63 encoder scale to an AV1 quantizer index.
     /// </summary>
     /// <param name="quantizer">The external quantizer.</param>
     /// <returns>The corresponding AV1 quantizer index.</returns>
     public static int GetQIndex(int quantizer)
     {
-        // Four qindex steps separate the regular entries. The final two entries use 249 and 255 so the external
-        // scale reaches AV1's complete qindex range without changing the spacing of its first 62 entries.
+        // Four qindex steps separate the regular entries. The final two entries use 249 and 255. Then the external scale reaches
+        // the complete AV1 qindex range without a change to the spacing of its first 62 entries.
         if (quantizer <= LastLinearQuantizer)
         {
             return quantizer * LinearQuantizerScale;
@@ -245,7 +244,7 @@ internal static class Av1QuantizationLookup
     /// <returns>The Q3 DC dequantization value.</returns>
     public static short GetDcQuant(int qIndex, int dcDeltaQ, Av1BitDepth bitDepth)
     {
-        // Plane deltas may move beyond the signaled 8-bit quantizer domain, where AV1 requires endpoint clamping.
+        // Plane deltas can move beyond the signaled 8-bit quantizer domain, where AV1 requires endpoint clamping.
         int qClamped = Av1Math.Clamp(qIndex + dcDeltaQ, 0, Av1Constants.MaxQ);
         switch (bitDepth)
         {
@@ -270,7 +269,7 @@ internal static class Av1QuantizationLookup
     /// <returns>The Q3 AC dequantization value.</returns>
     public static short GetAcQuant(int qIndex, int dcDeltaQ, Av1BitDepth bitDepth)
     {
-        // Plane deltas may move beyond the signaled 8-bit quantizer domain, where AV1 requires endpoint clamping.
+        // Plane deltas can move beyond the signaled 8-bit quantizer domain, where AV1 requires endpoint clamping.
         int qClamped = Av1Math.Clamp(qIndex + dcDeltaQ, 0, Av1Constants.MaxQ);
         switch (bitDepth)
         {
@@ -314,7 +313,7 @@ internal static class Av1QuantizationLookup
     }
 
     /// <summary>
-    /// Computes the <c>invert_quant</c> multiplier and shift of every DC and AC dequantization value.
+    /// Computes the regular-quantizer multiplier and shift of every DC and AC dequantization value.
     /// </summary>
     /// <param name="shifts">The shifts, in the same order as the returned multipliers.</param>
     /// <returns>The multipliers in the table order DC 8, 10, 12 then AC 8, 10, 12.</returns>
@@ -383,8 +382,8 @@ internal static class Av1QuantizationLookup
 
             if (quantization.IsUsingQMatrix)
             {
-                // Lossless segments use the identity matrix level; lossy segments inherit the
-                // plane-specific levels signaled by the frame quantization parameters.
+                // Lossless segments use the flat matrix level 15. Lossy segments inherit the plane levels that the frame
+                // quantization parameters signal.
                 segmentation.QMLevel[(int)Av1Plane.Y][segmentId] = frameHeader.LosslessArray[segmentId]
                     ? 15
                     : quantization.QMatrix[(int)Av1Plane.Y];
@@ -401,7 +400,5 @@ internal static class Av1QuantizationLookup
 
         frameHeader.AllLossless = frameHeader.CodedLossless &&
             frameHeader.FrameSize.FrameWidth == frameHeader.FrameSize.SuperResolutionUpscaledWidth;
-
-        // Header syntax and tile quantization now observe the same derived frame state.
     }
 }

@@ -17,16 +17,14 @@ internal static partial class Av1PaletteKMeans2D
     /// </summary>
     /// <remarks>
     /// <para>
-    /// A squared distance reaches about 33 million for twelve-bit samples, so the comparison runs
-    /// on thirty-two bit lanes. The samples arrive as sixteen-bit lanes, so each vector overload
-    /// interleaves the two plane differences into a lower half and an upper half, squares and adds
-    /// each pair with one multiply-add, and searches the two halves side by side. The index lanes
-    /// stay sixteen bits wide, because a palette holds at most eight colors, and the traversal
-    /// narrows them to bytes.
+    /// A squared distance reaches about 33 million for twelve-bit samples, so the comparison runs on thirty-two-bit lanes.
+    /// The samples arrive as sixteen-bit lanes. Each vector overload interleaves the two plane differences into a lower half
+    /// and an upper half. One multiply-add squares and adds the differences of each pair. Then the overload searches the two
+    /// halves side by side. The search keeps the indices in thirty-two-bit lanes and packs them to sixteen bits at the end.
+    /// A palette holds at most eight colors, so the pack is exact, and the traversal narrows the indices to bytes.
     /// </para>
     /// <para>
-    /// The comparison is strict, so a pair equally close to two colors keeps the first of them,
-    /// which is what the scalar reference does.
+    /// The comparison is strict, so a pair equally close to two colors keeps the first of them.
     /// </para>
     /// </remarks>
     private readonly struct NearestOperator : IAv1Palette2DNearestOperator
@@ -69,8 +67,8 @@ internal static partial class Av1PaletteKMeans2D
             out Vector128<int> lower,
             out Vector128<int> upper)
         {
-            // Each lane is one independent chroma pair. A palette color is broadcast to every lane,
-            // so the sweep is eight independent searches that share one sequence of comparisons.
+            // Each lane is one independent chroma pair. The code broadcasts a palette color to every lane, so the sweep is
+            // eight independent searches that share one sequence of comparisons.
             Distance(first, second, firstCentroids[0], secondCentroids[0], out lower, out upper);
             Vector128<int> indexLower = Vector128<int>.Zero;
             Vector128<int> indexUpper = Vector128<int>.Zero;
@@ -84,8 +82,8 @@ internal static partial class Av1PaletteKMeans2D
                     out Vector128<int> currentLower,
                     out Vector128<int> currentUpper);
 
-                // The mask is all ones only where the new color is strictly nearer, so a tie keeps
-                // the color already held and matches the scalar comparison.
+                // The mask is all ones only where the new color is strictly nearer, so a tie keeps the color already held.
+                // This matches the scalar comparison. The minimum gives the same distance as a select with this mask.
                 Vector128<int> replaceLower = Vector128.LessThan(currentLower, lower);
                 Vector128<int> replaceUpper = Vector128.LessThan(currentUpper, upper);
                 lower = Vector128.Min(lower, currentLower);
@@ -94,8 +92,8 @@ internal static partial class Av1PaletteKMeans2D
                 indexUpper = Vector128.ConditionalSelect(replaceUpper, Vector128.Create(candidate), indexUpper);
             }
 
-            // The indices are below eight, so packing the two halves back into one vector of sixteen-bit lanes undoes
-            // the interleave of the distance step and restores the lane order of the samples exactly.
+            // The indices are less than eight, so the signed pack of the two halves into sixteen-bit lanes is exact.
+            // The pack undoes the interleave of the distance step and restores the lane order of the samples.
             return Vector128_.PackSignedSaturate(indexLower, indexUpper);
         }
 
@@ -109,8 +107,8 @@ internal static partial class Av1PaletteKMeans2D
             out Vector256<int> lower,
             out Vector256<int> upper)
         {
-            // Sixteen independent chroma pairs, with the lane layout and the arithmetic of the
-            // 128-bit overload.
+            // The vector holds sixteen independent chroma pairs. The lane layout and the arithmetic are the same as in the
+            // 128-bit overload, applied to each 128-bit lane.
             Distance(first, second, firstCentroids[0], secondCentroids[0], out lower, out upper);
             Vector256<int> indexLower = Vector256<int>.Zero;
             Vector256<int> indexUpper = Vector256<int>.Zero;
@@ -145,9 +143,8 @@ internal static partial class Av1PaletteKMeans2D
             out Vector512<int> lower,
             out Vector512<int> upper)
         {
-            // Thirty-two independent chroma pairs. The comparison produces an all-ones or all-zero
-            // lane mask on every supported path, including AVX-512, where the JIT lowers the mask
-            // register back to a vector for the following select.
+            // The vector holds thirty-two independent chroma pairs. The comparison gives an all-ones or all-zero lane mask
+            // on every supported path. On AVX-512, the JIT converts the mask register back to a vector for the select.
             Distance(first, second, firstCentroids[0], secondCentroids[0], out lower, out upper);
             Vector512<int> indexLower = Vector512<int>.Zero;
             Vector512<int> indexUpper = Vector512<int>.Zero;
@@ -182,10 +179,10 @@ internal static partial class Av1PaletteKMeans2D
         /// <param name="lower">Receives the squared distances of the first four pairs.</param>
         /// <param name="upper">Receives the squared distances of the second four pairs.</param>
         /// <remarks>
-        /// The difference of two twelve-bit samples fits a sixteen-bit lane. Interleaving the two plane differences puts
-        /// each pair side by side, so one multiply-add of the interleaved vector with itself gives the squared distance of
-        /// each pair in a thirty-two-bit lane. The low interleave holds the first four pairs and the high one the last
-        /// four; a signed pack of the two halves restores the sample order.
+        /// The difference of two twelve-bit samples fits a sixteen-bit lane. The interleave of the two plane differences puts
+        /// the two differences of each pair side by side. Thus one multiply-add of the interleaved vector with itself gives the
+        /// squared distance of each pair in a thirty-two-bit lane. The low interleave holds the first four pairs. The high
+        /// interleave holds the last four pairs. A signed pack of the two halves restores the sample order.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void Distance(
@@ -243,6 +240,9 @@ internal static partial class Av1PaletteKMeans2D
         /// <param name="secondCentroid">The second-plane color.</param>
         /// <param name="lower">Receives the squared distances of the low four pairs of each 128-bit lane.</param>
         /// <param name="upper">Receives the squared distances of the high four pairs of each 128-bit lane.</param>
+        /// <remarks>
+        /// The interleave and the later signed pack both work within each 128-bit lane, as in the 256-bit overload.
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void Distance(
             Vector512<short> first,

@@ -51,8 +51,7 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1EncoderFrameBuffer{TSample}"/> class over the memory of an
     /// earlier buffer when that memory is large enough. The new frame then keeps the bytes of the earlier frame in its
-    /// new layout. Otherwise the earlier memory is released and a new allocation starts at zero.
-    /// Reference: the buffer_alloc_sz test of realloc_frame_buffer_aligned().
+    /// new layout. Otherwise the constructor releases the earlier memory, and a new allocation starts at zero.
     /// </summary>
     /// <param name="configuration">The configuration providing the frame allocator.</param>
     /// <param name="width">The visible luma width.</param>
@@ -91,11 +90,11 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
             ? lumaElementCount
             : checked(chromaRedOffset + chromaElementCount);
 
-        // Component planes share one contiguous frame allocation; their offsets preserve the 32-byte plane
-        // alignment. Each plane is a slice of it, so a kernel addresses the whole bordered plane with its stride.
-        // A frame that fits in the earlier memory keeps it and its bytes. A larger frame gets a new allocation that starts at zero.
-        // The variance measures of an edge block read samples past the coded area, so these bytes must be the same as libaom's.
-        // Reference: the buffer_alloc_sz test and the memset of a new buffer_alloc in realloc_frame_buffer_aligned().
+        // The component planes share one contiguous frame allocation. Their offsets keep the 32-byte plane alignment.
+        // Each plane is a slice of the allocation, so a kernel addresses the whole bordered plane with its stride.
+        // A frame that fits in the earlier memory keeps that memory and its bytes. A larger frame gets a new allocation that
+        // starts at zero. The variance measures of an edge block read samples past the coded area. Thus these stale or zero
+        // bytes affect the encoder decisions, and this reuse rule keeps them the same as in other AV1 encoders.
         IMemoryOwner<TSample> owner;
         if (previous?.owner is not null && storageLength <= previous.owner.Memory.Length)
         {
@@ -173,6 +172,9 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
     /// <summary>
     /// Aligns an element offset to the next component-plane boundary.
     /// </summary>
+    /// <param name="value">The element offset.</param>
+    /// <param name="alignment">The plane alignment in elements, a power of two.</param>
+    /// <returns>The smallest multiple of <paramref name="alignment"/> that is not less than <paramref name="value"/>.</returns>
     private static int Align(int value, int alignment)
         => checked((value + alignment - 1) & -alignment);
 }

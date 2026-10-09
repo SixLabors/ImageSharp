@@ -9,18 +9,18 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Holds the temporal motion vectors that the current frame of a sequence projects from its references, and saves
-/// the motion vectors of each coded frame for later frames. Reference: cm->tpl_mvs and cm->ref_frame_side.
+/// Holds the temporal motion vectors that the current frame of a sequence projects from its references.
+/// It also saves the motion vectors of each coded frame for later frames.
 /// </summary>
 internal sealed class Av1EncoderMotionField : IDisposable
 {
     /// <summary>
-    /// The largest retained vector component. Reference: REFMVS_LIMIT.
+    /// The largest retained vector component.
     /// </summary>
     private const int ReferenceMotionVectorLimit = (1 << 12) - 1;
 
     /// <summary>
-    /// The number of projections a frame may use. Reference: MFMV_STACK_SIZE.
+    /// The number of projections that a frame can use.
     /// </summary>
     private const int ProjectionStackSize = 3;
 
@@ -40,12 +40,12 @@ internal sealed class Av1EncoderMotionField : IDisposable
     private readonly int maximumModeInfoRowCount;
 
     /// <summary>
-    /// The width of the current frame in 4x4 mode-information units. Reference: cm->mi_params.mi_cols.
+    /// The width of the current frame in 4x4 mode-information units.
     /// </summary>
     private int modeInfoColumnCount;
 
     /// <summary>
-    /// The height of the current frame in 4x4 mode-information units. Reference: cm->mi_params.mi_rows.
+    /// The height of the current frame in 4x4 mode-information units.
     /// </summary>
     private int modeInfoRowCount;
     private readonly Av1FrameInfo.MotionFieldStorage<Av1FrameInfo.TemporalMotionFieldEntry> temporalMotionField;
@@ -67,7 +67,7 @@ internal sealed class Av1EncoderMotionField : IDisposable
         this.modeInfoColumnCount = modeInfoColumnCount;
         this.modeInfoRowCount = modeInfoRowCount;
 
-        // Rows align to the largest superblock so both superblock sizes address the same grid.
+        // Rows align to the largest superblock, so both superblock sizes address the same grid. Each entry covers an 8x8 area.
         int stride = Av1Math.AlignPowerOf2(modeInfoColumnCount, MaximumSuperblockModeInfoSizeLog2) >> 1;
         int rowCount = (modeInfoRowCount + (1 << MaximumSuperblockModeInfoSizeLog2)) >> 1;
         this.temporalMotionField = new(
@@ -85,8 +85,7 @@ internal sealed class Av1EncoderMotionField : IDisposable
 
     /// <summary>
     /// Classifies the references of the current frame and projects the saved motion vectors of its references.
-    /// Reference: the order hints that av1_setup_frame_buf_refs() saves, av1_calculate_ref_frame_side(), and
-    /// av1_setup_motion_field().
+    /// A reference after the current frame in display order gets side 1. A reference at the current order hint gets side -1. A past reference gets side 0.
     /// </summary>
     /// <param name="sequenceHeader">The sequence header.</param>
     /// <param name="frameHeader">The current frame header with its reference indices.</param>
@@ -127,11 +126,12 @@ internal sealed class Av1EncoderMotionField : IDisposable
         this.useTemporalMotionField = true;
         this.temporalMotionField.Owner.Memory.Span.Clear();
 
+        // The stamp counts the projections that remain. A LAST frame uses one projection, also when the overlay test skips it.
         int referenceStamp = ProjectionStackSize - 1;
         SavedMotionField? last = references[(int)Av1ReferenceFrameType.Last];
         if (last is not null)
         {
-            // A LAST frame whose ALTREF is the current GOLDEN is an overlay, which the projection skips.
+            // A LAST frame whose ALTREF is the current GOLDEN is an overlay. The projection skips an overlay.
             uint alternateOfLastOrderHint = last.ReferenceOrderHints[(int)Av1ReferenceFrameType.Alternate];
             if (alternateOfLastOrderHint != this.referenceOrderHints[(int)Av1ReferenceFrameType.Golden])
             {
@@ -168,7 +168,6 @@ internal sealed class Av1EncoderMotionField : IDisposable
 
     /// <summary>
     /// Gets a value indicating whether a reference lies after the current frame in display order.
-    /// Reference: cm->ref_frame_side.
     /// </summary>
     /// <param name="referenceFrame">The reference type.</param>
     /// <returns><see langword="true"/> for a future reference.</returns>
@@ -176,7 +175,7 @@ internal sealed class Av1EncoderMotionField : IDisposable
 
     /// <summary>
     /// Gets the temporal candidate over a 4x4 position, scaled to a reference of the current frame.
-    /// Reference: the tpl_mvs lookup and projection in add_tpl_ref_mv().
+    /// The vector scales by the ratio of the distance to the target reference and the distance that the projection stored.
     /// </summary>
     /// <param name="modeInfoRow">The zero-based 4x4 row.</param>
     /// <param name="modeInfoColumn">The zero-based 4x4 column.</param>
@@ -217,9 +216,8 @@ internal sealed class Av1EncoderMotionField : IDisposable
     }
 
     /// <summary>
-    /// Saves the motion vectors of the coded frame for later projection. Reference: av1_copy_frame_mvs() for every
-    /// coded block. A block fills the 8x8 cells it starts in, and a later block that starts in the same cell replaces
-    /// the entry, so each cell holds the block that covers its bottom-right 4x4 position within the frame.
+    /// Saves the motion vectors of the coded frame for later projection.
+    /// Each 8x8 cell holds the block that covers its bottom-right 4x4 position within the frame.
     /// </summary>
     /// <param name="picture">The completed frame decisions.</param>
     /// <param name="destination">The saved motion field of the coded frame.</param>
@@ -237,8 +235,7 @@ internal sealed class Av1EncoderMotionField : IDisposable
         int rowCount = (this.modeInfoRowCount + 1) >> 1;
         int columnCount = (this.modeInfoColumnCount + 1) >> 1;
 
-        // The mode-information grid and the vectors are read once. A block and its vectors share the allocation
-        // index at the grid cell.
+        // Read the mode-information grid and the vectors once. A block and its vectors share the allocation index at the grid cell.
         ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
         ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
         ReadOnlySpan<Av1EncoderDisplacementVector> vectors = picture.DisplacementVectors.Span;
@@ -256,6 +253,7 @@ internal sealed class Av1EncoderMotionField : IDisposable
                 Av1MotionVector selectedMotionVector = default;
                 for (int index = 0; index < 2; index++)
                 {
+                    // Only a past reference at another order hint is saved. When both vectors qualify, the second vector replaces the first.
                     Av1ReferenceFrameType referenceFrame = index == 0 ? mode.ReferenceFrame : mode.SecondaryReferenceFrame;
                     if (referenceFrame <= Av1ReferenceFrameType.Intra || this.referenceSides[(int)referenceFrame] != 0)
                     {
@@ -287,7 +285,7 @@ internal sealed class Av1EncoderMotionField : IDisposable
     public void Dispose() => this.temporalMotionField.Dispose();
 
     /// <summary>
-    /// Projects the saved vectors of one reference into the temporal field. Reference: motion_field_projection().
+    /// Projects the saved vectors of one reference into the temporal field.
     /// </summary>
     /// <param name="orderHintInfo">The sequence order-hint configuration.</param>
     /// <param name="start">The saved motion field of the reference.</param>
@@ -328,8 +326,7 @@ internal sealed class Av1EncoderMotionField : IDisposable
     }
 
     /// <summary>
-    /// The motion vectors that a coded frame keeps for later projection. Reference: the mvs, order_hint,
-    /// ref_order_hints, and frame_type fields of RefCntBuffer.
+    /// The motion vectors, order hints and frame type that a coded frame keeps for later projection.
     /// </summary>
     internal sealed class SavedMotionField : IDisposable
     {
@@ -369,12 +366,12 @@ internal sealed class Av1EncoderMotionField : IDisposable
         public bool IsIntra { get; set; }
 
         /// <summary>
-        /// Gets or sets the width of the coded frame in 4x4 mode-information units. Reference: RefCntBuffer.mi_cols.
+        /// Gets or sets the width of the coded frame in 4x4 mode-information units.
         /// </summary>
         public int ModeInfoColumnCount { get; set; }
 
         /// <summary>
-        /// Gets or sets the height of the coded frame in 4x4 mode-information units. Reference: RefCntBuffer.mi_rows.
+        /// Gets or sets the height of the coded frame in 4x4 mode-information units.
         /// </summary>
         public int ModeInfoRowCount { get; set; }
 

@@ -13,8 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal static partial class Av1ResidualBuilder
 {
     /// <summary>
-    /// Returns the correlation of each residual with its left neighbor and with its top neighbor. Reference:
-    /// av1_get_horver_correlation_full().
+    /// Returns the correlation of each residual with its left neighbor and with its top neighbor.
     /// </summary>
     /// <param name="residual">The residual samples at the block origin.</param>
     /// <param name="stride">The residual row stride.</param>
@@ -30,8 +29,8 @@ internal static partial class Av1ResidualBuilder
         out float horizontal,
         out float vertical)
     {
-        // x is a sample, y its left neighbor and z its top neighbor. The sums over the pairs follow from the
-        // sums over the whole block minus its first or last row or column.
+        // Each pair holds a sample and its left or top neighbor. The sums over the pairs are the sums over the whole block minus its
+        // first or last row or column.
         long squareSum = SumAndSumSquares<ResidualSquaresOperator>(residual, stride, width, height, out long sum);
         long leftProducts = SumProducts<ResidualSquaresOperator>(residual[1..], residual, stride, width - 1, height);
         long topProducts = SumProducts<ResidualSquaresOperator>(residual[stride..], residual, stride, width, height - 1);
@@ -49,6 +48,7 @@ internal static partial class Av1ResidualBuilder
         long leftSquares = squareSum - firstColumnSquares;
         long topSquares = squareSum - firstRowSquares;
 
+        // Each variance or covariance is the sum of squares or products minus the product of the two sums divided by the pair count.
         float horizontalCount = height * (width - 1);
         float verticalCount = (height - 1) * width;
         float horizontalVariance = horizontalSquares - ((horizontalSum * horizontalSum) / horizontalCount);
@@ -58,6 +58,7 @@ internal static partial class Av1ResidualBuilder
         float leftCovariance = leftProducts - ((horizontalSum * leftSum) / horizontalCount);
         float topCovariance = topProducts - ((verticalSum * topSum) / verticalCount);
 
+        // A negative correlation becomes zero. A flat block has no variance, and it gets full correlation.
         if (horizontalVariance > 0 && leftVariance > 0)
         {
             horizontal = leftCovariance / MathF.Sqrt(horizontalVariance * leftVariance);
@@ -82,9 +83,17 @@ internal static partial class Av1ResidualBuilder
     /// <summary>
     /// Traverses the sum of the products of two equally strided residual rectangles at descending register widths.
     /// </summary>
+    /// <typeparam name="TOperator">The lane-wise product accumulation.</typeparam>
+    /// <param name="first">The first residual rectangle.</param>
+    /// <param name="second">The second residual rectangle.</param>
+    /// <param name="stride">The row stride of both rectangles.</param>
+    /// <param name="width">The rectangle width.</param>
+    /// <param name="height">The rectangle height.</param>
+    /// <returns>The sum of the products of the samples at the same position in both rectangles.</returns>
     private static long SumProducts<TOperator>(ReadOnlySpan<short> first, ReadOnlySpan<short> second, int stride, int width, int height)
         where TOperator : struct, IResidualSquaresOperator
     {
+        // The slices to the last sample of each rectangle bound the reads of both bases once, before the loop.
         int extent = height == 0 ? 0 : ((height - 1) * stride) + width;
         ref short firstBase = ref MemoryMarshal.GetReference(first[..extent]);
         ref short secondBase = ref MemoryMarshal.GetReference(second[..extent]);
@@ -130,6 +139,7 @@ internal static partial class Av1ResidualBuilder
             }
         }
 
+        // Each width keeps its totals across all rows. The fold to one value happens once, after the last row.
         total256 += total512.GetLower() + total512.GetUpper();
         total128 += total256.GetLower() + total256.GetUpper();
         return total + Vector128.Sum(total128);

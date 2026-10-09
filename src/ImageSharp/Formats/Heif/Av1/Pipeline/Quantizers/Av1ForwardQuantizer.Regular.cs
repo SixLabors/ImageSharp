@@ -40,7 +40,7 @@ internal static partial class Av1ForwardQuantizer
         ReadOnlySpan<byte> weights = default,
         ReadOnlySpan<byte> inverseWeights = default)
     {
-        // Reference: the matrix branch of av1_quantize_b_facade() and av1_highbd_quantize_b_facade().
+        // A quantization matrix uses the matrix path at every bit depth. Without a matrix, the bit depth selects the operator.
         if (!weights.IsEmpty)
         {
             return QuantizeWithMatrix(
@@ -60,6 +60,18 @@ internal static partial class Av1ForwardQuantizer
     /// <summary>
     /// Traverses regular quantization in full vectors, with the DC constants in lane zero of the first vector.
     /// </summary>
+    /// <typeparam name="TOperator">The precision-specific quantization arithmetic.</typeparam>
+    /// <param name="coefficients">The raster-order transformed coefficients.</param>
+    /// <param name="quantizedCoefficients">The raster-order coding coefficients.</param>
+    /// <param name="dequantizedCoefficients">The raster-order reconstruction coefficients.</param>
+    /// <param name="transformSize">The transform dimensions.</param>
+    /// <param name="transformType">The transform type selecting coefficient scan order.</param>
+    /// <param name="qIndex">The base quantizer index.</param>
+    /// <param name="dcDeltaQ">The DC index adjustment.</param>
+    /// <param name="acDeltaQ">The AC index adjustment.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    /// <param name="sharpness">The encoder sharpness setting from zero through seven.</param>
+    /// <returns>The one-based final nonzero scan position.</returns>
     private static ushort QuantizeRegular<TOperator>(
         ReadOnlySpan<int> coefficients,
         Span<int> quantizedCoefficients,
@@ -82,9 +94,8 @@ internal static partial class Av1ForwardQuantizer
         int dcQuantizer = Av1QuantizationLookup.GetDcRegularQuantizer(qIndex, dcDeltaQ, bitDepth, out int dcShift);
         int acQuantizer = Av1QuantizationLookup.GetAcRegularQuantizer(qIndex, acDeltaQ, bitDepth, out int acShift);
 
-        // Zero-bin constants round twice: once from Q7 and once for the transform scale. Rounding
-        // constants first truncate from Q7, then round for that same scale. Combining either pair of
-        // shifts would change coefficients at the quantization boundary.
+        // Zero-bin constants round twice: once from Q7 and once for the transform scale. Rounding constants first truncate from Q7,
+        // then round for that same scale. A single combined shift for either pair changes coefficients at the quantization boundary.
         int dcZeroBin = RoundPowerOfTwo(RoundPowerOfTwo(zeroBinFactor * dcDequantizer, 7), logScale);
         int acZeroBin = RoundPowerOfTwo(RoundPowerOfTwo(zeroBinFactor * acDequantizer, 7), logScale);
         int dcRounding = RoundPowerOfTwo((roundingFactor * dcDequantizer) >> 7, logScale);
@@ -93,8 +104,8 @@ internal static partial class Av1ForwardQuantizer
         ref int quantizedBase = ref MemoryMarshal.GetReference(quantizedCoefficients);
         ref int dequantizedBase = ref MemoryMarshal.GetReference(dequantizedCoefficients);
 
-        // Coding and reconstruction retain raster order. Only the end position is reduced in scan order: each vector
-        // raises a per-lane maximum of the one-based scan position of its nonzero coefficients, in the same pass.
+        // Coding and reconstruction keep raster order. Only the end position uses scan order. In the same pass, each vector raises
+        // a per-lane maximum of the one-based scan position of its nonzero coefficients.
         ref short inverseScanBase = ref MemoryMarshal.GetReference(Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).InverseScan);
 
         // Every coded transform has a multiple of 16 coefficients, so the widest vector covers the whole block with

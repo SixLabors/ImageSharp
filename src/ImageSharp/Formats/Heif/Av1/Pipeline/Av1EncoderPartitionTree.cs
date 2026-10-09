@@ -13,7 +13,7 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Retains partition candidates' mode decisions while coefficient scratch is reused.
+/// Retains the mode decisions of partition candidates while the search reuses the coefficient buffers.
 /// </summary>
 internal sealed class Av1EncoderPartitionTree : IDisposable
 {
@@ -62,8 +62,9 @@ internal sealed class Av1EncoderPartitionTree : IDisposable
         int nodeCount = this.superblockSize == Av1BlockSize.Block128x128 ? 341 : 85;
         int firstNodeOffset = ((nodeCount * sizeof(int)) + Alignment - 1) & -Alignment;
 
-        // Lay out only geometrically legal candidates that touch the coded frame. One pooled allocation
-        // holds their mode headers, transform states and palette maps; coefficients remain worker scratch.
+        // The layout holds only geometrically legal candidates that touch the coded frame. One pooled allocation holds their
+        // mode headers, transform states and palette maps. The coefficients stay in the buffers of the worker.
+        // The first pass only measures the length. The second pass below writes the offsets.
         int requiredLength = this.LayoutNode(default, false, 0, 0, 0, this.superblockSize, firstNodeOffset);
 
         // Compare with the capacity of the owner, not with the previous layout. A clipped superblock at a
@@ -126,6 +127,15 @@ internal sealed class Av1EncoderPartitionTree : IDisposable
     /// <inheritdoc/>
     public void Dispose() => this.owner?.Dispose();
 
+    /// <summary>
+    /// Gets the index of the first leaf context of a partition in a node header.
+    /// </summary>
+    /// <remarks>
+    /// The 29 contexts of a node hold one leaf for no split, two for each binary split, four for the square split, three
+    /// for each of the four mixed splits, and four for each of the two four-way splits.
+    /// </remarks>
+    /// <param name="partition">The candidate partition.</param>
+    /// <returns>The index of the first leaf of the partition.</returns>
     private static int GetFirstContextIndex(Av1PartitionType partition)
         => partition switch
         {
@@ -141,6 +151,17 @@ internal sealed class Av1EncoderPartitionTree : IDisposable
             _ => 25
         };
 
+    /// <summary>
+    /// Lays out the storage of one quadtree node and its descendants that touch the coded frame.
+    /// </summary>
+    /// <param name="storage">The storage to initialize, or an empty span when only the length is measured.</param>
+    /// <param name="initialize">Whether to write the node offsets, the context offsets and the snapshot headers.</param>
+    /// <param name="nodeIndex">The quadtree index of the node. The children of node n have the indices 4n + 1 to 4n + 4.</param>
+    /// <param name="x">The left luma column of the node inside the superblock.</param>
+    /// <param name="y">The top luma row of the node inside the superblock.</param>
+    /// <param name="blockSize">The block size of the node.</param>
+    /// <param name="offset">The byte offset of the node header.</param>
+    /// <returns>The byte offset after the storage of the node and its descendants.</returns>
     private int LayoutNode(
         Span<byte> storage,
         bool initialize,
@@ -269,14 +290,28 @@ internal sealed class Av1EncoderPartitionTree : IDisposable
         private readonly Span<byte> storage;
         private readonly int planeCount;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ModeContext"/> struct.
+        /// </summary>
+        /// <param name="storage">The storage of the candidate, which starts with its snapshot header.</param>
+        /// <param name="planeCount">The number of coded planes.</param>
         public ModeContext(Span<byte> storage, int planeCount)
         {
             this.storage = storage;
             this.planeCount = planeCount;
         }
 
+        /// <summary>
+        /// Gets the mode snapshot at the start of the candidate storage.
+        /// </summary>
         public ref ModeSnapshot Snapshot => ref MemoryMarshal.AsRef<ModeSnapshot>(this.storage[..ModeHeaderLength]);
 
+        /// <summary>
+        /// Copies the snapshot and the transform states of another candidate, and sets the partition type of the copy.
+        /// The palette indices stay unchanged.
+        /// </summary>
+        /// <param name="source">The candidate to copy.</param>
+        /// <param name="partition">The partition type of this candidate.</param>
         public void CopyFrom(ModeContext source, Av1PartitionType partition)
         {
             this.Snapshot = source.Snapshot;
@@ -287,6 +322,11 @@ internal sealed class Av1EncoderPartitionTree : IDisposable
             }
         }
 
+        /// <summary>
+        /// Gets the transform block states of one plane. The storage holds one state per 4x4 luma unit of the block for each plane.
+        /// </summary>
+        /// <param name="plane">The plane.</param>
+        /// <returns>The transform block states of the plane.</returns>
         public Span<Av1EncoderTransformBlockState> GetTransformStates(Av1Plane plane)
         {
             Av1BlockSize blockSize = this.Snapshot.ModeInfo.Block.BlockSize;
@@ -296,6 +336,11 @@ internal sealed class Av1EncoderPartitionTree : IDisposable
                 this.storage.Slice(ModeHeaderLength + ((int)plane * planeBytes), planeBytes));
         }
 
+        /// <summary>
+        /// Gets the palette indices of one plane type, one byte per luma sample of the block.
+        /// </summary>
+        /// <param name="plane">The plane type.</param>
+        /// <returns>The palette indices of the plane type.</returns>
         public Span<byte> GetPaletteIndices(Av1PlaneType plane)
         {
             Av1BlockSize blockSize = this.Snapshot.ModeInfo.Block.BlockSize;

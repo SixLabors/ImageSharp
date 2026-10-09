@@ -7,23 +7,21 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 
 /// <summary>
 /// Provides the normative AV1 inverse quantization matrices for each matrix level, plane class and transform size.
-/// Reference: iwt_matrix_ref and av1_qm_init().
 /// </summary>
 internal static class Av1InverseQuantizationLookup
 {
     /// <summary>
-    /// The number of weights of one plane class of one matrix level. Reference: QM_TOTAL_SIZE.
+    /// The number of weights of one plane class of one matrix level.
     /// </summary>
     private const int TotalSize = 3344;
 
     /// <summary>
-    /// The matrix level that applies no weighting. Reference: NUM_QM_LEVELS - 1.
+    /// The matrix level that applies no weighting. It is the last of the 16 matrix levels.
     /// </summary>
     private const int FlatLevel = 15;
 
     /// <summary>
-    /// Gets the stored matrix of each AV1 transform size; sizes with a 64-pixel dimension reuse the adjusted 32-pixel
-    /// matrix. Reference: av1_get_adjusted_tx_size().
+    /// Gets the stored matrix of each AV1 transform size. Sizes with a 64-pixel dimension use the matrix of their adjusted 32-pixel size.
     /// </summary>
     private static ReadOnlySpan<byte> TransformMatrixIndices =>
     [
@@ -31,8 +29,7 @@ internal static class Av1InverseQuantizationLookup
     ];
 
     /// <summary>
-    /// Gets the offset of each stored matrix inside one plane class, in the order of av1_qm_init(), followed by the
-    /// total size.
+    /// Gets the offset of each stored matrix inside one plane class, in the normative matrix order, followed by the total size.
     /// </summary>
     private static ReadOnlySpan<short> MatrixOffsets =>
     [
@@ -41,9 +38,9 @@ internal static class Av1InverseQuantizationLookup
 
     /// <summary>
     /// Gets the inverse weights indexed by matrix level, plane class (luma, then the chroma set that U and V share), stored
-    /// matrix and raster coefficient. Size-specific matrices are subsampled from the normative 32x32 and 16x16 bases.
-    /// Level 15 is flat and not stored. The reference stores each matrix column by column, and this table holds its
-    /// transpose in the row-major order of the coefficients here. Reference: iwt_matrix_ref.
+    /// matrix and raster coefficient. The size-specific matrices are subsamples of the normative 32x32 and 16x16 bases.
+    /// Level 15 is flat and not stored. The normative tables store each matrix column by column. This table holds the transpose,
+    /// in the row-major order of the coefficients in this encoder.
     /// </summary>
     private static ReadOnlySpan<byte> InverseWeightTable =>
     [
@@ -4232,11 +4229,11 @@ internal static class Av1InverseQuantizationLookup
     /// <summary>
     /// Gets the inverse quantization matrix for a matrix level, color plane and transform size.
     /// </summary>
-    /// <param name="level">The quantization matrix level; the flat level 15 gives an empty span.</param>
-    /// <param name="plane">The color plane; U and V select the shared chroma matrix.</param>
+    /// <param name="level">The quantization matrix level. The flat level 15 gives an empty span.</param>
+    /// <param name="plane">The color plane. U and V select the shared chroma matrix.</param>
     /// <param name="transformSize">The transform size whose raster coefficient weights are requested.</param>
-    /// <returns>The matrix weights in raster coefficient order, or an empty span for the flat level, whose weight of
-    /// 32 leaves every quantizer unchanged.</returns>
+    /// <returns>The matrix weights in raster coefficient order, or an empty span for the flat level, whose weight of 32 leaves every
+    /// quantizer unchanged.</returns>
     public static ReadOnlySpan<byte> GetQuantizationMatrix(int level, Av1Plane plane, Av1TransformSize transformSize)
     {
         if (level >= FlatLevel)

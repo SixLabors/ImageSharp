@@ -4,13 +4,12 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 
 /// <summary>
-/// Chooses the superblock quantizers of the Variance Boost delta quantizer mode, which lowers the quantizer of
-/// superblocks with low variance. Reference: av1_get_sbq_variance_boost().
+/// Chooses the superblock quantizers of the Variance Boost delta quantizer mode, which lowers the quantizer of superblocks with low variance.
 /// </summary>
 internal static class Av1VarianceBoost
 {
     /// <summary>
-    /// The side of a Variance Boost superblock. Reference: the 64x64 superblock that Variance Boost requires.
+    /// The side of a Variance Boost superblock. Variance Boost requires 64x64 superblocks.
     /// </summary>
     public const int SuperblockSize = 64;
 
@@ -25,22 +24,22 @@ internal static class Av1VarianceBoost
     public const int SubblockCount = (SuperblockSize / SubblockSize) * (SuperblockSize / SubblockSize);
 
     /// <summary>
-    /// The largest quantizer step ratio. Reference: VAR_BOOST_MAX_BOOST.
+    /// The largest quantizer step ratio.
     /// </summary>
     private const double MaximumBoost = 8.0;
 
     /// <summary>
-    /// The largest quantizer index reduction. Reference: VAR_BOOST_MAX_DELTAQ_RANGE.
+    /// The largest quantizer index reduction.
     /// </summary>
     private const int MaximumDeltaQRange = 80;
 
     /// <summary>
-    /// The default strength in percent. Reference: the deltaq_strength default.
+    /// The default delta quantizer strength in percent.
     /// </summary>
     private const int DefaultStrength = 100;
 
     /// <summary>
-    /// Gets the delta quantizer resolution of a frame. Reference: aom_get_variance_boost_delta_q_res().
+    /// Gets the delta quantizer resolution of a frame. Higher frame quantizers use a coarser resolution.
     /// </summary>
     /// <param name="qIndex">The frame quantizer index.</param>
     /// <returns>The resolution.</returns>
@@ -48,10 +47,10 @@ internal static class Av1VarianceBoost
         => qIndex >= 160 ? 8 : qIndex >= 120 ? 4 : qIndex >= 80 ? 2 : 1;
 
     /// <summary>
-    /// Gets the representative variance of a superblock: the 1:2:1 weighted mean of the sub-block variances at the
-    /// ends of the fourth, fifth and sixth octiles. Reference: av1_get_variance_boost_block_variance().
+    /// Gets the representative variance of a superblock: the 1:2:1 weighted mean of the sub-block variances at the ends of the fourth,
+    /// fifth and sixth octiles.
     /// </summary>
-    /// <param name="variances">The 64 sub-block variances, each divided by the sub-block area; sorted in place.</param>
+    /// <param name="variances">The 64 sub-block variances, each divided by the sub-block area. The method sorts them in place.</param>
     /// <returns>The superblock variance.</returns>
     public static uint GetBlockVariance(Span<uint> variances)
     {
@@ -66,7 +65,7 @@ internal static class Av1VarianceBoost
     }
 
     /// <summary>
-    /// Gets the quantizer index of a superblock. Reference: av1_get_sbq_variance_boost().
+    /// Gets the quantizer index of a superblock. A lower variance gives a lower quantizer index.
     /// </summary>
     /// <param name="variance">The superblock variance.</param>
     /// <param name="baseQIndex">The frame quantizer index.</param>
@@ -76,13 +75,13 @@ internal static class Av1VarianceBoost
     {
         double strength = Math.Clamp(DefaultStrength / 100.0 * 3.0, 0.0, 6.0);
 
-        // Flat patches and very fine gradients are boosted as if their variance were one.
+        // Flat patches and very fine gradients get the boost of a variance of one.
         if (variance == 0)
         {
             variance = 1;
         }
 
-        // High and medium variance superblocks get essentially no boost, lower variances increasingly more.
+        // Superblocks with a variance of 1024 or more get no boost. Lower variances get a larger boost, up to the maximum ratio.
         double ratio = (0.15 * strength * (-Math.Log2(variance) + 10.0)) + 1.0;
         ratio = Math.Clamp(ratio, 1.0, MaximumBoost);
 
@@ -97,7 +96,6 @@ internal static class Av1VarianceBoost
 
     /// <summary>
     /// Rounds a superblock quantizer index to the delta resolution relative to the previous one.
-    /// Reference: av1_adjust_q_from_delta_q_res().
     /// </summary>
     /// <param name="resolution">The delta quantizer resolution.</param>
     /// <param name="previousQIndex">The quantizer index of the previous coded superblock.</param>
@@ -114,8 +112,11 @@ internal static class Av1VarianceBoost
     }
 
     /// <summary>
-    /// Converts a quantizer index to the real quantizer. Reference: av1_convert_qindex_to_q().
+    /// Converts a quantizer index to the real quantizer: the AC step, scaled to the 8-bit range.
     /// </summary>
+    /// <param name="qIndex">The quantizer index.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    /// <returns>The real quantizer.</returns>
     private static double ConvertQIndexToQ(int qIndex, Av1BitDepth bitDepth)
     {
         int step = Av1QuantizationLookup.GetAcQuant(qIndex, 0, bitDepth);
@@ -128,8 +129,11 @@ internal static class Av1VarianceBoost
     }
 
     /// <summary>
-    /// Finds the first quantizer index whose real quantizer reaches a value. Reference: av1_convert_q_to_qindex().
+    /// Finds the first quantizer index whose real quantizer reaches a value.
     /// </summary>
+    /// <param name="q">The real quantizer to reach.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    /// <returns>The quantizer index, at most the largest quantizer index.</returns>
     private static int ConvertQToQIndex(double q, Av1BitDepth bitDepth)
     {
         int qIndex = 0;

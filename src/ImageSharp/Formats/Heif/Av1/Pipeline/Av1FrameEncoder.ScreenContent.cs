@@ -7,15 +7,13 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <content>
-/// Keeps the screen content decision of intra frames for the inter frames that follow, and decides it again for a
-/// key frame of a lookahead sequence by coding the frame without and with the screen content tools.
+/// Keeps the screen content decision of intra frames for the inter frames that follow. For a key frame of a lookahead sequence, it decides again
+/// by coding the frame without and with the screen content tools.
 /// </content>
 internal static partial class Av1FrameEncoder
 {
     /// <summary>
-    /// Holds the screen content decision of the last intra frame of a sequence, which the inter frames keep.
-    /// Reference: cm->features.allow_screen_content_tools and cpi->is_screen_content_type, which
-    /// av1_set_screen_content_options() and av1_determine_sc_tools_with_encoding() set for intra frames only.
+    /// Holds the screen content decision of the last intra frame of a sequence. Only intra frames set the decision. The inter frames that follow keep it.
     /// </summary>
     internal struct ScreenContentDecision
     {
@@ -38,8 +36,7 @@ internal static partial class Av1FrameEncoder
     internal abstract partial class SequenceEncoder
     {
         /// <summary>
-        /// The quantizer the trial codes a lossy frame at, at least. Reference: the AOMMAX(q_orig, 244) of
-        /// av1_determine_sc_tools_with_encoding().
+        /// The lowest quantizer index at which the screen content trial codes a lossy frame.
         /// </summary>
         private const int ScreenContentTrialQIndex = 244;
 
@@ -53,27 +50,23 @@ internal static partial class Av1FrameEncoder
         private protected ref ScreenContentDecision ScreenContent => ref this.screenContent;
 
         /// <summary>
-        /// Gets or sets the base quantizer index that the encoder last set, which a key frame reads when it sets up
-        /// its default coefficient models before the screen content trial chooses its own quantizer. The temporal
-        /// dependency model and every coded frame set it. Reference: cm->quant_params.base_qindex, as
-        /// init_mc_flow_dispenser() and av1_set_quantizer() leave it.
+        /// Gets or sets the base quantizer index that the encoder set last. The temporal dependency model and every coded frame set it. A key frame
+        /// reads it to set up its default coefficient models before the screen content trial chooses its own quantizer.
         /// </summary>
         private protected int CommonBaseQIndex { get; set; }
 
         /// <summary>
-        /// Gets a value indicating whether the last coded frame allowed the screen content tools when it set its
-        /// speed features, before any screen content trial, which the filter and the model read until the next frame
-        /// sets them. Reference: the cm->features.allow_screen_content_tools that set_size_independent_vars() reads.
+        /// Gets a value indicating whether the last coded frame allowed the screen content tools when it set its speed features, before any screen
+        /// content trial. The temporal filter reads this value until the next frame sets its speed features, also when the temporal dependency
+        /// model filters a trial group.
         /// </summary>
         private protected bool SpeedFeatureScreenContentTools
             => this.PictureBuffer.Picture.Parent.ScreenContentToolsBeforeTrial ?? this.FrameHeader.AllowScreenContentTools;
 
         /// <summary>
-        /// Codes a key frame whose content detection left the screen content tools off twice, on a fixed 32x32
-        /// partition at a high quantizer, without and then with the tools, and turns the tools on when they code it
-        /// much better. The frame is then ready to be coded at its own quantizer. Reference:
-        /// av1_determine_sc_tools_with_encoding() with set_encoding_params_for_screen_content() and
-        /// screen_content_tools_determination().
+        /// Codes a key frame twice when the content detection left the screen content tools off. Both passes use a fixed 32x32 partition at a high
+        /// quantizer. The first pass codes without the tools and the second pass codes with them. If the tools code the frame much better, the method
+        /// turns them on. After the trial, the frame is ready for coding at its own quantizer.
         /// </summary>
         /// <typeparam name="TSample">The native sample storage type.</typeparam>
         /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
@@ -96,9 +89,7 @@ internal static partial class Av1FrameEncoder
             this.PictureBuffer.Picture.Parent.ScreenContentToolsBeforeTrial = null;
             this.PictureBuffer.Picture.Parent.ScreenContentTrialQIndex = -1;
 
-            // Speed 6 and above skip the trial, as does a frame that already allows the tools. Reference:
-            // disable_extra_sc_testing, and the use_screen_content_tools and KEY_FRAME tests of
-            // av1_determine_sc_tools_with_encoding().
+            // Only key frames get the trial. Speed 6 and higher skip it. A frame that already allows the tools does not need it.
             if (this.Options.Speed >= HeifEncodingSpeed.Level6 ||
                 frameHeader.FrameType != ObuFrameType.KeyFrame ||
                 frameHeader.AllowScreenContentTools)
@@ -110,8 +101,7 @@ internal static partial class Av1FrameEncoder
             bool allowIntraBlockCopy = frameHeader.AllowIntraBlockCopy;
             int trialQIndex = lossless ? qIndex : Math.Max(qIndex, ScreenContentTrialQIndex);
 
-            // The default coefficient models come from the quantizer set before the trial. Reference: the
-            // av1_setup_frame() call that precedes the two passes.
+            // The default coefficient models come from the quantizer that was set before the trial, not from the trial quantizer.
             int modelQIndex = this.CommonBaseQIndex;
             parent.FixedPartitionSize = Av1BlockSize.Block32x32;
             parent.ScreenContentToolsBeforeTrial = false;
@@ -143,7 +133,9 @@ internal static partial class Av1FrameEncoder
             parent.RetainsFrameProbabilities = true;
             this.CommonBaseQIndex = trialQIndex;
 
-            // Reference: screen_content_tools_determination().
+            // The tools code the frame much better when the PSNR gain is more than 0.9 dB, or when the gain is large relative to the palette ratio,
+            // that is the part of the frame that palette blocks cover. A ratio of 0.01% or more needs a gain per ratio of more than 4. A ratio of 5% or
+            // more with a gain of more than 0.1 dB needs a gain per ratio of more than 2.
             double psnrDifference = psnr[1] - psnr[0];
             double paletteRatio = palettePixelCount / (double)(source.Height * source.Width);
             bool psnrDifferenceIsLarge = psnrDifference > 0.9;
@@ -151,7 +143,7 @@ internal static partial class Av1FrameEncoder
             bool ratioIsLarge2 = psnrDifference > 0.1 && paletteRatio >= 0.05 && psnrDifference / paletteRatio > 2;
             bool muchBetter = psnrDifferenceIsLarge || ratioIsLarge || ratioIsLarge2;
 
-            // The intra block copy decision stays, as no trial block could use it.
+            // The trial turns intra block copy off. The frame gets back the intra block copy decision that it had before the trial.
             frameHeader.AllowScreenContentTools = muchBetter;
             parent.ScreenContentToolsBeforeTrial = muchBetter ? false : null;
             frameHeader.AllowIntraBlockCopy = allowIntraBlockCopy;
@@ -168,9 +160,9 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Decides whether an inter frame with the screen content tools codes integer motion vectors only. The
-        /// estimated mode search of real-time usage never does, and a frame without the source shown before it
-        /// does not. Reference: the cur_frame_force_integer_mv setup of encode_frame_to_data_rate().
+        /// Decides whether an inter frame with the screen content tools codes integer motion vectors only. A sequence header value other than
+        /// "select" sets the decision directly. The estimated mode search of speed 7 and higher never uses integer motion vectors only. A frame
+        /// without the source shown before it does not use them either.
         /// </summary>
         /// <typeparam name="TSample">The native sample storage type.</typeparam>
         /// <typeparam name="TOperator">The block comparison operations for the sample type.</typeparam>
@@ -202,19 +194,23 @@ internal static partial class Av1FrameEncoder
                     source.CodedView.GetPlane(Av1Plane.Y), last.CodedView.GetPlane(Av1Plane.Y));
             }
 
-            // Reference: av1_set_high_precision_mv() with cur_frame_force_integer_mv.
+            // Integer motion vectors have no fractional part, so high precision motion vectors are off.
             frameHeader.AllowHighPrecisionMotionVector &= !frameHeader.ForceIntegerMotionVector;
         }
 
         /// <summary>
-        /// Returns the PSNR of the visible planes of a reconstruction over all their samples together. Reference:
-        /// psnr[0] of aom_calc_highbd_psnr() at the stream bit depth.
+        /// Returns the PSNR of the visible planes of a reconstruction over all their samples together, at the stream bit depth.
         /// </summary>
+        /// <typeparam name="TSample">The native sample storage type.</typeparam>
+        /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
+        /// <param name="source">The coded source frame.</param>
+        /// <param name="reconstruction">The reconstruction of the frame.</param>
+        /// <returns>The PSNR in decibels, at most 100.</returns>
         private static double GetFramePsnr<TSample, TOperator>(Av1EncoderFrame<TSample> source, Av1EncoderFrame<TSample> reconstruction)
             where TSample : unmanaged
             where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
         {
-            // A monochrome frame keeps two neutral chroma planes of 4:2:0 size in the reference, whose error is zero.
+            // A monochrome frame counts two neutral chroma planes of 4:2:0 size. Their error is zero, but their samples add to the sample count.
             int subsamplingX = source.IsMonochrome ? 1 : source.ChromaSubsamplingX;
             int subsamplingY = source.IsMonochrome ? 1 : source.ChromaSubsamplingY;
             int chromaWidth = (source.Width + subsamplingX) >> subsamplingX;
@@ -238,8 +234,16 @@ internal static partial class Av1FrameEncoder
         }
 
         /// <summary>
-        /// Returns the squared error of the visible samples of one plane. Reference: get_sse() and highbd_get_sse().
+        /// Returns the squared error of the visible samples of one plane.
         /// </summary>
+        /// <typeparam name="TSample">The native sample storage type.</typeparam>
+        /// <typeparam name="TOperator">The block encoding operations for the sample type.</typeparam>
+        /// <param name="source">The coded source frame.</param>
+        /// <param name="reconstruction">The reconstruction of the frame.</param>
+        /// <param name="plane">The plane to measure.</param>
+        /// <param name="width">The visible width of the plane in samples.</param>
+        /// <param name="height">The visible height of the plane in samples.</param>
+        /// <returns>The sum of the squared sample differences.</returns>
         private static long GetPlaneSquaredError<TSample, TOperator>(
             Av1EncoderFrame<TSample> source,
             Av1EncoderFrame<TSample> reconstruction,

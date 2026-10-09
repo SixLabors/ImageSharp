@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 internal static partial class Av1ForwardQuantizer
 {
     /// <summary>
-    /// Quantizes one lossy transform block with libaom's fast no-matrix arithmetic.
+    /// Quantizes one lossy transform block with the fast quantization arithmetic. A quantization matrix selects the matrix arithmetic.
     /// </summary>
     /// <param name="coefficients">The raster-order forward-transform coefficients.</param>
     /// <param name="quantizedCoefficients">The raster-order entropy-coding coefficients.</param>
@@ -25,7 +25,7 @@ internal static partial class Av1ForwardQuantizer
     /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    /// <param name="sharpness">The encoder sharpness, 0 to 7, which sets the rounding. Reference: algo_cfg.sharpness.</param>
+    /// <param name="sharpness">The encoder sharpness, 0 to 7, which sets the rounding.</param>
     /// <param name="weights">The forward quantization matrix, or an empty span for a flat matrix.</param>
     /// <param name="inverseWeights">The inverse quantization matrix, or an empty span for a flat matrix.</param>
     /// <returns>The one-based end position in coefficient scan order.</returns>
@@ -43,7 +43,7 @@ internal static partial class Av1ForwardQuantizer
         ReadOnlySpan<byte> weights = default,
         ReadOnlySpan<byte> inverseWeights = default)
     {
-        // Reference: the matrix branch of av1_quantize_fp_facade() and av1_highbd_quantize_fp_facade().
+        // A quantization matrix uses the matrix path at every bit depth. Without a matrix, the bit depth selects the operator.
         if (!weights.IsEmpty)
         {
             return QuantizeWithMatrix(
@@ -98,7 +98,7 @@ internal static partial class Av1ForwardQuantizer
     /// <param name="dcDeltaQ">The DC quantizer adjustment.</param>
     /// <param name="acDeltaQ">The AC quantizer adjustment.</param>
     /// <param name="bitDepth">The source sample precision.</param>
-    /// <param name="sharpness">The encoder sharpness, 0 to 7, which sets the rounding. Reference: algo_cfg.sharpness.</param>
+    /// <param name="sharpness">The encoder sharpness, 0 to 7, which sets the rounding.</param>
     /// <returns>The one-based end position in the supplied scan.</returns>
     public static ushort QuantizeForModeEstimation(
         ReadOnlySpan<int> coefficients,
@@ -127,6 +127,19 @@ internal static partial class Av1ForwardQuantizer
     /// <summary>
     /// Applies a closed generic quantization operator across the widest available hardware widths.
     /// </summary>
+    /// <typeparam name="TOperator">The quantization arithmetic.</typeparam>
+    /// <param name="coefficients">The raster-order transform coefficients.</param>
+    /// <param name="quantizedCoefficients">The raster-order entropy-coding coefficients.</param>
+    /// <param name="dequantizedCoefficients">The raster-order reconstruction coefficients.</param>
+    /// <param name="transformSize">The transform-block dimensions.</param>
+    /// <param name="inverseScan">The scan position of each raster-order coefficient, or the scan itself when <paramref name="scanOrder"/> is set.</param>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
+    /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="sharpness">The encoder sharpness, 0 to 7, which sets the rounding.</param>
+    /// <param name="scanOrder">Whether <paramref name="inverseScan"/> holds a scan in place of an inverse scan.</param>
+    /// <returns>The one-based end position in coefficient scan order.</returns>
     private static ushort Quantize<TOperator>(
         ReadOnlySpan<int> coefficients,
         Span<int> quantizedCoefficients,
@@ -148,8 +161,8 @@ internal static partial class Av1ForwardQuantizer
         int dcQuantizer = Av1QuantizationLookup.GetDcQuantizer(qIndex, dcDeltaQ, bitDepth);
         int acQuantizer = Av1QuantizationLookup.GetAcQuantizer(qIndex, acDeltaQ, bitDepth);
 
-        // Sharpness raises the fast rounding of every nonzero quantizer. Reference: the round_fp tables of
-        // av1_build_quantizer().
+        // A nonzero sharpness sets the rounding factor to 64 - 16 * (7 - sharpness) / 7 for every nonzero quantizer index.
+        // Sharpness 0 and quantizer index 0 keep the factor of 64.
         int roundingFactor = sharpness != 0 && qIndex != 0 ? 64 - (16 * (7 - sharpness) / 7) : 64;
         int dcRounding = RoundPowerOfTwo((roundingFactor * dcDequantizer) >> 7, logScale);
         int acRounding = RoundPowerOfTwo((roundingFactor * acDequantizer) >> 7, logScale);
@@ -161,12 +174,11 @@ internal static partial class Av1ForwardQuantizer
         nuint count = (nuint)coefficientCount;
         DebugGuard.IsTrue((coefficientCount & 15) == 0, "Every coded transform has a multiple of 16 coefficients.");
 
-        // Every coded transform has a multiple of 16 coefficients, so the widest vector covers the whole block with
-        // no remainder. Raster coefficient zero is the only DC coefficient. The first vector carries the DC
-        // constants in lane zero and the AC constants in every other lane, so the DC coefficient needs no separate
-        // scalar step. Every later vector uses the AC constants alone.
-        // With an inverse scan, each vector also raises a per-lane maximum of the one-based scan position of its
-        // nonzero coefficients, so the end of block comes out of the same pass with no second read of the block.
+        // Every coded transform has a multiple of 16 coefficients, so the widest vector covers the whole block with no remainder.
+        // Raster coefficient zero is the only DC coefficient. The first vector carries the DC constants in lane zero and the AC
+        // constants in every other lane, so the DC coefficient needs no separate scalar step. Every later vector uses the AC constants alone.
+        // With an inverse scan, each vector also raises a per-lane maximum of the one-based scan position of its nonzero coefficients.
+        // Then the end of block comes out of the same pass with no second read of the block.
         int endOfBlock = 0;
         if (Vector512.IsHardwareAccelerated)
         {
@@ -287,9 +299,8 @@ internal static partial class Av1ForwardQuantizer
     /// Finds the one-based scan position of the last nonzero coefficient.
     /// </summary>
     /// <remarks>
-    /// Quantized coefficients remain in raster order for reconstruction and entropy coding. As in
-    /// <c>av1_quantize_fp_avx2</c>, the end position is the largest inverse-scan index of a nonzero coefficient,
-    /// which vector lanes find without a scan-order gather.
+    /// Quantized coefficients stay in raster order for reconstruction and entropy coding. The end position is the largest inverse-scan
+    /// index of a nonzero coefficient. Vector lanes find it without a scan-order gather.
     /// </remarks>
     /// <param name="quantized">The raster-order quantized coefficients.</param>
     /// <param name="inverseScan">The scan position of each raster-order coefficient.</param>
@@ -312,8 +323,11 @@ internal static partial class Av1ForwardQuantizer
     }
 
     /// <summary>
-    /// Applies libaom's positive round-power-of-two operation to one quantizer constant.
+    /// Divides a non-negative quantizer constant by 2^<paramref name="shift"/> and rounds half up.
     /// </summary>
+    /// <param name="value">The non-negative constant.</param>
+    /// <param name="shift">The power-of-two exponent. Zero returns the value unchanged.</param>
+    /// <returns>The rounded quotient.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int RoundPowerOfTwo(int value, int shift)
         => shift == 0 ? value : (value + (1 << (shift - 1))) >> shift;

@@ -121,7 +121,8 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
             this.storage.Slice(TransientStorageOffset, ChromaFromLumaSampleStorageLength));
 
     /// <summary>
-    /// Gets the palette-search view over transient storage that is no longer needed after spatial and CfL search.
+    /// Gets the palette-search view over the transient storage. The spatial and chroma-from-luma searches are complete
+    /// before the palette search, so they no longer need this storage.
     /// </summary>
     public Av1EncoderPaletteWorkspace<TSample> Palette
         => new(this.storage[TransientStorageOffset..]);

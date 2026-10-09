@@ -87,7 +87,7 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder
     public Span<byte> GetFramePlane(Av1Plane plane) => this.blockDecoder.GetFramePlane(plane);
 
     /// <summary>
-    /// Applies the in-loop frame stages after every superblock has been reconstructed.
+    /// Applies the in-loop frame stages after the decoder reconstructs every superblock.
     /// </summary>
     /// <param name="cdefDecoder">The session-owned CDEF stage.</param>
     /// <param name="restorationBoundary">The session-owned restoration boundary rows.</param>
@@ -128,8 +128,8 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder
                 restorationBoundary);
         }
 
-        // Film grain is deliberately excluded here because this buffer is the normative post-restoration reference.
-        // The owning decoder applies grain only to the presentation buffer after reference ownership is established.
+        // This stage does not apply film grain, because this buffer is the normative reference after restoration.
+        // The owning decoder applies grain only to the presentation buffer, after it stores the reference.
     }
 
     /// <summary>

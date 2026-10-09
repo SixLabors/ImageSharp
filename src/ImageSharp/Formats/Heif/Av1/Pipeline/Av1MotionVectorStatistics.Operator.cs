@@ -56,12 +56,11 @@ internal sealed partial class Av1MotionVectorStatistics
     }
 
     /// <summary>
-    /// Adds the source texture of one block: over every sample but the last row and column, the absolute horizontal
-    /// and vertical differences to the next sample, shifted to eight bits, and their product. The block may extend
-    /// past the frame, where the source border repeats the last row and column: a column from the last one on has no
-    /// horizontal difference and the vertical difference of the last column, and a row from the last one on has no
-    /// vertical difference. The totals wrap like the reference's integer sums. Reference: the texture loops of
-    /// collect_mv_stats_b().
+    /// Adds the source texture of one block. The texture covers every sample except the last row and column of the block.
+    /// Each sample adds its absolute horizontal and vertical differences to the next sample, shifted to eight bits, and their product.
+    /// The block can extend past the frame, where the source border repeats the last row and column.
+    /// A column from the last frame column on has no horizontal difference and gets the vertical difference of the last column.
+    /// A row from the last frame row on has no vertical difference. The 32-bit totals wrap on overflow.
     /// </summary>
     /// <typeparam name="TSample">The sample type.</typeparam>
     /// <typeparam name="TOperator">The texture operator of the sample type.</typeparam>
@@ -87,6 +86,7 @@ internal sealed partial class Av1MotionVectorStatistics
         where TSample : unmanaged
         where TOperator : struct, ITextureOperator<TSample>
     {
+        // The inside columns have a right neighbor inside the frame. The outside columns lie on or past the last frame column.
         int lastColumn = luma.Width - 1;
         int lastRow = luma.Height - 1;
         int columns = width - 1;
@@ -107,10 +107,12 @@ internal sealed partial class Av1MotionVectorStatistics
         ref TSample lumaOrigin = ref MemoryMarshal.GetReference(lumaSamples);
         for (int row = 0; row < height - 1; row++)
         {
+            // Rows past the frame clamp to the last row, so their vertical differences are zero.
             ref TSample currentRow = ref Unsafe.Add(ref lumaOrigin, (nuint)luma.GetOffset(0, Math.Min(origin.Y + row, lastRow)));
             ref TSample nextRow = ref Unsafe.Add(ref lumaOrigin, (nuint)luma.GetOffset(0, Math.Min(origin.Y + row + 1, lastRow)));
             if (outside > 0)
             {
+                // Each outside column repeats the vertical difference of the last frame column. Its horizontal difference is zero.
                 int edge = Math.Abs(TOperator.Load(ref nextRow, (nuint)lastColumn) - TOperator.Load(ref currentRow, (nuint)lastColumn)) >> shift;
                 verticalTotal += outside * edge;
             }
@@ -122,6 +124,10 @@ internal sealed partial class Av1MotionVectorStatistics
 
             currentRow = ref Unsafe.Add(ref currentRow, origin.X);
             nextRow = ref Unsafe.Add(ref nextRow, origin.X);
+
+            // Each vector step loads the current samples, the samples one column to the right, and the samples one row below.
+            // The right load ends at index x + Count, which is at most the last frame column, so every load stays inside the row.
+            // The widest supported vector runs first. The narrower vectors and the scalar loop then take the remainder.
             nuint x = 0;
             nuint count = (nuint)inside;
             if (Vector512.IsHardwareAccelerated)
@@ -180,6 +186,8 @@ internal sealed partial class Av1MotionVectorStatistics
             }
         }
 
+        // Fold the wide lane totals into the 128-bit totals, then add the lane sums to the scalar totals.
+        // Wrapping addition is associative, so the result equals the scalar wrapping sum.
         horizontal256 += horizontal512.GetLower() + horizontal512.GetUpper();
         vertical256 += vertical512.GetLower() + vertical512.GetUpper();
         diagonal256 += diagonal512.GetLower() + diagonal512.GetUpper();
@@ -192,12 +200,19 @@ internal sealed partial class Av1MotionVectorStatistics
     }
 
     /// <summary>
-    /// Adds the gradients of eight samples to lane totals whose spread across the lanes is not defined.
+    /// Adds the gradients of eight samples to lane totals. The spread of the totals across the lanes is not defined.
     /// </summary>
     /// <remarks>
-    /// A shifted difference is at most 255, so the product fits sixteen bits. The totals wrap like the reference's
-    /// integer sums, which only the lane sum needs.
+    /// A shifted difference is at most 255, so the product fits sixteen bits. The lane totals wrap on overflow.
+    /// Only the sum of all lanes is read, and wrapping addition gives the same sum as the scalar loop.
     /// </remarks>
+    /// <param name="current">The current samples, one per 16-bit lane.</param>
+    /// <param name="right">The samples one column to the right.</param>
+    /// <param name="below">The samples one row below.</param>
+    /// <param name="shift">The shift that reduces a difference to eight bits.</param>
+    /// <param name="horizontal">The horizontal lane totals.</param>
+    /// <param name="vertical">The vertical lane totals.</param>
+    /// <param name="diagonal">The product lane totals.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AccumulateGradients(
         Vector128<ushort> current,
@@ -208,6 +223,8 @@ internal sealed partial class Av1MotionVectorStatistics
         ref Vector128<int> vertical,
         ref Vector128<int> diagonal)
     {
+        // The maximum minus the minimum is the absolute difference of unsigned lanes without a signed widen.
+        // Each 16-bit result widens into two 32-bit halves. Adding the halves mixes lanes, which is valid because only the lane sum is read.
         Vector128<ushort> horizontalDifference = Vector128.ShiftRightLogical(Vector128.Max(current, right) - Vector128.Min(current, right), shift);
         Vector128<ushort> verticalDifference = Vector128.ShiftRightLogical(Vector128.Max(current, below) - Vector128.Min(current, below), shift);
         (Vector128<uint> horizontalLower, Vector128<uint> horizontalUpper) = Vector128.Widen(horizontalDifference);
@@ -219,12 +236,19 @@ internal sealed partial class Av1MotionVectorStatistics
     }
 
     /// <summary>
-    /// Adds the gradients of sixteen samples to lane totals whose spread across the lanes is not defined.
+    /// Adds the gradients of sixteen samples to lane totals. The spread of the totals across the lanes is not defined.
     /// </summary>
     /// <remarks>
-    /// A shifted difference is at most 255, so the product fits sixteen bits. The totals wrap like the reference's
-    /// integer sums, which only the lane sum needs.
+    /// A shifted difference is at most 255, so the product fits sixteen bits. The lane totals wrap on overflow.
+    /// Only the sum of all lanes is read, and wrapping addition gives the same sum as the scalar loop.
     /// </remarks>
+    /// <param name="current">The current samples, one per 16-bit lane.</param>
+    /// <param name="right">The samples one column to the right.</param>
+    /// <param name="below">The samples one row below.</param>
+    /// <param name="shift">The shift that reduces a difference to eight bits.</param>
+    /// <param name="horizontal">The horizontal lane totals.</param>
+    /// <param name="vertical">The vertical lane totals.</param>
+    /// <param name="diagonal">The product lane totals.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AccumulateGradients(
         Vector256<ushort> current,
@@ -235,6 +259,7 @@ internal sealed partial class Av1MotionVectorStatistics
         ref Vector256<int> vertical,
         ref Vector256<int> diagonal)
     {
+        // The same lane layout as the 128-bit overload, with twice the lanes.
         Vector256<ushort> horizontalDifference = Vector256.ShiftRightLogical(Vector256.Max(current, right) - Vector256.Min(current, right), shift);
         Vector256<ushort> verticalDifference = Vector256.ShiftRightLogical(Vector256.Max(current, below) - Vector256.Min(current, below), shift);
         (Vector256<uint> horizontalLower, Vector256<uint> horizontalUpper) = Vector256.Widen(horizontalDifference);
@@ -246,12 +271,19 @@ internal sealed partial class Av1MotionVectorStatistics
     }
 
     /// <summary>
-    /// Adds the gradients of thirty-two samples to lane totals whose spread across the lanes is not defined.
+    /// Adds the gradients of thirty-two samples to lane totals. The spread of the totals across the lanes is not defined.
     /// </summary>
     /// <remarks>
-    /// A shifted difference is at most 255, so the product fits sixteen bits. The totals wrap like the reference's
-    /// integer sums, which only the lane sum needs.
+    /// A shifted difference is at most 255, so the product fits sixteen bits. The lane totals wrap on overflow.
+    /// Only the sum of all lanes is read, and wrapping addition gives the same sum as the scalar loop.
     /// </remarks>
+    /// <param name="current">The current samples, one per 16-bit lane.</param>
+    /// <param name="right">The samples one column to the right.</param>
+    /// <param name="below">The samples one row below.</param>
+    /// <param name="shift">The shift that reduces a difference to eight bits.</param>
+    /// <param name="horizontal">The horizontal lane totals.</param>
+    /// <param name="vertical">The vertical lane totals.</param>
+    /// <param name="diagonal">The product lane totals.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AccumulateGradients(
         Vector512<ushort> current,
@@ -262,6 +294,7 @@ internal sealed partial class Av1MotionVectorStatistics
         ref Vector512<int> vertical,
         ref Vector512<int> diagonal)
     {
+        // The same lane layout as the 128-bit overload, with four times the lanes.
         Vector512<ushort> horizontalDifference = Vector512.ShiftRightLogical(Vector512.Max(current, right) - Vector512.Min(current, right), shift);
         Vector512<ushort> verticalDifference = Vector512.ShiftRightLogical(Vector512.Max(current, below) - Vector512.Min(current, below), shift);
         (Vector512<uint> horizontalLower, Vector512<uint> horizontalUpper) = Vector512.Widen(horizontalDifference);
@@ -273,7 +306,8 @@ internal sealed partial class Av1MotionVectorStatistics
     }
 
     /// <summary>
-    /// Loads eight-bit samples.
+    /// Loads eight-bit samples. Each vector load reads only the needed bytes and widens them to 16-bit lanes.
+    /// The 128-bit load reads its eight bytes as one 64-bit scalar.
     /// </summary>
     internal readonly struct ByteTextureOperator : ITextureOperator<byte>
     {
@@ -298,7 +332,7 @@ internal sealed partial class Av1MotionVectorStatistics
     }
 
     /// <summary>
-    /// Loads high bit depth samples.
+    /// Loads high bit depth samples. The samples are already 16 bits wide, so each load needs no widening.
     /// </summary>
     internal readonly struct UInt16TextureOperator : ITextureOperator<ushort>
     {

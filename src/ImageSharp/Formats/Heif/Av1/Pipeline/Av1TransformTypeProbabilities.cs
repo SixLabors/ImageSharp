@@ -174,8 +174,8 @@ internal static class Av1TransformTypeProbabilities
                 sum += counts[offset + type];
             }
 
-            // Average old and observed probabilities with integer truncation. Assign the remaining
-            // mass to DCT so every size still sums to 1024, including sizes absent from this frame.
+            // Each new probability is the truncated average of the old and the observed probability. A size absent from this frame observes
+            // all 1024 on DCT. DCT also gets the mass that truncation removes, so the probabilities of every size sum to 1024.
             int remainder = probabilityTotal;
             for (int type = TypeCount - 1; type >= 0; type--)
             {
@@ -198,6 +198,7 @@ internal static class Av1TransformTypeProbabilities
     /// <returns>The pruned transform-type mask.</returns>
     public static ushort Prune(ReadOnlySpan<int> probabilities, ushort allowedMask, int level, Av1FrameUpdateType updateType)
     {
+        // The table holds one row for each pruning level. Each row holds one threshold for each frame update role.
         ReadOnlySpan<byte> thresholds = [10, 15, 15, 10, 15, 15, 15, 10, 17, 17, 10, 17, 17, 17];
         int threshold = thresholds[((level - 1) * (int)Av1FrameUpdateType.Count) + (int)updateType];
         int bestProbability = -1;
@@ -218,6 +219,7 @@ internal static class Av1TransformTypeProbabilities
             }
         }
 
+        // The most probable legal type stays in the mask, so that at least one legal type remains.
         rejected &= (ushort)~(1 << bestType);
         return (ushort)(allowedMask & ~rejected);
     }

@@ -9,416 +9,393 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// The one-pass rate control without first-pass statistics, for every rate control mode. libavif codes at libaom's
-/// default rate of 256 kbps and, in the bit-rate modes, lets the quantizer move four steps either side of the
-/// requested one. Real-time usage sets the target of each frame (constant bit rate by default, with a 1000 ms buffer,
-/// a 600 ms starting and optimal level and 50% under- and overshoot); the other usages allocate the bits of each golden
-/// group, with a 6000 ms buffer, a 4000 ms starting and a 5000 ms optimal level and 25% under- and overshoot.
-/// Reference: RATE_CONTROL and PRIMARY_RATE_CONTROL, with the defaults of the encoder configuration of each usage.
+/// The one-pass rate control without first-pass statistics, for every rate control mode. The encoder codes at a default rate of 256 kbps.
+/// In the bit-rate modes, the quantizer can move four steps on each side of the requested one. This matches the output of the AVIF reference encoder.
+/// Real-time usage sets the target of each frame. It uses constant bit rate by default, a 1000 ms buffer, a 600 ms starting and optimal level, and 50%
+/// undershoot and overshoot. The other usages allocate the bits of each golden group. They use a 6000 ms buffer, a 4000 ms starting level, a 5000 ms
+/// optimal level, and 25% undershoot and overshoot.
 /// </summary>
 internal sealed class Av1RateControl
 {
     /// <summary>
-    /// The bits-per-macroblock precision. Reference: BPER_MB_NORMBITS.
+    /// The number of fraction bits in a bits-per-macroblock value.
     /// </summary>
     private const int BitsPerMacroblockShift = 9;
 
     /// <summary>
-    /// The least bits a frame is given. Reference: FRAME_OVERHEAD_BITS.
+    /// The smallest bit target of a frame.
     /// </summary>
     private const int FrameOverheadBits = 200;
 
     /// <summary>
-    /// Reference: MIN_BPB_FACTOR.
+    /// The smallest rate correction factor.
     /// </summary>
     private const double MinimumBitsPerBlockFactor = 0.005;
 
     /// <summary>
-    /// Reference: MAX_BPB_FACTOR.
+    /// The largest rate correction factor.
     /// </summary>
     private const double MaximumBitsPerBlockFactor = 50;
 
     /// <summary>
-    /// Reference: MAX_MB_RATE.
+    /// The bits per macroblock that the largest frame target always allows.
     /// </summary>
     private const int MaximumMacroblockRate = 250;
 
     /// <summary>
-    /// Reference: MAXRATE_1080P.
+    /// The bits that the largest frame target always allows. This is <see cref="MaximumMacroblockRate"/> for the 8100 macroblocks of a 1080p frame.
     /// </summary>
     private const int MaximumRate1080P = 2025000;
 
     /// <summary>
-    /// The key frame boost of one-pass coding: DEFAULT_KF_BOOST_RT in real-time usage and DEFAULT_KF_BOOST, which
-    /// find_next_key_frame() sets without first-pass statistics, in the other usages. Both are 2300.
+    /// The key frame boost of one-pass coding. Real-time usage and the other usages without first-pass statistics both use 2300.
     /// </summary>
     private const int DefaultKeyFrameBoost = 2300;
 
     /// <summary>
-    /// The key frame boost at and below which the high motion floor applies in real-time usage. Reference: kf_low_rtc.
+    /// The key frame boost at and below which the high motion floor applies in real-time usage.
     /// </summary>
     private const int RealtimeKeyFrameLowBoost = 400;
 
     /// <summary>
-    /// The key frame boost at and above which the low motion floor applies in real-time usage. Reference:
-    /// kf_high_rtc.
+    /// The key frame boost at and above which the low motion floor applies in real-time usage.
     /// </summary>
     private const int RealtimeKeyFrameHighBoost = 5000;
 
     /// <summary>
-    /// The key frame boost at and below which the high motion floor applies in the other usages. Reference: kf_low.
+    /// The key frame boost at and below which the high motion floor applies in the other usages.
     /// </summary>
     private const int KeyFrameLowBoost = 553;
 
     /// <summary>
-    /// The key frame boost at and above which the low motion floor applies in the other usages. Reference: kf_high.
+    /// The key frame boost at and above which the low motion floor applies in the other usages.
     /// </summary>
     private const int KeyFrameHighBoost = 8000;
 
     /// <summary>
-    /// The golden boost of one-pass coding without statistics, which define_gf_group_pass0() sets. Reference:
-    /// DEFAULT_GF_BOOST.
+    /// The golden boost of one-pass coding without first-pass statistics.
     /// </summary>
     private const int DefaultGoldenBoost = 2000;
 
     /// <summary>
-    /// The golden boost at and below which the high motion floor applies in real-time usage. Reference: gf_low_rtc.
+    /// The golden boost at and below which the high motion floor applies in real-time usage.
     /// </summary>
     private const int RealtimeGoldenLowBoost = 300;
 
     /// <summary>
-    /// The golden boost at and above which the low motion floor applies in real-time usage. Reference: gf_high_rtc.
+    /// The golden boost at and above which the low motion floor applies in real-time usage.
     /// </summary>
     private const int RealtimeGoldenHighBoost = 2400;
 
     /// <summary>
-    /// The golden boost at and below which the high motion floor applies in the other usages while the average golden
-    /// boost is below its threshold, which it always is without first-pass statistics. Reference: gf_low_1.
+    /// The golden boost at and below which the high motion floor applies in the other usages while the average golden boost is below its threshold.
+    /// Without first-pass statistics, the average is always below the threshold.
     /// </summary>
     private const int GoldenLowBoost = 562;
 
     /// <summary>
-    /// The golden boost at and above which the low motion floor applies in the other usages while the average golden
-    /// boost is below its threshold. Reference: gf_high_1.
+    /// The golden boost at and above which the low motion floor applies in the other usages while the average golden boost is below its threshold.
     /// </summary>
     private const int GoldenHighBoost = 2875;
 
     /// <summary>
-    /// The bit target of a variable-bitrate key frame in average frames. Reference: the kf_ratio of
-    /// av1_calc_iframe_target_size_one_pass_vbr().
+    /// The bit target of a variable-bitrate key frame, in average frames.
     /// </summary>
     private const int VariableBitrateKeyFrameRatio = 25;
 
     /// <summary>
-    /// The weight of the frames of a variable-bitrate golden group against its boosted first frame, outside real-time
-    /// usage with a lookahead. Reference: the af_ratio of av1_calc_pframe_target_size_one_pass_vbr().
+    /// The weight of the frames of a variable-bitrate golden group against its boosted first frame, outside real-time usage with a lookahead.
     /// </summary>
     private const int VariableBitrateGoldenRatio = 10;
 
     /// <summary>
-    /// The ratio below which the actual bits of a constrained-quality coding lower its quality level. Reference: the
-    /// cq_adjust_threshold of get_active_cq_level().
+    /// The ratio below which the actual bits of a constrained-quality coding lower its quality level.
     /// </summary>
     private const double ConstrainedQualityAdjustThreshold = 0.1;
 
     /// <summary>
-    /// The target rate in bits per second. Reference: the rc_target_bitrate default of every usage.
+    /// The target rate in bits per second. Every usage uses this default.
     /// </summary>
     private const long TargetBandwidth = 256 * 1000;
 
     /// <summary>
-    /// The rate control mode. Reference: rc_cfg.mode.
+    /// The rate control mode.
     /// </summary>
     private readonly Av1RateControlMode mode;
 
     /// <summary>
-    /// Whether the encoder runs in real-time usage, which selects the real-time quantizer tables and the real-time
-    /// scene adjustments. Reference: oxcf->mode == REALTIME.
+    /// Whether the encoder runs in real-time usage. This selects the real-time quantizer tables and the real-time scene adjustments.
     /// </summary>
     private readonly bool realtime;
 
     /// <summary>
-    /// The largest share, in percent, by which a constant-bitrate inter target falls below the average frame
-    /// bandwidth while the buffer is below the optimal level. Reference: rc_cfg.under_shoot_pct.
+    /// The largest share, in percent, by which a constant-bitrate inter target falls below the average frame bandwidth while the buffer is below the
+    /// optimal level.
     /// </summary>
     private readonly int underShootPercentage;
 
     /// <summary>
-    /// The largest share, in percent, by which a constant-bitrate inter target rises above the average frame bandwidth
-    /// while the buffer is above the optimal level. Reference: rc_cfg.over_shoot_pct.
+    /// The largest share, in percent, by which a constant-bitrate inter target rises above the average frame bandwidth while the buffer is above the
+    /// optimal level.
     /// </summary>
     private readonly int overShootPercentage;
 
     /// <summary>
-    /// The coded sample bit depth. Reference: seq_params->bit_depth.
+    /// The coded sample bit depth.
     /// </summary>
     private readonly Av1BitDepth bitDepth;
 
     /// <summary>
-    /// The configured frame width, which a scaled frame codes below. Reference: frm_dim_cfg.width.
+    /// The configured frame width. A scaled frame codes at a smaller width.
     /// </summary>
     private readonly int configuredWidth;
 
     /// <summary>
-    /// The configured frame height, which a scaled frame codes below. Reference: frm_dim_cfg.height.
+    /// The configured frame height. A scaled frame codes at a smaller height.
     /// </summary>
     private readonly int configuredHeight;
 
     /// <summary>
-    /// The coded width of the current frame. Reference: cm->width.
+    /// The coded width of the current frame.
     /// </summary>
     private int width;
 
     /// <summary>
-    /// The coded height of the current frame. Reference: cm->height.
+    /// The coded height of the current frame.
     /// </summary>
     private int height;
 
     /// <summary>
-    /// The number of 16x16 macroblocks of the current frame. Reference: mi_params.MBs.
+    /// The number of 16x16 macroblocks of the current frame.
     /// </summary>
     private int macroblockCount;
 
     /// <summary>
-    /// The size of the primary reference frame of the current frame, or <see langword="null"/> without one. Reference:
-    /// cm->prev_frame.
+    /// The size of the primary reference frame of the current frame, or <see langword="null"/> without one.
     /// </summary>
     private Size? primaryReferenceSize;
 
     /// <summary>
-    /// The constant-quality level, which bounds the constrained-quality mode. Reference: rc_cfg.cq_level.
+    /// The constant-quality level, which bounds the constrained-quality mode.
     /// </summary>
     private int constantQualityLevel;
 
     /// <summary>
-    /// The rate correction factor of golden refreshes outside the constant-bitrate mode. Reference:
-    /// rate_correction_factors[GF_ARF_STD].
+    /// The rate correction factor of golden refreshes outside the constant-bitrate mode.
     /// </summary>
     private double goldenCorrectionFactor;
 
     /// <summary>
-    /// The quantizer index of the last ordinary inter frame. Reference: p_rc->last_q[INTER_FRAME].
+    /// The quantizer index of the last ordinary inter frame.
     /// </summary>
     private int lastInterFrameQIndex;
 
     /// <summary>
-    /// The bits the coded frames used. Reference: p_rc->total_actual_bits.
+    /// The bits that the coded frames used.
     /// </summary>
     private long totalActualBits;
 
     /// <summary>
-    /// The average frame bandwidth summed over the shown frames. Reference: p_rc->total_target_bits.
+    /// The sum of the average frame bandwidth over the shown frames.
     /// </summary>
     private long totalTargetBits;
 
     /// <summary>
-    /// The bit allocation of the key frame of the current golden group. Reference: gf_group->bit_allocation[0] for
-    /// KF_UPDATE.
+    /// The bit allocation of the key frame of the current golden group.
     /// </summary>
     private int groupKeyFrameTarget;
 
     /// <summary>
-    /// The bit allocation of the golden update that starts the current golden group. Reference:
-    /// gf_group->bit_allocation[0] for GF_UPDATE.
+    /// The bit allocation of the golden update that starts the current golden group.
     /// </summary>
     private int groupGoldenTarget;
 
     /// <summary>
-    /// The bit allocation of the other frames of the current golden group. Reference: gf_group->bit_allocation for
-    /// LF_UPDATE.
+    /// The bit allocation of each other frame of the current golden group.
     /// </summary>
     private int groupInterTarget;
 
     /// <summary>
-    /// The target rate of the current frame per 64x64 area. Reference: rc->sb64_target_rate.
+    /// The target rate of the current frame per 64x64 area.
     /// </summary>
     private int superblockTargetRate;
 
     /// <summary>
-    /// Whether the current frame refreshes GOLDEN: the quantizer pick sets it from the frame's update type, and the
-    /// post-encode update from the refresh flags of the coded frame. A golden refresh reads the golden quantizer floor
-    /// and, outside the constant-bitrate mode, the golden rate correction factor. Real-time constant-bitrate coding
-    /// gives a golden refresh no boost, so it picks as an ordinary inter frame there. Reference:
-    /// refresh_frame->golden_frame.
+    /// Whether the current frame refreshes GOLDEN. The quantizer pick sets it from the update type of the frame. The post-encode update sets it from
+    /// the refresh flags of the coded frame. A golden refresh reads the golden quantizer floor. Outside the constant-bitrate mode, it also reads the
+    /// golden rate correction factor. Real-time constant-bitrate coding gives a golden refresh no boost, so there it picks as an ordinary inter frame.
     /// </summary>
     private bool refreshesGolden;
 
     /// <summary>
-    /// The lowest allowed quantizer index. Reference: rc->best_quality.
+    /// The lowest allowed quantizer index.
     /// </summary>
     private int bestQuality;
 
     /// <summary>
-    /// The highest allowed quantizer index. Reference: rc->worst_quality.
+    /// The highest allowed quantizer index.
     /// </summary>
     private int worstQuality;
 
     /// <summary>
-    /// Whether inter frames estimate their bits from the error against the LAST reconstruction. Reference:
-    /// sf.hl_sf.accurate_bit_estimate.
+    /// Whether inter frames estimate their bits from the error against the LAST reconstruction.
     /// </summary>
     private readonly bool accurateBitEstimate;
 
     /// <summary>
-    /// The frame rate. Reference: cpi->framerate.
+    /// The frame rate.
     /// </summary>
     private readonly double framerate;
 
     /// <summary>
-    /// The buffer level before the first frame, in bits. Reference: p_rc->starting_buffer_level.
+    /// The buffer level before the first frame, in bits.
     /// </summary>
     private readonly long startingBufferLevel;
 
     /// <summary>
-    /// The buffer level that the constant-bitrate targets steer toward, in bits. Reference:
-    /// p_rc->optimal_buffer_level.
+    /// The buffer level that the constant-bitrate targets steer toward, in bits.
     /// </summary>
     private readonly long optimalBufferLevel;
 
     /// <summary>
-    /// The largest buffer level, in bits. Reference: p_rc->maximum_buffer_size.
+    /// The largest buffer level, in bits.
     /// </summary>
     private readonly long maximumBufferSize;
 
     /// <summary>
-    /// The largest number of frames between key frames. Reference: kf_cfg.key_freq_max.
+    /// The largest number of frames between key frames.
     /// </summary>
     private readonly int keyFrameMaximumDistance;
 
     /// <summary>
-    /// The cyclic refresh of the sequence, or <see langword="null"/> without it. Reference: cpi->cyclic_refresh.
+    /// The cyclic refresh of the sequence, or <see langword="null"/> without it.
     /// </summary>
     private readonly Av1CyclicRefresh? cyclicRefresh;
 
     /// <summary>
-    /// The bits per frame at the target rate. Reference: rc->avg_frame_bandwidth.
+    /// The bits per frame at the target rate.
     /// </summary>
     private int averageFrameBandwidth;
 
     /// <summary>
-    /// The largest bit target of a frame. Reference: rc->max_frame_bandwidth.
+    /// The largest bit target of a frame.
     /// </summary>
     private int maximumFrameBandwidth;
 
     /// <summary>
-    /// The average frame bandwidth when the previous frame was coded. Reference: rc->prev_avg_frame_bandwidth.
+    /// The average frame bandwidth when the previous frame was coded.
     /// </summary>
     private int previousAverageFrameBandwidth;
 
     /// <summary>
-    /// The buffer level after the previous frame, in bits. Reference: p_rc->buffer_level.
+    /// The buffer level after the previous frame, in bits.
     /// </summary>
     private long bufferLevel;
 
     /// <summary>
-    /// The bits saved against the target so far, capped at the buffer size. Reference: p_rc->bits_off_target.
+    /// The bits saved against the target so far, capped at the buffer size.
     /// </summary>
     private long bitsOffTarget;
 
     /// <summary>
-    /// The running average quantizer index of key frames. Reference: avg_frame_qindex[KEY_FRAME].
+    /// The running average quantizer index of key frames.
     /// </summary>
     private int averageKeyFrameQIndex;
 
     /// <summary>
-    /// The running average quantizer index of inter frames. Reference: avg_frame_qindex[INTER_FRAME].
+    /// The running average quantizer index of inter frames.
     /// </summary>
     private int averageInterFrameQIndex;
 
     /// <summary>
-    /// The quantizer index of the last key frame. Reference: p_rc->last_q[KEY_FRAME].
+    /// The quantizer index of the last key frame.
     /// </summary>
     private int lastKeyFrameQIndex;
 
     /// <summary>
-    /// The quantizer index of the last boosted frame, which a forced key frame stays near. Reference:
-    /// p_rc->last_boosted_qindex.
+    /// The quantizer index of the last boosted frame. A forced key frame stays near this index.
     /// </summary>
     private int lastBoostedQIndex;
 
     /// <summary>
-    /// The rate correction factor of key frames. Reference: rate_correction_factors[KF_STD].
+    /// The rate correction factor of key frames.
     /// </summary>
     private double keyFrameCorrectionFactor;
 
     /// <summary>
-    /// The rate correction factor of ordinary inter frames. Reference: rate_correction_factors[INTER_NORMAL].
+    /// The rate correction factor of ordinary inter frames.
     /// </summary>
     private double interFrameCorrectionFactor;
 
     /// <summary>
-    /// The quantizer index of the previous frame. Reference: rc->q_1_frame.
+    /// The quantizer index of the previous frame.
     /// </summary>
     private int firstFrameQIndex;
 
     /// <summary>
-    /// The quantizer index of the frame before the previous one. Reference: rc->q_2_frame.
+    /// The quantizer index of the frame before the previous one.
     /// </summary>
     private int secondFrameQIndex;
 
     /// <summary>
-    /// Whether the previous frame overshot (-1), undershot (1) or met (0) its expected size. Reference:
-    /// rc->rc_1_frame.
+    /// Whether the previous frame overshot (-1), undershot (1) or met (0) its expected size.
     /// </summary>
     private int firstFrameRateSign;
 
     /// <summary>
     /// Whether the frame before the previous one overshot (-1), undershot (1) or met (0) its expected size.
-    /// Reference: rc->rc_2_frame.
     /// </summary>
     private int secondFrameRateSign;
 
     /// <summary>
-    /// The number of frames since the last key frame. Reference: rc->frames_since_key.
+    /// The number of frames since the last key frame.
     /// </summary>
     private int framesSinceKey;
 
     /// <summary>
-    /// The number of frames left before the next key frame. Reference: rc->frames_to_key.
+    /// The number of frames left before the next key frame.
     /// </summary>
     private int framesToKey;
 
     /// <summary>
-    /// The key frame boost. Reference: p_rc->kf_boost.
+    /// The key frame boost.
     /// </summary>
     private int keyFrameBoost;
 
     /// <summary>
-    /// Whether the key frame interval placed the current key frame. Reference: p_rc->this_key_frame_forced.
+    /// Whether the key frame interval placed the current key frame.
     /// </summary>
     private bool thisKeyFrameForced;
 
     /// <summary>
-    /// The bit target of the current frame. Reference: rc->this_frame_target.
+    /// The bit target of the current frame.
     /// </summary>
     private int thisFrameTarget;
 
     /// <summary>
-    /// The running ratio between the coded inter frame size and the reconstruction error. Reference:
-    /// rc->bit_est_ratio.
+    /// The running ratio between the coded inter frame size and the reconstruction error.
     /// </summary>
     private int bitEstimateRatio;
 
     /// <summary>
     /// The reconstruction error of the current inter frame, or <see cref="ulong.MaxValue"/> when it is not measured.
-    /// Reference: cpi->rec_sse.
     /// </summary>
     private ulong reconstructionError;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1RateControl"/> class. Reference: av1_rc_init(),
-    /// av1_primary_rc_init(), set_rc_buffer_sizes() and av1_rc_update_framerate().
+    /// Initializes a new instance of the <see cref="Av1RateControl"/> class. It sets the buffer sizes, the starting quantizer averages and the
+    /// limits that depend on the frame rate.
     /// </summary>
     /// <param name="width">The frame width.</param>
     /// <param name="height">The frame height.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    /// <param name="speed">The cpu-used tier.</param>
-    /// <param name="mode">The rate control mode. Reference: rc_cfg.mode.</param>
-    /// <param name="realtime">Whether the encoder runs in real-time usage. Reference: oxcf->mode == REALTIME.</param>
-    /// <param name="bestAllowedQIndex">The lowest quantizer index the frames may use. Reference: best_allowed_q.</param>
-    /// <param name="worstAllowedQIndex">The highest quantizer index the frames may use. Reference: worst_allowed_q.</param>
-    /// <param name="constantQualityLevel">The constant-quality level as a quantizer index. Reference: cq_level.</param>
-    /// <param name="keyFrameMaximumDistance">The largest number of frames between key frames. Reference: kf_max_dist.</param>
+    /// <param name="speed">The encoder speed tier.</param>
+    /// <param name="mode">The rate control mode.</param>
+    /// <param name="realtime">Whether the encoder runs in real-time usage.</param>
+    /// <param name="bestAllowedQIndex">The lowest quantizer index that the frames can use.</param>
+    /// <param name="worstAllowedQIndex">The highest quantizer index that the frames can use.</param>
+    /// <param name="constantQualityLevel">The constant-quality level as a quantizer index.</param>
+    /// <param name="keyFrameMaximumDistance">The largest number of frames between key frames.</param>
     /// <param name="usesAdaptiveQuantization">Whether the sequence uses any adaptive quantization mode.</param>
     /// <param name="cyclicRefresh">The cyclic refresh of the sequence, or <see langword="null"/> without it.</param>
     public Av1RateControl(
@@ -449,10 +426,8 @@ internal sealed class Av1RateControl
         this.worstQuality = worstAllowedQIndex;
         this.constantQualityLevel = constantQualityLevel;
 
-        // Speed 7 estimates inter frame bits from the error against the last reconstruction, for 8-bit frames from
-        // 360 to 720 lines without adaptive quantization. Lossless coding turns it off. Reference: the speed 7
-        // accurate_bit_estimate setting of the 360p-or-larger branch of set_rt_speed_feature_framesize_dependent(),
-        // with is_lossless_requested() in set_rt_speed_features().
+        // Real-time speed 7 estimates inter frame bits from the error against the last reconstruction. This applies to 8-bit frames from 360 to 720
+        // lines without adaptive quantization. Lossless coding turns it off.
         int shortSide = Math.Min(width, height);
         this.accurateBitEstimate = realtime &&
             speed == HeifEncodingSpeed.Level7 &&
@@ -462,16 +437,12 @@ internal sealed class Av1RateControl
             worstAllowedQIndex != 0 &&
             !usesAdaptiveQuantization;
 
-        // libavif gives every frame time stamp 0 and duration 1 in libaom's default 1/30 time base, so
-        // adjust_frame_rate() sees one constant duration of 333333 ten-megahertz ticks. Reference: the
-        // aom_codec_encode() call of aomCodecEncodeImage(), with timebase_units_to_ticks().
+        // Every frame has time stamp 0 and duration 1 in a 1/30 time base. The frame rate update thus sees one constant duration of 333333 ticks
+        // of 10 MHz, which gives a frame rate a little above 30.
         this.framerate = 10000000.0 / 333333;
 
-        // Real-time usage keeps a 1000 ms buffer with a 600 ms starting and optimal level and 50% under- and
-        // overshoot; the good-quality and all-intra usages keep a 6000 ms buffer with a 4000 ms starting and a
-        // 5000 ms optimal level and 25% under- and overshoot. Reference: rc_buf_sz, rc_buf_initial_sz,
-        // rc_buf_optimal_sz, rc_undershoot_pct and rc_overshoot_pct of the default configuration of each usage, with
-        // set_rc_buffer_sizes().
+        // Real-time usage keeps a 1000 ms buffer, a 600 ms starting and optimal level, and 50% undershoot and overshoot. The good-quality and
+        // all-intra usages keep a 6000 ms buffer, a 4000 ms starting level, a 5000 ms optimal level, and 25% undershoot and overshoot.
         this.startingBufferLevel = (realtime ? 600 : 4000) * TargetBandwidth / 1000;
         this.optimalBufferLevel = (realtime ? 600 : 5000) * TargetBandwidth / 1000;
         this.maximumBufferSize = (realtime ? 1000 : 6000) * TargetBandwidth / 1000;
@@ -480,8 +451,8 @@ internal sealed class Av1RateControl
         this.bufferLevel = this.startingBufferLevel;
         this.bitsOffTarget = this.startingBufferLevel;
 
-        // One-pass constant-bitrate coding starts both averages at the worst quantizer; every other coding starts
-        // them halfway between the allowed quantizers. Reference: av1_primary_rc_init().
+        // One-pass constant-bitrate coding starts both averages at the worst quantizer. Every other coding starts them halfway between the allowed
+        // quantizers.
         int initialAverage = mode == Av1RateControlMode.ConstantBitRate
             ? worstAllowedQIndex
             : (worstAllowedQIndex + bestAllowedQIndex) / 2;
@@ -499,7 +470,7 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Gets the running average quantizer index of inter frames. Reference: avg_frame_qindex[INTER_FRAME].
+    /// Gets the running average quantizer index of inter frames.
     /// </summary>
     public int AverageInterFrameQIndex => this.averageInterFrameQIndex;
 
@@ -509,42 +480,40 @@ internal sealed class Av1RateControl
     public Av1BitDepth BitDepth => this.bitDepth;
 
     /// <summary>
-    /// Gets the lowest allowed quantizer index. Reference: rc->best_quality.
+    /// Gets the lowest allowed quantizer index.
     /// </summary>
     public int BestQuality => this.bestQuality;
 
     /// <summary>
-    /// Gets a value indicating whether every allowed quantizer is lossless. Reference: is_lossless_requested().
+    /// Gets a value indicating whether every allowed quantizer is lossless.
     /// </summary>
     public bool IsLosslessRequested => this.bestQuality == 0 && this.worstQuality == 0;
 
     /// <summary>
-    /// Gets the bits per frame at the target rate. Reference: rc->avg_frame_bandwidth.
+    /// Gets the bits per frame at the target rate.
     /// </summary>
     public int AverageFrameBandwidth => this.averageFrameBandwidth;
 
     /// <summary>
-    /// Gets the target rate of the current frame per 64x64 area. Reference: rc->sb64_target_rate.
+    /// Gets the target rate of the current frame per 64x64 area.
     /// </summary>
     public int SuperblockTargetRate => this.superblockTargetRate;
 
     /// <summary>
-    /// Gets a value indicating whether the key frame interval places a key frame on the next frame. Automatic key
-    /// frames are on, because the smallest key frame distance (0) differs from the largest. Reference: the auto_key
-    /// test of set_key_frame().
+    /// Gets a value indicating whether the key frame interval places a key frame on the next frame. Automatic key frames are on, because the
+    /// smallest key frame distance (0) differs from the largest.
     /// </summary>
     public bool IsKeyFrameDue => this.framesToKey == 0;
 
     /// <summary>
-    /// Gets the frames left before the next key frame. Reference: rc->frames_to_key.
+    /// Gets the frames left before the next key frame.
     /// </summary>
     public int FramesToKey => this.framesToKey;
 
     /// <summary>
-    /// Gets the linear coefficients of the quantizer floor curves: the low and the high motion key frame curves, the
-    /// low and the high motion golden and alternate reference curves, and the inter curve. The first two rows hold the
-    /// curves of the good-quality tables below 608 lines and from 608 lines; the last two rows hold the real-time
-    /// curves, which are the same for every resolution. Reference: x1 of init_minq_luts().
+    /// Gets the linear coefficients of the quantizer floor curves. Each row holds, in order, the low and the high motion key frame curves, the low
+    /// and the high motion golden and alternate reference curves, and the inter curve. The first two rows hold the good-quality curves below 608
+    /// lines and from 608 lines. The last two rows hold the real-time curves, which are the same for every resolution.
     /// </summary>
     private static ReadOnlySpan<double> CurveCoefficients =>
     [
@@ -555,22 +524,19 @@ internal sealed class Av1RateControl
     ];
 
     /// <summary>
-    /// Gets a value indicating whether the current inter frame reads the golden rate correction factor: a golden
-    /// update outside the constant-bitrate mode, whose golden boost is zero. Reference: the refresh_frame and mode
-    /// tests of get_rate_correction_factor() and set_rate_correction_factor(), with a zero gf_cbr_boost_pct.
+    /// Gets a value indicating whether the current inter frame reads the golden rate correction factor. This is true for a golden update outside
+    /// the constant-bitrate mode. The constant-bitrate mode gives a golden update no boost, so it uses the inter factor.
     /// </summary>
     private bool UsesGoldenCorrectionFactor => this.refreshesGolden && this.mode != Av1RateControlMode.ConstantBitRate;
 
     /// <summary>
-    /// Applies a configuration change, which libavif makes before each layer of a layered image whose quality differs
-    /// from the layer before it. A lossless range resets the quantizer averages. The frame rate limits of the change
-    /// do not last, because every frame sets them again before its target. The rest of the model stays, because the
-    /// bit rate and frame rate do not change. Reference: the worst_quality and best_quality assignments and the
-    /// lossless reset of av1_change_config(), with the cq_level of the AOME_SET_CQ_LEVEL control.
+    /// Applies a configuration change. The encoder makes this change before each layer of a layered image whose quality differs from the layer
+    /// before it. A lossless range resets the quantizer averages. The frame rate limits of the change do not last, because every frame sets them
+    /// again before its target. The rest of the model stays, because the bit rate and frame rate do not change.
     /// </summary>
-    /// <param name="bestAllowedQIndex">The lowest quantizer index the frames may use. Reference: best_allowed_q.</param>
-    /// <param name="worstAllowedQIndex">The highest quantizer index the frames may use. Reference: worst_allowed_q.</param>
-    /// <param name="constantQualityLevel">The constant-quality level as a quantizer index. Reference: cq_level.</param>
+    /// <param name="bestAllowedQIndex">The lowest quantizer index that the frames can use.</param>
+    /// <param name="worstAllowedQIndex">The highest quantizer index that the frames can use.</param>
+    /// <param name="constantQualityLevel">The constant-quality level as a quantizer index.</param>
     public void ChangeConfiguration(int bestAllowedQIndex, int worstAllowedQIndex, int constantQualityLevel)
     {
         this.bestQuality = bestAllowedQIndex;
@@ -584,15 +550,11 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Sets the coded size of the frame that the quantizer pick and the post-encode update read. A scaled frame
-    /// counts fewer macroblocks, and its rate correction factor scales by the area it no longer codes. Reference: the
-    /// cm->width and cm->height that av1_setup_frame_size() sets before av1_rc_pick_q_and_bounds().
+    /// Sets the coded size of the frame that the quantizer pick and the post-encode update read. A scaled frame counts fewer macroblocks. Its rate
+    /// correction factor scales by the area that it no longer codes.
     /// </summary>
     /// <param name="frameSize">The coded frame size.</param>
-    /// <param name="primaryReferenceSize">
-    /// The size of the primary reference frame, or <see langword="null"/> without one. Reference: the width and
-    /// height of cm->prev_frame, which get_primary_ref_frame_buf() sets.
-    /// </param>
+    /// <param name="primaryReferenceSize">The size of the primary reference frame, or <see langword="null"/> without one.</param>
     public void SetFrameSize(Size frameSize, Size? primaryReferenceSize)
     {
         this.width = frameSize.Width;
@@ -602,13 +564,12 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Sets the frame rate dependent limits before the target of a frame. libavif gives every frame time stamp 0, so
-    /// each frame takes the step update of the frame rate, which sets the limits from the frame size at that point:
-    /// the size of the frame before it or, after a configuration change, the configured size. Reference:
-    /// adjust_frame_rate() with av1_new_framerate() and av1_rc_update_framerate(), with the 2000 vbrmax_section that
-    /// every usage defaults to. Only the variable-bitrate inter clamp reads min_frame_bandwidth.
+    /// Sets the limits that depend on the frame rate before the target of a frame. Every frame has time stamp 0, so each frame takes the step
+    /// update of the frame rate. That update sets the limits from the frame size at that point. This is the size of the frame before it or, after a
+    /// configuration change, the configured size. The largest frame target allows 2000% of the average frame bandwidth, which is the default
+    /// of every usage.
     /// </summary>
-    /// <param name="frameSize">The frame size that av1_rc_update_framerate() reads.</param>
+    /// <param name="frameSize">The frame size that sets the limits.</param>
     public void UpdateFrameRate(Size frameSize)
     {
         int macroblocks = GetMacroblockCount(frameSize.Width, frameSize.Height);
@@ -618,21 +579,15 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Sets the frame type state and the bit target of a real-time frame. Constant-bitrate frames steer toward the
-    /// optimal buffer level; the other modes boost the key frame and the golden update that starts a group over the
-    /// other frames of the group. Reference: the frame type and target size parts of av1_get_one_pass_rt_params(),
-    /// with av1_rc_set_frame_target().
+    /// Sets the frame type state and the bit target of a real-time frame. Constant-bitrate frames steer toward the optimal buffer level. The other
+    /// modes give the key frame and the golden update that starts a group more bits than the other frames of the group.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
-    /// <param name="frameNumber">The number of frames coded before this one. Reference: current_frame.frame_number.</param>
-    /// <param name="goldenUpdate">
-    /// Whether the frame starts a golden group. Reference: the GF_UPDATE update type that
-    /// set_gf_interval_update_onepass_rt() sets.
-    /// </param>
-    /// <param name="goldenInterval">The length of the current golden group. Reference: p_rc->baseline_gf_interval.</param>
+    /// <param name="frameNumber">The number of frames coded before this one.</param>
+    /// <param name="goldenUpdate">Whether the frame starts a golden group.</param>
+    /// <param name="goldenInterval">The length of the current golden group.</param>
     /// <param name="targetSize">
-    /// The frame size when the target is set, which is the size of the frame before it or, after a configuration
-    /// change, the configured size. Reference: the cm->width and cm->height that av1_rc_set_frame_target() reads.
+    /// The frame size when the target is set. This is the size of the frame before it or, after a configuration change, the configured size.
     /// </param>
     public void BeginFrame(bool keyFrame, uint frameNumber, bool goldenUpdate, int goldenInterval, Size targetSize)
     {
@@ -653,9 +608,8 @@ internal sealed class Av1RateControl
         }
         else
         {
-            // Real-time coding without lookahead weighs the boosted first frame of a group like the good-quality
-            // usage. Reference: the af_ratio of av1_calc_pframe_target_size_one_pass_vbr() without
-            // is_one_pass_rt_lag_params().
+            // Real-time coding without lookahead weighs the boosted first frame of a group like the good-quality usage. The group spends the bits
+            // of goldenInterval average frames. The first frame counts as VariableBitrateGoldenRatio frames and each other frame counts as one.
             long groupWeight = goldenInterval + VariableBitrateGoldenRatio - 1;
             target = keyFrame
                 ? (int)Math.Min((long)this.averageFrameBandwidth * VariableBitrateKeyFrameRatio, this.maximumFrameBandwidth)
@@ -668,22 +622,17 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Resets the buffer and the inter rate model when a real-time frame codes at a size other than the frame before
-    /// it, which a scaled layer causes. The buffer returns to the optimal level, a larger frame raises the inter
-    /// average toward the worst quantizer, and the inter correction factor moves by how far the quantizer the model
-    /// expects at the new size lies from the worst or the last inter quantizer. The expectation reads the frame type,
-    /// the correction factors and the cyclic refresh state of the frame before, which the frame being set up has not
-    /// replaced yet. Reference: resize_reset_rc() for a single layer, called from av1_get_one_pass_rt_params() when
-    /// is_frame_resize_pending().
+    /// Resets the buffer and the inter rate model when a real-time frame codes at a size other than the frame before it. A scaled layer causes
+    /// this. The buffer returns to the optimal level. A larger frame raises the inter average toward the worst quantizer. The inter correction
+    /// factor moves by the distance between the quantizer that the model expects at the new size and the worst or the last inter quantizer. The
+    /// expectation reads the frame type, the correction factors and the cyclic refresh state of the frame before. The frame in setup did not
+    /// replace them yet.
     /// </summary>
-    /// <param name="resizeSize">The size of the frame being set up. Reference: resize_pending_params.</param>
-    /// <param name="previousSize">The size of the frame before. Reference: cm->width and cm->height.</param>
-    /// <param name="previousFrameIntra">
-    /// Whether the frame before was intra only, which the frame type still holds. Reference:
-    /// frame_is_intra_only(cm).
-    /// </param>
-    /// <param name="frameNumber">The number of frames coded before this one. Reference: current_frame.frame_number.</param>
-    /// <param name="screenContent">Whether the content is screen content. Reference: is_screen_content_type.</param>
+    /// <param name="resizeSize">The size of the frame in setup.</param>
+    /// <param name="previousSize">The size of the frame before.</param>
+    /// <param name="previousFrameIntra">Whether the frame before was intra only. The frame type still holds this value.</param>
+    /// <param name="frameNumber">The number of frames coded before this one.</param>
+    /// <param name="screenContent">Whether the content is screen content.</param>
     /// <param name="sourceSad">The scene statistics of this frame.</param>
     public void ResetForResize(
         Size resizeSize,
@@ -710,8 +659,8 @@ internal sealed class Av1RateControl
 
         int activeWorstQuality = this.GetActiveWorstQuality(previousFrameIntra, frameNumber);
 
-        // The expectation spreads the target over the macroblocks of the new size and scales the factor by its area;
-        // the accurate estimate still reads the macroblocks of the frame before, whose grid the encoder holds.
+        // The expectation spreads the target over the macroblocks of the new size and scales the factor by its area. The accurate estimate still
+        // reads the macroblocks of the frame before, because the encoder still holds that grid.
         int savedWidth = this.width;
         int savedHeight = this.height;
         this.width = resizeSize.Width;
@@ -721,8 +670,7 @@ internal sealed class Av1RateControl
         this.width = savedWidth;
         this.height = savedHeight;
 
-        // A smaller frame near the worst quantizer can afford a lower one; a larger frame keeps its quantizer close
-        // to the last inter quantizer.
+        // A smaller frame near the worst quantizer can afford a lower one. A larger frame keeps its quantizer close to the last inter quantizer.
         if (scaleChange < 1.0 && qIndex > 90 * this.worstQuality / 100)
         {
             this.interFrameCorrectionFactor *= 0.85;
@@ -743,25 +691,18 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Allocates the bits of a new golden group of one-pass coding without statistics: the key frame or the golden
-    /// update that starts the group gets a boosted target, and every other frame gets the same target. A
-    /// constant-bitrate group reads the buffer level when the group starts. Reference: the bit allocation loop of
-    /// define_gf_group_pass0(), with av1_calc_iframe_target_size_one_pass_vbr(),
-    /// av1_calc_pframe_target_size_one_pass_vbr(), av1_calc_iframe_target_size_one_pass_cbr() and
-    /// av1_calc_pframe_target_size_one_pass_cbr().
+    /// Allocates the bits of a new golden group of one-pass coding without statistics. The key frame or the golden update that starts the group
+    /// gets a boosted target. Every other frame gets the same target. A constant-bitrate group reads the buffer level when the group starts.
     /// </summary>
-    /// <param name="groupLength">The number of frames of the group. Reference: p_rc->baseline_gf_interval.</param>
-    /// <param name="frameNumber">
-    /// The number of frames coded before the first frame of the group, before a key frame restarts the count.
-    /// Reference: current_frame.frame_number.
-    /// </param>
+    /// <param name="groupLength">The number of frames of the group.</param>
+    /// <param name="frameNumber">The number of frames coded before the first frame of the group, before a key frame restarts the count.</param>
     /// <param name="keyFrame">Whether a key frame starts the group.</param>
     public void DefineGroup(int groupLength, uint frameNumber, bool keyFrame)
     {
         Debug.Assert(!this.realtime, "Real-time coding sets its targets per frame.");
 
-        // A new key frame group counts its frames from the key frame before its targets, so a later constant-bitrate
-        // key frame gets no boost. Reference: the frames_since_key reset of find_next_key_frame().
+        // A new key frame group starts to count its frames at the key frame before it sets its targets. Thus a later constant-bitrate key frame
+        // gets no boost.
         if (keyFrame)
         {
             this.framesSinceKey = 0;
@@ -777,28 +718,23 @@ internal sealed class Av1RateControl
 
         this.groupKeyFrameTarget = (int)Math.Min((long)this.averageFrameBandwidth * VariableBitrateKeyFrameRatio, this.maximumFrameBandwidth);
 
-        // The boosted first frame weighs the ratio of ten frames against the frames of the group.
+        // The group spends the bits of groupLength average frames. The boosted first frame counts as VariableBitrateGoldenRatio frames and each
+        // other frame counts as one.
         long groupWeight = groupLength + VariableBitrateGoldenRatio - 1;
         this.groupGoldenTarget = this.ClampInterFrameTarget((long)this.averageFrameBandwidth * groupLength * VariableBitrateGoldenRatio / groupWeight);
         this.groupInterTarget = this.ClampInterFrameTarget((long)this.averageFrameBandwidth * groupLength / groupWeight);
     }
 
     /// <summary>
-    /// Sets the frame type state and the bit target of a frame of one-pass coding without statistics from the
-    /// allocation of its golden group. Reference: the this_key_frame_forced and kf_boost of find_next_key_frame()
-    /// without statistics, and av1_setup_target_rate() with av1_rc_set_frame_target().
+    /// Sets the frame type state and the bit target of a frame of one-pass coding without statistics. The target comes from the allocation of the
+    /// golden group of the frame.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
-    /// <param name="keyFrameForced">
-    /// Whether the key frame interval placed this key frame. Reference: p_rc->this_key_frame_forced.
-    /// </param>
+    /// <param name="keyFrameForced">Whether the key frame interval placed this key frame.</param>
     /// <param name="goldenUpdate">Whether the frame is the golden update that starts its group.</param>
-    /// <param name="framesToKey">
-    /// The frames left before the next key frame, which the sequence encoder counts. Reference: rc->frames_to_key.
-    /// </param>
+    /// <param name="framesToKey">The frames left before the next key frame, which the sequence encoder counts.</param>
     /// <param name="targetSize">
-    /// The frame size when the target is set, which is the size of the frame before it or, after a configuration
-    /// change, the configured size. Reference: the cm->width and cm->height that av1_setup_target_rate() reads.
+    /// The frame size when the target is set. This is the size of the frame before it or, after a configuration change, the configured size.
     /// </param>
     public void BeginGroupFrame(bool keyFrame, bool keyFrameForced, bool goldenUpdate, int framesToKey, Size targetSize)
     {
@@ -816,12 +752,11 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Sets the bit target of the current frame and its rate per 64x64 area. Outside the constant-bitrate mode, a
-    /// frame coded below the configured size scales its target by the area it no longer codes. Reference:
-    /// av1_rc_set_frame_target().
+    /// Sets the bit target of the current frame and its rate per 64x64 area. Outside the constant-bitrate mode, a frame coded below the configured
+    /// size scales its target by the area that it no longer codes.
     /// </summary>
     /// <param name="target">The target in bits.</param>
-    /// <param name="targetSize">The frame size that av1_rc_set_frame_target() reads.</param>
+    /// <param name="targetSize">The frame size when the target is set.</param>
     private void SetFrameTarget(int target, Size targetSize)
     {
         this.thisFrameTarget = target;
@@ -834,9 +769,8 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Clamps the bit target of a variable-bitrate inter frame between the smallest and the largest frame target.
-    /// Reference: clamp_pframe_target_size() for a frame that is not an overlay, with zero vbrmin_section and
-    /// max_inter_bitrate_pct.
+    /// Clamps the bit target of a variable-bitrate inter frame between the smallest and the largest frame target. The smallest target is
+    /// <see cref="FrameOverheadBits"/> or 1/32 of the average frame bandwidth, whichever is larger.
     /// </summary>
     /// <param name="target">The target in bits.</param>
     /// <returns>The clamped target.</returns>
@@ -847,7 +781,7 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns whether a frame codes below the configured size. Reference: av1_frame_scaled() without superres.
+    /// Returns whether a frame codes below the configured size.
     /// </summary>
     /// <param name="frameSize">The frame size.</param>
     /// <returns><see langword="true"/> when the frame is scaled.</returns>
@@ -855,8 +789,7 @@ internal sealed class Av1RateControl
         => frameSize.Width != this.configuredWidth || frameSize.Height != this.configuredHeight;
 
     /// <summary>
-    /// Returns how many times more samples the configured frame holds than a frame of the given size. Reference:
-    /// resize_rate_factor().
+    /// Returns how many times more samples the configured frame holds than a frame of the given size.
     /// </summary>
     /// <param name="frameSize">The frame size.</param>
     /// <returns>The ratio of the configured and the given area.</returns>
@@ -864,8 +797,7 @@ internal sealed class Av1RateControl
         => (double)((long)this.configuredWidth * this.configuredHeight) / ((long)frameSize.Width * frameSize.Height);
 
     /// <summary>
-    /// Converts a value to an integer, saturating at the limits of the integer range. Reference:
-    /// saturate_cast_double_to_int().
+    /// Converts a value to an integer. Values outside the integer range saturate at its limits.
     /// </summary>
     /// <param name="value">The value.</param>
     /// <returns>The saturated integer.</returns>
@@ -873,8 +805,9 @@ internal sealed class Av1RateControl
         => value >= int.MaxValue ? int.MaxValue : value <= int.MinValue ? int.MinValue : (int)value;
 
     /// <summary>
-    /// Returns the bit target of a constant-bitrate key frame. Reference: av1_calc_iframe_target_size_one_pass_cbr()
-    /// and clamp_iframe_target_size(), with a zero max_intra_bitrate_pct.
+    /// Returns the bit target of a constant-bitrate key frame. The first frame gets half the starting buffer level. A later key frame gets a boost
+    /// over the average frame bandwidth, which is smaller when it comes less than half a second after the last key frame. The largest frame
+    /// target limits the result.
     /// </summary>
     /// <param name="frameNumber">The number of frames coded before this one.</param>
     /// <returns>The target in bits.</returns>
@@ -900,8 +833,9 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the bit target of an inter frame, moved toward the optimal buffer level. Reference:
-    /// av1_calc_pframe_target_size_one_pass_cbr(), with a zero gf_cbr_boost_pct and max_inter_bitrate_pct.
+    /// Returns the bit target of a constant-bitrate inter frame, moved toward the optimal buffer level. Each percent of the optimal level by which
+    /// the buffer misses it moves the target by half a percent of the average frame bandwidth, up to half of the undershoot or overshoot share.
+    /// The target is at least <see cref="FrameOverheadBits"/> or 1/16 of the average frame bandwidth, whichever is larger.
     /// </summary>
     /// <returns>The target in bits.</returns>
     private int GetInterFrameTarget()
@@ -925,28 +859,17 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Picks the quantizer index of a real-time frame by the rate control mode. A constant-bitrate inter frame with
-    /// the accurate estimate first measures its error against the LAST reconstruction. Reference: the
-    /// rc_compute_variance_onepass_rt() call of av1_rc_pick_q_and_bounds(), with rc_pick_q_and_bounds_no_stats_cbr(),
-    /// rc_pick_q_and_bounds_no_stats() and rc_pick_q_and_bounds_q_mode().
+    /// Picks the quantizer index of a real-time frame by the rate control mode. A constant-bitrate inter frame with the accurate estimate first
+    /// measures its error against the LAST reconstruction.
     /// </summary>
     /// <typeparam name="TSample">The sample storage type.</typeparam>
     /// <typeparam name="TMotion">The error operations.</typeparam>
     /// <typeparam name="TBlock">The block averaging operations.</typeparam>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
-    /// <param name="frameNumber">
-    /// The number of frames coded since the last key frame, 0 for a key frame. Reference: current_frame.frame_number
-    /// after the reset of av1_encode().
-    /// </param>
-    /// <param name="goldenUpdate">
-    /// Whether the frame starts a golden group, which constant-quality coding reads as its update type. Reference:
-    /// gf_group->update_type == GF_UPDATE.
-    /// </param>
-    /// <param name="refreshesGolden">
-    /// Whether the frame refreshes GOLDEN, which the variable-bitrate floors and correction factor read. Reference:
-    /// refresh_frame->golden_frame.
-    /// </param>
-    /// <param name="screenContent">Whether the frame is screen content. Reference: is_screen_content_type.</param>
+    /// <param name="frameNumber">The number of frames coded since the last key frame, 0 for a key frame.</param>
+    /// <param name="goldenUpdate">Whether the frame starts a golden group. Constant-quality coding reads this as the update type of the frame.</param>
+    /// <param name="refreshesGolden">Whether the frame refreshes GOLDEN. The variable-bitrate floors and correction factor read this value.</param>
+    /// <param name="screenContent">Whether the frame is screen content.</param>
     /// <param name="sourceSad">The scene statistics of this frame.</param>
     /// <param name="source">The bordered source luma plane.</param>
     /// <param name="lastReconstruction">The bordered luma plane of the LAST reference, for an inter frame.</param>
@@ -985,20 +908,17 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Picks the quantizer index of a real-time constant-quality frame: the key frame floor of the real-time tables
-    /// for a key frame, the high motion golden floor for the golden update that starts a group, and the
-    /// constant-quality level for every other frame. The one-pass golden group leaves the boost factor of the golden
-    /// floor at zero. Reference: rc_pick_q_and_bounds_q_mode() with get_intra_q_and_bounds() and
-    /// get_active_best_quality(), and the cq_level active_worst_quality of av1_get_one_pass_rt_params().
+    /// Picks the quantizer index of a real-time constant-quality frame. A key frame uses the key frame floor of the real-time tables. The golden
+    /// update that starts a group uses the high motion golden floor. Every other frame uses the constant-quality level. The one-pass golden group
+    /// leaves the boost factor of the golden floor at zero.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
-    /// <param name="goldenUpdate">Whether the frame starts a golden group. Reference: GF_UPDATE.</param>
-    /// <param name="screenContent">Whether the frame is screen content. Reference: is_screen_content_type.</param>
+    /// <param name="goldenUpdate">Whether the frame starts a golden group.</param>
+    /// <param name="screenContent">Whether the frame is screen content.</param>
     /// <returns>The quantizer index.</returns>
     private int PickConstantQualityQuantizer(bool keyFrame, bool goldenUpdate, bool screenContent)
     {
-        // The active worst quality of constant-quality coding is the quality level. Reference: the
-        // rc->active_worst_quality = cq_level of av1_get_one_pass_rt_params() in AOM_Q mode.
+        // The active worst quality of constant-quality coding is the quality level.
         int level = this.constantQualityLevel;
         int activeWorstQuality = level;
         int activeBestQuality;
@@ -1032,8 +952,8 @@ internal sealed class Av1RateControl
         }
         else if (goldenUpdate)
         {
-            // The lower of the active worst quality and the recent inter average sets the golden floor after the frame
-            // that follows the key frame. min_boost - (int)(boost * arf_boost_factor) keeps the high motion floor.
+            // After the frame that follows the key frame, the lower of the active worst quality and the recent inter average sets the golden
+            // floor. The boost factor is zero, so the floor stays at the high motion floor.
             int q = this.framesSinceKey > 1 && this.averageInterFrameQIndex < activeWorstQuality
                 ? this.averageInterFrameQIndex
                 : activeWorstQuality;
@@ -1054,17 +974,12 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Picks the quantizer index of a frame of one-pass coding without statistics outside real-time usage, by the rate
-    /// control mode. Reference: the no-statistics branches of av1_rc_pick_q_and_bounds().
+    /// Picks the quantizer index of a frame of one-pass coding without statistics outside real-time usage, by the rate control mode.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
-    /// <param name="goldenUpdate">
-    /// Whether the frame is the golden update that starts its group. Reference: refresh_frame->golden_frame.
-    /// </param>
-    /// <param name="frameNumber">
-    /// The number of frames coded since the last key frame, 0 for a key frame. Reference: current_frame.frame_number.
-    /// </param>
-    /// <param name="screenContent">Whether the frame is screen content. Reference: is_screen_content_type.</param>
+    /// <param name="goldenUpdate">Whether the frame is the golden update that starts its group.</param>
+    /// <param name="frameNumber">The number of frames coded since the last key frame, 0 for a key frame.</param>
+    /// <param name="screenContent">Whether the frame is screen content.</param>
     /// <returns>The quantizer index.</returns>
     public int PickGroupFrameQuantizer(bool keyFrame, bool goldenUpdate, uint frameNumber, bool screenContent)
     {
@@ -1078,12 +993,12 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Picks the quantizer index of a variable-bitrate or constrained-quality frame between a floor from the recent
-    /// quantizers and a ceiling from the last quantizers. Reference: rc_pick_q_and_bounds_no_stats().
+    /// Picks the quantizer index of a variable-bitrate or constrained-quality frame. The index lies between a floor from the recent quantizers and
+    /// a ceiling from the last quantizers.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="frameNumber">The number of frames coded since the last key frame, 0 for a key frame.</param>
-    /// <param name="screenContent">Whether the frame is screen content. Reference: is_screen_content_type.</param>
+    /// <param name="screenContent">Whether the frame is screen content.</param>
     /// <returns>The quantizer index.</returns>
     private int PickVariableBitrateQuantizer(bool keyFrame, uint frameNumber, bool screenContent)
     {
@@ -1112,8 +1027,8 @@ internal sealed class Av1RateControl
         }
         else if (this.refreshesGolden)
         {
-            // The lower of the active worst quality and the recent inter average sets the golden floor, unless the
-            // frame follows the key frame; the constrained-quality mode keeps it at the quality level.
+            // After the frame that follows the key frame, the recent inter average sets the golden floor when it is below the active worst
+            // quality. Otherwise the key frame average sets it. The constrained-quality mode keeps it at or above the quality level.
             int q = this.framesSinceKey > 1 && this.averageInterFrameQIndex < activeWorstQuality
                 ? this.averageInterFrameQIndex
                 : this.averageKeyFrameQIndex;
@@ -1133,8 +1048,8 @@ internal sealed class Av1RateControl
         }
         else
         {
-            // The recent average of the frame type before it sets the inter floor; the constrained-quality mode keeps
-            // it at the quality level.
+            // The recent average of the frame type before it sets the inter floor. The constrained-quality mode keeps it at or above the quality
+            // level.
             activeBestQuality = this.GetInterActiveQuality(frameNumber > 1 ? this.averageInterFrameQIndex : this.averageKeyFrameQIndex);
             if (constrainedQuality && activeBestQuality < constantQualityLevel)
             {
@@ -1147,8 +1062,8 @@ internal sealed class Av1RateControl
         int topIndex = activeWorstQuality;
         int bottomIndex = activeBestQuality;
 
-        // A later key frame that the interval did not force, and a golden update, may exceed the worst quality by the
-        // quantizer change that doubles, or raises by three quarters, the expected rate.
+        // A later key frame that the interval did not force can exceed the active worst quality by the quantizer change for a rate ratio of 2. A
+        // golden update can exceed it by the change for a rate ratio of 1.75.
         int qDelta = 0;
         if (keyFrame && !this.thisKeyFrameForced && frameNumber != 0)
         {
@@ -1175,15 +1090,13 @@ internal sealed class Av1RateControl
             activeBestQuality,
             activeWorstQuality);
 
-        // Targeting the largest allowed frame keeps the chosen quantizer.
+        // A frame whose target is the largest frame target keeps the chosen quantizer above the top index.
         return correctedQ > topIndex && this.thisFrameTarget < this.maximumFrameBandwidth ? topIndex : correctedQ;
     }
 
     /// <summary>
-    /// Returns the highest quantizer a variable-bitrate or constrained-quality frame may use, from the last
-    /// quantizers. A first key frame may use any allowed quantizer, the first frame after a key frame follows the key
-    /// frame quantizer, and later frames follow the last inter quantizer. Reference:
-    /// calc_active_worst_quality_no_stats_vbr().
+    /// Returns the highest quantizer that a variable-bitrate or constrained-quality frame can use, from the last quantizers. A first key frame can
+    /// use any allowed quantizer. The first frame after a key frame follows the key frame quantizer. Later frames follow the last inter quantizer.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="frameNumber">The number of frames coded since the last key frame, 0 for a key frame.</param>
@@ -1208,9 +1121,8 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the constant-quality level that the constrained-quality mode keeps the frames at or above. When the
-    /// coding spends under a tenth of its budget, the level falls in proportion. Reference: get_active_cq_level()
-    /// without superres.
+    /// Returns the constant-quality level that the constrained-quality mode keeps the frames at or above. When the coding spends less than a tenth
+    /// of its budget, the level falls in proportion.
     /// </summary>
     /// <returns>The active constant-quality level.</returns>
     private int GetActiveConstantQualityLevel()
@@ -1229,13 +1141,11 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the golden quantizer floor between the low and high motion golden curves by the golden boost, from the
-    /// real-time tables in real-time usage and from the good-quality tables of the frame's resolution class
-    /// otherwise. Without first-pass statistics, the average golden boost stays 0, so the first pair of good-quality
-    /// boost bounds applies. Reference: get_gf_active_quality() with get_gf_active_quality_no_rc() and the
-    /// DEFAULT_GF_BOOST of define_gf_group_pass0(), which equals the DEFAULT_GF_BOOST_RT of real-time usage.
+    /// Returns the golden quantizer floor between the low and high motion golden curves, by the golden boost. Real-time usage reads the real-time
+    /// tables. The other usages read the good-quality tables of the resolution class of the frame. Without first-pass statistics, the average
+    /// golden boost stays 0, so the first pair of good-quality boost bounds applies. Both usages use the same default golden boost.
     /// </summary>
-    /// <param name="q">The quantizer index the floor applies to.</param>
+    /// <param name="q">The quantizer index that the floor applies to.</param>
     /// <returns>The golden active quality.</returns>
     private int GetGoldenActiveQuality(int q)
     {
@@ -1249,10 +1159,10 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the high motion golden quantizer floor from the real-time tables in real-time usage and from the
-    /// good-quality tables of the frame's resolution class otherwise. Reference: get_gf_high_motion_quality().
+    /// Returns the high motion golden quantizer floor. Real-time usage reads the real-time tables. The other usages read the good-quality tables of
+    /// the resolution class of the frame.
     /// </summary>
-    /// <param name="q">The quantizer index the floor applies to.</param>
+    /// <param name="q">The quantizer index that the floor applies to.</param>
     /// <returns>The high motion golden floor.</returns>
     private int GetGoldenHighMotionQuality(int q)
     {
@@ -1261,11 +1171,10 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the inter quantizer floor from the inter table of the real-time tables in real-time usage and of the
-    /// good-quality tables of the frame's resolution class otherwise. Reference: inter_minq with
-    /// ASSIGN_MINQ_TABLE_2().
+    /// Returns the inter quantizer floor from the inter curve. Real-time usage reads the real-time tables. The other usages read the good-quality
+    /// tables of the resolution class of the frame.
     /// </summary>
-    /// <param name="q">The quantizer index the floor applies to.</param>
+    /// <param name="q">The quantizer index that the floor applies to.</param>
     /// <returns>The inter active quality.</returns>
     private int GetInterActiveQuality(int q)
     {
@@ -1274,12 +1183,11 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Picks the quantizer index of a constant-bitrate frame from the buffer state. Reference:
-    /// rc_pick_q_and_bounds_no_stats_cbr().
+    /// Picks the quantizer index of a constant-bitrate frame from the buffer state.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="frameNumber">The number of frames coded before this one.</param>
-    /// <param name="screenContent">Whether the frame is screen content. Reference: is_screen_content_type.</param>
+    /// <param name="screenContent">Whether the frame is screen content.</param>
     /// <param name="sourceSad">The scene statistics of this frame.</param>
     /// <returns>The quantizer index.</returns>
     private int PickConstantBitrateQuantizer(bool keyFrame, uint frameNumber, bool screenContent, in SourceSadStatistics sourceSad)
@@ -1301,7 +1209,7 @@ internal sealed class Av1RateControl
         int q = this.RegulateQuantizer(keyFrame, screenContent, in sourceSad, activeBestQuality, activeWorstQuality, this.GetTargetBitsPerMacroblock());
         if (q > topIndex)
         {
-            // Targeting the largest allowed frame keeps the chosen quantizer.
+            // A frame whose target is the largest frame target keeps the chosen quantizer.
             if (this.thisFrameTarget >= this.maximumFrameBandwidth)
             {
                 topIndex = q;
@@ -1316,8 +1224,8 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Measures the squared error between the 4x4-averaged source and the LAST reconstruction over 64x64 blocks,
-    /// including the replicated border that edge blocks reach. Reference: rc_compute_variance_onepass_rt().
+    /// Measures the squared error between the 4x4-averaged source and the LAST reconstruction over 64x64 blocks. The sum includes the replicated
+    /// border that edge blocks reach. A zero sum is stored as 1.
     /// </summary>
     /// <typeparam name="TSample">The sample storage type.</typeparam>
     /// <typeparam name="TMotion">The error operations.</typeparam>
@@ -1375,8 +1283,8 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the highest quantizer the frame may use from the buffer fullness. Reference:
-    /// calc_active_worst_quality_no_stats_cbr(), without spatial variance, cyclic refresh or layers.
+    /// Returns the highest quantizer that the frame can use, from the buffer fullness. Spatial variance, cyclic refresh and layers do not change
+    /// the result.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="frameNumber">The number of frames coded before this one.</param>
@@ -1434,9 +1342,8 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the lowest quantizer a constant-bitrate frame may use. Key frames read the key frame tables of the
-    /// usage; inter frames read the real-time table in every usage. Reference: calc_active_best_quality_no_stats_cbr(),
-    /// with a zero gf_cbr_boost_pct.
+    /// Returns the lowest quantizer that a constant-bitrate frame can use. Key frames read the key frame tables of the usage. Inter frames read the
+    /// real-time table in every usage. A golden update gets no boost.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="frameNumber">The number of frames coded before this one.</param>
@@ -1471,7 +1378,7 @@ internal sealed class Av1RateControl
         }
         else
         {
-            // The lower of the active worst quality and the recent average sets the lowest quantizer.
+            // The real-time floor of the lower of the active worst quality and the recent average sets the lowest quantizer.
             int average = frameNumber > 1 ? this.averageInterFrameQIndex : this.averageKeyFrameQIndex;
             activeBestQuality = average < activeWorstQuality
                 ? GetRealtimeMinimumQuality(average, this.bitDepth)
@@ -1482,20 +1389,18 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the quantizer index of a still image that codes against a bit budget. A still image is the first and
-    /// only frame of its encoder, coded in all-intra usage, so the rate model starts from its initial state. Reference:
-    /// the no-statistics branch of av1_rc_pick_q_and_bounds() for the first key frame, with the target of
-    /// define_gf_group_pass0().
+    /// Returns the quantizer index of a still image that codes against a bit budget. A still image is the first and only frame of its encoder, and
+    /// it codes in all-intra usage. Thus the rate model starts from its initial state.
     /// </summary>
     /// <param name="width">The frame width.</param>
     /// <param name="height">The frame height.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    /// <param name="speed">The cpu-used tier.</param>
+    /// <param name="speed">The encoder speed tier.</param>
     /// <param name="mode">The rate control mode, any but <see cref="Av1RateControlMode.Quality"/>.</param>
-    /// <param name="bestAllowedQIndex">The lowest allowed quantizer index. Reference: best_allowed_q.</param>
-    /// <param name="worstAllowedQIndex">The highest allowed quantizer index. Reference: worst_allowed_q.</param>
-    /// <param name="constantQualityLevel">The constant-quality level as a quantizer index. Reference: cq_level.</param>
-    /// <param name="screenContent">Whether the image is screen content. Reference: is_screen_content_type.</param>
+    /// <param name="bestAllowedQIndex">The lowest allowed quantizer index.</param>
+    /// <param name="worstAllowedQIndex">The highest allowed quantizer index.</param>
+    /// <param name="constantQualityLevel">The constant-quality level as a quantizer index.</param>
+    /// <param name="screenContent">Whether the image is screen content.</param>
     /// <returns>The quantizer index.</returns>
     public static int GetStillImageQIndex(
         int width,
@@ -1510,8 +1415,8 @@ internal sealed class Av1RateControl
     {
         Debug.Assert(mode != Av1RateControlMode.Quality, "Constant-quality still images code at the requested quantizer.");
 
-        // The all-intra usage sets a key frame distance of 0. The adaptive quantization flag only selects the
-        // accurate bit estimate of real-time usage, so it does not matter here.
+        // The all-intra usage sets a key frame distance of 0. The adaptive quantization flag only selects the accurate bit estimate of real-time
+        // usage, so it has no effect here.
         Av1RateControl rateControl = new(
             width,
             height,
@@ -1534,18 +1439,17 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the quantizer index of a key frame in one-pass constant-quality coding without lookahead: the key
-    /// frame floor of the good-quality tables at the default boost, lowered for small formats. Reference:
-    /// get_intra_q_and_bounds() for a key frame the interval did not force, with rc_pick_q_and_bounds_q_mode(),
-    /// DEFAULT_KF_BOOST and the cq_level active_worst_quality of av1_get_second_pass_params().
+    /// Returns the quantizer index of a key frame that the interval did not force, in one-pass constant-quality coding without lookahead. The
+    /// index is the key frame floor of the good-quality tables at the default boost, lowered for small formats. The active worst quality is the
+    /// constant-quality index.
     /// </summary>
-    /// <param name="cqLevel">The constant-quality index. Reference: cq_level.</param>
+    /// <param name="cqLevel">The constant-quality index.</param>
     /// <param name="width">The frame width.</param>
     /// <param name="height">The frame height.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    /// <param name="screenContent">Whether the frame is screen content. Reference: is_screen_content_type.</param>
-    /// <param name="bestAllowedQIndex">The lowest allowed quantizer index. Reference: best_allowed_q.</param>
-    /// <param name="worstAllowedQIndex">The highest allowed quantizer index. Reference: worst_allowed_q.</param>
+    /// <param name="screenContent">Whether the frame is screen content.</param>
+    /// <param name="bestAllowedQIndex">The lowest allowed quantizer index.</param>
+    /// <param name="worstAllowedQIndex">The highest allowed quantizer index.</param>
     /// <returns>The key frame quantizer index.</returns>
     public static int GetConstantQualityKeyFrameQIndex(
         int cqLevel,
@@ -1560,8 +1464,7 @@ internal sealed class Av1RateControl
         const int keyFrameLow = 553;
         const int keyFrameHigh = 8000;
 
-        // Good-quality tables of the 608-line and larger class, else of the smaller class. Reference: x1[0] with
-        // the res_idx > 1 selection of ASSIGN_MINQ_TABLE_2().
+        // A frame of 608 lines or more reads the good-quality tables of the large class. A smaller frame reads the tables of the small class.
         bool large = Math.Min(width, height) >= 608;
         double maximumQ = ConvertQIndexToQ(cqLevel, bitDepth);
         int lowMotion = GetMinimumQIndex(maximumQ, 0.000001, -0.0004, GetCurveCoefficient(false, large, 0), bitDepth);
@@ -1587,16 +1490,15 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the quantizer index of a key frame that the key frame interval placed, in one-pass constant-quality
-    /// coding without lookahead. It stays near the last boosted quantizer to limit a quality jump: half its real
-    /// quantizer, and no lower than the best allowed. Reference: the this_key_frame_forced branch of
-    /// get_intra_q_and_bounds() without first-pass statistics, with rc_pick_q_and_bounds_q_mode().
+    /// Returns the quantizer index of a key frame that the key frame interval placed, in one-pass constant-quality coding without lookahead. It
+    /// stays near the last boosted quantizer to limit a quality jump. The index is the one for half the real quantizer of the last boosted index,
+    /// and no lower than the best allowed index.
     /// </summary>
-    /// <param name="cqLevel">The constant-quality index. Reference: cq_level.</param>
-    /// <param name="lastBoostedQIndex">The last boosted quantizer index. Reference: last_boosted_qindex.</param>
+    /// <param name="cqLevel">The constant-quality index.</param>
+    /// <param name="lastBoostedQIndex">The last boosted quantizer index.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    /// <param name="bestAllowedQIndex">The lowest allowed quantizer index. Reference: best_allowed_q.</param>
-    /// <param name="worstAllowedQIndex">The highest allowed quantizer index. Reference: worst_allowed_q.</param>
+    /// <param name="bestAllowedQIndex">The lowest allowed quantizer index.</param>
+    /// <param name="worstAllowedQIndex">The highest allowed quantizer index.</param>
     /// <returns>The key frame quantizer index.</returns>
     public static int GetConstantQualityForcedKeyFrameQIndex(
         int cqLevel,
@@ -1619,23 +1521,19 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the quantizer index of a golden or alternate-reference update in one-pass constant-quality coding
-    /// without lookahead. The base is the constant-quality index, or the running average of the ordinary inter
-    /// frames when that is lower after the first inter frame; the result is the high motion floor of the
-    /// good-quality golden-frame table, because the one-pass group definition leaves arf_boost_factor at zero.
-    /// Reference: get_active_best_quality() for a frame that is not a leaf, with rc_pick_q_and_bounds_q_mode() and
-    /// the cq_level active_worst_quality of av1_get_second_pass_params().
+    /// Returns the quantizer index of a golden or alternate-reference update in one-pass constant-quality coding without lookahead. The base is
+    /// the constant-quality index. After the first inter frame, the running average of the ordinary inter frames replaces it when that average is
+    /// lower. The result is the high motion floor of the good-quality golden table, because the one-pass group definition leaves the boost factor
+    /// at zero.
     /// </summary>
-    /// <param name="cqLevel">The constant-quality index. Reference: cq_level.</param>
-    /// <param name="averageInterQIndex">
-    /// The running average quantizer of the ordinary inter frames. Reference: avg_frame_qindex[INTER_FRAME].
-    /// </param>
-    /// <param name="framesSinceKey">The number of frames since the last key frame. Reference: frames_since_key.</param>
+    /// <param name="cqLevel">The constant-quality index.</param>
+    /// <param name="averageInterQIndex">The running average quantizer of the ordinary inter frames.</param>
+    /// <param name="framesSinceKey">The number of frames since the last key frame.</param>
     /// <param name="width">The frame width.</param>
     /// <param name="height">The frame height.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    /// <param name="bestAllowedQIndex">The lowest allowed quantizer index. Reference: best_allowed_q.</param>
-    /// <param name="worstAllowedQIndex">The highest allowed quantizer index. Reference: worst_allowed_q.</param>
+    /// <param name="bestAllowedQIndex">The lowest allowed quantizer index.</param>
+    /// <param name="worstAllowedQIndex">The highest allowed quantizer index.</param>
     /// <returns>The golden frame quantizer index.</returns>
     public static int GetConstantQualityGoldenFrameQIndex(
         int cqLevel,
@@ -1647,13 +1545,12 @@ internal sealed class Av1RateControl
         int bestAllowedQIndex,
         int worstAllowedQIndex)
     {
-        // The active worst quality of constant-quality coding is the constant-quality index. The lower recent
-        // average applies once the frame follows more than one frame after the key frame.
+        // The active worst quality of constant-quality coding is the constant-quality index. When more than one frame follows the key frame, the
+        // lower recent average applies.
         int q = framesSinceKey > 1 && averageInterQIndex < cqLevel ? averageInterQIndex : cqLevel;
 
-        // min_boost - (int)(boost * arf_boost_factor) keeps the high motion floor of the good-quality tables of
-        // the 608-line and larger class, else of the smaller class. Reference: get_gf_high_motion_quality() with
-        // x1[0] and the res_idx > 1 selection of ASSIGN_MINQ_TABLE_2().
+        // The boost factor is zero, so the floor stays at the high motion floor. A frame of 608 lines or more reads the good-quality tables of the
+        // large class. A smaller frame reads the tables of the small class.
         bool large = Math.Min(width, height) >= 608;
         int activeBestQuality = GetMinimumQIndex(
             ConvertQIndexToQ(q, bitDepth), 0.0000021, -0.00125, GetCurveCoefficient(false, large, 3), bitDepth);
@@ -1667,11 +1564,10 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the key frame quantizer floor between the low and high motion curves by the key frame boost, from the
-    /// real-time tables in real-time usage and from the good-quality tables of the frame's resolution class
-    /// otherwise. Reference: get_kf_active_quality().
+    /// Returns the key frame quantizer floor between the low and high motion curves, by the key frame boost. Real-time usage reads the real-time
+    /// tables. The other usages read the good-quality tables of the resolution class of the frame.
     /// </summary>
-    /// <param name="q">The quantizer index the floor applies to.</param>
+    /// <param name="q">The quantizer index that the floor applies to.</param>
     /// <returns>The key frame active quality.</returns>
     private int GetKeyFrameActiveQuality(int q)
     {
@@ -1685,15 +1581,13 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the linear coefficient of a quantizer floor curve for the usage and the resolution class: the
-    /// real-time row in real-time usage, else the good-quality row of frames below or from 608 lines. Reference: the
-    /// mode_idx and res_idx > 1 selection of ASSIGN_MINQ_TABLE_2().
+    /// Returns the linear coefficient of a quantizer floor curve for the usage and the resolution class. Real-time usage reads a real-time row.
+    /// The other usages read the good-quality row of frames below 608 lines or from 608 lines.
     /// </summary>
     /// <param name="realtime">Whether the encoder runs in real-time usage.</param>
     /// <param name="large">Whether the shorter frame side has 608 lines or more.</param>
     /// <param name="curve">
-    /// The curve: 0 and 1 for the low and high motion key frame curves, 2 and 3 for the low and high motion golden
-    /// curves, 4 for the inter curve.
+    /// The curve. 0 and 1 are the low and high motion key frame curves, 2 and 3 are the low and high motion golden curves, and 4 is the inter curve.
     /// </param>
     /// <returns>The linear coefficient.</returns>
     private static double GetCurveCoefficient(bool realtime, bool large, int curve)
@@ -1703,7 +1597,8 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Interpolates between a low and a high motion quantizer floor by a boost. Reference: get_active_quality().
+    /// Interpolates between a low and a high motion quantizer floor by a boost. The interpolation is linear in the boost, with a rounding offset
+    /// of half the gap.
     /// </summary>
     /// <param name="boost">The boost.</param>
     /// <param name="low">The boost at and below which the high motion floor applies.</param>
@@ -1730,7 +1625,7 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the real-time quantizer floor of a quantizer index. Reference: rtc_minq from init_minq_luts().
+    /// Returns the real-time quantizer floor of a quantizer index.
     /// </summary>
     /// <param name="qIndex">The quantizer index.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
@@ -1739,7 +1634,7 @@ internal sealed class Av1RateControl
         => GetMinimumQIndex(ConvertQIndexToQ(qIndex, bitDepth), 0.00000271, -0.00113, 0.70, bitDepth);
 
     /// <summary>
-    /// Returns the quantizer index of a third-order polynomial of the real quantizer. Reference: get_minq_index().
+    /// Returns the quantizer index of a third-order polynomial of the real quantizer. The polynomial value is limited to the real quantizer.
     /// </summary>
     /// <param name="maximumQ">The real quantizer.</param>
     /// <param name="x3">The cubic coefficient.</param>
@@ -1761,8 +1656,8 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the quantizer index whose expected rate is closest to the frame target, then, in constant-bitrate
-    /// coding, limits its change from the preceding frames. Reference: av1_rc_regulate_q().
+    /// Returns the quantizer index whose expected rate is closest to the frame target. In constant-bitrate coding, it then limits the change from
+    /// the preceding frames.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="screenContent">Whether the frame is screen content.</param>
@@ -1787,16 +1682,15 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the bit target of the current frame per macroblock, in the precision of the rate model. Reference: the
-    /// target_bits_per_mb of av1_rc_regulate_q().
+    /// Returns the bit target of the current frame per macroblock, with <see cref="BitsPerMacroblockShift"/> fraction bits.
     /// </summary>
     /// <returns>The target bits per macroblock.</returns>
     private int GetTargetBitsPerMacroblock()
         => (int)(((ulong)this.thisFrameTarget << BitsPerMacroblockShift) / (ulong)this.macroblockCount);
 
     /// <summary>
-    /// Returns the quantizer index whose expected bits per macroblock lie closest to the desired rate, choosing
-    /// between the first index at or below the rate and the one before it. Reference: find_closest_qindex_by_rate().
+    /// Returns the quantizer index whose expected bits per macroblock lie closest to the desired rate. The expected bits fall as the index rises,
+    /// so a binary search finds the first index at or below the rate. The result is that index or the one before it.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="screenContent">Whether the frame is screen content.</param>
@@ -1846,9 +1740,8 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the expected bits per macroblock that the quantizer search compares. When cyclic refresh refreshes
-    /// the frame, its expected boosted share codes at the lower quantizer of the first boosted segment. Reference:
-    /// get_bits_per_mb() with av1_cyclic_refresh_rc_bits_per_mb().
+    /// Returns the expected bits per macroblock that the quantizer search compares. When cyclic refresh refreshes the frame, its expected boosted
+    /// share codes at the lower quantizer of the first boosted segment.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="screenContent">Whether the frame is screen content.</param>
@@ -1871,15 +1764,14 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the expected bits per macroblock at a quantizer. An inter frame with the accurate estimate derives
-    /// the rate constant from the reconstruction error. Reference: av1_rc_bits_per_mb() and
-    /// get_bpmb_enumerator(), with a zero max_intra_bitrate_pct.
+    /// Returns the expected bits per macroblock at a quantizer. The estimate is the rate constant times the correction factor, divided by the real
+    /// quantizer. An inter frame with the accurate estimate derives the rate constant from the reconstruction error.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="screenContent">Whether the frame is screen content.</param>
     /// <param name="qIndex">The quantizer index.</param>
     /// <param name="correctionFactor">The rate correction factor.</param>
-    /// <param name="accurateEstimate">Whether the reconstruction error may set the rate constant.</param>
+    /// <param name="accurateEstimate">Whether the reconstruction error can set the rate constant.</param>
     /// <returns>The bits per macroblock.</returns>
     private int GetBitsPerMacroblock(bool keyFrame, bool screenContent, int qIndex, double correctionFactor, bool accurateEstimate)
     {
@@ -1898,7 +1790,7 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the rate constant of a frame type. Reference: get_bpmb_enumerator().
+    /// Returns the rate constant of a frame type. Screen content uses half the constant of natural content.
     /// </summary>
     /// <param name="keyFrame">Whether the rate is of a key frame.</param>
     /// <param name="screenContent">Whether the frame is screen content.</param>
@@ -1907,14 +1799,13 @@ internal sealed class Av1RateControl
         => screenContent ? keyFrame ? 1000000 : 750000 : keyFrame ? 2000000 : 1500000;
 
     /// <summary>
-    /// Limits the quantizer change against the two preceding frames and the scene statistics, and moves a frame larger
-    /// than its primary reference toward the worst quality. Reference: adjust_q_cbr(), without temporal layers,
-    /// dynamic resizing or reference biasing.
+    /// Limits the quantizer change against the two preceding frames and the scene statistics. It also moves a frame larger than its primary
+    /// reference toward the worst quality. Temporal layers, dynamic resizing and reference biasing do not apply.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="screenContent">Whether the frame is screen content.</param>
     /// <param name="sourceSad">The scene statistics of this frame.</param>
-    /// <param name="q">The quantizer index the rate model chose.</param>
+    /// <param name="q">The quantizer index that the rate model chose.</param>
     /// <param name="activeWorstQuality">The highest quantizer of the rate model search.</param>
     /// <returns>The quantizer index.</returns>
     private int AdjustConstantBitrateQuantizer(bool keyFrame, bool screenContent, in SourceSadStatistics sourceSad, int q, int activeWorstQuality)
@@ -1930,8 +1821,8 @@ internal sealed class Av1RateControl
         int maximumDeltaDown;
         if (this.cyclicRefresh is { Apply: true } cyclicRefresh)
         {
-            // Static screen content limits the decrease until the next refresh cycle starts, and links the
-            // increase to the decrease and the buffer.
+            // Static screen content limits the decrease until the next refresh cycle starts. It also links the increase to the decrease and the
+            // buffer.
             maximumDeltaDown = screenContent && cyclicRefresh.CycleAdvanced
                 ? Av1Math.Clamp(this.firstFrameQIndex / 32, 1, 8)
                 : Av1Math.Clamp(this.firstFrameQIndex / 8, 1, 16);
@@ -1955,8 +1846,8 @@ internal sealed class Av1RateControl
                 : Av1Math.Clamp(this.firstFrameQIndex / 8, 1, 16);
         }
 
-        // A frame whose size differs from its primary reference, or whose bandwidth changed, targets a different rate
-        // per macroblock, so its quantizer is not clamped to the preceding ones.
+        // A frame whose size differs from its primary reference, or whose bandwidth changed, targets a different rate per macroblock. Thus its
+        // quantizer is not clamped to the preceding ones.
         Size? previous = this.primaryReferenceSize;
         bool targetBitsPerMacroblockChanged = previous is Size reference &&
             (this.width != reference.Width || this.height != reference.Height || bandwidthChanged);
@@ -1979,9 +1870,8 @@ internal sealed class Av1RateControl
                     : clamped;
             }
 
-            // Falling content change pushes a high quantizer down while the buffer is stable, and rising change
-            // slows a decrease while the buffer is below its maximum. Only real-time usage detects scenes.
-            // Reference: the check_scene_detection speed feature of set_rt_speed_features().
+            // Falling content change pushes a high quantizer down while the buffer is stable. Rising content change slows a decrease while the
+            // buffer is below its maximum. Only real-time usage detects scenes.
             if (this.realtime && sourceSad.PreviousAverageSad > 0 && this.framesSinceKey > 10 && sourceSad.FrameSad > 0)
             {
                 double delta = ((double)sourceSad.AverageSad / sourceSad.PreviousAverageSad) - 1.0;
@@ -2010,8 +1900,7 @@ internal sealed class Av1RateControl
             }
         }
 
-        // A frame more than half as large again as its primary reference moves halfway to the worst quality to avoid
-        // an overshoot.
+        // A frame with more than 1.5 times the area of its primary reference moves halfway to the active worst quality to avoid an overshoot.
         if (previous is Size larger && (long)this.width * this.height > 1.5 * larger.Width * larger.Height)
         {
             q = (q + activeWorstQuality) >> 1;
@@ -2021,16 +1910,15 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Raises the quantizer of a scene change toward the worst quality and resets the state that later frames
-    /// read, so that they do not settle at a low quantizer and overshoot again. Reference:
-    /// av1_encodedframe_overshoot_cbr(), without spatial variance, layers or screen content tuning.
+    /// Raises the quantizer of a scene change toward the worst quality. It also resets the state that later frames read, so that they do not
+    /// settle at a low quantizer and overshoot again. Spatial variance, layers and screen content tuning do not apply.
     /// </summary>
     /// <param name="q">The quantizer index of the frame.</param>
-    /// <param name="averageSourceSad">The running average source SAD. Reference: avg_source_sad.</param>
+    /// <param name="averageSourceSad">The running average source SAD.</param>
     /// <returns>The raised quantizer index.</returns>
     public int ApplyOvershootQuantizer(int q, ulong averageSourceSad)
     {
-        // A scene change restarts the cyclic refresh count. Reference: the counter_encode_maxq_scene_change reset.
+        // A scene change restarts the count of frames since the last scene change in the cyclic refresh.
         if (this.cyclicRefresh is not null)
         {
             this.cyclicRefresh.SceneChangeFrameCount = 0;
@@ -2055,9 +1943,8 @@ internal sealed class Av1RateControl
         this.firstFrameRateSign = 0;
         this.secondFrameRateSign = 0;
 
-        // Base the correction factor on the target rate at this quantizer, the inverse of the bits estimate. The
-        // rate factor level INTER_NORMAL is passed where a frame type is read, which selects the key frame rate
-        // constant.
+        // Base the correction factor on the target rate at this quantizer, the inverse of the bits estimate. The estimate uses the key frame rate
+        // constant for this inter factor. This is a compatibility choice that keeps the coded output the same as the standard AVIF encoder.
         int targetBitsPerMacroblock = (int)(((ulong)this.averageFrameBandwidth << BitsPerMacroblockShift) / (ulong)this.macroblockCount);
         double qValue = ConvertQIndexToQ(q, this.bitDepth);
         int enumerator = GetBitsPerMacroblockEnumerator(keyFrame: true, screenContent: false);
@@ -2071,19 +1958,16 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Updates the rate model, the quantizer averages and the buffer after a frame is coded. Reference:
-    /// av1_rc_postencode_update() and update_buffer_level().
+    /// Updates the rate model, the quantizer averages and the buffer after a frame is coded.
     /// </summary>
     /// <param name="frameBytes">The coded size of the frame, without the temporal delimiter.</param>
     /// <param name="qIndex">The quantizer index of the frame.</param>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="refreshesGolden">Whether the frame refreshes the GOLDEN reference.</param>
-    /// <param name="constrainedGoldenGroup">
-    /// Whether the golden group ends at the next key frame. Reference: p_rc->constrained_gf_group.
-    /// </param>
+    /// <param name="constrainedGoldenGroup">Whether the golden group ends at the next key frame.</param>
     /// <param name="screenContent">Whether the frame is screen content.</param>
-    /// <param name="segmentationEnabled">Whether the frame codes segments. Reference: cm->seg.enabled.</param>
-    /// <param name="sceneChange">Whether the frame is a scene change. Reference: rc->high_source_sad.</param>
+    /// <param name="segmentationEnabled">Whether the frame codes segments.</param>
+    /// <param name="sceneChange">Whether the frame is a scene change.</param>
     public void UpdateAfterFrame(
         int frameBytes,
         int qIndex,
@@ -2094,7 +1978,7 @@ internal sealed class Av1RateControl
         bool segmentationEnabled,
         bool sceneChange)
     {
-        // The post-encode update reads the refresh flags of the coded frame. Reference: refresh_frame->golden_frame.
+        // The post-encode update reads the refresh flags of the coded frame.
         this.refreshesGolden = refreshesGolden;
         int projectedFrameSize = frameBytes << 3;
         this.UpdateRateCorrectionFactors(projectedFrameSize, qIndex, keyFrame, screenContent, segmentationEnabled, sceneChange);
@@ -2117,8 +2001,8 @@ internal sealed class Av1RateControl
             this.averageInterFrameQIndex = ((3 * this.averageInterFrameQIndex) + qIndex + 2) >> 2;
         }
 
-        // Keep the last boosted quantizer, which a forced key frame reads. A golden refresh in a group that ends at
-        // the next key frame does not count. Reference: the last_boosted_qindex update of av1_rc_postencode_update().
+        // Keep the last boosted quantizer, which a forced key frame reads. A golden refresh in a group that ends at the next key frame does not
+        // count. A lower quantizer of any frame also replaces it.
         if (qIndex < this.lastBoostedQIndex || keyFrame || (refreshesGolden && !constrainedGoldenGroup))
         {
             this.lastBoostedQIndex = qIndex;
@@ -2139,7 +2023,7 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Advances the key frame counters after a shown frame. Reference: update_keyframe_counters().
+    /// Advances the key frame counters after a shown frame. The counters stop when no frames are left before the next key frame.
     /// </summary>
     public void EndFrame()
     {
@@ -2151,15 +2035,15 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Moves the rate correction factor of the frame type toward the ratio of the coded and the expected size.
-    /// Reference: av1_rc_update_rate_correction_factors() in the post-encode stage.
+    /// Moves the rate correction factor of the frame type toward the ratio of the coded and the expected size. A damping limit keeps each step
+    /// small.
     /// </summary>
     /// <param name="projectedFrameSize">The coded size in bits.</param>
     /// <param name="qIndex">The quantizer index of the frame.</param>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="screenContent">Whether the frame is screen content.</param>
-    /// <param name="segmentationEnabled">Whether the frame codes segments. Reference: cm->seg.enabled.</param>
-    /// <param name="sceneChange">Whether the frame is a scene change. Reference: rc->high_source_sad.</param>
+    /// <param name="segmentationEnabled">Whether the frame codes segments.</param>
+    /// <param name="sceneChange">Whether the frame is a scene change.</param>
     private void UpdateRateCorrectionFactors(
         int projectedFrameSize,
         int qIndex,
@@ -2170,11 +2054,9 @@ internal sealed class Av1RateControl
     {
         Av1CyclicRefresh? cyclicRefresh = segmentationEnabled ? this.cyclicRefresh : null;
 
-        // The overshoot of a scene change already reset the factors, so only the quantizer history restarts. The
-        // count is zero exactly on that frame: ApplyOvershootQuantizer cleared it, and a scene change refreshes
-        // nothing, so the cyclic refresh setup did not count the frame. Only constant-bitrate coding detects the
-        // overshoot. Reference: the FAST_DETECTION_MAXQ return of av1_rc_update_rate_correction_factors(), with the
-        // overshoot_detection_cbr of set_rt_speed_features().
+        // The overshoot of a scene change already reset the factors, so only the quantizer history restarts. The count is zero exactly on that
+        // frame. ApplyOvershootQuantizer cleared it, and a scene change refreshes nothing, so the cyclic refresh setup did not count the frame.
+        // Only constant-bitrate coding detects the overshoot.
         if (this.mode == Av1RateControlMode.ConstantBitRate &&
             this.cyclicRefresh is { SceneChangeFrameCount: 0 } &&
             sceneChange &&
@@ -2204,7 +2086,7 @@ internal sealed class Av1RateControl
         this.secondFrameRateSign = this.firstFrameRateSign;
         this.firstFrameRateSign = correctionFactor > 1.1 ? -1 : correctionFactor < 0.9 ? 1 : 0;
 
-        // Dampen the adjustment.
+        // Dampen the adjustment. The limit grows with the log of the size ratio, from 0.25 up to 0.5 for screen content and up to 0.625 otherwise.
         double adjustmentLimit = screenContent
             ? 0.25 + (0.5 * Math.Min(0.5, Math.Abs(Math.Log10(correctionFactor))))
             : 0.25 + (0.75 * Math.Min(0.5, Math.Abs(Math.Log10(correctionFactor))));
@@ -2228,8 +2110,7 @@ internal sealed class Av1RateControl
             rateCorrectionFactor = Math.Max(rateCorrectionFactor * correctionFactor, MinimumBitsPerBlockFactor);
         }
 
-        // The stored factor excludes the scale of a frame coded below the configured size. Reference:
-        // set_rate_correction_factor().
+        // The stored factor excludes the scale of a frame coded below the configured size.
         rateCorrectionFactor /= this.GetResizeRateFactor(new Size(this.width, this.height));
         rateCorrectionFactor = Math.Clamp(rateCorrectionFactor, MinimumBitsPerBlockFactor, MaximumBitsPerBlockFactor);
         if (keyFrame)
@@ -2247,7 +2128,7 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the expected frame size at a quantizer. Reference: av1_estimate_bits_at_q().
+    /// Returns the expected frame size at a quantizer. The result is at least <see cref="FrameOverheadBits"/>.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="screenContent">Whether the frame is screen content.</param>
@@ -2261,8 +2142,8 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the expected frame size at a quantizer with the quantizer changes of the boosted segments, weighted by
-    /// the units the frame coded in them. Reference: av1_cyclic_refresh_estimate_bits_at_q().
+    /// Returns the expected frame size at a quantizer with the quantizer changes of the boosted segments. Each segment has a weight equal to its
+    /// share of the 4x4 units of the frame, which hold 16 units per macroblock.
     /// </summary>
     /// <param name="cyclicRefresh">The cyclic refresh of the sequence.</param>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
@@ -2291,7 +2172,6 @@ internal sealed class Av1RateControl
 
     /// <summary>
     /// Returns the rate correction factor of the frame type, scaled up for a frame coded below the configured size.
-    /// Reference: get_rate_correction_factor().
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <returns>The factor.</returns>
@@ -2306,8 +2186,7 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the quantizer index change that scales the expected rate by a ratio. Reference:
-    /// av1_compute_qdelta_by_rate() and find_qindex_by_rate().
+    /// Returns the quantizer index change that scales the expected rate by a ratio, inside the allowed quantizer range.
     /// </summary>
     /// <param name="keyFrame">Whether the rate is of a key frame.</param>
     /// <param name="screenContent">Whether the frame is screen content.</param>
@@ -2318,16 +2197,16 @@ internal sealed class Av1RateControl
         => GetQDeltaByRate(keyFrame, screenContent, qIndex, rateTargetRatio, this.bitDepth, this.bestQuality, this.worstQuality);
 
     /// <summary>
-    /// Returns the quantizer index change that scales the expected rate by a ratio, at the base rate correction and
-    /// without the accurate estimate. Reference: av1_compute_qdelta_by_rate() and find_qindex_by_rate().
+    /// Returns the quantizer index change that scales the expected rate by a ratio. The estimate uses a correction factor of 1 and does not use
+    /// the accurate estimate. A binary search finds the first index whose expected rate is at or below the scaled rate.
     /// </summary>
     /// <param name="keyFrame">Whether the rate is of a key frame.</param>
     /// <param name="screenContent">Whether the frame is screen content.</param>
     /// <param name="qIndex">The base quantizer index.</param>
     /// <param name="rateTargetRatio">The rate ratio.</param>
     /// <param name="bitDepth">The coded bit depth.</param>
-    /// <param name="bestQIndex">The lowest allowed quantizer index. Reference: rc->best_quality.</param>
-    /// <param name="worstQIndex">The highest allowed quantizer index. Reference: rc->worst_quality.</param>
+    /// <param name="bestQIndex">The lowest allowed quantizer index.</param>
+    /// <param name="worstQIndex">The highest allowed quantizer index.</param>
     /// <returns>The quantizer index change.</returns>
     public static int GetQDeltaByRate(
         bool keyFrame,
@@ -2360,10 +2239,9 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the target rate of a frame per 64x64 area, partial areas included. Reference: the sb64_target_rate of
-    /// av1_rc_set_frame_target().
+    /// Returns the target rate of a frame per 64x64 area. The rate is the frame target times 4096 samples, divided by the frame area.
     /// </summary>
-    /// <param name="frameTarget">The frame's target size in bits. Reference: rc->this_frame_target.</param>
+    /// <param name="frameTarget">The target size of the frame in bits.</param>
     /// <param name="width">The frame width in samples.</param>
     /// <param name="height">The frame height in samples.</param>
     /// <returns>The target rate per 64x64 area.</returns>
@@ -2371,8 +2249,7 @@ internal sealed class Av1RateControl
         => (int)Math.Min(((long)frameTarget << 12) / ((long)width * height), int.MaxValue);
 
     /// <summary>
-    /// Returns the quantizer index change between two real quantizers inside the allowed range. Reference:
-    /// av1_compute_qdelta().
+    /// Returns the quantizer index change between two real quantizers inside the allowed range.
     /// </summary>
     /// <param name="qStart">The starting real quantizer.</param>
     /// <param name="qTarget">The target real quantizer.</param>
@@ -2382,7 +2259,8 @@ internal sealed class Av1RateControl
             FindQIndex(qStart, this.bitDepth, this.bestQuality, this.worstQuality);
 
     /// <summary>
-    /// Returns the first quantizer index whose real quantizer reaches a value. Reference: av1_find_qindex().
+    /// Returns the first quantizer index whose real quantizer reaches a value. The real quantizer rises with the index, so a binary search finds
+    /// the index. The result is <paramref name="worstQIndex"/> when no index reaches the value.
     /// </summary>
     /// <param name="desiredQ">The real quantizer.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
@@ -2410,7 +2288,8 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Converts a quantizer index to the real quantizer on the 8-bit scale. Reference: av1_convert_qindex_to_q().
+    /// Converts a quantizer index to the real quantizer on the 8-bit scale. The real quantizer is the AC quantizer step divided by 4 at 8
+    /// bits, by 16 at 10 bits and by 64 at 12 bits.
     /// </summary>
     /// <param name="qIndex">The quantizer index.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
@@ -2427,7 +2306,7 @@ internal sealed class Av1RateControl
     }
 
     /// <summary>
-    /// Returns the number of 16x16 macroblocks of a frame. Reference: av1_get_MBs().
+    /// Returns the number of 16x16 macroblocks of a frame. Each dimension rounds up to whole macroblocks.
     /// </summary>
     /// <param name="width">The frame width.</param>
     /// <param name="height">The frame height.</param>
@@ -2447,9 +2326,9 @@ internal sealed class Av1RateControl
         /// <summary>
         /// Initializes a new instance of the <see cref="SourceSadStatistics"/> struct.
         /// </summary>
-        /// <param name="frameSad">The average 64x64 SAD of the frame. Reference: frame_source_sad.</param>
-        /// <param name="averageSad">The running average after this frame. Reference: avg_source_sad.</param>
-        /// <param name="previousAverageSad">The running average before this frame. Reference: prev_avg_source_sad.</param>
+        /// <param name="frameSad">The average 64x64 SAD of the frame.</param>
+        /// <param name="averageSad">The running average after this frame.</param>
+        /// <param name="previousAverageSad">The running average before this frame.</param>
         public SourceSadStatistics(ulong frameSad, ulong averageSad, ulong previousAverageSad)
         {
             this.FrameSad = frameSad;

@@ -8,14 +8,13 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Measures how far a block departs from its own 3x3 Gaussian smoothing: sixteen times the sum of the squared
-/// differences between each sample and its smoothed value. Samples beyond the block repeat its edge. Reference:
-/// aom_calc_variance_stat() and aom_highbd_calc_variance_stat().
+/// Measures how far a block departs from its own 3x3 Gaussian smoothing: sixteen times the sum of the squared differences
+/// between each sample and its smoothed value. Samples beyond the block repeat its edge.
 /// </summary>
 /// <remarks>
-/// The samples load through <see cref="Av1MotionVectorStatistics.ITextureOperator{TSample}"/>, which widens them to
-/// sixteen-bit lanes. The weighted 3x3 sum is at most sixteen times 4095, or 65520, so it fits those lanes at every bit
-/// depth. The difference from the smoothed value is signed, so it is formed after widening to 32-bit lanes.
+/// The samples load through <see cref="Av1MotionVectorStatistics.ITextureOperator{TSample}"/>, which widens them to 16-bit lanes.
+/// The weighted 3x3 sum is at most sixteen times 4095, or 65520, so it fits those lanes at every bit depth.
+/// The difference from the smoothed value is signed, so the code forms it after widening to 32-bit lanes.
 /// </remarks>
 internal static class Av1VarianceStatistic
 {
@@ -43,10 +42,9 @@ internal static class Av1VarianceStatistic
             ref TSample below = ref Unsafe.Add(ref origin, Math.Min(y + 1, height - 1) * stride);
 
             // The first and last columns repeat their own sample beyond the edge, so they run in the scalar member.
-            // The columns between read both neighbors in place: a vector at column x reads columns x - 1 through
-            // x + Count, and the loop bound keeps x + Count at most the last column. A squared difference is at most
-            // 4095 squared, and a 32-bit lane of a 128-sample row takes at most 32 of them, so the lanes fold into the
-            // total once per row.
+            // The columns between read both neighbors in place. A vector at column x reads columns x - 1 through x + Count.
+            // The loop bound keeps x + Count at most the last column. A squared difference is at most 4095 squared.
+            // A 32-bit lane of a 128-sample row takes at most 32 of them, so the lanes fold into the total once per row.
             total += GetSquaredDifference<TSample, TOperator>(ref above, ref current, ref below, 0, width);
             int x = 1;
             int end = width - 1;
@@ -98,12 +96,11 @@ internal static class Av1VarianceStatistic
     }
 
     /// <summary>
-    /// Measures one block that may extend past the visible frame, where the samples repeat the last visible row and
-    /// column as the reference's extended source border does. The visible part measures as a block of its own,
-    /// because its last row and column already see themselves beyond the edge. Every column past the edge repeats the
-    /// last visible column, so it smooths vertically only. Every row past the edge repeats the last visible row, so
-    /// it smooths horizontally only. A sample past both edges equals all of its neighbors and adds nothing.
-    /// Reference: aom_calc_variance_stat() over a source extended by av1_copy_and_extend_frame().
+    /// Measures one block that can extend past the visible frame. Past the frame edge, the samples repeat the last visible row and column,
+    /// as in an edge-extended source frame. The visible part measures as a block of its own, because its last row and column already
+    /// see themselves beyond the edge. Every column past the edge repeats the last visible column, so it smooths vertically only.
+    /// Every row past the edge repeats the last visible row, so it smooths horizontally only. A sample past both edges equals all
+    /// of its neighbors and adds nothing.
     /// </summary>
     /// <typeparam name="TSample">The sample type.</typeparam>
     /// <typeparam name="TOperator">The sample loads.</typeparam>
@@ -185,7 +182,7 @@ internal static class Av1VarianceStatistic
         where TSample : unmanaged
         where TOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
     {
-        // Each row's 1-2-1 sum, then the rows' 1-2-1 sum, all in sixteen-bit lanes, and the shift that divides by 16.
+        // The kernel sums each row with 1-2-1 weights, then sums the three rows with 1-2-1 weights, in 16-bit lanes. The shift by 4 divides by 16.
         Vector128<ushort> lanes = default;
         Vector128<ushort> center = TOperator.Load(ref current, x, lanes);
         Vector128<ushort> top = TOperator.Load(ref above, x - 1, lanes) + (TOperator.Load(ref above, x, lanes) << 1) + TOperator.Load(ref above, x + 1, lanes);
@@ -216,7 +213,7 @@ internal static class Av1VarianceStatistic
         where TSample : unmanaged
         where TOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
     {
-        // Each row's 1-2-1 sum, then the rows' 1-2-1 sum, all in sixteen-bit lanes, and the shift that divides by 16.
+        // The kernel sums each row with 1-2-1 weights, then sums the three rows with 1-2-1 weights, in 16-bit lanes. The shift by 4 divides by 16.
         Vector256<ushort> lanes = default;
         Vector256<ushort> center = TOperator.Load(ref current, x, lanes);
         Vector256<ushort> top = TOperator.Load(ref above, x - 1, lanes) + (TOperator.Load(ref above, x, lanes) << 1) + TOperator.Load(ref above, x + 1, lanes);
@@ -247,7 +244,7 @@ internal static class Av1VarianceStatistic
         where TSample : unmanaged
         where TOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
     {
-        // Each row's 1-2-1 sum, then the rows' 1-2-1 sum, all in sixteen-bit lanes, and the shift that divides by 16.
+        // The kernel sums each row with 1-2-1 weights, then sums the three rows with 1-2-1 weights, in 16-bit lanes. The shift by 4 divides by 16.
         Vector512<ushort> lanes = default;
         Vector512<ushort> center = TOperator.Load(ref current, x, lanes);
         Vector512<ushort> top = TOperator.Load(ref above, x - 1, lanes) + (TOperator.Load(ref above, x, lanes) << 1) + TOperator.Load(ref above, x + 1, lanes);
@@ -262,8 +259,7 @@ internal static class Av1VarianceStatistic
     }
 
     /// <summary>
-    /// Returns the squared difference of one column from its smoothed value, repeating the edge sample beyond the
-    /// row.
+    /// Returns the squared difference of one column from its smoothed value. The edge sample repeats beyond the row.
     /// </summary>
     /// <typeparam name="TSample">The sample type.</typeparam>
     /// <typeparam name="TOperator">The sample loads.</typeparam>
@@ -277,7 +273,7 @@ internal static class Av1VarianceStatistic
         where TSample : unmanaged
         where TOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
     {
-        // The neighbor columns clamp to the row, which repeats the edge sample as the reference's padded copy does.
+        // The neighbor columns clamp to the row. This repeats the edge sample, as in an edge-extended source frame.
         nuint left = (nuint)Math.Max(x - 1, 0);
         nuint column = (nuint)x;
         nuint right = (nuint)Math.Min(x + 1, width - 1);

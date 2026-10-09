@@ -26,8 +26,13 @@ internal static partial class Av1PaletteKMeans2D
         => Assign<NearestOperator>.Apply(firstSamples, secondSamples, firstCentroids, secondCentroids, indices);
 
     /// <summary>
-    /// Refines initialized paired colors through the reference encoder's deterministic clustering sequence.
+    /// Refines initialized paired colors with a deterministic k-means sequence.
     /// </summary>
+    /// <remarks>
+    /// Each iteration recalculates the centroids and then assigns the pairs again. The sequence stops when the centroids
+    /// do not change, when the distortion increases, or after <see cref="Av1PaletteKMeans.MaximumIterations"/> iterations.
+    /// The method keeps the last centroids that did not increase the distortion.
+    /// </remarks>
     /// <param name="firstSamples">The active first-plane samples.</param>
     /// <param name="secondSamples">The active second-plane samples.</param>
     /// <param name="firstCentroids">The initialized first-plane colors.</param>
@@ -112,8 +117,14 @@ internal static partial class Av1PaletteKMeans2D
     }
 
     /// <summary>
-    /// Places paired initial colors at the midpoints of equal intervals spanning each plane's sample range.
+    /// Places paired initial colors at the midpoints of equal intervals that span the sample range of each plane.
     /// </summary>
+    /// <param name="firstMinimum">The smallest first-plane sample value.</param>
+    /// <param name="firstMaximum">The largest first-plane sample value.</param>
+    /// <param name="secondMinimum">The smallest second-plane sample value.</param>
+    /// <param name="secondMaximum">The largest second-plane sample value.</param>
+    /// <param name="firstCentroids">The first-plane palette colors to initialize.</param>
+    /// <param name="secondCentroids">The second-plane palette colors to initialize.</param>
     public static void InitializeCentroids(
         short firstMinimum,
         short firstMaximum,
@@ -131,6 +142,14 @@ internal static partial class Av1PaletteKMeans2D
         }
     }
 
+    /// <summary>
+    /// Recalculates each paired centroid as the rounded mean of its assigned pairs.
+    /// </summary>
+    /// <param name="firstSamples">The active first-plane samples.</param>
+    /// <param name="secondSamples">The active second-plane samples.</param>
+    /// <param name="indices">The palette index of each pair.</param>
+    /// <param name="firstCentroids">Receives the recalculated first-plane colors.</param>
+    /// <param name="secondCentroids">Receives the recalculated second-plane colors.</param>
     private static void CalculateCentroids(
         ReadOnlySpan<short> firstSamples,
         ReadOnlySpan<short> secondSamples,
@@ -153,7 +172,8 @@ internal static partial class Av1PaletteKMeans2D
             int count = counts[centroidIndex];
             if (count == 0)
             {
-                // Empty paired clusters copy both components from the same deterministically selected sample.
+                // An empty paired cluster copies both components from one pseudo-random sample. The seeded sequence is the same
+                // on every platform, so the palette choices are reproducible.
                 randomState = unchecked((randomState * 1103515245U) + 12345U);
                 uint random = (randomState / 65536U) % 32768U;
                 int sampleIndex = (int)(random % (uint)firstSamples.Length);

@@ -6,19 +6,18 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 
 /// <summary>
-/// Provides the forward quantization matrices that the encoder weights the coefficients with, for each matrix level,
-/// plane class and transform size. Reference: wt_matrix_ref and av1_qm_init().
+/// Provides the forward quantization matrices that the encoder weights the coefficients with, for each matrix level, plane class
+/// and transform size.
 /// </summary>
 internal static partial class Av1QuantizationMatrixLookup
 {
     /// <summary>
-    /// The number of weights of one plane class of one matrix level. Reference: QM_TOTAL_SIZE.
+    /// The number of weights of one plane class of one matrix level.
     /// </summary>
     private const int TotalSize = 3344;
 
     /// <summary>
-    /// Gets the stored matrix of each AV1 transform size; sizes with a 64-pixel dimension reuse the adjusted 32-pixel
-    /// matrix. Reference: av1_get_adjusted_tx_size().
+    /// Gets the stored matrix of each AV1 transform size. Sizes with a 64-pixel dimension use the matrix of their adjusted 32-pixel size.
     /// </summary>
     private static ReadOnlySpan<byte> TransformMatrixIndices =>
     [
@@ -26,8 +25,7 @@ internal static partial class Av1QuantizationMatrixLookup
     ];
 
     /// <summary>
-    /// Gets the offset of each stored matrix inside one plane class, in the order of av1_qm_init(), followed by the
-    /// total size.
+    /// Gets the offset of each stored matrix inside one plane class, in the normative matrix order, followed by the total size.
     /// </summary>
     private static ReadOnlySpan<short> MatrixOffsets =>
     [
@@ -36,9 +34,8 @@ internal static partial class Av1QuantizationMatrixLookup
 
     /// <summary>
     /// Gets the forward weights indexed by matrix level, plane class (luma, then the chroma set that U and V share), stored
-    /// matrix and raster coefficient. Level 15 is flat and not stored. The reference stores each matrix column by
-    /// column, and this table holds its transpose in the row-major order of the coefficients here. Reference:
-    /// wt_matrix_ref.
+    /// matrix and raster coefficient. Level 15 is flat and not stored. The source tables store each matrix column by column.
+    /// This table holds the transpose, in the row-major order of the coefficients in this encoder.
     /// </summary>
     private static ReadOnlySpan<byte> WeightTable =>
     [
@@ -4228,7 +4225,7 @@ internal static partial class Av1QuantizationMatrixLookup
     /// Gets the forward quantization matrix for a matrix level, color plane and transform size.
     /// </summary>
     /// <param name="level">The quantization matrix level, below the flat level 15.</param>
-    /// <param name="plane">The color plane; U and V select the shared chroma matrix.</param>
+    /// <param name="plane">The color plane. U and V select the shared chroma matrix.</param>
     /// <param name="transformSize">The transform size whose raster coefficient weights are requested.</param>
     /// <returns>The matrix weights in raster coefficient order.</returns>
     public static ReadOnlySpan<byte> GetQuantizationMatrix(int level, Av1Plane plane, Av1TransformSize transformSize)
@@ -4239,17 +4236,17 @@ internal static partial class Av1QuantizationMatrixLookup
     }
 
     /// <summary>
-    /// Gets the forward quantization matrix of a two-dimensional transform in the order in which the weighted
-    /// distortion measure pairs it with the coefficients here. Reference: av1_block_error_qm().
+    /// Gets the forward quantization matrix of a two-dimensional transform in the order in which the weighted distortion measure
+    /// pairs it with the coefficients here.
     /// </summary>
     /// <remarks>
-    /// The reference weights its coefficient <c>i</c>, in its column-major order, with the matrix entry at scan
-    /// position <c>i</c>. The coefficients here are row-major, so coefficient <c>(row, column)</c> takes the entry at
-    /// scan position <c>column * height + row</c>. Every two-dimensional transform uses the default scan of its size,
-    /// and the other transforms use the flat matrix, so the order depends on the size alone.
+    /// The weighted distortion measure weights coefficient <c>i</c> of the column-major coefficient order with the matrix entry at scan
+    /// position <c>i</c>. The coefficients here are row-major, so coefficient <c>(row, column)</c> takes the entry at scan position
+    /// <c>column * height + row</c>. Every two-dimensional transform uses the default scan of its size. The other transforms use the
+    /// flat matrix. As a result, the order depends on the size alone.
     /// </remarks>
     /// <param name="level">The quantization matrix level, below the flat level 15.</param>
-    /// <param name="plane">The color plane; U and V select the shared chroma matrix.</param>
+    /// <param name="plane">The color plane. U and V select the shared chroma matrix.</param>
     /// <param name="transformSize">The transform size.</param>
     /// <returns>The weight of each raster coefficient.</returns>
     public static ReadOnlySpan<byte> GetDistortionWeights(int level, Av1Plane plane, Av1TransformSize transformSize)

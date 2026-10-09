@@ -8,9 +8,8 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Holds the values and buffers of one plane that every intra candidate of a block uses. A mode search builds it once
-/// before its mode loop, so a candidate reads no plane, workspace buffer or frame setting again. Only the mode, the
-/// angle and the transform type change between candidates.
+/// Holds the values and buffers of one plane that every intra candidate of a block uses. A mode search builds it once before its mode loop.
+/// Then a candidate reads no plane, workspace buffer or frame setting again. Only the mode, the angle and the transform type change between candidates.
 /// </summary>
 /// <typeparam name="TSample">The sample storage type.</typeparam>
 internal readonly ref struct Av1IntraCandidatePlane<TSample>
@@ -83,8 +82,7 @@ internal readonly ref struct Av1IntraCandidatePlane<TSample>
     public Span<TSample> Reconstruction { get; init; }
 
     /// <summary>
-    /// Gets the frame plane from the block origin. Each candidate writes its prediction here, and its residual and
-    /// distortion read the prediction from here.
+    /// Gets the frame plane from the block origin. Each candidate writes its prediction here. Its residual and distortion read the prediction from here.
     /// </summary>
     public Span<TSample> FrameBlock { get; init; }
 

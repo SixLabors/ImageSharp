@@ -11,8 +11,7 @@ internal static partial class Av1FrameEncoder
     internal abstract partial class SequenceEncoder
     {
         /// <summary>
-        /// Sets the film grain of the frame about to be written. libavif gives every frame time stamp 0. Reference:
-        /// the aom_codec_encode() call of aomCodecEncodeImage().
+        /// Sets the film grain of the frame about to be written. Every frame uses time stamp 0. This matches the output of the AVIF reference encoder.
         /// </summary>
         private protected void PrepareFilmGrain() => this.filmGrain?.PrepareFrame(this.FrameHeader, 0);
 

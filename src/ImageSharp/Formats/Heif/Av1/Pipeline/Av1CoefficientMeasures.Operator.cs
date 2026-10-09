@@ -16,9 +16,8 @@ internal static partial class Av1CoefficientMeasures
     /// Defines the magnitude measures of transform coefficients across hardware widths.
     /// </summary>
     /// <remarks>
-    /// One lane is one coefficient. A coefficient magnitude is far below 2^31, so its absolute value is
-    /// exact in a thirty-two-bit lane. A total spreads across the lanes in no defined way; only its
-    /// reduction is defined.
+    /// One lane is one coefficient. A coefficient magnitude is far below 2^31, so its absolute value is exact in a 32-bit lane.
+    /// The split of a total across the lanes is not defined. Only its reduction is defined, and it equals the scalar result.
     /// </remarks>
     internal interface ICoefficientMeasureOperator
     {
@@ -87,8 +86,8 @@ internal static partial class Av1CoefficientMeasures
         public static abstract int AccumulateMaximumAbsolute(int value, int maximum);
 
         /// <summary>
-        /// Adds the level bits of four coefficients to lane totals: the floored base-two logarithm of the magnitude
-        /// plus one, and one more for a nonzero coefficient.
+        /// Adds the level bits of four coefficients to lane totals. The level bits are the floored base-2 logarithm of one more than the magnitude.
+        /// A nonzero coefficient adds one more bit.
         /// </summary>
         /// <param name="values">The quantized coefficients.</param>
         /// <param name="total">The lane totals.</param>
@@ -195,21 +194,21 @@ internal static partial class Av1CoefficientMeasures
         public static abstract long AccumulateSquaredDifferences(int coefficient, int reconstructed, long total);
 
         /// <summary>
-        /// Keeps the low sixteen bits of four coefficients as signed values, as an int16 store does.
+        /// Keeps the low 16 bits of four coefficients as signed values, as a store to 16-bit storage does.
         /// </summary>
         /// <param name="values">The coefficients.</param>
         /// <returns>The sign-extended low sixteen bits.</returns>
         public static abstract Vector128<int> TruncateToInt16(Vector128<int> values);
 
         /// <summary>
-        /// Keeps the low sixteen bits of eight coefficients as signed values, as an int16 store does.
+        /// Keeps the low 16 bits of eight coefficients as signed values, as a store to 16-bit storage does.
         /// </summary>
         /// <param name="values">The coefficients.</param>
         /// <returns>The sign-extended low sixteen bits.</returns>
         public static abstract Vector256<int> TruncateToInt16(Vector256<int> values);
 
         /// <summary>
-        /// Keeps the low sixteen bits of sixteen coefficients as signed values, as an int16 store does.
+        /// Keeps the low 16 bits of sixteen coefficients as signed values, as a store to 16-bit storage does.
         /// </summary>
         /// <param name="values">The coefficients.</param>
         /// <returns>The sign-extended low sixteen bits.</returns>
@@ -279,9 +278,10 @@ internal static partial class Av1CoefficientMeasures
                 return total;
             }
 
-            // The vector has no leading-zero count, so the logarithm halves the remaining range in exact steps. The
-            // two widest steps run only when a lane needs them. A nonzero lane's all-ones equality complement
-            // subtracts as one.
+            // The complement of the zero test is all ones (-1) in a nonzero lane, so the subtraction adds one bit to that lane.
+            // The vector has no leading-zero count, so a binary search finds the logarithm. Each step of 16, 8, 4, 2 and 1 bits adds
+            // the step to a lane whose level is at least 2^step, then shifts that level right by the step.
+            // The steps of 16, 8 and 4 bits run only when a lane needs them. The result equals the scalar logarithm.
             Vector128<int> level = Vector128.Abs(values) + Vector128<int>.One;
             Vector128<int> bits = total - ~Vector128.Equals(values, Vector128<int>.Zero);
             for (int step = 16; step > 0; step >>= 1)
@@ -354,7 +354,8 @@ internal static partial class Av1CoefficientMeasures
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<int> AccumulateEndOfBlock(Vector128<int> values, ref short inverseScan, nuint offset, Vector128<int> maximum)
         {
-            // A zero coefficient masks its position to zero, which never raises the maximum.
+            // The 16-bit scan positions widen to 32-bit lanes in raster order, so lane n of the positions lines up with lane n of the
+            // coefficients. A zero coefficient masks its position to zero, which never raises the maximum.
             Vector128<int> positions = Vector128.WidenLower(Vector64.LoadUnsafe(ref inverseScan, offset).ToVector128()) + Vector128<int>.One;
             return Vector128.Max(maximum, positions & ~Vector128.Equals(values, Vector128<int>.Zero));
         }
@@ -384,7 +385,7 @@ internal static partial class Av1CoefficientMeasures
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<long> AccumulateSquaredDifferences(Vector128<int> coefficients, Vector128<int> reconstructed, Vector128<long> total)
         {
-            // A high-bit-depth difference can exceed sixteen bits, so the square needs sixty-four-bit lanes.
+            // The difference of two coefficients fits a 32-bit lane. A high bit depth difference can exceed 16 bits, so the square needs 64-bit lanes.
             (Vector128<long> lower, Vector128<long> upper) = Vector128.Widen(coefficients - reconstructed);
             return total + (lower * lower) + (upper * upper);
         }

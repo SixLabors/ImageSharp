@@ -16,9 +16,9 @@ internal static partial class Av1WedgeSearch
     /// Defines the wedge search arithmetic across hardware widths.
     /// </summary>
     /// <remarks>
-    /// One lane is one sample of a block, in raster order. The residuals are signed sixteen-bit values and
-    /// the mask weights are six-bit values from 0 to 64. A measure returns a lane-shaped sixty-four-bit
-    /// total, whose spread across the lanes is not defined; only the sum of all lanes is.
+    /// One lane is one sample of a block, in raster order. The residuals are signed sixteen-bit values, and the mask weights
+    /// are values from 0 to 64. A measure returns a sixty-four-bit total in vector lanes. The split of the total across the
+    /// lanes is not defined. Only the sum of all lanes is defined.
     /// </remarks>
     internal interface IWedgeOperator
     {
@@ -159,7 +159,7 @@ internal static partial class Av1WedgeSearch
     }
 
     /// <summary>
-    /// Applies the wedge search arithmetic of libaom lane by lane.
+    /// Applies the wedge search arithmetic lane by lane, with sixteen-bit saturation at the same points as the scalar overloads.
     /// </summary>
     internal readonly struct WedgeOperator : IWedgeOperator
     {
@@ -182,9 +182,9 @@ internal static partial class Av1WedgeSearch
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<short> DeltaSquares(Vector128<short> first, Vector128<short> second)
         {
-            // A square of a sixteen-bit value is below 2^30, so the difference of two squares fits a
-            // thirty-two-bit lane. The clamp is the saturation of av1_wedge_compute_delta_squares(), and
-            // the narrowing keeps the sample order.
+            // Each half widens to thirty-two-bit lanes. A square of a sixteen-bit value is at most 2^30, so the difference
+            // of two squares fits a thirty-two-bit lane. The clamp saturates the difference to sixteen bits. Then the
+            // narrowing of the lower and the upper half keeps the sample order.
             (Vector128<int> firstLower, Vector128<int> firstUpper) = Vector128.Widen(first);
             (Vector128<int> secondLower, Vector128<int> secondUpper) = Vector128.Widen(second);
             Vector128<int> minimum = Vector128.Create((int)short.MinValue);
@@ -229,8 +229,9 @@ internal static partial class Av1WedgeSearch
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<long> AccumulateWeightedDelta(Vector128<short> deltaSquares, Vector128<short> weights, Vector128<long> total)
         {
-            // A pair of weighted values is at most 2 * 64 * 32768 in magnitude, so the pairwise sum fits
-            // a thirty-two-bit lane. It widens before it joins the total, which can exceed that range.
+            // The multiply-add gives the sum of two adjacent weighted values in one thirty-two-bit lane. That sum is at most
+            // 2 * 64 * 32768 in magnitude, so it fits. The sum widens to sixty-four bits before it adds to the total,
+            // because the total can exceed the thirty-two-bit range.
             (Vector128<long> lower, Vector128<long> upper) = Vector128.Widen(Vector128_.MultiplyAddAdjacent(deltaSquares, weights));
             return total + lower + upper;
         }
@@ -260,9 +261,9 @@ internal static partial class Av1WedgeSearch
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<ulong> AccumulateSquaredErrors(Vector128<short> residual, Vector128<short> difference, Vector128<short> weights, Vector128<ulong> total)
         {
-            // The weighted residual 64 * r + m * d needs a thirty-two-bit lane before its saturation to
-            // sixteen bits. The pairwise square of two saturated values is at most 2^31, which is exact
-            // as an unsigned thirty-two-bit lane even where the signed product wraps.
+            // The weighted residual 64 * r + m * d needs a thirty-two-bit lane before its saturation to sixteen bits.
+            // The multiply-add of the saturated values with themselves gives the sum of two adjacent squares. That sum is
+            // at most 2^31. The signed lane wraps at 2^31, but the unsigned view of the same bits is exact.
             Vector128<short> saturated = Saturate(residual, difference, weights);
             (Vector128<ulong> lower, Vector128<ulong> upper) = Vector128.Widen(Vector128_.MultiplyAddAdjacent(saturated, saturated).AsUInt32());
             return total + lower + upper;
@@ -297,6 +298,10 @@ internal static partial class Av1WedgeSearch
         /// <summary>
         /// Returns 64 * r + m * d of eight samples, saturated to sixteen bits.
         /// </summary>
+        /// <param name="residual">The residuals of the second prediction.</param>
+        /// <param name="difference">The second prediction minus the first.</param>
+        /// <param name="weights">The mask weights of the first prediction.</param>
+        /// <returns>The saturated weighted residuals in increasing sample order.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<short> Saturate(Vector128<short> residual, Vector128<short> difference, Vector128<short> weights)
         {
@@ -313,6 +318,10 @@ internal static partial class Av1WedgeSearch
         /// <summary>
         /// Returns 64 * r + m * d of sixteen samples, saturated to sixteen bits.
         /// </summary>
+        /// <param name="residual">The residuals of the second prediction.</param>
+        /// <param name="difference">The second prediction minus the first.</param>
+        /// <param name="weights">The mask weights of the first prediction.</param>
+        /// <returns>The saturated weighted residuals in increasing sample order.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector256<short> Saturate(Vector256<short> residual, Vector256<short> difference, Vector256<short> weights)
         {
@@ -329,6 +338,10 @@ internal static partial class Av1WedgeSearch
         /// <summary>
         /// Returns 64 * r + m * d of thirty-two samples, saturated to sixteen bits.
         /// </summary>
+        /// <param name="residual">The residuals of the second prediction.</param>
+        /// <param name="difference">The second prediction minus the first.</param>
+        /// <param name="weights">The mask weights of the first prediction.</param>
+        /// <returns>The saturated weighted residuals in increasing sample order.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector512<short> Saturate(Vector512<short> residual, Vector512<short> difference, Vector512<short> weights)
         {

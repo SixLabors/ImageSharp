@@ -11,8 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 internal static partial class Av1ForwardQuantizer
 {
     /// <summary>
-    /// The largest rounded magnitude the eight-bit quantizers keep. Reference: the INT16_MAX clamp of
-    /// quantize_fp_helper_c() and aom_quantize_b_helper_c().
+    /// The largest rounded magnitude the 8-bit quantizers keep. The 8-bit quantizers clamp the rounded magnitude to the signed 16-bit range.
     /// </summary>
     private const int ByteMagnitudeLimit = short.MaxValue;
 
@@ -74,10 +73,8 @@ internal static partial class Av1ForwardQuantizer
     /// Quantizes one lossy transform block with quantization matrices.
     /// </summary>
     /// <remarks>
-    /// Reference: quantize_fp_helper_c() and highbd_quantize_fp_helper_c() for the fast form, and
-    /// aom_quantize_b_helper_c() and aom_highbd_quantize_b_helper_c() for the regular form, each with a matrix. The
-    /// pre-scan of the regular form keeps exactly the coefficients that pass the weighted zero bin, so one raster
-    /// traversal gives the same output.
+    /// Each form tests its weighted threshold on every coefficient in one raster traversal. The regular form needs no separate pre-scan,
+    /// because a pre-scan keeps exactly the coefficients that pass the weighted zero bin.
     /// </remarks>
     /// <param name="coefficients">The raster-order transform coefficients.</param>
     /// <param name="quantizedCoefficients">The raster-order coding coefficients.</param>
@@ -117,7 +114,7 @@ internal static partial class Av1ForwardQuantizer
         int sharpnessAdjustment = 16 * (7 - sharpness) / 7;
         if (regular)
         {
-            // Reference: the zbin, round, quant and quant_shift tables of av1_build_quantizer().
+            // The regular form uses a zero bin, a rounding offset and a two-step reciprocal. The zero bin moves to matrix precision.
             int zeroBinFactor = Av1InverseTransformMath.GetQzbinFactor(qIndex, bitDepth);
             int roundingFactor = qIndex == 0 ? 64 : sharpness == 0 ? 48 : 64 - sharpnessAdjustment;
             int dcQuantizer = Av1QuantizationLookup.GetDcRegularQuantizer(qIndex, dcDeltaQ, bitDepth, out int dcShift);
@@ -144,7 +141,8 @@ internal static partial class Av1ForwardQuantizer
                 coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, transformType, weights, inverseWeights, in dc, in ac);
         }
 
-        // Reference: the quant_fp and round_fp tables of av1_build_quantizer().
+        // The fast form keeps a coefficient when twice its scaled, weighted magnitude reaches the dequantizer.
+        // The threshold shift moves that test to matrix precision. The fast form has no second multiplier.
         int fastRoundingFactor = sharpness != 0 && qIndex != 0 ? 64 - sharpnessAdjustment : 64;
         int thresholdShift = Av1Constants.QuantizationMatrixElementBitCount - (1 + logScale);
         dc = new MatrixQuantizerConstants(
@@ -172,6 +170,17 @@ internal static partial class Av1ForwardQuantizer
     /// <summary>
     /// Traverses one matrix quantization with the DC coefficient first and then contiguous AC vectors.
     /// </summary>
+    /// <typeparam name="TOperator">The quantizer form.</typeparam>
+    /// <param name="coefficients">The raster-order transform coefficients.</param>
+    /// <param name="quantizedCoefficients">The raster-order coding coefficients.</param>
+    /// <param name="dequantizedCoefficients">The raster-order reconstruction coefficients.</param>
+    /// <param name="transformSize">The transform dimensions.</param>
+    /// <param name="transformType">The transform type selecting the scan order.</param>
+    /// <param name="weights">The forward quantization matrix.</param>
+    /// <param name="inverseWeights">The inverse quantization matrix.</param>
+    /// <param name="dc">The quantizer constants of the DC coefficient.</param>
+    /// <param name="ac">The quantizer constants of the AC coefficients.</param>
+    /// <returns>The one-based end position in coefficient scan order.</returns>
     private static ushort QuantizeWithMatrix<TOperator>(
         ReadOnlySpan<int> coefficients,
         Span<int> quantizedCoefficients,
@@ -278,8 +287,11 @@ internal static partial class Av1ForwardQuantizer
     }
 
     /// <summary>
-    /// Loads four matrix weights and widens them to thirty-two-bit lanes.
+    /// Loads four matrix weights and widens them to 32-bit lanes.
     /// </summary>
+    /// <param name="source">The first weight.</param>
+    /// <param name="lanes">A value that selects the vector width. The method ignores its content.</param>
+    /// <returns>The widened weights.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Vector128<int> LoadWeights(ref byte source, Vector128<int> lanes)
     {
@@ -288,8 +300,11 @@ internal static partial class Av1ForwardQuantizer
     }
 
     /// <summary>
-    /// Loads eight matrix weights and widens them to thirty-two-bit lanes.
+    /// Loads eight matrix weights and widens them to 32-bit lanes.
     /// </summary>
+    /// <param name="source">The first weight.</param>
+    /// <param name="lanes">A value that selects the vector width. The method ignores its content.</param>
+    /// <returns>The widened weights.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Vector256<int> LoadWeights(ref byte source, Vector256<int> lanes)
     {
@@ -298,8 +313,11 @@ internal static partial class Av1ForwardQuantizer
     }
 
     /// <summary>
-    /// Loads sixteen matrix weights and widens them to thirty-two-bit lanes.
+    /// Loads sixteen matrix weights and widens them to 32-bit lanes.
     /// </summary>
+    /// <param name="source">The first weight.</param>
+    /// <param name="lanes">A value that selects the vector width. The method ignores its content.</param>
+    /// <returns>The widened weights.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Vector512<int> LoadWeights(ref byte source, Vector512<int> lanes)
     {
@@ -312,6 +330,16 @@ internal static partial class Av1ForwardQuantizer
     /// </summary>
     private readonly struct MatrixQuantizerConstants
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MatrixQuantizerConstants"/> struct.
+        /// </summary>
+        /// <param name="threshold">The bound that the weighted magnitude must reach, in matrix precision.</param>
+        /// <param name="rounding">The rounding added to the magnitude at transform scale.</param>
+        /// <param name="quantizer">The reciprocal of the step.</param>
+        /// <param name="quantizerShift">The second multiplier of the regular form, or 0 for the fast form.</param>
+        /// <param name="dequantizer">The reconstruction step before the inverse weight.</param>
+        /// <param name="logScale">The transform scale.</param>
+        /// <param name="magnitudeLimit">The largest rounded magnitude kept.</param>
         public MatrixQuantizerConstants(
             int threshold,
             int rounding,
@@ -341,12 +369,12 @@ internal static partial class Av1ForwardQuantizer
         public int Rounding { get; }
 
         /// <summary>
-        /// Gets the reciprocal of the step; the fast form uses quant_fp and the regular form quant.
+        /// Gets the reciprocal of the step. The fast form and the regular form use different reciprocal tables.
         /// </summary>
         public int Quantizer { get; }
 
         /// <summary>
-        /// Gets the second multiplier of the regular form. Reference: quant_shift.
+        /// Gets the second multiplier of the regular form.
         /// </summary>
         public int QuantizerShift { get; }
 
@@ -361,13 +389,13 @@ internal static partial class Av1ForwardQuantizer
         public int LogScale { get; }
 
         /// <summary>
-        /// Gets the largest rounded magnitude kept; eight-bit coding clamps to sixteen bits.
+        /// Gets the largest rounded magnitude kept. 8-bit coding clamps to the signed 16-bit range.
         /// </summary>
         public int MagnitudeLimit { get; }
     }
 
     /// <summary>
-    /// Quantizes with the fast form and a matrix. Reference: quantize_fp_helper_c() and highbd_quantize_fp_helper_c().
+    /// Quantizes with the fast form and a matrix.
     /// </summary>
     private readonly struct FastMatrixQuantizationOperator : IMatrixQuantizationOperator
     {
@@ -472,8 +500,7 @@ internal static partial class Av1ForwardQuantizer
     }
 
     /// <summary>
-    /// Quantizes with the regular form and a matrix. Reference: aom_quantize_b_helper_c() and
-    /// aom_highbd_quantize_b_helper_c().
+    /// Quantizes with the regular form and a matrix.
     /// </summary>
     private readonly struct RegularMatrixQuantizationOperator : IMatrixQuantizationOperator
     {
@@ -491,7 +518,7 @@ internal static partial class Av1ForwardQuantizer
             Vector128<int> mask = ~Vector128.GreaterThan(Vector128.Create(constants.Threshold), magnitude * weights);
             Vector128<int> rounded = Vector128.Min(magnitude + Vector128.Create(constants.Rounding), Vector128.Create(constants.MagnitudeLimit));
 
-            // The weighted magnitude and both products keep sixty-four bits, as the reference does.
+            // The weighted magnitude and both products use 64-bit lanes, because the products exceed 32 bits.
             Vector128<long> lower = Vector128.WidenLower(rounded) * Vector128.WidenLower(weights);
             Vector128<long> upper = Vector128.WidenUpper(rounded) * Vector128.WidenUpper(weights);
             Vector128<long> quantizer = Vector128.Create((long)constants.Quantizer);

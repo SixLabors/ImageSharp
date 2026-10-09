@@ -28,8 +28,8 @@ internal static partial class Av1ForwardQuantizer
             Vector128<int> mask = ~Vector128.GreaterThan(zeroBin, magnitude);
             Vector128<int> rounded = Vector128.Min(magnitude + rounding, Vector128.Create((int)short.MaxValue));
 
-            // Saturation bounds both signed products to 32-bit lanes. The first Q16 multiplication
-            // restores the reciprocal's implicit leading bit; the second removes its power-of-two scale.
+            // The saturation to short.MaxValue keeps both signed products in 32-bit lanes. The first Q16 multiply and the add restore
+            // the implicit leading bit of the reciprocal. The second multiply removes its power-of-two scale.
             Vector128<int> corrected = rounded + ((rounded * quantizer) >> 16);
             Vector128<int> quantizedMagnitude = ((corrected * shift) >> (16 - logScale)) & mask;
             Vector128<int> dequantizedMagnitude = (quantizedMagnitude * dequantizer) >> logScale;
@@ -53,8 +53,8 @@ internal static partial class Av1ForwardQuantizer
             Vector256<int> mask = ~Vector256.GreaterThan(zeroBin, magnitude);
             Vector256<int> rounded = Vector256.Min(magnitude + rounding, Vector256.Create((int)short.MaxValue));
 
-            // Saturation bounds both signed products to 32-bit lanes. The first Q16 multiplication
-            // restores the reciprocal's implicit leading bit; the second removes its power-of-two scale.
+            // The saturation to short.MaxValue keeps both signed products in 32-bit lanes. The first Q16 multiply and the add restore
+            // the implicit leading bit of the reciprocal. The second multiply removes its power-of-two scale.
             Vector256<int> corrected = rounded + ((rounded * quantizer) >> 16);
             Vector256<int> quantizedMagnitude = ((corrected * shift) >> (16 - logScale)) & mask;
             Vector256<int> dequantizedMagnitude = (quantizedMagnitude * dequantizer) >> logScale;
@@ -78,8 +78,8 @@ internal static partial class Av1ForwardQuantizer
             Vector512<int> mask = ~Vector512.GreaterThan(zeroBin, magnitude);
             Vector512<int> rounded = Vector512.Min(magnitude + rounding, Vector512.Create((int)short.MaxValue));
 
-            // Saturation bounds both signed products to 32-bit lanes. The first Q16 multiplication
-            // restores the reciprocal's implicit leading bit; the second removes its power-of-two scale.
+            // The saturation to short.MaxValue keeps both signed products in 32-bit lanes. The first Q16 multiply and the add restore
+            // the implicit leading bit of the reciprocal. The second multiply removes its power-of-two scale.
             Vector512<int> corrected = rounded + ((rounded * quantizer) >> 16);
             Vector512<int> quantizedMagnitude = ((corrected * shift) >> (16 - logScale)) & mask;
             Vector512<int> dequantizedMagnitude = (quantizedMagnitude * dequantizer) >> logScale;

@@ -15,10 +15,9 @@ internal static partial class Av1PaletteKMeans2D
     /// Finds the paired palette color nearest to a pair of samples.
     /// </summary>
     /// <remarks>
-    /// Every overload describes the same lane-wise search. The distance is the squared distance in
-    /// the plane of the two chroma components, which reaches about 33 million for twelve-bit
-    /// samples, so the search runs on thirty-two bit lanes while the samples arrive as sixteen-bit
-    /// lanes. Each vector overload therefore returns the distances of its two halves.
+    /// Every overload describes the same lane-wise search. The distance is the squared distance in the plane of the two
+    /// chroma components. It reaches about 33 million for twelve-bit samples, so the search runs on thirty-two-bit lanes.
+    /// The samples arrive as sixteen-bit lanes, so each vector overload returns the distances of its two halves.
     /// </remarks>
     internal interface IAv1Palette2DNearestOperator
     {
@@ -98,9 +97,9 @@ internal static partial class Av1PaletteKMeans2D
     /// </summary>
     /// <typeparam name="TOperator">The nearest-color search.</typeparam>
     /// <remarks>
-    /// One lane is one chroma pair, and the palette is broadcast, so the traversal is a plain walk
-    /// of the samples at descending register widths with a scalar tail. The index of a color is
-    /// below the palette limit of eight, so narrowing the index lanes to bytes is exact.
+    /// One lane is one chroma pair, and the operator broadcasts each palette color. Thus the traversal is a plain walk of
+    /// the samples at descending register widths with a scalar tail. The index of a color is less than the palette limit
+    /// of eight, so the narrowing of the index lanes to bytes is exact.
     /// </remarks>
     private static class Assign<TOperator>
         where TOperator : struct, IAv1Palette2DNearestOperator
@@ -121,8 +120,9 @@ internal static partial class Av1PaletteKMeans2D
             ReadOnlySpan<short> secondCentroids,
             Span<byte> indices)
         {
-            // Each vector's squared distances are widened into 64-bit lane totals, which are reduced once at the
-            // end. A squared two-plane distance needs thirty-two bits and the total of a whole block needs 64.
+            // The lower and the upper squared distances add in 32-bit lanes. The sums widen into 64-bit lane totals,
+            // and one reduction at the end gives the distortion. A squared two-plane distance is less than 2^26,
+            // so the sum of two distances fits in 32 bits. The total of a whole block needs 64 bits.
             ref short firstBase = ref MemoryMarshal.GetReference(firstSamples);
             ref short secondBase = ref MemoryMarshal.GetReference(secondSamples);
             ref byte indexBase = ref MemoryMarshal.GetReference(indices);

@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         options:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             framework: net6.0
             runtime: -x64
             codecov: true
@@ -39,7 +39,7 @@ jobs:
         run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
 
       - name: Git Setup LFS Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: lfs-cache
         with:
           path: .git/lfs
@@ -52,7 +52,7 @@ jobs:
         uses: NuGet/setup-nuget@v1
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: nuget-cache
         with:
           path: ~/.nuget
@@ -64,7 +64,6 @@ jobs:
         with:
           dotnet-version: |
             8.0.x
-            7.0.x
             6.0.x
 
       - name: DotNet Build
@@ -81,14 +80,15 @@ jobs:
           XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
       - name: Export Failed Output
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: actual_output_${{ runner.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
           path: tests/Images/ActualOutput/
 
       - name: Codecov Update
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         if: matrix.options.codecov == true && startsWith(github.repository, 'SixLabors')
         with:
           flags: unittests
+          token: ${{ secrets.CODECOV_TOKEN }}

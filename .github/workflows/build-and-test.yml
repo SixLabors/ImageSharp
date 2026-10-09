@@ -19,31 +19,12 @@ jobs:
         isARM:
           - ${{ contains(github.event.pull_request.labels.*.name, 'arch:arm32') || contains(github.event.pull_request.labels.*.name, 'arch:arm64') }}
         options:
-          - os: ubuntu-latest
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: macos-26-intel
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: windows-latest
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
           - os: buildjet-4vcpu-ubuntu-2204-arm
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
+            framework: net6.0
+            sdk: 6.0.x
             runtime: -x64
             codecov: false
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             framework: net6.0
             sdk: 6.0.x
             runtime: -x64
@@ -53,7 +34,7 @@ jobs:
             sdk: 6.0.x
             runtime: -x64
             codecov: false
-          - os: windows-latest
+          - os: windows-2022
             framework: net6.0
             sdk: 6.0.x
             runtime: -x64
@@ -101,7 +82,7 @@ jobs:
         run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
 
       - name: Git Setup LFS Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: lfs-cache
         with:
           path: .git/lfs
@@ -114,7 +95,7 @@ jobs:
         uses: NuGet/setup-nuget@v1
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: nuget-cache
         with:
           path: ~/.nuget
@@ -126,37 +107,19 @@ jobs:
         with:
           dotnet-version: |
             8.0.x
-            7.0.x
             6.0.x
 
       - name: DotNet Build
-        if: ${{ matrix.options.sdk-preview != true }}
         shell: pwsh
         run: ./ci-build.ps1 "${{matrix.options.framework}}"
         env:
           SIXLABORS_TESTING: True
-
-      - name: DotNet Build Preview
-        if: ${{ matrix.options.sdk-preview == true }}
-        shell: pwsh
-        run: ./ci-build.ps1 "${{matrix.options.framework}}"
-        env:
-          SIXLABORS_TESTING_PREVIEW: True
 
       - name: DotNet Test
-        if: ${{ matrix.options.sdk-preview != true }}
         shell: pwsh
         run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
         env:
           SIXLABORS_TESTING: True
-          XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
-
-      - name: DotNet Test Preview
-        if: ${{ matrix.options.sdk-preview == true }}
-        shell: pwsh
-        run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
-        env:
-          SIXLABORS_TESTING_PREVIEW: True
           XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
       - name: Export Failed Output
@@ -169,7 +132,7 @@ jobs:
   Publish:
     needs: [Build]
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     if: (github.event_name == 'push')
 
@@ -190,7 +153,7 @@ jobs:
         uses: NuGet/setup-nuget@v1
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: nuget-cache
         with:
           path: ~/.nuget

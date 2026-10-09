@@ -14,7 +14,7 @@ public partial struct Bgra32P
     /// <summary>
     /// Provides optimized bulk operations for <see cref="Bgra32P"/>.
     /// </summary>
-    internal class PixelOperations : AssociatedAlphaPixelOperations<Bgra32P>
+    internal partial class PixelOperations : AssociatedAlphaPixelOperations<Bgra32P>
     {
         /// <inheritdoc />
         public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<Bgra32P> source, Span<Vector4> destination)

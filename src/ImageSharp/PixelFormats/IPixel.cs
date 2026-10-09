@@ -155,6 +155,34 @@ public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
     /// <param name="source">The <see cref="Rgba64"/> value.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
     public static abstract TSelf FromRgba64(Rgba64 source);
+
+    /// <summary>
+    /// Initializes the pixel instance from an associated <see cref="Abgr32P"/> value.
+    /// </summary>
+    /// <param name="source">The associated source pixel.</param>
+    /// <returns>The <typeparamref name="TSelf"/>.</returns>
+    public static abstract TSelf FromAbgr32P(Abgr32P source);
+
+    /// <summary>
+    /// Initializes the pixel instance from an associated <see cref="Argb32P"/> value.
+    /// </summary>
+    /// <param name="source">The associated source pixel.</param>
+    /// <returns>The <typeparamref name="TSelf"/>.</returns>
+    public static abstract TSelf FromArgb32P(Argb32P source);
+
+    /// <summary>
+    /// Initializes the pixel instance from an associated <see cref="Bgra32P"/> value.
+    /// </summary>
+    /// <param name="source">The associated source pixel.</param>
+    /// <returns>The <typeparamref name="TSelf"/>.</returns>
+    public static abstract TSelf FromBgra32P(Bgra32P source);
+
+    /// <summary>
+    /// Initializes the pixel instance from an associated <see cref="Rgba32P"/> value.
+    /// </summary>
+    /// <param name="source">The associated source pixel.</param>
+    /// <returns>The <typeparamref name="TSelf"/>.</returns>
+    public static abstract TSelf FromRgba32P(Rgba32P source);
 }
 
 /// <summary>
@@ -173,6 +201,12 @@ public interface IPixel
     /// </summary>
     /// <returns>The <see cref="Rgba32"/></returns>
     public Rgba32 ToRgba32();
+
+    /// <summary>
+    /// Converts the pixel instance into an associated <see cref="Rgba32P"/> representation.
+    /// </summary>
+    /// <returns>The associated <see cref="Rgba32P"/>.</returns>
+    public Rgba32P ToRgba32P();
 
     /// <summary>
     /// Expands the pixel into a generic ("scaled") <see cref="Vector4"/> representation using the pixel type's native alpha representation.

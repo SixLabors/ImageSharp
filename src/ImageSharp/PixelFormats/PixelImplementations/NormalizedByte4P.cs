@@ -62,6 +62,21 @@ public partial struct NormalizedByte4P : IPixel<NormalizedByte4P>, IPackedVector
     public static bool operator !=(NormalizedByte4P left, NormalizedByte4P right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static NormalizedByte4P FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static NormalizedByte4P FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static NormalizedByte4P FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static NormalizedByte4P FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromAssociatedScaledVector4(this.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
     public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(ToUnassociatedScaledVector4(this));
 
     /// <inheritdoc />

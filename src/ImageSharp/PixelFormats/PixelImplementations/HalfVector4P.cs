@@ -53,6 +53,21 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
     public static bool operator !=(HalfVector4P left, HalfVector4P right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static HalfVector4P FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static HalfVector4P FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static HalfVector4P FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static HalfVector4P FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromAssociatedScaledVector4(this.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
     public readonly Rgba32 ToRgba32()
     {
         return Rgba32.FromScaledVector4(this.ToUnassociatedScaledVector4());

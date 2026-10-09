@@ -49,6 +49,21 @@ public partial class PixelOperationsTests
         {
         }
     }
+
+    /// <summary>
+    /// Exercises the shared pixel operations for associated floating-point storage.
+    /// </summary>
+    public sealed class RgbaVectorP_OperationsTests : PixelOperationsTests<RgbaVectorP>
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RgbaVectorP_OperationsTests"/> class.
+        /// </summary>
+        /// <param name="output">The test output.</param>
+        public RgbaVectorP_OperationsTests(ITestOutputHelper output)
+            : base(output)
+        {
+        }
+    }
 }
 
 public abstract class PixelOperationsTests<TPixel> : MeasureFixture
@@ -93,6 +108,212 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
             528,
             1111
         };
+
+    /// <summary>
+    /// Checks that the associated packed conversions follow the existing associated-vector contract.
+    /// </summary>
+    [Fact]
+    public void AssociatedPackedSingleConversionsMatchVectorContract()
+    {
+        // Include zero, partial and opaque alpha. Distinct RGB values expose an incorrect channel order.
+        ReadOnlySpan<Rgba32P> samples = [new(0, 0, 0, 0), new(1, 2, 3, 4), new(37, 73, 109, 151), new(211, 89, 173, 255)];
+
+        foreach (Rgba32P sample in samples)
+        {
+            TPixel expected = TPixel.FromAssociatedScaledVector4(sample.ToAssociatedScaledVector4());
+            Assert.Equal(expected, TPixel.FromAbgr32P(new Abgr32P(sample.R, sample.G, sample.B, sample.A)));
+            Assert.Equal(expected, TPixel.FromArgb32P(new Argb32P(sample.R, sample.G, sample.B, sample.A)));
+            Assert.Equal(expected, TPixel.FromBgra32P(new Bgra32P(sample.R, sample.G, sample.B, sample.A)));
+            Assert.Equal(expected, TPixel.FromRgba32P(sample));
+
+            Rgba32P expectedPacked = Rgba32P.FromAssociatedScaledVector4(expected.ToAssociatedScaledVector4());
+            Assert.Equal(expectedPacked, expected.ToRgba32P());
+        }
+    }
+
+    /// <summary>
+    /// Checks packed Abgr32P input against the single-pixel conversion for this destination format.
+    /// </summary>
+    /// <param name="count">The number of pixels.</param>
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void FromAbgr32PBytes(int count)
+    {
+        byte[] source = CreateByteTestData(count * 4);
+        TPixel[] expected = new TPixel[count];
+
+        // The byte indices follow ABGR storage order; constructor arguments remain R, G, B and alpha.
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * 4;
+            expected[i] = TPixel.FromAbgr32P(new Abgr32P(source[offset + 3], source[offset + 2], source[offset + 1], source[offset]));
+        }
+
+        TestOperation(source, expected, (s, d) => this.Operations.FromAbgr32PBytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
+    /// <summary>
+    /// Checks packed Abgr32P output against the single-pixel associated RGBA representation.
+    /// </summary>
+    /// <param name="count">The number of pixels.</param>
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void ToAbgr32PBytes(int count)
+    {
+        TPixel[] source = CreatePixelTestData(count);
+        byte[] expected = new byte[count * 4];
+
+        // ToRgba32P applies the source format's alpha rules. Only channel order changes for the packed destination.
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * 4;
+            Rgba32P pixel = source[i].ToRgba32P();
+            expected[offset] = pixel.A;
+            expected[offset + 1] = pixel.B;
+            expected[offset + 2] = pixel.G;
+            expected[offset + 3] = pixel.R;
+        }
+
+        TestOperation(source, expected, (s, d) => this.Operations.ToAbgr32PBytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
+    /// <summary>
+    /// Checks packed Argb32P input against the single-pixel conversion for this destination format.
+    /// </summary>
+    /// <param name="count">The number of pixels.</param>
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void FromArgb32PBytes(int count)
+    {
+        byte[] source = CreateByteTestData(count * 4);
+        TPixel[] expected = new TPixel[count];
+
+        // The byte indices follow ARGB storage order; constructor arguments remain R, G, B and alpha.
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * 4;
+            expected[i] = TPixel.FromArgb32P(new Argb32P(source[offset + 1], source[offset + 2], source[offset + 3], source[offset]));
+        }
+
+        TestOperation(source, expected, (s, d) => this.Operations.FromArgb32PBytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
+    /// <summary>
+    /// Checks packed Argb32P output against the single-pixel associated RGBA representation.
+    /// </summary>
+    /// <param name="count">The number of pixels.</param>
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void ToArgb32PBytes(int count)
+    {
+        TPixel[] source = CreatePixelTestData(count);
+        byte[] expected = new byte[count * 4];
+
+        // ToRgba32P applies the source format's alpha rules. Only channel order changes for the packed destination.
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * 4;
+            Rgba32P pixel = source[i].ToRgba32P();
+            expected[offset] = pixel.A;
+            expected[offset + 1] = pixel.R;
+            expected[offset + 2] = pixel.G;
+            expected[offset + 3] = pixel.B;
+        }
+
+        TestOperation(source, expected, (s, d) => this.Operations.ToArgb32PBytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
+    /// <summary>
+    /// Checks packed Bgra32P input against the single-pixel conversion for this destination format.
+    /// </summary>
+    /// <param name="count">The number of pixels.</param>
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void FromBgra32PBytes(int count)
+    {
+        byte[] source = CreateByteTestData(count * 4);
+        TPixel[] expected = new TPixel[count];
+
+        // The byte indices follow BGRA storage order; constructor arguments remain R, G, B and alpha.
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * 4;
+            expected[i] = TPixel.FromBgra32P(new Bgra32P(source[offset + 2], source[offset + 1], source[offset], source[offset + 3]));
+        }
+
+        TestOperation(source, expected, (s, d) => this.Operations.FromBgra32PBytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
+    /// <summary>
+    /// Checks packed Bgra32P output against the single-pixel associated RGBA representation.
+    /// </summary>
+    /// <param name="count">The number of pixels.</param>
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void ToBgra32PBytes(int count)
+    {
+        TPixel[] source = CreatePixelTestData(count);
+        byte[] expected = new byte[count * 4];
+
+        // ToRgba32P applies the source format's alpha rules. Only channel order changes for the packed destination.
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * 4;
+            Rgba32P pixel = source[i].ToRgba32P();
+            expected[offset] = pixel.B;
+            expected[offset + 1] = pixel.G;
+            expected[offset + 2] = pixel.R;
+            expected[offset + 3] = pixel.A;
+        }
+
+        TestOperation(source, expected, (s, d) => this.Operations.ToBgra32PBytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
+    /// <summary>
+    /// Checks packed Rgba32P input against the single-pixel conversion for this destination format.
+    /// </summary>
+    /// <param name="count">The number of pixels.</param>
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void FromRgba32PBytes(int count)
+    {
+        byte[] source = CreateByteTestData(count * 4);
+        TPixel[] expected = new TPixel[count];
+
+        // The byte indices follow RGBA storage order; constructor arguments remain R, G, B and alpha.
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * 4;
+            expected[i] = TPixel.FromRgba32P(new Rgba32P(source[offset], source[offset + 1], source[offset + 2], source[offset + 3]));
+        }
+
+        TestOperation(source, expected, (s, d) => this.Operations.FromRgba32PBytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
+    /// <summary>
+    /// Checks packed Rgba32P output against the single-pixel associated RGBA representation.
+    /// </summary>
+    /// <param name="count">The number of pixels.</param>
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void ToRgba32PBytes(int count)
+    {
+        TPixel[] source = CreatePixelTestData(count);
+        byte[] expected = new byte[count * 4];
+
+        // ToRgba32P applies the source format's alpha rules. Only channel order changes for the packed destination.
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * 4;
+            Rgba32P pixel = source[i].ToRgba32P();
+            expected[offset] = pixel.R;
+            expected[offset + 1] = pixel.G;
+            expected[offset + 2] = pixel.B;
+            expected[offset + 3] = pixel.A;
+        }
+
+        TestOperation(source, expected, (s, d) => this.Operations.ToRgba32PBytes(this.Configuration, s, d.GetSpan(), count));
+    }
 
     protected Configuration Configuration => Configuration.Default;
 
@@ -279,6 +500,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
             new TestPixel<RgbaHalf>(),
             new TestPixel<RgbaHalfP>(),
             new TestPixel<RgbaVector>(),
+            new TestPixel<RgbaVectorP>(),
             new TestPixel<Short2>(),
             new TestPixel<Short4>(),
         });

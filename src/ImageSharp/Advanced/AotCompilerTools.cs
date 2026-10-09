@@ -120,6 +120,7 @@ internal static class AotCompilerTools
             Seed<RgbaHalf>();
             Seed<RgbaHalfP>();
             Seed<RgbaVector>();
+            Seed<RgbaVectorP>();
             Seed<Short2>();
             Seed<Short4>();
         }
@@ -181,6 +182,7 @@ internal static class AotCompilerTools
             AotCompilePixelOperations<RgbaHalf>();
             AotCompilePixelOperations<RgbaHalfP>();
             AotCompilePixelOperations<RgbaVector>();
+            AotCompilePixelOperations<RgbaVectorP>();
             AotCompilePixelOperations<Short2>();
             AotCompilePixelOperations<Short4>();
         }
@@ -258,6 +260,18 @@ internal static class AotCompilerTools
 
         operations.FromAbgr32Bytes(default, default, default, default);
         operations.ToAbgr32Bytes(default, default, default, default);
+
+        operations.FromArgb32PBytes(default, default, default, default);
+        operations.ToArgb32PBytes(default, default, default, default);
+
+        operations.FromAbgr32PBytes(default, default, default, default);
+        operations.ToAbgr32PBytes(default, default, default, default);
+
+        operations.FromBgra32PBytes(default, default, default, default);
+        operations.ToBgra32PBytes(default, default, default, default);
+
+        operations.FromRgba32PBytes(default, default, default, default);
+        operations.ToRgba32PBytes(default, default, default, default);
 
         operations.FromBgr24Bytes(default, default, default, default);
         operations.ToBgr24Bytes(default, default, default, default);
@@ -339,6 +353,7 @@ internal static class AotCompilerTools
         img.CloneAs<RgbaHalf>(default);
         img.CloneAs<RgbaHalfP>(default);
         img.CloneAs<RgbaVector>(default);
+        img.CloneAs<RgbaVectorP>(default);
         img.CloneAs<Short2>(default);
         img.CloneAs<Short4>(default);
 

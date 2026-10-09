@@ -21,6 +21,21 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
     private Vector4 scaled;
 
     public ScaledRgbaVectorP(Vector4 scaled) => this.scaled = Numerics.Clamp(scaled, Vector4.Zero, Vector4.One);
+    /// <inheritdoc />
+    public static ScaledRgbaVectorP FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static ScaledRgbaVectorP FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static ScaledRgbaVectorP FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static ScaledRgbaVectorP FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromAssociatedScaledVector4(this.ToAssociatedScaledVector4());
+
 
     public readonly Rgba32 ToRgba32()
     {

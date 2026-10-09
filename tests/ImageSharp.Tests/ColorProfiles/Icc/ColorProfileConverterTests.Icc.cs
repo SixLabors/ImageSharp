@@ -9,7 +9,6 @@ using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Wacton.Unicolour;
 using Wacton.Unicolour.Icc;
-using Xunit.Sdk;
 using Rgb = SixLabors.ImageSharp.ColorProfiles.Rgb;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
@@ -43,31 +42,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
     {
         HwIntrinsics intrinsics = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPixelRowConversion, intrinsics, provider);
-    }
-
-    /// <summary>
-    /// Restores the concrete provider in the selected hardware configuration.
-    /// </summary>
-    /// <param name="providerDump">The serialized image provider.</param>
-    private static void RunPixelRowConversion(string providerDump)
-    {
-        // RemoteExecutor requires a non-generic entry point. Restore the pixel type supplied by WithFile before conversion.
-        switch (FeatureTestRunner.DeserializeForXunit<IXunitSerializable>(providerDump))
-        {
-            case TestImageProvider<Rgba32> provider:
-                AssertPixelRowConversion(provider);
-                break;
-            case TestImageProvider<Rgba32P> provider:
-                AssertPixelRowConversion(provider);
-                break;
-            case TestImageProvider<RgbaVector> provider:
-                AssertPixelRowConversion(provider);
-                break;
-            case TestImageProvider<RgbaVectorP> provider:
-                AssertPixelRowConversion(provider);
-                break;
-        }
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(PixelTests<TPixel>.RunPixelRowConversion, intrinsics, provider);
     }
 
     /// <summary>
@@ -446,5 +421,20 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         string inputText = string.Join(", ", input);
         string expectedText = string.Join(", ", expected.Select(x => $"{x:f8}"));
         testOutputHelper.WriteLine($"Input {inputText} · Expected output {expectedText} · Actual output {actual}");
+    }
+
+    /// <summary>
+    /// Provides non-generic callbacks whose declaring type retains the requested pixel format for RemoteExecutor.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    private static class PixelTests<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        /// <summary>
+        /// Restores the typed provider and runs the assertions with the selected hardware features.
+        /// </summary>
+        /// <param name="providerDump">The serialized image provider.</param>
+        public static void RunPixelRowConversion(string providerDump)
+            => AssertPixelRowConversion(FeatureTestRunner.DeserializeForXunit<TestImageProvider<TPixel>>(providerDump));
     }
 }

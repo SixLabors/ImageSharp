@@ -40,6 +40,10 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
         "Bgr24"
             ];
 
+    // Associated layouts can share byte shuffles, but must not use the straight-alpha conversion methods.
+    private static readonly string[] AssociatedOptimizedPixelTypes =
+        ["Rgba32P", "Argb32P", "Abgr32P", "Bgra32P"];
+
     // Types with Rgba32-combatable to/from Vector4 conversion
     private static readonly string[] Rgba32CompatibleTypes =
         [
@@ -55,10 +59,14 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
 #>
 
         /// <inheritdoc />
+<#+ if (pixelType.EndsWith("P")) { #>
+        public override void From<TSourcePixel>(Configuration configuration, ReadOnlySpan<TSourcePixel> source, Span<<#=pixelType#>> destination)
+<#+ } else { #>
         public override void From<TSourcePixel>(
             Configuration configuration,
             ReadOnlySpan<TSourcePixel> source,
             Span<<#=pixelType#>> destination)
+<#+ } #>
         {
             PixelOperations<TSourcePixel>.Instance.To<#=pixelType#>(configuration, source, destination.Slice(0, source.Length));
         }
@@ -111,37 +119,58 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
 <#+
     }
 
-    void GenerateOptimized32BitConversionMethods(string thisPixelType, string otherPixelType)
+    void GenerateOptimized32BitConversionMethods(string pixelType, string otherType)
     {
+        // PixelConverter's byte shuffles change channel order only. The same operations serve both alpha representations.
+        string thisConverterType = pixelType.EndsWith("P") ? pixelType.Substring(0, pixelType.Length - 1) : pixelType;
+        string otherConverterType = otherType.EndsWith("P") ? otherType.Substring(0, otherType.Length - 1) : otherType;
+        string destination = pixelType.EndsWith("P") ? "destination.Slice(0, source.Length)" : "destination";
+
     #>
-    
+
         /// <inheritdoc />
-        public override void To<#=otherPixelType#>(
+<#+ if (pixelType.EndsWith("P")) { #>
+        public override void To<#=otherType#>(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<<#=otherType#>> destination)
+<#+ } else { #>
+        public override void To<#=otherType#>(
             Configuration configuration,
-            ReadOnlySpan<<#=thisPixelType#>> source,
-            Span<<#=otherPixelType#>> destination)
+            ReadOnlySpan<<#=pixelType#>> source,
+            Span<<#=otherType#>> destination)
+<#+ } #>
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<<#=thisPixelType#>, byte>(source);
-            Span<byte> destinationBytes = MemoryMarshal.Cast<<#=otherPixelType#>, byte>(destination);
-            PixelConverter.From<#=thisPixelType#>.To<#=otherPixelType#>(sourceBytes, destinationBytes);
+            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<<#=pixelType#>, byte>(source);
+            Span<byte> destinationBytes = MemoryMarshal.Cast<<#=otherType#>, byte>(<#=destination#>);
+<#+ if (pixelType.EndsWith("P")) { #>
+
+            // The shuffle moves complete associated channel bytes; it does not change RGB values or alpha.
+<#+ } #>
+            PixelConverter.From<#=thisConverterType#>.To<#=otherConverterType#>(sourceBytes, destinationBytes);
         }
-        
+
         /// <inheritdoc />
-        public override void From<#=otherPixelType#>(
+<#+ if (pixelType.EndsWith("P")) { #>
+        public override void From<#=otherType#>(Configuration configuration, ReadOnlySpan<<#=otherType#>> source, Span<<#=pixelType#>> destination)
+<#+ } else { #>
+        public override void From<#=otherType#>(
             Configuration configuration,
-            ReadOnlySpan<<#=otherPixelType#>> source,
-            Span<<#=thisPixelType#>> destination)
+            ReadOnlySpan<<#=otherType#>> source,
+            Span<<#=pixelType#>> destination)
+<#+ } #>
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<<#=otherPixelType#>, byte>(source);
-            Span<byte> destinationBytes = MemoryMarshal.Cast<<#=thisPixelType#>, byte>(destination);
-            PixelConverter.From<#=otherPixelType#>.To<#=thisPixelType#>(sourceBytes, destinationBytes);
-        }        
+            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<<#=otherType#>, byte>(source);
+            Span<byte> destinationBytes = MemoryMarshal.Cast<<#=pixelType#>, byte>(<#=destination#>);
+<#+ if (pixelType.EndsWith("P")) { #>
+
+            // The shuffle moves complete associated channel bytes; it does not change RGB values or alpha.
+<#+ } #>
+            PixelConverter.From<#=otherConverterType#>.To<#=thisConverterType#>(sourceBytes, destinationBytes);
+        }
 <#+
     }
 
@@ -285,6 +314,22 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
             PixelConverter.FromRgba32.To<#=pixelType#>(destinationBytes, destinationBytes);
         }
 <#+
+    }
+
+    /// <summary>
+    /// Generates self-copy, packed shuffle and generic dispatch overrides for an associated byte layout.
+    /// </summary>
+    /// <param name="pixelType">The associated pixel type.</param>
+    void GenerateAllAssociatedConversionMethods(string pixelType)
+    {
+        GenerateDefaultSelfConversionMethods(pixelType);
+
+        foreach (string destinationType in AssociatedOptimizedPixelTypes.Where(p => p != pixelType))
+        {
+            GenerateOptimized32BitConversionMethods(pixelType, destinationType);
+        }
+
+        GenerateGenericConverterMethods(pixelType);
     }
 
     void GenerateAllDefaultConversionMethods(string pixelType)

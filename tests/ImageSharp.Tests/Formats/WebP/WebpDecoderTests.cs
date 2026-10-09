@@ -11,7 +11,6 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
-using Xunit.Sdk;
 using static SixLabors.ImageSharp.Tests.TestImages.Webp;
 
 // ReSharper disable InconsistentNaming
@@ -662,34 +661,9 @@ public class WebpDecoderTests
     public void Decode_IccWithAlpha_UsesDestinationAlphaRepresentation<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            RunIccAlphaDecode,
+            PixelTests<TPixel>.RunIccAlphaDecode,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512v2 | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
             provider);
-
-    /// <summary>
-    /// Restores the typed provider for the selected hardware configuration.
-    /// </summary>
-    /// <param name="providerDump">The serialized image provider.</param>
-    /// <param name="intrinsics">The hardware configuration used for output naming.</param>
-    private static void RunIccAlphaDecode(string providerDump, string intrinsics)
-    {
-        // RemoteExecutor calls a non-generic method. Restore the concrete provider selected by WithFile before decoding.
-        switch (FeatureTestRunner.DeserializeForXunit<IXunitSerializable>(providerDump))
-        {
-            case TestImageProvider<Rgba32> provider:
-                AssertIccAlphaDecode(provider, intrinsics);
-                break;
-            case TestImageProvider<Rgba32P> provider:
-                AssertIccAlphaDecode(provider, intrinsics);
-                break;
-            case TestImageProvider<RgbaVector> provider:
-                AssertIccAlphaDecode(provider, intrinsics);
-                break;
-            case TestImageProvider<RgbaVectorP> provider:
-                AssertIccAlphaDecode(provider, intrinsics);
-                break;
-        }
-    }
 
     /// <summary>
     /// Compares decoded pixels with an independent ICC transform in the requested pixel format.
@@ -710,5 +684,21 @@ public class WebpDecoderTests
         // These eight-bit fixtures include partial and zero alpha. Allow three codes in total (771 sixteen-bit units) per pixel.
         // Any pixel whose total component difference exceeds this limit fails the comparison.
         actual.CompareToOriginal(provider, ImageComparer.Tolerant(0F, 3 * (ushort.MaxValue / byte.MaxValue)), ReferenceDecoder);
+    }
+
+    /// <summary>
+    /// Provides non-generic callbacks whose declaring type retains the requested pixel format for RemoteExecutor.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    private static class PixelTests<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        /// <summary>
+        /// Restores the typed provider and runs the assertions with the selected hardware features.
+        /// </summary>
+        /// <param name="providerDump">The serialized image provider.</param>
+        /// <param name="intrinsics">The hardware configuration used for output naming.</param>
+        public static void RunIccAlphaDecode(string providerDump, string intrinsics)
+            => AssertIccAlphaDecode(FeatureTestRunner.DeserializeForXunit<TestImageProvider<TPixel>>(providerDump), intrinsics);
     }
 }

@@ -141,6 +141,21 @@ public partial struct Rgba32P : IPixel<Rgba32P>, IPackedVector<uint>
     public static bool operator !=(Rgba32P left, Rgba32P right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static Rgba32P FromAbgr32P(Abgr32P source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc />
+    public static Rgba32P FromArgb32P(Argb32P source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc />
+    public static Rgba32P FromBgra32P(Bgra32P source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc />
+    public static Rgba32P FromRgba32P(Rgba32P source) => source;
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => this;
+
+    /// <inheritdoc />
     public readonly Rgba32 ToRgba32()
         => Rgba32.FromScaledVector4(Vector4Converters.AssociatedRgbaCompatible.ToUnassociatedVector4(this.R, this.G, this.B, this.A));
 

@@ -141,6 +141,21 @@ public partial struct Abgr32P : IPixel<Abgr32P>, IPackedVector<uint>
     public static bool operator !=(Abgr32P left, Abgr32P right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static Abgr32P FromAbgr32P(Abgr32P source) => source;
+
+    /// <inheritdoc />
+    public static Abgr32P FromArgb32P(Argb32P source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc />
+    public static Abgr32P FromBgra32P(Bgra32P source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc />
+    public static Abgr32P FromRgba32P(Rgba32P source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => new(this.R, this.G, this.B, this.A);
+
+    /// <inheritdoc />
     public readonly Rgba32 ToRgba32()
         => Rgba32.FromScaledVector4(Vector4Converters.AssociatedRgbaCompatible.ToUnassociatedVector4(this.R, this.G, this.B, this.A));
 

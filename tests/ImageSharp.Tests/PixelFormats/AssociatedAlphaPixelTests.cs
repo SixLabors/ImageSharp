@@ -595,10 +595,68 @@ public class AssociatedAlphaPackedPixelConversionTests
     private static void AssertBulkConversionsMatchScalar<TPixel>(Func<byte, byte, byte, byte, TPixel> createPixel)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        AssertPackedLayoutConversions(createPixel);
         AssertScalarAndBulkAssociatedVectorsAreEqual(createPixel);
         AssertScalarAndBulkFromAssociatedVectorsAreEqual<TPixel>();
         AssertScalarAndBulkUnassociatedVectorsAreEqual(createPixel);
         AssertScalarAndBulkFromUnassociatedVectorsAreEqual<TPixel>();
+    }
+
+    /// <summary>
+    /// Checks all packed destination layouts using independently specified associated channel bytes.
+    /// </summary>
+    /// <typeparam name="TSourcePixel">The source byte layout.</typeparam>
+    /// <param name="createPixel">The constructor for the source layout.</param>
+    private static void AssertPackedLayoutConversions<TSourcePixel>(Func<byte, byte, byte, byte, TSourcePixel> createPixel)
+        where TSourcePixel : unmanaged, IPixel<TSourcePixel>
+    {
+        // Distinct channel values expose incorrect shuffles. Include zero, partial and opaque alpha without changing association.
+        Rgba32P[] samples = [new(0, 0, 0, 0), new(1, 2, 3, 4), new(12, 23, 34, 64), new(37, 73, 109, 151), new(211, 89, 173, 255)];
+
+        // Four-byte pixels fill 128, 256 and 512 bits at 4, 8 and 16 pixels. Test both sides of each boundary and a longer tail.
+        int[] lengths = [0, 1, 3, 4, 5, 7, 8, 9, 15, 16, 17, 65];
+        TSourcePixel[] source = new TSourcePixel[lengths[^1]];
+        Vector4[] expected = new Vector4[source.Length];
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            Rgba32P sample = samples[i % samples.Length];
+            source[i] = createPixel(sample.R, sample.G, sample.B, sample.A);
+            expected[i] = sample.ToAssociatedScaledVector4();
+        }
+
+        foreach (int length in lengths)
+        {
+            ReadOnlySpan<TSourcePixel> pixels = source.AsSpan(0, length);
+            ReadOnlySpan<Vector4> expectedPixels = expected.AsSpan(0, length);
+            AssertPackedLayoutDestination<TSourcePixel, Rgba32P>(pixels, expectedPixels);
+            AssertPackedLayoutDestination<TSourcePixel, Bgra32P>(pixels, expectedPixels);
+            AssertPackedLayoutDestination<TSourcePixel, Argb32P>(pixels, expectedPixels);
+            AssertPackedLayoutDestination<TSourcePixel, Abgr32P>(pixels, expectedPixels);
+        }
+    }
+
+    /// <summary>
+    /// Checks that bulk layout conversion retains each stored channel and leaves spare destination pixels untouched.
+    /// </summary>
+    /// <typeparam name="TSourcePixel">The source byte layout.</typeparam>
+    /// <typeparam name="TDestinationPixel">The destination byte layout.</typeparam>
+    /// <param name="source">The associated source pixels.</param>
+    /// <param name="expected">The expected associated channel values.</param>
+    private static void AssertPackedLayoutDestination<TSourcePixel, TDestinationPixel>(ReadOnlySpan<TSourcePixel> source, ReadOnlySpan<Vector4> expected)
+        where TSourcePixel : unmanaged, IPixel<TSourcePixel>
+        where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>
+    {
+        TDestinationPixel[] destination = new TDestinationPixel[source.Length + 1];
+        PixelOperations<TDestinationPixel>.Instance.From(Configuration.Default, source, destination);
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            Assert.Equal(expected[i], destination[i].ToAssociatedScaledVector4());
+        }
+
+        // The source length defines the conversion. A SIMD tail must not overwrite the extra destination pixel.
+        Assert.Equal(default, destination[^1]);
     }
 
     private static void AssertLosslessRoundTrip<TIntermediate>()

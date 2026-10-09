@@ -14,7 +14,7 @@ public partial struct Abgr32P
     /// <summary>
     /// Provides optimized bulk operations for <see cref="Abgr32P"/>.
     /// </summary>
-    internal class PixelOperations : AssociatedAlphaPixelOperations<Abgr32P>
+    internal partial class PixelOperations : AssociatedAlphaPixelOperations<Abgr32P>
     {
         /// <inheritdoc />
         public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<Abgr32P> source, Span<Vector4> destination)

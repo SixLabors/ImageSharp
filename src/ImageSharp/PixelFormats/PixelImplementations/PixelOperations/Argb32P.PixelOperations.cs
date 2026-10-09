@@ -14,7 +14,7 @@ public partial struct Argb32P
     /// <summary>
     /// Provides optimized bulk operations for <see cref="Argb32P"/>.
     /// </summary>
-    internal class PixelOperations : AssociatedAlphaPixelOperations<Argb32P>
+    internal partial class PixelOperations : AssociatedAlphaPixelOperations<Argb32P>
     {
         /// <inheritdoc />
         public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<Argb32P> source, Span<Vector4> destination)

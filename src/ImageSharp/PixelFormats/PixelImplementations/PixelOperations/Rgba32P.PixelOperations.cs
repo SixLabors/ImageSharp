@@ -14,7 +14,7 @@ public partial struct Rgba32P
     /// <summary>
     /// Provides optimized bulk operations for <see cref="Rgba32P"/>.
     /// </summary>
-    internal class PixelOperations : AssociatedAlphaPixelOperations<Rgba32P>
+    internal partial class PixelOperations : AssociatedAlphaPixelOperations<Rgba32P>
     {
         /// <inheritdoc />
         public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<Rgba32P> source, Span<Vector4> destination)

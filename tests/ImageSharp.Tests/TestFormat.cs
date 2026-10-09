@@ -266,6 +266,21 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public struct TestPixelForAgnosticDecode : IPixel<TestPixelForAgnosticDecode>
     {
+        /// <inheritdoc />
+        public static TestPixelForAgnosticDecode FromAbgr32P(Abgr32P source) => default;
+
+        /// <inheritdoc />
+        public static TestPixelForAgnosticDecode FromArgb32P(Argb32P source) => default;
+
+        /// <inheritdoc />
+        public static TestPixelForAgnosticDecode FromBgra32P(Bgra32P source) => default;
+
+        /// <inheritdoc />
+        public static TestPixelForAgnosticDecode FromRgba32P(Rgba32P source) => default;
+
+        /// <inheritdoc />
+        public readonly Rgba32P ToRgba32P() => default;
+
         public readonly Rgba32 ToRgba32() => default;
 
         public readonly Vector4 ToScaledVector4() => default;

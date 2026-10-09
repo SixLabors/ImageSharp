@@ -69,7 +69,12 @@
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
+<# if (pixelType.EndsWith("P")) { #>
+            // The single-pixel API packs associated RGBA once. The destination only changes byte order.
+            Unsafe.Add(ref destinationBase, i) = <#=pixelType#>.FromRgba32P(Unsafe.Add(ref sourceBase, i).ToRgba32P());
+<# } else { #>
             Unsafe.Add(ref destinationBase, i) = <#=pixelType#>.FromUnassociatedScaledVector4(Unsafe.Add(ref sourceBase, i).ToUnassociatedScaledVector4());
+<# } #>
         }
     }
 
@@ -140,5 +145,17 @@ GenerateToDestFormatMethods("Rgba64");
 
 GenerateFromMethods("Bgra5551");
 GenerateToDestFormatMethods("Bgra5551");
+
+GenerateFromMethods("Argb32P");
+GenerateToDestFormatMethods("Argb32P");
+
+GenerateFromMethods("Abgr32P");
+GenerateToDestFormatMethods("Abgr32P");
+
+GenerateFromMethods("Bgra32P");
+GenerateToDestFormatMethods("Bgra32P");
+
+GenerateFromMethods("Rgba32P");
+GenerateToDestFormatMethods("Rgba32P");
 
 #>}

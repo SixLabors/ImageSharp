@@ -12,7 +12,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Text;
 using SixLabors.ImageSharp.ColorProfiles;
-using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
@@ -183,31 +182,10 @@ internal sealed class PngEncoderCore : IDisposable
         PngMetadata pngMetadata = metadata.ClonePngMetadata();
         this.SanitizeAndSetEncoderOptions<TPixel>(this.encoder, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
 
-        IccProfile? outputIccProfile = metadata.IccProfile;
-
-        IccColorSpaceType outputColorSpace = this.colorType is PngColorType.Grayscale or PngColorType.GrayscaleWithAlpha
-            ? IccColorSpaceType.Gray
-            : IccColorSpaceType.Rgb;
-
-        if (outputIccProfile?.Header.DataColorSpace != outputColorSpace)
-        {
-            outputIccProfile = null;
-        }
-
-        ColorProfileConverter? colorProfileConverter = null;
-
-        // Working pixels are sRGB. Canonical sRGB needs no transform, and palette conversion belongs at PLTE rather than index rows.
-        if (this.colorType is not PngColorType.Palette && outputIccProfile is not null && !outputIccProfile.IsCanonicalSrgbMatrixTrc())
-        {
-            ColorConversionOptions options = new()
-            {
-                SourceIccProfile = CompactSrgbV4Profile.Profile,
-                TargetIccProfile = outputIccProfile,
-                MemoryAllocator = this.memoryAllocator,
-            };
-
-            colorProfileConverter = new ColorProfileConverter(options);
-        }
+        // PNG emits one profile for the whole image, including every APNG frame. Frame metadata takes precedence for container resources.
+        IccProfile? sourceIccProfile = image.Frames.RootFrame.Metadata.IccProfile ?? metadata.IccProfile;
+        IccProfile? outputIccProfile = IccProfile.GetIccProfileForEncoding(
+            sourceIccProfile, pngMetadata.GetPixelTypeInfo().ColorType, this.memoryAllocator, out ColorProfileConverter? colorProfileConverter);
 
         stream.Write(PngConstants.HeaderBytes);
 
@@ -244,14 +222,14 @@ internal sealed class PngEncoderCore : IDisposable
 
             // cICP has higher precedence than iCCP, and source gamma/cICP cannot describe the fallback samples after an
             // incompatible ICC profile is omitted. Retain the ordinary color-tag path only when there was no source ICC.
-            if (metadata.IccProfile is null)
+            if (sourceIccProfile is null)
             {
                 this.WriteGammaChunk(stream);
                 this.WriteCicpChunk(stream, metadata);
             }
 
             this.WriteColorProfileChunk(stream, outputIccProfile);
-            this.WritePaletteChunk(stream, quantized);
+            this.WritePaletteChunk(stream, quantized, colorProfileConverter);
             this.WriteTransparencyChunk(stream, pngMetadata);
             this.WritePhysicalChunk(stream, metadata);
             this.WriteExifChunk(stream, metadata);
@@ -799,7 +777,8 @@ internal sealed class PngEncoderCore : IDisposable
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <param name="quantized">The quantized frame.</param>
-    private void WritePaletteChunk<TPixel>(Stream stream, IndexedImageFrame<TPixel>? quantized)
+    /// <param name="colorProfileConverter">The converter from sRGB to the output profile, when required.</param>
+    private void WritePaletteChunk<TPixel>(Stream stream, IndexedImageFrame<TPixel>? quantized, ColorProfileConverter? colorProfileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (quantized is null)
@@ -822,7 +801,24 @@ internal sealed class PngEncoderCore : IDisposable
         // Bulk convert our palette to RGBA to allow assignment to tables.
         using IMemoryOwner<Rgba32> rgbaOwner = quantized.Configuration.MemoryAllocator.Allocate<Rgba32>(paletteLength);
         Span<Rgba32> rgbaPaletteSpan = rgbaOwner.GetSpan();
-        PixelOperations<TPixel>.Instance.ToRgba32(quantized.Configuration, quantized.Palette.Span, rgbaPaletteSpan);
+        if (colorProfileConverter is null)
+        {
+            PixelOperations<TPixel>.Instance.ToRgba32(quantized.Configuration, palette, rgbaPaletteSpan);
+        }
+        else
+        {
+            // Later frames use this sRGB palette to select their indices. Leave it unchanged.
+            // Convert its RGB colors from sRGB to the embedded profile's color space in separate storage.
+            using IMemoryOwner<Vector4> vectors = this.memoryAllocator.Allocate<Vector4>(paletteLength);
+            using IMemoryOwner<Rgb> scratch = this.memoryAllocator.Allocate<Rgb>(paletteLength);
+
+            // The converter removes premultiplication when required by TPixel and leaves alpha unchanged.
+            colorProfileConverter.Convert(quantized.Configuration, palette, vectors.GetSpan(), scratch.GetSpan());
+
+            // Pack the converted colors as straight RGBA bytes. Below, RGB goes into PLTE and alpha goes into tRNS.
+            PixelOperations<Rgba32>.Instance.FromUnassociatedScaledVector4Destructive(quantized.Configuration, vectors.GetSpan(), rgbaPaletteSpan);
+        }
+
         ref Rgba32 rgbaPaletteRef = ref MemoryMarshal.GetReference(rgbaPaletteSpan);
 
         // Loop, assign, and extract alpha values from the palette.
@@ -1402,7 +1398,8 @@ internal sealed class PngEncoderCore : IDisposable
             }
             else
             {
-                this.EncodePixels(in frame, quantized, deflateStream, colorProfileConverter);
+                // Palette indices are written unchanged. Their RGB values were transformed once when PLTE was written.
+                this.EncodePixels(in frame, quantized, deflateStream, quantized is null ? colorProfileConverter : null);
             }
         }
 
@@ -1758,6 +1755,10 @@ internal sealed class PngEncoderCore : IDisposable
 
         this.colorType = color;
         this.bitDepth = bits;
+
+        // This is an encoder-owned metadata copy. Profile selection and transparency must describe the resolved output options.
+        pngMetadata.ColorType = color;
+        pngMetadata.BitDepth = (PngBitDepth)bits;
 
         if (encoder.FilterMethod.HasValue)
         {

@@ -171,6 +171,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         referencePlane.Stride,
                         referenceOrigin + ((vector.Row >> 3) * referencePlane.Stride) + (vector.Column >> 3),
                         motionSearchPrediction,
+                        size.Width,
                         filterRows,
                         size.Width,
                         size.Height,

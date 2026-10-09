@@ -155,79 +155,97 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth);
 
         /// <summary>
-        /// Builds a compound prediction from two retained reference frames using the selected blend.
+        /// Predicts one reference of a compound block into the unsigned compound intermediate, packed at the block width.
         /// </summary>
-        /// <param name="source">The coded source plane.</param>
-        /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
-        /// <param name="blockOrigin">The destination block origin in plane samples.</param>
-        /// <param name="primaryReference">The padded primary retained reference plane.</param>
-        /// <param name="primaryReferenceSamples">The samples of the complete primary reference plane, read once by the caller.</param>
-        /// <param name="primaryPredictionOrigin">The integer primary-reference origin preceding the subpixel phase.</param>
-        /// <param name="primaryHorizontalPhase">The primary horizontal phase in one-sixteenth-sample units.</param>
-        /// <param name="primaryVerticalPhase">The primary vertical phase in one-sixteenth-sample units.</param>
-        /// <param name="secondaryReference">The padded secondary retained reference plane.</param>
-        /// <param name="secondaryReferenceSamples">The samples of the complete secondary reference plane, read once by the caller.</param>
-        /// <param name="secondaryPredictionOrigin">The integer secondary-reference origin preceding the subpixel phase.</param>
-        /// <param name="secondaryHorizontalPhase">The secondary horizontal phase in one-sixteenth-sample units.</param>
-        /// <param name="secondaryVerticalPhase">The secondary vertical phase in one-sixteenth-sample units.</param>
-        /// <param name="horizontalFilter">The horizontal interpolation filter shared by both references.</param>
-        /// <param name="verticalFilter">The vertical interpolation filter shared by both references.</param>
-        /// <param name="prediction">The contiguous averaged prediction destination.</param>
-        /// <param name="residual">The contiguous source-minus-prediction destination.</param>
-        /// <param name="firstIntermediate">The reusable primary unsigned compound intermediate.</param>
-        /// <param name="secondIntermediate">The reusable secondary unsigned compound intermediate.</param>
-        /// <param name="compoundMask">The reusable luma-resolution blend mask.</param>
-        /// <param name="filterRows">The intermediate storage used by two-dimensional filtering.</param>
-        /// <param name="predictionSize">The prediction dimensions.</param>
-        /// <param name="bitDepth">The coded sample bit depth.</param>
-        /// <param name="plane">The component plane. Only luma constructs the difference-weighted mask.</param>
-        /// <param name="lumaBlockSize">The luma block dimensions used to construct the blend mask.</param>
-        /// <param name="compoundType">The blend applied to the two predictors.</param>
-        /// <param name="firstWeight">The primary predictor's distance weight.</param>
-        /// <param name="secondWeight">The secondary predictor's distance weight.</param>
-        /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
-        /// <param name="subsamplingY">The vertical chroma subsampling shift.</param>
-        /// <param name="wedgeIndex">The selected wedge shape.</param>
-        /// <param name="wedgeSign">Whether to reverse the wedge's predictor weights.</param>
-        /// <param name="differenceWeightedMaskType">The polarity of the difference-weighted mask.</param>
-        /// <param name="primaryPrepared">Whether <paramref name="firstIntermediate"/> already holds the primary predictor.</param>
-        /// <param name="secondaryPrepared">Whether <paramref name="secondIntermediate"/> already holds the secondary predictor.</param>
-        public static abstract void PrepareCompoundInterPrediction(
-            Av1PlaneRegion<TSample> source,
-            ReadOnlySpan<TSample> sourceSamples,
-            Point blockOrigin,
-            Av1PlaneRegion<TSample> primaryReference,
-            ReadOnlySpan<TSample> primaryReferenceSamples,
-            Point primaryPredictionOrigin,
-            int primaryHorizontalPhase,
-            int primaryVerticalPhase,
-            Av1PlaneRegion<TSample> secondaryReference,
-            ReadOnlySpan<TSample> secondaryReferenceSamples,
-            Point secondaryPredictionOrigin,
-            int secondaryHorizontalPhase,
-            int secondaryVerticalPhase,
+        /// <param name="reference">The complete bordered reference plane.</param>
+        /// <param name="referenceStride">The reference row stride.</param>
+        /// <param name="referenceOrigin">The integer reference origin preceding the subpixel phase.</param>
+        /// <param name="intermediate">The compound intermediate destination, packed at the block width.</param>
+        /// <param name="intermediateRows">The signed intermediate convolution storage.</param>
+        /// <param name="width">The prediction width.</param>
+        /// <param name="height">The prediction height.</param>
+        /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+        /// <param name="verticalFilter">The vertical interpolation filter.</param>
+        /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+        /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+        /// <param name="bitDepth">The coded component precision.</param>
+        public static abstract void BuildCompoundIntermediate(
+            ReadOnlySpan<TSample> reference,
+            int referenceStride,
+            int referenceOrigin,
+            Span<ushort> intermediate,
+            Span<short> intermediateRows,
+            int width,
+            int height,
             Av1InterpolationFilter horizontalFilter,
             Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int verticalPhase,
+            int bitDepth);
+
+        /// <summary>
+        /// Rounds the average of two compound intermediates to sample precision. All buffers are packed at the block width.
+        /// </summary>
+        /// <param name="prediction">The prediction destination.</param>
+        /// <param name="first">The first compound intermediate.</param>
+        /// <param name="second">The second compound intermediate.</param>
+        /// <param name="width">The block width.</param>
+        /// <param name="height">The block height.</param>
+        /// <param name="bitDepth">The coded component precision.</param>
+        public static abstract void AverageCompoundIntermediates(
             Span<TSample> prediction,
-            Span<short> residual,
-            Span<ushort> firstIntermediate,
-            Span<ushort> secondIntermediate,
-            Span<byte> compoundMask,
-            Span<short> filterRows,
-            Av1BlockSize predictionSize,
-            Av1BitDepth bitDepth,
-            Av1Plane plane,
-            Av1BlockSize lumaBlockSize,
-            Av1CompoundType compoundType,
+            ReadOnlySpan<ushort> first,
+            ReadOnlySpan<ushort> second,
+            int width,
+            int height,
+            int bitDepth);
+
+        /// <summary>
+        /// Rounds the distance-weighted sum of two compound intermediates to sample precision. All buffers are packed at the block width.
+        /// </summary>
+        /// <param name="prediction">The prediction destination.</param>
+        /// <param name="first">The first compound intermediate.</param>
+        /// <param name="second">The second compound intermediate.</param>
+        /// <param name="width">The block width.</param>
+        /// <param name="height">The block height.</param>
+        /// <param name="firstWeight">The distance weight of the first intermediate.</param>
+        /// <param name="secondWeight">The distance weight of the second intermediate.</param>
+        /// <param name="bitDepth">The coded component precision.</param>
+        public static abstract void WeightCompoundIntermediates(
+            Span<TSample> prediction,
+            ReadOnlySpan<ushort> first,
+            ReadOnlySpan<ushort> second,
+            int width,
+            int height,
             int firstWeight,
             int secondWeight,
+            int bitDepth);
+
+        /// <summary>
+        /// Blends two compound intermediates through a six-bit mask and rounds to sample precision. The prediction and both
+        /// intermediates are packed at the block width.
+        /// </summary>
+        /// <param name="prediction">The prediction destination.</param>
+        /// <param name="first">The first compound intermediate.</param>
+        /// <param name="second">The second compound intermediate.</param>
+        /// <param name="mask">The luma-resolution weights of the first intermediate.</param>
+        /// <param name="maskStride">The mask row stride.</param>
+        /// <param name="width">The block width.</param>
+        /// <param name="height">The block height.</param>
+        /// <param name="subsamplingX">The horizontal subsampling shift of the plane.</param>
+        /// <param name="subsamplingY">The vertical subsampling shift of the plane.</param>
+        /// <param name="bitDepth">The coded component precision.</param>
+        public static abstract void BlendCompoundIntermediates(
+            Span<TSample> prediction,
+            ReadOnlySpan<ushort> first,
+            ReadOnlySpan<ushort> second,
+            ReadOnlySpan<byte> mask,
+            int maskStride,
+            int width,
+            int height,
             int subsamplingX,
             int subsamplingY,
-            int wedgeIndex,
-            bool wedgeSign,
-            Av1DifferenceWeightedMaskType differenceWeightedMaskType,
-            bool primaryPrepared,
-            bool secondaryPrepared);
+            int bitDepth);
 
         /// <summary>
         /// Builds a difference-weighted mask from two rounded single-reference predictors.
@@ -245,21 +263,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Size size,
             Av1BitDepth bitDepth,
             Av1DifferenceWeightedMaskType maskType);
-
-        /// <summary>
-        /// Blends a spatial intra predictor into a completed inter predictor through an AV1 alpha mask.
-        /// </summary>
-        /// <param name="interPrediction">The inter predictor, overwritten by the blended samples.</param>
-        /// <param name="intraPrediction">The contiguous intra predictor samples.</param>
-        /// <param name="mask">The per-sample intra weights in the inclusive range zero through 64.</param>
-        /// <param name="width">The prediction width in samples.</param>
-        /// <param name="height">The prediction height in samples.</param>
-        public static abstract void BlendInterIntraPrediction(
-            Span<TSample> interPrediction,
-            ReadOnlySpan<TSample> intraPrediction,
-            ReadOnlySpan<byte> mask,
-            int width,
-            int height);
 
         /// <summary>
         /// Encodes one intra candidate. Its prediction goes into the frame, which keeps it.
@@ -371,57 +374,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize predictionSize);
 
         /// <summary>
-        /// Subtracts a retained prediction from its source without rebuilding the inter predictor.
-        /// </summary>
-        /// <param name="source">The source block, from its top-left sample.</param>
-        /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
-        /// <param name="prediction">The tightly packed prediction samples.</param>
-        /// <param name="residual">The destination signed residual samples.</param>
-        /// <param name="width">The plane block width.</param>
-        /// <param name="height">The plane block height.</param>
-        public static abstract void SubtractPrediction(
-            ReadOnlySpan<TSample> source,
-            int sourceStride,
-            ReadOnlySpan<TSample> prediction,
-            Span<short> residual,
-            int width,
-            int height);
-
-        /// <summary>
-        /// Subtracts a prediction with its own row stride from its source, such as a prediction in the frame.
-        /// </summary>
-        /// <param name="source">The source block, from its top-left sample.</param>
-        /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
-        /// <param name="prediction">The prediction, from its top-left sample.</param>
-        /// <param name="predictionStride">The number of samples between rows of <paramref name="prediction"/>.</param>
-        /// <param name="residual">The destination signed residual samples, packed at the block width.</param>
-        /// <param name="width">The plane block width.</param>
-        /// <param name="height">The plane block height.</param>
-        public static abstract void SubtractPrediction(
-            ReadOnlySpan<TSample> source,
-            int sourceStride,
-            ReadOnlySpan<TSample> prediction,
-            int predictionStride,
-            Span<short> residual,
-            int width,
-            int height);
-
-        /// <summary>
-        /// Subtracts one packed prediction from another. Both inputs and the output use the block width as the stride.
-        /// </summary>
-        /// <param name="minuend">The prediction to subtract from, packed at the block width.</param>
-        /// <param name="subtrahend">The prediction to subtract, packed at the block width.</param>
-        /// <param name="difference">The destination signed differences, packed at the block width.</param>
-        /// <param name="width">The block width.</param>
-        /// <param name="height">The block height.</param>
-        public static abstract void SubtractPackedPrediction(
-            ReadOnlySpan<TSample> minuend,
-            ReadOnlySpan<TSample> subtrahend,
-            Span<short> difference,
-            int width,
-            int height);
-
-        /// <summary>
         /// Predicts a block with an affine warped model.
         /// </summary>
         /// <param name="reference">The padded retained reference plane.</param>
@@ -485,41 +437,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth);
 
         /// <summary>
-        /// Builds a translational prediction from a retained reference frame and the matching source residual.
-        /// </summary>
-        /// <param name="source">The coded source plane.</param>
-        /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
-        /// <param name="blockOrigin">The destination block origin in plane samples.</param>
-        /// <param name="reference">The padded retained reference plane.</param>
-        /// <param name="referenceSamples">The samples of the complete reference plane, read once by the caller.</param>
-        /// <param name="predictionOrigin">The integer reference origin preceding the subpixel phase.</param>
-        /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
-        /// <param name="verticalFilter">The vertical interpolation filter.</param>
-        /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
-        /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-        /// <param name="prediction">The contiguous prediction destination.</param>
-        /// <param name="residual">The contiguous source-minus-prediction destination.</param>
-        /// <param name="filterRows">The intermediate storage used by two-dimensional filtering.</param>
-        /// <param name="predictionSize">The prediction dimensions.</param>
-        /// <param name="bitDepth">The coded sample bit depth.</param>
-        public static abstract void PrepareTranslationalInterPrediction(
-            Av1PlaneRegion<TSample> source,
-            ReadOnlySpan<TSample> sourceSamples,
-            Point blockOrigin,
-            Av1PlaneRegion<TSample> reference,
-            ReadOnlySpan<TSample> referenceSamples,
-            Point predictionOrigin,
-            Av1InterpolationFilter horizontalFilter,
-            Av1InterpolationFilter verticalFilter,
-            int horizontalPhase,
-            int verticalPhase,
-            Span<TSample> prediction,
-            Span<short> residual,
-            Span<short> filterRows,
-            Av1BlockSize predictionSize,
-            Av1BitDepth bitDepth);
-
-        /// <summary>
         /// Blends a second prediction into a destination with 6-bit weights on the destination.
         /// </summary>
         /// <param name="destination">The destination, which is also the first prediction.</param>
@@ -539,73 +456,6 @@ internal static partial class Av1IntraSuperblockEncoder
             int maskStride,
             int width,
             int height);
-
-        /// <summary>
-        /// Predicts one translational rectangle into a strided destination, without a residual.
-        /// </summary>
-        /// <param name="reference">The padded retained reference plane.</param>
-        /// <param name="referenceSamples">The samples of the complete reference plane, read once by the caller.</param>
-        /// <param name="predictionOrigin">The integer reference origin preceding the subpixel phase.</param>
-        /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
-        /// <param name="verticalFilter">The vertical interpolation filter.</param>
-        /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
-        /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-        /// <param name="prediction">The prediction destination, starting at the rectangle.</param>
-        /// <param name="predictionStride">The destination stride.</param>
-        /// <param name="width">The rectangle width.</param>
-        /// <param name="height">The rectangle height.</param>
-        /// <param name="filterRows">The intermediate storage used by two-dimensional filtering.</param>
-        /// <param name="bitDepth">The coded sample bit depth.</param>
-        public static abstract void PredictTranslationalInter(
-            Av1PlaneRegion<TSample> reference,
-            ReadOnlySpan<TSample> referenceSamples,
-            Point predictionOrigin,
-            Av1InterpolationFilter horizontalFilter,
-            Av1InterpolationFilter verticalFilter,
-            int horizontalPhase,
-            int verticalPhase,
-            Span<TSample> prediction,
-            int predictionStride,
-            int width,
-            int height,
-            Span<short> filterRows,
-            Av1BitDepth bitDepth);
-
-        /// <summary>
-        /// Predicts one rectangle from a reference of another size than the frame into a strided destination. The source position and
-        /// phase advance by a step for each output sample.
-        /// </summary>
-        /// <param name="reference">The padded retained reference plane.</param>
-        /// <param name="referenceSamples">The samples of the complete reference plane, read once by the caller.</param>
-        /// <param name="predictionOrigin">The integer reference position of the first output sample.</param>
-        /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
-        /// <param name="verticalFilter">The vertical interpolation filter.</param>
-        /// <param name="horizontalPhase">The horizontal phase of the first output sample in 1/1024 samples.</param>
-        /// <param name="horizontalStep">The horizontal step per output sample in 1/1024 samples.</param>
-        /// <param name="verticalPhase">The vertical phase of the first output sample in 1/1024 samples.</param>
-        /// <param name="verticalStep">The vertical step per output sample in 1/1024 samples.</param>
-        /// <param name="prediction">The prediction destination, starting at the rectangle.</param>
-        /// <param name="predictionStride">The destination stride.</param>
-        /// <param name="width">The rectangle width.</param>
-        /// <param name="height">The rectangle height.</param>
-        /// <param name="filterRows">The intermediate storage used by two-dimensional filtering.</param>
-        /// <param name="bitDepth">The coded sample bit depth.</param>
-        public static abstract void PredictScaledInter(
-            Av1PlaneRegion<TSample> reference,
-            ReadOnlySpan<TSample> referenceSamples,
-            Point predictionOrigin,
-            Av1InterpolationFilter horizontalFilter,
-            Av1InterpolationFilter verticalFilter,
-            int horizontalPhase,
-            int horizontalStep,
-            int verticalPhase,
-            int verticalStep,
-            Span<TSample> prediction,
-            int predictionStride,
-            int width,
-            int height,
-            Span<short> filterRows,
-            Av1BitDepth bitDepth);
 
         /// <summary>
         /// Applies the selected luma adjustment to a DC-predicted chroma block.
@@ -688,6 +538,384 @@ internal static partial class Av1IntraSuperblockEncoder
             bool lossless,
             Av1BitDepth bitDepth,
             Av1EncoderTransformBlockState state);
+
+        /// <summary>
+        /// Measures the rounded OBMC absolute differences of a prediction against the OBMC search target.
+        /// </summary>
+        /// <param name="prediction">The prediction samples at the block origin.</param>
+        /// <param name="predictionStride">The prediction row stride.</param>
+        /// <param name="weightedSource">The weighted source, packed at the block width.</param>
+        /// <param name="mask">The prediction weights, packed at the block width.</param>
+        /// <param name="width">The block width.</param>
+        /// <param name="height">The block height.</param>
+        /// <returns>The sum of the rounded absolute differences.</returns>
+        public static abstract int SumObmcAbsoluteDifferences(
+            ReadOnlySpan<TSample> prediction,
+            int predictionStride,
+            ReadOnlySpan<int> weightedSource,
+            ReadOnlySpan<int> mask,
+            int width,
+            int height);
+
+        /// <summary>
+        /// Measures the signed and squared sums of the rounded OBMC differences of a prediction.
+        /// </summary>
+        /// <param name="prediction">The prediction samples at the block origin.</param>
+        /// <param name="predictionStride">The prediction row stride.</param>
+        /// <param name="weightedSource">The weighted source, packed at the block width.</param>
+        /// <param name="mask">The prediction weights, packed at the block width.</param>
+        /// <param name="width">The block width.</param>
+        /// <param name="height">The block height.</param>
+        /// <param name="sum">The signed sum of the rounded differences.</param>
+        /// <param name="squares">The sum of their squares.</param>
+        public static abstract void GetObmcMoments(
+            ReadOnlySpan<TSample> prediction,
+            int predictionStride,
+            ReadOnlySpan<int> weightedSource,
+            ReadOnlySpan<int> mask,
+            int width,
+            int height,
+            out int sum,
+            out ulong squares);
+
+        /// <summary>
+        /// Writes one row of the above-neighbor term of the OBMC search target.
+        /// </summary>
+        /// <param name="prediction">The above-neighbor prediction row.</param>
+        /// <param name="weight">The weight of the block's own prediction on this row.</param>
+        /// <param name="weightedSource">The weighted source row to write.</param>
+        /// <param name="mask">The prediction weight row to write.</param>
+        /// <param name="width">The number of samples to write.</param>
+        public static abstract void WeightObmcAbove(ReadOnlySpan<TSample> prediction, int weight, Span<int> weightedSource, Span<int> mask, int width);
+
+        /// <summary>
+        /// Blends one row of the left-neighbor term into the OBMC search target.
+        /// </summary>
+        /// <param name="prediction">The left-neighbor prediction row.</param>
+        /// <param name="weights">The column weights of the block's own prediction, one per overlapped column.</param>
+        /// <param name="weightedSource">The weighted source row to update.</param>
+        /// <param name="mask">The prediction weight row to update.</param>
+        public static abstract void WeightObmcLeft(ReadOnlySpan<TSample> prediction, ReadOnlySpan<byte> weights, Span<int> weightedSource, Span<int> mask);
+
+        /// <summary>
+        /// Scales the OBMC search target by the maximum blend weight.
+        /// </summary>
+        /// <param name="weightedSource">The weighted source to update.</param>
+        /// <param name="mask">The prediction weights to update.</param>
+        public static abstract void ScaleObmcTarget(Span<int> weightedSource, Span<int> mask);
+
+        /// <summary>
+        /// Replaces one row of OBMC neighbor terms with the scaled source minus the term.
+        /// </summary>
+        /// <param name="source">The source row.</param>
+        /// <param name="weightedSource">The weighted source row to update.</param>
+        public static abstract void SubtractObmcSource(ReadOnlySpan<TSample> source, Span<int> weightedSource);
+    }
+
+    /// <summary>
+    /// Predicts one translational rectangle from a retained reference frame into a strided destination, without a residual.
+    /// </summary>
+    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The sample-storage operations.</typeparam>
+    /// <param name="reference">The padded retained reference plane.</param>
+    /// <param name="referenceSamples">The samples of the complete reference plane, read once by the caller.</param>
+    /// <param name="predictionOrigin">The integer reference origin preceding the subpixel phase.</param>
+    /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="prediction">The prediction destination, starting at the rectangle.</param>
+    /// <param name="predictionStride">The destination stride.</param>
+    /// <param name="width">The rectangle width.</param>
+    /// <param name="height">The rectangle height.</param>
+    /// <param name="filterRows">The intermediate storage used by two-dimensional filtering.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    private static void PredictTranslationalInter<TSample, TOperator>(
+        Av1PlaneRegion<TSample> reference,
+        ReadOnlySpan<TSample> referenceSamples,
+        Point predictionOrigin,
+        Av1InterpolationFilter horizontalFilter,
+        Av1InterpolationFilter verticalFilter,
+        int horizontalPhase,
+        int verticalPhase,
+        Span<TSample> prediction,
+        int predictionStride,
+        int width,
+        int height,
+        Span<short> filterRows,
+        Av1BitDepth bitDepth)
+        where TSample : unmanaged
+        where TOperator : struct, IBlockEncodingOperator<TSample>
+    {
+        // The origin indexes the complete padded plane, so the plane bounds move the prediction origin into it.
+        Rectangle referenceBounds = reference.Bounds;
+        int referenceOrigin =
+            ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
+            referenceBounds.X +
+            predictionOrigin.X;
+
+        TOperator.BuildPrediction(
+            referenceSamples,
+            reference.Stride,
+            referenceOrigin,
+            prediction,
+            predictionStride,
+            filterRows,
+            width,
+            height,
+            horizontalFilter,
+            verticalFilter,
+            horizontalPhase,
+            verticalPhase,
+            bitDepth.GetBitCount());
+    }
+
+    /// <summary>
+    /// Builds a translational prediction from a retained reference frame and the matching source residual.
+    /// </summary>
+    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The sample-storage operations.</typeparam>
+    /// <param name="source">The coded source plane.</param>
+    /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
+    /// <param name="blockOrigin">The destination block origin in plane samples.</param>
+    /// <param name="reference">The padded retained reference plane.</param>
+    /// <param name="referenceSamples">The samples of the complete reference plane, read once by the caller.</param>
+    /// <param name="predictionOrigin">The integer reference origin preceding the subpixel phase.</param>
+    /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="prediction">The contiguous prediction destination.</param>
+    /// <param name="residual">The contiguous source-minus-prediction destination.</param>
+    /// <param name="filterRows">The intermediate storage used by two-dimensional filtering.</param>
+    /// <param name="predictionSize">The prediction dimensions.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    private static void PrepareTranslationalInterPrediction<TSample, TOperator>(
+        Av1PlaneRegion<TSample> source,
+        ReadOnlySpan<TSample> sourceSamples,
+        Point blockOrigin,
+        Av1PlaneRegion<TSample> reference,
+        ReadOnlySpan<TSample> referenceSamples,
+        Point predictionOrigin,
+        Av1InterpolationFilter horizontalFilter,
+        Av1InterpolationFilter verticalFilter,
+        int horizontalPhase,
+        int verticalPhase,
+        Span<TSample> prediction,
+        Span<short> residual,
+        Span<short> filterRows,
+        Av1BlockSize predictionSize,
+        Av1BitDepth bitDepth)
+        where TSample : unmanaged
+        where TOperator : struct, IBlockEncodingOperator<TSample>
+    {
+        int width = predictionSize.GetWidth();
+        int height = predictionSize.GetHeight();
+
+        // The prediction is packed, so the block width is the stride of both the prediction and the residual.
+        PredictTranslationalInter<TSample, TOperator>(
+            reference,
+            referenceSamples,
+            predictionOrigin,
+            horizontalFilter,
+            verticalFilter,
+            horizontalPhase,
+            verticalPhase,
+            prediction,
+            width,
+            width,
+            height,
+            filterRows,
+            bitDepth);
+
+        TOperator.SubtractPrediction(
+            Av1TransformBlockEncoder.GetPlaneSpan(sourceSamples, source, blockOrigin), source.Stride, prediction, width, residual, width, height);
+    }
+
+    /// <summary>
+    /// Builds a compound prediction from two retained reference frames using the selected blend, and the matching source residual.
+    /// </summary>
+    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The sample-storage operations.</typeparam>
+    /// <param name="source">The coded source plane.</param>
+    /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
+    /// <param name="blockOrigin">The destination block origin in plane samples.</param>
+    /// <param name="primaryReference">The padded primary retained reference plane.</param>
+    /// <param name="primaryReferenceSamples">The samples of the complete primary reference plane, read once by the caller.</param>
+    /// <param name="primaryPredictionOrigin">The integer primary-reference origin preceding the subpixel phase.</param>
+    /// <param name="primaryHorizontalPhase">The primary horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="primaryVerticalPhase">The primary vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="secondaryReference">The padded secondary retained reference plane.</param>
+    /// <param name="secondaryReferenceSamples">The samples of the complete secondary reference plane, read once by the caller.</param>
+    /// <param name="secondaryPredictionOrigin">The integer secondary-reference origin preceding the subpixel phase.</param>
+    /// <param name="secondaryHorizontalPhase">The secondary horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="secondaryVerticalPhase">The secondary vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="horizontalFilter">The horizontal interpolation filter shared by both references.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter shared by both references.</param>
+    /// <param name="prediction">The contiguous blended prediction destination.</param>
+    /// <param name="residual">The contiguous source-minus-prediction destination.</param>
+    /// <param name="firstIntermediate">The reusable primary unsigned compound intermediate.</param>
+    /// <param name="secondIntermediate">The reusable secondary unsigned compound intermediate.</param>
+    /// <param name="compoundMask">The reusable luma-resolution blend mask.</param>
+    /// <param name="filterRows">The intermediate storage used by two-dimensional filtering.</param>
+    /// <param name="predictionSize">The prediction dimensions.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="plane">The component plane. Only luma constructs the difference-weighted mask.</param>
+    /// <param name="lumaBlockSize">The luma block dimensions used to construct the blend mask.</param>
+    /// <param name="compoundType">The blend applied to the two predictors.</param>
+    /// <param name="firstWeight">The primary predictor's distance weight.</param>
+    /// <param name="secondWeight">The secondary predictor's distance weight.</param>
+    /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subsamplingY">The vertical chroma subsampling shift.</param>
+    /// <param name="wedgeIndex">The selected wedge shape.</param>
+    /// <param name="wedgeSign">Whether to reverse the wedge's predictor weights.</param>
+    /// <param name="differenceWeightedMaskType">The polarity of the difference-weighted mask.</param>
+    /// <param name="primaryPrepared">Whether <paramref name="firstIntermediate"/> already holds the primary predictor.</param>
+    /// <param name="secondaryPrepared">Whether <paramref name="secondIntermediate"/> already holds the secondary predictor.</param>
+    private static void PrepareCompoundInterPrediction<TSample, TOperator>(
+        Av1PlaneRegion<TSample> source,
+        ReadOnlySpan<TSample> sourceSamples,
+        Point blockOrigin,
+        Av1PlaneRegion<TSample> primaryReference,
+        ReadOnlySpan<TSample> primaryReferenceSamples,
+        Point primaryPredictionOrigin,
+        int primaryHorizontalPhase,
+        int primaryVerticalPhase,
+        Av1PlaneRegion<TSample> secondaryReference,
+        ReadOnlySpan<TSample> secondaryReferenceSamples,
+        Point secondaryPredictionOrigin,
+        int secondaryHorizontalPhase,
+        int secondaryVerticalPhase,
+        Av1InterpolationFilter horizontalFilter,
+        Av1InterpolationFilter verticalFilter,
+        Span<TSample> prediction,
+        Span<short> residual,
+        Span<ushort> firstIntermediate,
+        Span<ushort> secondIntermediate,
+        Span<byte> compoundMask,
+        Span<short> filterRows,
+        Av1BlockSize predictionSize,
+        Av1BitDepth bitDepth,
+        Av1Plane plane,
+        Av1BlockSize lumaBlockSize,
+        Av1CompoundType compoundType,
+        int firstWeight,
+        int secondWeight,
+        int subsamplingX,
+        int subsamplingY,
+        int wedgeIndex,
+        bool wedgeSign,
+        Av1DifferenceWeightedMaskType differenceWeightedMaskType,
+        bool primaryPrepared,
+        bool secondaryPrepared)
+        where TSample : unmanaged
+        where TOperator : struct, IBlockEncodingOperator<TSample>
+    {
+        // The prediction, the residual and both intermediates are packed at the block width.
+        int width = predictionSize.GetWidth();
+        int height = predictionSize.GetHeight();
+        int bitCount = bitDepth.GetBitCount();
+
+        // Each origin indexes the complete padded plane, so the plane bounds move the prediction origin into it.
+        Rectangle primaryBounds = primaryReference.Bounds;
+        int primaryOrigin = ((primaryBounds.Y + primaryPredictionOrigin.Y) * primaryReference.Stride) +
+            primaryBounds.X + primaryPredictionOrigin.X;
+
+        Rectangle secondaryBounds = secondaryReference.Bounds;
+        int secondaryOrigin = ((secondaryBounds.Y + secondaryPredictionOrigin.Y) * secondaryReference.Stride) +
+            secondaryBounds.X + secondaryPredictionOrigin.X;
+
+        if (!primaryPrepared)
+        {
+            TOperator.BuildCompoundIntermediate(
+                primaryReferenceSamples,
+                primaryReference.Stride,
+                primaryOrigin,
+                firstIntermediate,
+                filterRows,
+                width,
+                height,
+                horizontalFilter,
+                verticalFilter,
+                primaryHorizontalPhase,
+                primaryVerticalPhase,
+                bitCount);
+        }
+
+        if (!secondaryPrepared)
+        {
+            TOperator.BuildCompoundIntermediate(
+                secondaryReferenceSamples,
+                secondaryReference.Stride,
+                secondaryOrigin,
+                secondIntermediate,
+                filterRows,
+                width,
+                height,
+                horizontalFilter,
+                verticalFilter,
+                secondaryHorizontalPhase,
+                secondaryVerticalPhase,
+                bitCount);
+        }
+
+        switch (compoundType)
+        {
+            case Av1CompoundType.DistanceWeighted:
+                TOperator.WeightCompoundIntermediates(prediction, firstIntermediate, secondIntermediate, width, height, firstWeight, secondWeight, bitCount);
+                break;
+            case Av1CompoundType.Wedge:
+                Av1WedgeMask.Fill(compoundMask, lumaBlockSize.GetWidth(), lumaBlockSize, wedgeIndex, wedgeSign, 0, 0, invert: false);
+                TOperator.BlendCompoundIntermediates(
+                    prediction,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
+                    lumaBlockSize.GetWidth(),
+                    width,
+                    height,
+                    subsamplingX,
+                    subsamplingY,
+                    bitCount);
+
+                break;
+            case Av1CompoundType.DifferenceWeighted:
+                // Chroma reuses the luma mask even when its sample dimensions are identical.
+                if (plane == Av1Plane.Y)
+                {
+                    Av1CompoundIntermediateDifferenceWeightedMaskBuilder.FillDifferenceWeightedIntermediateMask(
+                        compoundMask,
+                        width,
+                        firstIntermediate,
+                        width,
+                        secondIntermediate,
+                        width,
+                        width,
+                        height,
+                        bitCount,
+                        differenceWeightedMaskType);
+                }
+
+                TOperator.BlendCompoundIntermediates(
+                    prediction,
+                    firstIntermediate,
+                    secondIntermediate,
+                    compoundMask,
+                    lumaBlockSize.GetWidth(),
+                    width,
+                    height,
+                    subsamplingX,
+                    subsamplingY,
+                    bitCount);
+
+                break;
+            default:
+                TOperator.AverageCompoundIntermediates(prediction, firstIntermediate, secondIntermediate, width, height, bitCount);
+                break;
+        }
+
+        TOperator.SubtractPrediction(
+            Av1TransformBlockEncoder.GetPlaneSpan(sourceSamples, source, blockOrigin), source.Stride, prediction, width, residual, width, height);
     }
 
     /// <summary>
@@ -701,6 +929,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int referenceStride,
             int referenceOrigin,
             Span<byte> prediction,
+            int predictionStride,
             Span<short> intermediateRows,
             int width,
             int height,
@@ -709,53 +938,31 @@ internal static partial class Av1IntraSuperblockEncoder
             int horizontalPhase,
             int verticalPhase,
             int bitDepth)
-            => Av1MotionSearchBase.ByteOperator.BuildPrediction(
+            => Av1TranslationalInterPredictor.Predict(
                 reference,
                 referenceStride,
                 referenceOrigin,
                 prediction,
-                intermediateRows,
+                predictionStride,
                 width,
                 height,
                 horizontalFilter,
                 verticalFilter,
                 horizontalPhase,
                 verticalPhase,
-                bitDepth);
+                intermediateRows);
 
         /// <inheritdoc/>
-        public static void PreparePrediction(
+        public static void SubtractPrediction(
             ReadOnlySpan<byte> source,
             int sourceStride,
-            ReadOnlySpan<byte> reference,
-            int referenceStride,
-            int referenceOrigin,
-            Span<byte> prediction,
+            ReadOnlySpan<byte> prediction,
+            int predictionStride,
             Span<short> residual,
-            Span<short> intermediateRows,
             int width,
-            int height,
-            Av1InterpolationFilter horizontalFilter,
-            Av1InterpolationFilter verticalFilter,
-            int horizontalPhase,
-            int verticalPhase,
-            int bitDepth)
-            => Av1MotionSearchBase.ByteOperator.PreparePrediction(
-                source,
-                sourceStride,
-                reference,
-                referenceStride,
-                referenceOrigin,
-                prediction,
-                residual,
-                intermediateRows,
-                width,
-                height,
-                horizontalFilter,
-                verticalFilter,
-                horizontalPhase,
-                verticalPhase,
-                bitDepth);
+            int height)
+            => Av1ResidualBuilder.Subtract<byte, Av1ResidualBuilder.ByteOperator>(
+                source, sourceStride, prediction, predictionStride, residual, width, width, height);
 
         /// <inheritdoc/>
         public static void Predict(
@@ -769,18 +976,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int verticalPhase,
             int taps,
             int bitDepth)
-            => Av1MotionSearchBase.ByteOperator.Predict(
-                reference, referenceStride, referenceOrigin, buffer, width, height, horizontalPhase, verticalPhase, taps, bitDepth);
-
-        /// <inheritdoc/>
-        public static void Subtract(
-            ReadOnlySpan<byte> source,
-            int sourceStride,
-            ReadOnlySpan<byte> prediction,
-            Span<short> residual,
-            int width,
-            int height)
-            => Av1MotionSearchBase.ByteOperator.Subtract(source, sourceStride, prediction, residual, width, height);
+            => Av1TranslationalInterPredictor.PredictForSearch(
+                reference, referenceStride, referenceOrigin, buffer, width, height, horizontalPhase, verticalPhase, taps);
 
         /// <inheritdoc/>
         public static void PredictScaled(
@@ -788,6 +985,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int referenceStride,
             int referenceOrigin,
             Span<byte> buffer,
+            int bufferStride,
             int width,
             int height,
             Av1InterpolationFilter horizontalFilter,
@@ -798,11 +996,12 @@ internal static partial class Av1IntraSuperblockEncoder
             int verticalStep,
             Span<short> intermediateRows,
             int bitDepth)
-            => Av1MotionSearchBase.ByteOperator.PredictScaled(
+            => Av1ScaledInterPredictor.PredictScaled(
                 reference,
                 referenceStride,
                 referenceOrigin,
                 buffer,
+                bufferStride,
                 width,
                 height,
                 horizontalFilter,
@@ -811,8 +1010,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 horizontalStep,
                 verticalPhase,
                 verticalStep,
-                intermediateRows,
-                bitDepth);
+                intermediateRows);
 
         /// <inheritdoc/>
         public static int SumAbsoluteDifferences(
@@ -823,7 +1021,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int width,
             int height,
             int rowStep)
-            => Av1MotionSearchBase.ByteOperator.SumAbsoluteDifferences(
+            => Av1ResidualBuilder.SumAbsoluteDifferences<byte, Av1ResidualBuilder.ByteOperator>(
                 source, sourceStride, prediction, predictionStride, width, height, rowStep);
 
         /// <inheritdoc/>
@@ -837,7 +1035,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int width,
             int height,
             int rowStep)
-            => Av1MotionSearchBase.ByteOperator.SumCompoundAbsoluteDifferences(
+            => Av1ResidualBuilder.SumCompoundAbsoluteDifferences<byte, Av1ResidualBuilder.ByteOperator>(
                 source, sourceStride, prediction, predictionStride, secondPrediction, mask, width, height, rowStep);
 
         /// <inheritdoc/>
@@ -852,7 +1050,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height,
             out int sum,
             out long squares)
-            => Av1MotionSearchBase.ByteOperator.GetCompoundMoments(
+            => Av1ResidualBuilder.GetCompoundMoments<byte, Av1ResidualBuilder.ByteOperator>(
                 source, sourceStride, prediction, predictionStride, secondPrediction, mask, width, height, out sum, out squares);
 
         /// <inheritdoc/>
@@ -865,7 +1063,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height,
             out int sum,
             out long squares)
-            => Av1MotionSearchBase.ByteOperator.GetMoments(
+            => Av1ResidualBuilder.GetMoments<byte, Av1ResidualBuilder.ByteOperator>(
                 source, sourceStride, prediction, predictionStride, width, height, out sum, out squares);
 
         /// <inheritdoc/>
@@ -876,7 +1074,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> mask,
             int width,
             int height)
-            => Av1MotionSearchBase.ByteOperator.SumObmcAbsoluteDifferences(prediction, predictionStride, weightedSource, mask, width, height);
+            => Av1ObmcSearch.SumAbsoluteDifferences<byte, Av1ObmcSearch.ByteOperator>(prediction, predictionStride, weightedSource, mask, width, height);
 
         /// <inheritdoc/>
         public static void GetObmcMoments(
@@ -888,23 +1086,24 @@ internal static partial class Av1IntraSuperblockEncoder
             int height,
             out int sum,
             out ulong squares)
-            => Av1MotionSearchBase.ByteOperator.GetObmcMoments(prediction, predictionStride, weightedSource, mask, width, height, out sum, out squares);
+            => Av1ObmcSearch.GetMoments<byte, Av1ObmcSearch.ByteOperator>(
+                prediction, predictionStride, weightedSource, mask, width, height, out sum, out squares);
 
         /// <inheritdoc/>
         public static void WeightObmcAbove(ReadOnlySpan<byte> prediction, int weight, Span<int> weightedSource, Span<int> mask, int width)
-            => Av1MotionSearchBase.ByteOperator.WeightObmcAbove(prediction, weight, weightedSource, mask, width);
+            => Av1ObmcSearch.WeightAbove<byte, Av1ObmcSearch.ByteOperator>(prediction, weight, weightedSource, mask, width);
 
         /// <inheritdoc/>
         public static void WeightObmcLeft(ReadOnlySpan<byte> prediction, ReadOnlySpan<byte> weights, Span<int> weightedSource, Span<int> mask)
-            => Av1MotionSearchBase.ByteOperator.WeightObmcLeft(prediction, weights, weightedSource, mask);
+            => Av1ObmcSearch.WeightLeft<byte, Av1ObmcSearch.ByteOperator>(prediction, weights, weightedSource, mask);
 
         /// <inheritdoc/>
         public static void ScaleObmcTarget(Span<int> weightedSource, Span<int> mask)
-            => Av1MotionSearchBase.ByteOperator.ScaleObmcTarget(weightedSource, mask);
+            => Av1ObmcSearch.Scale<byte, Av1ObmcSearch.ByteOperator>(weightedSource, mask);
 
         /// <inheritdoc/>
         public static void SubtractObmcSource(ReadOnlySpan<byte> source, Span<int> weightedSource)
-            => Av1MotionSearchBase.ByteOperator.SubtractObmcSource(source, weightedSource);
+            => Av1ObmcSearch.SubtractFromSource<byte, Av1ObmcSearch.ByteOperator>(source, weightedSource);
 
         /// <inheritdoc/>
         public static byte CreateSample(int value) => (byte)value;
@@ -1269,44 +1468,6 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <inheritdoc/>
-        public static void SubtractPrediction(
-            ReadOnlySpan<byte> source,
-            int sourceStride,
-            ReadOnlySpan<byte> prediction,
-            int predictionStride,
-            Span<short> residual,
-            int width,
-            int height)
-            => Av1ResidualBuilder.Subtract(source, sourceStride, prediction, predictionStride, residual, width, width, height);
-
-        /// <inheritdoc/>
-        public static void SubtractPrediction(
-            ReadOnlySpan<byte> source,
-            int sourceStride,
-            ReadOnlySpan<byte> prediction,
-            Span<short> residual,
-            int width,
-            int height)
-            => Av1ResidualBuilder.Subtract(
-                source,
-                sourceStride,
-                prediction,
-                width,
-                residual,
-                width,
-                width,
-                height);
-
-        /// <inheritdoc/>
-        public static void SubtractPackedPrediction(
-            ReadOnlySpan<byte> minuend,
-            ReadOnlySpan<byte> subtrahend,
-            Span<short> difference,
-            int width,
-            int height)
-            => Av1ResidualBuilder.Subtract(minuend, width, subtrahend, width, difference, width, width, height);
-
-        /// <inheritdoc/>
         public static void PrepareWarpedInterPrediction(
             Av1PlaneRegion<byte> reference,
             ReadOnlySpan<byte> referenceSamples,
@@ -1381,302 +1542,70 @@ internal static partial class Av1IntraSuperblockEncoder
             => Av1CompoundMaskBlendPredictor.Blend(destination, destinationStride, second, secondStride, mask, maskStride, width, height);
 
         /// <inheritdoc/>
-        public static void PredictTranslationalInter(
-            Av1PlaneRegion<byte> reference,
-            ReadOnlySpan<byte> referenceSamples,
-            Point predictionOrigin,
-            Av1InterpolationFilter horizontalFilter,
-            Av1InterpolationFilter verticalFilter,
-            int horizontalPhase,
-            int verticalPhase,
-            Span<byte> prediction,
-            int predictionStride,
+        public static void BuildCompoundIntermediate(
+            ReadOnlySpan<byte> reference,
+            int referenceStride,
+            int referenceOrigin,
+            Span<ushort> intermediate,
+            Span<short> intermediateRows,
             int width,
             int height,
-            Span<short> filterRows,
-            Av1BitDepth bitDepth)
-        {
-            Rectangle referenceBounds = reference.Bounds;
-            int referenceOrigin =
-                ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
-                referenceBounds.X +
-                predictionOrigin.X;
-
-            Av1TranslationalInterPredictor.Predict(
-                referenceSamples,
-                reference.Stride,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int verticalPhase,
+            int bitDepth)
+            => Av1CompoundInterPredictor.PredictCompound(
+                reference,
+                referenceStride,
                 referenceOrigin,
-                prediction,
-                predictionStride,
+                intermediate,
+                width,
                 width,
                 height,
                 horizontalFilter,
                 verticalFilter,
                 horizontalPhase,
                 verticalPhase,
-                filterRows);
-        }
+                intermediateRows);
 
         /// <inheritdoc/>
-        public static void PredictScaledInter(
-            Av1PlaneRegion<byte> reference,
-            ReadOnlySpan<byte> referenceSamples,
-            Point predictionOrigin,
-            Av1InterpolationFilter horizontalFilter,
-            Av1InterpolationFilter verticalFilter,
-            int horizontalPhase,
-            int horizontalStep,
-            int verticalPhase,
-            int verticalStep,
+        public static void AverageCompoundIntermediates(
             Span<byte> prediction,
-            int predictionStride,
+            ReadOnlySpan<ushort> first,
+            ReadOnlySpan<ushort> second,
             int width,
             int height,
-            Span<short> filterRows,
-            Av1BitDepth bitDepth)
-        {
-            Rectangle referenceBounds = reference.Bounds;
-            int referenceOrigin =
-                ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
-                referenceBounds.X +
-                predictionOrigin.X;
-
-            Av1ScaledInterPredictor.PredictScaled(
-                referenceSamples,
-                reference.Stride,
-                referenceOrigin,
-                prediction,
-                predictionStride,
-                width,
-                height,
-                horizontalFilter,
-                verticalFilter,
-                horizontalPhase,
-                horizontalStep,
-                verticalPhase,
-                verticalStep,
-                filterRows);
-        }
+            int bitDepth)
+            => Av1CompoundIntermediateAveragePredictor.AverageIntermediate(prediction, width, first, width, second, width, width, height, bitDepth);
 
         /// <inheritdoc/>
-        public static void PrepareTranslationalInterPrediction(
-            Av1PlaneRegion<byte> source,
-            ReadOnlySpan<byte> sourceSamples,
-            Point blockOrigin,
-            Av1PlaneRegion<byte> reference,
-            ReadOnlySpan<byte> referenceSamples,
-            Point predictionOrigin,
-            Av1InterpolationFilter horizontalFilter,
-            Av1InterpolationFilter verticalFilter,
-            int horizontalPhase,
-            int verticalPhase,
+        public static void WeightCompoundIntermediates(
             Span<byte> prediction,
-            Span<short> residual,
-            Span<short> filterRows,
-            Av1BlockSize predictionSize,
-            Av1BitDepth bitDepth)
-        {
-            int width = predictionSize.GetWidth();
-            int height = predictionSize.GetHeight();
-            Rectangle referenceBounds = reference.Bounds;
-            int referenceOrigin =
-                ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
-                referenceBounds.X +
-                predictionOrigin.X;
-
-            Av1TranslationalInterPredictor.Predict(
-                referenceSamples,
-                reference.Stride,
-                referenceOrigin,
-                prediction,
-                width,
-                width,
-                height,
-                horizontalFilter,
-                verticalFilter,
-                horizontalPhase,
-                verticalPhase,
-                filterRows);
-
-            Av1ResidualBuilder.Subtract(
-                Av1TransformBlockEncoder.GetPlaneSpan(sourceSamples, source, blockOrigin),
-                source.Stride,
-                prediction,
-                width,
-                residual,
-                width,
-                width,
-                height);
-        }
-
-        /// <inheritdoc/>
-        public static void PrepareCompoundInterPrediction(
-            Av1PlaneRegion<byte> source,
-            ReadOnlySpan<byte> sourceSamples,
-            Point blockOrigin,
-            Av1PlaneRegion<byte> primaryReference,
-            ReadOnlySpan<byte> primaryReferenceSamples,
-            Point primaryPredictionOrigin,
-            int primaryHorizontalPhase,
-            int primaryVerticalPhase,
-            Av1PlaneRegion<byte> secondaryReference,
-            ReadOnlySpan<byte> secondaryReferenceSamples,
-            Point secondaryPredictionOrigin,
-            int secondaryHorizontalPhase,
-            int secondaryVerticalPhase,
-            Av1InterpolationFilter horizontalFilter,
-            Av1InterpolationFilter verticalFilter,
-            Span<byte> prediction,
-            Span<short> residual,
-            Span<ushort> firstIntermediate,
-            Span<ushort> secondIntermediate,
-            Span<byte> compoundMask,
-            Span<short> filterRows,
-            Av1BlockSize predictionSize,
-            Av1BitDepth bitDepth,
-            Av1Plane plane,
-            Av1BlockSize lumaBlockSize,
-            Av1CompoundType compoundType,
+            ReadOnlySpan<ushort> first,
+            ReadOnlySpan<ushort> second,
+            int width,
+            int height,
             int firstWeight,
             int secondWeight,
+            int bitDepth)
+            => Av1CompoundIntermediateDistanceWeightedPredictor.DistanceWeightedIntermediate(
+                prediction, width, first, width, second, width, width, height, firstWeight, secondWeight, bitDepth);
+
+        /// <inheritdoc/>
+        public static void BlendCompoundIntermediates(
+            Span<byte> prediction,
+            ReadOnlySpan<ushort> first,
+            ReadOnlySpan<ushort> second,
+            ReadOnlySpan<byte> mask,
+            int maskStride,
+            int width,
+            int height,
             int subsamplingX,
             int subsamplingY,
-            int wedgeIndex,
-            bool wedgeSign,
-            Av1DifferenceWeightedMaskType differenceWeightedMaskType,
-            bool primaryPrepared,
-            bool secondaryPrepared)
-        {
-            int width = predictionSize.GetWidth();
-            int height = predictionSize.GetHeight();
-            Rectangle primaryBounds = primaryReference.Bounds;
-            int primaryOrigin = ((primaryBounds.Y + primaryPredictionOrigin.Y) * primaryReference.Stride) +
-                primaryBounds.X + primaryPredictionOrigin.X;
-
-            Rectangle secondaryBounds = secondaryReference.Bounds;
-            int secondaryOrigin = ((secondaryBounds.Y + secondaryPredictionOrigin.Y) * secondaryReference.Stride) +
-                secondaryBounds.X + secondaryPredictionOrigin.X;
-
-            if (!primaryPrepared)
-            {
-                Av1CompoundInterPredictor.PredictCompound(
-                    primaryReferenceSamples,
-                    primaryReference.Stride,
-                    primaryOrigin,
-                    firstIntermediate,
-                    width,
-                    width,
-                    height,
-                    horizontalFilter,
-                    verticalFilter,
-                    primaryHorizontalPhase,
-                    primaryVerticalPhase,
-                    filterRows);
-            }
-
-            if (!secondaryPrepared)
-            {
-                Av1CompoundInterPredictor.PredictCompound(
-                    secondaryReferenceSamples,
-                    secondaryReference.Stride,
-                    secondaryOrigin,
-                    secondIntermediate,
-                    width,
-                    width,
-                    height,
-                    horizontalFilter,
-                    verticalFilter,
-                    secondaryHorizontalPhase,
-                    secondaryVerticalPhase,
-                    filterRows);
-            }
-
-            int bitCount = bitDepth.GetBitCount();
-            switch (compoundType)
-            {
-                case Av1CompoundType.DistanceWeighted:
-                    Av1CompoundIntermediateDistanceWeightedPredictor.DistanceWeightedIntermediate(
-                        prediction,
-                        width,
-                        firstIntermediate,
-                        width,
-                        secondIntermediate,
-                        width,
-                        width,
-                        height,
-                        firstWeight,
-                        secondWeight,
-                        bitCount);
-
-                    break;
-                case Av1CompoundType.Wedge:
-                    Av1WedgeMask.Fill(compoundMask, lumaBlockSize.GetWidth(), lumaBlockSize, wedgeIndex, wedgeSign, 0, 0, invert: false);
-                    Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
-                        prediction,
-                        width,
-                        firstIntermediate,
-                        width,
-                        secondIntermediate,
-                        width,
-                        compoundMask,
-                        lumaBlockSize.GetWidth(),
-                        width,
-                        height,
-                        subsamplingX,
-                        subsamplingY,
-                        bitCount);
-
-                    break;
-                case Av1CompoundType.DifferenceWeighted:
-                    // Chroma reuses the luma mask even when its sample dimensions are identical.
-                    if (plane == Av1Plane.Y)
-                    {
-                        Av1CompoundIntermediateDifferenceWeightedMaskBuilder.FillDifferenceWeightedIntermediateMask(
-                            compoundMask,
-                            width,
-                            firstIntermediate,
-                            width,
-                            secondIntermediate,
-                            width,
-                            width,
-                            height,
-                            bitCount,
-                            differenceWeightedMaskType);
-                    }
-
-                    Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
-                        prediction,
-                        width,
-                        firstIntermediate,
-                        width,
-                        secondIntermediate,
-                        width,
-                        compoundMask,
-                        lumaBlockSize.GetWidth(),
-                        width,
-                        height,
-                        subsamplingX,
-                        subsamplingY,
-                        bitCount);
-
-                    break;
-                default:
-                    Av1CompoundIntermediateAveragePredictor.AverageIntermediate(
-                        prediction, width, firstIntermediate, width, secondIntermediate, width, width, height, bitCount);
-
-                    break;
-            }
-
-            Av1ResidualBuilder.Subtract(
-                Av1TransformBlockEncoder.GetPlaneSpan(sourceSamples, source, blockOrigin),
-                source.Stride,
-                prediction,
-                width,
-                residual,
-                width,
-                width,
-                height);
-        }
+            int bitDepth)
+            => Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
+                prediction, width, first, width, second, width, mask, maskStride, width, height, subsamplingX, subsamplingY, bitDepth);
 
         /// <inheritdoc/>
         public static void BuildCompoundDifferenceMask(
@@ -1696,23 +1625,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 size.Width,
                 size.Height,
                 maskType);
-
-        /// <inheritdoc/>
-        public static void BlendInterIntraPrediction(
-            Span<byte> interPrediction,
-            ReadOnlySpan<byte> intraPrediction,
-            ReadOnlySpan<byte> mask,
-            int width,
-            int height)
-            => Av1CompoundMaskBlendPredictor.Blend(
-                interPrediction,
-                width,
-                intraPrediction,
-                width,
-                mask,
-                width,
-                width,
-                height);
 
         /// <inheritdoc/>
         public static void ApplyChromaFromLuma(
@@ -1792,6 +1704,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int referenceStride,
             int referenceOrigin,
             Span<ushort> prediction,
+            int predictionStride,
             Span<short> intermediateRows,
             int width,
             int height,
@@ -1800,53 +1713,32 @@ internal static partial class Av1IntraSuperblockEncoder
             int horizontalPhase,
             int verticalPhase,
             int bitDepth)
-            => Av1MotionSearchBase.UInt16Operator.BuildPrediction(
+            => Av1TranslationalInterPredictor.Predict(
                 reference,
                 referenceStride,
                 referenceOrigin,
                 prediction,
-                intermediateRows,
+                predictionStride,
                 width,
                 height,
                 horizontalFilter,
                 verticalFilter,
                 horizontalPhase,
                 verticalPhase,
-                bitDepth);
+                bitDepth,
+                intermediateRows);
 
         /// <inheritdoc/>
-        public static void PreparePrediction(
+        public static void SubtractPrediction(
             ReadOnlySpan<ushort> source,
             int sourceStride,
-            ReadOnlySpan<ushort> reference,
-            int referenceStride,
-            int referenceOrigin,
-            Span<ushort> prediction,
+            ReadOnlySpan<ushort> prediction,
+            int predictionStride,
             Span<short> residual,
-            Span<short> intermediateRows,
             int width,
-            int height,
-            Av1InterpolationFilter horizontalFilter,
-            Av1InterpolationFilter verticalFilter,
-            int horizontalPhase,
-            int verticalPhase,
-            int bitDepth)
-            => Av1MotionSearchBase.UInt16Operator.PreparePrediction(
-                source,
-                sourceStride,
-                reference,
-                referenceStride,
-                referenceOrigin,
-                prediction,
-                residual,
-                intermediateRows,
-                width,
-                height,
-                horizontalFilter,
-                verticalFilter,
-                horizontalPhase,
-                verticalPhase,
-                bitDepth);
+            int height)
+            => Av1ResidualBuilder.Subtract<ushort, Av1ResidualBuilder.UInt16Operator>(
+                source, sourceStride, prediction, predictionStride, residual, width, width, height);
 
         /// <inheritdoc/>
         public static void Predict(
@@ -1860,18 +1752,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int verticalPhase,
             int taps,
             int bitDepth)
-            => Av1MotionSearchBase.UInt16Operator.Predict(
+            => Av1TranslationalInterPredictor.PredictForSearch(
                 reference, referenceStride, referenceOrigin, buffer, width, height, horizontalPhase, verticalPhase, taps, bitDepth);
-
-        /// <inheritdoc/>
-        public static void Subtract(
-            ReadOnlySpan<ushort> source,
-            int sourceStride,
-            ReadOnlySpan<ushort> prediction,
-            Span<short> residual,
-            int width,
-            int height)
-            => Av1MotionSearchBase.UInt16Operator.Subtract(source, sourceStride, prediction, residual, width, height);
 
         /// <inheritdoc/>
         public static void PredictScaled(
@@ -1879,6 +1761,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int referenceStride,
             int referenceOrigin,
             Span<ushort> buffer,
+            int bufferStride,
             int width,
             int height,
             Av1InterpolationFilter horizontalFilter,
@@ -1889,11 +1772,12 @@ internal static partial class Av1IntraSuperblockEncoder
             int verticalStep,
             Span<short> intermediateRows,
             int bitDepth)
-            => Av1MotionSearchBase.UInt16Operator.PredictScaled(
+            => Av1ScaledInterPredictor.PredictScaled(
                 reference,
                 referenceStride,
                 referenceOrigin,
                 buffer,
+                bufferStride,
                 width,
                 height,
                 horizontalFilter,
@@ -1902,8 +1786,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 horizontalStep,
                 verticalPhase,
                 verticalStep,
-                intermediateRows,
-                bitDepth);
+                bitDepth,
+                intermediateRows);
 
         /// <inheritdoc/>
         public static int SumAbsoluteDifferences(
@@ -1914,7 +1798,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int width,
             int height,
             int rowStep)
-            => Av1MotionSearchBase.UInt16Operator.SumAbsoluteDifferences(
+            => Av1ResidualBuilder.SumAbsoluteDifferences<ushort, Av1ResidualBuilder.UInt16Operator>(
                 source, sourceStride, prediction, predictionStride, width, height, rowStep);
 
         /// <inheritdoc/>
@@ -1928,7 +1812,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int width,
             int height,
             int rowStep)
-            => Av1MotionSearchBase.UInt16Operator.SumCompoundAbsoluteDifferences(
+            => Av1ResidualBuilder.SumCompoundAbsoluteDifferences<ushort, Av1ResidualBuilder.UInt16Operator>(
                 source, sourceStride, prediction, predictionStride, secondPrediction, mask, width, height, rowStep);
 
         /// <inheritdoc/>
@@ -1943,7 +1827,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height,
             out int sum,
             out long squares)
-            => Av1MotionSearchBase.UInt16Operator.GetCompoundMoments(
+            => Av1ResidualBuilder.GetCompoundMoments<ushort, Av1ResidualBuilder.UInt16Operator>(
                 source, sourceStride, prediction, predictionStride, secondPrediction, mask, width, height, out sum, out squares);
 
         /// <inheritdoc/>
@@ -1956,7 +1840,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height,
             out int sum,
             out long squares)
-            => Av1MotionSearchBase.UInt16Operator.GetMoments(
+            => Av1ResidualBuilder.GetMoments<ushort, Av1ResidualBuilder.UInt16Operator>(
                 source, sourceStride, prediction, predictionStride, width, height, out sum, out squares);
 
         /// <inheritdoc/>
@@ -1967,7 +1851,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> mask,
             int width,
             int height)
-            => Av1MotionSearchBase.UInt16Operator.SumObmcAbsoluteDifferences(prediction, predictionStride, weightedSource, mask, width, height);
+            => Av1ObmcSearch.SumAbsoluteDifferences<ushort, Av1ObmcSearch.UInt16Operator>(prediction, predictionStride, weightedSource, mask, width, height);
 
         /// <inheritdoc/>
         public static void GetObmcMoments(
@@ -1979,23 +1863,24 @@ internal static partial class Av1IntraSuperblockEncoder
             int height,
             out int sum,
             out ulong squares)
-            => Av1MotionSearchBase.UInt16Operator.GetObmcMoments(prediction, predictionStride, weightedSource, mask, width, height, out sum, out squares);
+            => Av1ObmcSearch.GetMoments<ushort, Av1ObmcSearch.UInt16Operator>(
+                prediction, predictionStride, weightedSource, mask, width, height, out sum, out squares);
 
         /// <inheritdoc/>
         public static void WeightObmcAbove(ReadOnlySpan<ushort> prediction, int weight, Span<int> weightedSource, Span<int> mask, int width)
-            => Av1MotionSearchBase.UInt16Operator.WeightObmcAbove(prediction, weight, weightedSource, mask, width);
+            => Av1ObmcSearch.WeightAbove<ushort, Av1ObmcSearch.UInt16Operator>(prediction, weight, weightedSource, mask, width);
 
         /// <inheritdoc/>
         public static void WeightObmcLeft(ReadOnlySpan<ushort> prediction, ReadOnlySpan<byte> weights, Span<int> weightedSource, Span<int> mask)
-            => Av1MotionSearchBase.UInt16Operator.WeightObmcLeft(prediction, weights, weightedSource, mask);
+            => Av1ObmcSearch.WeightLeft<ushort, Av1ObmcSearch.UInt16Operator>(prediction, weights, weightedSource, mask);
 
         /// <inheritdoc/>
         public static void ScaleObmcTarget(Span<int> weightedSource, Span<int> mask)
-            => Av1MotionSearchBase.UInt16Operator.ScaleObmcTarget(weightedSource, mask);
+            => Av1ObmcSearch.Scale<ushort, Av1ObmcSearch.UInt16Operator>(weightedSource, mask);
 
         /// <inheritdoc/>
         public static void SubtractObmcSource(ReadOnlySpan<ushort> source, Span<int> weightedSource)
-            => Av1MotionSearchBase.UInt16Operator.SubtractObmcSource(source, weightedSource);
+            => Av1ObmcSearch.SubtractFromSource<ushort, Av1ObmcSearch.UInt16Operator>(source, weightedSource);
 
         /// <inheritdoc/>
         public static ushort CreateSample(int value) => (ushort)value;
@@ -2351,44 +2236,6 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <inheritdoc/>
-        public static void SubtractPrediction(
-            ReadOnlySpan<ushort> source,
-            int sourceStride,
-            ReadOnlySpan<ushort> prediction,
-            int predictionStride,
-            Span<short> residual,
-            int width,
-            int height)
-            => Av1ResidualBuilder.Subtract(source, sourceStride, prediction, predictionStride, residual, width, width, height);
-
-        /// <inheritdoc/>
-        public static void SubtractPrediction(
-            ReadOnlySpan<ushort> source,
-            int sourceStride,
-            ReadOnlySpan<ushort> prediction,
-            Span<short> residual,
-            int width,
-            int height)
-            => Av1ResidualBuilder.Subtract(
-                source,
-                sourceStride,
-                prediction,
-                width,
-                residual,
-                width,
-                width,
-                height);
-
-        /// <inheritdoc/>
-        public static void SubtractPackedPrediction(
-            ReadOnlySpan<ushort> minuend,
-            ReadOnlySpan<ushort> subtrahend,
-            Span<short> difference,
-            int width,
-            int height)
-            => Av1ResidualBuilder.Subtract(minuend, width, subtrahend, width, difference, width, width, height);
-
-        /// <inheritdoc/>
         public static void PrepareWarpedInterPrediction(
             Av1PlaneRegion<ushort> reference,
             ReadOnlySpan<ushort> referenceSamples,
@@ -2465,307 +2312,71 @@ internal static partial class Av1IntraSuperblockEncoder
             => Av1CompoundMaskBlendPredictor.Blend(destination, destinationStride, second, secondStride, mask, maskStride, width, height);
 
         /// <inheritdoc/>
-        public static void PredictTranslationalInter(
-            Av1PlaneRegion<ushort> reference,
-            ReadOnlySpan<ushort> referenceSamples,
-            Point predictionOrigin,
-            Av1InterpolationFilter horizontalFilter,
-            Av1InterpolationFilter verticalFilter,
-            int horizontalPhase,
-            int verticalPhase,
-            Span<ushort> prediction,
-            int predictionStride,
+        public static void BuildCompoundIntermediate(
+            ReadOnlySpan<ushort> reference,
+            int referenceStride,
+            int referenceOrigin,
+            Span<ushort> intermediate,
+            Span<short> intermediateRows,
             int width,
             int height,
-            Span<short> filterRows,
-            Av1BitDepth bitDepth)
-        {
-            Rectangle referenceBounds = reference.Bounds;
-            int referenceOrigin =
-                ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
-                referenceBounds.X +
-                predictionOrigin.X;
-
-            Av1TranslationalInterPredictor.Predict(
-                referenceSamples,
-                reference.Stride,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int verticalPhase,
+            int bitDepth)
+            => Av1CompoundInterPredictor.PredictCompound(
+                reference,
+                referenceStride,
                 referenceOrigin,
-                prediction,
-                predictionStride,
+                intermediate,
+                width,
                 width,
                 height,
                 horizontalFilter,
                 verticalFilter,
                 horizontalPhase,
                 verticalPhase,
-                bitDepth.GetBitCount(),
-                filterRows);
-        }
+                bitDepth,
+                intermediateRows);
 
         /// <inheritdoc/>
-        public static void PredictScaledInter(
-            Av1PlaneRegion<ushort> reference,
-            ReadOnlySpan<ushort> referenceSamples,
-            Point predictionOrigin,
-            Av1InterpolationFilter horizontalFilter,
-            Av1InterpolationFilter verticalFilter,
-            int horizontalPhase,
-            int horizontalStep,
-            int verticalPhase,
-            int verticalStep,
+        public static void AverageCompoundIntermediates(
             Span<ushort> prediction,
-            int predictionStride,
+            ReadOnlySpan<ushort> first,
+            ReadOnlySpan<ushort> second,
             int width,
             int height,
-            Span<short> filterRows,
-            Av1BitDepth bitDepth)
-        {
-            Rectangle referenceBounds = reference.Bounds;
-            int referenceOrigin =
-                ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
-                referenceBounds.X +
-                predictionOrigin.X;
-
-            Av1ScaledInterPredictor.PredictScaled(
-                referenceSamples,
-                reference.Stride,
-                referenceOrigin,
-                prediction,
-                predictionStride,
-                width,
-                height,
-                horizontalFilter,
-                verticalFilter,
-                horizontalPhase,
-                horizontalStep,
-                verticalPhase,
-                verticalStep,
-                bitDepth.GetBitCount(),
-                filterRows);
-        }
+            int bitDepth)
+            => Av1CompoundIntermediateAveragePredictor.AverageIntermediate(prediction, width, first, width, second, width, width, height, bitDepth);
 
         /// <inheritdoc/>
-        public static void PrepareTranslationalInterPrediction(
-            Av1PlaneRegion<ushort> source,
-            ReadOnlySpan<ushort> sourceSamples,
-            Point blockOrigin,
-            Av1PlaneRegion<ushort> reference,
-            ReadOnlySpan<ushort> referenceSamples,
-            Point predictionOrigin,
-            Av1InterpolationFilter horizontalFilter,
-            Av1InterpolationFilter verticalFilter,
-            int horizontalPhase,
-            int verticalPhase,
+        public static void WeightCompoundIntermediates(
             Span<ushort> prediction,
-            Span<short> residual,
-            Span<short> filterRows,
-            Av1BlockSize predictionSize,
-            Av1BitDepth bitDepth)
-        {
-            int width = predictionSize.GetWidth();
-            int height = predictionSize.GetHeight();
-            Rectangle referenceBounds = reference.Bounds;
-            int referenceOrigin =
-                ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
-                referenceBounds.X +
-                predictionOrigin.X;
-
-            Av1TranslationalInterPredictor.Predict(
-                referenceSamples,
-                reference.Stride,
-                referenceOrigin,
-                prediction,
-                width,
-                width,
-                height,
-                horizontalFilter,
-                verticalFilter,
-                horizontalPhase,
-                verticalPhase,
-                bitDepth.GetBitCount(),
-                filterRows);
-
-            Av1ResidualBuilder.Subtract(
-                Av1TransformBlockEncoder.GetPlaneSpan(sourceSamples, source, blockOrigin),
-                source.Stride,
-                prediction,
-                width,
-                residual,
-                width,
-                width,
-                height);
-        }
-
-        /// <inheritdoc/>
-        public static void PrepareCompoundInterPrediction(
-            Av1PlaneRegion<ushort> source,
-            ReadOnlySpan<ushort> sourceSamples,
-            Point blockOrigin,
-            Av1PlaneRegion<ushort> primaryReference,
-            ReadOnlySpan<ushort> primaryReferenceSamples,
-            Point primaryPredictionOrigin,
-            int primaryHorizontalPhase,
-            int primaryVerticalPhase,
-            Av1PlaneRegion<ushort> secondaryReference,
-            ReadOnlySpan<ushort> secondaryReferenceSamples,
-            Point secondaryPredictionOrigin,
-            int secondaryHorizontalPhase,
-            int secondaryVerticalPhase,
-            Av1InterpolationFilter horizontalFilter,
-            Av1InterpolationFilter verticalFilter,
-            Span<ushort> prediction,
-            Span<short> residual,
-            Span<ushort> firstIntermediate,
-            Span<ushort> secondIntermediate,
-            Span<byte> compoundMask,
-            Span<short> filterRows,
-            Av1BlockSize predictionSize,
-            Av1BitDepth bitDepth,
-            Av1Plane plane,
-            Av1BlockSize lumaBlockSize,
-            Av1CompoundType compoundType,
+            ReadOnlySpan<ushort> first,
+            ReadOnlySpan<ushort> second,
+            int width,
+            int height,
             int firstWeight,
             int secondWeight,
+            int bitDepth)
+            => Av1CompoundIntermediateDistanceWeightedPredictor.DistanceWeightedIntermediate(
+                prediction, width, first, width, second, width, width, height, firstWeight, secondWeight, bitDepth);
+
+        /// <inheritdoc/>
+        public static void BlendCompoundIntermediates(
+            Span<ushort> prediction,
+            ReadOnlySpan<ushort> first,
+            ReadOnlySpan<ushort> second,
+            ReadOnlySpan<byte> mask,
+            int maskStride,
+            int width,
+            int height,
             int subsamplingX,
             int subsamplingY,
-            int wedgeIndex,
-            bool wedgeSign,
-            Av1DifferenceWeightedMaskType differenceWeightedMaskType,
-            bool primaryPrepared,
-            bool secondaryPrepared)
-        {
-            int width = predictionSize.GetWidth();
-            int height = predictionSize.GetHeight();
-            Rectangle primaryBounds = primaryReference.Bounds;
-            int primaryOrigin = ((primaryBounds.Y + primaryPredictionOrigin.Y) * primaryReference.Stride) +
-                primaryBounds.X + primaryPredictionOrigin.X;
-
-            Rectangle secondaryBounds = secondaryReference.Bounds;
-            int secondaryOrigin = ((secondaryBounds.Y + secondaryPredictionOrigin.Y) * secondaryReference.Stride) +
-                secondaryBounds.X + secondaryPredictionOrigin.X;
-
-            if (!primaryPrepared)
-            {
-                Av1CompoundInterPredictor.PredictCompound(
-                    primaryReferenceSamples,
-                    primaryReference.Stride,
-                    primaryOrigin,
-                    firstIntermediate,
-                    width,
-                    width,
-                    height,
-                    horizontalFilter,
-                    verticalFilter,
-                    primaryHorizontalPhase,
-                    primaryVerticalPhase,
-                    bitDepth.GetBitCount(),
-                    filterRows);
-            }
-
-            if (!secondaryPrepared)
-            {
-                Av1CompoundInterPredictor.PredictCompound(
-                    secondaryReferenceSamples,
-                    secondaryReference.Stride,
-                    secondaryOrigin,
-                    secondIntermediate,
-                    width,
-                    width,
-                    height,
-                    horizontalFilter,
-                    verticalFilter,
-                    secondaryHorizontalPhase,
-                    secondaryVerticalPhase,
-                    bitDepth.GetBitCount(),
-                    filterRows);
-            }
-
-            int bitCount = bitDepth.GetBitCount();
-            switch (compoundType)
-            {
-                case Av1CompoundType.DistanceWeighted:
-                    Av1CompoundIntermediateDistanceWeightedPredictor.DistanceWeightedIntermediate(
-                        prediction,
-                        width,
-                        firstIntermediate,
-                        width,
-                        secondIntermediate,
-                        width,
-                        width,
-                        height,
-                        firstWeight,
-                        secondWeight,
-                        bitCount);
-
-                    break;
-                case Av1CompoundType.Wedge:
-                    Av1WedgeMask.Fill(compoundMask, lumaBlockSize.GetWidth(), lumaBlockSize, wedgeIndex, wedgeSign, 0, 0, invert: false);
-                    Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
-                        prediction,
-                        width,
-                        firstIntermediate,
-                        width,
-                        secondIntermediate,
-                        width,
-                        compoundMask,
-                        lumaBlockSize.GetWidth(),
-                        width,
-                        height,
-                        subsamplingX,
-                        subsamplingY,
-                        bitCount);
-
-                    break;
-                case Av1CompoundType.DifferenceWeighted:
-                    // Chroma reuses the luma mask even when its sample dimensions are identical.
-                    if (plane == Av1Plane.Y)
-                    {
-                        Av1CompoundIntermediateDifferenceWeightedMaskBuilder.FillDifferenceWeightedIntermediateMask(
-                            compoundMask,
-                            width,
-                            firstIntermediate,
-                            width,
-                            secondIntermediate,
-                            width,
-                            width,
-                            height,
-                            bitCount,
-                            differenceWeightedMaskType);
-                    }
-
-                    Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
-                        prediction,
-                        width,
-                        firstIntermediate,
-                        width,
-                        secondIntermediate,
-                        width,
-                        compoundMask,
-                        lumaBlockSize.GetWidth(),
-                        width,
-                        height,
-                        subsamplingX,
-                        subsamplingY,
-                        bitCount);
-
-                    break;
-                default:
-                    Av1CompoundIntermediateAveragePredictor.AverageIntermediate(
-                        prediction, width, firstIntermediate, width, secondIntermediate, width, width, height, bitCount);
-
-                    break;
-            }
-
-            Av1ResidualBuilder.Subtract(
-                Av1TransformBlockEncoder.GetPlaneSpan(sourceSamples, source, blockOrigin),
-                source.Stride,
-                prediction,
-                width,
-                residual,
-                width,
-                width,
-                height);
-        }
+            int bitDepth)
+            => Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
+                prediction, width, first, width, second, width, mask, maskStride, width, height, subsamplingX, subsamplingY, bitDepth);
 
         /// <inheritdoc/>
         public static void BuildCompoundDifferenceMask(
@@ -2786,23 +2397,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 size.Height,
                 bitDepth.GetBitCount(),
                 maskType);
-
-        /// <inheritdoc/>
-        public static void BlendInterIntraPrediction(
-            Span<ushort> interPrediction,
-            ReadOnlySpan<ushort> intraPrediction,
-            ReadOnlySpan<byte> mask,
-            int width,
-            int height)
-            => Av1CompoundMaskBlendPredictor.Blend(
-                interPrediction,
-                width,
-                intraPrediction,
-                width,
-                mask,
-                width,
-                width,
-                height);
 
         /// <inheritdoc/>
         public static void ApplyChromaFromLuma(

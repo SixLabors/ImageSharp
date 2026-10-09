@@ -1266,21 +1266,17 @@ internal static partial class Av1MotionSearchBase
                 // A scaled reference predicts from the reference itself, with its scale factors.
                 this.scaledReference.Predict<TOperator>(
                     vector, this.prediction, new Size(width, height), horizontalFilter, verticalFilter, this.bitDepth.GetBitCount());
-
-                TOperator.Subtract(this.source, this.sourceStride, this.prediction, this.residual, width, height);
             }
             else
             {
                 // The final predictor takes its phases in sixteenth samples, so the eighth-sample fraction doubles.
                 int origin = this.referenceOrigin + ((vector.Row >> 3) * this.referenceStride) + (vector.Column >> 3);
-                TOperator.PreparePrediction(
-                    this.source,
-                    this.sourceStride,
+                TOperator.BuildPrediction(
                     this.reference,
                     this.referenceStride,
                     origin,
                     this.prediction,
-                    this.residual,
+                    width,
                     this.convolutionStorage,
                     width,
                     height,
@@ -1290,6 +1286,9 @@ internal static partial class Av1MotionSearchBase
                     (vector.Row & 7) << 1,
                     this.bitDepth.GetBitCount());
             }
+
+            // Both predictors write a packed prediction, so the residual uses the block width as the prediction stride.
+            TOperator.SubtractPrediction(this.source, this.sourceStride, this.prediction, width, this.residual, width, height);
 
             // The prediction also goes into the frame, before the transform estimate.
             Av1TransformBlockEncoder.WriteFrameSamples(this.frame, this.frame.Samples, this.blockOrigin, this.prediction, width, width, height);

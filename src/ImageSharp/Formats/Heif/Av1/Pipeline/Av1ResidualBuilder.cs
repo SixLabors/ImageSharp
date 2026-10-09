@@ -118,7 +118,7 @@ internal static partial class Av1ResidualBuilder
     /// <param name="height">The block height, in samples.</param>
     /// <param name="rowStep">One for every row, or two for every second row with a doubled error.</param>
     /// <returns>The unnormalized absolute difference over the block.</returns>
-    private static int SumAbsoluteDifferences<TSample, TOperator>(
+    public static int SumAbsoluteDifferences<TSample, TOperator>(
         ReadOnlySpan<TSample> source,
         int sourceStride,
         ReadOnlySpan<TSample> prediction,
@@ -242,7 +242,7 @@ internal static partial class Av1ResidualBuilder
     /// <param name="height">The block height, in samples.</param>
     /// <param name="sum">The unnormalized signed residual sum.</param>
     /// <param name="sumOfSquares">The unnormalized squared residual sum.</param>
-    private static void GetMoments<TSample, TOperator>(
+    public static void GetMoments<TSample, TOperator>(
         ReadOnlySpan<TSample> source,
         int sourceStride,
         ReadOnlySpan<TSample> prediction,
@@ -1078,7 +1078,7 @@ internal static partial class Av1ResidualBuilder
     /// <param name="residualStride">The residual row stride.</param>
     /// <param name="width">The number of samples per row.</param>
     /// <param name="height">The number of rows.</param>
-    private static void Subtract<TSample, TOperator>(
+    public static void Subtract<TSample, TOperator>(
         ReadOnlySpan<TSample> source,
         int sourceStride,
         ReadOnlySpan<TSample> prediction,

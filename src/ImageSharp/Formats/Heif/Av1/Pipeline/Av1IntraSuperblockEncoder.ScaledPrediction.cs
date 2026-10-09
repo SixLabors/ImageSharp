@@ -161,22 +161,30 @@ internal static partial class Av1IntraSuperblockEncoder
                 subsamplingX,
                 subsamplingY);
 
-            TOperator.PredictScaledInter(
-                reference.CodedView.GetPlane(plane),
-                reference.CodedView.GetPlane(plane).Samples,
-                new Point(position.X >> Av1ReferenceScale.SubpixelBits, position.Y >> Av1ReferenceScale.SubpixelBits),
+            // The integer part of the position selects the first reference sample. The plane bounds move it into the complete padded plane.
+            Av1PlaneRegion<TSample> referencePlane = reference.CodedView.GetPlane(plane);
+            Rectangle referenceBounds = referencePlane.Bounds;
+            int referenceOrigin =
+                ((referenceBounds.Y + (position.Y >> Av1ReferenceScale.SubpixelBits)) * referencePlane.Stride) +
+                referenceBounds.X +
+                (position.X >> Av1ReferenceScale.SubpixelBits);
+
+            TOperator.PredictScaled(
+                referencePlane.Samples,
+                referencePlane.Stride,
+                referenceOrigin,
+                prediction,
+                predictionStride,
+                width,
+                height,
                 horizontalFilter,
                 verticalFilter,
                 position.X & Av1ReferenceScale.SubpixelMask,
                 scale.HorizontalStep,
                 position.Y & Av1ReferenceScale.SubpixelMask,
                 scale.VerticalStep,
-                prediction,
-                predictionStride,
-                width,
-                height,
                 filterRows,
-                this.bitDepth);
+                this.bitDepth.GetBitCount());
         }
 
         /// <summary>
@@ -238,6 +246,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                 sourcePlane.Stride,
                 prediction[..sampleCount],
+                width,
                 residual[..sampleCount],
                 width,
                 height);

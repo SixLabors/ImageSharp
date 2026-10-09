@@ -20,7 +20,8 @@ internal static partial class Av1MotionSearchBase
         /// <param name="reference">The complete bordered reference plane.</param>
         /// <param name="referenceStride">The reference row stride.</param>
         /// <param name="referenceOrigin">The displaced integer origin.</param>
-        /// <param name="prediction">The packed prediction destination.</param>
+        /// <param name="prediction">The prediction destination.</param>
+        /// <param name="predictionStride">The prediction row stride. The prediction width selects a packed prediction.</param>
         /// <param name="intermediateRows">The signed intermediate convolution storage.</param>
         /// <param name="width">The prediction width.</param>
         /// <param name="height">The prediction height.</param>
@@ -34,6 +35,7 @@ internal static partial class Av1MotionSearchBase
             int referenceStride,
             int referenceOrigin,
             Span<TSample> prediction,
+            int predictionStride,
             Span<short> intermediateRows,
             int width,
             int height,
@@ -44,53 +46,20 @@ internal static partial class Av1MotionSearchBase
             int bitDepth);
 
         /// <summary>
-        /// Builds the final inter predictor and its residual for transform-based winner selection.
+        /// Subtracts a prediction from its source into a residual packed at the block width.
         /// </summary>
         /// <param name="source">The source samples at the block origin.</param>
         /// <param name="sourceStride">The source row stride.</param>
-        /// <param name="reference">The complete bordered reference plane.</param>
-        /// <param name="referenceStride">The reference row stride.</param>
-        /// <param name="referenceOrigin">The displaced integer reference origin.</param>
-        /// <param name="prediction">The packed prediction destination.</param>
-        /// <param name="residual">The packed residual destination.</param>
-        /// <param name="intermediateRows">The signed intermediate convolution storage.</param>
-        /// <param name="width">The prediction width.</param>
-        /// <param name="height">The prediction height.</param>
-        /// <param name="horizontalFilter">The final horizontal interpolation family.</param>
-        /// <param name="verticalFilter">The final vertical interpolation family.</param>
-        /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
-        /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-        /// <param name="bitDepth">The coded sample precision.</param>
-        public static abstract void PreparePrediction(
-            ReadOnlySpan<TSample> source,
-            int sourceStride,
-            ReadOnlySpan<TSample> reference,
-            int referenceStride,
-            int referenceOrigin,
-            Span<TSample> prediction,
-            Span<short> residual,
-            Span<short> intermediateRows,
-            int width,
-            int height,
-            Av1InterpolationFilter horizontalFilter,
-            Av1InterpolationFilter verticalFilter,
-            int horizontalPhase,
-            int verticalPhase,
-            int bitDepth);
-
-        /// <summary>
-        /// Subtracts a packed prediction from the source into a packed residual.
-        /// </summary>
-        /// <param name="source">The source samples at the block origin.</param>
-        /// <param name="sourceStride">The source row stride.</param>
-        /// <param name="prediction">The packed prediction.</param>
-        /// <param name="residual">The packed residual destination.</param>
+        /// <param name="prediction">The prediction samples at the block origin.</param>
+        /// <param name="predictionStride">The prediction row stride. The block width selects a packed prediction.</param>
+        /// <param name="residual">The residual destination, packed at the block width.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
-        public static abstract void Subtract(
+        public static abstract void SubtractPrediction(
             ReadOnlySpan<TSample> source,
             int sourceStride,
             ReadOnlySpan<TSample> prediction,
+            int predictionStride,
             Span<short> residual,
             int width,
             int height);
@@ -121,13 +90,14 @@ internal static partial class Av1MotionSearchBase
             int bitDepth);
 
         /// <summary>
-        /// Produces a packed prediction from a reference of another size than the frame.
+        /// Produces a prediction from a reference of another size than the frame.
         /// The source position and phase step by the scale of each axis.
         /// </summary>
         /// <param name="reference">The bordered reference plane.</param>
         /// <param name="referenceStride">The reference row stride.</param>
         /// <param name="referenceOrigin">The integer reference position of the first output sample.</param>
         /// <param name="buffer">The prediction destination.</param>
+        /// <param name="bufferStride">The prediction row stride. The block width selects a packed prediction.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
@@ -143,6 +113,7 @@ internal static partial class Av1MotionSearchBase
             int referenceStride,
             int referenceOrigin,
             Span<TSample> buffer,
+            int bufferStride,
             int width,
             int height,
             Av1InterpolationFilter horizontalFilter,
@@ -243,77 +214,5 @@ internal static partial class Av1MotionSearchBase
             int height,
             out int sum,
             out long squares);
-
-        /// <summary>
-        /// Measures the rounded OBMC absolute differences of a prediction against the OBMC search target.
-        /// </summary>
-        /// <param name="prediction">The prediction samples at the block origin.</param>
-        /// <param name="predictionStride">The prediction row stride.</param>
-        /// <param name="weightedSource">The weighted source, packed at the block width.</param>
-        /// <param name="mask">The prediction weights, packed at the block width.</param>
-        /// <param name="width">The block width.</param>
-        /// <param name="height">The block height.</param>
-        /// <returns>The sum of the rounded absolute differences.</returns>
-        static abstract int SumObmcAbsoluteDifferences(
-            ReadOnlySpan<TSample> prediction,
-            int predictionStride,
-            ReadOnlySpan<int> weightedSource,
-            ReadOnlySpan<int> mask,
-            int width,
-            int height);
-
-        /// <summary>
-        /// Measures the signed and squared sums of the rounded OBMC differences of a prediction.
-        /// </summary>
-        /// <param name="prediction">The prediction samples at the block origin.</param>
-        /// <param name="predictionStride">The prediction row stride.</param>
-        /// <param name="weightedSource">The weighted source, packed at the block width.</param>
-        /// <param name="mask">The prediction weights, packed at the block width.</param>
-        /// <param name="width">The block width.</param>
-        /// <param name="height">The block height.</param>
-        /// <param name="sum">The signed sum of the rounded differences.</param>
-        /// <param name="squares">The sum of their squares.</param>
-        static abstract void GetObmcMoments(
-            ReadOnlySpan<TSample> prediction,
-            int predictionStride,
-            ReadOnlySpan<int> weightedSource,
-            ReadOnlySpan<int> mask,
-            int width,
-            int height,
-            out int sum,
-            out ulong squares);
-
-        /// <summary>
-        /// Writes one row of the above-neighbor term of the OBMC search target.
-        /// </summary>
-        /// <param name="prediction">The above-neighbor prediction row.</param>
-        /// <param name="weight">The weight of the block's own prediction on this row.</param>
-        /// <param name="weightedSource">The weighted source row to write.</param>
-        /// <param name="mask">The prediction weight row to write.</param>
-        /// <param name="width">The number of samples to write.</param>
-        static abstract void WeightObmcAbove(ReadOnlySpan<TSample> prediction, int weight, Span<int> weightedSource, Span<int> mask, int width);
-
-        /// <summary>
-        /// Blends one row of the left-neighbor term into the OBMC search target.
-        /// </summary>
-        /// <param name="prediction">The left-neighbor prediction row.</param>
-        /// <param name="weights">The column weights of the block's own prediction, one per overlapped column.</param>
-        /// <param name="weightedSource">The weighted source row to update.</param>
-        /// <param name="mask">The prediction weight row to update.</param>
-        static abstract void WeightObmcLeft(ReadOnlySpan<TSample> prediction, ReadOnlySpan<byte> weights, Span<int> weightedSource, Span<int> mask);
-
-        /// <summary>
-        /// Scales the OBMC search target by the maximum blend weight.
-        /// </summary>
-        /// <param name="weightedSource">The weighted source to update.</param>
-        /// <param name="mask">The prediction weights to update.</param>
-        static abstract void ScaleObmcTarget(Span<int> weightedSource, Span<int> mask);
-
-        /// <summary>
-        /// Replaces one row of OBMC neighbor terms with the scaled source minus the term.
-        /// </summary>
-        /// <param name="source">The source row.</param>
-        /// <param name="weightedSource">The weighted source row to update.</param>
-        static abstract void SubtractObmcSource(ReadOnlySpan<TSample> source, Span<int> weightedSource);
     }
 }

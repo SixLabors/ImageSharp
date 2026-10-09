@@ -1578,7 +1578,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (planeIndex == 0)
                 {
                     TOperator.SubtractPrediction(
-                        sourceSamples[sourcePlane.GetOffset(origin.X, origin.Y)..], sourcePlane.Stride, prediction, residual, width, planeSize.GetHeight());
+                        sourceSamples[sourcePlane.GetOffset(origin.X, origin.Y)..],
+                        sourcePlane.Stride,
+                        prediction,
+                        width,
+                        residual,
+                        width,
+                        planeSize.GetHeight());
 
                     Size residualExtent = GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0);
                     Av1IntraModeEstimator.Estimate(
@@ -1783,6 +1789,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                         sourcePlane.Stride,
                         prediction,
+                        stride,
                         interWorkspace.Residual,
                         stride,
                         planeBlock.GetHeight());
@@ -3421,6 +3428,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, lumaSource, blockOrigin),
                 lumaSource.Stride,
                 lumaPrediction,
+                width,
                 residual,
                 width,
                 height);

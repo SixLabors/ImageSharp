@@ -133,6 +133,7 @@ internal static partial class Av1MotionSearchBase
                 this.planeOrigin + ((position.Y >> Av1ReferenceScale.SubpixelBits) * this.stride) + (position.X >> Av1ReferenceScale.SubpixelBits),
                 prediction,
                 blockSize.Width,
+                blockSize.Width,
                 blockSize.Height,
                 horizontalFilter,
                 verticalFilter,

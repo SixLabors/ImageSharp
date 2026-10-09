@@ -2955,7 +2955,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int primaryRowQ4 = (blockOrigin.Y << 4) + (vector.Row << 1);
                 int secondaryColumnQ4 = (blockOrigin.X << 4) + (secondaryVector.Column << 1);
                 int secondaryRowQ4 = (blockOrigin.Y << 4) + (secondaryVector.Row << 1);
-                TOperator.PrepareCompoundInterPrediction(
+                PrepareCompoundInterPrediction<TSample, TOperator>(
                     this.source.GetPlane(Av1Plane.Y),
                     sourceLuma,
                     blockOrigin,
@@ -3033,6 +3033,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, lumaSource, blockOrigin),
                     lumaSource.Stride,
                     prediction[..(width * height)],
+                    width,
                     residual[..(width * height)],
                     width,
                     height);
@@ -3069,7 +3070,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 int columnQ4 = (blockOrigin.X << 4) + (vector.Column << 1);
                 int rowQ4 = (blockOrigin.Y << 4) + (vector.Row << 1);
-                TOperator.PrepareTranslationalInterPrediction(
+                PrepareTranslationalInterPrediction<TSample, TOperator>(
                     this.source.GetPlane(Av1Plane.Y),
                     sourceLuma,
                     blockOrigin,
@@ -3294,6 +3295,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, lumaSource, blockOrigin),
                     lumaSource.Stride,
                     interWorkspace.LumaPrediction,
+                    blockWidth,
                     residual,
                     blockWidth,
                     blockHeight);
@@ -3320,6 +3322,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, lumaSource, blockOrigin),
                         lumaSource.Stride,
                         interWorkspace.LumaPrediction,
+                        blockWidth,
                         residual,
                         blockWidth,
                         blockHeight);
@@ -3592,6 +3595,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, lumaSource, blockOrigin),
                 lumaSource.Stride,
                 interWorkspace.LumaPrediction,
+                width,
                 residual,
                 width,
                 height);
@@ -3875,6 +3879,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, lumaSource, origin),
                 lumaSource.Stride,
                 transformPrediction,
+                transformSize.GetWidth(),
                 residual,
                 transformSize.GetWidth(),
                 transformSize.GetHeight());
@@ -6095,7 +6100,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 interPrediction.CopyTo(blendedPrediction);
                 Av1InterIntraMaskBuilder.FillInterIntraMask(mask, width, width, height, mode, invert: true);
-                TOperator.BlendInterIntraPrediction(blendedPrediction, intraPrediction, mask, width, height);
+                TOperator.BlendMask(blendedPrediction, width, intraPrediction, width, mask, width, width, height);
 
                 // The blend also goes into the frame. The single prediction went into separate storage.
                 this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, blendedPrediction);
@@ -6162,7 +6167,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             interPrediction.CopyTo(blendedPrediction);
             Av1InterIntraMaskBuilder.FillInterIntraMask(mask, width, width, height, selectedMode, invert: true);
-            TOperator.BlendInterIntraPrediction(blendedPrediction, selectedIntra, mask, width, height);
+            TOperator.BlendMask(blendedPrediction, width, selectedIntra, width, mask, width, width, height);
 
             // The blend of the best mode is built again and also goes into the frame.
             this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, blendedPrediction);
@@ -6230,7 +6235,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     mode);
 
                 // The inter prediction minus the intra prediction goes into the intra residual buffer, which is not read again.
-                TOperator.SubtractPackedPrediction(interPrediction, wedgeIntra, intraResidual, width, height);
+                TOperator.SubtractPrediction(interPrediction, width, wedgeIntra, width, intraResidual, width, height);
                 long bestMaskCost = long.MaxValue;
                 int bestMaskIndex = 0;
                 for (int index = 0; index < 16; index++)
@@ -6408,7 +6413,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     {
                         int trialColumnQ4 = (blockOrigin.X << 4) + (trialVector.Column << 1);
                         int trialRowQ4 = (blockOrigin.Y << 4) + (trialVector.Row << 1);
-                        TOperator.PrepareTranslationalInterPrediction(
+                        PrepareTranslationalInterPrediction<TSample, TOperator>(
                             sourcePlane,
                             sourceLuma,
                             blockOrigin,
@@ -6426,7 +6431,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             this.bitDepth);
                     }
 
-                    TOperator.BlendInterIntraPrediction(blendedPrediction, selectedIntra, mask, width, height);
+                    TOperator.BlendMask(blendedPrediction, width, selectedIntra, width, mask, width, width, height);
 
                     // The blend of the refined vector also goes into the frame.
                     this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, blendedPrediction);
@@ -6473,7 +6478,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (wedgeVector == vector)
             {
                 interPrediction.CopyTo(blendedPrediction);
-                TOperator.BlendInterIntraPrediction(blendedPrediction, selectedIntra, mask, width, height);
+                TOperator.BlendMask(blendedPrediction, width, selectedIntra, width, mask, width, width, height);
 
                 // The restored blend also goes into the frame.
                 this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, blendedPrediction);
@@ -6570,6 +6575,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, lumaSource, blockOrigin),
                 lumaSource.Stride,
                 interWorkspace.LumaPrediction,
+                width,
                 interWorkspace.Residual,
                 width,
                 height);
@@ -6922,7 +6928,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1InterIntraMaskBuilder.FillInterIntraMask(compoundMask, width, width, height, interIntraMode, invert: true);
                 }
 
-                TOperator.BlendInterIntraPrediction(interPrediction, intraPrediction[..sampleCount], compoundMask, width, height);
+                TOperator.BlendMask(interPrediction, width, intraPrediction[..sampleCount], width, compoundMask, width, width, height);
 
                 // The blended luma also goes into the frame.
                 if (plane == Av1Plane.Y)
@@ -9640,7 +9646,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     else
                     {
                         firstPrediction.CopyTo(interWorkspace.LumaPrediction);
-                        TOperator.BlendInterIntraPrediction(interWorkspace.LumaPrediction, secondPrediction, mask, width, height);
+                        TOperator.BlendMask(interWorkspace.LumaPrediction, width, secondPrediction, width, mask, width, width, height);
                     }
 
                     int typeIndex = (int)type;
@@ -9673,7 +9679,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         trialSecondary = initialSecondary;
                         motionRate = initialMotionRate;
                         firstPrediction.CopyTo(interWorkspace.LumaPrediction);
-                        TOperator.BlendInterIntraPrediction(interWorkspace.LumaPrediction, secondPrediction, mask, width, height);
+                        TOperator.BlendMask(interWorkspace.LumaPrediction, width, secondPrediction, width, mask, width, width, height);
                         model = maskModel + Av1RateDistortion.GetCost(this.rateMultiplier, blendRate + motionRate, 0);
                     }
 
@@ -9968,11 +9974,11 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> mask = compoundMask[..count];
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin);
-            TOperator.SubtractPrediction(sourceBlock, sourcePlane.Stride, firstPrediction, firstResidual, width, height);
-            TOperator.SubtractPrediction(sourceBlock, sourcePlane.Stride, secondPrediction, secondResidual, width, height);
+            TOperator.SubtractPrediction(sourceBlock, sourcePlane.Stride, firstPrediction, width, firstResidual, width, height);
+            TOperator.SubtractPrediction(sourceBlock, sourcePlane.Stride, secondPrediction, width, secondResidual, width, height);
 
-            // The difference is the second prediction minus the first.
-            TOperator.SubtractPackedPrediction(secondPrediction, firstPrediction, difference, width, height);
+            // The difference is the second prediction minus the first. Both predictions are packed at the block width.
+            TOperator.SubtractPrediction(secondPrediction, width, firstPrediction, width, difference, width, height);
 
             bool fastSign = this.picture.Parent.SpeedSettings.FastWedgeSignEstimation;
             bool fixedSign = false;
@@ -10222,7 +10228,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1MotionVector referenceVector = referenceMotionVectors.GetCompoundNewReference(stackIndex, component);
                 int columnQ4 = (blockOrigin.X << 4) + (other.Column << 1);
                 int rowQ4 = (blockOrigin.Y << 4) + (other.Row << 1);
-                TOperator.PrepareTranslationalInterPrediction(
+                PrepareTranslationalInterPrediction<TSample, TOperator>(
                     sourcePlane,
                     sourceLuma,
                     blockOrigin,
@@ -13194,6 +13200,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                 sourcePlane.Stride,
                 prediction[..sampleCount],
+                planeWidth,
                 residual[..sampleCount],
                 planeWidth,
                 planeHeight);
@@ -13253,7 +13260,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int columnQ4 = (planeOrigin.X << 4) + (vector.Column << (1 - subsamplingX));
             int rowQ4 = (planeOrigin.Y << 4) + (vector.Row << (1 - subsamplingY));
-            TOperator.PredictTranslationalInter(
+            PredictTranslationalInter<TSample, TOperator>(
                 reference,
                 reference.Samples,
                 new Point(columnQ4 >> 4, rowQ4 >> 4),
@@ -13407,7 +13414,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     int columnQ4 = ((planeOrigin.X + x) << 4) + (subVector.Column << (1 - subsamplingX));
                     int rowQ4 = ((planeOrigin.Y + y) << 4) + (subVector.Row << (1 - subsamplingY));
-                    TOperator.PredictTranslationalInter(
+                    PredictTranslationalInter<TSample, TOperator>(
                         subReference,
                         subReferenceSamples,
                         new Point(columnQ4 >> 4, rowQ4 >> 4),
@@ -13430,6 +13437,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                 sourcePlane.Stride,
                 prediction[..sampleCount],
+                planeWidth,
                 residual[..sampleCount],
                 planeWidth,
                 planeHeight);
@@ -13588,6 +13596,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                     sourcePlane.Stride,
                     prediction[..sampleCount],
+                    width,
                     residual[..sampleCount],
                     width,
                     height);
@@ -13619,7 +13628,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int columnQ4 = (planeOrigin.X << 4) + (vector.Column << (1 - subsamplingX));
             int rowQ4 = (planeOrigin.Y << 4) + (vector.Row << (1 - subsamplingY));
-            TOperator.PrepareTranslationalInterPrediction(
+            PrepareTranslationalInterPrediction<TSample, TOperator>(
                 sourcePlane,
                 SelectPlane(plane, sourceLuma, sourceBlue, sourceRed),
                 planeOrigin,
@@ -13741,6 +13750,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                     sourcePlane.Stride,
                     prediction[..sampleCount],
+                    predictionSize.GetWidth(),
                     residual[..sampleCount],
                     predictionSize.GetWidth(),
                     predictionSize.GetHeight());
@@ -13792,7 +13802,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     secondIntermediate,
                     filterRows);
 
-                TOperator.PrepareCompoundInterPrediction(
+                PrepareCompoundInterPrediction<TSample, TOperator>(
                     sourcePlane,
                     SelectPlane(plane, sourceLuma, sourceBlue, sourceRed),
                     planeOrigin,
@@ -13888,6 +13898,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                         sourcePlane.Stride,
                         prediction[..sampleCount],
+                        predictionSize.GetWidth(),
                         residual[..sampleCount],
                         predictionSize.GetWidth(),
                         predictionSize.GetHeight());
@@ -13918,7 +13929,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
                 else
                 {
-                    TOperator.PrepareTranslationalInterPrediction(
+                    PrepareTranslationalInterPrediction<TSample, TOperator>(
                         sourcePlane,
                         SelectPlane(plane, sourceLuma, sourceBlue, sourceRed),
                         planeOrigin,

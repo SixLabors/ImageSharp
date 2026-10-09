@@ -19,6 +19,7 @@ internal static partial class Av1MotionSearchBase
             int referenceStride,
             int referenceOrigin,
             Span<ushort> prediction,
+            int predictionStride,
             Span<short> intermediateRows,
             int width,
             int height,
@@ -32,7 +33,7 @@ internal static partial class Av1MotionSearchBase
                 referenceStride,
                 referenceOrigin,
                 prediction,
-                width,
+                predictionStride,
                 width,
                 height,
                 horizontalFilter,
@@ -43,39 +44,16 @@ internal static partial class Av1MotionSearchBase
                 intermediateRows);
 
         /// <inheritdoc/>
-        public static void PreparePrediction(
+        public static void SubtractPrediction(
             ReadOnlySpan<ushort> source,
             int sourceStride,
-            ReadOnlySpan<ushort> reference,
-            int referenceStride,
-            int referenceOrigin,
-            Span<ushort> prediction,
+            ReadOnlySpan<ushort> prediction,
+            int predictionStride,
             Span<short> residual,
-            Span<short> intermediateRows,
             int width,
-            int height,
-            Av1InterpolationFilter horizontalFilter,
-            Av1InterpolationFilter verticalFilter,
-            int horizontalPhase,
-            int verticalPhase,
-            int bitDepth)
-        {
-            BuildPrediction(
-                reference,
-                referenceStride,
-                referenceOrigin,
-                prediction,
-                intermediateRows,
-                width,
-                height,
-                horizontalFilter,
-                verticalFilter,
-                horizontalPhase,
-                verticalPhase,
-                bitDepth);
-
-            Av1ResidualBuilder.Subtract(source, sourceStride, prediction, width, residual, width, width, height);
-        }
+            int height)
+            => Av1ResidualBuilder.Subtract<ushort, Av1ResidualBuilder.UInt16Operator>(
+                source, sourceStride, prediction, predictionStride, residual, width, width, height);
 
         /// <inheritdoc/>
         public static void Predict(
@@ -93,21 +71,12 @@ internal static partial class Av1MotionSearchBase
                 reference, referenceStride, referenceOrigin, buffer, width, height, horizontalPhase, verticalPhase, taps, bitDepth);
 
         /// <inheritdoc/>
-        public static void Subtract(
-            ReadOnlySpan<ushort> source,
-            int sourceStride,
-            ReadOnlySpan<ushort> prediction,
-            Span<short> residual,
-            int width,
-            int height)
-            => Av1ResidualBuilder.Subtract(source, sourceStride, prediction, width, residual, width, width, height);
-
-        /// <inheritdoc/>
         public static void PredictScaled(
             ReadOnlySpan<ushort> reference,
             int referenceStride,
             int referenceOrigin,
             Span<ushort> buffer,
+            int bufferStride,
             int width,
             int height,
             Av1InterpolationFilter horizontalFilter,
@@ -123,7 +92,7 @@ internal static partial class Av1MotionSearchBase
                 referenceStride,
                 referenceOrigin,
                 buffer,
-                width,
+                bufferStride,
                 width,
                 height,
                 horizontalFilter,
@@ -144,7 +113,8 @@ internal static partial class Av1MotionSearchBase
             int width,
             int height,
             int rowStep)
-            => Av1ResidualBuilder.SumAbsoluteDifferences(source, sourceStride, prediction, predictionStride, width, height, rowStep);
+            => Av1ResidualBuilder.SumAbsoluteDifferences<ushort, Av1ResidualBuilder.UInt16Operator>(
+                source, sourceStride, prediction, predictionStride, width, height, rowStep);
 
         /// <inheritdoc/>
         public static void GetMoments(
@@ -156,7 +126,8 @@ internal static partial class Av1MotionSearchBase
             int height,
             out int sum,
             out long squares)
-            => Av1ResidualBuilder.GetMoments(source, sourceStride, prediction, predictionStride, width, height, out sum, out squares);
+            => Av1ResidualBuilder.GetMoments<ushort, Av1ResidualBuilder.UInt16Operator>(
+                source, sourceStride, prediction, predictionStride, width, height, out sum, out squares);
 
         /// <inheritdoc/>
         public static int SumCompoundAbsoluteDifferences(
@@ -169,7 +140,7 @@ internal static partial class Av1MotionSearchBase
             int width,
             int height,
             int rowStep)
-            => Av1ResidualBuilder.SumCompoundAbsoluteDifferences(
+            => Av1ResidualBuilder.SumCompoundAbsoluteDifferences<ushort, Av1ResidualBuilder.UInt16Operator>(
                 source, sourceStride, prediction, predictionStride, secondPrediction, mask, width, height, rowStep);
 
         /// <inheritdoc/>
@@ -184,45 +155,7 @@ internal static partial class Av1MotionSearchBase
             int height,
             out int sum,
             out long squares)
-            => Av1ResidualBuilder.GetCompoundMoments(
+            => Av1ResidualBuilder.GetCompoundMoments<ushort, Av1ResidualBuilder.UInt16Operator>(
                 source, sourceStride, prediction, predictionStride, secondPrediction, mask, width, height, out sum, out squares);
-
-        /// <inheritdoc/>
-        public static int SumObmcAbsoluteDifferences(
-            ReadOnlySpan<ushort> prediction,
-            int predictionStride,
-            ReadOnlySpan<int> weightedSource,
-            ReadOnlySpan<int> mask,
-            int width,
-            int height)
-            => Av1ObmcSearch.SumAbsoluteDifferences<ushort, Av1ObmcSearch.UInt16Operator>(prediction, predictionStride, weightedSource, mask, width, height);
-
-        /// <inheritdoc/>
-        public static void GetObmcMoments(
-            ReadOnlySpan<ushort> prediction,
-            int predictionStride,
-            ReadOnlySpan<int> weightedSource,
-            ReadOnlySpan<int> mask,
-            int width,
-            int height,
-            out int sum,
-            out ulong squares)
-            => Av1ObmcSearch.GetMoments<ushort, Av1ObmcSearch.UInt16Operator>(prediction, predictionStride, weightedSource, mask, width, height, out sum, out squares);
-
-        /// <inheritdoc/>
-        public static void WeightObmcAbove(ReadOnlySpan<ushort> prediction, int weight, Span<int> weightedSource, Span<int> mask, int width)
-            => Av1ObmcSearch.WeightAbove<ushort, Av1ObmcSearch.UInt16Operator>(prediction, weight, weightedSource, mask, width);
-
-        /// <inheritdoc/>
-        public static void WeightObmcLeft(ReadOnlySpan<ushort> prediction, ReadOnlySpan<byte> weights, Span<int> weightedSource, Span<int> mask)
-            => Av1ObmcSearch.WeightLeft<ushort, Av1ObmcSearch.UInt16Operator>(prediction, weights, weightedSource, mask);
-
-        /// <inheritdoc/>
-        public static void ScaleObmcTarget(Span<int> weightedSource, Span<int> mask)
-            => Av1ObmcSearch.Scale<ushort, Av1ObmcSearch.UInt16Operator>(weightedSource, mask);
-
-        /// <inheritdoc/>
-        public static void SubtractObmcSource(ReadOnlySpan<ushort> source, Span<int> weightedSource)
-            => Av1ObmcSearch.SubtractFromSource<ushort, Av1ObmcSearch.UInt16Operator>(source, weightedSource);
     }
 }

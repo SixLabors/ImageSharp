@@ -4,8 +4,8 @@
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Specifies the number of AV1 tile rows or columns. More tiles let a parallel decoder work faster but compress
-/// less well.
+/// Specifies the number of tile rows or columns in a frame. More tiles let a parallel decoder work faster but
+/// compress less well.
 /// </summary>
 public enum HeifTileCount
 {

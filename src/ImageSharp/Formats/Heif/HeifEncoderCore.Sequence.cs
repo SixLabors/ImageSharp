@@ -24,13 +24,13 @@ internal sealed partial class HeifEncoderCore
     private const uint DefaultSequenceTimescale = 1000;
 
     /// <summary>
-    /// The lookahead of good-quality sequences. Reference: the g_lag_in_frames of the good-quality usage defaults.
+    /// The number of frames that the encoder of a good-quality sequence reads ahead.
     /// </summary>
     private const int DefaultLagInFrames = 35;
 
     /// <summary>
-    /// The frame duration, in encoder time-stamp ticks, that libavif gives libaom: one unit of the default 1/30
-    /// timebase. Reference: the { 1, 30 } g_timebase default and timebase_units_to_ticks().
+    /// The duration that the encoder gives each frame, in ticks of 100 nanoseconds. This value is one unit of a 1/30 second
+    /// time base. The encoder ignores the real frame delays, so its rate control sees 30 frames per second.
     /// </summary>
     private const long LibavifFrameDurationTicks = 10_000_000 / 30;
 
@@ -85,10 +85,9 @@ internal sealed partial class HeifEncoderCore
     private const ushort VisualSampleDepth = 24;
 
     /// <summary>
-    /// Chooses the chroma sampling of an encoding that does not request one. Reference: the automatic format of
-    /// avifenc, which avifReadImage() resolves: 4:0:0 for a grayscale source, the JPEG's internal 4:2:0, 4:2:2 or
-    /// 4:4:4 sampling for a JPEG source (avifJPEGReadCopy()), and 4:4:4 otherwise. A decoded HEIF source keeps its own
-    /// sampling in the same way as a JPEG source, and lossless encoding always uses 4:4:4.
+    /// Chooses the chroma sampling of an encoding that does not request one. A grayscale source gets 4:0:0. Lossless
+    /// encoding of a color source gets 4:4:4. A decoded HEIF source keeps its own sampling. A JPEG source keeps its
+    /// 4:2:0 or 4:2:2 sampling. All other sources get 4:4:4.
     /// </summary>
     /// <typeparam name="TPixel">The source pixel type.</typeparam>
     /// <param name="image">The source image.</param>
@@ -130,7 +129,7 @@ internal sealed partial class HeifEncoderCore
     /// </summary>
     /// <typeparam name="TPixel">The source pixel type.</typeparam>
     /// <param name="image">The source image.</param>
-    /// <param name="allIntra">Whether the encoding is a still image without layers, which libavif codes in all-intra usage.</param>
+    /// <param name="allIntra">Whether the encoding is a still image without layers, which codes every frame as a key frame.</param>
     /// <param name="cancellationToken">The token that stops the encode, which the codec options carry.</param>
     /// <param name="layers">The layers of a layered still image, or <see langword="null"/> for an image without layers.</param>
     /// <returns>The resolved settings.</returns>
@@ -161,8 +160,8 @@ internal sealed partial class HeifEncoderCore
                     && (((image.Width & 1) != 0) || ((image.Height & 1) != 0)))
                 || (chromaSubsampling == HeifChromaSubsampling.Yuv422 && (image.Width & 1) != 0)))
         {
-            // A derived grid requires even output dimensions on every subsampled axis. Resolve incompatible
-            // sampling through conversion so the complete source dimensions remain representable.
+            // A derived grid needs an even output size on every subsampled axis. Switch to 4:4:4 so that the grid
+            // can keep the full source size.
             chromaSubsampling = HeifChromaSubsampling.Yuv444;
         }
 
@@ -179,8 +178,8 @@ internal sealed partial class HeifEncoderCore
         CicpProfile colorProfile;
         if (sourceColorProfile is null)
         {
-            // Without a source description, use the avifenc defaults: unspecified primaries and transfer, BT.601
-            // matrix, full range. Reference: the initial settings and requestedRange of avifenc main().
+            // A source without a color description gets unspecified primaries and transfer, the BT.601 matrix and
+            // full range.
             colorProfile = new CicpProfile(
                 (byte)CicpColorPrimaries.Unspecified,
                 (byte)CicpTransferCharacteristics.Unspecified,
@@ -198,8 +197,8 @@ internal sealed partial class HeifEncoderCore
                 || (identityMatrix && !legalIdentityMatrix)
                 || (reversibleMatrix && !isMonochrome && chromaSubsampling != HeifChromaSubsampling.Yuv444))
             {
-                // Packed source pixels can be converted to the requested sampling even when their metadata
-                // describes a matrix that requires 4:4:4. Use and signal BT.601 without changing source metadata.
+                // The encoder can convert packed source pixels to any sampling, also when the metadata gives a matrix
+                // that needs 4:4:4. Encode and signal BT.601, and keep the source metadata unchanged.
                 colorProfile = new CicpProfile(
                     (byte)sourceColorProfile.ColorPrimaries,
                     (byte)sourceColorProfile.TransferCharacteristics,
@@ -211,8 +210,8 @@ internal sealed partial class HeifEncoderCore
                 && sourceColorProfile.TransferCharacteristics == CicpTransferCharacteristics.Iec61966_2_1
                 && !sourceColorProfile.FullRange)
             {
-                // Only BT.709/sRGB identity omits the range bit and infers full range. Other identity
-                // descriptions carry that bit explicitly and can preserve limited-range sample conversion.
+                // Only the BT.709 and sRGB identity description has no range bit, and it always means full range.
+                // Other identity descriptions carry the range bit, so they can keep a limited range.
                 colorProfile = new CicpProfile(
                     (byte)sourceColorProfile.ColorPrimaries,
                     (byte)sourceColorProfile.TransferCharacteristics,
@@ -225,12 +224,10 @@ internal sealed partial class HeifEncoderCore
             }
         }
 
-        // Lossless color codes RGB through the identity matrix at full range, unless the source describes a reversible
-        // matrix, identity or YCgCo, which it keeps with its range. A gray image codes its one plane exactly with any
-        // matrix. AV1 allows the identity matrix with 4:4:4 sampling only, so a lossless encode that asks for
-        // subsampled chroma keeps the matrix chosen above and codes its YUV samples exactly. Reference: the lossless
-        // defaults of avifenc main(), which set AVIF_MATRIX_COEFFICIENTS_IDENTITY, and the mono_chrome and
-        // subsampling requirements of color_config() for MC_IDENTITY.
+        // Lossless 4:4:4 color codes RGB through the identity matrix at full range. A source with a reversible matrix
+        // (identity or YCgCo) keeps that matrix and its range. A gray image codes its one plane exactly with any
+        // matrix. AV1 allows the identity matrix with 4:4:4 sampling only. Thus a lossless encode that asks for
+        // subsampled chroma keeps the matrix chosen above and codes its YUV samples exactly.
         bool reversibleColorMatrix = colorProfile.MatrixCoefficients is CicpMatrixCoefficients.Identity
             or CicpMatrixCoefficients.YCgCoRe
             or CicpMatrixCoefficients.YCgCoRo;
@@ -267,11 +264,11 @@ internal sealed partial class HeifEncoderCore
             BitDepth = av1BitDepth
         };
 
-        // A tune that the caller sets applies to color and alpha. Otherwise libavif picks it: lossless coding keeps the
-        // libaom default, alpha uses PSNR to limit ringing, and color uses the image tune for all-intra and layered
-        // images whose matrix is not identity, else SSIM. Reference: avifAOMOptionsContainExplicitTuning() and the
-        // default tune metric of aomCodecEncodeImage(). Only the image tune changes the quality curve, because libavif
-        // detects only tune=iq. Reference: tuneIqEnum.
+        // A tune that the caller sets applies to color and alpha. Otherwise the encoder picks the tune:
+        // - Lossless color and all alpha use PSNR. For alpha, PSNR limits ringing.
+        // - Still and layered color images use the image tune, unless they use the identity matrix.
+        // - All other color uses SSIM.
+        // Only the image tune changes the curve from quality to quantizer.
         Av1Tuning? requestedTuning = this.encoder.Tuning switch
         {
             HeifTuning.Psnr => Av1Tuning.Psnr,
@@ -287,8 +284,7 @@ internal sealed partial class HeifEncoderCore
 
         Av1Tuning alphaTuning = requestedTuning ?? Av1Tuning.Psnr;
 
-        // Reference: DEFAULT_QUALITY of avifenc. A layered image starts the encoder at the quality of its first layer.
-        // Reference: the encoder initialization of aomCodecEncodeImage() for the first layer.
+        // The default quality is 60. A layered image starts the encoder at the quality of its first layer.
         int quality = this.encoder.Quality ?? 60;
         int alphaQuality = this.encoder.AlphaQuality ?? quality;
         if (layers is not null)
@@ -301,16 +297,13 @@ internal sealed partial class HeifEncoderCore
         int alphaQIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(alphaQuality, alphaTuning == Av1Tuning.Iq);
         bool hasAlpha = TPixel.GetPixelTypeInfo().AlphaRepresentation != PixelAlphaRepresentation.None;
 
-        // libavif turns loop restoration off for 12-bit images, where the encoder can overflow. Reference: the
-        // AV1E_SET_ENABLE_RESTORATION control of aomCodecEncodeImage().
+        // Loop restoration is off for 12-bit images, because the encoder can overflow at that depth.
         bool enableRestoration = av1BitDepth != Av1BitDepth.TwelveBit;
 
-        // A sequence at speed 7 or faster runs in real-time usage, which codes at a constant bit rate by default, and
-        // every other image codes at constant quality, unless the rate control option replaces the mode. The bit-rate
-        // modes keep the quantizer within four steps either side of the requested one. Lossless coding keeps
-        // quantizer zero, and lossy coding keeps quantizer one or higher, as GetAv1Quantizer() does.
-        // Reference: the AOM_USAGE_REALTIME choice, the default rc_end_usage and the end-usage codec option of
-        // aomCodecEncodeImage(), and its minQuantizer and maxQuantizer adjustment.
+        // A sequence or a layered image at speed 7 or faster uses real-time coding. Real-time coding uses a constant
+        // bit rate by default. All other images use constant quality. The rate control option replaces this default.
+        // The bit-rate modes keep the quantizer within four steps of the requested one. Lossless coding keeps
+        // quantizer zero. Lossy coding keeps quantizer one or higher, as GetAv1Quantizer() does.
         bool realtime = !allIntra && this.encoder.Speed >= HeifEncodingSpeed.Level7;
         Av1RateControlMode defaultRateControlMode = realtime ? Av1RateControlMode.ConstantBitRate : Av1RateControlMode.Quality;
         Av1RateControlMode rateControlMode = this.encoder.RateControl is { } rateControl
@@ -320,14 +313,12 @@ internal sealed partial class HeifEncoderCore
         int colorQuantizer = this.encoder.Lossless ? 0 : GetAv1Quantizer(quality, colorTuning == Av1Tuning.Iq);
         int alphaQuantizer = this.encoder.Lossless ? 0 : GetAv1Quantizer(alphaQuality, alphaTuning == Av1Tuning.Iq);
 
-        // Good-quality sequences keep libaom's default lookahead of 35 frames, except when alpha is present. A layered
-        // image codes without lookahead, so each layer gives its own output. Reference: the g_lag_in_frames default of
-        // the good-quality usage, disableLaggedOutput of aomCodecEncodeImage(), which avifEncoderAddImageInternal()
-        // sets when alpha is present, and the g_lag_in_frames of 0 that aomCodecEncodeImage() sets for layers.
+        // A good-quality sequence reads 35 frames ahead, unless the image has alpha. A layered image codes without
+        // lookahead, so each layer gives its own output.
         int colorLag = allIntra || realtime || hasAlpha || layered ? 0 : DefaultLagInFrames;
 
-        // Automatic tiling sizes the tiles from the first cell, which is the whole frame unless an oversized still
-        // image becomes a grid. Reference: the automatic tiling step of avifEncoderAddImageInternal().
+        // Automatic tiling sizes the tiles from the first cell. The first cell is the whole frame, unless an oversized
+        // still image becomes a grid.
         int tileRowsLog2 = BitOperations.Log2((uint)this.encoder.TileRows);
         int tileColumnsLog2 = BitOperations.Log2((uint)this.encoder.TileColumns);
         if (this.encoder.AutoTiling)
@@ -358,11 +349,8 @@ internal sealed partial class HeifEncoderCore
                 LagInFrames = lagInFrames,
 
                 // A good-quality layered image in constant-quality coding codes every layer at the quantizer of its own
-                // quality. libavif sets the fixed quantizers from the default mode of the usage, before the rate
-                // control option replaces it, so a real-time layered image never uses them. A good-quality layered
-                // image with a bit budget, which libaom rejects with fixed quantizers, codes without them.
-                // Reference: the AOME_SET_NUMBER_SPATIAL_LAYERS control and the use_fixed_qp_offsets of 2 that
-                // aomCodecEncodeImage() sets for layers before avifProcessAOMOptionsPreInit().
+                // quality. A real-time layered image never uses fixed quantizers. A good-quality layered image with a
+                // bit budget also codes without them, because fixed quantizers do not work with a bit budget.
                 LayerCount = layerCount,
                 UsesFixedQuantizer = layered && !realtime && rateControlMode == Av1RateControlMode.Quality,
 
@@ -375,14 +363,13 @@ internal sealed partial class HeifEncoderCore
                 TileRowsLog2 = tileRowsLog2,
                 TileColumnsLog2 = tileColumnsLog2,
 
-                // libaom refuses chroma delta q with lossless coding; a lossless quantizer of zero keeps every chroma
-                // delta at zero instead. Reference: the lossless test of validate_config().
+                // Lossless coding does not allow chroma delta q. A lossless quantizer of zero keeps every chroma delta
+                // at zero, so the option needs no lossless test here.
                 EnableChromaDeltaQ = this.encoder.SeparateChromaQuality ?? tuning.IsImageTuning(),
                 FilmGrainPreset = this.encoder.FilmGrainPreset ?? 0,
                 FilmGrainTable = this.encoder.ParsedFilmGrainTable,
 
-                // libaom refuses adaptive quantization with lossless coding. Reference: the lossless test of
-                // validate_config().
+                // Lossless coding does not allow adaptive quantization.
                 AdaptiveQuantizationMode = this.encoder.Lossless
                     ? Av1AdaptiveQuantizationMode.None
                     : this.encoder.AdaptiveQuantization switch
@@ -396,8 +383,7 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Returns the codec rate control mode of a rate control option. Reference: the q, cq, vbr and cbr values of the
-    /// end-usage codec option of avifProcessAOMOptionsPreInit().
+    /// Returns the codec rate control mode of a rate control option.
     /// </summary>
     /// <param name="rateControl">The rate control option.</param>
     /// <returns>The codec rate control mode.</returns>
@@ -410,15 +396,13 @@ internal sealed partial class HeifEncoderCore
     };
 
     /// <summary>
-    /// Returns the quantizer range of a coding. Lossless coding, the only coding at quantizer 0, keeps 0 in every
-    /// mode. Otherwise the constant-quality and constrained-quality modes keep the default range of 0 to 63, and the
-    /// variable and constant bit-rate modes narrow it to four steps either side of the requested quantizer.
-    /// Reference: the rc_min_quantizer and rc_max_quantizer setup of aomCodecEncodeImage(), and the AV1E_SET_LOSSLESS
-    /// control it sends, which makes set_encoder_config() set best_allowed_q and worst_allowed_q to 0.
+    /// Returns the quantizer range of a coding. Lossless coding is the only coding at quantizer 0, and it keeps 0 in
+    /// every mode. The constant-quality and constrained-quality modes keep the default range of 0 to 63. The variable
+    /// and constant bit-rate modes narrow the range to four steps either side of the requested quantizer.
     /// </summary>
-    /// <param name="quantizer">The requested quantizer on libaom's zero-through-63 scale.</param>
+    /// <param name="quantizer">The requested quantizer on the external scale of 0 to 63.</param>
     /// <param name="mode">The rate control mode.</param>
-    /// <returns>The lowest and highest quantizer on libaom's zero-through-63 scale.</returns>
+    /// <returns>The lowest and highest quantizer on the external scale of 0 to 63.</returns>
     private static (int Minimum, int Maximum) GetQuantizerRange(int quantizer, Av1RateControlMode mode)
     {
         if (quantizer == 0)
@@ -437,6 +421,11 @@ internal sealed partial class HeifEncoderCore
     /// <summary>
     /// Gets the size of the first coded cell: the frame itself, or the first grid cell of an oversized still image.
     /// </summary>
+    /// <param name="imageSize">The size of the image.</param>
+    /// <param name="allIntra">Whether the encoding is a still image without layers. Only such an image can become a grid.</param>
+    /// <param name="isSubsampledX">Whether the chroma is subsampled horizontally, which makes the cell width even.</param>
+    /// <param name="isSubsampledY">Whether the chroma is subsampled vertically, which makes the cell height even.</param>
+    /// <returns>The size of the first cell.</returns>
     private static Size GetFirstCellSize(Size imageSize, bool allIntra, bool isSubsampledX, bool isSubsampledY)
     {
         if (!allIntra || (imageSize.Width <= Av1Constants.MaxFrameDimension && imageSize.Height <= Av1Constants.MaxFrameDimension))
@@ -452,10 +441,11 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Chooses the tile rows and columns for automatic tiling with libavif's fixed budget of 8 threads: at most one
-    /// tile per thread and per 512x512 area, and more tiles along the longer side. Reference:
-    /// avifSetTileConfiguration() with threads = 8.
+    /// Chooses the tile rows and columns for automatic tiling. The budget is a fixed 8 threads. The cell gets at most
+    /// one tile per thread and one tile per 512x512 area. The longer side gets more tiles.
     /// </summary>
+    /// <param name="cellSize">The size of the first coded cell.</param>
+    /// <returns>The base-2 logarithms of the tile row count and the tile column count.</returns>
     internal static (int RowsLog2, int ColumnsLog2) GetAutomaticTileConfiguration(Size cellSize)
     {
         const uint threads = 8;
@@ -466,7 +456,7 @@ internal sealed partial class HeifEncoderCore
         tiles = Math.Min(Math.Min(tiles, maximumTiles), threads);
         int tilesLog2 = BitOperations.Log2(tiles);
 
-        // The longer dimension takes the extra tiles, so each tile is closer to a square. Reference: splitTilesLog2().
+        // The longer dimension takes the extra tiles, so each tile is closer to a square.
         if (cellSize.Width >= cellSize.Height)
         {
             int rowsLog2 = SplitTilesLog2((uint)cellSize.Width, (uint)cellSize.Height, tilesLog2);
@@ -476,7 +466,7 @@ internal sealed partial class HeifEncoderCore
         int columnsLog2 = SplitTilesLog2((uint)cellSize.Height, (uint)cellSize.Width, tilesLog2);
         return (tilesLog2 - columnsLog2, columnsLog2);
 
-        // Returns the tiles of the shorter dimension.
+        // Returns the base-2 logarithm of the tile count along the shorter dimension.
         static int SplitTilesLog2(uint longer, uint shorter, int tilesLog2)
         {
             int differenceLog2 = BitOperations.Log2(longer / shorter);
@@ -484,6 +474,17 @@ internal sealed partial class HeifEncoderCore
         }
     }
 
+    /// <summary>
+    /// Encodes the color frames and the alpha frames of an image sequence into the stream and records one sample per frame.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel type.</typeparam>
+    /// <param name="image">The source image.</param>
+    /// <param name="stream">The stream that receives the coded samples.</param>
+    /// <param name="settings">The resolved encoding settings.</param>
+    /// <param name="samples">The sample table. The color track uses the first slice, and the alpha track uses the second slice.</param>
+    /// <param name="firstFrameIndex">The index of the first frame of the sequence.</param>
+    /// <param name="cancellationToken">The token that stops the encode.</param>
+    /// <returns>The coded tracks and the metadata of the sequence.</returns>
     private HeifSequenceEncoding CompressAv1Sequence<TPixel>(
         Image<TPixel> image,
         ChunkedMemoryStream stream,
@@ -509,8 +510,8 @@ internal sealed partial class HeifEncoderCore
         int frameCount = image.Frames.Count - firstFrameIndex;
         uint timescale = GetSequenceTimescale(image, firstFrameIndex);
 
-        // The container needs only offset, length, and duration after each frame is streamed. Color and alpha
-        // share one allocator-owned table, with each track occupying one contiguous slice until moov is written.
+        // After each frame, the container needs only the offset, length and duration of its sample. Color and alpha
+        // share one table from the memory allocator. Each track uses one contiguous slice of the table.
         Span<HeifSequenceSampleInfo> colorSamples = samples.Span[..frameCount];
         ImageFrame<TPixel> firstFrame = image.Frames[firstFrameIndex];
         ObuSequenceHeader colorHeader;
@@ -527,8 +528,7 @@ internal sealed partial class HeifEncoderCore
             if (settings.ColorOptions.LagInFrames > 0)
             {
                 // A lookahead codes frames out of display order, so each sample is one temporal unit that ends with a
-                // shown frame. libavif submits every frame with a duration of one unit of the default 1/30 timebase.
-                // Reference: the aom_codec_encode(encoder, image, 0, 1, flags) call of aomCodecEncodeImage().
+                // shown frame. The encoder gives every frame a duration of 1/30 second.
                 using IMemoryOwner<long> sampleEndsOwner = this.configuration.MemoryAllocator.Allocate<long>(frameCount);
                 using IMemoryOwner<bool> syncSamplesOwner = this.configuration.MemoryAllocator.Allocate<bool>(frameCount);
                 Span<long> sampleEnds = sampleEndsOwner.Memory.Span;
@@ -605,7 +605,6 @@ internal sealed partial class HeifEncoderCore
                     alphaOffset = stream.Length;
 
                     // A color key frame forces an alpha key frame, so both tracks can start at that sample.
-                    // Reference: avifEncoderDataShouldForceKeyframeForAlpha().
                     bool keyFrame = alphaEncoder.EncodeNextFrame(
                         image.Frames[frameIndex],
                         stream,
@@ -694,6 +693,12 @@ internal sealed partial class HeifEncoderCore
         }
     }
 
+    /// <summary>
+    /// Writes the file type box of an image sequence, with the major brand avis and the compatible AVIF, MIAF and
+    /// ISO base media brands.
+    /// </summary>
+    /// <param name="stream">The destination stream.</param>
+    /// <returns>The number of bytes written.</returns>
     private int WriteSequenceFileTypeBox(Stream stream)
     {
         Span<byte> buffer = stackalloc byte[44];
@@ -721,6 +726,13 @@ internal sealed partial class HeifEncoderCore
         return bytesWritten;
     }
 
+    /// <summary>
+    /// Writes the movie box of an image sequence. The movie box comes before the media data box, so the method
+    /// patches each chunk offset after it knows the movie box length.
+    /// </summary>
+    /// <param name="sequence">The coded sequence.</param>
+    /// <param name="precedingBoxLength">The number of bytes in the file before the movie box.</param>
+    /// <param name="stream">The destination stream.</param>
     private void WriteSequenceMovieBox(HeifSequenceEncoding sequence, int precedingBoxLength, Stream stream)
     {
         int movieLength = GetSequenceMovieBoxLength(sequence);
@@ -783,6 +795,11 @@ internal sealed partial class HeifEncoderCore
         stream.Write(memory);
     }
 
+    /// <summary>
+    /// Gets the exact length of the movie box that <see cref="WriteSequenceMovieBox"/> writes.
+    /// </summary>
+    /// <param name="sequence">The coded sequence.</param>
+    /// <returns>The length of the movie box in bytes.</returns>
     private static int GetSequenceMovieBoxLength(HeifSequenceEncoding sequence)
     {
         const int movieHeaderBoxLength = 120;
@@ -886,12 +903,20 @@ internal sealed partial class HeifEncoderCore
                 + alphaSampleTableLength;
         }
 
-        // The movie box contains one header and one or two tracks. Every nested variable-length field above is
-        // resolved before this exact allocation, so container writing cannot re-rent or copy its buffer.
+        // The movie box contains one header and one or two tracks. The length is exact, so the writer fills one
+        // buffer and never grows or copies it.
         long movieLength = BasicBoxHeaderLength + movieHeaderBoxLength + colorTrackLength + alphaTrackLength;
         return checked((int)movieLength);
     }
 
+    /// <summary>
+    /// Writes a version 1 movie header box with the identity matrix and unit rate and volume.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the box.</param>
+    /// <param name="timescale">The number of time units in one second.</param>
+    /// <param name="duration">The duration of the movie in time units.</param>
+    /// <param name="nextTrackId">The next free track identifier.</param>
     private static void WriteSequenceMovieHeader(
         Span<byte> memory,
         ref int offset,
@@ -915,6 +940,17 @@ internal sealed partial class HeifEncoderCore
         EndSequenceBox(memory, movieHeaderStart, offset);
     }
 
+    /// <summary>
+    /// Writes a track box for the color or the alpha track.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the box.</param>
+    /// <param name="sequence">The coded sequence.</param>
+    /// <param name="track">The track to write.</param>
+    /// <param name="trackId">The track identifier.</param>
+    /// <param name="mediaDuration">The duration of one play of the samples, in time units.</param>
+    /// <param name="trackDuration">The duration of the track with all repeats, in time units.</param>
+    /// <returns>The position of the chunk offset field, which the caller patches later.</returns>
     private static int WriteSequenceTrack(
         Span<byte> memory,
         ref int offset,
@@ -960,6 +996,15 @@ internal sealed partial class HeifEncoderCore
         return chunkOffsetPosition;
     }
 
+    /// <summary>
+    /// Writes a version 1 track header box with the enabled flag, the identity matrix and the presentation size.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the box.</param>
+    /// <param name="width">The presentation width in pixels.</param>
+    /// <param name="height">The presentation height in pixels.</param>
+    /// <param name="trackId">The track identifier.</param>
+    /// <param name="duration">The duration of the track in time units.</param>
     private static void WriteSequenceTrackHeader(
         Span<byte> memory,
         ref int offset,
@@ -982,6 +1027,13 @@ internal sealed partial class HeifEncoderCore
         EndSequenceBox(memory, trackHeaderStart, offset);
     }
 
+    /// <summary>
+    /// Writes a track reference box with one reference to one track.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the box.</param>
+    /// <param name="referenceType">The reference type.</param>
+    /// <param name="referencedTrackId">The identifier of the referenced track.</param>
     private static void WriteSequenceTrackReference(
         Span<byte> memory,
         ref int offset,
@@ -995,6 +1047,13 @@ internal sealed partial class HeifEncoderCore
         EndSequenceBox(memory, referencesStart, offset);
     }
 
+    /// <summary>
+    /// Writes an edit box with one edit that plays all the media. The repeat flag makes a reader play the edit again
+    /// for the full track duration.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the box.</param>
+    /// <param name="mediaDuration">The duration of one play of the samples, in time units.</param>
     private static void WriteSequenceEditList(
         Span<byte> memory,
         ref int offset,
@@ -1012,6 +1071,12 @@ internal sealed partial class HeifEncoderCore
         EndSequenceBox(memory, editStart, offset);
     }
 
+    /// <summary>
+    /// Writes a track-level meta box that holds the Exif item, the XMP item, or both, with the item data in an idat box.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the box.</param>
+    /// <param name="sequence">The coded sequence that holds the metadata.</param>
     private static void WriteSequenceTrackMetadata(
         Span<byte> memory,
         ref int offset,
@@ -1025,8 +1090,8 @@ internal sealed partial class HeifEncoderCore
         WriteSequenceFullBoxHeader(memory, ref offset, 0, 0);
         WriteSequenceHandler(memory, ref offset, Heif4CharCode.Pict);
 
-        // Construction method one makes each extent relative to the local idat payload, keeping metadata independent
-        // of the final file and movie-box offsets.
+        // Construction method 1 makes each extent relative to the idat payload. Thus the metadata does not depend on
+        // the final offsets of the file or the movie box.
         int locationsStart = BeginSequenceBox(memory, ref offset, Heif4CharCode.Iloc);
         WriteSequenceFullBoxHeader(memory, ref offset, 1, 0);
         memory[offset++] = fourByteOffsetAndLengthSizes;
@@ -1085,6 +1150,14 @@ internal sealed partial class HeifEncoderCore
         EndSequenceBox(memory, metadataStart, offset);
     }
 
+    /// <summary>
+    /// Writes one version 1 item location entry with construction method 1 and one extent in the idat box.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the entry.</param>
+    /// <param name="itemId">The item identifier.</param>
+    /// <param name="itemDataOffset">The offset of the item data in the idat payload.</param>
+    /// <param name="itemLength">The length of the item data in bytes.</param>
     private static void WriteSequenceTrackMetadataLocation(
         Span<byte> memory,
         ref int offset,
@@ -1100,6 +1173,13 @@ internal sealed partial class HeifEncoderCore
         WriteSequenceUInt32(memory, ref offset, itemLength);
     }
 
+    /// <summary>
+    /// Writes a version 2 item information entry for an Exif item or an XMP item. An XMP item also gets its content type.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the entry.</param>
+    /// <param name="itemId">The item identifier.</param>
+    /// <param name="itemType">The item type: Exif or mime.</param>
     private static void WriteSequenceTrackMetadataItem(
         Span<byte> memory,
         ref int offset,
@@ -1123,6 +1203,13 @@ internal sealed partial class HeifEncoderCore
         EndSequenceBox(memory, itemStart, offset);
     }
 
+    /// <summary>
+    /// Writes a version 1 media header box with an undetermined language.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the box.</param>
+    /// <param name="timescale">The number of time units in one second.</param>
+    /// <param name="mediaDuration">The duration of one play of the samples, in time units.</param>
     private static void WriteSequenceMediaHeader(
         Span<byte> memory,
         ref int offset,
@@ -1140,6 +1227,12 @@ internal sealed partial class HeifEncoderCore
         EndSequenceBox(memory, mediaHeaderStart, offset);
     }
 
+    /// <summary>
+    /// Writes a handler box with an empty name.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the box.</param>
+    /// <param name="handlerType">The handler type.</param>
     private static void WriteSequenceHandler(
         Span<byte> memory,
         ref int offset,
@@ -1154,6 +1247,11 @@ internal sealed partial class HeifEncoderCore
         EndSequenceBox(memory, handlerStart, offset);
     }
 
+    /// <summary>
+    /// Writes a data information box with one self-contained data reference. The media data is in the same file.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the box.</param>
     private static void WriteSequenceDataInformation(Span<byte> memory, ref int offset)
     {
         int dataInformationStart = BeginSequenceBox(memory, ref offset, Heif4CharCode.Dinf);
@@ -1167,6 +1265,15 @@ internal sealed partial class HeifEncoderCore
         EndSequenceBox(memory, dataInformationStart, offset);
     }
 
+    /// <summary>
+    /// Writes the sample table box of a track: the sample description, the timing, one chunk, the sample sizes and
+    /// the sync samples.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the box.</param>
+    /// <param name="sequence">The coded sequence.</param>
+    /// <param name="track">The track to write.</param>
+    /// <returns>The position of the chunk offset field, which the caller patches later.</returns>
     private static int WriteSequenceSampleTable(
         Span<byte> memory,
         ref int offset,
@@ -1177,7 +1284,7 @@ internal sealed partial class HeifEncoderCore
         WriteSequenceSampleDescription(memory, ref offset, sequence, track);
         WriteSequenceSampleTiming(memory, ref offset, track.Samples);
 
-        // Payloads are emitted contiguously per track, so one chunk maps directly to every sample in that track.
+        // The samples of each track are contiguous, so one chunk holds every sample of the track.
         int sampleToChunkStart = BeginSequenceBox(memory, ref offset, Heif4CharCode.Stsc);
         WriteSequenceFullBoxHeader(memory, ref offset, 0, 0);
         WriteSequenceUInt32(memory, ref offset, 1);
@@ -1224,6 +1331,14 @@ internal sealed partial class HeifEncoderCore
         return chunkOffsetPosition;
     }
 
+    /// <summary>
+    /// Writes the sample description box with one AV1 visual sample entry. The entry holds the codec configuration,
+    /// the color information or the auxiliary type, and the coding constraints.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the box.</param>
+    /// <param name="sequence">The coded sequence.</param>
+    /// <param name="track">The track to describe.</param>
     private static void WriteSequenceSampleDescription(
         Span<byte> memory,
         ref int offset,
@@ -1275,27 +1390,33 @@ internal sealed partial class HeifEncoderCore
         int codingConstraintsStart = BeginSequenceBox(memory, ref offset, Heif4CharCode.Ccst);
         WriteSequenceFullBoxHeader(memory, ref offset, 0, 0);
 
+        // Sync samples are key frames in this encoder. Thus the all-intra flag is valid when every sample is a sync
+        // sample.
         uint codingConstraints = IntraPicturePredictionUsedMask;
         if (GetSequenceSyncSampleCount(track.Samples) == track.Samples.Length)
         {
             codingConstraints |= AllReferencePicturesIntraMask;
         }
 
-        // Sync samples are key frames in this encoder. The all-intra flag is therefore valid when every sample
-        // is independently decodable.
         WriteSequenceUInt32(memory, ref offset, codingConstraints);
         EndSequenceBox(memory, codingConstraintsStart, offset);
         EndSequenceBox(memory, sampleEntryStart, offset);
         EndSequenceBox(memory, descriptionStart, offset);
     }
 
+    /// <summary>
+    /// Writes the time-to-sample box of a track.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the box.</param>
+    /// <param name="samples">The samples of the track.</param>
     private static void WriteSequenceSampleTiming(
         Span<byte> memory,
         ref int offset,
         ReadOnlySpan<HeifSequenceSampleInfo> samples)
     {
-        // The time-to-sample table stores runs, not one entry per frame. Preserve exact resolved durations while
-        // combining only adjacent frames whose delays are equal.
+        // The time-to-sample table stores runs of equal durations. Only adjacent samples with equal durations join a
+        // run, so every duration stays exact.
         int runCount = GetSequenceTimingRunCount(samples);
 
         int timingStart = BeginSequenceBox(memory, ref offset, Heif4CharCode.Stts);
@@ -1323,6 +1444,11 @@ internal sealed partial class HeifEncoderCore
         EndSequenceBox(memory, timingStart, offset);
     }
 
+    /// <summary>
+    /// Counts the runs of adjacent samples with equal durations.
+    /// </summary>
+    /// <param name="samples">The samples of the track. The span holds at least one sample.</param>
+    /// <returns>The number of time-to-sample entries.</returns>
     private static int GetSequenceTimingRunCount(ReadOnlySpan<HeifSequenceSampleInfo> samples)
     {
         int runCount = 1;
@@ -1334,6 +1460,11 @@ internal sealed partial class HeifEncoderCore
         return runCount;
     }
 
+    /// <summary>
+    /// Counts the sync samples of a track.
+    /// </summary>
+    /// <param name="samples">The samples of the track.</param>
+    /// <returns>The number of sync samples.</returns>
     private static int GetSequenceSyncSampleCount(ReadOnlySpan<HeifSequenceSampleInfo> samples)
     {
         int count = 0;
@@ -1348,10 +1479,16 @@ internal sealed partial class HeifEncoderCore
         return count;
     }
 
+    /// <summary>
+    /// Converts a frame delay to a sample duration in time units, rounded to the nearest unit.
+    /// </summary>
+    /// <param name="delay">The frame delay in seconds.</param>
+    /// <param name="timescale">The number of time units in one second.</param>
+    /// <returns>The sample duration. The value is at least 1.</returns>
     private static uint GetSequenceSampleDuration(Rational delay, uint timescale)
     {
-        // HEIF metadata uses either a zero numerator or a zero denominator for an unspecified duration.
-        // BMFF samples still require a finite positive duration, so encode the smallest representable value.
+        // HEIF metadata uses a zero numerator or a zero denominator for an unspecified duration. A sample needs a
+        // positive duration, so the method writes the smallest duration of one time unit.
         if (delay.Numerator == 0 || delay.Denominator == 0)
         {
             return 1;
@@ -1361,6 +1498,14 @@ internal sealed partial class HeifEncoderCore
         return checked((uint)Math.Max(1UL, scaledDuration / delay.Denominator));
     }
 
+    /// <summary>
+    /// Gets a media timescale that holds every frame delay exactly. The timescale is the least common multiple of
+    /// 1000 and the delay denominators.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel type.</typeparam>
+    /// <param name="image">The source image.</param>
+    /// <param name="firstFrameIndex">The index of the first frame of the sequence.</param>
+    /// <returns>The number of time units in one second.</returns>
     private static uint GetSequenceTimescale<TPixel>(Image<TPixel> image, int firstFrameIndex)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -1378,8 +1523,8 @@ internal sealed partial class HeifEncoderCore
             ulong commonTimescale = ((ulong)timescale / commonDivisor) * delay.Denominator;
             if (commonTimescale > uint.MaxValue)
             {
-                // A media timescale is a 32-bit field. Microsecond fallback retains bounded timing precision when
-                // the exact least common multiple of caller-provided rational delays cannot be represented.
+                // A media timescale is a 32-bit field. If the exact least common multiple does not fit, use
+                // microseconds. Then each duration has an error of at most half a microsecond.
                 return FallbackSequenceTimescale;
             }
 
@@ -1389,6 +1534,12 @@ internal sealed partial class HeifEncoderCore
         return timescale;
     }
 
+    /// <summary>
+    /// Gets the greatest common divisor of two values with the Euclidean algorithm.
+    /// </summary>
+    /// <param name="left">The first value.</param>
+    /// <param name="right">The second value.</param>
+    /// <returns>The greatest common divisor.</returns>
     private static uint GetGreatestCommonDivisor(uint left, uint right)
     {
         while (right != 0)
@@ -1401,6 +1552,11 @@ internal sealed partial class HeifEncoderCore
         return left;
     }
 
+    /// <summary>
+    /// Gets the sum of the sample durations of a track.
+    /// </summary>
+    /// <param name="samples">The samples of the track.</param>
+    /// <returns>The duration of one play of the samples, in time units.</returns>
     private static ulong GetSequenceMediaDuration(ReadOnlySpan<HeifSequenceSampleInfo> samples)
     {
         ulong duration = 0;
@@ -1412,22 +1568,42 @@ internal sealed partial class HeifEncoderCore
         return duration;
     }
 
+    /// <summary>
+    /// Writes the header of a box with a size of zero. The matching <see cref="EndSequenceBox"/> call writes the size.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the header.</param>
+    /// <param name="type">The box type.</param>
+    /// <returns>The start position of the box.</returns>
     private static int BeginSequenceBox(
         Span<byte> memory,
         ref int offset,
         Heif4CharCode type)
     {
-        // Reserve the size field now and patch it at the matching EndSequenceBox call after nested boxes expand.
+        // The size is not known until the nested boxes are complete, so EndSequenceBox writes it later.
         int start = offset;
         offset += WriteBoxHeader(memory[offset..], type);
         return start;
     }
 
+    /// <summary>
+    /// Writes the size of a box that <see cref="BeginSequenceBox"/> started.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="start">The start position of the box.</param>
+    /// <param name="offset">The end position of the box.</param>
     private static void EndSequenceBox(Span<byte> memory, int start, int offset)
         => BinaryPrimitives.WriteUInt32BigEndian(
             memory.Slice(start, sizeof(uint)),
             (uint)(offset - start));
 
+    /// <summary>
+    /// Writes the version byte and the 24-bit flags of a full box.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it by four bytes.</param>
+    /// <param name="version">The box version.</param>
+    /// <param name="flags">The box flags. Only the low 24 bits are written.</param>
     private static void WriteSequenceFullBoxHeader(
         Span<byte> memory,
         ref int offset,
@@ -1440,6 +1616,12 @@ internal sealed partial class HeifEncoderCore
         offset += sizeof(uint);
     }
 
+    /// <summary>
+    /// Writes the identity transformation matrix of a movie or track header. The first eight entries are 16.16 fixed
+    /// point, and the last entry is 2.30 fixed point.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the matrix.</param>
     private static void WriteSequenceIdentityMatrix(Span<byte> memory, ref int offset)
     {
         WriteSequenceUInt32(memory, ref offset, UnityFixed16Point16);
@@ -1453,12 +1635,24 @@ internal sealed partial class HeifEncoderCore
         WriteSequenceUInt32(memory, ref offset, UnityFixed2Point30);
     }
 
+    /// <summary>
+    /// Writes zero bytes.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it by <paramref name="length"/>.</param>
+    /// <param name="length">The number of zero bytes.</param>
     private static void WriteSequenceZeros(Span<byte> memory, ref int offset, int length)
     {
         memory.Slice(offset, length).Clear();
         offset += length;
     }
 
+    /// <summary>
+    /// Copies bytes into the buffer.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it past the bytes.</param>
+    /// <param name="source">The bytes to copy.</param>
     private static void WriteSequenceBytes(
         Span<byte> memory,
         ref int offset,
@@ -1468,26 +1662,60 @@ internal sealed partial class HeifEncoderCore
         offset += source.Length;
     }
 
+    /// <summary>
+    /// Writes a big-endian 16-bit value.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it by two bytes.</param>
+    /// <param name="value">The value to write.</param>
     private static void WriteSequenceUInt16(Span<byte> memory, ref int offset, ushort value)
     {
         BinaryPrimitives.WriteUInt16BigEndian(memory[offset..], value);
         offset += sizeof(ushort);
     }
 
+    /// <summary>
+    /// Writes a big-endian 32-bit value.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it by four bytes.</param>
+    /// <param name="value">The value to write.</param>
     private static void WriteSequenceUInt32(Span<byte> memory, ref int offset, uint value)
     {
         BinaryPrimitives.WriteUInt32BigEndian(memory[offset..], value);
         offset += sizeof(uint);
     }
 
+    /// <summary>
+    /// Writes a big-endian 64-bit value.
+    /// </summary>
+    /// <param name="memory">The buffer of the movie box.</param>
+    /// <param name="offset">The write position in <paramref name="memory"/>. The method advances it by eight bytes.</param>
+    /// <param name="value">The value to write.</param>
     private static void WriteSequenceUInt64(Span<byte> memory, ref int offset, ulong value)
     {
         BinaryPrimitives.WriteUInt64BigEndian(memory[offset..], value);
         offset += sizeof(ulong);
     }
 
+    /// <summary>
+    /// Holds the resolved settings of an encoding for the color image and the alpha image.
+    /// </summary>
     private readonly struct Av1EncodingSettings
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Av1EncodingSettings"/> struct.
+        /// </summary>
+        /// <param name="bitDepth">The encoded bit depth.</param>
+        /// <param name="chromaSubsampling">The encoded chroma sampling.</param>
+        /// <param name="colorProfile">The color description that the file signals.</param>
+        /// <param name="colorConfig">The color configuration of the color image.</param>
+        /// <param name="alphaConfig">The color configuration of the alpha image.</param>
+        /// <param name="colorQIndex">The quantizer index of the color image.</param>
+        /// <param name="alphaQIndex">The quantizer index of the alpha image.</param>
+        /// <param name="hasAlpha">Whether the pixel type has alpha.</param>
+        /// <param name="colorOptions">The codec options of the color image.</param>
+        /// <param name="alphaOptions">The codec options of the alpha image.</param>
         public Av1EncodingSettings(
             HeifBitDepth bitDepth,
             HeifChromaSubsampling chromaSubsampling,
@@ -1512,29 +1740,69 @@ internal sealed partial class HeifEncoderCore
             this.AlphaOptions = alphaOptions;
         }
 
+        /// <summary>
+        /// Gets the encoded bit depth.
+        /// </summary>
         public HeifBitDepth BitDepth { get; }
 
+        /// <summary>
+        /// Gets the encoded chroma sampling.
+        /// </summary>
         public HeifChromaSubsampling ChromaSubsampling { get; }
 
+        /// <summary>
+        /// Gets the color description that the file signals.
+        /// </summary>
         public CicpProfile ColorProfile { get; }
 
+        /// <summary>
+        /// Gets the color configuration of the color image.
+        /// </summary>
         public ObuColorConfig ColorConfig { get; }
 
+        /// <summary>
+        /// Gets the color configuration of the alpha image.
+        /// </summary>
         public ObuColorConfig AlphaConfig { get; }
 
+        /// <summary>
+        /// Gets the quantizer index of the color image.
+        /// </summary>
         public int ColorQIndex { get; }
 
+        /// <summary>
+        /// Gets the quantizer index of the alpha image.
+        /// </summary>
         public int AlphaQIndex { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the pixel type has alpha.
+        /// </summary>
         public bool HasAlpha { get; }
 
+        /// <summary>
+        /// Gets the codec options of the color image.
+        /// </summary>
         public Av1EncoderOptions ColorOptions { get; }
 
+        /// <summary>
+        /// Gets the codec options of the alpha image.
+        /// </summary>
         public Av1EncoderOptions AlphaOptions { get; }
     }
 
+    /// <summary>
+    /// Describes one coded sample of a track.
+    /// </summary>
     private readonly struct HeifSequenceSampleInfo
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HeifSequenceSampleInfo"/> struct.
+        /// </summary>
+        /// <param name="offset">The offset of the sample in the media data payload.</param>
+        /// <param name="length">The length of the sample in bytes.</param>
+        /// <param name="duration">The duration of the sample in time units.</param>
+        /// <param name="isSyncSample">Whether the sample starts with a key frame.</param>
         public HeifSequenceSampleInfo(long offset, int length, uint duration, bool isSyncSample)
         {
             this.Offset = offset;
@@ -1543,17 +1811,46 @@ internal sealed partial class HeifEncoderCore
             this.IsSyncSample = isSyncSample;
         }
 
+        /// <summary>
+        /// Gets the offset of the sample in the media data payload.
+        /// </summary>
         public long Offset { get; }
 
+        /// <summary>
+        /// Gets the length of the sample in bytes.
+        /// </summary>
         public int Length { get; }
 
+        /// <summary>
+        /// Gets the duration of the sample in time units.
+        /// </summary>
         public uint Duration { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the sample starts with a key frame.
+        /// </summary>
         public bool IsSyncSample { get; }
     }
 
+    /// <summary>
+    /// Holds a coded image sequence and the metadata that the movie box needs.
+    /// </summary>
     private readonly struct HeifSequenceEncoding
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HeifSequenceEncoding"/> struct.
+        /// </summary>
+        /// <param name="width">The presentation width in pixels.</param>
+        /// <param name="height">The presentation height in pixels.</param>
+        /// <param name="repeatCount">The number of plays, or 0 to repeat without end.</param>
+        /// <param name="timescale">The number of time units in one second.</param>
+        /// <param name="colorTrack">The color track.</param>
+        /// <param name="alphaTrack">The alpha track, or <see langword="null"/> when the image has no alpha.</param>
+        /// <param name="colorProfile">The color description that the file signals.</param>
+        /// <param name="iccProfileData">The ICC profile bytes, or empty when the file has no ICC profile.</param>
+        /// <param name="exifData">The Exif bytes, or <see langword="null"/>.</param>
+        /// <param name="exifTiffHeaderOffset">The offset of the TIFF header in <paramref name="exifData"/>.</param>
+        /// <param name="xmpData">The XMP bytes, or <see langword="null"/>.</param>
         public HeifSequenceEncoding(
             int width,
             int height,
@@ -1580,33 +1877,75 @@ internal sealed partial class HeifEncoderCore
             this.XmpData = xmpData;
         }
 
+        /// <summary>
+        /// Gets the presentation width in pixels.
+        /// </summary>
         public int Width { get; }
 
+        /// <summary>
+        /// Gets the presentation height in pixels.
+        /// </summary>
         public int Height { get; }
 
+        /// <summary>
+        /// Gets the number of plays, or 0 to repeat without end.
+        /// </summary>
         public ushort RepeatCount { get; }
 
+        /// <summary>
+        /// Gets the number of time units in one second.
+        /// </summary>
         public uint Timescale { get; }
 
+        /// <summary>
+        /// Gets the color track.
+        /// </summary>
         public HeifSequenceTrackEncoding ColorTrack { get; }
 
+        /// <summary>
+        /// Gets the alpha track, or <see langword="null"/> when the image has no alpha.
+        /// </summary>
         public HeifSequenceTrackEncoding? AlphaTrack { get; }
 
+        /// <summary>
+        /// Gets the color description that the file signals.
+        /// </summary>
         public CicpProfile ColorProfile { get; }
 
+        /// <summary>
+        /// Gets the ICC profile bytes, or empty when the file has no ICC profile.
+        /// </summary>
         public ReadOnlyMemory<byte> IccProfileData { get; }
 
+        /// <summary>
+        /// Gets the Exif bytes, or <see langword="null"/>.
+        /// </summary>
         public byte[]? ExifData { get; }
 
+        /// <summary>
+        /// Gets the offset of the TIFF header in <see cref="ExifData"/>.
+        /// </summary>
         public uint ExifTiffHeaderOffset { get; }
 
+        /// <summary>
+        /// Gets the XMP bytes, or <see langword="null"/>.
+        /// </summary>
         public byte[]? XmpData { get; }
     }
 
+    /// <summary>
+    /// Holds the codec configuration and the samples of one track.
+    /// </summary>
     private readonly struct HeifSequenceTrackEncoding
     {
         private readonly ReadOnlyMemory<HeifSequenceSampleInfo> samples;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HeifSequenceTrackEncoding"/> struct.
+        /// </summary>
+        /// <param name="configuration">The codec configuration of the track.</param>
+        /// <param name="samples">The samples of the track.</param>
+        /// <param name="isAlpha">Whether the track is the alpha track.</param>
         public HeifSequenceTrackEncoding(
             Av1CodecConfiguration configuration,
             ReadOnlyMemory<HeifSequenceSampleInfo> samples,
@@ -1617,11 +1956,20 @@ internal sealed partial class HeifEncoderCore
             this.IsAlpha = isAlpha;
         }
 
+        /// <summary>
+        /// Gets the codec configuration of the track.
+        /// </summary>
         public Av1CodecConfiguration Configuration { get; }
 
+        /// <summary>
+        /// Gets the samples of the track.
+        /// </summary>
         public ReadOnlySpan<HeifSequenceSampleInfo> Samples
             => this.samples.Span;
 
+        /// <summary>
+        /// Gets a value indicating whether the track is the alpha track.
+        /// </summary>
         public bool IsAlpha { get; }
     }
 }

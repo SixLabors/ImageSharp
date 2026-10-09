@@ -16,10 +16,10 @@ internal abstract partial class HeifColorConverterBase
     /// Implements BT.2100 ICtCp conversion for scalar and SIMD lanes.
     /// </summary>
     /// <remarks>
-    /// H.273 equations 72-74 and 75-77 define the forward PQ and HLG matrices from nonlinear LMS to I, Ct, and Cp. Decoding requires the
-    /// inverse matrices, whose non-identity terms are used below as <c>L' = I + aCt + bCp</c>, <c>M' = I - aCt - bCp</c>, and
-    /// <c>S' = I + cCt + dCp</c>. Each rational constant is the exact result of inverting the corresponding integer-over-4096 matrix;
-    /// the explicit double-precision division preserves that value until the compile-time conversion to <see cref="float"/>.
+    /// H.273 equations 72-74 and 75-77 define the forward PQ and HLG matrices from nonlinear LMS to I, Ct, and Cp. Decoding needs the
+    /// inverse matrices. The code below uses their non-identity terms as <c>L' = I + aCt + bCp</c>, <c>M' = I - aCt - bCp</c>, and
+    /// <c>S' = I + cCt + dCp</c>. Each rational constant is the exact inverse of the matching integer-over-4096 matrix.
+    /// The explicit double-precision division keeps that value until the compile-time conversion to <see cref="float"/>.
     /// </remarks>
     internal readonly struct HeifICtCpColorOperator : IHeifColorOperator
     {

@@ -61,8 +61,8 @@ public sealed class HeifImageFormatDetector : IImageFormatDetector
             return false;
         }
 
-        // HeaderSize may expose only a prefix of a longer ftyp box. Whole compatible-brand codes in that prefix are
-        // sufficient for detection; the decoder validates the complete box before reading the rest of the container.
+        // HeaderSize can expose only a prefix of a longer ftyp box. The whole compatible-brand codes in that prefix are
+        // sufficient for detection. The decoder validates the complete box before it reads the rest of the container.
         int availableContentLength = (int)Math.Min(boxContentLength, (ulong)(header.Length - boxHeaderSize));
         availableContentLength &= ~3;
         return HeifConstants.TryGetFileType(header.Slice(boxHeaderSize, availableContentLength), out _);

@@ -336,8 +336,8 @@ internal abstract partial class HeifColorConverterBase
             out float protan,
             out float tritan)
         {
-            // The encoded RGB signal is linearized before the LMS matrix, then the signaled transfer function
-            // is reapplied to each LMS component before the fixed IPT-C2 opponent matrix.
+            // Linearize the encoded RGB signal before the LMS matrix. Then apply the signaled transfer function again to
+            // each LMS component before the fixed IPT-C2 opponent matrix.
             float linearRed = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, red);
             float linearGreen = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, green);
             float linearBlue = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, blue);

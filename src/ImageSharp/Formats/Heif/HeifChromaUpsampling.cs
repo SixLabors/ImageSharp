@@ -4,12 +4,12 @@
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Specifies how subsampled chroma is expanded when decoding HEIF images.
+/// Specifies how the decoder expands subsampled chroma to the full image size.
 /// </summary>
 public enum HeifChromaUpsampling
 {
     /// <summary>
-    /// Uses nearest-neighbour sampling for 8-bit source samples and bilinear interpolation for higher bit depths.
+    /// Uses nearest-neighbor sampling for 8-bit images and bilinear interpolation for higher bit depths.
     /// </summary>
     Auto,
 

@@ -39,7 +39,10 @@ internal interface IHeifItemDecoder<TPixel>
     /// <param name="premultiplied">Whether source RGB is associated with alpha.</param>
     /// <param name="sourceRectangle">The source area of interest in luma-sample coordinates.</param>
     /// <param name="transform">The rotation and mirroring applied within the destination region.</param>
-    /// <param name="destination">The destination pixel region.</param>
+    /// <param name="destination">
+    /// Gets the destination pixel region. The call can allocate the output image, so an implementation calls it once,
+    /// and only after it has validated the item's spatial extent against the encoded payload.
+    /// </param>
     /// <param name="metadata">The metadata receiving the decoded image properties.</param>
     /// <param name="cancellationToken">The token used to cancel the payload decode.</param>
     public void DecodeItemData(
@@ -55,7 +58,7 @@ internal interface IHeifItemDecoder<TPixel>
         bool premultiplied,
         Rectangle sourceRectangle,
         HeifPixelTransform transform,
-        Buffer2DRegion<TPixel> destination,
+        Func<Buffer2DRegion<TPixel>> destination,
         ImageMetadata metadata,
         CancellationToken cancellationToken);
 }

@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Enumerates the chroma sampling layouts supported for HEIF image encoding.
+/// Enumerates the chroma sampling layouts that the HEIF encoder supports.
 /// </summary>
 public enum HeifChromaSubsampling : byte
 {

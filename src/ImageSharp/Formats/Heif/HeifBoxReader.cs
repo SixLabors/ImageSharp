@@ -24,13 +24,13 @@ internal readonly struct HeifBoxReader
     public HeifBoxReader(MemoryAllocator allocator) => this.allocator = allocator;
 
     /// <summary>
-    /// Reads an ISO BMFF box header using caller-owned scratch and resolves its validated payload length.
+    /// Reads an ISO BMFF box header into a caller-owned buffer and returns the validated payload length.
     /// </summary>
     /// <param name="stream">The stream positioned at the box size field.</param>
     /// <param name="parentEndPosition">The absolute end position of the containing box or file.</param>
-    /// <param name="scratch">Caller-owned scratch containing at least eight bytes.</param>
+    /// <param name="scratch">A caller-owned buffer of at least eight bytes that receives the header.</param>
     /// <param name="boxType">Receives the box four-character code.</param>
-    /// <param name="topLevel">Indicates whether a size-zero box may extend to the end of the file.</param>
+    /// <param name="topLevel">Indicates whether a size-zero box can extend to the end of the file.</param>
     /// <returns>The number of payload bytes following the complete variable-length header.</returns>
     public static long ReadHeader(Stream stream, long parentEndPosition, Span<byte> scratch, out Heif4CharCode boxType, bool topLevel = false)
     {

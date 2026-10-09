@@ -450,8 +450,8 @@ internal readonly struct HeifColorConversionParameters
                 whiteY = 0.3290F;
                 break;
             default:
-                // Unspecified primaries cannot define a chromaticity-derived matrix. The established libavif
-                // behavior supplies BT.709/D65 so the image has one deterministic interpretation.
+                // Unspecified primaries cannot define a chromaticity-derived matrix. Use the BT.709 primaries and the
+                // D65 white point, so the image has one deterministic interpretation.
                 redX = 0.64F;
                 redY = 0.33F;
                 greenX = 0.30F;

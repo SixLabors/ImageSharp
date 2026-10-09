@@ -40,7 +40,7 @@ internal static partial class HeifYuvToRgb8Converter
     /// <param name="isFullRange">Whether the samples use the complete numeric range.</param>
     /// <param name="matrixCoefficients">The H.273 matrix-coefficient code point.</param>
     /// <param name="mode">The resolved H.273 conversion operation.</param>
-    /// <returns><see langword="true"/> when the planes can use this converter; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when the planes can use this converter, otherwise <see langword="false"/>.</returns>
     public static bool SupportsFixedPointConversion(
         int subsamplingX,
         int subsamplingY,
@@ -120,8 +120,8 @@ internal static partial class HeifYuvToRgb8Converter
             }
             else
             {
-                // Noncontiguous output cannot be passed to the planar SIMD packer. Matrix arithmetic above
-                // remains vectorized; each packed pixel is written once at its final transformed coordinate.
+                // The planar SIMD packer cannot take noncontiguous output. The matrix arithmetic above stays vectorized.
+                // This loop writes each packed pixel once at its final transformed coordinate.
                 Point point = HeifPixelTransform.Transform(0, y, matrix);
 
                 for (int x = 0; x < sourceSize.Width; x++)

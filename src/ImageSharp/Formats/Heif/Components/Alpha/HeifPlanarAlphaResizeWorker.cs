@@ -89,7 +89,7 @@ internal sealed class HeifPlanarAlphaResizeWorker<TBuffer, TSample, TLoader> : H
     private readonly int workerHeight;
 
     /// <summary>
-    /// The source-row interval currently represented by the transposed first-pass buffer.
+    /// The source-row interval that the transposed first-pass buffer holds.
     /// </summary>
     private RowInterval currentWindow;
 
@@ -135,8 +135,8 @@ internal sealed class HeifPlanarAlphaResizeWorker<TBuffer, TSample, TLoader> : H
             destinationRectangle.Width,
             workingBufferLimitInBytes);
 
-        // A whole number of bands lets Slide retain exactly one overlap band and fill the remaining window with rows
-        // that have not entered the first pass before.
+        // The window holds a whole number of bands. Thus Slide keeps exactly one overlap band and fills the rest of the
+        // window with rows that are new to the first pass.
         this.workerHeight = Math.Min(sourceRectangle.Height, windowBandCount * this.windowBandHeight);
         this.transposedFirstPassBuffer = configuration.MemoryAllocator.Allocate<Vector4>(
             checked(this.workerHeight * destinationRectangle.Width),
@@ -183,8 +183,8 @@ internal sealed class HeifPlanarAlphaResizeWorker<TBuffer, TSample, TLoader> : H
         ref ResizeKernel kernel = ref Unsafe.Add(ref verticalKernelBase, this.destinationRectangle.Y + y);
         int kernelEnd = kernel.StartIndex + kernel.Length;
 
-        // Destination kernels advance monotonically through source Y. Slide until the complete kernel lies in
-        // the cached first-pass interval; the retained overlap prevents any shared source row being recalculated.
+        // Destination kernels advance monotonically through source Y. Slide until the complete kernel is in the cached
+        // first-pass interval. The kept overlap band means that no shared source row is calculated twice.
         while (kernelEnd > currentWindowMax)
         {
             this.Slide();
@@ -259,9 +259,9 @@ internal sealed class HeifPlanarAlphaResizeWorker<TBuffer, TSample, TLoader> : H
             ReadOnlySpan<TSample> source = this.buffer.GetLumaRowSpan(this.sourceRectangle.Y + y).Slice(this.sourceRectangle.X, sourceWidth);
             HeifPlanarAlphaCompositor.NormalizeAlphaRow<TSample, TLoader>(source, normalized, in this.parameters);
 
-            // ResizeKernel is the same SIMD convolution primitive used by the general image resizer. Replicating alpha
-            // into Vector4 lets that kernel operate on the planar row, while the L16 round trip preserves the result of
-            // the removed Image<L16> path without materializing the complete alpha image.
+            // ResizeKernel is the SIMD convolution primitive of the general image resizer. Alpha copied into Vector4
+            // lets that kernel operate on the planar row. The L16 round trip gives the same result as a resize of a full
+            // L16 alpha image, but the worker does not allocate that image.
             HeifSampleConversion.PackL16(normalized, sourceAlpha);
             PixelOperations<L16>.Instance.ToVector4(this.configuration, sourceAlpha, sourceVectors, PixelConversionModifiers.Scale);
 

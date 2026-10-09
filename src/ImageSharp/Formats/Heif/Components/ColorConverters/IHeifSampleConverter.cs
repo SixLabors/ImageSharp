@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Components;
 /// <remarks>
 /// Every vector lane represents one consecutive planar sample. Implementations widen native integer storage to
 /// normalized single-precision arithmetic and narrow only values already scaled and clipped for the destination sample
-/// type. The containing row traversal selects vector width; these operators do not reorder pixels or cross row bounds.
+/// type. The containing row traversal selects the vector width. These operators do not reorder pixels or cross row bounds.
 /// </remarks>
 internal interface IHeifSampleConverter<TSample>
     where TSample : unmanaged

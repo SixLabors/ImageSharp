@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Components.Alpha;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -41,9 +42,15 @@ internal sealed class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHe
     /// <param name="premultiplied">Whether source RGB is associated with alpha.</param>
     /// <param name="sourceRectangle">The source area of interest in luma-sample coordinates.</param>
     /// <param name="transform">The rotation and mirroring applied within the destination region.</param>
-    /// <param name="destination">The destination pixel region.</param>
+    /// <param name="destination">
+    /// Gets the destination pixel region. The call can allocate the output image, so this method calls it only after it
+    /// has validated the item's spatial extent against the decoded sequence header.
+    /// </param>
     /// <param name="metadata">The metadata receiving the decoded image properties.</param>
     /// <param name="cancellationToken">The token used to cancel the payload decode.</param>
+    /// <exception cref="InvalidImageContentException">
+    /// The item's spatial extent is larger than the maximum frame size of its sequence header.
+    /// </exception>
     public void DecodeItemData(
         DecoderOptions options,
         HeifChromaUpsampling chromaUpsampling,
@@ -57,7 +64,7 @@ internal sealed class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHe
         bool premultiplied,
         Rectangle sourceRectangle,
         HeifPixelTransform transform,
-        Buffer2DRegion<TPixel> destination,
+        Func<Buffer2DRegion<TPixel>> destination,
         ImageMetadata metadata,
         CancellationToken cancellationToken)
     {
@@ -80,12 +87,28 @@ internal sealed class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHe
             out CicpProfile effectiveColorProfile,
             item.Av1LayeredImageIndex);
 
-        // Container range describes presentation; the bitstream range remains attached to the decoded planes.
+        // The image spatial extents property gives the size of the reconstructed image, before the clean aperture,
+        // rotation, and mirror properties apply. For an AV1 item it shall equal the upscaled width and the height of
+        // the frame that the selected operating point or layer outputs. Layered files exist that declare the size of
+        // the top layer while a layer selector selects a smaller layer, and readers scale the decoded frame to the
+        // declared size. This decoder does the same, so the extents and the frame size can differ. Every frame of
+        // the stream is at most the maximum frame size of its sequence header, so an extent larger than that size
+        // describes no frame of the payload. Reject it before the caller allocates the output image, so that a small
+        // payload cannot make the decoder allocate and scale an image of an arbitrary declared size.
+        ObuSequenceHeader sequenceHeader = decoder.SequenceHeader!;
+        if (item.Extent.Width > sequenceHeader.MaxFrameWidth || item.Extent.Height > sequenceHeader.MaxFrameHeight)
+        {
+            throw new InvalidImageContentException(
+                $"AV1 image item {item.Id} declares spatial extents {item.Extent.Width}x{item.Extent.Height}, " +
+                $"which exceed the maximum frame size {sequenceHeader.MaxFrameWidth}x{sequenceHeader.MaxFrameHeight} of its sequence header.");
+        }
+
+        // The container range controls the presentation. The bitstream range stays with the decoded planes.
         Av1YuvConverter.ConvertToRgb(
             options.Configuration,
             frameBuffer,
             sourceRectangle,
-            destination,
+            destination(),
             item.Extent,
             transform,
             profile,

@@ -515,8 +515,8 @@ internal static partial class HeifTransferFunctions
         where TVector : struct
         where TOperations : struct, ITransferVectorOperations<TVector>
     {
-        // System.Numerics.Tensors does not currently vectorize Pow. Expressing positive powers as Exp(Log(x) * y)
-        // uses the .NET 10 cross-platform vector math kernels and keeps all transfer-function lanes in SIMD.
+        // System.Numerics.Tensors does not vectorize Pow. Positive powers written as Exp(Log(x) * y) use the .NET 10
+        // cross-platform vector math kernels, so all transfer-function lanes stay in SIMD.
         return TOperations.Exp(TOperations.Multiply(TOperations.Log(value), TOperations.Create(exponent)));
     }
 }

@@ -2,12 +2,15 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif;
@@ -17,6 +20,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 public class HeifDecoderTests
 {
     private const uint UnknownBoxType = 0x74657374U;
+
+    private const int OneMegabyte = 1024 * 1024;
+
+    // Offsets from the start of an encoder-written item location box: an 8-byte box header and the full-box version
+    // and flags precede the field-size bytes. The item count, item ID, construction method, and data-reference index
+    // follow them, and then the first item's extent count, 8-byte extent offset, and 4-byte extent length.
+    private const int ItemLocationFieldSizesOffset = 12;
+    private const int FirstItemExtentCountOffset = 22;
+    private const int FirstItemExtentLengthOffset = 32;
 
     /// <summary>
     /// Decodes the AVIF corpus through the public decoder and compares every frame with the independent decoder.
@@ -91,6 +103,10 @@ public class HeifDecoderTests
     {
         DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.Orange4x4, DecoderStreamKind.NonSeekable, 1, 4, 4);
         DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.Orange4x4, DecoderStreamKind.ShortRead, 1, 4, 4);
+
+        // The item extent of this image is larger than the stream processing buffer, so the short-read stream returns it
+        // in many partial reads.
+        DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.IrvineAvif, DecoderStreamKind.ShortRead, 1, 480, 640);
         DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.Animated8Bit, DecoderStreamKind.NonSeekable, 5, 150, 150);
         DecodeStillAndBoundedSequenceFromSupportedStreamCase(TestImages.Heif.Animated8Bit, DecoderStreamKind.ShortRead, 5, 150, 150);
     }
@@ -488,6 +504,185 @@ public class HeifDecoderTests
         IncrementBoxSize(data, metaOffset, pitmSize);
 
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
+    }
+
+    /// <summary>
+    /// Verifies that zero-width item-location fields cannot declare thousands of extents that occupy no bytes.
+    /// </summary>
+    [Fact]
+    public void IdentifyRejectsZeroWidthItemLocationExtentsBeforeCreatingThem()
+    {
+        byte[] data = CreateAv1Container();
+        int itemLocationOffset = GetItemLocationOffset(data);
+
+        // Zero offset and length widths make every extent take no bytes. The first item then declares the maximum
+        // extent count, and the extent bytes written by the encoder remain as trailing data.
+        data[itemLocationOffset + ItemLocationFieldSizesOffset] = 0;
+        BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(itemLocationOffset + FirstItemExtentCountOffset), ushort.MaxValue);
+
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        // Creating 65,535 locations for the item costs several megabytes. Rejecting the count first costs far less.
+        Assert.True(allocated < OneMegabyte, $"Identify allocated {allocated} bytes.");
+    }
+
+    /// <summary>
+    /// Verifies that an item extent that ends beyond the file is rejected before the item buffer is allocated.
+    /// </summary>
+    [Fact]
+    public void DecodeRejectsItemExtentBeyondFileBeforeAllocatingItemData()
+    {
+        const uint extentLength = 16 * OneMegabyte;
+
+        byte[] data = CreateAv1Container();
+        int itemLocationOffset = GetItemLocationOffset(data);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(itemLocationOffset + FirstItemExtentLengthOffset), extentLength);
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        DecoderOptions options = new() { Configuration = configuration };
+
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+        });
+
+        Assert.DoesNotContain(allocator.AllocationLog, request => request.LengthInBytes >= extentLength);
+    }
+
+    /// <summary>
+    /// Verifies that an image spatial extents property larger than every frame of the AV1 payload is rejected before
+    /// the output image is allocated.
+    /// </summary>
+    [Fact]
+    public void DecodeRejectsSpatialExtentsLargerThanSequenceHeaderBeforeAllocatingImage()
+    {
+        const int declaredHeight = 1 << 20;
+
+        byte[] data = [.. TestFile.Create(TestImages.Heif.Orange4x4).Bytes];
+        int spatialExtentsOffset = data.AsSpan().IndexOf("ispe"u8);
+        Assert.True(spatialExtentsOffset >= 0);
+
+        // The box type precedes the full-box header, the width, and the height. The 4x4 frame cannot fill this height.
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(spatialExtentsOffset + 12), declaredHeight);
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        DecoderOptions options = new() { Configuration = configuration };
+
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+        });
+
+        // The output image needs 4 * declaredHeight pixels. No allocation of that size may happen.
+        int imageBytes = 4 * declaredHeight * Unsafe.SizeOf<Rgba32>();
+        Assert.DoesNotContain(allocator.AllocationLog, request => request.LengthInBytes >= imageBytes);
+    }
+
+    /// <summary>
+    /// Verifies that both identification and decoding reject a primary image item without the image spatial extents
+    /// property that HEIF requires for every image item.
+    /// </summary>
+    [Fact]
+    public void IdentifyAndDecodeRejectPrimaryItemWithoutSpatialExtents()
+    {
+        byte[] data = CreateAv1Container();
+        int spatialExtentsOffset = data.AsSpan().IndexOf("ispe"u8);
+        Assert.True(spatialExtentsOffset >= 0);
+
+        // The encoder associates the property as nonessential, so an unknown type removes it from the item.
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(spatialExtentsOffset), UnknownBoxType);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(data);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that identification resolves the primary item when a file declares the maximum number of 16-bit item identifiers.
+    /// </summary>
+    [Fact]
+    public void IdentifyResolvesPrimaryItemAmongManyDeclaredItems()
+    {
+        const int itemCount = ushort.MaxValue;
+        const int entryLength = 21;
+
+        byte[] data = CreateAv1Container();
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
+        int itemInfoOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
+        int itemInfoSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(itemInfoOffset));
+
+        // The encoder writes a version-zero item information box with a 16-bit entry count and one image item.
+        Assert.Equal(0, data[itemInfoOffset + 8]);
+        Assert.Equal(1, BinaryPrimitives.ReadUInt16BigEndian(data.AsSpan(itemInfoOffset + 12)));
+
+        // Each added version-two entry declares an unreferenced item of an unknown type with an empty name.
+        byte[] entries = new byte[(itemCount - 1) * entryLength];
+        for (int i = 0; i < itemCount - 1; i++)
+        {
+            Span<byte> entry = entries.AsSpan(i * entryLength, entryLength);
+            BinaryPrimitives.WriteUInt32BigEndian(entry, entryLength);
+            BinaryPrimitives.WriteUInt32BigEndian(entry[4..], (uint)Heif4CharCode.Infe);
+            BinaryPrimitives.WriteUInt32BigEndian(entry[8..], 2U << 24);
+            BinaryPrimitives.WriteUInt16BigEndian(entry[12..], (ushort)(i + 2));
+            BinaryPrimitives.WriteUInt32BigEndian(entry[16..], UnknownBoxType);
+        }
+
+        data = InsertBytes(data, itemInfoOffset + itemInfoSize, entries);
+        IncrementBoxSize(data, metaOffset, entries.Length);
+        IncrementBoxSize(data, itemInfoOffset, entries.Length);
+        BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(itemInfoOffset + 12), itemCount);
+
+        ImageInfo info = Image.Identify(data);
+
+        Assert.Equal(new Size(2, 3), info.Size);
+    }
+
+    /// <summary>
+    /// Verifies that HEIF decoding applies the allocator limit that bounds the image size for every ImageSharp decoder,
+    /// and reports it as invalid image content.
+    /// </summary>
+    [Fact]
+    public void DecodeReportsImageLargerThanAllocatorLimitAsInvalidContent()
+    {
+        // The 480x640 image needs 1.2 MB of Rgba32 pixels, which exceeds the 1 MB allocation limit.
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = MemoryAllocator.Create(new MemoryAllocatorOptions { AllocationLimitMegabytes = 1 });
+        DecoderOptions options = new() { Configuration = configuration };
+
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, TestFile.Create(TestImages.Heif.IrvineAvif).Bytes);
+        });
+    }
+
+    /// <summary>
+    /// Finds the item location box in a container written by <see cref="HeifEncoder"/> and checks the field layout that
+    /// the item-location offset constants describe.
+    /// </summary>
+    /// <param name="data">The encoded container.</param>
+    /// <returns>The offset of the item location box header.</returns>
+    private static int GetItemLocationOffset(ReadOnlySpan<byte> data)
+    {
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data[metaOffset..]);
+        int itemLocationOffset = FindBoxOffset(data, Heif4CharCode.Iloc, metaOffset + 12, metaSize - 12);
+
+        // The encoder writes version one with 8-byte extent offsets, 4-byte extent lengths, and no base offset or
+        // extent index. The first item has one extent.
+        Assert.Equal(1, data[itemLocationOffset + 8]);
+        Assert.Equal(0x84, data[itemLocationOffset + ItemLocationFieldSizesOffset]);
+        Assert.Equal(0, data[itemLocationOffset + ItemLocationFieldSizesOffset + 1]);
+        Assert.Equal(1, BinaryPrimitives.ReadUInt16BigEndian(data[(itemLocationOffset + FirstItemExtentCountOffset)..]));
+        return itemLocationOffset;
     }
 
     private static byte[] CreateAv1Container()

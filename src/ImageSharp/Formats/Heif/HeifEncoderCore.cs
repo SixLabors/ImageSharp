@@ -98,8 +98,8 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Gets the external quantizer of each quality for the image tune: a piecewise linear curve that corrects for the
-    /// bit rate of that tune. Reference: tuneIqQualityToQuantizer.
+    /// Gets the external quantizer for each quality from 0 to 100 with the image tune. The table is a piecewise linear
+    /// curve. It corrects for the different bit rate of the image tune at the same quantizer.
     /// </summary>
     private static ReadOnlySpan<byte> ImageTuneQualityToQuantizer =>
     [
@@ -117,10 +117,11 @@ internal sealed partial class HeifEncoderCore
     ];
 
     /// <summary>
-    /// Encodes the image to the specified stream from the <see cref="ImageFrame{TPixel}"/>.
+    /// Encodes the image to the stream. An image with more than one frame becomes an image sequence. An image with
+    /// one frame becomes a still image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
+    /// <param name="image">The <see cref="Image{TPixel}"/> to encode.</param>
     /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
     /// <param name="cancellationToken">The token to request cancellation.</param>
     public void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
@@ -137,8 +138,7 @@ internal sealed partial class HeifEncoderCore
         IReadOnlyList<HeifLayer>? layers = this.encoder.Layers;
         if (layers is not null)
         {
-            // libavif refuses layers for image sequences, and avifenc refuses them for lossless coding. A layered grid
-            // is not supported. Reference: the extraLayerCount checks of avifEncoderAddImageInternal() and avifenc.
+            // Layers are not supported for image sequences, for lossless coding, or for an image that needs a grid.
             if (image.Frames.Count > 1)
             {
                 throw new NotSupportedException("A layered image must have one frame.");
@@ -209,8 +209,8 @@ internal sealed partial class HeifEncoderCore
                     alphaTrack?.Samples[0].Offset ?? 0,
                     alphaTrack?.Samples[0].Length ?? 0);
 
-                // The primary image item and the first track sample describe the same sync sample. Sharing its
-                // extent matches libavif and avoids encoding or storing the root frame twice.
+                // The primary image item and the first track sample describe the same sync sample. The item uses the
+                // extent of the sample, so the root frame is not encoded or stored twice.
                 this.WriteAv1ImageItems(
                     image,
                     compressedPixels,
@@ -234,7 +234,6 @@ internal sealed partial class HeifEncoderCore
         List<HeifItemLink> links = new();
         this.CompressAv1Pixels(image, compressedPixels, items, links, cancellationToken);
 
-        // Write out the generated header and pixels.
         long metadataBoxOffset = this.WriteFileTypeBox(stream);
         this.WriteMetadataBox(items, links, metadataBoxOffset, 0, stream);
         this.WriteMediaDataBox(compressedPixels, stream, cancellationToken);
@@ -274,8 +273,7 @@ internal sealed partial class HeifEncoderCore
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)type);
         bytesWritten += 4;
 
-        // Writing the 24-bit flags as a big-endian 32-bit value establishes the three flag bytes, after which the
-        // version overwrites the leading byte to form the full-box version-and-flags word.
+        // The flags fill the low three bytes of the big-endian word. Then the version replaces the first byte.
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], flags);
         buffer[bytesWritten] = version;
         bytesWritten += 4;
@@ -336,14 +334,14 @@ internal sealed partial class HeifEncoderCore
         bytesWritten += WriteItemInfoBox(memory, bytesWritten, items);
         if (links.Count > 0)
         {
-            // iref is optional and has no meaning without at least one typed item relationship.
+            // The iref box is optional. Without a link it has no content, so the encoder leaves it out.
             bytesWritten += WriteItemReferenceBox(memory, bytesWritten, links);
         }
 
         bytesWritten += WriteItemPropertiesBox(memory, bytesWritten, items);
 
-        // iloc needs the absolute mdat payload position, but that position depends on the final meta length. Emit it
-        // once to establish the stable box size, calculate the following mdat position, then patch the same bytes.
+        // The iloc box needs the absolute position of the mdat payload. That position depends on the final meta length.
+        // Write iloc once to fix its size, calculate the mdat position, then write the same bytes again.
         int itemLocationOffset = bytesWritten;
         bytesWritten += WriteItemLocationBox(memory, bytesWritten, items, 0);
 
@@ -356,10 +354,16 @@ internal sealed partial class HeifEncoderCore
         stream.Write(buffer);
     }
 
+    /// <summary>
+    /// Gets the exact length of the metadata box that <see cref="WriteMetadataBox"/> writes.
+    /// </summary>
+    /// <param name="items">The declared image and metadata items.</param>
+    /// <param name="links">The typed relationships between items.</param>
+    /// <returns>The length of the metadata box in bytes.</returns>
     private static int GetMetadataBoxLength(List<HeifItem> items, List<HeifItemLink> links)
     {
-        // All variable-length strings, profiles, relationships, properties, and extents are resolved before
-        // allocating the metadata box, so writing it never needs to re-rent or copy a backing buffer.
+        // The length includes every string, profile, link, property and extent. Thus the writer fills one buffer and
+        // never grows or copies it.
         return checked(
             FullBoxHeaderLength
             + HandlerBoxLength
@@ -370,6 +374,11 @@ internal sealed partial class HeifEncoderCore
             + GetItemLocationBoxLength(items));
     }
 
+    /// <summary>
+    /// Gets the exact length of the item information box, with one version 2 entry for each item.
+    /// </summary>
+    /// <param name="items">The items to declare.</param>
+    /// <returns>The length of the item information box in bytes.</returns>
     private static int GetItemInformationBoxLength(List<HeifItem> items)
     {
         long length = ItemInformationBoxFixedLength;
@@ -389,6 +398,11 @@ internal sealed partial class HeifEncoderCore
         return checked((int)length);
     }
 
+    /// <summary>
+    /// Gets the exact length of the item reference box with 16-bit item identifiers.
+    /// </summary>
+    /// <param name="links">The relationships to write.</param>
+    /// <returns>The length of the item reference box in bytes.</returns>
     private static int GetItemReferenceBoxLength(List<HeifItemLink> links)
     {
         long length = ItemReferenceBoxFixedLength;
@@ -461,6 +475,11 @@ internal sealed partial class HeifEncoderCore
         return checked((int)length);
     }
 
+    /// <summary>
+    /// Gets the exact length of the item location box, with one entry for each item and one extent for each data location.
+    /// </summary>
+    /// <param name="items">The items to locate.</param>
+    /// <returns>The length of the item location box in bytes.</returns>
     private static int GetItemLocationBoxLength(List<HeifItem> items)
     {
         long extentCount = 0;
@@ -598,11 +617,12 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Writes spatial-extent properties and their one-based item associations.
+    /// Writes the item properties box. The property container holds the properties of each item that has no
+    /// property source. The association box links each item to its properties by one-based index.
     /// </summary>
     /// <param name="memory">The preallocated metadata buffer.</param>
     /// <param name="memoryOffset">The destination offset within the metadata box.</param>
-    /// <param name="items">The items whose dimensions are written and associated.</param>
+    /// <param name="items">The items whose properties are written and associated.</param>
     /// <returns>The complete item-properties-box length.</returns>
     public static int WriteItemPropertiesBox(Span<byte> memory, int memoryOffset, List<HeifItem> items)
     {
@@ -749,8 +769,7 @@ internal sealed partial class HeifEncoderCore
                 WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
             }
 
-            // A reader may ignore the layer index and decode every layer. Reference: the non-essential a1lx
-            // association of avifEncoderWriteItemProperties().
+            // A reader can ignore the layer index and decode every layer, so the association is not essential.
             if (propertyItem.Av1LayeredImageIndex is not null)
             {
                 WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
@@ -759,7 +778,7 @@ internal sealed partial class HeifEncoderCore
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer[ipmaLengthOffset..], (uint)(bytesWritten - ipmaLengthOffset));
 
-        // Update size of enclosing 'iprp' box.
+        // Write the size of the enclosing iprp box.
         BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
         return bytesWritten;
     }
@@ -790,8 +809,7 @@ internal sealed partial class HeifEncoderCore
         => LayeredImageIndexPropertyBoxFixedLength + (3 * (UsesLargeLayerSizes(index) ? sizeof(uint) : sizeof(ushort)));
 
     /// <summary>
-    /// Returns whether a layer size of the index does not fit in 16 bits. Reference: large_size in the a1lx writer of
-    /// avifEncoderWriteItemProperties().
+    /// Returns whether a layer size of the index does not fit in 16 bits. Then the a1lx box sets large_size.
     /// </summary>
     /// <param name="index">The layer index.</param>
     /// <returns><see langword="true"/> when the index stores 32-bit sizes.</returns>
@@ -1019,7 +1037,7 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Writes version-one file-relative locations for every ordered item extent.
+    /// Writes a version 1 item location box with an absolute file offset for every item extent.
     /// </summary>
     /// <param name="memory">The preallocated metadata buffer.</param>
     /// <param name="memoryOffset">The destination offset within the metadata box.</param>
@@ -1031,8 +1049,8 @@ internal sealed partial class HeifEncoderCore
         Span<byte> buffer = memory.Slice(memoryOffset, GetItemLocationBoxLength(items));
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Iloc, 1, 0);
 
-        // The high and low nibbles select eight-byte offsets and four-byte lengths. Base offsets and extent indices
-        // are omitted, because every generated extent is written as one absolute file offset into mdat.
+        // The first byte selects eight-byte offsets and four-byte lengths. The second byte selects no base offset and
+        // no extent index, because every extent is an absolute file offset into mdat.
         buffer[bytesWritten++] = 0x84;
         buffer[bytesWritten++] = 0;
         BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)items.Count);
@@ -1051,7 +1069,7 @@ internal sealed partial class HeifEncoderCore
             bytesWritten += 2;
             foreach (HeifLocation loc in item.DataLocations)
             {
-                // Generated locations are relative to the mdat payload until the enclosing meta size is known.
+                // Each location is relative to the mdat payload. Adding the payload position gives the file offset.
                 long absoluteOffset = checked(mediaDataOffset + loc.BaseOffset + loc.Offset);
                 BinaryPrimitives.WriteUInt64BigEndian(buffer[bytesWritten..], (ulong)absoluteOffset);
                 bytesWritten += 8;
@@ -1065,9 +1083,9 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Writes the encoded primary-item bytes in a media-data box.
+    /// Writes all coded payloads in a media data box.
     /// </summary>
-    /// <param name="data">The encoded item payload stream.</param>
+    /// <param name="data">The stream that holds the coded item and sample payloads.</param>
     /// <param name="stream">The destination stream.</param>
     /// <param name="cancellationToken">The token that stops the write between buffers.</param>
     private void WriteMediaDataBox(ChunkedMemoryStream data, Stream stream, CancellationToken cancellationToken)
@@ -1077,8 +1095,8 @@ internal sealed partial class HeifEncoderCore
         BinaryPrimitives.WriteUInt32BigEndian(buf, checked((uint)(data.Length + bytesWritten)));
         stream.Write(buf[..bytesWritten]);
 
-        // The payload is copied one processing buffer at a time, so a canceled encode stops while its output is
-        // still being written, as the encoders that write rows as they go do.
+        // The method copies the payload one buffer at a time and checks for cancellation after each read. Thus a
+        // canceled encode also stops during the write.
         using IMemoryOwner<byte> bufferOwner = this.configuration.MemoryAllocator.Allocate<byte>(this.configuration.StreamProcessingBufferSize);
         Span<byte> buffer = bufferOwner.Memory.Span;
         data.Position = 0;
@@ -1091,8 +1109,7 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Maps the public lossy quality scale through libaom's external quantizer scale to its internal quantizer index.
-    /// Reference: aomQualityToQuantizer().
+    /// Maps a public lossy quality to an AV1 quantizer index. The quality goes to the external quantizer scale first.
     /// </summary>
     /// <param name="quality">The lossy quality in the inclusive range zero through one hundred.</param>
     /// <param name="imageTune">Whether the encoding uses the image tune, which has its own quality curve.</param>
@@ -1101,8 +1118,8 @@ internal sealed partial class HeifEncoderCore
         => Av1QuantizationLookup.GetQIndex(GetAv1Quantizer(quality, imageTune));
 
     /// <summary>
-    /// Maps the public lossy quality scale to libaom's external zero-through-63 quantizer scale.
-    /// Reference: aomQualityToQuantizer().
+    /// Maps a public lossy quality to the external quantizer scale of 0 to 63. Without the image tune the map is linear
+    /// and rounds to the nearest step.
     /// </summary>
     /// <param name="quality">The lossy quality in the inclusive range zero through one hundred.</param>
     /// <param name="imageTune">Whether the encoding uses the image tune, which has its own quality curve.</param>
@@ -1111,7 +1128,7 @@ internal sealed partial class HeifEncoderCore
     {
         int quantizer = imageTune ? ImageTuneQualityToQuantizer[quality] : (((100 - quality) * 63) + 50) / 100;
 
-        // External quantizer zero maps to the codec's lossless qindex. Keep quality 100 lossy as its public contract requires.
+        // External quantizer 0 maps to the lossless quantizer index. Quality 100 must stay lossy, so the minimum is 1.
         return Math.Max(quantizer, 1);
     }
 
@@ -1166,6 +1183,13 @@ internal sealed partial class HeifEncoderCore
     /// <summary>
     /// Encodes a still image as independently coded AV1 cells referenced by one derived grid item.
     /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="image">The source image. The image is wider or taller than the largest AV1 frame.</param>
+    /// <param name="stream">The shared destination for consecutive item payloads.</param>
+    /// <param name="settings">The resolved encoding settings.</param>
+    /// <param name="items">The destination item declarations.</param>
+    /// <param name="links">The destination item relationships.</param>
+    /// <param name="cancellationToken">The token used to cancel payload encoding.</param>
     private void CompressAv1GridPixels<TPixel>(
         Image<TPixel> image,
         ChunkedMemoryStream stream,
@@ -1191,8 +1215,7 @@ internal sealed partial class HeifEncoderCore
             Math.Max(cellWidth, MinimumGridCellDimension),
             Math.Max(cellHeight, MinimumGridCellDimension));
 
-        // A single image writes no alpha grid when every alpha sample of every cell is opaque. Reference: the
-        // AVIF_ADD_IMAGE_FLAG_SINGLE test of avifEncoderAddImageInternal().
+        // A still image writes no alpha grid when every alpha sample of every cell is opaque.
         bool hasAlpha = settings.HasAlpha &&
             !Av1FrameEncoder.IsGridAlphaOpaque(
                 this.configuration,
@@ -1376,12 +1399,18 @@ internal sealed partial class HeifEncoderCore
     /// </summary>
     /// <param name="dimension">The complete output dimension along the axis.</param>
     /// <param name="maximumCellDimension">The largest permitted nominal cell dimension.</param>
+    /// <returns>The number of cells along the axis.</returns>
     private static int GetGridCellCount(int dimension, int maximumCellDimension)
         => (int)(((long)dimension + maximumCellDimension - 1) / maximumCellDimension);
 
     /// <summary>
-    /// Gets the nominal cell size while preserving chroma alignment for every non-edge cell.
+    /// Gets the nominal cell size along one grid axis. On a subsampled axis the size is even, so every cell but the
+    /// last starts on a chroma sample.
     /// </summary>
+    /// <param name="dimension">The complete output dimension along the axis.</param>
+    /// <param name="cellCount">The number of cells along the axis.</param>
+    /// <param name="isSubsampled">Whether the chroma is subsampled along the axis.</param>
+    /// <returns>The nominal cell size.</returns>
     private static int GetGridCellSize(int dimension, int cellCount, bool isSubsampled)
     {
         int cellSize = (int)(((long)dimension + cellCount - 1) / cellCount);
@@ -1394,8 +1423,14 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Writes the fixed grid item payload and returns its exact length.
+    /// Writes the payload of a grid item. The payload uses 32-bit output dimensions only when a dimension does not fit
+    /// in 16 bits.
     /// </summary>
+    /// <param name="stream">The shared destination for consecutive item payloads.</param>
+    /// <param name="rows">The number of cell rows, from 1 to 256.</param>
+    /// <param name="columns">The number of cell columns, from 1 to 256.</param>
+    /// <param name="outputSize">The size of the reconstructed image.</param>
+    /// <returns>The length of the payload in bytes.</returns>
     private static int WriteGridDescriptor(Stream stream, int rows, int columns, Size outputSize)
     {
         bool usesLargeDimensions = outputSize.Width > ushort.MaxValue || outputSize.Height > ushort.MaxValue;
@@ -1425,8 +1460,10 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Reuses the common property set emitted for the first cell in one grid plane.
+    /// Reuses the property set of the first cell of one grid plane for the other cells of that plane.
     /// </summary>
+    /// <param name="item">The cell item.</param>
+    /// <param name="source">The first cell of the plane, or <see langword="null"/> before the first cell. The first call sets it.</param>
     private static void ShareGridCellProperties(HeifItem item, ref HeifItem? source)
     {
         if (source is null)
@@ -1435,16 +1472,15 @@ internal sealed partial class HeifEncoderCore
             return;
         }
 
-        // Every cell in one plane is coded to the same extent and configuration so current AVIF readers can
-        // share one property set. Only the source rectangle differs for cells clipped by the output canvas.
+        // Every cell of one plane has the same coded extent and configuration, so all cells can share one property set.
+        // Only the source rectangle differs for the cells that the output canvas clips.
         item.PropertySource = source;
     }
 
     /// <summary>
     /// Encodes one frame as the color and optional alpha payloads used by a primary AV1 image item. A single image
-    /// writes no alpha payload when every converted alpha sample is opaque; the primary image of a sequence keeps its
-    /// alpha, because later samples can be transparent. Reference: the AVIF_ADD_IMAGE_FLAG_SINGLE test of
-    /// avifEncoderAddImageInternal().
+    /// writes no alpha payload when every converted alpha sample is opaque. The primary image of a sequence keeps its
+    /// alpha, because later samples can be transparent.
     /// </summary>
     /// <typeparam name="TPixel">The source pixel format.</typeparam>
     /// <param name="frame">The frame to encode.</param>
@@ -1522,10 +1558,9 @@ internal sealed partial class HeifEncoderCore
 
     /// <summary>
     /// Encodes the layers of a layered still image as the color and optional alpha payloads of one AV1 image item. Each
-    /// layer is one frame of a sequence, coded at the quality of the layer. The media data holds the first layer of the
-    /// alpha and then of the color, then the second layer of each, and so on, so a viewer can show each layer as soon
-    /// as it arrives. Reference: the layer loop of avifenc, which calls avifEncoderAddImage() once per layer, and the
-    /// layer interleaving of avifEncoderWriteMediaDataBox().
+    /// layer is one frame of a sequence, coded at the quality of the layer. The media data holds layer 1 of the alpha,
+    /// then layer 1 of the color, then layer 2 of each, and so on. Thus a viewer can show each
+    /// layer as soon as it arrives.
     /// </summary>
     /// <typeparam name="TPixel">The source pixel format.</typeparam>
     /// <param name="frame">The frame to encode.</param>
@@ -1542,7 +1577,7 @@ internal sealed partial class HeifEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Reference: DEFAULT_QUALITY of avifenc, and the alpha quality that a layer keeps from the encoder.
+        // The default quality is 60. A layer without its own alpha quality uses the alpha quality of the encoder.
         int quality = this.encoder.Quality ?? 60;
         int alphaQuality = this.encoder.AlphaQuality ?? quality;
         int layerCount = layers.Count;
@@ -1580,8 +1615,7 @@ internal sealed partial class HeifEncoderCore
                 alphaConfiguration = new Av1CodecConfiguration(alphaHeader);
             }
 
-            // Each layer of the alpha precedes the same layer of the color. Reference: the samplePass loop of
-            // avifEncoderWriteMediaDataBox().
+            // Each layer of the alpha comes before the same layer of the color.
             HeifLocation[] colorLocations = new HeifLocation[layerCount];
             HeifLocation[]? alphaLocations = settings.HasAlpha ? new HeifLocation[layerCount] : null;
             for (int layer = 0; layer < layerCount; layer++)
@@ -1652,7 +1686,7 @@ internal sealed partial class HeifEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Only the image tune has its own quality curve, because libavif detects only tune=iq. Reference: tuneIqEnum.
+        // Only the image tune has its own curve from quality to quantizer.
         bool imageTune = options.Tuning == Av1Tuning.Iq;
         Av1RateControlMode rateControlMode = options.RateControlMode;
         using Av1FrameEncoder.SequenceEncoder encoder = encodeAlpha
@@ -1670,8 +1704,7 @@ internal sealed partial class HeifEncoderCore
             (int minimumQuantizer, int maximumQuantizer) = GetQuantizerRange(quantizer, rateControlMode);
             (int scaleNumerator, int scaleDenominator) = HeifLayer.GetFraction(layers[layer].Scale);
 
-            // libavif reconfigures the encoder only when the quality of a layer differs from the layer before it.
-            // Reference: the encoderChanges of aomCodecEncodeImage().
+            // The encoder gets a new configuration only when the quality of a layer differs from the layer before it.
             encoder.EncodeLayer(
                 frame,
                 buffer,
@@ -1749,8 +1782,8 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Returns the layer index of a layered item: the size of each layer but the last, in the first three entries, and
-    /// zero in the rest. Reference: the a1lx writer of avifEncoderWriteItemProperties().
+    /// Returns the layer index of a layered item. The first entries hold the size of each layer but the last. The other
+    /// entries of the three are zero.
     /// </summary>
     /// <param name="layers">The payload extent of each layer.</param>
     /// <returns>The layer index, or <see langword="null"/> for an item of one extent.</returns>
@@ -1768,8 +1801,15 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Appends Exif and XMP payload items associated with the primary presentation item.
+    /// Appends Exif and XMP payload items associated with the primary presentation item. The method writes nothing when
+    /// the encoder skips metadata.
     /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="image">The source image that holds the metadata.</param>
+    /// <param name="stream">The shared payload, which receives the metadata payloads.</param>
+    /// <param name="primaryItem">The item that the metadata describes.</param>
+    /// <param name="items">The destination item declarations.</param>
+    /// <param name="links">The destination item relationships.</param>
     private void WriteMetadataItems<TPixel>(
         Image<TPixel> image,
         ChunkedMemoryStream stream,
@@ -1836,7 +1876,8 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Materializes the caller's Exif profile once and locates the TIFF header addressed by HEIF's four-byte prefix.
+    /// Serializes the Exif profile and finds its TIFF header. A HEIF Exif item starts with a four-byte offset to this
+    /// header.
     /// </summary>
     /// <param name="metadata">The source image metadata.</param>
     /// <param name="tiffHeaderOffset">The byte offset of the TIFF header within the returned profile.</param>
@@ -1850,7 +1891,7 @@ internal sealed partial class HeifEncoderCore
             return null;
         }
 
-        // A directly supplied profile can retain the optional Exif identifier before its TIFF byte-order marker.
+        // A profile can keep the optional Exif identifier before the TIFF byte-order marker, so search for the marker.
         for (int i = 0; i <= exifData.Length - 4; i++)
         {
             bool isBigEndianTiff = exifData[i] == (byte)'M'

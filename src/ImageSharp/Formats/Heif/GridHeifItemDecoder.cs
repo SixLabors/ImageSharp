@@ -70,25 +70,22 @@ internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
     /// <summary>
     /// Initializes a new instance of the <see cref="GridHeifItemDecoder{TPixel}"/> class.
     /// </summary>
-    /// <param name="items">The item definitions in the containing HEIF file.</param>
+    /// <param name="items">
+    /// The item definitions in the containing HEIF file, indexed by item identifier. The decoder shares this index with
+    /// the container parser and does not change it.
+    /// </param>
     /// <param name="itemLinks">The item-reference relationships in the containing HEIF file.</param>
     /// <param name="itemDataReader">Reads one selected encoded image payload on demand.</param>
     /// <param name="tileItemIds">
     /// Optional row-major tile identifiers that replace the grid item's own derived-image references.
     /// </param>
     public GridHeifItemDecoder(
-        IList<HeifItem> items,
+        Dictionary<uint, HeifItem> items,
         IList<HeifItemLink> itemLinks,
         Func<HeifItem, IMemoryOwner<byte>> itemDataReader,
         IReadOnlyList<uint>? tileItemIds = null)
     {
-        Dictionary<uint, HeifItem> itemLookup = new(items.Count);
-        foreach (HeifItem item in items)
-        {
-            itemLookup.Add(item.Id, item);
-        }
-
-        this.items = itemLookup;
+        this.items = items;
         this.itemLinks = itemLinks;
         this.itemDataReader = itemDataReader;
         this.tileItemIds = tileItemIds;
@@ -113,16 +110,31 @@ internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
         bool premultiplied,
         Rectangle sourceRectangle,
         HeifPixelTransform transform,
-        Buffer2DRegion<TPixel> destination,
+        Func<Buffer2DRegion<TPixel>> destination,
         ImageMetadata metadata,
         CancellationToken cancellationToken)
     {
         GridDescriptor descriptor = ParseGridDescriptor(data);
+
+        // The image spatial extents property gives the size of the reconstructed image, before the clean aperture,
+        // rotation, and mirror properties apply. The output width and height of the grid descriptor give the size of
+        // the canvas on which the tiles are placed, which is the reconstructed grid image. The caller sizes the output
+        // image from the spatial extents, so a larger extent would allocate pixels that no tile can fill. Reject it
+        // before the output image is allocated. A smaller extent allocates no extra pixels, and the tiles are clipped
+        // to it as before.
+        if (gridItem.Extent.Width > descriptor.OutputSize.Width || gridItem.Extent.Height > descriptor.OutputSize.Height)
+        {
+            throw new InvalidImageContentException(
+                $"HEIF image grid {gridItem.Id} declares spatial extents {gridItem.Extent.Width}x{gridItem.Extent.Height}, " +
+                $"which exceed the output size {descriptor.OutputSize.Width}x{descriptor.OutputSize.Height} of its grid descriptor.");
+        }
+
         IReadOnlyList<uint> linked = this.GetLinkedTileIds(gridItem, descriptor);
         Heif4CharCode tileType = default;
         Av1CodecConfiguration? av1GridConfiguration = null;
         Size tileSize = this.items[linked[0]].Extent;
         ValidateGridCoverage(descriptor, tileSize.Width, tileSize.Height);
+        Buffer2DRegion<TPixel> gridDestination = destination();
         for (int tileIndex = 0; tileIndex < linked.Count; tileIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -162,14 +174,14 @@ internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
                 visibleSource.Height);
 
             Rectangle outputBounds = transform.TransformRectangle(relativeSource, sourceRectangle.Size);
-            Buffer2DRegion<TPixel> tileDestination = destination.GetSubRegion(
+            Buffer2DRegion<TPixel> tileDestination = gridDestination.GetSubRegion(
                 outputBounds.X, outputBounds.Y, outputBounds.Width, outputBounds.Height);
 
             Rectangle tileSource = new(
                 visibleSource.X - x, visibleSource.Y - y, visibleSource.Width, visibleSource.Height);
 
-            // A grid may associate alpha with each coded tile instead of the derived image.
-            // Resolve association at the tile boundary so its RGB is unassociated before ICC conversion.
+            // A grid can link alpha to each coded tile instead of to the derived image. Resolve the premultiplication
+            // for each tile, so that its RGB is unassociated before the ICC conversion.
             bool tilePremultiplied = premultiplied;
             if (alphaFrame is not null && !tilePremultiplied)
             {
@@ -210,7 +222,7 @@ internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
                 tilePremultiplied,
                 tileSource,
                 transform,
-                tileDestination,
+                () => tileDestination,
                 metadata,
                 cancellationToken);
         }
@@ -506,7 +518,7 @@ internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
         IReadOnlyList<uint> linked;
         if (this.tileItemIds is not null)
         {
-            // Auxiliary grids already own an immutable row-major identifier list; no defensive list copy is needed.
+            // An auxiliary grid already owns an immutable row-major identifier list, so no copy is necessary.
             linked = this.tileItemIds;
         }
         else

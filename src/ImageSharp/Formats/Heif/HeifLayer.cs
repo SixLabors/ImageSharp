@@ -5,8 +5,8 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
 /// Describes one layer of a layered image. A layered image stores the same picture several times, from the lowest
-/// quality to the highest. A viewer can show the first layer as soon as it arrives and replace it with each later
-/// layer, so the image appears quickly and then gets sharper.
+/// quality to the highest. A viewer can show the first layer as soon as it arrives. Then it replaces the picture
+/// with each later layer, so the image appears quickly and then gets sharper.
 /// </summary>
 public sealed class HeifLayer
 {
@@ -68,7 +68,7 @@ public sealed class HeifLayer
     /// <summary>
     /// Gets the width and height of the layer as a fraction of the image size. A smaller layer makes a smaller file.
     /// The layer width and height round up to whole pixels. A layer must be at least half the width and height of the
-    /// layer before it, and the last layer must have the size of the image. Defaults to
+    /// layer before it. The last layer must have the size of the image. Defaults to
     /// <see cref="HeifLayerScale.Full"/>.
     /// </summary>
     /// <exception cref="ArgumentException">The value is not a defined <see cref="HeifLayerScale"/>.</exception>
@@ -87,8 +87,7 @@ public sealed class HeifLayer
     }
 
     /// <summary>
-    /// Returns the numerator and denominator of a layer scale. Reference: the scaling mode fractions of libavif's
-    /// scalingModeMap.
+    /// Returns the numerator and denominator of a layer scale.
     /// </summary>
     /// <param name="scale">The layer scale.</param>
     /// <returns>The fraction of the image size.</returns>

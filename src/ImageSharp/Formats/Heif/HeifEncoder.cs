@@ -6,7 +6,8 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Image encoder for writing image data to a stream in a HEIF container.
+/// Image encoder for writing an image to a stream in the HEIF format. The encoder compresses the image with AV1, so
+/// the output is an AVIF file.
 /// </summary>
 public sealed class HeifEncoder : AnimatedImageEncoder
 {
@@ -120,10 +121,10 @@ public sealed class HeifEncoder : AnimatedImageEncoder
 
     /// <summary>
     /// Gets the quality measure that the encoder optimizes for, or <see langword="null"/> to let the encoder decide.
-    /// The setting applies to the primary and auxiliary alpha images. When it is <see langword="null"/>, lossless
-    /// images and the auxiliary alpha image use <see cref="HeifTuning.Psnr"/>, other still color images, with or
-    /// without <see cref="Layers"/>, use <see cref="HeifTuning.ImageQuality"/> unless they are stored as RGB, and other
-    /// color images use <see cref="HeifTuning.Ssim"/>.
+    /// The setting applies to the primary and auxiliary alpha images. When it is <see langword="null"/>, the encoder
+    /// uses <see cref="HeifTuning.Psnr"/> for lossless images and for the auxiliary alpha image. Other still color
+    /// images, with or without <see cref="Layers"/>, use <see cref="HeifTuning.ImageQuality"/>, unless they are stored as
+    /// RGB. All other color images use <see cref="HeifTuning.Ssim"/>.
     /// </summary>
     public HeifTuning? Tuning { get; init; }
 
@@ -198,11 +199,11 @@ public sealed class HeifEncoder : AnimatedImageEncoder
 
     /// <summary>
     /// Gets the layers of a layered image, from the first layer to the last, or <see langword="null"/> for an image
-    /// without layers. A viewer can show each layer as soon as it arrives, so the image appears quickly at a low quality
-    /// and then gets sharper. Give the first layers a low quality: each layer makes the file larger. The list holds 2 to
-    /// 4 layers. Only a still image can have layers, and it cannot be <see cref="Lossless"/> or wider or taller than
-    /// 65,536 pixels; encoding any other image with layers throws a <see cref="NotSupportedException"/>. Defaults to
-    /// <see langword="null"/>.
+    /// without layers. A viewer can show each layer as soon as it arrives. Thus the image appears quickly at a low
+    /// quality and then gets sharper. Each layer makes the file larger, so give the first layers a low quality. The list holds 2
+    /// to 4 layers. Only a still image can have layers. The image cannot be <see cref="Lossless"/> or wider or taller
+    /// than 65,536 pixels. Encoding any other image with layers throws a <see cref="NotSupportedException"/>. Defaults
+    /// to <see langword="null"/>.
     /// </summary>
     /// <exception cref="ArgumentException">
     /// The list holds fewer than 2 or more than 4 layers or a null layer, a layer is less than half the width and
@@ -230,7 +231,7 @@ public sealed class HeifEncoder : AnimatedImageEncoder
             {
                 copy[i] = value[i] ?? throw new ArgumentException("Layers must not hold a null layer.");
 
-                // A frame can predict from a reference at most twice its size. Reference: valid_ref_frame_size().
+                // AV1 lets a frame predict only from a reference that is at most twice its size.
                 if (i > 0)
                 {
                     (int numerator, int denominator) = HeifLayer.GetFraction(copy[i].Scale);
@@ -252,17 +253,17 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     }
 
     /// <summary>
-    /// Gets the encoded precision of each image component, or <see langword="null"/> to use the HEIF metadata bit
-    /// depth. Metadata that does not specify a bit depth defaults to <see cref="HeifBitDepth.Bit8"/>.
+    /// Gets the encoded precision of each image component, or <see langword="null"/> to use the bit depth of the HEIF
+    /// metadata. Metadata that does not give a bit depth uses <see cref="HeifBitDepth.Bit8"/>.
     /// </summary>
     public HeifBitDepth? BitDepth { get; init; }
 
     /// <summary>
-    /// Gets the encoded chroma sampling, or <see langword="null"/> to choose it from the source:
-    /// <see cref="HeifChromaSubsampling.Monochrome"/> for a luminance source, the source's own sampling for a
-    /// 4:2:0, 4:2:2 or 4:4:4 JPEG source, and <see cref="HeifChromaSubsampling.Yuv444"/> otherwise, including all
-    /// lossless encoding. Oversized still images use <see cref="HeifChromaSubsampling.Yuv444"/> when a subsampled
-    /// AVIF grid cannot represent an odd output dimension.
+    /// Gets the encoded chroma sampling, or <see langword="null"/> to choose it from the source. A grayscale source
+    /// gets <see cref="HeifChromaSubsampling.Monochrome"/>. A HEIF or JPEG source keeps its own sampling, unless the
+    /// encoding is <see cref="Lossless"/>. All other sources get <see cref="HeifChromaSubsampling.Yuv444"/>. A still
+    /// image wider or taller than 65,536 pixels is stored as a grid of smaller images. If the grid cannot hold an odd
+    /// width or height with the requested sampling, the encoder uses <see cref="HeifChromaSubsampling.Yuv444"/>.
     /// </summary>
     public HeifChromaSubsampling? ChromaSubsampling { get; init; }
 
@@ -301,7 +302,7 @@ public sealed class HeifEncoder : AnimatedImageEncoder
 
     /// <summary>
     /// Gets a value indicating whether the encoder chooses the tile rows and columns from the image size.
-    /// When <see langword="true"/>, <see cref="TileRows"/> and <see cref="TileColumns"/> are ignored.
+    /// When <see langword="true"/>, the encoder ignores <see cref="TileRows"/> and <see cref="TileColumns"/>.
     /// Defaults to <see langword="false"/>.
     /// </summary>
     public bool AutoTiling { get; init; }

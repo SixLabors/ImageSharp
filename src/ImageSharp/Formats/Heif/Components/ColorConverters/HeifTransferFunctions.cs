@@ -109,8 +109,8 @@ internal static partial class HeifTransferFunctions
             case CicpTransferCharacteristics.Linear:
                 return Math.Clamp(value, 0F, 1F);
             case CicpTransferCharacteristics.Log100:
-                // Zero represents an interval rather than one linear value. The midpoint matches libavif and
-                // minimizes the worst-case round-trip error when constant-luminance content is decoded.
+                // Zero represents the linear interval from 0 to 0.01, not one value. The midpoint 0.005 gives the
+                // smallest worst-case round-trip error when the decoder converts constant-luminance content.
                 return value <= 0F ? 0.005F : MathF.Pow(10F, 2F * (MathF.Min(value, 1F) - 1F));
             case CicpTransferCharacteristics.Log100Sqrt:
                 return value <= 0F ? 0.00158113883F : MathF.Pow(10F, 2.5F * (MathF.Min(value, 1F) - 1F));
@@ -127,8 +127,8 @@ internal static partial class HeifTransferFunctions
             case CicpTransferCharacteristics.AribStdB67:
                 return ToLinearHlg(value);
             default:
-                // H.273 leaves unspecified and reserved transfer values to the application. Match libavif's
-                // deterministic BT.709 fallback for still-image conversion.
+                // H.273 leaves unspecified and reserved transfer values to the application. Use BT.709, so the
+                // conversion is deterministic.
                 return ToLinearBt709(value);
         }
     }

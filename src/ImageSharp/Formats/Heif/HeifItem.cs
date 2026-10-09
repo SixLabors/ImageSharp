@@ -28,12 +28,12 @@ internal sealed class HeifItem
     }
 
     /// <summary>
-    /// Gets the ID of this Item.
+    /// Gets the item identifier.
     /// </summary>
     public uint Id { get; }
 
     /// <summary>
-    /// Gets the type of this Item.
+    /// Gets the four-character item type.
     /// </summary>
     public Heif4CharCode Type { get; }
 
@@ -58,22 +58,22 @@ internal sealed class HeifItem
     public string? Name { get; set; }
 
     /// <summary>
-    /// Gets or sets the Content Type of this item.
+    /// Gets or sets the content type of a mime item.
     /// </summary>
     public string? ContentType { get; set; }
 
     /// <summary>
-    /// Gets or sets the Content Encoding of this item.
+    /// Gets or sets the content encoding of a mime item, or <see langword="null"/> when the item has none.
     /// </summary>
     public string? ContentEncoding { get; set; }
 
     /// <summary>
-    /// Gets or sets the type of extension of this item.
+    /// Gets or sets the extension type of the item information entry.
     /// </summary>
     public uint ExtensionType { get; set; }
 
     /// <summary>
-    /// Gets or sets the URI of this item.
+    /// Gets or sets the URI type of a uri item.
     /// </summary>
     public string? UriType { get; set; }
 
@@ -181,8 +181,8 @@ internal sealed class HeifItem
     public byte? RotationAngle { get; set; }
 
     /// <summary>
-    /// Gets or sets the image-mirror axis, where zero is the horizontal axis and one is the vertical axis, or
-    /// <see langword="null"/> when no image-mirror property is associated with the item.
+    /// Gets or sets the image-mirror axis, or <see langword="null"/> when the item has no image-mirror property.
+    /// Zero is the horizontal axis, and one is the vertical axis.
     /// </summary>
     public byte? MirrorAxis { get; set; }
 
@@ -214,7 +214,7 @@ internal sealed class HeifItem
     public Size Extent { get; private set; }
 
     /// <summary>
-    /// Gets the spatial extent of this grid cells in this item.
+    /// Gets the coded extent of each grid cell of this item, or an empty size when the item has only one extent.
     /// </summary>
     public Size GridCellExtent { get; private set; }
 
@@ -231,8 +231,8 @@ internal sealed class HeifItem
     {
         if (this.serializedIccProfile.IsEmpty && this.iccProfile is not null)
         {
-            // Exact-size container writing queries the payload length before copying it. Retaining the serialized
-            // view on this transient item prevents an entry-built profile from being serialized for both passes.
+            // The container writer asks for the payload length before it copies the payload. Keep the serialized
+            // bytes on this item, so the profile is serialized once for both passes.
             this.serializedIccProfile = this.iccProfile.ToByteArray();
         }
 
@@ -240,11 +240,11 @@ internal sealed class HeifItem
     }
 
     /// <summary>
-    /// Set the image extent.
+    /// Sets the image extent. The first call sets <see cref="Extent"/>. A later call sets <see cref="GridCellExtent"/>.
     /// </summary>
-    /// <param name="extent">The size to set the extent to.</param>
+    /// <param name="extent">The extent to set.</param>
     /// <remarks>
-    /// Might be called twice for a grid, in which case the second call is the cell extent.
+    /// The decoder can call this method twice for a grid. The second call gives the cell extent.
     /// </remarks>
     public void SetExtent(Size extent)
     {

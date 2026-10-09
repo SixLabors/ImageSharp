@@ -38,7 +38,7 @@ internal static class HeifConstants
         fileType = HeifFileType.Unsupported;
 
         // Every brand is a four-character code. The payload must contain the major brand and minor version before
-        // any compatible brands, otherwise accepting a partial trailing code could produce a false detection.
+        // any compatible brands. A partial trailing code can cause a false detection, so the length must be a multiple of four.
         if (boxContent.Length < 8 || (boxContent.Length & 3) != 0)
         {
             return false;
@@ -57,7 +57,7 @@ internal static class HeifConstants
             return true;
         }
 
-        // The minor-version field follows the major brand; compatible brands start at byte eight.
+        // The minor-version field follows the major brand. The compatible brands start at byte eight.
         bool hasStillImageBrand = false;
         for (int offset = 8; offset < boxContent.Length; offset += 4)
         {

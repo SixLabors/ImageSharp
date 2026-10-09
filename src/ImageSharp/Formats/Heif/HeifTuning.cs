@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Specifies the quality measure that the AV1 encoder optimizes for.
+/// Specifies the quality measure that the encoder optimizes for.
 /// </summary>
 public enum HeifTuning
 {

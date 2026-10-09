@@ -121,8 +121,8 @@ internal sealed class HeifSequenceParser
         HeifSequenceTrack? colorTrack = null;
         HeifSequenceTrack? alphaTrack = null;
 
-        // Track references can precede the master track. Re-scan the bounded movie now that the selected master ID is
-        // known, and fully parse only that track and the one alpha auxiliary linked to it.
+        // Track references can come before the master track. Now that the master ID is known, scan the bounded movie
+        // again. Fully parse only that track and the one alpha auxiliary track linked to it.
         stream.Position = movieStart;
         while (stream.Position < movieEnd)
         {
@@ -400,7 +400,7 @@ internal sealed class HeifSequenceParser
         uint flags = ReadFlags(prefix);
         uint id = BinaryPrimitives.ReadUInt32BigEndian(prefix[trackIdOffset..]);
 
-        // Section 8.3.2 reserves track_ID zero, so accepting it would make track references ambiguous.
+        // Section 8.3.2 reserves track_ID zero. A zero identifier makes track references ambiguous, so reject it.
         if (id == 0)
         {
             throw new InvalidImageContentException("A HEIF image-sequence track has identifier zero.");
@@ -418,7 +418,7 @@ internal sealed class HeifSequenceParser
         }
 
         // Section 8.3.2 stores width and height as unsigned 16.16 fixed-point values. ImageSharp dimensions are
-        // integral pixels, matching libavif, so discard the fractional half before validating the display size.
+        // whole pixels, so discard the fractional half before validating the display size.
         uint fixedWidth = BinaryPrimitives.ReadUInt32BigEndian(prefix[widthOffset..]);
         uint fixedHeight = BinaryPrimitives.ReadUInt32BigEndian(prefix[(widthOffset + sizeof(uint))..]);
         int width = checked((int)(fixedWidth >> fixedPointFractionalBits));
@@ -431,15 +431,15 @@ internal sealed class HeifSequenceParser
 
         HeifTrackMatrix matrix = HeifTrackMatrix.Parse(prefix.Slice(matrixOffset, matrixLength));
 
-        // The Section 8.3.2 matrix transforms the track into the movie presentation coordinate system. This image
-        // decoder currently emits the stored raster directly, so a non-unity matrix would produce incorrect pixels.
+        // The Section 8.3.2 matrix transforms the track into the coordinate system of the movie presentation. The
+        // decoder writes the stored raster without this transform, so it rejects a matrix that is not the identity.
         if (!matrix.IsIdentity)
         {
             throw new NotSupportedException("The HEIF image-sequence track requires an unsupported movie presentation matrix.");
         }
 
-        // ISO/IEC 14496-12 Section 8.3.2 assigns bit zero to track_enabled. Image sequences, including files written
-        // by libavif, do not require track_in_movie to be set, so only the enabled bit participates in selection.
+        // ISO/IEC 14496-12 Section 8.3.2 assigns bit zero to track_enabled. Many image sequence writers do not set
+        // track_in_movie, so only the enabled bit takes part in track selection.
         bool isEnabled = (flags & trackEnabledFlag) != 0;
 
         return new TrackIdentity(id, isEnabled, width, height, duration);
@@ -1144,8 +1144,8 @@ internal sealed class HeifSequenceParser
                     throw new InvalidImageContentException("The ICC color-information property is empty or too large.");
                 }
 
-                // Read directly into the array retained by IccProfile so the generic box buffer cannot create a
-                // second full-sized copy of the profile at this ownership boundary.
+                // Read directly into the array that IccProfile keeps. Thus the generic box buffer does not make a
+                // second full-size copy of the profile.
                 byte[] profileData = new byte[(int)boxLength - 4];
                 HeifBoxReader.ReadExactly(stream, profileData, "Stream length is not sufficient for box content.");
                 track.IccProfile = HeifPropertyParser.ParseIccProfile(profileData);
@@ -1270,6 +1270,14 @@ internal sealed class HeifSequenceParser
         if (boxLength != 12 + entryBytes)
         {
             throw new InvalidImageContentException("The image-sequence sample-size table length does not match its entry count.");
+        }
+
+        // A table of per-sample sizes stores four bytes for each sample, so the box length bounds its count. A constant
+        // size stores no entries, so the count is bounded only by the file: every sample occupies constantSize bytes of
+        // it. Check that bound before the retained descriptors are allocated from the declared count.
+        if (constantSize != 0 && (ulong)constantSize * sampleCount > (ulong)(stream.Length - this.fileStartOffset))
+        {
+            throw new InvalidImageContentException("The image-sequence constant-size samples do not fit in the file.");
         }
 
         int retainedCount = (int)Math.Min(sampleCount, (uint)this.maxFrames);
@@ -1399,6 +1407,14 @@ internal sealed class HeifSequenceParser
             if (sampleCount == 0 || sampleDelta == 0)
             {
                 throw new InvalidImageContentException("The image-sequence timing table contains a zero run or duration.");
+            }
+
+            // The runs must describe exactly the samples of the sample-size table. Reject an excess run before its
+            // duration is added. The total duration is then at most TotalSampleCount * uint.MaxValue, which cannot
+            // overflow the 64-bit sum.
+            if (sampleCount > track.TotalSampleCount - describedSamples)
+            {
+                throw new InvalidImageContentException("The image-sequence timing table describes more samples than the track contains.");
             }
 
             describedSamples = checked(describedSamples + sampleCount);
@@ -2134,8 +2150,9 @@ internal sealed class HeifSequenceParser
              colorTrack.RotationAngle != alphaTrack.RotationAngle ||
              colorTrack.MirrorAxis != alphaTrack.MirrorAxis))
         {
-            // libavif accepts legacy alpha tracks with no transform properties, but requires exact equality when any
-            // alpha transform is declared because composition occurs before the shared color-track presentation step.
+            // For compatibility, an alpha track without transform properties is valid. If the alpha track declares a
+            // transform, all of its transforms must match the color track. The decoder combines alpha and color before
+            // it applies the transforms of the color track.
             throw new NotSupportedException("The alpha and color image-sequence tracks use different presentation transforms.");
         }
     }

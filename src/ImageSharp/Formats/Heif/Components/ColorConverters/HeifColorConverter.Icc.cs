@@ -13,7 +13,7 @@ internal abstract partial class HeifColorConverterBase
     /// </summary>
     /// <remarks>
     /// The result stays in <paramref name="vectors"/> as scaled, unassociated RGBA, ready for the final pixel conversion.
-    /// A 4:0:0 frame reaches the profile as R = G = B, so a gray profile reads its luminance from the first component
+    /// A 4:0:0 frame reaches the profile as R = G = B. Thus a gray profile reads its luminance from the first component,
     /// and an RGB profile sees a neutral value.
     /// </remarks>
     /// <param name="component0">The luma or first component row. Converted to red in place.</param>

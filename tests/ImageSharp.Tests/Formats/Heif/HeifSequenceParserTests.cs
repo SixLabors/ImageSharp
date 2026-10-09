@@ -262,6 +262,57 @@ public class HeifSequenceParserTests
     }
 
     /// <summary>
+    /// Verifies that a constant-size sample table cannot declare more sample bytes than the file holds, so that its
+    /// declared count cannot size the retained sample descriptors.
+    /// </summary>
+    [Fact]
+    public void ParseRejectsConstantSampleSizesBeyondFileBeforeAllocatingSamples()
+    {
+        const uint declaredSampleCount = 1_000_000;
+        const int constantSampleSizeBoxLength = 20;
+
+        byte[] data = CreateSequenceFile(SyntheticChunkOffset);
+        int sampleSizesOffset = data.AsSpan().IndexOf("stsz"u8) - 4;
+        Assert.True(sampleSizesOffset >= 0);
+        int originalLength = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(sampleSizesOffset));
+
+        // Rewrite the per-sample table as a constant-size table, which stores no entries, and fill the freed bytes with
+        // a free box that the sample-table parser skips.
+        Span<byte> box = data.AsSpan(sampleSizesOffset, originalLength);
+        BinaryPrimitives.WriteUInt32BigEndian(box, constantSampleSizeBoxLength);
+        BinaryPrimitives.WriteUInt32BigEndian(box[12..], FirstSyntheticSampleLength);
+        BinaryPrimitives.WriteUInt32BigEndian(box[16..], declaredSampleCount);
+        BinaryPrimitives.WriteUInt32BigEndian(box[constantSampleSizeBoxLength..], (uint)(originalLength - constantSampleSizeBoxLength));
+        BinaryPrimitives.WriteUInt32BigEndian(box[(constantSampleSizeBoxLength + 4)..], (uint)Heif4CharCode.Free);
+
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = CreateParser(uint.MaxValue);
+        stream.Position = BoxHeaderLength;
+
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        // One million retained sample descriptors need tens of megabytes. Rejecting the count first needs almost none.
+        Assert.True(allocated < 1024 * 1024, $"Parse allocated {allocated} bytes.");
+    }
+
+    /// <summary>
+    /// Verifies that time-to-sample runs that describe more samples than the track contains are rejected as invalid
+    /// content before their durations can overflow the total duration.
+    /// </summary>
+    [Fact]
+    public void ParseRejectsTimingRunsBeyondSampleCountBeforeDurationOverflow()
+    {
+        byte[] data = CreateSequenceFile(SyntheticChunkOffset, timingRuns: [uint.MaxValue, uint.MaxValue, uint.MaxValue, uint.MaxValue]);
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
+        stream.Position = BoxHeaderLength;
+
+        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
+    }
+
+    /// <summary>
     /// Verifies that auxiliary-track and premultiplication references are resolved by track identifier and remain
     /// valid when matching presentation properties are present on either track.
     /// </summary>
@@ -313,6 +364,10 @@ public class HeifSequenceParserTests
     /// <param name="nonIdentityMovieMatrix">Whether the movie header matrix contains horizontal scaling.</param>
     /// <param name="nonIdentityTrackMatrix">Whether the track header matrix contains horizontal scaling.</param>
     /// <param name="trackEnabled">Whether the picture track is eligible for sequence presentation.</param>
+    /// <param name="timingRuns">
+    /// The time-to-sample runs as sample-count and sample-delta pairs, or <see langword="null"/> for one run that gives
+    /// every synthetic sample the synthetic duration.
+    /// </param>
     /// <returns>The fixed-length synthetic file containing the serialized movie box.</returns>
     private static byte[] CreateSequenceFile(
         uint chunkOffset,
@@ -333,7 +388,8 @@ public class HeifSequenceParserTests
         uint premultipliedByTrackId = 0,
         bool nonIdentityMovieMatrix = false,
         bool nonIdentityTrackMatrix = false,
-        bool trackEnabled = true)
+        bool trackEnabled = true,
+        uint[] timingRuns = null)
     {
         using MemoryStream stream = new();
         using BinaryWriter writer = new(stream, Encoding.UTF8, true);
@@ -390,7 +446,8 @@ public class HeifSequenceParserTests
             av1Configuration,
             sampleSize,
             secondSampleSize,
-            allSamplesSync);
+            allSamplesSync,
+            timingRuns: timingRuns);
 
         EndBox(writer, mediaInformation);
         EndBox(writer, media);
@@ -862,6 +919,10 @@ public class HeifSequenceParserTests
     /// <param name="secondSampleSize">The second sample length, or the first/default length.</param>
     /// <param name="allSamplesSync">Whether both samples are listed as sync samples.</param>
     /// <param name="alpha">Whether the sample entry describes an auxiliary alpha track.</param>
+    /// <param name="timingRuns">
+    /// The time-to-sample runs as sample-count and sample-delta pairs, or <see langword="null"/> for one run that gives
+    /// every synthetic sample the synthetic duration.
+    /// </param>
     private static void WriteSampleTable(
         BinaryWriter writer,
         uint chunkOffset,
@@ -876,7 +937,8 @@ public class HeifSequenceParserTests
         int? sampleSize,
         int? secondSampleSize,
         bool allSamplesSync,
-        bool alpha = false)
+        bool alpha = false,
+        uint[] timingRuns = null)
     {
         const uint singleEntry = 1;
         const uint firstChunk = 1;
@@ -886,11 +948,16 @@ public class HeifSequenceParserTests
         long sampleTable = BeginBox(writer, Heif4CharCode.Stbl);
         WriteSampleDescription(writer, trackProperties, invalidRotation, width, height, av1Configuration, allSamplesSync, alpha);
 
+        // Each time-to-sample entry is a sample count followed by the duration of each of those samples.
+        timingRuns ??= [SyntheticSampleCount, SyntheticSampleDuration];
         long timing = BeginBox(writer, Heif4CharCode.Stts);
         WriteFullBoxHeader(writer, 0, 0);
-        WriteUInt32(writer, singleEntry);
-        WriteUInt32(writer, SyntheticSampleCount);
-        WriteUInt32(writer, SyntheticSampleDuration);
+        WriteUInt32(writer, (uint)(timingRuns.Length / 2));
+        foreach (uint value in timingRuns)
+        {
+            WriteUInt32(writer, value);
+        }
+
         EndBox(writer, timing);
 
         long sampleToChunk = BeginBox(writer, Heif4CharCode.Stsc);

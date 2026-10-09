@@ -36,7 +36,7 @@ internal ref struct HeifBoxPayloadReader
     private int offset;
 
     /// <summary>
-    /// The number of valid bytes currently stored in <see cref="buffer"/>.
+    /// The number of valid bytes in <see cref="buffer"/>.
     /// </summary>
     private int count;
 

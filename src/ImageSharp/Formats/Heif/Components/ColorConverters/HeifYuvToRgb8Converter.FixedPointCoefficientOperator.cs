@@ -8,8 +8,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <content>
 /// Provides full-range fixed-point coefficient conversion. Each signed 32-bit lane carries one luma or duplicated
-/// chroma sample. Matrix coefficients use a common fixed-point scale; every component rounds once after its complete
-/// weighted sum, then clips before the enclosing row kernel narrows and packs the RGB result.
+/// chroma sample. Matrix coefficients use a common fixed-point scale. Every component rounds once after its complete
+/// weighted sum. Then it clips before the enclosing row kernel narrows and packs the RGB result.
 /// </content>
 internal static partial class HeifYuvToRgb8Converter
 {
@@ -83,8 +83,8 @@ internal static partial class HeifYuvToRgb8Converter
             int centeredBlue = cb - ChromaMidpoint;
             int centeredRed = cr - ChromaMidpoint;
 
-            // All overloads preserve this term grouping and round once after the complete contribution for a
-            // component has been accumulated, so vector width cannot change an output code value.
+            // All overloads keep this term grouping. Each rounds once, after it adds the complete contribution for a
+            // component. Thus the vector width cannot change an output code value.
             int red = y + (((fixedPoint.RedCr * centeredRed) + RoundingBias) >> CoefficientShift);
             int green = y + (((fixedPoint.GreenCb * centeredBlue) + (fixedPoint.GreenCr * centeredRed) + RoundingBias) >> CoefficientShift);
             int blue = y + (((fixedPoint.BlueCb * centeredBlue) + RoundingBias) >> CoefficientShift);

@@ -173,8 +173,8 @@ internal static class HeifPlanarColorConverter
         Size columnStep = new((int)matrix.M11, (int)matrix.M12);
         Size rowStep = new((int)matrix.M21, (int)matrix.M22);
 
-        // The decoder's region bounds already include crop and tile placement. Resolve orientation once;
-        // each row advances by an integer basis vector and packing writes directly into that region.
+        // The region bounds of the decoder already include the crop and the tile placement. Resolve the orientation
+        // once. Each row advances by an integer basis vector, and packing writes directly into that region.
         for (int y = 0; y < sourceSize.Height; y++)
         {
             converter.Convert(y, scratch, destination, origin, columnStep);
@@ -522,9 +522,9 @@ internal static class HeifPlanarColorConverter
                     componentLength += (this.chromaWidth * 2) + (this.reconstructCompleteRow ? this.bufferWidth : 0);
                 }
 
-                // ICC rows hold one RGBA vector per pixel plus the packed RGB the profile converts. Opaque eight-bit
-                // rows pack bytes (one float of storage per pixel); other rows may interleave one RGBA vector per pixel
-                // for reoriented output.
+                // ICC rows hold one RGBA vector per pixel and the packed RGB that the profile converts. Opaque eight-bit
+                // rows pack bytes into one float of storage per pixel. Other rows use one RGBA vector per pixel for
+                // reoriented output.
                 int packedRowCount = this.profileConverter is not null ? 7 : this.UsesBytePacking && this.alpha is null ? 1 : 4;
                 return componentLength + (this.width * packedRowCount);
             }
@@ -709,9 +709,9 @@ internal static class HeifPlanarColorConverter
                 return;
             }
 
-            // Other rows pack the float planes through the shared planar path: floating-point pixel types keep the full
-            // (HDR) range, premultiplied pixel types keep their association, and integer types saturate once in the
-            // pixel conversion.
+            // Other rows pack the float planes through the shared planar path. Floating-point pixel types keep the full
+            // (HDR) range. Premultiplied pixel types keep their association. Integer types saturate once in the pixel
+            // conversion.
             if (step.Width == 1)
             {
                 PixelOperations<TPixel>.Instance.PackFromFloatPlanes(

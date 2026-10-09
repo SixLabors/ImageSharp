@@ -72,8 +72,8 @@ internal static class HeifPropertyParser
             throw new InvalidImageContentException("The HEIF CICP color property has nonzero reserved bits.");
         }
 
-        // The box fields are 16-bit so future registrations remain representable. ImageSharp's CICP profile exposes
-        // the currently registered byte-sized H.273 values and maps larger future values to unspecified.
+        // The box fields are 16-bit, so they can hold future registrations. The ImageSharp CICP profile holds the
+        // registered H.273 values, which fit in a byte. Larger values become unspecified.
         byte colorPrimariesValue = colorPrimaries <= byte.MaxValue ? (byte)colorPrimaries : (byte)CicpColorPrimaries.Unspecified;
         byte transferCharacteristicsValue = transferCharacteristics <= byte.MaxValue
             ? (byte)transferCharacteristics

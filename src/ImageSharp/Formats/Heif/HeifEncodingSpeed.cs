@@ -4,8 +4,8 @@
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Specifies the balance between encoding speed and compression efficiency for AV1 images.
-/// Higher levels prioritize encoding speed over compression efficiency.
+/// Specifies the balance between encoding speed and file size.
+/// Higher levels encode faster and make larger files.
 /// </summary>
 public enum HeifEncodingSpeed
 {

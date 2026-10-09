@@ -110,8 +110,8 @@ internal static class HeifSampleConversion
         int sourceIndex = sourceX >> 1;
         int i = 0;
 
-        // An odd crop origin starts at the second pixel of a replicated pair. Consume that pixel
-        // before vectorizing complete pairs; the final scalar tail handles an odd right edge.
+        // An odd crop origin starts at the second pixel of a replicated pair. Consume that pixel before the vector loop
+        // over complete pairs. The final scalar tail handles an odd right edge.
         if ((sourceX & 1) != 0)
         {
             destination[i++] = (GetSample(source, sourceIndex++) - bias) / scale;
@@ -275,9 +275,9 @@ internal static class HeifSampleConversion
             Vector512<float> o3Vector = Vector512.Create(o3);
             for (; i <= oneVectorBeforeEnd; i += Vector512<float>.Count)
             {
-                // Each lane represents one chroma column. Even lanes use the previous column
-                // for centered samples; odd lanes use the next. The two rows remain separate
-                // until the four weighted terms are added, without fused multiply-add rounding.
+                // Each lane represents one chroma column. For centered samples, even lanes use the previous column,
+                // and odd lanes use the next column. The two rows stay separate until the code adds the four weighted
+                // terms. No fused multiply-add changes the rounding.
                 int previous = isCentered ? i - 1 : i;
                 Vector512<float> center0 = Vector512.LoadUnsafe(ref closestBase, (nuint)i);
                 Vector512<float> center1 = Vector512.LoadUnsafe(ref adjacentBase, (nuint)i);
@@ -308,9 +308,9 @@ internal static class HeifSampleConversion
             Vector256<float> o3Vector = Vector256.Create(o3);
             for (; i <= oneVectorBeforeEnd; i += Vector256<float>.Count)
             {
-                // Each lane represents one chroma column. Even lanes use the previous column
-                // for centered samples; odd lanes use the next. The two rows remain separate
-                // until the four weighted terms are added, without fused multiply-add rounding.
+                // Each lane represents one chroma column. For centered samples, even lanes use the previous column,
+                // and odd lanes use the next column. The two rows stay separate until the code adds the four weighted
+                // terms. No fused multiply-add changes the rounding.
                 int previous = isCentered ? i - 1 : i;
                 Vector256<float> center0 = Vector256.LoadUnsafe(ref closestBase, (nuint)i);
                 Vector256<float> center1 = Vector256.LoadUnsafe(ref adjacentBase, (nuint)i);
@@ -339,9 +339,9 @@ internal static class HeifSampleConversion
             Vector128<float> o3Vector = Vector128.Create(o3);
             for (; i <= oneVectorBeforeEnd; i += Vector128<float>.Count)
             {
-                // Each lane represents one chroma column. Even lanes use the previous column
-                // for centered samples; odd lanes use the next. The two rows remain separate
-                // until the four weighted terms are added, without fused multiply-add rounding.
+                // Each lane represents one chroma column. For centered samples, even lanes use the previous column,
+                // and odd lanes use the next column. The two rows stay separate until the code adds the four weighted
+                // terms. No fused multiply-add changes the rounding.
                 int previous = isCentered ? i - 1 : i;
                 Vector128<float> center0 = Vector128.LoadUnsafe(ref closestBase, (nuint)i);
                 Vector128<float> center1 = Vector128.LoadUnsafe(ref adjacentBase, (nuint)i);

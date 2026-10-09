@@ -73,9 +73,13 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     private uint primaryItem;
 
     /// <summary>
-    /// The item declarations parsed from the item-information box.
+    /// The item declarations parsed from the item-information box, indexed by item identifier.
     /// </summary>
-    private readonly List<HeifItem> items;
+    /// <remarks>
+    /// The item-information, item-reference, item-property-association, and item-location boxes each resolve one item
+    /// per entry. A file can declare tens of thousands of items, so a keyed lookup keeps parsing linear in the entry count.
+    /// </remarks>
+    private readonly Dictionary<uint, HeifItem> items;
 
     /// <summary>
     /// The typed relationships parsed from the item-reference box.
@@ -180,7 +184,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     HeifBoxReader.Skip(stream, boxLength);
                     break;
                 case 0U:
-                    // Some files have trailing zeros, skiping to EOF.
+                    // Some files end with zero bytes. Skip to the end of the stream.
                     HeifBoxReader.Skip(stream, stream.Length - stream.Position);
                     break;
                 default:
@@ -344,7 +348,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         HeifItem? primaryItem = this.FindItemById(this.primaryItem);
 
         // Track samples carry their own codec configuration and presentation metadata. When no still item is
-        // available, the first visible sample supplies the root; an independent still item keeps its own root.
+        // available, the first visible sample supplies the root. An independent still item keeps its own root.
         bool animateRootFrame = primaryItem is null || IsPrimaryItemFirstSequenceSample(primaryItem, colorTrack);
         this.UpdateSequenceMetadata(this.metadata, sequence, animateRootFrame);
         Size codedSize = new(colorTrack.CodedWidth, colorTrack.CodedHeight);
@@ -355,8 +359,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         HeifPixelTransform transform = new(colorTrack.RotationAngle ?? 0, colorTrack.MirrorAxis);
         Size presentationSize = transform.GetDestinationSize(sourceRectangle.Size);
 
-        // The returned image owns every presented frame from the outset. A separate primary becomes its root;
-        // otherwise the first successfully decoded timed sample fills the root allocated here.
+        // The returned image owns every presented frame from the start. A separate primary item becomes its root.
+        // Otherwise the first decoded timed sample fills the root that this call allocates.
         Image<TPixel> image = animateRootFrame
             ? new Image<TPixel>(
                 this.configuration,
@@ -585,8 +589,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             return null;
         }
 
-        // Sequence output has the same packed RGB description as a still image. ICC conversion
-        // changes primaries and transfer to sRGB; otherwise those source characteristics remain.
+        // Sequence output has the same packed RGB description as a still image. ICC conversion changes the
+        // primaries and transfer to sRGB. Without ICC conversion, the source primaries and transfer stay.
         return profile is null
             ? new CicpProfile(
                 (byte)sourceProfile.ColorPrimaries,
@@ -1093,8 +1097,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                 if (bytesRead < totalLength)
                 {
-                    // Version-one extension payloads are outside the image item types currently
-                    // consumed by this decoder, but remain bounded within this entry.
+                    // The decoder does not use version 1 extension payloads. Skip them, but stay within the bounds of
+                    // this entry.
                     bytesRead = totalLength;
                 }
             }
@@ -1139,14 +1143,9 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             }
         }
 
-        if (item is not null)
+        if (item is not null && !this.items.TryAdd(item.Id, item))
         {
-            if (this.FindItemById(item.Id) is not null)
-            {
-                throw new InvalidImageContentException($"The item info box contains duplicate item ID {item.Id}.");
-            }
-
-            this.items.Add(item);
+            throw new InvalidImageContentException($"The item info box contains duplicate item ID {item.Id}.");
         }
 
         if (bytesRead != totalLength)
@@ -1281,8 +1280,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="boxLength">The bounded item-properties payload length.</param>
     private void ParseItemProperties(BufferedReadStream stream, long boxLength)
     {
-        // Property types may repeat, and ipma can physically precede ipco. Index the bounded
-        // children first so associations are always resolved after the ordered property table.
+        // Property types can repeat, and ipma can come before ipco in the file. Index the bounded children first,
+        // so the decoder resolves the associations after it has the ordered property table.
         List<KeyValuePair<Heif4CharCode, object>> properties = [];
         long endBoxPosition = stream.Position + boxLength;
         (long Offset, long Length)? propertyContainer = null;
@@ -1376,8 +1375,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                 if (profileType is Heif4CharCode.RICC or Heif4CharCode.Prof)
                 {
-                    // Read directly into the array retained by IccProfile so the generic box buffer cannot create a
-                    // second full-sized copy of the profile at this ownership boundary.
+                    // Read directly into the array that IccProfile keeps. Thus the generic box buffer does not make a
+                    // second full-size copy of the profile.
                     byte[] profileData = new byte[(int)itemLength - 4];
                     HeifBoxReader.ReadExactly(stream, profileData, "Stream length is not sufficient for box content.");
                     IccProfile? iccProfile = null;
@@ -1646,8 +1645,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="properties">The properties in the order used by association indices.</param>
     private void ParsePropertyAssociation(BufferedReadStream stream, long boxLength, List<KeyValuePair<Heif4CharCode, object>> properties)
     {
-        // Each association stores the essential flag in its highest bit and the one-based property
-        // index in the remaining bits: seven index bits in the byte form, fifteen in the ushort form.
+        // Each association stores the essential flag in its highest bit and the one-based property index in the
+        // other bits. The byte form has seven index bits, and the ushort form has fifteen.
         const uint smallPropertyIndexMask = 0x7FU;
         const uint smallEssentialMask = 0x80U;
         const uint largePropertyIndexMask = 0x7FFFU;
@@ -1724,8 +1723,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     continue;
                 }
 
-                // AVIF 1.1 section 2.3.2.1.1 requires a1op to be essential, while HEIF section 6.5.11.1
-                // imposes the same requirement on lsel because ignoring either selector changes the decoded image.
+                // AVIF 1.1 section 2.3.2.1.1 requires a1op to be essential. HEIF section 6.5.11.1 has the same
+                // requirement for lsel. A reader that ignores either selector decodes a different image.
                 if (!essential && prop.Key is Heif4CharCode.A1op or Heif4CharCode.Lsel)
                 {
                     this.ThrowOrIgnoreImageDataSegmentError(
@@ -1734,8 +1733,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     continue;
                 }
 
-                // AVIF 1.1 section 2.3.2.3.2 requires a1lx to be nonessential; decoders may consume the complete
-                // item payload without using its optional layer-boundary optimization.
+                // AVIF 1.1 section 2.3.2.3.2 requires a1lx to be nonessential. A decoder can read the complete item
+                // payload and ignore the optional layer boundaries.
                 if (essential && prop.Key == Heif4CharCode.A1lx)
                 {
                     this.ThrowOrIgnoreImageDataSegmentError(
@@ -2112,6 +2111,10 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             throw new InvalidImageContentException("The item location box uses an invalid integer field size.");
         }
 
+        // Every extent stores the optional index, the offset, and the length fields. A zero total size is legal, because
+        // a zero width means an implicit zero value, but then the extent costs no bytes in the box.
+        int extentSize = indexSize + offsetSize + lengthSize;
+
         EnsureBufferRemaining(boxBuffer, bytesRead, version == 2 ? 4 : 2, "item location");
         uint itemCount = ReadUInt16Or32(boxBuffer, version == 2, ref bytesRead);
         HashSet<uint> locatedItemIds = [];
@@ -2156,6 +2159,17 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             EnsureBufferRemaining(boxBuffer, bytesRead, 2, "item location");
             uint extentCount = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[bytesRead..]);
             bytesRead += 2;
+
+            // Validate the declared extent count before any location is created. Each extent must fit in the bytes left
+            // in the box. Zero-width extents all describe the same implicit zero offset and length, so more than one
+            // is malformed. Without these checks a few bytes could create 65,535 locations for each item.
+            if (extentSize == 0
+                ? extentCount > 1
+                : (ulong)extentCount * (uint)extentSize > (ulong)(boxBuffer.Length - bytesRead))
+            {
+                throw new InvalidImageContentException($"The item location box declares more extents for item ID {itemId} than it contains.");
+            }
+
             for (uint j = 0; j < extentCount; j++)
             {
                 if (version is 1 or 2 && indexSize > 0)
@@ -2247,10 +2261,13 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <returns>An owner containing the contiguous item payload.</returns>
     private IMemoryOwner<byte> ReadItemData(BufferedReadStream stream, HeifItem item)
     {
+        // Validate every extent against its source before the buffer is allocated. The declared lengths alone could
+        // otherwise request up to int.MaxValue bytes from a file that holds only a few bytes.
         long itemLength = 0;
         foreach (HeifLocation location in item.DataLocations)
         {
-            if (location.Length < 0 || itemLength > int.MaxValue - location.Length)
+            _ = this.GetExtentSourceOffset(stream, item, location);
+            if (itemLength > int.MaxValue - location.Length)
             {
                 throw new InvalidImageContentException($"Item {item.Id} data is too large to buffer.");
             }
@@ -2273,49 +2290,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             int writeOffset = 0;
             foreach (HeifLocation location in item.DataLocations)
             {
-                if (location.BaseOffset < 0
-                    || location.Offset < 0
-                    || location.BaseOffset > long.MaxValue - location.Offset)
-                {
-                    throw new InvalidImageContentException($"Item {item.Id} has an invalid extent offset.");
-                }
-
-                long relativeOffset = location.BaseOffset + location.Offset;
-                long sourceOffset;
-                long sourceBytesRemaining;
-                if (location.Origin == HeifLocationOffsetOrigin.FileOffset)
-                {
-                    // Construction method zero resolves base_offset + extent_offset from the start of the file.
-                    long fileLength = stream.Length - this.fileStartOffset;
-                    HeifBoxReader.EnsureInsideParent(relativeOffset, fileLength);
-                    sourceOffset = this.fileStartOffset + relativeOffset;
-                    sourceBytesRemaining = fileLength - relativeOffset;
-                }
-                else if (location.Origin == HeifLocationOffsetOrigin.ItemDataOffset)
-                {
-                    if (this.itemDataOffset < 0 || relativeOffset > this.itemDataLength)
-                    {
-                        throw new InvalidImageContentException($"Item {item.Id} has an extent outside its item data box.");
-                    }
-
-                    // Construction method one resolves the same relative value from the idat payload start.
-                    sourceOffset = this.itemDataOffset + relativeOffset;
-                    sourceBytesRemaining = this.itemDataLength - relativeOffset;
-                }
-                else
-                {
-                    throw new InvalidImageContentException($"Item {item.Id} uses an unsupported location origin.");
-                }
-
-                HeifBoxReader.EnsureInsideParent(location.Length, sourceBytesRemaining);
-                stream.Position = sourceOffset;
+                stream.Position = this.GetExtentSourceOffset(stream, item, location);
                 int extentLength = (int)location.Length;
-                int bytesRead = stream.Read(itemBuffer.Slice(writeOffset, extentLength));
-                if (bytesRead != extentLength)
-                {
-                    throw new InvalidImageContentException($"Item {item.Id} extent is truncated.");
-                }
 
+                // A stream can return fewer bytes than requested before its end, so read until the extent is complete.
+                HeifBoxReader.ReadExactly(stream, itemBuffer.Slice(writeOffset, extentLength), "An item extent is truncated.");
                 writeOffset += extentLength;
             }
 
@@ -2326,6 +2305,55 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             itemMemory.Dispose();
             throw;
         }
+    }
+
+    /// <summary>
+    /// Resolves the absolute stream offset of one item extent and validates that the whole extent is inside its source.
+    /// </summary>
+    /// <param name="stream">The complete seekable HEIF container stream.</param>
+    /// <param name="item">The item that owns the extent, used in error messages.</param>
+    /// <param name="location">The extent to resolve.</param>
+    /// <returns>The absolute stream offset of the first extent byte.</returns>
+    /// <exception cref="InvalidImageContentException">The extent is not completely inside the file or item data box.</exception>
+    private long GetExtentSourceOffset(BufferedReadStream stream, HeifItem item, HeifLocation location)
+    {
+        if (location.BaseOffset < 0
+            || location.Offset < 0
+            || location.BaseOffset > long.MaxValue - location.Offset)
+        {
+            throw new InvalidImageContentException($"Item {item.Id} has an invalid extent offset.");
+        }
+
+        long relativeOffset = location.BaseOffset + location.Offset;
+        long sourceOffset;
+        long sourceBytesRemaining;
+        if (location.Origin == HeifLocationOffsetOrigin.FileOffset)
+        {
+            // Construction method zero resolves base_offset + extent_offset from the start of the file.
+            long fileLength = stream.Length - this.fileStartOffset;
+            HeifBoxReader.EnsureInsideParent(relativeOffset, fileLength);
+            sourceOffset = this.fileStartOffset + relativeOffset;
+            sourceBytesRemaining = fileLength - relativeOffset;
+        }
+        else if (location.Origin == HeifLocationOffsetOrigin.ItemDataOffset)
+        {
+            if (this.itemDataOffset < 0 || relativeOffset > this.itemDataLength)
+            {
+                throw new InvalidImageContentException($"Item {item.Id} has an extent outside its item data box.");
+            }
+
+            // Construction method one resolves the same relative value from the idat payload start.
+            sourceOffset = this.itemDataOffset + relativeOffset;
+            sourceBytesRemaining = this.itemDataLength - relativeOffset;
+        }
+        else
+        {
+            throw new InvalidImageContentException($"Item {item.Id} uses an unsupported location origin.");
+        }
+
+        // The length check also rejects a negative length, so the caller can sum validated lengths directly.
+        HeifBoxReader.EnsureInsideParent(location.Length, sourceBytesRemaining);
+        return sourceOffset;
     }
 
     /// <summary>
@@ -2606,8 +2634,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         ReadOnlySpan<byte> exifData = itemData[4..];
         int actualTiffHeaderOffset = -1;
 
-        // Annex A stores the offset to the first TIFF byte-order marker. Match libavif by finding the first valid
-        // TIFF signature and requiring the declared offset to identify that same header.
+        // Annex A stores the offset to the first TIFF byte-order marker. Find the first valid TIFF signature, and
+        // require the declared offset to identify that same header.
         for (int i = 0; i <= exifData.Length - 4; i++)
         {
             bool isBigEndianTiff = exifData[i] == (byte)'M' &&
@@ -2672,22 +2700,27 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> itemMemory = itemDataReader(item);
-        Rectangle sourceRectangle = item.CleanAperture?.ToRectangle(item.Extent) ?? new Rectangle(Point.Empty, item.Extent);
+        Size extent = GetImageExtent(item);
+        Rectangle sourceRectangle = item.CleanAperture?.ToRectangle(extent) ?? new Rectangle(Point.Empty, extent);
         HeifPixelTransform transform = new(item.RotationAngle ?? 0, item.MirrorAxis);
         Size outputSize = transform.GetDestinationSize(sourceRectangle.Size);
-        Image<TPixel> image = new(this.configuration, outputSize.Width, outputSize.Height);
+
+        // The item decoder allocates the output image through the destination callback only after it has validated
+        // the spatial extents against the payload. Metadata is collected first and then owned by that image.
+        ImageMetadata metadata = new();
+        Image<TPixel>? image = null;
 
         try
         {
             if (!this.Options.SkipMetadata)
             {
-                this.ApplyItemColorMetadata(image.Metadata, item);
+                this.ApplyItemColorMetadata(metadata, item);
             }
 
             IccProfile? profile = null;
             if (this.Options.ColorProfileHandling == ColorProfileHandling.Convert)
             {
-                this.Options.TryGetIccProfileForColorConversion(image.Metadata.IccProfile, out profile);
+                this.Options.TryGetIccProfileForColorConversion(metadata.IccProfile, out profile);
             }
 
             Av1FrameBuffer<byte>? alpha = null;
@@ -2704,24 +2737,47 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 item.CicpProfile,
                 profile,
                 alphaFrame,
-                item.Extent,
+                extent,
                 sourceRectangle,
                 alphaFrame is not null && premultiplied,
                 sourceRectangle,
                 transform,
-                image.Frames.RootFrame.PixelBuffer.GetRegion(new Rectangle(Point.Empty, outputSize)),
-                image.Metadata,
+                () =>
+                {
+                    image = new Image<TPixel>(this.configuration, outputSize.Width, outputSize.Height, metadata);
+                    return image.Frames.RootFrame.PixelBuffer.GetRegion(new Rectangle(Point.Empty, outputSize));
+                },
+                metadata,
                 cancellationToken);
 
-            image.Metadata.GetHeifMetadata().HasAlpha = alphaFrame is not null;
+            // Every item decoder requests its destination once on success, so the image exists here.
+            image!.Metadata.GetHeifMetadata().HasAlpha = alphaFrame is not null;
             image.Frames.RootFrame.Metadata.CicpProfile = image.Metadata.CicpProfile;
             return image;
         }
         catch
         {
-            image.Dispose();
+            image?.Dispose();
             throw;
         }
+    }
+
+    /// <summary>
+    /// Gets the reconstructed size of an image item from its required image spatial extents property.
+    /// </summary>
+    /// <param name="item">The image item whose reconstructed size is requested.</param>
+    /// <returns>The width and height before the clean aperture, rotation, and mirror properties apply.</returns>
+    /// <exception cref="InvalidImageContentException">The item has no image spatial extents property.</exception>
+    private static Size GetImageExtent(HeifItem item)
+    {
+        // HEIF requires every image item to have an image spatial extents property. The property parser rejects zero
+        // dimensions, so an empty extent means that no property was associated with the item.
+        if (item.Extent == default)
+        {
+            throw new InvalidImageContentException($"Image item {item.Id} has no image spatial extents property.");
+        }
+
+        return item.Extent;
     }
 
     /// <summary>
@@ -2729,9 +2785,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// </summary>
     /// <param name="item">The image item whose presentation dimensions are requested.</param>
     /// <returns>The item dimensions after the optional crop and quarter-turn rotation.</returns>
+    /// <exception cref="InvalidImageContentException">The item has no image spatial extents property.</exception>
     private static Size GetPresentationExtent(HeifItem item)
     {
-        Size extent = item.CleanAperture is not null ? item.CleanAperture.Value.ToRectangle(item.Extent).Size : item.Extent;
+        Size imageExtent = GetImageExtent(item);
+        Size extent = item.CleanAperture is not null ? item.CleanAperture.Value.ToRectangle(imageExtent).Size : imageExtent;
         return item.RotationAngle is not null && (item.RotationAngle.Value & 1) != 0
             ? new Size(extent.Height, extent.Width)
             : extent;
@@ -2771,8 +2829,9 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         HeifItem? alphaItem = this.FindAlphaItem(colorItem);
         if (alphaItem is not null)
         {
-            // libavif releases through 1.3 omitted alpha transform associations, so accept complete absence for
-            // compatibility. If either property is present, it must match the color item before plane composition.
+            // Some older encoders did not associate the transform properties with the alpha item. For compatibility,
+            // accept an alpha item without transforms. If the alpha item has a transform, all of its transforms must
+            // match the color item.
             bool alphaHasTransforms = alphaItem.CleanAperture is not null ||
                 alphaItem.RotationAngle is not null ||
                 alphaItem.MirrorAxis is not null;
@@ -2854,7 +2913,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="itemId">The item identifier.</param>
     /// <returns>The matching item, or <see langword="null"/> when it has not been declared.</returns>
     private HeifItem? FindItemById(uint itemId)
-        => this.items.FirstOrDefault(item => item.Id == itemId);
+        => this.items.GetValueOrDefault(itemId);
 
     /// <summary>
     /// Resolves an item identifier referenced by another parsed HEIF structure.
@@ -2928,8 +2987,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             HeifItem? alphaTile = this.FindAlphaItem(colorTile);
             if (alphaTile is null)
             {
-                // A partial set cannot describe an alpha plane for the complete grid. libavif treats this case as
-                // an opaque image rather than mixing opaque cells with auxiliary alpha cells.
+                // A partial set cannot describe an alpha plane for the complete grid. Treat the image as opaque, and
+                // do not mix opaque cells with auxiliary alpha cells.
                 return null;
             }
 

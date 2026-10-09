@@ -166,7 +166,7 @@ public class HeifEncoderTests
         }
 
         List<HeifItemLink> links = [gridLink];
-        GridHeifItemDecoder<Rgba32> decoder = new(items, links, ReadItem);
+        GridHeifItemDecoder<Rgba32> decoder = new(items.ToDictionary(item => item.Id), links, ReadItem);
         Span<byte> descriptor = [0, 0, 1, 1, 0, outputWidth, 0, outputHeight];
         using Image<Rgba32> result = new(outputWidth, outputHeight);
         decoder.DecodeItemData(
@@ -182,7 +182,7 @@ public class HeifEncoderTests
             false,
             result.Bounds,
             default,
-            result.Frames.RootFrame.PixelBuffer.GetRegion(result.Bounds),
+            () => result.Frames.RootFrame.PixelBuffer.GetRegion(result.Bounds),
             result.Metadata,
             TestContext.Current.CancellationToken);
 
@@ -2642,7 +2642,7 @@ public class HeifEncoderTests
         tileItem.SetExtent(new Size(width, height));
         HeifItemLink gridLink = new(Heif4CharCode.Dimg, gridItem.Id);
         gridLink.DestinationIds.Add(tileItem.Id);
-        GridHeifItemDecoder<Rgba32> decoder = new([gridItem, tileItem], [gridLink], ReadItem);
+        GridHeifItemDecoder<Rgba32> decoder = new(new Dictionary<uint, HeifItem> { [gridItem.Id] = gridItem, [tileItem.Id] = tileItem }, [gridLink], ReadItem);
         byte[] descriptor = new byte[8];
         BinaryPrimitives.WriteUInt16BigEndian(descriptor.AsSpan(4), (ushort)width);
         BinaryPrimitives.WriteUInt16BigEndian(descriptor.AsSpan(6), (ushort)height);
@@ -2662,7 +2662,7 @@ public class HeifEncoderTests
                 false,
                 result.Bounds,
                 default,
-                result.Frames.RootFrame.PixelBuffer.GetRegion(result.Bounds),
+                () => result.Frames.RootFrame.PixelBuffer.GetRegion(result.Bounds),
                 result.Metadata,
                 TestContext.Current.CancellationToken);
 

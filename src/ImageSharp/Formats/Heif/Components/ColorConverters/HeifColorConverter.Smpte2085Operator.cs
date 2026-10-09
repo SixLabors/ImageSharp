@@ -89,7 +89,7 @@ internal abstract partial class HeifColorConverterBase
             out float dz,
             out float dx)
         {
-            // Y is the green primary; Dz and Dx are half-scaled blue and red differences.
+            // Y is the green primary. Dz and Dx are the half-scaled blue and red differences.
             y = g;
             dz = ((BlueNormalization * b) - y) * 0.5F;
             dx = (r - (RedGreenContribution * y)) * 0.5F;

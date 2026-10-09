@@ -4,9 +4,9 @@
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Specifies how the AV1 encoder balances file size against the quality setting. The modes that use a bit budget aim
-/// for about 8.5 kilobits per frame, which is 256 kilobits per second at 30 frames per second, whatever the frame
-/// delays of the image. A still image gets the bits of one key frame.
+/// Specifies how the encoder balances file size against the quality setting. The modes that use a bit budget aim
+/// for about 8.5 kilobits per frame. This budget is 256 kilobits per second at 30 frames per second. The frame delays
+/// of the image do not change it. A still image gets the bits of one key frame.
 /// </summary>
 public enum HeifRateControl
 {

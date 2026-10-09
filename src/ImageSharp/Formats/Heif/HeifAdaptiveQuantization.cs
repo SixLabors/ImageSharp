@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Specifies how the AV1 encoder varies the compression between areas of a frame.
+/// Specifies how the encoder varies the compression between areas of a frame.
 /// </summary>
 public enum HeifAdaptiveQuantization
 {

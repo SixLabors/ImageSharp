@@ -53,8 +53,8 @@ internal abstract partial class HeifColorConverterBase
             Vector128<int> cgCode = Vector128.ConvertToInt32(Vector128.Floor((cg * encodedMaximum) + half));
             Vector128<int> coCode = Vector128.ConvertToInt32(Vector128.Floor((co * encodedMaximum) + half));
 
-            // Integer lanes preserve the normative arithmetic shifts; converting the lifting stages back to
-            // floating point would change negative odd Cg and Co values and break reversibility.
+            // Integer lanes keep the normative arithmetic shifts. Floating-point lifting stages change negative odd Cg
+            // and Co values, and then the transform is not reversible.
             Vector128<int> temporary = yCode - Vector128.ShiftRightArithmetic(cgCode, 1);
             Vector128<int> zero = Vector128<int>.Zero;
             Vector128<int> rgbMaximum = Vector128.Create((int)parameters.RgbSampleMaximum);

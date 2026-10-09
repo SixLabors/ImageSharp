@@ -640,7 +640,7 @@ internal static partial class Av1FrameEncoder
     {
         Av1ColorFormat colorFormat = colorConfig.GetColorFormat();
         Av1EncoderSpeedSettings speedSettings = new(
-            options.Speed, isStillPicture, intraFrame: true, Av1FrameUpdateType.Key, qIndex: 0, new Size(width, height));
+            options.Speed, options.IsAllIntra, intraFrame: true, Av1FrameUpdateType.Key, qIndex: 0, new Size(width, height));
 
         ObuSequenceProfile sequenceProfile = colorConfig.BitDepth == Av1BitDepth.TwelveBit ||
             colorFormat == Av1ColorFormat.Yuv422
@@ -657,7 +657,7 @@ internal static partial class Av1FrameEncoder
         bool use128x128Superblock = options.DeltaQMode != Av1DeltaQMode.VarianceBoost && options.LayerCount == 1 && (speedSettings.IsRealtime
             ? minimumDimension > 720
             : !(options.Speed >= HeifEncodingSpeed.Level1 && minimumDimension <= 480) &&
-                !(isStillPicture && options.Speed >= HeifEncodingSpeed.Level9 && minimumDimension < 2160));
+                !(options.IsAllIntra && options.Speed >= HeifEncodingSpeed.Level9 && minimumDimension < 2160));
 
         // A layered image lists one operating point per layer. Operating point i decodes the spatial layers from 0 up
         // to the last layer minus i, in the single temporal layer, so operating point 0 decodes every layer. Each frame
@@ -928,10 +928,6 @@ internal static partial class Av1FrameEncoder
         int qIndex,
         Av1EncoderOptions options)
     {
-        frameHeader.TransformMode = qIndex == 0
-            ? Av1TransformMode.Only4x4
-            : Av1TransformMode.Select;
-
         frameHeader.AllowHighPrecisionMotionVector = false;
         if (frameHeader.FrameType == ObuFrameType.InterFrame)
         {
@@ -962,9 +958,15 @@ internal static partial class Av1FrameEncoder
             sequenceHeader.ColorConfig,
             qIndex,
             options,
-            sequenceHeader.IsStillPicture);
+            options.IsAllIntra);
 
         Av1QuantizationLookup.UpdateFrameQuantizationState(frameHeader);
+
+        // Only a frame whose every segment codes losslessly fixes its transforms at 4x4. The flag needs the plane
+        // quantizer adjustments and the segment quantizers, so it follows the quantizer state update.
+        frameHeader.TransformMode = frameHeader.CodedLossless
+            ? Av1TransformMode.Only4x4
+            : Av1TransformMode.Select;
     }
 
     /// <summary>
@@ -1100,7 +1102,7 @@ internal static partial class Av1FrameEncoder
 
         Av1EncoderSpeedSettings speedSettings = new(
             options.Speed,
-            sequenceHeader.IsStillPicture,
+            options.IsAllIntra,
             frameHeader.IsIntra,
             Av1FrameUpdateType.Key,
             frameHeader.QuantizationParameters.BaseQIndex,
@@ -1108,7 +1110,7 @@ internal static partial class Av1FrameEncoder
 
         Av1MotionSearchSettings motionSettings = new(
             options.Speed,
-            sequenceHeader.IsStillPicture,
+            options.IsAllIntra,
             frameSize,
             frameHeader.QuantizationParameters.BaseQIndex,
             frameHeader.IsIntra,
@@ -1249,7 +1251,7 @@ internal static partial class Av1FrameEncoder
 
         Av1EncoderSpeedSettings speedSettings = new(
             options.Speed,
-            sequenceHeader.IsStillPicture,
+            options.IsAllIntra,
             frameHeader.IsIntra,
             Av1FrameUpdateType.Key,
             frameHeader.QuantizationParameters.BaseQIndex,
@@ -1257,7 +1259,7 @@ internal static partial class Av1FrameEncoder
 
         Av1MotionSearchSettings motionSettings = new(
             options.Speed,
-            sequenceHeader.IsStillPicture,
+            options.IsAllIntra,
             frameSize,
             frameHeader.QuantizationParameters.BaseQIndex,
             frameHeader.IsIntra,
@@ -1397,7 +1399,7 @@ internal static partial class Av1FrameEncoder
     {
         decision.IsScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
             source,
-            sequenceHeader.IsStillPicture,
+            options.IsAllIntra,
             options.Speed,
             out bool allowScreenContentTools,
             out bool allowIntraBlockCopy);
@@ -1479,7 +1481,7 @@ internal static partial class Av1FrameEncoder
 
         Av1MotionSearchSettings motionSettings = new(
             options.Speed,
-            sequenceHeader.IsStillPicture,
+            options.IsAllIntra,
             sourceSize,
             frameHeader.QuantizationParameters.BaseQIndex,
             frameHeader.IsIntra,
@@ -1563,7 +1565,7 @@ internal static partial class Av1FrameEncoder
     {
         decision.IsScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
             source,
-            sequenceHeader.IsStillPicture,
+            options.IsAllIntra,
             options.Speed,
             out bool allowScreenContentTools,
             out bool allowIntraBlockCopy);
@@ -2388,7 +2390,7 @@ internal static partial class Av1FrameEncoder
                 bool allocateScreenContentState = true;
                 Av1MotionSearchSettings motionSettings = new(
                     options.Speed,
-                    this.SequenceHeader.IsStillPicture,
+                    options.IsAllIntra,
                     new Size(width, height),
                     qIndex,
                     this.FrameHeader.IsIntra,
@@ -2403,7 +2405,7 @@ internal static partial class Av1FrameEncoder
                 // avoids renting the complete mode grid and optional screen-content index for every frame.
                 Av1EncoderSpeedSettings speedSettings = new(
                     options.Speed,
-                    this.SequenceHeader.IsStillPicture,
+                    options.IsAllIntra,
                     this.FrameHeader.IsIntra,
                     Av1FrameUpdateType.Key,
                     qIndex,
@@ -4345,7 +4347,7 @@ internal static partial class Av1FrameEncoder
             parent.ConstantQualityIndex = GetConstantQualityLevel(this.Options, this.ConstantQualityIndex);
             parent.SpeedSettings = new(
                 this.Options.Speed,
-                this.SequenceHeader.IsStillPicture,
+                this.Options.IsAllIntra,
                 frameHeader.IsIntra,
                 parent.FrameUpdateType,
                 this.QIndex,
@@ -4782,7 +4784,7 @@ internal static partial class Av1FrameEncoder
             parent.ConstantQualityIndex = GetConstantQualityLevel(this.Options, this.ConstantQualityIndex);
             parent.SpeedSettings = new(
                 this.Options.Speed,
-                this.SequenceHeader.IsStillPicture,
+                this.Options.IsAllIntra,
                 frameHeader.IsIntra,
                 parent.FrameUpdateType,
                 this.QIndex,

@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
@@ -193,6 +194,12 @@ internal static partial class Av1FrameEncoder
             // The segment quantizers set the lossless flags and matrix levels of each segment. Reference: the
             // xd->lossless and qmatrix_level loop of encode_frame_internal().
             Av1QuantizationLookup.UpdateFrameQuantizationState(frameHeader);
+
+            // The segment quantizers can change whether every segment codes losslessly, and only such a frame fixes
+            // its transforms at 4x4.
+            frameHeader.TransformMode = frameHeader.CodedLossless
+                ? Av1TransformMode.Only4x4
+                : Av1TransformMode.Select;
 
             // The encoder map holds no identifier above the last active segment. Reference: the last_active_segid
             // clamp of cpi->enc_seg.map in encode_frame_internal().

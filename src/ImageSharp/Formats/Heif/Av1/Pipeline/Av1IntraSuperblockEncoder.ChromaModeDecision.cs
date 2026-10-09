@@ -1027,7 +1027,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 TransformWorkspace = transformWorkspace,
                 Context = blueContext,
                 RateMultiplier = this.rateMultiplier,
-                UseChromaWeights = this.picture.Sequence.SequenceHeader.IsStillPicture,
+                UseChromaWeights = this.picture.Parent.SpeedSettings.UseChromaTrellisRateMultiplier,
                 Source = blueSourceBlock,
                 SourceStride = blueSource.Stride,
                 BlockOrigin = chromaOrigin,
@@ -1044,6 +1044,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 TransformSize = transformSize,
                 Plane = Av1Plane.U,
                 QIndex = this.blockQIndex,
+                Lossless = this.BlockLossless,
                 DcDeltaQ = this.quantization.DeltaQDc[(int)Av1Plane.U],
                 AcDeltaQ = this.quantization.DeltaQAc[(int)Av1Plane.U],
                 BitDepth = this.bitDepth,
@@ -1078,6 +1079,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 TransformSize = transformSize,
                 Plane = Av1Plane.V,
                 QIndex = this.blockQIndex,
+                Lossless = bluePlane.Lossless,
                 DcDeltaQ = this.quantization.DeltaQDc[(int)Av1Plane.V],
                 AcDeltaQ = this.quantization.DeltaQAc[(int)Av1Plane.V],
                 BitDepth = this.bitDepth,
@@ -2085,7 +2087,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Size codedExtent = GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY);
             int maximumUnitWidth = Math.Min(maximumUnitBlockSize.GetWidth(), codedExtent.Width);
             int maximumUnitHeight = Math.Min(maximumUnitBlockSize.GetHeight(), codedExtent.Height);
-            Av1TransformType transformType = this.picture.Parent.FrameHeader.CodedLossless
+            Av1TransformType transformType = this.BlockLossless
                 ? Av1TransformType.DctDct
                 : Av1SymbolContextHelper.GetDefaultIntraTransformType(
                     predictionMode,
@@ -2745,7 +2747,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Intra chroma derives one transform type from the shared UV prediction mode. The type is not
             // signaled independently for either chroma plane, so U and V must use the same legal fallback.
-            Av1TransformType transformType = this.picture.Parent.FrameHeader.CodedLossless
+            Av1TransformType transformType = this.BlockLossless
                 ? Av1TransformType.DctDct
                 : Av1SymbolContextHelper.GetDefaultIntraTransformType(
                     predictionMode,
@@ -2764,7 +2766,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 candidateBlueState.EndOfBlock,
                 this.picture.Parent.FrameHeader.UseReducedTransformSet,
                 Av1FilterIntraMode.AllFilterIntraModes,
-                usesInterTransformSet: false);
+                usesInterTransformSet: false,
+                blue.Lossless);
 
             // The uncoded cost uses the energy the transform search reports, which is measured in the transform
             // domain whenever the distortion is. Reference: the sse of search_tx_type().
@@ -2817,7 +2820,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 candidateRedState.EndOfBlock,
                 this.picture.Parent.FrameHeader.UseReducedTransformSet,
                 Av1FilterIntraMode.AllFilterIntraModes,
-                usesInterTransformSet: false);
+                usesInterTransformSet: false,
+                red.Lossless);
 
             if (Av1RateDistortion.GetCost(this.rateMultiplier, redRate, redDistortion) > costLimit)
             {

@@ -691,13 +691,14 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
             searchReconstructions.Slice(index * SearchReconstructionStorageLength, SearchReconstructionStorageLength))[..SearchReconstructionSampleCount];
 
     /// <summary>
-    /// Selects the quantization matrix levels of a frame. Reference: set_qmatrix().
+    /// Selects the quantization matrix levels of a segment. A lossless segment always uses the flat level.
     /// </summary>
     /// <param name="quantization">The frame quantization parameters.</param>
-    public void SetQuantizationMatrixLevels(ObuQuantizationParameters quantization)
+    /// <param name="lossless">Whether the segment of the block is lossless.</param>
+    public void SetQuantizationMatrixLevels(ObuQuantizationParameters quantization, bool lossless)
     {
         int flat = Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1;
-        bool useMatrix = quantization.IsUsingQMatrix && quantization.BaseQIndex != 0;
+        bool useMatrix = quantization.IsUsingQMatrix && !lossless;
         this.LumaQuantizationMatrixLevel = useMatrix ? quantization.QMatrix[(int)Av1Plane.Y] : flat;
         this.ChromaQuantizationMatrixLevel = useMatrix ? quantization.QMatrix[(int)Av1Plane.U] : flat;
     }

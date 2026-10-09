@@ -48,7 +48,6 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Estimates one luma transform without inverse reconstruction or coefficient refinement.
         /// </summary>
-        /// <param name="writer">The tile symbol encoder that prices the coefficients.</param>
         /// <param name="modeCosts">The mode rates that the caller read once.</param>
         /// <param name="coefficientCosts">The coefficient rates that the caller read once.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
@@ -65,7 +64,6 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="quantized">The storage that the estimate quantizes into.</param>
         /// <returns>The estimated rate-distortion cost.</returns>
         private long EstimateTransformTypeCost(
-            Av1SymbolEncoder writer,
             Av1ModeCosts modeCosts,
             Av1CoefficientCosts coefficientCosts,
             Span<int> transformCoefficients,
@@ -101,7 +99,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.blockWorkspace.GetQuantizationMatrix(Av1ComponentType.Luminance, size, type),
                 this.blockWorkspace.GetInverseQuantizationMatrix(Av1ComponentType.Luminance, size, type));
 
-            int rate = writer.EstimateLumaCoefficientRate(
+            int rate = Av1SymbolEncoder.EstimateLumaCoefficientRate(
                 modeCosts,
                 coefficientCosts,
                 quantized,
@@ -112,7 +110,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.Parent.FrameHeader.UseReducedTransformSet,
                 filterMode,
                 mode,
-                isInter);
+                isInter,
+                this.BlockLossless);
 
             // The squared error is normalized to eight-bit precision with rounding, then loses the transform
             // scale, so it has the same four fractional bits as pixel-domain distortion.
@@ -125,7 +124,6 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Prunes and orders legal luma transforms using complete or separated-axis estimates.
         /// </summary>
-        /// <param name="writer">The tile symbol encoder that prices the coefficients.</param>
         /// <param name="modeCosts">The mode rates that the caller read once.</param>
         /// <param name="coefficientCosts">The coefficient rates that the caller read once.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
@@ -145,7 +143,6 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="order">The search order, which the estimates sort by cost.</param>
         /// <returns>The transform types that remain after the pruning.</returns>
         private ushort PruneTransformTypesByEstimatedCost(
-            Av1SymbolEncoder writer,
             Av1ModeCosts modeCosts,
             Av1CoefficientCosts coefficientCosts,
             Span<int> transformCoefficients,
@@ -187,7 +184,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     order[count] = type;
                     costs[count++] = Math.Max(1, this.EstimateTransformTypeCost(
-                        writer,
                         modeCosts,
                         coefficientCosts,
                         transformCoefficients,
@@ -235,7 +231,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     horizontalOrder[axis] = verticalOrder[axis] = axis;
                     long cost = this.EstimateTransformTypeCost(
-                        writer,
                         modeCosts,
                         coefficientCosts,
                         transformCoefficients,
@@ -273,7 +268,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 for (int axis = 1; axis < 4; axis++)
                 {
                     long cost = this.EstimateTransformTypeCost(
-                        writer,
                         modeCosts,
                         coefficientCosts,
                         transformCoefficients,
@@ -460,7 +454,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? reducedMasks[(int)direction]
                 : setMasks[(int)transformSet];
 
-            if (frameHeader.CodedLossless || transformSize.GetSquareUpSize() > Av1TransformSize.Size32x32 || usedMask == 1)
+            if (this.BlockLossless || transformSize.GetSquareUpSize() > Av1TransformSize.Size32x32 || usedMask == 1)
             {
                 allowedType = Av1TransformType.DctDct;
             }
@@ -498,7 +492,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (allowedCount > 2 && settings.EstimateTransformTypeRateDistortion)
                 {
                     allowedMask = this.PruneTransformTypesByEstimatedCost(
-                        writer,
                         modeCosts,
                         coefficientCosts,
                         transformCoefficients,
@@ -793,6 +786,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 UseReducedTransformSet = useReducedTransformSet,
                 UsesInterTransformSet = isInter,
                 QIndex = this.blockQIndex,
+                Lossless = this.BlockLossless,
                 DcDeltaQ = this.quantization.DeltaQDc[planeIndex],
                 AcDeltaQ = this.quantization.DeltaQAc[planeIndex],
                 Sharpness = this.blockWorkspace.EncoderOptions.Sharpness,
@@ -800,7 +794,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ComponentType = componentType,
                 RateMultiplier = this.rateMultiplier,
                 IsInter = isInter,
-                UseChromaWeights = this.picture.Sequence.SequenceHeader.IsStillPicture,
+                UseChromaWeights = this.picture.Parent.SpeedSettings.UseChromaTrellisRateMultiplier,
                 SkipTrellis = skipTrellis,
                 SatdThreshold = refinementThresholds.Satd,
                 DcOnly = dcOnlyBlock,
@@ -901,7 +895,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             transformWidth,
                             transformSize,
                             plane,
-                            this.blockQIndex,
+                            this.BlockLossless,
                             this.bitDepth,
                             reconstructionState);
 
@@ -974,7 +968,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformWidth,
                     transformSize,
                     plane,
-                    this.blockQIndex,
+                    this.BlockLossless,
                     this.bitDepth,
                     best.ReconstructionState);
 

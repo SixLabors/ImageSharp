@@ -328,7 +328,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfo.Block.UvMode = Av1ChromaPredictionMode.DC;
                 modeInfo.Block.ReferenceFrame = Av1ReferenceFrameType.Intra;
                 modeInfo.Block.SecondaryReferenceFrame = Av1ReferenceFrameType.None;
-                modeInfo.Block.TransformSize = this.picture.Parent.FrameHeader.CodedLossless
+                modeInfo.Block.TransformSize = this.BlockLossless
                     ? Av1TransformSize.Size4x4
                     : blockSize.GetMaximumTransformSize();
 
@@ -1746,7 +1746,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     // Setting the block transform size resets every transform size, so the searched tree is copied after it.
                     candidate.Skip = skip;
-                    candidate.TransformSize = frameHeader.CodedLossless ? Av1TransformSize.Size4x4 : blockSize.GetMaximumTransformSize();
+                    candidate.TransformSize = this.BlockLossless ? Av1TransformSize.Size4x4 : blockSize.GetMaximumTransformSize();
                     lumaSizes[..].CopyTo(candidate.InterTransformSizes);
                     lumaStates[..].CopyTo(selectedStates);
                     blueStates[..].CopyTo(selectedStates[64..80]);
@@ -2253,7 +2253,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     selectedSecondaryVector = candidate.SecondaryVector;
                     predictionModeInfo.PartitionType = modeInfo.Block.PartitionType;
                     predictionModeInfo.Skip = skip;
-                    predictionModeInfo.TransformSize = this.picture.Parent.FrameHeader.CodedLossless
+                    predictionModeInfo.TransformSize = this.BlockLossless
                         ? Av1TransformSize.Size4x4 : predictionModeInfo.BlockSize.GetMaximumTransformSize();
 
                     sizes[..].CopyTo(predictionModeInfo.InterTransformSizes);
@@ -2368,7 +2368,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref InlineArray128<Av1EncoderTransformBlockState> selectedStates)
         {
             Av1TransformSize maximumTransformSize = modeInfo.Block.BlockSize.GetMaximumTransformSize();
-            if (this.picture.Parent.FrameHeader.CodedLossless)
+            if (this.BlockLossless)
             {
                 return;
             }
@@ -3386,7 +3386,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // zero, and the transform search is not run. Reference: the predict_skip_txfm() and set_skip_txfm()
             // step that opens av1_pick_recursive_tx_size_type_yrd() and av1_pick_uniform_tx_size_type_yrd().
             int skipPredictionLevel = this.GetSkipPredictionLevel();
-            if (skipPredictionLevel != 0 && !this.picture.Parent.FrameHeader.CodedLossless &&
+            if (skipPredictionLevel != 0 && !this.BlockLossless &&
                 this.PredictSkipTransform(
                     sourceLuma,
                     sourceBlue,
@@ -3427,7 +3427,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int codedRate = Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext);
             long skipCost = Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, 0);
             long codedCost = Av1RateDistortion.GetCost(this.rateMultiplier, codedRate, 0);
-            Av1TransformSize rootSize = this.picture.Parent.FrameHeader.CodedLossless
+            Av1TransformSize rootSize = this.BlockLossless
                 ? Av1TransformSize.Size4x4
                 : modeInfo.BlockSize.GetMaximumTransformSize();
 
@@ -3444,7 +3444,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool uniformSearch = initialDepth == Av1Constants.MaxVarTransform;
 
             // Lossless coding starts at zero. Reference: choose_smallest_tx_size().
-            long uniformCurrentCost = this.picture.Parent.FrameHeader.CodedLossless ? 0 : Math.Min(skipCost, codedCost);
+            long uniformCurrentCost = this.BlockLossless ? 0 : Math.Min(skipCost, codedCost);
             bool uniformExited = false;
 
             // A coding block can contain several maximum-size transforms. Each root consumes the
@@ -3541,7 +3541,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // The largest transform signals no size, so the coded cost has no size rate. The record keeps the result.
             // Reference: the forced skip test at the end of uniform_txfm_yrd() with TX_MODE_LARGEST.
             // Also save_mb_rd_info() in av1_pick_uniform_tx_size_type_yrd().
-            if (uniformSearch && statistics.HasCoefficients && !this.picture.Parent.FrameHeader.CodedLossless)
+            if (uniformSearch && statistics.HasCoefficients && !this.BlockLossless)
             {
                 long codedDistortion = statistics.Distortion;
                 long skipDistortion = statistics.PredictionDistortion;
@@ -4050,7 +4050,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     0,
                     this.picture.Parent.FrameHeader.UseReducedTransformSet,
                     Av1FilterIntraMode.AllFilterIntraModes,
-                    usesInterTransformSet: true);
+                    usesInterTransformSet: true,
+                    this.BlockLossless);
 
                 // The neighbors of this transform read the entropy context of its coded result, even when the
                 // empty residual below wins. Reference: txb_entropy_ctx, which the zero_blk_rd branch of
@@ -4064,7 +4065,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // Reference: the zero_blk_rd branch of try_tx_block_no_split(), which choose_largest_tx_size()
                 // does not have.
                 if (!uniformSearch && (noSplitState.EndOfBlock == 0 ||
-                    (!this.picture.Parent.FrameHeader.CodedLossless &&
+                    (!this.BlockLossless &&
                     Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion) >=
                     Av1RateDistortion.GetCost(this.rateMultiplier, zeroRate, predictionDistortion))))
                 {
@@ -4111,7 +4112,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 int retainedCount = this.picture.Parent.SpeedSettings.InterTransformNoSplitCandidateCount;
-                if (rootIndex >= 0 && retainedCount != 0 && !this.picture.Parent.FrameHeader.CodedLossless && !modeInfo.UseIntraBlockCopy)
+                if (rootIndex >= 0 && retainedCount != 0 && !this.BlockLossless && !modeInfo.UseIntraBlockCopy)
                 {
                     // Compare the same root across prediction modes. Child transforms do not enter
                     // this history: their areas and context-dependent costs are not interchangeable.
@@ -4289,7 +4290,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height = transformSize.GetHeight();
             int width4 = transformSize.Get4x4WideCount();
             int height4 = transformSize.Get4x4HighCount();
-            if (!this.picture.Parent.FrameHeader.CodedLossless)
+            if (!this.BlockLossless)
             {
                 states[stateCount++] = noSplitState;
             }
@@ -4533,7 +4534,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Normalization can round a small high-bit-depth error to zero. A reversible frame
             // still requires the original samples, so preserve the unrounded equality decision.
-            if (frameHeader.CodedLossless && !exactPrediction)
+            if (this.BlockLossless && !exactPrediction)
             {
                 return;
             }
@@ -4549,7 +4550,7 @@ internal static partial class Av1IntraSuperblockEncoder
             selectedVector = primaryVector;
             selectedSecondaryVector = secondaryVector;
             selectedStates = default;
-            modeInfo.Block.TransformSize = frameHeader.CodedLossless ? Av1TransformSize.Size4x4 : blockSize.GetMaximumTransformSize();
+            modeInfo.Block.TransformSize = this.BlockLossless ? Av1TransformSize.Size4x4 : blockSize.GetMaximumTransformSize();
             modeInfo.Block.InterTransformSizes.Fill(modeInfo.Block.TransformSize);
             modeInfo.Block.ReferenceFrame = primaryReference;
             modeInfo.Block.SecondaryReferenceFrame = secondaryReference;
@@ -4670,7 +4671,7 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             Span<TSample> lumaFrame = reconstructionLuma;
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
-            Av1TransformSize lumaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
+            Av1TransformSize lumaTransformSize = this.BlockLossless
                 ? Av1TransformSize.Size4x4
                 : blockSize.GetMaximumTransformSize();
 
@@ -4862,7 +4863,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.blockQIndex,
                 this.quantization.DeltaQDc[0],
                 this.blockWorkspace.EncoderOptions.Sharpness,
-                frameHeader.CodedLossless,
+                this.BlockLossless,
                 this.rateMultiplier,
                 transformPartitionRate,
                 Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext),
@@ -6716,7 +6717,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.quantization.DeltaQDc[0],
                 this.bitDepth,
                 this.blockWorkspace.EncoderOptions.Sharpness,
-                this.picture.Parent.FrameHeader.CodedLossless,
+                this.BlockLossless,
                 this.rateMultiplier,
                 transformRate,
                 noSkipRate,
@@ -8831,7 +8832,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 candidateLumaStates[..].CopyTo(selectedStates);
 
                 // Setting the block transform size resets every transform size, so the searched tree is copied after it.
-                modeInfo.Block.TransformSize = frameHeader.CodedLossless ? Av1TransformSize.Size4x4 : blockSize.GetMaximumTransformSize();
+                modeInfo.Block.TransformSize = this.BlockLossless ? Av1TransformSize.Size4x4 : blockSize.GetMaximumTransformSize();
                 candidateLumaSizes[..].CopyTo(modeInfo.Block.InterTransformSizes);
                 candidateBlueState[..].CopyTo(selectedStates[64..80]);
                 candidateRedState[..].CopyTo(selectedStates[80..96]);
@@ -10699,7 +10700,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? this.references.Span[(int)modeInfo.Block.SecondaryReferenceFrame].CodedView : primaryReference;
 
             this.SetWarpedPrediction(macroBlock, blockOrigin, modeInfo.Block.PartitionType, modeInfo.Block, vector);
-            bool lossless = this.picture.Parent.FrameHeader.CodedLossless;
+            bool lossless = this.BlockLossless;
             int planeCount = block.HasChroma ? 3 : 1;
             bool coded = false;
 
@@ -12412,7 +12413,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? long.MaxValue
                 : bestCost - Av1RateDistortion.GetCost(this.rateMultiplier, predictionRate, 0);
 
-            Av1TransformSize lumaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
+            Av1TransformSize lumaTransformSize = this.BlockLossless
                 ? Av1TransformSize.Size4x4
                 : blockSize.GetMaximumTransformSize();
 
@@ -12616,7 +12617,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool allEmpty = !lumaStatistics.HasCoefficients && !blueHasCoefficients && !redHasCoefficients;
             bool skippable = allEmpty;
 
-            if (this.picture.Parent.FrameHeader.CodedLossless)
+            if (this.BlockLossless)
             {
                 // Preserve coefficient presence independently of rounded distortion. A small high-bit-depth
                 // residual can have zero normalized error but still requires reversible coefficients.
@@ -13058,7 +13059,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Point planeOrigin = Av1TileWriter.GetChromaBlockOrigin(blockOrigin, subX, subY);
             Av1BlockSize planeBlockSize = blockSize.GetSubsampled(subX != 0, subY != 0);
-            bool lossless = this.picture.Parent.FrameHeader.CodedLossless;
+            bool lossless = this.BlockLossless;
             Av1TransformSize transformSize = lossless ? Av1TransformSize.Size4x4 : blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
             int width = planeBlockSize.GetWidth();
             int transformWidth = transformSize.GetWidth();

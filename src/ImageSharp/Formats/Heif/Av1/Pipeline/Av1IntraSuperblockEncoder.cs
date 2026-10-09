@@ -77,11 +77,28 @@ internal static partial class Av1IntraSuperblockEncoder
         traversal.EncodePartitionTree(superblockOrigin, picture.Sequence.SequenceHeader.SuperblockSize);
     }
 
+    /// <summary>
+    /// Encodes and reconstructs one DC intra transform block of one plane.
+    /// </summary>
+    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The type-specific block encoding operations.</typeparam>
+    /// <param name="source">The coded source planes.</param>
+    /// <param name="reconstruction">The coded reconstruction planes.</param>
+    /// <param name="blockWorkspace">The reusable block workspace.</param>
+    /// <param name="quantization">The quantizer parameters of the frame.</param>
+    /// <param name="lossless">Whether the segment of the block codes losslessly.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="plane">The component plane containing the block.</param>
+    /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
+    /// <param name="transformSize">The transform dimensions.</param>
+    /// <param name="coefficients">The retained entropy-coding coefficients.</param>
+    /// <param name="state">The retained transform state.</param>
     private static void EncodePlaneBlock<TSample, TOperator>(
         Av1EncoderFrame<TSample>.PlanarView source,
         Av1EncoderFrame<TSample>.PlanarView reconstruction,
         Av1EncoderBlockWorkspace blockWorkspace,
         ObuQuantizationParameters quantization,
+        bool lossless,
         Av1BitDepth bitDepth,
         Av1Plane plane,
         Point blockOrigin,
@@ -128,6 +145,7 @@ internal static partial class Av1IntraSuperblockEncoder
             coefficients,
             transformSize,
             quantization.QIndex[0],
+            lossless,
             quantization.DeltaQDc[(int)plane],
             quantization.DeltaQAc[(int)plane],
             plane,
@@ -297,6 +315,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.reconstruction,
                 this.blockWorkspace,
                 this.quantization,
+                this.picture.Parent.FrameHeader.LosslessArray[0],
                 this.bitDepth,
                 plane,
                 blockOrigin,

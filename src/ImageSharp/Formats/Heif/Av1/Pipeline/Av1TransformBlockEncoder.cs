@@ -50,6 +50,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
     /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="lossless">Whether the segment of the block codes losslessly.</param>
     /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="plane">The component plane containing the block.</param>
@@ -69,6 +70,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformSize transformSize,
         Av1TransformType transformType,
         int qIndex,
+        bool lossless,
         int dcDeltaQ,
         int acDeltaQ,
         Av1Plane plane,
@@ -92,6 +94,7 @@ internal static partial class Av1TransformBlockEncoder
             transformSize,
             transformType,
             qIndex,
+            lossless,
             dcDeltaQ,
             acDeltaQ,
             plane,
@@ -129,6 +132,7 @@ internal static partial class Av1TransformBlockEncoder
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
         int qIndex = candidate.QIndex;
+        bool lossless = candidate.Lossless;
         int dcDeltaQ = candidate.DcDeltaQ;
         int acDeltaQ = candidate.AcDeltaQ;
         (int Type, uint Threshold) distortionPolicy = candidate.DistortionPolicy;
@@ -228,6 +232,7 @@ internal static partial class Av1TransformBlockEncoder
             transformSize,
             transformType,
             qIndex,
+            lossless,
             dcDeltaQ,
             acDeltaQ,
             Av1BitDepth.EightBit,
@@ -249,7 +254,7 @@ internal static partial class Av1TransformBlockEncoder
                 state.TransformType,
                 (int)plane,
                 state.EndOfBlock,
-                qIndex == 0,
+                lossless,
                 transformWorkspace);
         }
 
@@ -309,7 +314,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="reconstruction">The candidate reconstruction.</param>
     /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
     /// <param name="transformSize">The candidate transform dimensions.</param>
-    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible inverse transform.</param>
     /// <param name="plane">The component plane containing the block.</param>
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
@@ -325,7 +330,7 @@ internal static partial class Av1TransformBlockEncoder
         Span<byte> reconstruction,
         int reconstructionStride,
         Av1TransformSize transformSize,
-        int qIndex,
+        bool lossless,
         Av1Plane plane,
         Av1EncoderTransformBlockState state)
         => ReconstructPredictionLossyCandidateCore(
@@ -340,7 +345,7 @@ internal static partial class Av1TransformBlockEncoder
             reconstruction,
             reconstructionStride,
             transformSize,
-            qIndex,
+            lossless,
             plane,
             state);
 
@@ -358,7 +363,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="reconstruction">The candidate reconstruction.</param>
     /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
     /// <param name="transformSize">The candidate transform dimensions.</param>
-    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible inverse transform.</param>
     /// <param name="plane">The component plane containing the block.</param>
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
@@ -374,14 +379,14 @@ internal static partial class Av1TransformBlockEncoder
         Span<byte> reconstruction,
         int reconstructionStride,
         Av1TransformSize transformSize,
-        int qIndex,
+        bool lossless,
         Av1Plane plane,
         Av1EncoderTransformBlockState state)
     {
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
 
-        if (state.EndOfBlock > 0 && qIndex != 0 && transformSize == Av1TransformSize.Size8x8 &&
+        if (state.EndOfBlock > 0 && !lossless && transformSize == Av1TransformSize.Size8x8 &&
             Av1TransformKernels.IsSupported)
         {
             // The kernel adds the residual to the prediction directly, as lowbd_write_buffer does, so the
@@ -395,7 +400,7 @@ internal static partial class Av1TransformBlockEncoder
                 state.TransformType,
                 state.EndOfBlock);
         }
-        else if (state.EndOfBlock > 0 && qIndex != 0 && transformSize == Av1TransformSize.Size4x4 &&
+        else if (state.EndOfBlock > 0 && !lossless && transformSize == Av1TransformSize.Size4x4 &&
             Av1TransformKernels.IsSupported)
         {
             Av1InverseTransformer.Inverse4x4(
@@ -406,7 +411,7 @@ internal static partial class Av1TransformBlockEncoder
                 reconstructionStride,
                 state.TransformType);
         }
-        else if (state.EndOfBlock > 0 && qIndex != 0 && transformSize == Av1TransformSize.Size16x16 && Av1TransformKernels.IsWideSupported)
+        else if (state.EndOfBlock > 0 && !lossless && transformSize == Av1TransformSize.Size16x16 && Av1TransformKernels.IsWideSupported)
         {
             Av1InverseTransformer.Inverse16x16(
                 dequantized,
@@ -436,7 +441,7 @@ internal static partial class Av1TransformBlockEncoder
                     state.TransformType,
                     (int)plane,
                     state.EndOfBlock,
-                    qIndex == 0,
+                    lossless,
                     transformWorkspace);
             }
         }
@@ -471,6 +476,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
     /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="lossless">Whether the segment of the block codes losslessly.</param>
     /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="plane">The component plane containing the block.</param>
@@ -491,6 +497,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformSize transformSize,
         Av1TransformType transformType,
         int qIndex,
+        bool lossless,
         int dcDeltaQ,
         int acDeltaQ,
         Av1Plane plane,
@@ -515,6 +522,7 @@ internal static partial class Av1TransformBlockEncoder
             transformSize,
             transformType,
             qIndex,
+            lossless,
             dcDeltaQ,
             acDeltaQ,
             plane,
@@ -553,6 +561,7 @@ internal static partial class Av1TransformBlockEncoder
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
         int qIndex = candidate.QIndex;
+        bool lossless = candidate.Lossless;
         int dcDeltaQ = candidate.DcDeltaQ;
         int acDeltaQ = candidate.AcDeltaQ;
         Av1BitDepth bitDepth = candidate.BitDepth;
@@ -653,6 +662,7 @@ internal static partial class Av1TransformBlockEncoder
             transformSize,
             transformType,
             qIndex,
+            lossless,
             dcDeltaQ,
             acDeltaQ,
             bitDepth,
@@ -674,7 +684,7 @@ internal static partial class Av1TransformBlockEncoder
                 state.TransformType,
                 (int)plane,
                 state.EndOfBlock,
-                qIndex == 0,
+                lossless,
                 bitDepth,
                 transformWorkspace);
         }
@@ -740,7 +750,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="reconstruction">The candidate reconstruction.</param>
     /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
     /// <param name="transformSize">The candidate transform dimensions.</param>
-    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible inverse transform.</param>
     /// <param name="plane">The component plane containing the block.</param>
     /// <param name="bitDepth">The coded sample precision.</param>
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
@@ -757,7 +767,7 @@ internal static partial class Av1TransformBlockEncoder
         Span<ushort> reconstruction,
         int reconstructionStride,
         Av1TransformSize transformSize,
-        int qIndex,
+        bool lossless,
         Av1Plane plane,
         Av1BitDepth bitDepth,
         Av1EncoderTransformBlockState state)
@@ -773,7 +783,7 @@ internal static partial class Av1TransformBlockEncoder
             reconstruction,
             reconstructionStride,
             transformSize,
-            qIndex,
+            lossless,
             plane,
             bitDepth,
             state);
@@ -792,7 +802,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="reconstruction">The candidate reconstruction.</param>
     /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
     /// <param name="transformSize">The candidate transform dimensions.</param>
-    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible inverse transform.</param>
     /// <param name="plane">The component plane containing the block.</param>
     /// <param name="bitDepth">The coded sample precision.</param>
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
@@ -809,7 +819,7 @@ internal static partial class Av1TransformBlockEncoder
         Span<ushort> reconstruction,
         int reconstructionStride,
         Av1TransformSize transformSize,
-        int qIndex,
+        bool lossless,
         Av1Plane plane,
         Av1BitDepth bitDepth,
         Av1EncoderTransformBlockState state)
@@ -834,7 +844,7 @@ internal static partial class Av1TransformBlockEncoder
                 state.TransformType,
                 (int)plane,
                 state.EndOfBlock,
-                qIndex == 0,
+                lossless,
                 bitDepth,
                 transformWorkspace);
         }
@@ -1136,6 +1146,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
     /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="lossless">Whether the segment of the block codes losslessly.</param>
     /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="plane">The component plane containing the block.</param>
@@ -1158,6 +1169,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformSize transformSize,
         Av1TransformType transformType,
         int qIndex,
+        bool lossless,
         int dcDeltaQ,
         int acDeltaQ,
         Av1Plane plane,
@@ -1188,6 +1200,7 @@ internal static partial class Av1TransformBlockEncoder
             transformSize,
             transformType,
             qIndex,
+            lossless,
             dcDeltaQ,
             acDeltaQ,
             Av1BitDepth.EightBit,
@@ -1205,7 +1218,7 @@ internal static partial class Av1TransformBlockEncoder
                 state.TransformType,
                 (int)plane,
                 state.EndOfBlock,
-                qIndex == 0,
+                lossless,
                 transformWorkspace);
         }
     }
@@ -1230,6 +1243,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
     /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="lossless">Whether the segment of the block codes losslessly.</param>
     /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="plane">The component plane containing the block.</param>
@@ -1253,6 +1267,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformSize transformSize,
         Av1TransformType transformType,
         int qIndex,
+        bool lossless,
         int dcDeltaQ,
         int acDeltaQ,
         Av1Plane plane,
@@ -1285,6 +1300,7 @@ internal static partial class Av1TransformBlockEncoder
             transformSize,
             transformType,
             qIndex,
+            lossless,
             dcDeltaQ,
             acDeltaQ,
             bitDepth,
@@ -1302,7 +1318,7 @@ internal static partial class Av1TransformBlockEncoder
                 state.TransformType,
                 (int)plane,
                 state.EndOfBlock,
-                qIndex == 0,
+                lossless,
                 bitDepth,
                 transformWorkspace);
         }
@@ -1316,6 +1332,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
     /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible transform.</param>
     /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
@@ -1327,6 +1344,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformSize transformSize,
         Av1TransformType transformType,
         int qIndex,
+        bool lossless,
         int dcDeltaQ,
         int acDeltaQ,
         Av1BitDepth bitDepth,
@@ -1339,6 +1357,7 @@ internal static partial class Av1TransformBlockEncoder
             transformSize,
             transformType,
             qIndex,
+            lossless,
             dcDeltaQ,
             acDeltaQ,
             bitDepth,
@@ -1354,6 +1373,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="transformSize">The transform dimensions.</param>
     /// <param name="transformType">The compound transform type.</param>
     /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible transform.</param>
     /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="bitDepth">The coded sample precision.</param>
@@ -1366,6 +1386,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformSize transformSize,
         Av1TransformType transformType,
         int qIndex,
+        bool lossless,
         int dcDeltaQ,
         int acDeltaQ,
         Av1BitDepth bitDepth,
@@ -1377,7 +1398,7 @@ internal static partial class Av1TransformBlockEncoder
         Span<int> quantized = quantizedCoefficients[..coefficientCount];
         Span<int> dequantized = workspace.DequantizedCoefficients[..coefficientCount];
 
-        if (qIndex == 0)
+        if (lossless)
         {
             // A coded-lossless frame fixes every transform block at 4x4 and uses the reversible transform. Its
             // quantizer removes only the transform's fixed scale, leaving reconstruction coefficients unchanged.
@@ -1437,6 +1458,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="transformSize">The transform dimensions.</param>
     /// <param name="transformType">The transform type.</param>
     /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible transform.</param>
     /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="bitDepth">The coded sample precision.</param>
@@ -1463,6 +1485,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformSize transformSize,
         Av1TransformType transformType,
         int qIndex,
+        bool lossless,
         int dcDeltaQ,
         int acDeltaQ,
         Av1BitDepth bitDepth,
@@ -1482,7 +1505,7 @@ internal static partial class Av1TransformBlockEncoder
         Span<int> quantized = quantizedCoefficients[..coefficientCount];
         Span<int> dequantized = dequantizedCoefficients[..coefficientCount];
 
-        if (qIndex == 0)
+        if (lossless)
         {
             // Coded-lossless blocks use the reversible transform and lossless quantizer. Applying the lossy
             // energy gate would replace bit-exact coefficients with regular zero-bin quantization.
@@ -1617,6 +1640,7 @@ internal static partial class Av1TransformBlockEncoder
         bool useReducedTransformSet = trial.UseReducedTransformSet;
         bool usesInterTransformSet = trial.UsesInterTransformSet;
         int qIndex = trial.QIndex;
+        bool lossless = trial.Lossless;
         int dcDeltaQ = trial.DcDeltaQ;
         int acDeltaQ = trial.AcDeltaQ;
         int sharpness = trial.Sharpness;
@@ -1638,7 +1662,7 @@ internal static partial class Av1TransformBlockEncoder
         Span<int> dequantized = dequantizedCoefficients[..coefficientCount];
         bool optimize = !skipTrellis;
 
-        if (qIndex == 0)
+        if (lossless)
         {
             // Coded-lossless blocks use the reversible transform and lossless quantizer, and no refinement.
             Av1ForwardTransformer.TransformLossless4x4(residual, transformed, (uint)residualStride);
@@ -1690,7 +1714,7 @@ internal static partial class Av1TransformBlockEncoder
             optimize = (ulong)satd <= satdThreshold * qStep * squareRootPixels[(int)transformSize];
         }
 
-        if (qIndex != 0)
+        if (!lossless)
         {
             // Fast quantization is paired with trellis refinement. Without refinement, regular quantization
             // supplies the stronger zero-bin and reciprocal correction that the unrefined candidate requires.
@@ -1726,7 +1750,8 @@ internal static partial class Av1TransformBlockEncoder
                 state.EndOfBlock,
                 useReducedTransformSet,
                 filterIntraMode,
-                usesInterTransformSet);
+                usesInterTransformSet,
+                lossless);
         }
 
         state.EndOfBlock = writer.OptimizeCoefficients(
@@ -1751,7 +1776,7 @@ internal static partial class Av1TransformBlockEncoder
         state.CoefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
             quantized, transformSize, transformType, state.EndOfBlock);
 
-        return writer.GetOptimizedCoefficientCost(
+        return Av1SymbolEncoder.GetOptimizedCoefficientCost(
             in tables,
             transformSize,
             transformType,
@@ -1762,7 +1787,8 @@ internal static partial class Av1TransformBlockEncoder
             coefficientRate,
             useReducedTransformSet,
             filterIntraMode,
-            usesInterTransformSet);
+            usesInterTransformSet,
+            lossless);
     }
 
     /// <summary>
@@ -2257,7 +2283,8 @@ internal static partial class Av1TransformBlockEncoder
                     endOfBlock,
                     useReducedTransformSet: false,
                     Av1FilterIntraMode.AllFilterIntraModes,
-                    usesInterTransformSet: true);
+                    usesInterTransformSet: true,
+                    lossless);
 
                 long transformDistortion = GetTransformError(transformed, dequantized, transformSize, bitDepth, out long transformEnergy);
                 rate += transformRate;

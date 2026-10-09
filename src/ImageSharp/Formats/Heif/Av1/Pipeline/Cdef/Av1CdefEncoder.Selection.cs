@@ -21,11 +21,11 @@ internal static partial class Av1CdefEncoder
     /// Gets the ordered strength candidates for the frame's search policy.
     /// </summary>
     /// <param name="speed">The configured encoding speed.</param>
-    /// <param name="stillPicture">Whether the sequence contains one still image.</param>
+    /// <param name="allIntra">Whether the encoder runs in all-intra usage.</param>
     /// <param name="realtime">Whether the sequence follows the real-time usage.</param>
     /// <param name="size">The visible luma dimensions.</param>
     /// <returns>The packed strengths, or an empty span when strengths are predicted from quantization.</returns>
-    private static ReadOnlySpan<byte> GetCandidateStrengths(HeifEncodingSpeed speed, bool stillPicture, bool realtime, Size size)
+    private static ReadOnlySpan<byte> GetCandidateStrengths(HeifEncodingSpeed speed, bool allIntra, bool realtime, Size size)
     {
         if (realtime)
         {
@@ -42,7 +42,7 @@ internal static partial class Av1CdefEncoder
             return speed >= HeifEncodingSpeed.Level7 ? [0, 20] : [0, 2, 44, 46];
         }
 
-        if (stillPicture && speed >= HeifEncodingSpeed.Level7)
+        if (allIntra && speed >= HeifEncodingSpeed.Level7)
         {
             return [];
         }
@@ -59,7 +59,7 @@ internal static partial class Av1CdefEncoder
             return [0, 2, 8, 10, 16, 18, 32, 34, 56, 58];
         }
 
-        if (!stillPicture && speed >= HeifEncodingSpeed.Level3 && Math.Min(size.Width, size.Height) < 720)
+        if (!allIntra && speed >= HeifEncodingSpeed.Level3 && Math.Min(size.Width, size.Height) < 720)
         {
             return [0, 1, 2, 3, 8, 9, 10, 11, 16, 17, 18, 19, 32, 33, 34, 35, 56, 57, 58, 59];
         }

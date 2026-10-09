@@ -198,7 +198,7 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
-            bool lossless = this.picture.Parent.FrameHeader.CodedLossless;
+            bool lossless = this.BlockLossless;
             Av1TransformSize transformSize = lossless
                 ? Av1TransformSize.Size4x4
                 : Math.Min(width, height) switch
@@ -218,8 +218,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int transformWidth = transformSize.GetWidth();
             int transformHeight = transformSize.GetHeight();
-            bool stillPicture = this.picture.Sequence.SequenceHeader.IsStillPicture;
-            bool pruneModes = stillPicture && this.picture.Parent.EncodingSpeed == HeifEncodingSpeed.Level9;
+            bool allIntra = this.picture.Parent.EncoderOptions.IsAllIntra;
+            bool pruneModes = allIntra && this.picture.Parent.EncodingSpeed == HeifEncodingSpeed.Level9;
             bool pruneSad = pruneModes && width == transformWidth && height == transformHeight;
             bool hasBothNeighbors = macroBlock.IsUpAvailable && macroBlock.IsLeftAvailable;
             Av1PredictionMode aboveMode = macroBlock.IsUpAvailable
@@ -398,7 +398,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // Palette thresholds use SAD per 4x4 unit, rather than per individual sample.
             uint normalizedSad = bestSad >> (BitOperations.Log2((uint)(width * height)) - 4);
             bool paletteSelected = false;
-            bool prunePalette = stillPicture &&
+            bool prunePalette = allIntra &&
                 !((!pruneSad || normalizedSad > 20) && blockSize <= Av1BlockSize.Block16x16 && sourceVariance > 200);
 
             if (!prunePalette && Av1TileWriter.IsPaletteAllowed(this.picture.Parent.FrameHeader.AllowScreenContentTools, blockSize))
@@ -469,7 +469,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             bool copySelected = false;
             Av1MotionVector copyVector = default;
-            if (!stillPicture && this.picture.Parent.IsScreenContent &&
+            if (!allIntra && this.picture.Parent.IsScreenContent &&
                 this.picture.Parent.FrameHeader.AllowIntraBlockCopy && blockSize <= Av1BlockSize.Block16x16 && paletteSelected)
             {
                 Point position = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
@@ -866,7 +866,7 @@ internal static partial class Av1IntraSuperblockEncoder
             coefficientEdges.Top.Slice(coefficientEdges.GetTopIndex(planeOrigin), contextWidth).CopyTo(topContexts);
             coefficientEdges.Left.Slice(coefficientEdges.GetLeftIndex(planeOrigin), contextHeight).CopyTo(leftContexts);
             Av1ComponentType component = plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma;
-            Av1TransformType transformType = plane == Av1Plane.Y || this.picture.Parent.FrameHeader.CodedLossless
+            Av1TransformType transformType = plane == Av1Plane.Y || this.BlockLossless
                 ? Av1TransformType.DctDct
                 : Av1SymbolContextHelper.GetDefaultIntraTransformType(mode, transformSize, this.picture.Parent.FrameHeader.UseReducedTransformSet);
 
@@ -1011,6 +1011,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     transformSize,
                                     blockTransformType,
                                     this.blockQIndex,
+                                    this.BlockLossless,
                                     this.quantization.DeltaQDc[planeIndex],
                                     this.quantization.DeltaQAc[planeIndex],
                                     this.bitDepth,
@@ -1051,7 +1052,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     transformSize,
                                     plane,
                                     this.bitDepth,
-                                    this.blockQIndex == 0,
+                                    this.BlockLossless,
                                     state);
                             }
 

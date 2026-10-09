@@ -1598,6 +1598,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
     /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
     /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <param name="lossless">Indicates whether the segment of the block codes losslessly, which charges no transform type rate.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetOptimizedCoefficientCost(
         Av1TransformSize transformSize,
@@ -1609,10 +1610,11 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         int coefficientRate,
         bool useReducedTransformSet,
         Av1FilterIntraMode filterIntraMode,
-        bool usesInterTransformSet)
+        bool usesInterTransformSet,
+        bool lossless)
     {
         Av1CoefficientTables tables = this.GetCoefficientTables();
-        return this.GetOptimizedCoefficientCost(
+        return GetOptimizedCoefficientCost(
             in tables,
             transformSize,
             transformType,
@@ -1623,7 +1625,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             coefficientRate,
             useReducedTransformSet,
             filterIntraMode,
-            usesInterTransformSet);
+            usesInterTransformSet,
+            lossless);
     }
 
     /// <summary>
@@ -1641,8 +1644,9 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
     /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
     /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <param name="lossless">Indicates whether the segment of the block codes losslessly, which charges no transform type rate.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetOptimizedCoefficientCost(
+    public static int GetOptimizedCoefficientCost(
         in Av1CoefficientTables tables,
         Av1TransformSize transformSize,
         Av1TransformType transformType,
@@ -1653,7 +1657,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         int coefficientRate,
         bool useReducedTransformSet,
         Av1FilterIntraMode filterIntraMode,
-        bool usesInterTransformSet)
+        bool usesInterTransformSet,
+        bool lossless)
     {
         Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
         int rate = Av1CoefficientCosts.GetSkip(
@@ -1673,7 +1678,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
                 transformType,
                 transformSize,
                 useReducedTransformSet,
-                this.baseQIndex,
+                lossless,
                 filterIntraMode,
                 intraDirection,
                 usesInterTransformSet);
@@ -1695,6 +1700,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
     /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
     /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <param name="lossless">Indicates whether the segment of the block codes losslessly, which charges no transform type rate.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetCoefficientCost(
         Av1TransformSize transformSize,
@@ -1706,7 +1712,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         ushort endOfBlock,
         bool useReducedTransformSet,
         Av1FilterIntraMode filterIntraMode,
-        bool usesInterTransformSet)
+        bool usesInterTransformSet,
+        bool lossless)
     {
         Av1CoefficientTables tables = this.GetCoefficientTables();
         return this.GetCoefficientCost(
@@ -1720,7 +1727,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             endOfBlock,
             useReducedTransformSet,
             filterIntraMode,
-            usesInterTransformSet);
+            usesInterTransformSet,
+            lossless);
     }
 
     /// <summary>
@@ -1738,6 +1746,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
     /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
     /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <param name="lossless">Indicates whether the segment of the block codes losslessly, which charges no transform type rate.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetCoefficientCost(
         in Av1CoefficientTables tables,
@@ -1750,7 +1759,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         ushort endOfBlock,
         bool useReducedTransformSet,
         Av1FilterIntraMode filterIntraMode,
-        bool usesInterTransformSet)
+        bool usesInterTransformSet,
+        bool lossless)
     {
         return this.GetCoefficientCostCore(
             in tables,
@@ -1763,7 +1773,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             endOfBlock,
             useReducedTransformSet,
             filterIntraMode,
-            usesInterTransformSet);
+            usesInterTransformSet,
+            lossless);
     }
 
     /// <summary>
@@ -1780,6 +1791,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
     /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
     /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <param name="lossless">Indicates whether the segment of the block codes losslessly, which charges no transform type rate.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetCoefficientCostCore(
         in Av1CoefficientTables tables,
@@ -1792,7 +1804,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         ushort endOfBlock,
         bool useReducedTransformSet,
         Av1FilterIntraMode filterIntraMode,
-        bool usesInterTransformSet)
+        bool usesInterTransformSet,
+        bool lossless)
     {
         Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
 
@@ -1837,7 +1850,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
                 transformType,
                 transformSize,
                 useReducedTransformSet,
-                this.baseQIndex,
+                lossless,
                 filterIntraMode,
                 intraDirection,
                 usesInterTransformSet);
@@ -2344,7 +2357,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="transformType">The transform type to cost.</param>
     /// <param name="transformSize">The signaled transform size.</param>
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
-    /// <param name="baseQIndex">The active base quantizer index.</param>
+    /// <param name="lossless">Indicates whether the segment of the block codes losslessly, which charges no transform type rate.</param>
     /// <param name="filterIntraMode">The filter-intra mode when enabled.</param>
     /// <param name="intraDirection">The ordinary intra prediction mode.</param>
     /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
@@ -2353,7 +2366,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Av1TransformType transformType,
         Av1TransformSize transformSize,
         bool useReducedTransformSet,
-        int baseQIndex,
+        bool lossless,
         Av1FilterIntraMode filterIntraMode,
         Av1PredictionMode intraDirection,
         bool usesInterTransformSet)
@@ -2362,7 +2375,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             transformType,
             transformSize,
             useReducedTransformSet,
-            baseQIndex,
+            lossless,
             filterIntraMode,
             intraDirection,
             usesInterTransformSet);
@@ -2374,7 +2387,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="transformType">The transform type to cost.</param>
     /// <param name="transformSize">The signaled transform size.</param>
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
-    /// <param name="baseQIndex">The active base quantizer index.</param>
+    /// <param name="lossless">Indicates whether the segment of the block codes losslessly, which charges no transform type rate.</param>
     /// <param name="filterIntraMode">The filter-intra mode when enabled.</param>
     /// <param name="intraDirection">The ordinary intra prediction mode.</param>
     /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
@@ -2384,7 +2397,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Av1TransformType transformType,
         Av1TransformSize transformSize,
         bool useReducedTransformSet,
-        int baseQIndex,
+        bool lossless,
         Av1FilterIntraMode filterIntraMode,
         Av1PredictionMode intraDirection,
         bool usesInterTransformSet)
@@ -2394,7 +2407,9 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             usesInterTransformSet,
             useReducedTransformSet);
 
-        if (Av1SymbolContextHelper.GetExtendedTransformTypeCount(setType) == 1 || baseQIndex == 0)
+        // The rate estimate tests the lossless flag of the segment. The bitstream writer tests the quantizer index
+        // instead, so the two can differ, for example when the plane quantizer adjustments are not zero.
+        if (Av1SymbolContextHelper.GetExtendedTransformTypeCount(setType) == 1 || lossless)
         {
             return 0;
         }

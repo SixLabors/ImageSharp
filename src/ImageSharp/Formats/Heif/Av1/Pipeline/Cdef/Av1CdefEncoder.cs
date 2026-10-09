@@ -78,7 +78,7 @@ internal static partial class Av1CdefEncoder
         header.CdefParameters.Damping = 3 + (header.QuantizationParameters.BaseQIndex >> 6);
         ReadOnlySpan<byte> candidates = GetCandidateStrengths(
             picture.Parent.EncodingSpeed,
-            sequence.IsStillPicture,
+            options.IsAllIntra,
             picture.Parent.SpeedSettings.IsRealtime,
             new Size(source.Width, source.Height));
 
@@ -186,7 +186,7 @@ internal static partial class Av1CdefEncoder
             // av1_set_speed_features_qindex_dependent().
             bool reduce = adaptive && qualityIndex <= 220;
             bool zeroLowStrengths = reduce &&
-                (sequence.IsStillPicture || options.Tuning.IsImageTuning()) &&
+                (options.IsAllIntra || options.Tuning.IsImageTuning()) &&
                 header.QuantizationParameters.BaseQIndex <= 140;
 
             SelectStrengths(

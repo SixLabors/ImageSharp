@@ -184,7 +184,7 @@ internal static partial class Av1FrameEncoder
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
             frameHeader.ForceIntegerMotionVector = false;
-            bool estimatedModeSearch = !this.SequenceHeader.IsStillPicture && this.Options.Speed >= HeifEncodingSpeed.Level7;
+            bool estimatedModeSearch = !this.Options.IsAllIntra && this.Options.Speed >= HeifEncodingSpeed.Level7;
             if (frameHeader.IsIntra || !frameHeader.AllowScreenContentTools || estimatedModeSearch)
             {
                 return;

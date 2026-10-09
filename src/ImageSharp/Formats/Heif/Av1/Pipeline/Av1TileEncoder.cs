@@ -520,7 +520,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         ObuFrameHeader frameHeader = parent.FrameHeader;
         parent.SpeedSettings = new Av1EncoderSpeedSettings(
             parent.EncodingSpeed,
-            picture.Sequence.SequenceHeader.IsStillPicture,
+            parent.EncoderOptions.IsAllIntra,
             frameHeader.IsIntra,
             parent.FrameUpdateType,
             frameHeader.QuantizationParameters.BaseQIndex,
@@ -663,7 +663,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         bool screenContentToolsBeforeTrial = parent.ScreenContentToolsBeforeTrial ?? frameHeader.AllowScreenContentTools;
         Av1MotionSearchSettings motionSettings = new(
             parent.EncodingSpeed,
-            picture.Sequence.SequenceHeader.IsStillPicture,
+            parent.EncoderOptions.IsAllIntra,
             sourceSize,
             frameHeader.QuantizationParameters.BaseQIndex,
             parent.ScreenContentTrialQIndex,
@@ -1225,13 +1225,14 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1MotionSearchSettings.CostUpdateFrequency modeCostUpdate = Av1MotionSearchSettings.CostUpdateFrequency.Superblock;
         CancellationToken cancellationToken = picture.Parent.EncoderOptions.CancellationToken;
         int minimumDimension = Math.Min(source.Width, source.Height);
-        if (sequenceHeader.IsStillPicture && picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level9)
+        bool allIntra = picture.Parent.EncoderOptions.IsAllIntra;
+        if (allIntra && picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level9)
         {
             modeCostUpdate = minimumDimension < 2160
                 ? Av1MotionSearchSettings.CostUpdateFrequency.Off
                 : Av1MotionSearchSettings.CostUpdateFrequency.SuperblockRow;
         }
-        else if (!sequenceHeader.IsStillPicture && !picture.Parent.SpeedSettings.IsRealtime &&
+        else if (!allIntra && !picture.Parent.SpeedSettings.IsRealtime &&
             picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level6 && minimumDimension < 720)
         {
             // Only GOOD mode refreshes rates once per superblock row. Real-time usage keeps the default
@@ -1239,6 +1240,10 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             // set_good_speed_feature_framesize_dependent(), which set_rt_speed_features does not change.
             modeCostUpdate = Av1MotionSearchSettings.CostUpdateFrequency.SuperblockRow;
         }
+
+        // Only good-quality usage refreshes the displacement vector rates at each superblock. All-intra and
+        // real-time usage keep the rates of the tile start.
+        bool refreshDisplacementCosts = !allIntra && !picture.Parent.SpeedSettings.IsRealtime;
 
         if (!TSymbolOperation.WritesOutput && frameHeader.AllowIntraBlockCopy)
         {
@@ -1485,10 +1490,10 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                             }
 
                             if (frameHeader.AllowIntraBlockCopy &&
-                                (firstSuperblock || (!sequenceHeader.IsStillPicture && !frameHeader.DisableCdfUpdate)))
+                                (firstSuperblock || (refreshDisplacementCosts && !frameHeader.DisableCdfUpdate)))
                             {
-                                // Still images retain their initial displacement rates. Sequence intra frames
-                                // refresh at superblock boundaries while entropy coding continues to adapt.
+                                // All-intra and real-time usage retain the initial displacement rates. Good-quality
+                                // usage refreshes them at superblock boundaries while entropy coding continues to adapt.
                                 writer.FillDisplacementVectorCosts(blockWorkspace.GetDisplacementVectorCosts(workspaceStorage));
                             }
 

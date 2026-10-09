@@ -16,9 +16,17 @@ internal static partial class Av1LoopRestorationEncoder
         /// <summary>
         /// Initializes a new instance of the <see cref="SearchSettings"/> struct.
         /// </summary>
+        /// <param name="speed">The configured encoding speed.</param>
+        /// <param name="allIntra">Whether the encoder runs in all-intra usage.</param>
+        /// <param name="frameSize">The visible luma dimensions.</param>
+        /// <param name="qIndex">The base quantizer index of the frame.</param>
+        /// <param name="boosted">Whether the frame is coded at a higher quality than the frames around it.</param>
+        /// <param name="internalAltReference">Whether the frame is an internal alternate-reference update.</param>
+        /// <param name="screenContent">Whether the frame allows the screen content tools.</param>
+        /// <param name="superblockSize">The superblock width in luma samples.</param>
         public SearchSettings(
             HeifEncodingSpeed speed,
-            bool stillPicture,
+            bool allIntra,
             Size frameSize,
             int qIndex,
             bool boosted,
@@ -28,16 +36,16 @@ internal static partial class Av1LoopRestorationEncoder
         {
             int level = (int)speed;
             int minimumDimension = Math.Min(frameSize.Width, frameSize.Height);
-            this.EnableWiener = !stillPicture || level < 5;
+            this.EnableWiener = !allIntra || level < 5;
             this.EnableSelfGuided = this.EnableWiener;
-            this.EnableChroma = stillPicture || level < 2 || boosted;
-            this.WienerWindow = !stillPicture || level >= 3 ? 5 : 7;
+            this.EnableChroma = allIntra || level < 2 || boosted;
+            this.WienerWindow = !allIntra || level >= 3 ? 5 : 7;
             this.WienerVariancePruning = level >= 3 ? 2 : level >= 2 ? 1 : 0;
-            this.SelfGuidedPruning = !stillPicture && level >= 5 ? 2 : level >= 1 ? 1 : 0;
+            this.SelfGuidedPruning = !allIntra && level >= 5 ? 2 : level >= 1 ? 1 : 0;
             this.SelfGuidedWienerPruning = level >= 3 ? (screenContent ? 1 : 2) : level >= 2 ? 1 : 0;
             this.DualSelfGuidedPenalty = level >= 1 ? 1.01 : 1;
-            this.DownsampleWienerStatistics = !stillPicture && level >= 3;
-            this.RefineWiener = stillPicture || level < 5;
+            this.DownsampleWienerStatistics = !allIntra && level >= 3;
+            this.RefineWiener = allIntra || level < 5;
 
             // Ordinary inter frames restrict self-guided search to the middle quantizer range.
             // Boosted and internal alternate-reference frames retain their more detailed search.
@@ -59,7 +67,7 @@ internal static partial class Av1LoopRestorationEncoder
                 minimumUnitSize = minimumDimension >= 1440 ? 256 : minimumDimension >= 720 ? 128 : 64;
             }
 
-            if (level >= 3 || (stillPicture && level >= 1))
+            if (level >= 3 || (allIntra && level >= 1))
             {
                 minimumUnitSize = maximumUnitSize = qIndex <= 96 && minimumDimension < 1440 ? 128 : 256;
             }

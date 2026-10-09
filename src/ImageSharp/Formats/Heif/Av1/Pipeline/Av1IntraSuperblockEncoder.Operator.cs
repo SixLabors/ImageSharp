@@ -284,6 +284,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="quantizedCoefficients">The retained entropy-coding coefficients.</param>
         /// <param name="transformSize">The transform dimensions.</param>
         /// <param name="qIndex">The effective segment quantizer index.</param>
+        /// <param name="lossless">Whether the segment of the block codes losslessly.</param>
         /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
         /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
         /// <param name="plane">The component plane containing the block.</param>
@@ -303,6 +304,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> quantizedCoefficients,
             Av1TransformSize transformSize,
             int qIndex,
+            bool lossless,
             int dcDeltaQ,
             int acDeltaQ,
             Av1Plane plane,
@@ -691,7 +693,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
         /// <param name="transformSize">The transform dimensions.</param>
         /// <param name="plane">The component plane containing the block.</param>
-        /// <param name="qIndex">The effective segment quantizer index.</param>
+        /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible inverse transform.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         /// <param name="state">The candidate transform state.</param>
         /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
@@ -708,7 +710,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int reconstructionStride,
             Av1TransformSize transformSize,
             Av1Plane plane,
-            int qIndex,
+            bool lossless,
             Av1BitDepth bitDepth,
             Av1EncoderTransformBlockState state);
     }
@@ -1207,6 +1209,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> quantizedCoefficients,
             Av1TransformSize transformSize,
             int qIndex,
+            bool lossless,
             int dcDeltaQ,
             int acDeltaQ,
             Av1Plane plane,
@@ -1227,6 +1230,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformSize,
                 Av1TransformType.DctDct,
                 qIndex,
+                lossless,
                 dcDeltaQ,
                 acDeltaQ,
                 plane,
@@ -1830,7 +1834,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int reconstructionStride,
             Av1TransformSize transformSize,
             Av1Plane plane,
-            int qIndex,
+            bool lossless,
             Av1BitDepth bitDepth,
             Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.ReconstructPredictionLossyCandidate(
@@ -1845,7 +1849,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 reconstruction,
                 reconstructionStride,
                 transformSize,
-                qIndex,
+                lossless,
                 plane,
                 state);
     }
@@ -2310,6 +2314,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> quantizedCoefficients,
             Av1TransformSize transformSize,
             int qIndex,
+            bool lossless,
             int dcDeltaQ,
             int acDeltaQ,
             Av1Plane plane,
@@ -2330,6 +2335,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformSize,
                 Av1TransformType.DctDct,
                 qIndex,
+                lossless,
                 dcDeltaQ,
                 acDeltaQ,
                 plane,
@@ -2958,7 +2964,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int reconstructionStride,
             Av1TransformSize transformSize,
             Av1Plane plane,
-            int qIndex,
+            bool lossless,
             Av1BitDepth bitDepth,
             Av1EncoderTransformBlockState state)
             => Av1TransformBlockEncoder.ReconstructPredictionLossyCandidate(
@@ -2973,7 +2979,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 reconstruction,
                 reconstructionStride,
                 transformSize,
-                qIndex,
+                lossless,
                 plane,
                 bitDepth,
                 state);

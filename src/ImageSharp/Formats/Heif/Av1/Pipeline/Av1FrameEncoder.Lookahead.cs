@@ -73,7 +73,7 @@ internal static partial class Av1FrameEncoder
         /// quantization, unless the sharpness is 3. Reference: the do_border_pad test of av1_encode().
         /// </summary>
         private protected bool UsesBorderPad =>
-            !this.SequenceHeader.IsStillPicture &&
+            !this.Options.IsAllIntra &&
             this.Options.Speed < HeifEncodingSpeed.Level7 &&
             this.Options.DeltaQMode == Av1DeltaQMode.Objective &&
             this.Options.EnableTemporalModel &&
@@ -383,7 +383,7 @@ internal static partial class Av1FrameEncoder
             this.ApplyLaggedQuantizer(qIndex);
             parent.SpeedSettings = new(
                 this.Options.Speed,
-                this.SequenceHeader.IsStillPicture,
+                this.Options.IsAllIntra,
                 frameHeader.IsIntra,
                 parent.FrameUpdateType,
                 qIndex,
@@ -958,7 +958,7 @@ internal static partial class Av1FrameEncoder
             parent.ConstantQualityIndex = GetConstantQualityLevel(this.Options, this.ConstantQualityIndex);
             parent.SpeedSettings = new(
                 this.Options.Speed,
-                this.SequenceHeader.IsStillPicture,
+                this.Options.IsAllIntra,
                 frameHeader.IsIntra,
                 parent.FrameUpdateType,
                 this.QIndex,
@@ -1142,7 +1142,7 @@ internal static partial class Av1FrameEncoder
             parent.ConstantQualityIndex = GetConstantQualityLevel(this.Options, this.ConstantQualityIndex);
             parent.SpeedSettings = new(
                 this.Options.Speed,
-                this.SequenceHeader.IsStillPicture,
+                this.Options.IsAllIntra,
                 frameHeader.IsIntra,
                 parent.FrameUpdateType,
                 this.QIndex,

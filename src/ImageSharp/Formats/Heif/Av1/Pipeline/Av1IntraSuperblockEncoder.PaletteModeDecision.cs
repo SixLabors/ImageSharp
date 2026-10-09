@@ -593,7 +593,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             Av1PlaneRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
-            bool lossless = this.picture.Parent.FrameHeader.CodedLossless;
+            bool lossless = this.BlockLossless;
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
             int maximumDepth = lossless || this.picture.Parent.FrameHeader.TransformMode != Av1TransformMode.Select ||
                 (settings.DeferTransformSizeSearch && this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Candidate)

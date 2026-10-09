@@ -626,7 +626,7 @@ public class Av1EntropyTests
                 transformType,
                 transformSize,
                 useReducedTransformSet,
-                BaseQIndex,
+                lossless: false,
                 Av1FilterIntraMode.AllFilterIntraModes,
                 Av1PredictionMode.DC,
                 usesInterTransformSet: true);

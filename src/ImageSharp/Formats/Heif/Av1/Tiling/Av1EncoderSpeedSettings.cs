@@ -827,6 +827,28 @@ internal readonly struct Av1EncoderSpeedSettings
     public bool UseEstimatedInterModeDecision => this.realtime;
 
     /// <summary>
+    /// Gets a value indicating whether blocks pick their modes with the estimated, prediction-based search instead
+    /// of the full rate-distortion search. All-intra usage turns it on from speed 8 and real-time usage at every
+    /// speed it covers. Good-quality usage never uses it.
+    /// </summary>
+    public bool UseEstimatedModeDecision => this.allIntra ? this.Speed >= HeifEncodingSpeed.Level8 : this.realtime;
+
+    /// <summary>
+    /// Gets the level that lets small intra blocks of the estimated search use the full intra search. Zero keeps the
+    /// estimated search for every block. A nonzero level sends blocks below 16x16 to the full search when their source
+    /// variance reaches the threshold of the level: 0 for level 1, 101 for level 2 and 201 for level 3. All-intra
+    /// usage uses level 2 at speed 8 and level 0 above it. Real-time usage uses level 1.
+    /// </summary>
+    public int HybridIntraSearchLevel
+        => this.allIntra ? this.Speed == HeifEncodingSpeed.Level8 ? 2 : 0 : this.realtime ? 1 : 0;
+
+    /// <summary>
+    /// Gets a value indicating whether the chroma transform search scales its rate multiplier by the chroma
+    /// quantizer weights. All-intra and real-time usage turn it on. Good-quality usage keeps the luma multiplier.
+    /// </summary>
+    public bool UseChromaTrellisRateMultiplier => this.allIntra || this.realtime;
+
+    /// <summary>
     /// Gets a value indicating whether the sequence follows the reference real-time usage.
     /// </summary>
     public bool IsRealtime => this.realtime;

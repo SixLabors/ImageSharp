@@ -40,8 +40,9 @@ internal sealed partial class Av1SymbolEncoder
     /// <param name="filterMode">The selected filter-intra mode.</param>
     /// <param name="intraMode">The selected spatial prediction mode.</param>
     /// <param name="isInter">Whether inter transform syntax applies.</param>
+    /// <param name="lossless">Whether the segment of the block codes losslessly, which charges no transform type rate.</param>
     /// <returns>The estimated rate in 1/512-bit units.</returns>
-    public int EstimateLumaCoefficientRate(
+    public static int EstimateLumaCoefficientRate(
         Av1ModeCosts modeCosts,
         Av1CoefficientCosts coefficientCosts,
         ReadOnlySpan<int> coefficients,
@@ -52,7 +53,8 @@ internal sealed partial class Av1SymbolEncoder
         bool useReducedTransformSet,
         Av1FilterIntraMode filterMode,
         Av1PredictionMode intraMode,
-        bool isInter)
+        bool isInter,
+        bool lossless)
     {
         Av1TransformSize sizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
         Av1CoefficientCosts allCosts = coefficientCosts;
@@ -63,7 +65,7 @@ internal sealed partial class Av1SymbolEncoder
             return rate;
         }
 
-        rate += GetTransformTypeCost(modeCosts, transformType, transformSize, useReducedTransformSet, this.baseQIndex, filterMode, intraMode, isInter);
+        rate += GetTransformTypeCost(modeCosts, transformType, transformSize, useReducedTransformSet, lossless, filterMode, intraMode, isInter);
 
         ReadOnlySpan<int> endOfBlockRates = allCosts.GetEndOfBlockRow(
             transformSize.GetLog2Minus4(), (int)Av1ComponentType.Luminance, transformType.ToClass() == Av1TransformClass.Class2D ? 0 : 1);

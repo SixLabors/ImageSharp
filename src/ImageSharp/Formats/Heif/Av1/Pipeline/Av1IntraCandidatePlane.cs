@@ -142,6 +142,11 @@ internal readonly ref struct Av1IntraCandidatePlane<TSample>
     public int QIndex { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the segment of the block codes losslessly.
+    /// </summary>
+    public bool Lossless { get; init; }
+
+    /// <summary>
     /// Gets the DC quantizer adjustment of the plane.
     /// </summary>
     public int DcDeltaQ { get; init; }

@@ -89,7 +89,7 @@ internal static partial class Av1LoopRestorationEncoder
         int qIndex = header.QuantizationParameters.BaseQIndex;
         SearchSettings settings = new(
             picture.Parent.EncodingSpeed,
-            sequence.IsStillPicture,
+            picture.Parent.EncoderOptions.IsAllIntra,
             new Size(source.Width, source.Height),
             qIndex,
             picture.Parent.SpeedSettings.IsBoosted,

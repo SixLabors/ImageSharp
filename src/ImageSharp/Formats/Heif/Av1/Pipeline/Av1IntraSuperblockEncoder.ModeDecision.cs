@@ -486,7 +486,7 @@ internal static partial class Av1IntraSuperblockEncoder
             this.blockWorkspace = blockWorkspace;
             blockWorkspace.SpeedSettings = picture.Parent.SpeedSettings;
             blockWorkspace.EncoderOptions = picture.Parent.EncoderOptions;
-            blockWorkspace.SetQuantizationMatrixLevels(picture.Parent.FrameHeader.QuantizationParameters);
+            blockWorkspace.SetQuantizationMatrixLevels(picture.Parent.FrameHeader.QuantizationParameters, picture.Parent.FrameHeader.LosslessArray[0]);
 
             // A partition never exceeds the superblock it sits in, so the speed cap comes down to the
             // superblock size before anything reads it. Reference: the second AOMMIN of
@@ -556,9 +556,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // Only the full search updates the anchor after each coded superblock; the estimated search keeps
                 // the frame quantizer as the anchor for the whole tile. Reference: the current_base_qindex update of
                 // encode_b(), which encode_b_nonrd() does not make.
-                bool estimated = picture.Sequence.SequenceHeader.IsStillPicture
-                    ? picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level8
-                    : picture.Parent.SpeedSettings.IsRealtime;
+                bool estimated = picture.Parent.SpeedSettings.UseEstimatedModeDecision;
 
                 int anchorQIndex = estimated ? baseQIndex : picture.Parent.PreviousQIndex.Span[superblock.TileIndex];
                 this.superblockQIndex = Av1VarianceBoost.AdjustToResolution(deltaQ.Resolution, anchorQIndex, wantedQIndex);
@@ -630,7 +628,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // variance-based partition search of the fastest speeds does not run it, so its rate weight
             // stays at 128 there.
             this.rateMultiplierModifier = 128;
-            if (picture.Sequence.SequenceHeader.IsStillPicture && !UsesGivenPartition(picture))
+            if (picture.Parent.EncoderOptions.IsAllIntra && !UsesGivenPartition(picture))
             {
                 // Measure 4x4 source variation once for the entire superblock. Mixed flat and detailed
                 // regions need a lower rate weight, shared by every partition and mode decision below it.
@@ -799,6 +797,12 @@ internal static partial class Av1IntraSuperblockEncoder
             this.picture.Parent.FrameUpdateType == Av1FrameUpdateType.Alternate &&
             !this.picture.Parent.SpeedSettings.IsRealtime &&
             this.picture.Parent.EncodingSpeed <= HeifEncodingSpeed.Level2;
+
+        /// <summary>
+        /// Gets a value indicating whether the segment of the block being searched codes losslessly. The flag comes from the
+        /// segment quantizer without the delta quantizer of the superblock, so it can differ from a zero block quantizer index.
+        /// </summary>
+        private readonly bool BlockLossless => this.picture.Parent.FrameHeader.LosslessArray[this.blockSegmentId];
 
         /// <inheritdoc/>
         public Av1PartitionType SelectPartition(
@@ -1811,6 +1815,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             this.blockQIndex = Av1QuantizationLookup.GetQIndex(segmentation, this.blockSegmentId, this.superblockQIndex);
+            this.blockWorkspace.SetQuantizationMatrixLevels(parent.FrameHeader.QuantizationParameters, parent.FrameHeader.LosslessArray[this.blockSegmentId]);
         }
 
         /// <summary>
@@ -2401,7 +2406,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 allowRectangularSplit = false;
             }
 
-            if (this.picture.Sequence.SequenceHeader.IsStillPicture &&
+            if (this.picture.Parent.EncoderOptions.IsAllIntra &&
                 (blockSize >= Av1BlockSize.Block16x16 || (!this.mustFindValidPartition && partitionSettings.Speed >= HeifEncodingSpeed.Level6)))
             {
                 int right = Math.Min(
@@ -2974,7 +2979,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     parentSourceVariance = this.interSourceVariance;
 
                     if (candidateStatistics.Cost < bestStatistics.Cost && !this.picture.Parent.FrameHeader.IsIntra &&
-                        !this.picture.Parent.FrameHeader.CodedLossless && (allowMotionSplit || allowRectangularSplit) &&
+                        !this.BlockLossless && (allowMotionSplit || allowRectangularSplit) &&
                         IsSkippable(this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot))
                     {
                         // Scale distortion by block area relative to a maximum superblock. Rate uses the
@@ -3598,9 +3603,7 @@ internal static partial class Av1IntraSuperblockEncoder
             => picture.Parent.FixedPartitionSize != Av1BlockSize.Invalid ||
                 (picture.Parent.SpeedSettings.UseVarianceBasedPartition &&
                 picture.Parent.FrameHeader.IsIntra &&
-                picture.Parent.EncodingSpeed < (picture.Sequence.SequenceHeader.IsStillPicture
-                    ? HeifEncodingSpeed.Level8
-                    : HeifEncodingSpeed.Level7));
+                !picture.Parent.SpeedSettings.UseEstimatedModeDecision);
 
         /// <summary>
         /// Gets a value indicating whether the superblock searches only the modes of a given partition. Reference:
@@ -5001,7 +5004,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1EncoderPartitionTree.ModeContext sibling =
                         this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex);
 
-                    if (!this.picture.Parent.FrameHeader.CodedLossless && !sibling.Snapshot.ModeInfo.Block.Skip)
+                    if (!this.picture.Parent.FrameHeader.LosslessArray[sibling.Snapshot.ModeInfo.Block.SegmentId] &&
+                        !sibling.Snapshot.ModeInfo.Block.Skip)
                     {
                         Span<Av1EncoderTransformBlockState> siblingStates = sibling.GetTransformStates(Av1Plane.Y);
                         RetainEncodedZeroBlockTypes(siblingStates, siblingStates);
@@ -6198,7 +6202,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     InlineArray128<Av1EncoderTransformBlockState> stateStorage = default;
                     Span<Av1EncoderTransformBlockState> states = stateStorage;
-                    Av1TransformSize replayRootSize = this.picture.Parent.FrameHeader.CodedLossless
+
+                    // A lossless segment codes 4x4 transforms with one retained state per transform.
+                    bool replayLossless = this.picture.Parent.FrameHeader.LosslessArray[modeInfo.Block.SegmentId];
+                    Av1TransformSize replayRootSize = replayLossless
                         ? Av1TransformSize.Size4x4
                         : modeInfo.Block.BlockSize.GetMaximumTransformSize();
 
@@ -6222,7 +6229,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             continue;
                         }
 
-                        if (!this.picture.Parent.FrameHeader.CodedLossless)
+                        if (!replayLossless)
                         {
                             states[replayStateCount++] = replayLumaStates[
                                 replayArea / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount];
@@ -6235,7 +6242,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     {
                         int subX = this.source.ChromaSubsamplingX;
                         int subY = this.source.ChromaSubsamplingY;
-                        Av1TransformSize chromaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
+                        Av1TransformSize chromaTransformSize = replayLossless
                             ? Av1TransformSize.Size4x4
                             : modeInfo.Block.BlockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
 
@@ -6245,7 +6252,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         int chromaStateStride = chromaTransformSize.GetSize2d() / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
                         ReadOnlySpan<Av1EncoderTransformBlockState> blueStates = context.GetTransformStates(Av1Plane.U);
                         ReadOnlySpan<Av1EncoderTransformBlockState> redStates = context.GetTransformStates(Av1Plane.V);
-                        for (int index = 0; !this.picture.Parent.FrameHeader.CodedLossless && index < chromaTransformCount; index++)
+                        for (int index = 0; !replayLossless && index < chromaTransformCount; index++)
                         {
                             states[64 + index] = blueStates[index * chromaStateStride];
                             states[80 + index] = redStates[index * chromaStateStride];
@@ -6304,7 +6311,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         int subX = this.source.ChromaSubsamplingX;
                         int subY = this.source.ChromaSubsamplingY;
                         Av1BlockSize chromaBlockSize = modeInfo.Block.BlockSize.GetSubsampled(subX != 0, subY != 0);
-                        Av1TransformSize chromaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
+                        Av1TransformSize chromaTransformSize = replayLossless
                             ? Av1TransformSize.Size4x4
                             : modeInfo.Block.BlockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
 
@@ -6377,7 +6384,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 sourceLuma, sourceBlue, sourceRed, modeWorkspace.GetCandidateReconstruction(0), blockOrigin, blockSize);
 
             Av1PartitionType partitionType = modeInfo.Block.PartitionType;
-            Av1TransformSize maximumLumaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
+            Av1TransformSize maximumLumaTransformSize = this.BlockLossless
                 ? Av1TransformSize.Size4x4
                 : blockSize.GetMaximumTransformSize();
 
@@ -6401,13 +6408,15 @@ internal static partial class Av1IntraSuperblockEncoder
             block.QuantizationIndex = this.superblockQIndex;
             block.SegmentId = this.blockSegmentId;
 
-            bool stillPicture = this.picture.Sequence.SequenceHeader.IsStillPicture;
-            if (this.picture.Parent.FrameHeader.IsIntra &&
-                this.picture.Parent.EncodingSpeed >= (stillPicture ? HeifEncodingSpeed.Level8 : HeifEncodingSpeed.Level7))
+            if (this.picture.Parent.FrameHeader.IsIntra && this.picture.Parent.SpeedSettings.UseEstimatedModeDecision)
             {
+                // A nonzero hybrid level sends a block below 16x16 to the full intra search when its source variance
+                // reaches the threshold of the level. Levels 1, 2 and 3 use the thresholds 0, 101 and 201.
                 int sourceVariance = this.interSourceVariance;
+                int hybridLevel = this.picture.Parent.SpeedSettings.HybridIntraSearchLevel;
                 bool useFullSearch = blockSize < Av1BlockSize.Block16x16 &&
-                    (!stillPicture || (this.picture.Parent.EncodingSpeed == HeifEncodingSpeed.Level8 && sourceVariance >= 101));
+                    hybridLevel != 0 &&
+                    sourceVariance >= hybridLevel switch { 1 => 0, 2 => 101, _ => 201 };
 
                 if (!useFullSearch)
                 {
@@ -6718,7 +6727,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     subsamplingX,
                     subsamplingY);
 
-                Av1TransformSize chromaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
+                Av1TransformSize chromaTransformSize = this.BlockLossless
                     ? Av1TransformSize.Size4x4
                     : blockSize.GetMaxUvTransformSize(
                         colorConfig.SubSamplingX,
@@ -6797,12 +6806,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // A still picture at the non-RD speeds never searches a copy, even in the blocks that take the full
-            // search, although its header may still allow one. Reference: the use_nonrd_pick_mode and
-            // rt_use_intrabc test that opens rd_pick_intrabc_mode_sb().
+            // The estimated mode search never searches a copy, even in the blocks that take the full search, although
+            // the header may still allow one. Only a screen-content tune keeps the copy search in real-time usage, and
+            // this encoder has no such tune: detected screen content does not select it.
             bool allowIntraBlockCopy = this.picture.Parent.FrameHeader.AllowIntraBlockCopy;
-            bool nonRdWithoutCopy = this.picture.Sequence.SequenceHeader.IsStillPicture &&
-                this.picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level8;
+            bool nonRdWithoutCopy = this.picture.Parent.SpeedSettings.UseEstimatedModeDecision;
 
             bool searchIntraBlockCopy = allowIntraBlockCopy && !nonRdWithoutCopy &&
                 this.picture.Parent.MotionSearchSettings.AllowIntraBlockCopy &&
@@ -7003,7 +7011,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1RateDistortionStatistics modeSearchStatistics = this.SelectedBlockStatistics;
                 Av1RateDistortionStatistics modeSearchChroma = chromaStatistics;
                 Av1EncoderSpeedSettings speedSettings = this.picture.Parent.SpeedSettings;
-                if (!this.picture.Parent.FrameHeader.CodedLossless &&
+                if (!this.BlockLossless &&
                     (speedSettings.IntraTransformTypeSearchLevel != 0 ||
                      speedSettings.EnableWinnerCoefficientOptimization || speedSettings.DeferTransformSizeSearch))
                 {
@@ -7438,7 +7446,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     // av1_rd_pick_inter_mode(), stored by store_coding_context() for av1_encode_sb().
                     if (!modeInfo.Block.Skip && (this.transformSearchSkip || this.SelectedBlockStatistics.AllTransformsEmpty))
                     {
-                        Av1TransformSize maximumSize = this.picture.Parent.FrameHeader.CodedLossless
+                        Av1TransformSize maximumSize = this.BlockLossless
                             ? Av1TransformSize.Size4x4
                             : blockSize.GetMaximumTransformSize();
 
@@ -8239,9 +8247,12 @@ internal static partial class Av1IntraSuperblockEncoder
             bool codesNothing = modeSearchReused &&
                 snapshot.ModeInfo.Block.ReferenceFrame <= Av1ReferenceFrameType.Intra && !snapshot.ModeInfo.Block.UseIntraBlockCopy;
 
+            // A lossless segment codes 4x4 transforms with one retained state per transform.
+            bool snapshotLossless = this.picture.Parent.FrameHeader.LosslessArray[snapshot.ModeInfo.Block.SegmentId];
+
             if (snapshot.ModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra || snapshot.ModeInfo.Block.UseIntraBlockCopy)
             {
-                Av1TransformSize rootSize = this.picture.Parent.FrameHeader.CodedLossless
+                Av1TransformSize rootSize = snapshotLossless
                     ? Av1TransformSize.Size4x4
                     : blockSize.GetMaximumTransformSize();
 
@@ -8265,7 +8276,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         continue;
                     }
 
-                    if (!this.picture.Parent.FrameHeader.CodedLossless)
+                    if (!snapshotLossless)
                     {
                         states[stateCount++] = retainedLumaStates[
                             retainedArea / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount];
@@ -8278,7 +8289,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     int subX = this.source.ChromaSubsamplingX;
                     int subY = this.source.ChromaSubsamplingY;
-                    Av1TransformSize chromaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
+                    Av1TransformSize chromaTransformSize = snapshotLossless
                             ? Av1TransformSize.Size4x4
                             : snapshot.ModeInfo.Block.BlockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
 
@@ -8288,7 +8299,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     int chromaStateStride = chromaTransformSize.GetSize2d() / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
                     ReadOnlySpan<Av1EncoderTransformBlockState> blueStates = context.GetTransformStates(Av1Plane.U);
                     ReadOnlySpan<Av1EncoderTransformBlockState> redStates = context.GetTransformStates(Av1Plane.V);
-                    for (int index = 0; !this.picture.Parent.FrameHeader.CodedLossless && index < chromaTransformCount; index++)
+                    for (int index = 0; !snapshotLossless && index < chromaTransformCount; index++)
                     {
                         states[64 + index] = blueStates[index * chromaStateStride];
                         states[80 + index] = redStates[index * chromaStateStride];
@@ -8337,7 +8348,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.picture.GetMacroBlockModeInfo(modeInfoAllocation, modeInfoPosition).Block.Skip = true;
                 }
 
-                if (!context.Snapshot.ModeInfo.Block.Skip && !this.picture.Parent.FrameHeader.CodedLossless)
+                if (!context.Snapshot.ModeInfo.Block.Skip && !snapshotLossless)
                 {
                     int unit = Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
                     RetainEncodedZeroBlockTypes(
@@ -8376,7 +8387,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     int subX = this.source.ChromaSubsamplingX;
                     int subY = this.source.ChromaSubsamplingY;
-                    Av1TransformSize reusedChromaTransform = this.picture.Parent.FrameHeader.CodedLossless
+                    Av1TransformSize reusedChromaTransform = snapshotLossless
                         ? Av1TransformSize.Size4x4
                         : blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
 
@@ -8541,7 +8552,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int height = planeBlockSize.GetHeight();
                 Av1TransformSize transformSize = planeIndex == 0
                     ? snapshot.ModeInfo.Block.TransformSize
-                    : this.picture.Parent.FrameHeader.CodedLossless
+                    : this.BlockLossless
                         ? Av1TransformSize.Size4x4
                         : blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
 
@@ -8870,7 +8881,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> lumaCoefficients = this.coefficientBuffer.GetPlaneSpan(superblockCoefficients, Av1Plane.Y);
             Size frameContextSize = new(this.picture.Parent.FrameHeader.ModeInfoColumnCount, this.picture.Parent.FrameHeader.ModeInfoRowCount);
             bool interTransform = modeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra || modeInfo.Block.UseIntraBlockCopy;
-            if (interTransform && !this.picture.Parent.FrameHeader.CodedLossless)
+
+            // A lossless segment codes 4x4 transforms with one retained state per transform.
+            bool leafLossless = this.picture.Parent.FrameHeader.LosslessArray[modeInfo.Block.SegmentId];
+            if (interTransform && !leafLossless)
             {
                 // Publish the retained leaves in coefficient order. A root-sized write would erase the smaller
                 // bottom and right edge contexts needed by the next partition candidate.
@@ -8927,7 +8941,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // A reused decision codes nothing here, so its coefficients are not in the shared buffer yet. The
             // encode that follows it publishes their contexts.
-            if (publishCoefficientContexts && (!interTransform || this.picture.Parent.FrameHeader.CodedLossless))
+            if (publishCoefficientContexts && (!interTransform || leafLossless))
             {
                 PublishCoefficientContexts(
                     in lumaCoefficientEdges,
@@ -8969,7 +8983,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Lossless residuals retain one state per 4x4 transform, including chroma. Publish those exact
             // edges during partition trials so a later sibling sees the contexts that final writing will use.
-            Av1TransformSize chromaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
+            Av1TransformSize chromaTransformSize = leafLossless
                 ? Av1TransformSize.Size4x4
                 : blockSize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
 
@@ -9868,7 +9882,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1RateDistortionStatistics selectedStatistics)
         {
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
-            bool refine = !this.picture.Parent.FrameHeader.CodedLossless &&
+            bool refine = !this.BlockLossless &&
                 (settings.IntraTransformTypeSearchLevel != 0 || settings.EnableWinnerCoefficientOptimization || settings.DeferTransformSizeSearch);
 
             if (refine && settings.PruneIntraWinnerByVariance)
@@ -10004,7 +10018,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? Av1EncoderEvaluationStage.Default
                 : Av1EncoderEvaluationStage.Candidate;
 
-            if (selectedMapIndex >= 0 && !this.picture.Parent.FrameHeader.CodedLossless)
+            if (selectedMapIndex >= 0 && !this.BlockLossless)
             {
                 map.CopyFrom(modeWorkspace.GetWinnerPaletteMap(selectedMapIndex));
             }
@@ -10179,7 +10193,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out Av1RateDistortionStatistics selectedStatistics)
         {
             bool intraFrame = this.picture.Parent.FrameHeader.IsIntra;
-            bool lossless = this.picture.Parent.FrameHeader.CodedLossless;
+            bool lossless = this.BlockLossless;
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
             Av1EncoderPartitionTree.ModeContext winner = Av1EncoderBlockWorkspace.GetIntraWinnerContext(workspaceStorage, 1);
 
@@ -10547,7 +10561,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     retainedStates,
                     out Av1TransformSize bestSize);
 
-                if (this.picture.Sequence.SequenceHeader.IsStillPicture && modeStatistics.Cost != long.MaxValue)
+                if (this.picture.Parent.EncoderOptions.IsAllIntra && modeStatistics.Cost != long.MaxValue)
                 {
                     // Adjust predictor ranking only after its transform grid has been selected. Raw rate
                     // and distortion remain unchanged for chroma and partition cost accumulation.
@@ -11082,8 +11096,8 @@ internal static partial class Av1IntraSuperblockEncoder
             bool smoothEdges = blockState.SmoothEdges;
 
             // Prediction and transform-size syntax belongs to the coding block. Each residual transform
-            // contributes its own coefficient cost; lossless and fixed-size modes do not signal a size choice.
-            bool codedLossless = this.picture.Parent.FrameHeader.CodedLossless;
+            // contributes its own coefficient cost; lossless blocks and fixed-size modes do not signal a size choice.
+            bool lossless = this.BlockLossless;
 
             // The size costs nothing while a stage searches the largest transform only. That is not a
             // rule of its own: such a stage runs with the largest transform mode rather than the
@@ -11096,7 +11110,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.blockWorkspace.EvaluationStage != Av1EncoderEvaluationStage.Candidate;
 
             Av1ModeCosts modeCosts = tables.ModeCosts;
-            int rate = !codedLossless && blockSize > Av1BlockSize.Block4x4 && selectsTransformSize &&
+            int rate = !lossless && blockSize > Av1BlockSize.Block4x4 && selectsTransformSize &&
                 this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select
                 ? Av1SymbolEncoder.GetTransformSizeCost(modeCosts, blockSize, transformSize, transformSizeContext)
                 : 0;
@@ -11157,7 +11171,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Lossless coding starts the running cost at zero. Reference: the current_rd of 0 that
             // choose_smallest_tx_size() passes to av1_txfm_rd_in_plane().
-            long runningCost = codedLossless ? 0 : Av1RateDistortion.GetCost(this.rateMultiplier, noSkipRate + transformSizeRate, 0);
+            long runningCost = lossless ? 0 : Av1RateDistortion.GetCost(this.rateMultiplier, noSkipRate + transformSizeRate, 0);
 
             // A grid whose header alone passes the budget searches no transform block.
             if (runningCost > costLimit)
@@ -11282,7 +11296,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             // and the noise pattern test.
                             if (this.picture.Parent.SpeedSettings.PruneIntraTransformDepth &&
                                 this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Winner &&
-                                !codedLossless && this.bitDepth.GetBitCount() == 8 &&
+                                !lossless && this.bitDepth.GetBitCount() == 8 &&
                                 blockSize == Av1BlockSize.Block8x8 && transformSize == Av1TransformSize.Size8x8)
                             {
                                 int dcQuantizer = Av1QuantizationLookup.GetDcQuant(this.blockQIndex, 0, this.bitDepth);
@@ -12371,7 +12385,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> coefficients = planeCoefficients.Slice(coefficientOffset, transformSize.GetSize2d());
             ref Av1EncoderTransformBlockState state = ref planeStates[coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount];
 
-            bool lossless = this.picture.Parent.FrameHeader.CodedLossless;
+            bool lossless = this.BlockLossless;
             state = default;
             state.EntropyContext = lossless
                 ? (byte)(context.SkipContext | (context.DcSignContext << 4))
@@ -12414,13 +12428,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformSize,
                 selectedState.TransformType,
                 this.blockQIndex,
+                this.BlockLossless,
                 this.quantization.DeltaQDc[planeIndex],
                 this.quantization.DeltaQAc[planeIndex],
                 this.bitDepth,
                 plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
                 this.rateMultiplier,
                 isInter,
-                this.picture.Sequence.SequenceHeader.IsStillPicture,
+                this.picture.Parent.SpeedSettings.UseChromaTrellisRateMultiplier,
                 true,
                 0,
                 ref state);
@@ -12436,7 +12451,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformSize,
                     plane,
                     this.bitDepth,
-                    this.blockQIndex == 0,
+                    this.BlockLossless,
                     state);
             }
             else if (plane == Av1Plane.Y && !this.keepSearchedZeroBlockTypes)

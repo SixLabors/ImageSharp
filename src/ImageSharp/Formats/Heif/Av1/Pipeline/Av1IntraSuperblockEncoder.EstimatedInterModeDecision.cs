@@ -633,7 +633,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (block.HasChroma)
                 {
-                    Av1TransformSize chromaTransform = parent.FrameHeader.CodedLossless ? Av1TransformSize.Size4x4
+                    Av1TransformSize chromaTransform = this.BlockLossless ? Av1TransformSize.Size4x4
                         : blockSize.GetMaxUvTransformSize(this.source.ChromaSubsamplingX != 0, this.source.ChromaSubsamplingY != 0);
 
                     this.EncodeSelectedIntraPlane(
@@ -728,7 +728,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 int subX = this.source.ChromaSubsamplingX;
                 int subY = this.source.ChromaSubsamplingY;
-                Av1TransformSize chromaTransform = parent.FrameHeader.CodedLossless ? Av1TransformSize.Size4x4
+                Av1TransformSize chromaTransform = this.BlockLossless ? Av1TransformSize.Size4x4
                     : blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
 
                 Size chromaExtent = GetCodedTransformExtent(
@@ -1793,7 +1793,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Point origin = planeIndex == 0 ? blockOrigin : Av1TileWriter.GetChromaBlockOrigin(blockOrigin, subX, subY);
                 Av1TransformSize predictionSize = planeIndex == 0
                     ? blockSize.GetMaximumTransformSize().GetSquareSize()
-                    : this.picture.Parent.FrameHeader.CodedLossless
+                    : this.BlockLossless
                         ? Av1TransformSize.Size4x4 : blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
 
                 int transformWidth = predictionSize.GetWidth();
@@ -2020,7 +2020,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> lumaPrediction,
             Av1TransformType transformType)
         {
-            bool lossless = this.picture.Parent.FrameHeader.CodedLossless;
+            bool lossless = this.BlockLossless;
             modeInfo.Skip &= !lossless;
             modeInfo.TransformSize = lossless ? Av1TransformSize.Size4x4 : modeInfo.TransformSize;
             modeInfo.InterTransformSizes.Fill(modeInfo.TransformSize);
@@ -2227,6 +2227,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             transformSize,
                             planeTransformType,
                             this.blockQIndex,
+                            this.BlockLossless,
                             this.quantization.DeltaQDc[planeIndex],
                             this.quantization.DeltaQAc[planeIndex],
                             this.bitDepth,
@@ -2238,6 +2239,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             0,
                             ref state);
 
+                        // The inverse transform matches the forward transform, which the segment lossless flag selects.
                         if (state.EndOfBlock > 0)
                         {
                             TOperator.AddSelectedResidual(
@@ -2248,7 +2250,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 transformSize,
                                 plane,
                                 this.bitDepth,
-                                lossless,
+                                this.BlockLossless,
                                 state);
                         }
                     }
@@ -2811,7 +2813,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.blockQIndex,
                     this.quantization.DeltaQDc[0],
                     this.blockWorkspace.EncoderOptions.Sharpness,
-                    header.CodedLossless,
+                    this.BlockLossless,
                     this.rateMultiplier,
                     0,
                     Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext),

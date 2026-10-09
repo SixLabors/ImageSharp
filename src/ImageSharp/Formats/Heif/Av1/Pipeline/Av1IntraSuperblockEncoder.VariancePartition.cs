@@ -1226,19 +1226,19 @@ internal static partial class Av1IntraSuperblockEncoder
             int frameWidth = this.picture.Parent.FrameHeader.FrameSize.FrameWidth;
             int frameHeight = this.picture.Parent.FrameHeader.FrameSize.FrameHeight;
             long threshold = 120L * Av1QuantizationLookup.GetAcQuant(this.superblockQIndex, 0, this.bitDepth);
-            bool stillPicture = this.picture.Sequence.SequenceHeader.IsStillPicture;
-            bool largePartitions = stillPicture
+            bool allIntra = this.picture.Parent.EncoderOptions.IsAllIntra;
+            bool largePartitions = allIntra
                 ? speed >= 8 && Math.Min(frameWidth, frameHeight) >= 720
                 : speed >= 9 && Math.Min(frameWidth, frameHeight) < 720;
 
             if (largePartitions)
             {
-                int splitShift = stillPicture ? speed == 8 ? 8 : 7 : this.picture.Parent.IsScreenContent ? 10 : 9;
-                threshold <<= splitShift - (stillPicture ? 7 : 8);
+                int splitShift = allIntra ? speed == 8 ? 8 : 7 : this.picture.Parent.IsScreenContent ? 10 : 9;
+                threshold <<= splitShift - (allIntra ? 7 : 8);
             }
 
             bool smallFrame = (long)frameWidth * frameHeight < 1280 * 720;
-            int largeFrameShift = largePartitions ? stillPicture ? 1 : 0 : 2;
+            int largeFrameShift = largePartitions ? allIntra ? 1 : 0 : 2;
             long threshold32 = smallFrame ? threshold / 3 : threshold >> largeFrameShift;
             long threshold16 = threshold >> (smallFrame ? 1 : largeFrameShift);
 
@@ -1259,7 +1259,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 nodes,
                 threshold32,
                 threshold16,
-                stillPicture && speed >= 9);
+                allIntra && speed >= 9);
         }
 
         /// <summary>

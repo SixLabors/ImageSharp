@@ -1509,7 +1509,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 Point transformOrigin = origin + new Size(x, y);
                                 Span<TSample> predictedTransform = prediction[((y * width) + x)..];
                                 ReadOnlySpan<TSample> sourceTransform = sourceSamples[sourcePlane.GetOffset(transformOrigin.X, transformOrigin.Y)..];
-                                TOperator.PrepareIntra(
+                                Av1TransformBlockEncoder.PrepareIntraPrediction<TSample, TOperator>(
                                     transformWorkspace,
                                     sourceTransform,
                                     sourcePlane.Stride,

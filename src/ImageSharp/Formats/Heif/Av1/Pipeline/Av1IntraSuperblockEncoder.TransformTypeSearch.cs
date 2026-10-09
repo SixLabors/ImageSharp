@@ -878,7 +878,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (!is64x64 || !isHighEnergy || energyDifference * 2 < transformDomainEnergy)
                     {
-                        candidateDistortion = TOperator.ReconstructPredictionCandidate(
+                        candidateDistortion = Av1TransformBlockEncoder.ReconstructPredictionLossyCandidate<TSample, TOperator>(
                             this.blockWorkspace,
                             transformWorkspace,
                             candidateDequantized,
@@ -953,7 +953,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 // A later transform block predicts from the frame, so a winner that it reads is reconstructed there in place, over
                 // its prediction. The caller then copies nothing. No type is measured after this, so the prediction is no longer needed.
-                long pixelDistortion = TOperator.ReconstructPredictionCandidate(
+                long pixelDistortion = Av1TransformBlockEncoder.ReconstructPredictionLossyCandidate<TSample, TOperator>(
                     this.blockWorkspace,
                     transformWorkspace,
                     bestDequantized,

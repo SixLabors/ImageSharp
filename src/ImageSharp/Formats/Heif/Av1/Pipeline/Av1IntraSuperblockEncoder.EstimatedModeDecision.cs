@@ -286,7 +286,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             out bool hasAbove);
 
                         Point origin = blockOrigin + new Size(x, y);
-                        TOperator.PrepareIntra(
+                        Av1TransformBlockEncoder.PrepareIntraPrediction<TSample, TOperator>(
                             transformWorkspace,
                             sourceSamples[source.GetOffset(origin.X, origin.Y)..],
                             source.Stride,
@@ -714,7 +714,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             }
                             else
                             {
-                                TOperator.PrepareIntra(
+                                Av1TransformBlockEncoder.PrepareIntraPrediction<TSample, TOperator>(
                                     transformWorkspace,
                                     sourceSamples[source.GetOffset(origin.X, origin.Y)..],
                                     source.Stride,

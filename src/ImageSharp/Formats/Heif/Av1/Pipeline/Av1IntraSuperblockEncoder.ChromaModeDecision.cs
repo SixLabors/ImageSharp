@@ -1947,7 +1947,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     out bool hasLeft,
                                     out bool hasAbove);
 
-                                TOperator.PrepareIntra(
+                                Av1TransformBlockEncoder.PrepareIntraPrediction<TSample, TOperator>(
                                     transformWorkspace,
                                     sourceSamples[source.GetOffset(transformOrigin.X, transformOrigin.Y)..],
                                     source.Stride,
@@ -2426,7 +2426,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformSize,
                     this.picture.Parent.FrameHeader.UseReducedTransformSet);
 
-            long distortion = TOperator.EncodeCandidate(in blue, predictionMode, angleDelta, transformType, ref candidateBlueState, out long blueSse);
+            long distortion = Av1TransformBlockEncoder.EncodeIntraLossyCandidate<TSample, TOperator>(
+                in blue, predictionMode, angleDelta, transformType, ref candidateBlueState, out long blueSse);
+
             int blueRate = writer.GetCoefficientCost(
                 blue.Tables,
                 transformSize,
@@ -2459,7 +2461,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 return Av1RateDistortionStatistics.Invalid;
             }
 
-            long redDistortion = TOperator.EncodeCandidate(in red, predictionMode, angleDelta, transformType, ref candidateRedState, out long redSse);
+            long redDistortion = Av1TransformBlockEncoder.EncodeIntraLossyCandidate<TSample, TOperator>(
+                in red, predictionMode, angleDelta, transformType, ref candidateRedState, out long redSse);
 
             predictionDistortion += redSse;
 

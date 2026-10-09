@@ -6782,7 +6782,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 interIntraLeft);
 
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
-            TOperator.PrepareIntra(
+            Av1TransformBlockEncoder.PrepareIntraPrediction<TSample, TOperator>(
                 transformWorkspace,
                 Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                 sourcePlane.Stride,

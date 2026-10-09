@@ -33,8 +33,10 @@ internal static partial class Av1TransformBlockEncoder
     ];
 
     /// <summary>
-    /// Encodes one eight-bit intra candidate. Its prediction goes into the frame, which keeps it.
+    /// Encodes one intra candidate. Its prediction goes into the frame, which keeps it.
     /// </summary>
+    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The sample-storage operations.</typeparam>
     /// <param name="candidate">The values and buffers of the plane that every candidate of the block shares.</param>
     /// <param name="mode">The intra prediction mode.</param>
     /// <param name="angleDelta">The signed directional-angle adjustment.</param>
@@ -42,21 +44,23 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
     /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was.</param>
     /// <returns>The normalized distortion in AV1 transform units.</returns>
-    public static long EncodeIntraLossyCandidate(
-        in Av1IntraCandidatePlane<byte> candidate,
+    public static long EncodeIntraLossyCandidate<TSample, TOperator>(
+        in Av1IntraCandidatePlane<TSample> candidate,
         Av1PredictionMode mode,
         int angleDelta,
         Av1TransformType transformType,
         ref Av1EncoderTransformBlockState state,
         out long sse)
+        where TSample : unmanaged
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
     {
         // The source block and the candidate reconstruction.
         Av1EncoderBlockWorkspace workspace = candidate.Workspace;
-        ReadOnlySpan<byte> source = candidate.Source;
+        ReadOnlySpan<TSample> source = candidate.Source;
         int sourceStride = candidate.SourceStride;
         Point blockOrigin = candidate.BlockOrigin;
-        Span<byte> reconstruction = candidate.Reconstruction;
-        Span<byte> prediction = candidate.FrameBlock;
+        Span<TSample> reconstruction = candidate.Reconstruction;
+        Span<TSample> prediction = candidate.FrameBlock;
         int predictionStride = candidate.FrameStride;
 
         // The transform and the quantizer of the plane.
@@ -70,317 +74,9 @@ internal static partial class Av1TransformBlockEncoder
         int acDeltaQ = candidate.AcDeltaQ;
         (int Type, uint Threshold) distortionPolicy = candidate.DistortionPolicy;
 
-        // The coefficient and workspace buffers, which the caller read once for all candidates.
-        Span<int> quantizedCoefficients = candidate.QuantizedCoefficients;
-        Span<short> residual = candidate.Residual;
-        Span<int> transformCoefficients = candidate.TransformCoefficients;
-        Span<int> dequantizedCoefficients = candidate.DequantizedCoefficients;
-        Span<int> transformWorkspace = candidate.TransformWorkspace;
-
-        // The prediction goes straight into the frame, and the residual reads it there. This candidate is the last transform
-        // block of its plane block, so the frame keeps the prediction.
-        PrepareIntraPrediction(
-            transformWorkspace,
-            source,
-            sourceStride,
-            prediction,
-            predictionStride,
-            candidate.Above,
-            candidate.Left,
-            candidate.HasLeft,
-            candidate.HasAbove,
-            mode,
-            angleDelta,
-            candidate.EnableIntraEdgeFilter,
-            candidate.SmoothIntraEdges,
-            residual,
-            transformSize);
-
-        // The transform type search measures the residual energy of the visible samples. It selects the transform-domain distortion when
-        // the speed policy and that energy allow it. A 64-point transform keeps half of its coefficients, so its transform-domain error
-        // is not comparable.
-        Size visible = workspace.GetVisibleSize(plane, blockOrigin, width, height);
-        int visibleWidth = visible.Width;
-        int visibleHeight = visible.Height;
-        int predictDcLevel = GetPredictDcLevel(workspace);
-
-        // Skip prediction excludes a 64-point transform, because its DC coefficient has no scale term. The code then measures its
-        // residual without a mean and a variance.
-        bool predictDcBlock = predictDcLevel >= 1 && width != 64 && height != 64;
-        long perPixelMean = 0;
-        ulong blockVariance = 0;
-        uint blockMseQ8;
-        long residualEnergy = predictDcBlock
-            ? GetBlockStatistics(
-                residual, width, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8, out perPixelMean, out blockVariance)
-            : GetBlockError(
-                residual, width, visibleWidth, visibleHeight, Av1BitDepth.EightBit, out blockMseQ8);
-
-        sse = residualEnergy;
-
-        // A block whose residual cannot survive quantization stops here. Its prediction stands as the reconstruction, and it codes
-        // the all-zero flag alone.
-        if (predictDcBlock && PredictSkippedBlock(
-            transformSize,
-            Av1QuantizationLookup.GetDcQuant(qIndex, dcDeltaQ, Av1BitDepth.EightBit),
-            Av1QuantizationLookup.GetAcQuant(qIndex, acDeltaQ, Av1BitDepth.EightBit),
-            Av1BitDepth.EightBit,
-            perPixelMean,
-            blockVariance))
-        {
-            state.EndOfBlock = 0;
-            state.CoefficientContext = 0;
-
-            // A predicted luma block stores `DctDct`. Chroma keeps the type derived from the prediction mode, because the bitstream
-            // signals no chroma transform type for a decoder to read.
-            state.TransformType = plane == Av1Plane.Y ? Av1TransformType.DctDct : transformType;
-
-            // Only the end of block changes. Every reader of the coefficients stops at it, so the code does not clear the buffer.
-            return residualEnergy;
-        }
-
-        // This search holds one transform type, as a chroma search always does. A policy that measures the winner in the pixel domain
-        // then has nothing left to compare, so it measures every candidate in the pixel domain instead.
-        bool useTransformDomainDistortion = distortionPolicy.Type > 1 &&
-            blockMseQ8 >= distortionPolicy.Threshold &&
-            transformSize.GetSquareUpSize() != Av1TransformSize.Size64x64;
-
-        // The residual gets the border padding of the candidate type before the transform.
-        PadBorderResidual(workspace, plane, blockOrigin, residual, width, width, height, transformType);
-
-        EncodeLossyCandidate(
-            workspace,
-            candidate.Writer,
-            candidate.Tables,
-            transformCoefficients,
-            dequantizedCoefficients,
-            transformWorkspace,
-            candidate.Context,
-            residual,
-            width,
-            quantizedCoefficients,
-            transformSize,
-            transformType,
-            qIndex,
-            lossless,
-            dcDeltaQ,
-            acDeltaQ,
-            Av1BitDepth.EightBit,
-            plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma,
-            candidate.RateMultiplier,
-            false,
-            candidate.UseChromaWeights,
-            false,
-            blockMseQ8,
-            ref state);
-
-        if (useTransformDomainDistortion)
-        {
-            // An empty transform reconstructs the prediction, so its error is the residual energy.
-            int codedCoefficientCount = transformSize.GetAdjusted().GetSize2d();
-            return state.EndOfBlock == 0
-                ? residualEnergy
-                : GetTransformError(
-                    transformCoefficients[..codedCoefficientCount],
-                    dequantizedCoefficients[..codedCoefficientCount],
-                    transformSize,
-                    Av1BitDepth.EightBit,
-                    out sse);
-        }
-
-        // Only a pixel-domain distortion needs the reconstruction. The frame keeps the prediction, so a candidate with coefficients
-        // reconstructs into the contiguous storage. An empty candidate reconstructs to its prediction. The code therefore measures it
-        // in place in the frame, with no copy and no inverse transform.
-        bool hasCoefficients = state.EndOfBlock > 0;
-        long distortion = ReconstructPredictionLossyCandidate(
-            workspace,
-            transformWorkspace,
-            dequantizedCoefficients,
-            source,
-            sourceStride,
-            blockOrigin,
-            prediction,
-            predictionStride,
-            hasCoefficients ? reconstruction : prediction,
-            hasCoefficients ? width : predictionStride,
-            transformSize,
-            lossless,
-            plane,
-            state);
-
-        Av1ComponentType componentType = plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma;
-        return BoundPixelDistortion(
-            workspace,
-            componentType,
-            state.TransformType,
-            distortion,
-            residualEnergy,
-            state.EndOfBlock,
-            transformCoefficients,
-            dequantizedCoefficients,
-            transformSize,
-            Av1BitDepth.EightBit);
-    }
-
-    /// <summary>
-    /// Reconstructs the eight-bit candidate most recently quantized into the workspace and measures its distortion.
-    /// </summary>
-    /// <remarks>
-    /// Quantization and reconstruction are separate so that a transform search can compare the coefficient rate
-    /// with its current winner first. A candidate whose rate alone already costs more cannot win, and then needs
-    /// no inverse transform or pixel comparison.
-    /// </remarks>
-    /// <param name="workspace">The workspace supplying the visible extent of the plane.</param>
-    /// <param name="transformWorkspace">The intermediate buffer of the inverse transform.</param>
-    /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
-    /// <param name="source">The source transform block, from its top-left sample.</param>
-    /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
-    /// <param name="blockOrigin">The transform origin in plane samples, which gives the visible extent.</param>
-    /// <param name="prediction">The prepared prediction surface.</param>
-    /// <param name="inputStride">The number of prediction samples between rows.</param>
-    /// <param name="reconstruction">
-    /// The candidate reconstruction. When it starts at the first prediction sample, the candidate is reconstructed in place over its prediction.
-    /// </param>
-    /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
-    /// <param name="transformSize">The candidate transform dimensions.</param>
-    /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible inverse transform.</param>
-    /// <param name="plane">The component plane containing the block.</param>
-    /// <param name="state">The candidate transform type and end-of-block syntax.</param>
-    /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
-    public static long ReconstructPredictionLossyCandidate(
-        Av1EncoderBlockWorkspace workspace,
-        Span<int> transformWorkspace,
-        ReadOnlySpan<int> dequantized,
-        ReadOnlySpan<byte> source,
-        int sourceStride,
-        Point blockOrigin,
-        ReadOnlySpan<byte> prediction,
-        int inputStride,
-        Span<byte> reconstruction,
-        int reconstructionStride,
-        Av1TransformSize transformSize,
-        bool lossless,
-        Av1Plane plane,
-        Av1EncoderTransformBlockState state)
-    {
-        int width = transformSize.GetWidth();
-        int height = transformSize.GetHeight();
-
-        if (state.EndOfBlock > 0 && !lossless && transformSize == Av1TransformSize.Size8x8 &&
-            Av1TransformKernels.IsSupported)
-        {
-            // The kernel adds the residual to the prediction directly, so the prediction needs no copy.
-            Av1InverseTransformer.Inverse8x8(
-                dequantized,
-                prediction,
-                inputStride,
-                reconstruction,
-                reconstructionStride,
-                state.TransformType,
-                state.EndOfBlock);
-        }
-        else if (state.EndOfBlock > 0 && !lossless && transformSize == Av1TransformSize.Size4x4 &&
-            Av1TransformKernels.IsSupported)
-        {
-            Av1InverseTransformer.Inverse4x4(
-                dequantized,
-                prediction,
-                inputStride,
-                reconstruction,
-                reconstructionStride,
-                state.TransformType);
-        }
-        else if (state.EndOfBlock > 0 && !lossless && transformSize == Av1TransformSize.Size16x16 && Av1TransformKernels.IsWideSupported)
-        {
-            Av1InverseTransformer.Inverse16x16(
-                dequantized,
-                prediction,
-                inputStride,
-                reconstruction,
-                reconstructionStride,
-                state.TransformType,
-                state.EndOfBlock);
-        }
-        else
-        {
-            // Each transform trial overwrites the reconstruction but only reads the prepared prediction. Row copies keep a larger
-            // candidate surface without a second compact block. A reconstruction over its own prediction needs no copy, because the
-            // inverse transform adds in place.
-            if (!Unsafe.AreSame(ref MemoryMarshal.GetReference(prediction), ref MemoryMarshal.GetReference(reconstruction)))
-            {
-                for (int row = 0; row < height; row++)
-                {
-                    prediction.Slice(row * inputStride, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
-                }
-            }
-
-            if (state.EndOfBlock > 0)
-            {
-                Av1InverseTransformer.Reconstruct8Bit(
-                    dequantized,
-                    reconstruction,
-                    reconstructionStride,
-                    transformSize,
-                    state.TransformType,
-                    (int)plane,
-                    state.EndOfBlock,
-                    lossless,
-                    transformWorkspace);
-            }
-        }
-
-        // Full transforms keep their padded samples. Only the coded source extent adds to the distortion. The shift by 4 puts the
-        // squared error in the units of the transform-domain distortion.
-        Size visible = workspace.GetVisibleSize(plane, blockOrigin, width, height);
-        long distortion = Av1ResidualBuilder.SumSquaredError(
-            source,
-            sourceStride,
-            reconstruction,
-            reconstructionStride,
-            visible.Width,
-            visible.Height);
-
-        return distortion << 4;
-    }
-
-    /// <summary>
-    /// Encodes one high-bit-depth intra candidate. Its prediction goes into the frame, which keeps it.
-    /// </summary>
-    /// <param name="candidate">The values and buffers of the plane that every candidate of the block shares.</param>
-    /// <param name="mode">The intra prediction mode.</param>
-    /// <param name="angleDelta">The signed directional-angle adjustment.</param>
-    /// <param name="transformType">The selected compound transform type.</param>
-    /// <param name="state">The candidate transform type and end-of-block syntax.</param>
-    /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was.</param>
-    /// <returns>The normalized distortion in AV1 transform units.</returns>
-    public static long EncodeIntraLossyCandidate(
-        in Av1IntraCandidatePlane<ushort> candidate,
-        Av1PredictionMode mode,
-        int angleDelta,
-        Av1TransformType transformType,
-        ref Av1EncoderTransformBlockState state,
-        out long sse)
-    {
-        // The source block and the candidate reconstruction.
-        Av1EncoderBlockWorkspace workspace = candidate.Workspace;
-        ReadOnlySpan<ushort> source = candidate.Source;
-        int sourceStride = candidate.SourceStride;
-        Point blockOrigin = candidate.BlockOrigin;
-        Span<ushort> reconstruction = candidate.Reconstruction;
-        Span<ushort> prediction = candidate.FrameBlock;
-        int predictionStride = candidate.FrameStride;
-
-        // The transform and the quantizer of the plane.
-        Av1Plane plane = candidate.Plane;
-        Av1TransformSize transformSize = candidate.TransformSize;
-        int width = transformSize.GetWidth();
-        int height = transformSize.GetHeight();
-        int qIndex = candidate.QIndex;
-        bool lossless = candidate.Lossless;
-        int dcDeltaQ = candidate.DcDeltaQ;
-        int acDeltaQ = candidate.AcDeltaQ;
-        Av1BitDepth bitDepth = candidate.BitDepth;
-        (int Type, uint Threshold) distortionPolicy = candidate.DistortionPolicy;
+        // Eight-bit storage always holds eight-bit samples. The type check folds when the method is compiled for a sample type, so
+        // the eight-bit path gets a constant bit depth for its quantizer and normalization arithmetic.
+        Av1BitDepth bitDepth = typeof(TSample) == typeof(byte) ? Av1BitDepth.EightBit : candidate.BitDepth;
 
         // The coefficient and workspace buffers, which the caller read once for all candidates.
         Span<int> quantizedCoefficients = candidate.QuantizedCoefficients;
@@ -391,7 +87,7 @@ internal static partial class Av1TransformBlockEncoder
 
         // The prediction goes straight into the frame, and the residual reads it there. This candidate is the last transform
         // block of its plane block, so the frame keeps the prediction.
-        PrepareIntraPrediction(
+        PrepareIntraPrediction<TSample, TOperator>(
             transformWorkspace,
             source,
             sourceStride,
@@ -460,6 +156,7 @@ internal static partial class Av1TransformBlockEncoder
 
         // The residual gets the border padding of the candidate type before the transform.
         PadBorderResidual(workspace, plane, blockOrigin, residual, width, width, height, transformType);
+
         EncodeLossyCandidate(
             workspace,
             candidate.Writer,
@@ -504,7 +201,7 @@ internal static partial class Av1TransformBlockEncoder
         // reconstructs into the contiguous storage. An empty candidate reconstructs to its prediction. The code therefore measures it
         // in place in the frame, with no copy and no inverse transform.
         bool hasCoefficients = state.EndOfBlock > 0;
-        long distortion = ReconstructPredictionLossyCandidate(
+        long distortion = ReconstructPredictionLossyCandidate<TSample, TOperator>(
             workspace,
             transformWorkspace,
             dequantizedCoefficients,
@@ -516,8 +213,8 @@ internal static partial class Av1TransformBlockEncoder
             hasCoefficients ? reconstruction : prediction,
             hasCoefficients ? width : predictionStride,
             transformSize,
-            lossless,
             plane,
+            lossless,
             bitDepth,
             state);
 
@@ -536,13 +233,15 @@ internal static partial class Av1TransformBlockEncoder
     }
 
     /// <summary>
-    /// Reconstructs the high-bit-depth candidate most recently quantized into the workspace and measures its distortion.
+    /// Reconstructs the candidate most recently quantized into the workspace and measures its distortion.
     /// </summary>
     /// <remarks>
     /// Quantization and reconstruction are separate so that a transform search can compare the coefficient rate
     /// with its current winner first. A candidate whose rate alone already costs more cannot win, and then needs
     /// no inverse transform or pixel comparison.
     /// </remarks>
+    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The sample-storage operations.</typeparam>
     /// <param name="workspace">The workspace supplying the visible extent of the plane.</param>
     /// <param name="transformWorkspace">The intermediate buffer of the inverse transform.</param>
     /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
@@ -556,70 +255,119 @@ internal static partial class Av1TransformBlockEncoder
     /// </param>
     /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
     /// <param name="transformSize">The candidate transform dimensions.</param>
-    /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible inverse transform.</param>
     /// <param name="plane">The component plane containing the block.</param>
+    /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible inverse transform.</param>
     /// <param name="bitDepth">The coded sample precision.</param>
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
-    public static long ReconstructPredictionLossyCandidate(
+    public static long ReconstructPredictionLossyCandidate<TSample, TOperator>(
         Av1EncoderBlockWorkspace workspace,
         Span<int> transformWorkspace,
         ReadOnlySpan<int> dequantized,
-        ReadOnlySpan<ushort> source,
+        ReadOnlySpan<TSample> source,
         int sourceStride,
         Point blockOrigin,
-        ReadOnlySpan<ushort> prediction,
+        ReadOnlySpan<TSample> prediction,
         int inputStride,
-        Span<ushort> reconstruction,
+        Span<TSample> reconstruction,
         int reconstructionStride,
         Av1TransformSize transformSize,
-        bool lossless,
         Av1Plane plane,
+        bool lossless,
         Av1BitDepth bitDepth,
         Av1EncoderTransformBlockState state)
+        where TSample : unmanaged
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
     {
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
 
-        // Each transform trial overwrites the reconstruction but only reads the prepared prediction. Row copies keep a larger candidate
-        // surface without a second compact block. A reconstruction over its own prediction needs no copy, because the inverse
-        // transform adds in place.
-        if (!Unsafe.AreSame(ref MemoryMarshal.GetReference(prediction), ref MemoryMarshal.GetReference(reconstruction)))
+        // Eight-bit samples have 4x4, 8x8 and 16x16 lossy inverse kernels that add the residual to a separate prediction, so the
+        // prediction needs no copy. The type check folds when the method is compiled for a sample type, and the high bit depth
+        // path keeps only the copy and the inverse transform below.
+        bool addsToPrediction = typeof(TSample) == typeof(byte) && state.EndOfBlock > 0 && !lossless;
+        if (addsToPrediction && transformSize == Av1TransformSize.Size8x8 && Av1TransformKernels.IsSupported)
         {
-            for (int row = 0; row < height; row++)
+            Av1InverseTransformer.Inverse8x8(
+                dequantized,
+                MemoryMarshal.Cast<TSample, byte>(prediction),
+                inputStride,
+                MemoryMarshal.Cast<TSample, byte>(reconstruction),
+                reconstructionStride,
+                state.TransformType,
+                state.EndOfBlock);
+        }
+        else if (addsToPrediction && transformSize == Av1TransformSize.Size4x4 && Av1TransformKernels.IsSupported)
+        {
+            Av1InverseTransformer.Inverse4x4(
+                dequantized,
+                MemoryMarshal.Cast<TSample, byte>(prediction),
+                inputStride,
+                MemoryMarshal.Cast<TSample, byte>(reconstruction),
+                reconstructionStride,
+                state.TransformType);
+        }
+        else if (addsToPrediction && transformSize == Av1TransformSize.Size16x16 && Av1TransformKernels.IsWideSupported)
+        {
+            Av1InverseTransformer.Inverse16x16(
+                dequantized,
+                MemoryMarshal.Cast<TSample, byte>(prediction),
+                inputStride,
+                MemoryMarshal.Cast<TSample, byte>(reconstruction),
+                reconstructionStride,
+                state.TransformType,
+                state.EndOfBlock);
+        }
+        else
+        {
+            // Each transform trial overwrites the reconstruction but only reads the prepared prediction. Row copies keep a larger
+            // candidate surface without a second compact block. A reconstruction over its own prediction needs no copy, because the
+            // inverse transform adds in place.
+            if (!Unsafe.AreSame(ref MemoryMarshal.GetReference(prediction), ref MemoryMarshal.GetReference(reconstruction)))
             {
-                prediction.Slice(row * inputStride, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
+                for (int row = 0; row < height; row++)
+                {
+                    prediction.Slice(row * inputStride, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
+                }
+            }
+
+            if (state.EndOfBlock > 0)
+            {
+                TOperator.AddSelectedResidual(
+                    dequantized,
+                    transformWorkspace,
+                    reconstruction,
+                    reconstructionStride,
+                    transformSize,
+                    plane,
+                    bitDepth,
+                    lossless,
+                    state);
             }
         }
 
-        if (state.EndOfBlock > 0)
-        {
-            Av1InverseTransformer.ReconstructHighBitDepth(
-                dequantized,
-                MemoryMarshal.Cast<ushort, short>(reconstruction),
-                reconstructionStride,
-                transformSize,
-                state.TransformType,
-                (int)plane,
-                state.EndOfBlock,
-                lossless,
-                bitDepth,
-                transformWorkspace);
-        }
-
-        // Full transforms keep their padded samples. Only the coded source extent adds to the distortion.
+        // Full transforms keep their padded samples. Only the coded source extent adds to the distortion. The squared error kernels
+        // have one form for each sample type, and the type check folds to one direct call.
         Size visible = workspace.GetVisibleSize(plane, blockOrigin, width, height);
-        long distortion = Av1ResidualBuilder.SumSquaredError(
-            source,
-            sourceStride,
-            reconstruction,
-            reconstructionStride,
-            visible.Width,
-            visible.Height);
+        long distortion = typeof(TSample) == typeof(byte)
+            ? Av1ResidualBuilder.SumSquaredError(
+                MemoryMarshal.Cast<TSample, byte>(source),
+                sourceStride,
+                MemoryMarshal.Cast<TSample, byte>(reconstruction),
+                reconstructionStride,
+                visible.Width,
+                visible.Height)
+            : Av1ResidualBuilder.SumSquaredError(
+                MemoryMarshal.Cast<TSample, ushort>(source),
+                sourceStride,
+                MemoryMarshal.Cast<TSample, ushort>(reconstruction),
+                reconstructionStride,
+                visible.Width,
+                visible.Height);
 
-        // The rounding shift removes the extra precision of a high bit depth. The shift by 4 then puts the squared error in the units
-        // of the transform-domain distortion.
-        int shift = (bitDepth.GetBitCount() - 8) * 2;
+        // The rounding shift removes the extra precision of a high bit depth. Eight-bit storage has no extra precision, so its
+        // shift folds to zero. The shift by 4 then puts the squared error in the units of the transform-domain distortion.
+        int shift = typeof(TSample) == typeof(byte) ? 0 : (bitDepth.GetBitCount() - 8) * 2;
         long normalizedDistortion = shift == 0
             ? distortion
             : (distortion + (1L << (shift - 1))) >> shift;
@@ -628,131 +376,10 @@ internal static partial class Av1TransformBlockEncoder
     }
 
     /// <summary>
-    /// Builds an eight-bit intra prediction and its compact source residual.
+    /// Builds an intra prediction and its compact source residual.
     /// </summary>
-    /// <param name="transformWorkspace">The transform workspace of the block, which holds the edges and the prediction working storage.</param>
-    /// <param name="source">The source samples.</param>
-    /// <param name="sourceStride">The number of source samples between rows.</param>
-    /// <param name="prediction">The prediction destination.</param>
-    /// <param name="predictionStride">The number of prediction samples between rows.</param>
-    /// <param name="above">The contiguous top reference samples, with prefix storage for the shared corner.</param>
-    /// <param name="left">The contiguous left reference samples.</param>
-    /// <param name="hasLeft">Whether the left reference is available.</param>
-    /// <param name="hasAbove">Whether the top reference is available.</param>
-    /// <param name="mode">The intra prediction mode.</param>
-    /// <param name="angleDelta">The signed directional-angle adjustment.</param>
-    /// <param name="enableIntraEdgeFilter">Whether sequence syntax enables directional edge filtering.</param>
-    /// <param name="smoothIntraEdges">Whether a relevant neighboring block uses smooth prediction.</param>
-    /// <param name="residual">The compact source-minus-prediction destination.</param>
-    /// <param name="transformSize">The prediction dimensions.</param>
-    public static void PrepareIntraPrediction(
-        Span<int> transformWorkspace,
-        ReadOnlySpan<byte> source,
-        int sourceStride,
-        Span<byte> prediction,
-        int predictionStride,
-        ReadOnlySpan<byte> above,
-        ReadOnlySpan<byte> left,
-        bool hasLeft,
-        bool hasAbove,
-        Av1PredictionMode mode,
-        int angleDelta,
-        bool enableIntraEdgeFilter,
-        bool smoothIntraEdges,
-        Span<short> residual,
-        Av1TransformSize transformSize)
-    {
-        int width = transformSize.GetWidth();
-        int height = transformSize.GetHeight();
-
-        // The specialized SIMD kernels make the prediction. This method only shares the prepared samples and the residual across
-        // transform trials that differ in transform size or type.
-        if (mode == Av1PredictionMode.DC)
-        {
-            Av1DcIntraPredictor.Predict(hasLeft, hasAbove, prediction, predictionStride, above, left, width, height);
-        }
-        else if (mode.IsDirectional())
-        {
-            int angle = mode.ToAngle() + (angleDelta * Av1Constants.AngleStep);
-            Span<byte> predictionWorkspace = MemoryMarshal.AsBytes(transformWorkspace);
-            int predictionLength = width * height;
-            Span<byte> transposedBlock = predictionWorkspace[..predictionLength];
-            bool upsampleAbove = false;
-            bool upsampleLeft = false;
-            if (enableIntraEdgeFilter)
-            {
-                // Mode trials share the raw references, so the code makes private edge copies after the directional work area. The whole
-                // transform workspace is free again after the prediction and the residual are complete. Missing edge samples take the
-                // AV1 defaults of 127 above and 129 left.
-                int edgeLength = Av1IntraEdgePreparation.ReferenceBufferLength;
-                int prefixLength = Av1IntraEdgePreparation.ReferencePrefixLength;
-                Span<byte> aboveStorage = predictionWorkspace.Slice(predictionLength, edgeLength);
-                Span<byte> leftStorage = predictionWorkspace.Slice(predictionLength + edgeLength, edgeLength);
-                aboveStorage.Fill(127);
-                leftStorage.Fill(129);
-                if (angle < 180)
-                {
-                    above.CopyTo(aboveStorage[prefixLength..]);
-                    aboveStorage[prefixLength - 1] = Unsafe.Subtract(ref MemoryMarshal.GetReference(above), 1);
-                }
-
-                if (angle > 90)
-                {
-                    left.CopyTo(leftStorage[prefixLength..]);
-                    leftStorage[prefixLength - 1] = Unsafe.Subtract(ref MemoryMarshal.GetReference(left), 1);
-                }
-
-                Span<byte> filteredAbove = aboveStorage[prefixLength..];
-                Span<byte> filteredLeft = leftStorage[prefixLength..];
-                Av1IntraEdgePreparation.Prepare(
-                    filteredAbove,
-                    filteredLeft,
-                    width,
-                    height,
-                    angle,
-                    hasAbove ? width : 0,
-                    hasLeft ? height : 0,
-                    smoothIntraEdges,
-                    8,
-                    predictionWorkspace.Slice(predictionLength + (2 * edgeLength), Av1IntraEdgeFilter.PaddedEdgeLength),
-                    out upsampleAbove,
-                    out upsampleLeft);
-
-                above = filteredAbove;
-                left = filteredLeft;
-            }
-
-            Av1DirectionalIntraPredictor.Predict(
-                prediction,
-                predictionStride,
-                transformSize,
-                above,
-                left,
-                upsampleAbove,
-                upsampleLeft,
-                angle,
-                transposedBlock);
-        }
-        else
-        {
-            Av1NonDirectionalIntraPredictorBase.GetPredictor(mode)
-                .Predict(prediction, predictionStride, above, left, width, height);
-        }
-
-        Av1ResidualBuilder.Subtract(
-            source,
-            sourceStride,
-            prediction,
-            predictionStride,
-            residual,
-            width,
-            width,
-            height);
-    }
-
-    /// <summary>
-    /// Builds a high-bit-depth intra prediction and its compact source residual.
-    /// </summary>
+    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The sample-storage operations.</typeparam>
     /// <param name="transformWorkspace">The transform workspace of the block, which holds the edges and the prediction working storage.</param>
     /// <param name="source">The source samples.</param>
     /// <param name="sourceStride">The number of source samples between rows.</param>
@@ -769,14 +396,14 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="residual">The compact source-minus-prediction destination.</param>
     /// <param name="transformSize">The prediction dimensions.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    public static void PrepareIntraPrediction(
+    public static void PrepareIntraPrediction<TSample, TOperator>(
         Span<int> transformWorkspace,
-        ReadOnlySpan<ushort> source,
+        ReadOnlySpan<TSample> source,
         int sourceStride,
-        Span<ushort> prediction,
+        Span<TSample> prediction,
         int predictionStride,
-        ReadOnlySpan<ushort> above,
-        ReadOnlySpan<ushort> left,
+        ReadOnlySpan<TSample> above,
+        ReadOnlySpan<TSample> left,
         bool hasLeft,
         bool hasAbove,
         Av1PredictionMode mode,
@@ -786,106 +413,170 @@ internal static partial class Av1TransformBlockEncoder
         Span<short> residual,
         Av1TransformSize transformSize,
         Av1BitDepth bitDepth)
+        where TSample : unmanaged
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
     {
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
 
-        // Valid high bit depth samples stay below the sign bit. The predictor kernels can therefore use the unsigned frame storage
-        // through their signed implementation.
-        Span<short> signedPrediction = MemoryMarshal.Cast<ushort, short>(prediction);
-        ReadOnlySpan<short> signedAbove = MemoryMarshal.Cast<ushort, short>(above);
-        ReadOnlySpan<short> signedLeft = MemoryMarshal.Cast<ushort, short>(left);
+        // The specialized SIMD kernels make the prediction. This method only shares the prepared samples and the residual across
+        // transform trials that differ in transform size or type. The kernels have an eight-bit form and a signed 16-bit form.
+        // Valid high bit depth samples stay below the sign bit, so the signed form can use the unsigned frame storage. Each type
+        // check folds when the method is compiled for a sample type. Eight-bit storage always holds eight-bit samples.
+        int bitCount = typeof(TSample) == typeof(byte) ? 8 : bitDepth.GetBitCount();
         if (mode == Av1PredictionMode.DC)
         {
-            Av1DcIntraPredictor.Predict(
-                hasLeft,
-                hasAbove,
-                signedPrediction,
-                predictionStride,
-                signedAbove,
-                signedLeft,
-                width,
-                height,
-                bitDepth.GetBitCount());
+            if (typeof(TSample) == typeof(byte))
+            {
+                Av1DcIntraPredictor.Predict(
+                    hasLeft,
+                    hasAbove,
+                    MemoryMarshal.Cast<TSample, byte>(prediction),
+                    predictionStride,
+                    MemoryMarshal.Cast<TSample, byte>(above),
+                    MemoryMarshal.Cast<TSample, byte>(left),
+                    width,
+                    height);
+            }
+            else
+            {
+                Av1DcIntraPredictor.Predict(
+                    hasLeft,
+                    hasAbove,
+                    MemoryMarshal.Cast<TSample, short>(prediction),
+                    predictionStride,
+                    MemoryMarshal.Cast<TSample, short>(above),
+                    MemoryMarshal.Cast<TSample, short>(left),
+                    width,
+                    height,
+                    bitCount);
+            }
         }
         else if (mode.IsDirectional())
         {
             int angle = mode.ToAngle() + (angleDelta * Av1Constants.AngleStep);
-            Span<short> predictionWorkspace = MemoryMarshal.Cast<int, short>(transformWorkspace);
+            Span<TSample> predictionWorkspace = MemoryMarshal.Cast<int, TSample>(transformWorkspace);
             int predictionLength = width * height;
-            Span<short> transposedBlock = predictionWorkspace[..predictionLength];
+            Span<TSample> transposedBlock = predictionWorkspace[..predictionLength];
             bool upsampleAbove = false;
             bool upsampleLeft = false;
             if (enableIntraEdgeFilter)
             {
                 // Mode trials share the raw references, so the code makes private edge copies after the directional work area. The whole
                 // transform workspace is free again after the prediction and the residual are complete. Missing edge samples take the
-                // AV1 defaults of one less than the midpoint above and one more than the midpoint left.
+                // AV1 defaults of one less than the midpoint above and one more than the midpoint left, 127 and 129 for eight bits.
                 int edgeLength = Av1IntraEdgePreparation.ReferenceBufferLength;
                 int prefixLength = Av1IntraEdgePreparation.ReferencePrefixLength;
-                Span<short> aboveStorage = predictionWorkspace.Slice(predictionLength, edgeLength);
-                Span<short> leftStorage = predictionWorkspace.Slice(predictionLength + edgeLength, edgeLength);
-                int midpoint = 128 << (bitDepth.GetBitCount() - 8);
-                aboveStorage.Fill((short)(midpoint - 1));
-                leftStorage.Fill((short)(midpoint + 1));
+                Span<TSample> aboveStorage = predictionWorkspace.Slice(predictionLength, edgeLength);
+                Span<TSample> leftStorage = predictionWorkspace.Slice(predictionLength + edgeLength, edgeLength);
+                int midpoint = 128 << (bitCount - 8);
+                aboveStorage.Fill(TOperator.CreateSample(midpoint - 1));
+                leftStorage.Fill(TOperator.CreateSample(midpoint + 1));
                 if (angle < 180)
                 {
-                    signedAbove.CopyTo(aboveStorage[prefixLength..]);
-                    aboveStorage[prefixLength - 1] = Unsafe.Subtract(ref MemoryMarshal.GetReference(signedAbove), 1);
+                    above.CopyTo(aboveStorage[prefixLength..]);
+                    aboveStorage[prefixLength - 1] = Unsafe.Subtract(ref MemoryMarshal.GetReference(above), 1);
                 }
 
                 if (angle > 90)
                 {
-                    signedLeft.CopyTo(leftStorage[prefixLength..]);
-                    leftStorage[prefixLength - 1] = Unsafe.Subtract(ref MemoryMarshal.GetReference(signedLeft), 1);
+                    left.CopyTo(leftStorage[prefixLength..]);
+                    leftStorage[prefixLength - 1] = Unsafe.Subtract(ref MemoryMarshal.GetReference(left), 1);
                 }
 
-                Span<short> filteredAbove = aboveStorage[prefixLength..];
-                Span<short> filteredLeft = leftStorage[prefixLength..];
-                Av1IntraEdgePreparation.Prepare(
-                    filteredAbove,
-                    filteredLeft,
-                    width,
-                    height,
-                    angle,
-                    hasAbove ? width : 0,
-                    hasLeft ? height : 0,
-                    smoothIntraEdges,
-                    bitDepth.GetBitCount(),
-                    predictionWorkspace.Slice(predictionLength + (2 * edgeLength), Av1IntraEdgeFilter.PaddedEdgeLength),
-                    out upsampleAbove,
-                    out upsampleLeft);
+                Span<TSample> filteredAbove = aboveStorage[prefixLength..];
+                Span<TSample> filteredLeft = leftStorage[prefixLength..];
+                Span<TSample> originalEdge = predictionWorkspace.Slice(predictionLength + (2 * edgeLength), Av1IntraEdgeFilter.PaddedEdgeLength);
+                if (typeof(TSample) == typeof(byte))
+                {
+                    Av1IntraEdgePreparation.Prepare(
+                        MemoryMarshal.Cast<TSample, byte>(filteredAbove),
+                        MemoryMarshal.Cast<TSample, byte>(filteredLeft),
+                        width,
+                        height,
+                        angle,
+                        hasAbove ? width : 0,
+                        hasLeft ? height : 0,
+                        smoothIntraEdges,
+                        bitCount,
+                        MemoryMarshal.Cast<TSample, byte>(originalEdge),
+                        out upsampleAbove,
+                        out upsampleLeft);
+                }
+                else
+                {
+                    Av1IntraEdgePreparation.Prepare(
+                        MemoryMarshal.Cast<TSample, short>(filteredAbove),
+                        MemoryMarshal.Cast<TSample, short>(filteredLeft),
+                        width,
+                        height,
+                        angle,
+                        hasAbove ? width : 0,
+                        hasLeft ? height : 0,
+                        smoothIntraEdges,
+                        bitCount,
+                        MemoryMarshal.Cast<TSample, short>(originalEdge),
+                        out upsampleAbove,
+                        out upsampleLeft);
+                }
 
-                signedAbove = filteredAbove;
-                signedLeft = filteredLeft;
+                above = filteredAbove;
+                left = filteredLeft;
             }
 
-            Av1DirectionalIntraPredictor.Predict(
-                signedPrediction,
-                predictionStride,
-                transformSize,
-                signedAbove,
-                signedLeft,
-                upsampleAbove,
-                upsampleLeft,
-                angle,
-                transposedBlock);
+            if (typeof(TSample) == typeof(byte))
+            {
+                Av1DirectionalIntraPredictor.Predict(
+                    MemoryMarshal.Cast<TSample, byte>(prediction),
+                    predictionStride,
+                    transformSize,
+                    MemoryMarshal.Cast<TSample, byte>(above),
+                    MemoryMarshal.Cast<TSample, byte>(left),
+                    upsampleAbove,
+                    upsampleLeft,
+                    angle,
+                    MemoryMarshal.Cast<TSample, byte>(transposedBlock));
+            }
+            else
+            {
+                Av1DirectionalIntraPredictor.Predict(
+                    MemoryMarshal.Cast<TSample, short>(prediction),
+                    predictionStride,
+                    transformSize,
+                    MemoryMarshal.Cast<TSample, short>(above),
+                    MemoryMarshal.Cast<TSample, short>(left),
+                    upsampleAbove,
+                    upsampleLeft,
+                    angle,
+                    MemoryMarshal.Cast<TSample, short>(transposedBlock));
+            }
         }
         else
         {
-            Av1NonDirectionalIntraPredictorBase.GetPredictor(mode)
-                .Predict(signedPrediction, predictionStride, signedAbove, signedLeft, width, height);
+            Av1NonDirectionalIntraPredictorBase predictor = Av1NonDirectionalIntraPredictorBase.GetPredictor(mode);
+            if (typeof(TSample) == typeof(byte))
+            {
+                predictor.Predict(
+                    MemoryMarshal.Cast<TSample, byte>(prediction),
+                    predictionStride,
+                    MemoryMarshal.Cast<TSample, byte>(above),
+                    MemoryMarshal.Cast<TSample, byte>(left),
+                    width,
+                    height);
+            }
+            else
+            {
+                predictor.Predict(
+                    MemoryMarshal.Cast<TSample, short>(prediction),
+                    predictionStride,
+                    MemoryMarshal.Cast<TSample, short>(above),
+                    MemoryMarshal.Cast<TSample, short>(left),
+                    width,
+                    height);
+            }
         }
 
-        Av1ResidualBuilder.Subtract(
-            source,
-            sourceStride,
-            prediction,
-            predictionStride,
-            residual,
-            width,
-            width,
-            height);
+        TOperator.SubtractPrediction(source, sourceStride, prediction, predictionStride, residual, width, height);
     }
 
     /// <summary>

@@ -8416,7 +8416,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                             ? snapshot.ModeInfo.Block.Mode
                                             : snapshot.ModeInfo.Block.UvMode.ToLumaMode();
 
-                                        TOperator.PrepareIntra(
+                                        Av1TransformBlockEncoder.PrepareIntraPrediction<TSample, TOperator>(
                                             transformWorkspace,
                                             sourceTransform,
                                             sourcePlane.Stride,
@@ -10536,7 +10536,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                                 if (filterIntraMode == Av1FilterIntraMode.AllFilterIntraModes)
                                 {
-                                    TOperator.PrepareIntra(
+                                    Av1TransformBlockEncoder.PrepareIntraPrediction<TSample, TOperator>(
                                         transformWorkspace,
                                         sourceTransform,
                                         sourcePlane.Stride,
@@ -11181,7 +11181,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Span<TSample> prediction = frameBlock[((y * frameStride) + x)..];
                     if (filterMode == Av1FilterIntraMode.AllFilterIntraModes)
                     {
-                        TOperator.PrepareIntra(
+                        Av1TransformBlockEncoder.PrepareIntraPrediction<TSample, TOperator>(
                             transformWorkspace,
                             sourceTransform,
                             sourceStride,

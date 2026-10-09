@@ -265,61 +265,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1DifferenceWeightedMaskType maskType);
 
         /// <summary>
-        /// Encodes one intra candidate. Its prediction goes into the frame, which keeps it.
-        /// </summary>
-        /// <param name="plane">The values and buffers of the plane that every candidate of the block shares.</param>
-        /// <param name="mode">The intra prediction mode.</param>
-        /// <param name="angleDelta">The signed directional-angle adjustment.</param>
-        /// <param name="transformType">The compound transform applied to the residual.</param>
-        /// <param name="state">The candidate transform state.</param>
-        /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was.</param>
-        /// <returns>The normalized distortion in AV1 transform units.</returns>
-        public static abstract long EncodeCandidate(
-            in Av1IntraCandidatePlane<TSample> plane,
-            Av1PredictionMode mode,
-            int angleDelta,
-            Av1TransformType transformType,
-            ref Av1EncoderTransformBlockState state,
-            out long sse);
-
-        /// <summary>
-        /// Builds one spatial intra prediction and its source residual for reuse across transform candidates.
-        /// </summary>
-        /// <param name="transformWorkspace">The transform workspace of the block, which holds the edges and the prediction working storage.</param>
-        /// <param name="source">The source transform block, from its top-left sample.</param>
-        /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
-        /// <param name="prediction">The prediction destination.</param>
-        /// <param name="predictionStride">The distance between prediction rows in samples.</param>
-        /// <param name="above">The top reference samples, with prefix storage for the shared corner.</param>
-        /// <param name="left">The left reference samples.</param>
-        /// <param name="hasLeft">Whether the left reference is available.</param>
-        /// <param name="hasAbove">Whether the top reference is available.</param>
-        /// <param name="mode">The intra prediction mode.</param>
-        /// <param name="angleDelta">The signed directional-angle adjustment.</param>
-        /// <param name="enableIntraEdgeFilter">Whether sequence syntax enables directional edge filtering.</param>
-        /// <param name="smoothIntraEdges">Whether a relevant neighboring block uses smooth prediction.</param>
-        /// <param name="residual">The contiguous source-minus-prediction destination.</param>
-        /// <param name="transformSize">The prediction dimensions.</param>
-        /// <param name="bitDepth">The coded sample bit depth.</param>
-        public static abstract void PrepareIntra(
-            Span<int> transformWorkspace,
-            ReadOnlySpan<TSample> source,
-            int sourceStride,
-            Span<TSample> prediction,
-            int predictionStride,
-            ReadOnlySpan<TSample> above,
-            ReadOnlySpan<TSample> left,
-            bool hasLeft,
-            bool hasAbove,
-            Av1PredictionMode mode,
-            int angleDelta,
-            bool enableIntraEdgeFilter,
-            bool smoothIntraEdges,
-            Span<short> residual,
-            Av1TransformSize transformSize,
-            Av1BitDepth bitDepth);
-
-        /// <summary>
         /// Builds one filter-intra prediction for reuse across transform candidates.
         /// </summary>
         /// <param name="transformWorkspace">The transform workspace of the block, which holds the filter intra rows.</param>
@@ -498,45 +443,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1Plane plane,
             Av1BitDepth bitDepth,
             bool lossless,
-            Av1EncoderTransformBlockState state);
-
-        /// <summary>
-        /// Reconstructs a quantized candidate from its dequantized coefficients and measures its distortion.
-        /// </summary>
-        /// <param name="blockWorkspace">The workspace supplying the visible extent of the plane.</param>
-        /// <param name="transformWorkspace">The intermediate buffer of the inverse transform.</param>
-        /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
-        /// <param name="source">The source transform block, from its top-left sample.</param>
-        /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
-        /// <param name="blockOrigin">The transform-block origin in plane samples, which gives the visible extent.</param>
-        /// <param name="prediction">The prediction samples at the transform origin.</param>
-        /// <param name="inputStride">The number of prediction samples between rows.</param>
-        /// <param name="reconstruction">
-        /// The candidate reconstruction. When it starts at the first prediction sample, the candidate is reconstructed in place
-        /// over its prediction.
-        /// </param>
-        /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
-        /// <param name="transformSize">The transform dimensions.</param>
-        /// <param name="plane">The component plane containing the block.</param>
-        /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible inverse transform.</param>
-        /// <param name="bitDepth">The coded sample bit depth.</param>
-        /// <param name="state">The candidate transform state.</param>
-        /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
-        public static abstract long ReconstructPredictionCandidate(
-            Av1EncoderBlockWorkspace blockWorkspace,
-            Span<int> transformWorkspace,
-            ReadOnlySpan<int> dequantized,
-            ReadOnlySpan<TSample> source,
-            int sourceStride,
-            Point blockOrigin,
-            ReadOnlySpan<TSample> prediction,
-            int inputStride,
-            Span<TSample> reconstruction,
-            int reconstructionStride,
-            Av1TransformSize transformSize,
-            Av1Plane plane,
-            bool lossless,
-            Av1BitDepth bitDepth,
             Av1EncoderTransformBlockState state);
 
         /// <summary>
@@ -1350,51 +1256,6 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <inheritdoc/>
-        public static long EncodeCandidate(
-            in Av1IntraCandidatePlane<byte> plane,
-            Av1PredictionMode mode,
-            int angleDelta,
-            Av1TransformType transformType,
-            ref Av1EncoderTransformBlockState state,
-            out long sse)
-            => Av1TransformBlockEncoder.EncodeIntraLossyCandidate(in plane, mode, angleDelta, transformType, ref state, out sse);
-
-        /// <inheritdoc/>
-        public static void PrepareIntra(
-            Span<int> transformWorkspace,
-            ReadOnlySpan<byte> source,
-            int sourceStride,
-            Span<byte> prediction,
-            int predictionStride,
-            ReadOnlySpan<byte> above,
-            ReadOnlySpan<byte> left,
-            bool hasLeft,
-            bool hasAbove,
-            Av1PredictionMode mode,
-            int angleDelta,
-            bool enableIntraEdgeFilter,
-            bool smoothIntraEdges,
-            Span<short> residual,
-            Av1TransformSize transformSize,
-            Av1BitDepth bitDepth)
-            => Av1TransformBlockEncoder.PrepareIntraPrediction(
-                transformWorkspace,
-                source,
-                sourceStride,
-                prediction,
-                predictionStride,
-                above,
-                left,
-                hasLeft,
-                hasAbove,
-                mode,
-                angleDelta,
-                enableIntraEdgeFilter,
-                smoothIntraEdges,
-                residual,
-                transformSize);
-
-        /// <inheritdoc/>
         public static void PrepareFilterIntra(
             Span<int> transformWorkspace,
             ReadOnlySpan<byte> source,
@@ -1658,39 +1519,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 state.EndOfBlock,
                 lossless,
                 transformWorkspace);
-
-        /// <inheritdoc/>
-        public static long ReconstructPredictionCandidate(
-            Av1EncoderBlockWorkspace blockWorkspace,
-            Span<int> transformWorkspace,
-            ReadOnlySpan<int> dequantized,
-            ReadOnlySpan<byte> source,
-            int sourceStride,
-            Point blockOrigin,
-            ReadOnlySpan<byte> prediction,
-            int inputStride,
-            Span<byte> reconstruction,
-            int reconstructionStride,
-            Av1TransformSize transformSize,
-            Av1Plane plane,
-            bool lossless,
-            Av1BitDepth bitDepth,
-            Av1EncoderTransformBlockState state)
-            => Av1TransformBlockEncoder.ReconstructPredictionLossyCandidate(
-                blockWorkspace,
-                transformWorkspace,
-                dequantized,
-                source,
-                sourceStride,
-                blockOrigin,
-                prediction,
-                inputStride,
-                reconstruction,
-                reconstructionStride,
-                transformSize,
-                lossless,
-                plane,
-                state);
     }
 
     /// <summary>
@@ -2109,52 +1937,6 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <inheritdoc/>
-        public static long EncodeCandidate(
-            in Av1IntraCandidatePlane<ushort> plane,
-            Av1PredictionMode mode,
-            int angleDelta,
-            Av1TransformType transformType,
-            ref Av1EncoderTransformBlockState state,
-            out long sse)
-            => Av1TransformBlockEncoder.EncodeIntraLossyCandidate(in plane, mode, angleDelta, transformType, ref state, out sse);
-
-        /// <inheritdoc/>
-        public static void PrepareIntra(
-            Span<int> transformWorkspace,
-            ReadOnlySpan<ushort> source,
-            int sourceStride,
-            Span<ushort> prediction,
-            int predictionStride,
-            ReadOnlySpan<ushort> above,
-            ReadOnlySpan<ushort> left,
-            bool hasLeft,
-            bool hasAbove,
-            Av1PredictionMode mode,
-            int angleDelta,
-            bool enableIntraEdgeFilter,
-            bool smoothIntraEdges,
-            Span<short> residual,
-            Av1TransformSize transformSize,
-            Av1BitDepth bitDepth)
-            => Av1TransformBlockEncoder.PrepareIntraPrediction(
-                transformWorkspace,
-                source,
-                sourceStride,
-                prediction,
-                predictionStride,
-                above,
-                left,
-                hasLeft,
-                hasAbove,
-                mode,
-                angleDelta,
-                enableIntraEdgeFilter,
-                smoothIntraEdges,
-                residual,
-                transformSize,
-                bitDepth);
-
-        /// <inheritdoc/>
         public static void PrepareFilterIntra(
             Span<int> transformWorkspace,
             ReadOnlySpan<ushort> source,
@@ -2437,39 +2219,5 @@ internal static partial class Av1IntraSuperblockEncoder
                 lossless,
                 bitDepth,
                 transformWorkspace);
-
-        /// <inheritdoc/>
-        public static long ReconstructPredictionCandidate(
-            Av1EncoderBlockWorkspace blockWorkspace,
-            Span<int> transformWorkspace,
-            ReadOnlySpan<int> dequantized,
-            ReadOnlySpan<ushort> source,
-            int sourceStride,
-            Point blockOrigin,
-            ReadOnlySpan<ushort> prediction,
-            int inputStride,
-            Span<ushort> reconstruction,
-            int reconstructionStride,
-            Av1TransformSize transformSize,
-            Av1Plane plane,
-            bool lossless,
-            Av1BitDepth bitDepth,
-            Av1EncoderTransformBlockState state)
-            => Av1TransformBlockEncoder.ReconstructPredictionLossyCandidate(
-                blockWorkspace,
-                transformWorkspace,
-                dequantized,
-                source,
-                sourceStride,
-                blockOrigin,
-                prediction,
-                inputStride,
-                reconstruction,
-                reconstructionStride,
-                transformSize,
-                lossless,
-                plane,
-                bitDepth,
-                state);
     }
 }

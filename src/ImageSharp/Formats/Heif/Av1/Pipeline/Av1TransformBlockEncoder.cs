@@ -260,7 +260,7 @@ internal static partial class Av1TransformBlockEncoder
         // reconstructs into the contiguous storage. An empty candidate reconstructs to its prediction. The code therefore measures it
         // in place in the frame, with no copy and no inverse transform.
         bool hasCoefficients = state.EndOfBlock > 0;
-        long distortion = ReconstructPredictionLossyCandidateCore(
+        long distortion = ReconstructPredictionLossyCandidate(
             workspace,
             transformWorkspace,
             dequantizedCoefficients,
@@ -316,57 +316,6 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
     public static long ReconstructPredictionLossyCandidate(
-        Av1EncoderBlockWorkspace workspace,
-        Span<int> transformWorkspace,
-        ReadOnlySpan<int> dequantized,
-        ReadOnlySpan<byte> source,
-        int sourceStride,
-        Point blockOrigin,
-        ReadOnlySpan<byte> prediction,
-        int inputStride,
-        Span<byte> reconstruction,
-        int reconstructionStride,
-        Av1TransformSize transformSize,
-        bool lossless,
-        Av1Plane plane,
-        Av1EncoderTransformBlockState state)
-        => ReconstructPredictionLossyCandidateCore(
-            workspace,
-            transformWorkspace,
-            dequantized,
-            source,
-            sourceStride,
-            blockOrigin,
-            prediction,
-            inputStride,
-            reconstruction,
-            reconstructionStride,
-            transformSize,
-            lossless,
-            plane,
-            state);
-
-    /// <summary>
-    /// Reconstructs the eight-bit candidate and measures its distortion.
-    /// </summary>
-    /// <param name="workspace">The workspace supplying the visible extent of the plane.</param>
-    /// <param name="transformWorkspace">The intermediate buffer of the inverse transform.</param>
-    /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
-    /// <param name="source">The source transform block, from its top-left sample.</param>
-    /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
-    /// <param name="blockOrigin">The transform origin in plane samples, which gives the visible extent.</param>
-    /// <param name="prediction">The prepared prediction surface.</param>
-    /// <param name="inputStride">The number of prediction samples between rows.</param>
-    /// <param name="reconstruction">
-    /// The candidate reconstruction. When it starts at the first prediction sample, the candidate is reconstructed in place over its prediction.
-    /// </param>
-    /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
-    /// <param name="transformSize">The candidate transform dimensions.</param>
-    /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible inverse transform.</param>
-    /// <param name="plane">The component plane containing the block.</param>
-    /// <param name="state">The candidate transform type and end-of-block syntax.</param>
-    /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
-    public static long ReconstructPredictionLossyCandidateCore(
         Av1EncoderBlockWorkspace workspace,
         Span<int> transformWorkspace,
         ReadOnlySpan<int> dequantized,
@@ -694,7 +643,7 @@ internal static partial class Av1TransformBlockEncoder
         // reconstructs into the contiguous storage. An empty candidate reconstructs to its prediction. The code therefore measures it
         // in place in the frame, with no copy and no inverse transform.
         bool hasCoefficients = state.EndOfBlock > 0;
-        long distortion = ReconstructPredictionLossyCandidateCore(
+        long distortion = ReconstructPredictionLossyCandidate(
             workspace,
             transformWorkspace,
             dequantizedCoefficients,
@@ -752,60 +701,6 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="state">The candidate transform type and end-of-block syntax.</param>
     /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
     public static long ReconstructPredictionLossyCandidate(
-        Av1EncoderBlockWorkspace workspace,
-        Span<int> transformWorkspace,
-        ReadOnlySpan<int> dequantized,
-        ReadOnlySpan<ushort> source,
-        int sourceStride,
-        Point blockOrigin,
-        ReadOnlySpan<ushort> prediction,
-        int inputStride,
-        Span<ushort> reconstruction,
-        int reconstructionStride,
-        Av1TransformSize transformSize,
-        bool lossless,
-        Av1Plane plane,
-        Av1BitDepth bitDepth,
-        Av1EncoderTransformBlockState state)
-        => ReconstructPredictionLossyCandidateCore(
-            workspace,
-            transformWorkspace,
-            dequantized,
-            source,
-            sourceStride,
-            blockOrigin,
-            prediction,
-            inputStride,
-            reconstruction,
-            reconstructionStride,
-            transformSize,
-            lossless,
-            plane,
-            bitDepth,
-            state);
-
-    /// <summary>
-    /// Reconstructs the high-bit-depth candidate and measures its distortion.
-    /// </summary>
-    /// <param name="workspace">The workspace supplying the visible extent of the plane.</param>
-    /// <param name="transformWorkspace">The intermediate buffer of the inverse transform.</param>
-    /// <param name="dequantized">The dequantized coefficients of the candidate.</param>
-    /// <param name="source">The source transform block, from its top-left sample.</param>
-    /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
-    /// <param name="blockOrigin">The transform origin in plane samples, which gives the visible extent.</param>
-    /// <param name="prediction">The prepared prediction surface.</param>
-    /// <param name="inputStride">The number of prediction samples between rows.</param>
-    /// <param name="reconstruction">
-    /// The candidate reconstruction. When it starts at the first prediction sample, the candidate is reconstructed in place over its prediction.
-    /// </param>
-    /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
-    /// <param name="transformSize">The candidate transform dimensions.</param>
-    /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible inverse transform.</param>
-    /// <param name="plane">The component plane containing the block.</param>
-    /// <param name="bitDepth">The coded sample precision.</param>
-    /// <param name="state">The candidate transform type and end-of-block syntax.</param>
-    /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
-    public static long ReconstructPredictionLossyCandidateCore(
         Av1EncoderBlockWorkspace workspace,
         Span<int> transformWorkspace,
         ReadOnlySpan<int> dequantized,
@@ -2418,23 +2313,6 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="sumOfSquares">The normalized energy of the original coefficients.</param>
     /// <returns>The normalized squared quantization error.</returns>
     public static long GetTransformError(
-        ReadOnlySpan<int> coefficients,
-        ReadOnlySpan<int> dequantized,
-        Av1TransformSize transformSize,
-        Av1BitDepth bitDepth,
-        out long sumOfSquares)
-        => GetTransformErrorCore(coefficients, dequantized, transformSize, bitDepth, out sumOfSquares);
-
-    /// <summary>
-    /// Measures quantization error and unquantized energy in the transform distortion domain.
-    /// </summary>
-    /// <param name="coefficients">The original transform coefficients.</param>
-    /// <param name="dequantized">The reconstructed transform coefficients.</param>
-    /// <param name="transformSize">The transform dimensions controlling coefficient scaling.</param>
-    /// <param name="bitDepth">The coded sample precision.</param>
-    /// <param name="sumOfSquares">The normalized energy of the original coefficients.</param>
-    /// <returns>The normalized squared quantization error.</returns>
-    public static long GetTransformErrorCore(
         ReadOnlySpan<int> coefficients,
         ReadOnlySpan<int> dequantized,
         Av1TransformSize transformSize,

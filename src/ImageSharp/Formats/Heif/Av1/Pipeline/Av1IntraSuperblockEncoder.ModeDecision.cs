@@ -9216,117 +9216,6 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Selects the luma mode, angle, filter intra mode, palette and transform size of an intra block.
-        /// </summary>
-        /// <param name="writer">The symbol encoder that prices the syntax.</param>
-        /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="transformCoefficients">The forward transform output buffer.</param>
-        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
-        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
-        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
-        /// <param name="transformEdges">The transform size context edges of the tile.</param>
-        /// <param name="paletteEdges">The palette color context edges of the tile.</param>
-        /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
-        /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
-        /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
-        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
-        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
-        /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
-        /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
-        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
-        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
-        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
-        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
-        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
-        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
-        /// <param name="macroBlock">The neighbor availability of the block.</param>
-        /// <param name="blockOrigin">The luma block origin.</param>
-        /// <param name="blockSize">The block size.</param>
-        /// <param name="retainedStates">The transform states of the luma winner.</param>
-        /// <param name="interCostLimit">The cost of the inter winner, which bounds the intra search.</param>
-        /// <param name="paletteInfo">The palette of the block.</param>
-        /// <param name="selectedAngleDelta">The angle delta of the luma winner.</param>
-        /// <param name="selectedFilterIntraMode">The filter intra mode of the luma winner.</param>
-        /// <param name="selectedTransformSize">The transform size of the luma winner.</param>
-        /// <param name="selectedStatistics">The rate and distortion of the luma winner.</param>
-        /// <returns>The luma mode of the winner.</returns>
-        private Av1PredictionMode SelectLumaMode(
-            Av1SymbolEncoder writer,
-            in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> transformCoefficients,
-            Span<int> dequantizedCoefficients,
-            Span<int> transformWorkspace,
-            ReadOnlySpan<int> transformTypeProbabilities,
-            in Av1NeighborEdges<byte> transformEdges,
-            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
-            in Av1NeighborEdges<byte> lumaCoefficientEdges,
-            in Av1NeighborEdges<byte> blueCoefficientEdges,
-            in Av1NeighborEdges<byte> redCoefficientEdges,
-            ReadOnlySpan<int> modeInfoGrid,
-            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            ReadOnlySpan<byte> encoderSegmentMap,
-            ReadOnlySpan<byte> previousSegmentMap,
-            Span<int> superblockCoefficients,
-            Span<int> workspaceStorage,
-            ReadOnlySpan<TSample> sourceLuma,
-            ReadOnlySpan<TSample> sourceBlue,
-            ReadOnlySpan<TSample> sourceRed,
-            Span<TSample> reconstructionLuma,
-            Span<TSample> reconstructionBlue,
-            Span<TSample> reconstructionRed,
-            Av1MacroBlockD macroBlock,
-            Point blockOrigin,
-            Av1BlockSize blockSize,
-            Span<Av1EncoderTransformBlockState> retainedStates,
-            long interCostLimit,
-            ref Av1EncoderPaletteInfo paletteInfo,
-            out int selectedAngleDelta,
-            out Av1FilterIntraMode selectedFilterIntraMode,
-            out Av1TransformSize selectedTransformSize,
-            out Av1RateDistortionStatistics selectedStatistics)
-        {
-            return this.SelectLumaModeCore(
-                writer,
-                in tables,
-                in modeWorkspace,
-                transformCoefficients,
-                dequantizedCoefficients,
-                transformWorkspace,
-                transformTypeProbabilities,
-                in transformEdges,
-                in paletteEdges,
-                in lumaCoefficientEdges,
-                in blueCoefficientEdges,
-                in redCoefficientEdges,
-                modeInfoGrid,
-                modeInfoAllocation,
-                encoderSegmentMap,
-                previousSegmentMap,
-                superblockCoefficients,
-                workspaceStorage,
-                sourceLuma,
-                sourceBlue,
-                sourceRed,
-                reconstructionLuma,
-                reconstructionBlue,
-                reconstructionRed,
-                macroBlock,
-                blockOrigin,
-                blockSize,
-                retainedStates,
-                interCostLimit,
-                ref paletteInfo,
-                out selectedAngleDelta,
-                out selectedFilterIntraMode,
-                out selectedTransformSize,
-                out selectedStatistics);
-        }
-
-        /// <summary>
         /// Searches the luma predictions, gives the winner's transform states back to the caller and, in an intra
         /// frame, refines the winner.
         /// </summary>
@@ -9365,7 +9254,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="selectedTransformSize">The transform size of the luma winner.</param>
         /// <param name="selectedStatistics">The rate and distortion of the luma winner.</param>
         /// <returns>The luma mode of the winner.</returns>
-        private Av1PredictionMode SelectLumaModeCore(
+        private Av1PredictionMode SelectLumaMode(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
@@ -9577,103 +9466,6 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Repeats the transform search of the retained luma candidates with the winner-stage settings and keeps the
-        /// cheapest.
-        /// </summary>
-        /// <param name="writer">The symbol encoder that prices the syntax.</param>
-        /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="transformCoefficients">The forward transform output buffer.</param>
-        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
-        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
-        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
-        /// <param name="transformEdges">The transform size context edges of the tile.</param>
-        /// <param name="paletteEdges">The palette color context edges of the tile.</param>
-        /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
-        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
-        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
-        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
-        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
-        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
-        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
-        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
-        /// <param name="macroBlock">The neighbor availability of the block.</param>
-        /// <param name="blockOrigin">The luma block origin.</param>
-        /// <param name="blockSize">The block size.</param>
-        /// <param name="retainedStates">The transform states of the luma winner.</param>
-        /// <param name="mode">The luma mode of the search winner.</param>
-        /// <param name="paletteInfo">The palette of the block.</param>
-        /// <param name="selectedAngleDelta">The angle delta of the luma winner.</param>
-        /// <param name="selectedFilterIntraMode">The filter intra mode of the luma winner.</param>
-        /// <param name="selectedTransformSize">The transform size of the luma winner.</param>
-        /// <param name="selectedStatistics">The rate and distortion of the luma winner.</param>
-        /// <returns>The luma mode of the winner.</returns>
-        private Av1PredictionMode RefineLumaMode(
-            Av1SymbolEncoder writer,
-            in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> transformCoefficients,
-            Span<int> dequantizedCoefficients,
-            Span<int> transformWorkspace,
-            ReadOnlySpan<int> transformTypeProbabilities,
-            in Av1NeighborEdges<byte> transformEdges,
-            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
-            in Av1NeighborEdges<byte> lumaCoefficientEdges,
-            ReadOnlySpan<int> modeInfoGrid,
-            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            Span<int> workspaceStorage,
-            ReadOnlySpan<TSample> sourceLuma,
-            ReadOnlySpan<TSample> sourceBlue,
-            ReadOnlySpan<TSample> sourceRed,
-            Span<TSample> reconstructionLuma,
-            Span<TSample> reconstructionBlue,
-            Span<TSample> reconstructionRed,
-            Av1MacroBlockD macroBlock,
-            Point blockOrigin,
-            Av1BlockSize blockSize,
-            Span<Av1EncoderTransformBlockState> retainedStates,
-            Av1PredictionMode mode,
-            ref Av1EncoderPaletteInfo paletteInfo,
-            ref int selectedAngleDelta,
-            ref Av1FilterIntraMode selectedFilterIntraMode,
-            ref Av1TransformSize selectedTransformSize,
-            ref Av1RateDistortionStatistics selectedStatistics)
-        {
-            return this.RefineLumaModeCore(
-                writer,
-                in tables,
-                in modeWorkspace,
-                transformCoefficients,
-                dequantizedCoefficients,
-                transformWorkspace,
-                transformTypeProbabilities,
-                in transformEdges,
-                in paletteEdges,
-                in lumaCoefficientEdges,
-                modeInfoGrid,
-                modeInfoAllocation,
-                workspaceStorage,
-                sourceLuma,
-                sourceBlue,
-                sourceRed,
-                reconstructionLuma,
-                reconstructionBlue,
-                reconstructionRed,
-                macroBlock,
-                blockOrigin,
-                blockSize,
-                retainedStates,
-                mode,
-                ref paletteInfo,
-                ref selectedAngleDelta,
-                ref selectedFilterIntraMode,
-                ref selectedTransformSize,
-                ref selectedStatistics);
-        }
-
-        /// <summary>
         /// Repeats the transform search of every retained luma candidate from the same block edges and its own palette
         /// map, and keeps the candidate with the lowest cost.
         /// </summary>
@@ -9707,7 +9499,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="selectedTransformSize">The transform size of the luma winner.</param>
         /// <param name="selectedStatistics">The rate and distortion of the luma winner.</param>
         /// <returns>The luma mode of the winner.</returns>
-        private Av1PredictionMode RefineLumaModeCore(
+        private Av1PredictionMode RefineLumaMode(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
@@ -9880,105 +9672,6 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Searches the luma prediction modes of an intra block and retains the best candidates.
-        /// </summary>
-        /// <param name="writer">The symbol encoder that prices the syntax.</param>
-        /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="transformCoefficients">The forward transform output buffer.</param>
-        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
-        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
-        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
-        /// <param name="transformEdges">The transform size context edges of the tile.</param>
-        /// <param name="paletteEdges">The palette color context edges of the tile.</param>
-        /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
-        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
-        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
-        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
-        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
-        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
-        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
-        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
-        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
-        /// <param name="macroBlock">The neighbor availability of the block.</param>
-        /// <param name="blockOrigin">The luma block origin.</param>
-        /// <param name="blockSize">The block size.</param>
-        /// <param name="retainedStates">The transform states of the luma winner.</param>
-        /// <param name="interCostLimit">The cost of the inter winner, which bounds the intra search.</param>
-        /// <param name="paletteInfo">The palette of the block.</param>
-        /// <param name="selectedAngleDelta">The angle delta of the luma winner.</param>
-        /// <param name="selectedFilterIntraMode">The filter intra mode of the luma winner.</param>
-        /// <param name="selectedTransformSize">The transform size of the luma winner.</param>
-        /// <param name="selectedStatistics">The rate and distortion of the luma winner.</param>
-        /// <returns>The luma mode of the winner.</returns>
-        private Av1PredictionMode SelectLumaPrediction(
-            Av1SymbolEncoder writer,
-            in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> transformCoefficients,
-            Span<int> dequantizedCoefficients,
-            Span<int> transformWorkspace,
-            ReadOnlySpan<int> transformTypeProbabilities,
-            in Av1NeighborEdges<byte> transformEdges,
-            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
-            in Av1NeighborEdges<byte> lumaCoefficientEdges,
-            ReadOnlySpan<int> modeInfoGrid,
-            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            Span<int> superblockCoefficients,
-            Span<int> workspaceStorage,
-            ReadOnlySpan<TSample> sourceLuma,
-            ReadOnlySpan<TSample> sourceBlue,
-            ReadOnlySpan<TSample> sourceRed,
-            Span<TSample> reconstructionLuma,
-            Span<TSample> reconstructionBlue,
-            Span<TSample> reconstructionRed,
-            Av1MacroBlockD macroBlock,
-            Point blockOrigin,
-            Av1BlockSize blockSize,
-            Span<Av1EncoderTransformBlockState> retainedStates,
-            long interCostLimit,
-            ref Av1EncoderPaletteInfo paletteInfo,
-            out int selectedAngleDelta,
-            out Av1FilterIntraMode selectedFilterIntraMode,
-            out Av1TransformSize selectedTransformSize,
-            out Av1RateDistortionStatistics selectedStatistics)
-        {
-            return this.SelectLumaPredictionCore(
-                writer,
-                in tables,
-                in modeWorkspace,
-                transformCoefficients,
-                dequantizedCoefficients,
-                transformWorkspace,
-                transformTypeProbabilities,
-                in transformEdges,
-                in paletteEdges,
-                in lumaCoefficientEdges,
-                modeInfoGrid,
-                modeInfoAllocation,
-                superblockCoefficients,
-                workspaceStorage,
-                sourceLuma,
-                sourceBlue,
-                sourceRed,
-                reconstructionLuma,
-                reconstructionBlue,
-                reconstructionRed,
-                macroBlock,
-                blockOrigin,
-                blockSize,
-                retainedStates,
-                interCostLimit,
-                ref paletteInfo,
-                out selectedAngleDelta,
-                out selectedFilterIntraMode,
-                out selectedTransformSize,
-                out selectedStatistics);
-        }
-
-        /// <summary>
         /// Searches the directional, smooth, filter intra and palette luma modes of an intra block, with their
         /// transform sizes, and retains the best candidates for the winner stage.
         /// </summary>
@@ -10013,7 +9706,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="selectedTransformSize">The transform size of the luma winner.</param>
         /// <param name="selectedStatistics">The rate and distortion of the luma winner.</param>
         /// <returns>The luma mode of the winner.</returns>
-        private Av1PredictionMode SelectLumaPredictionCore(
+        private Av1PredictionMode SelectLumaPrediction(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
@@ -10796,78 +10489,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1EncoderTransformBlockState> candidateTransformBlocks,
             out bool skipSmallerTransforms)
         {
-            return this.GetUniformLumaCandidateCostCore(
-                sourceLuma,
-                sourceBlue,
-                sourceRed,
-                reconstructionLuma,
-                reconstructionBlue,
-                reconstructionRed,
-                writer,
-                in tables,
-                in modeWorkspace,
-                transformCoefficients,
-                dequantizedCoefficients,
-                transformWorkspace,
-                transformTypeProbabilities,
-                in lumaCoefficientEdges,
-                macroBlock,
-                sourcePlane,
-                reconstructionPlane,
-                blockOrigin,
-                blockSize,
-                in blockState,
-                transformSize,
-                sourceVariance,
-                mode,
-                angleDelta,
-                filterIntraMode,
-                paletteSize,
-                paletteColors,
-                paletteHeaderRate,
-                paletteDisabledCost,
-                transformSizeContext,
-                costLimit,
-                candidateTransformBlocks,
-                out skipSmallerTransforms);
-        }
-
-        /// <inheritdoc cref="GetUniformLumaCandidateCost"/>
-        private Av1RateDistortionStatistics GetUniformLumaCandidateCostCore(
-            ReadOnlySpan<TSample> sourceLuma,
-            ReadOnlySpan<TSample> sourceBlue,
-            ReadOnlySpan<TSample> sourceRed,
-            Span<TSample> reconstructionLuma,
-            Span<TSample> reconstructionBlue,
-            Span<TSample> reconstructionRed,
-            Av1SymbolEncoder writer,
-            in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> transformCoefficients,
-            Span<int> dequantizedCoefficients,
-            Span<int> transformWorkspace,
-            ReadOnlySpan<int> transformTypeProbabilities,
-            in Av1NeighborEdges<byte> lumaCoefficientEdges,
-            Av1MacroBlockD macroBlock,
-            Av1PlaneRegion<TSample> sourcePlane,
-            Av1PlaneRegion<TSample> reconstructionPlane,
-            Point blockOrigin,
-            Av1BlockSize blockSize,
-            in LumaBlockState blockState,
-            Av1TransformSize transformSize,
-            int sourceVariance,
-            Av1PredictionMode mode,
-            int angleDelta,
-            Av1FilterIntraMode filterIntraMode,
-            int paletteSize,
-            scoped ReadOnlySpan<ushort> paletteColors,
-            int paletteHeaderRate,
-            int paletteDisabledCost,
-            int transformSizeContext,
-            long costLimit,
-            Span<Av1EncoderTransformBlockState> candidateTransformBlocks,
-            out bool skipSmallerTransforms)
-        {
             skipSmallerTransforms = false;
             int blockWidth = blockSize.GetWidth();
             int blockHeight = blockSize.GetHeight();
@@ -11343,68 +10964,6 @@ internal static partial class Av1IntraSuperblockEncoder
             out bool hasLeft,
             out bool hasAbove)
         {
-            this.PrepareTransformReferenceSamplesCore(
-                planeBlock,
-                planeStride,
-                lumaBlockOrigin,
-                blockSize,
-                macroBlock,
-                partitionType,
-                transformRow,
-                transformColumn,
-                candidateStride,
-                transformSize,
-                subsamplingX,
-                subsamplingY,
-                candidateReconstruction,
-                aboveStorage,
-                leftStorage,
-                directional,
-                out hasLeft,
-                out hasAbove);
-        }
-
-        /// <summary>
-        /// Prepares the edge samples of one transform block, without the work counter.
-        /// </summary>
-        /// <param name="planeBlock">The frame plane from the plane block origin, which the caller reads once outside its loops.</param>
-        /// <param name="planeStride">The number of samples between rows of <paramref name="planeBlock"/>.</param>
-        /// <param name="lumaBlockOrigin">The block origin in luma samples.</param>
-        /// <param name="blockSize">The luma block size.</param>
-        /// <param name="macroBlock">The neighbor availability of the block.</param>
-        /// <param name="partitionType">The partition type of the block, which selects the top-right and bottom-left availability.</param>
-        /// <param name="transformRow">The transform row in the block.</param>
-        /// <param name="transformColumn">The transform column in the block.</param>
-        /// <param name="candidateStride">The number of samples between rows of <paramref name="candidateReconstruction"/>.</param>
-        /// <param name="transformSize">The transform size.</param>
-        /// <param name="subsamplingX">The horizontal subsampling of the plane.</param>
-        /// <param name="subsamplingY">The vertical subsampling of the plane.</param>
-        /// <param name="candidateReconstruction">The surface that holds the earlier transform blocks of the block.</param>
-        /// <param name="aboveStorage">The corner followed by the top edge.</param>
-        /// <param name="leftStorage">The corner followed by the left edge.</param>
-        /// <param name="directional">Whether a directional mode reads the edges, which then extend past the transform.</param>
-        /// <param name="hasLeft">Whether the left edge is available.</param>
-        /// <param name="hasAbove">Whether the top edge is available.</param>
-        private void PrepareTransformReferenceSamplesCore(
-            ReadOnlySpan<TSample> planeBlock,
-            int planeStride,
-            Point lumaBlockOrigin,
-            Av1BlockSize blockSize,
-            Av1MacroBlockD macroBlock,
-            Av1PartitionType partitionType,
-            int transformRow,
-            int transformColumn,
-            int candidateStride,
-            Av1TransformSize transformSize,
-            int subsamplingX,
-            int subsamplingY,
-            ReadOnlySpan<TSample> candidateReconstruction,
-            Span<TSample> aboveStorage,
-            Span<TSample> leftStorage,
-            bool directional,
-            out bool hasLeft,
-            out bool hasAbove)
-        {
             int transformWidth = transformSize.GetWidth();
             int transformHeight = transformSize.GetHeight();
             int rowOffset = transformRow * transformHeight;
@@ -11724,34 +11283,6 @@ internal static partial class Av1IntraSuperblockEncoder
             int angleDelta,
             Av1FilterIntraMode filterMode)
         {
-            return this.GetLumaModelCostCore(
-                macroBlock, sourcePlane, reconstructionPlane, blockOrigin, blockSize, in inputs, mode, angleDelta, filterMode);
-        }
-
-        /// <summary>
-        /// Measures the complete luma prediction using square Hadamard tiles, without the work counter.
-        /// </summary>
-        /// <param name="macroBlock">The block, which gives the visible size at the frame edge.</param>
-        /// <param name="sourcePlane">The source luma plane.</param>
-        /// <param name="reconstructionPlane">The reconstructed luma plane, which gets each tile prediction.</param>
-        /// <param name="blockOrigin">The block origin in luma samples.</param>
-        /// <param name="blockSize">The block size.</param>
-        /// <param name="inputs">The spans and block values that every mode trial of the block uses.</param>
-        /// <param name="mode">The intra prediction mode.</param>
-        /// <param name="angleDelta">The signed directional angle adjustment.</param>
-        /// <param name="filterMode">The filter intra mode, or <see cref="Av1FilterIntraMode.AllFilterIntraModes"/> for none.</param>
-        /// <returns>The sum of the Hadamard costs of all visible tiles.</returns>
-        private long GetLumaModelCostCore(
-            Av1MacroBlockD macroBlock,
-            Av1PlaneRegion<TSample> sourcePlane,
-            Av1PlaneRegion<TSample> reconstructionPlane,
-            Point blockOrigin,
-            Av1BlockSize blockSize,
-            in LumaModelInputs inputs,
-            Av1PredictionMode mode,
-            int angleDelta,
-            Av1FilterIntraMode filterMode)
-        {
             Av1TransformSize transformSize = blockSize.GetMaximumTransformSize().GetSquareSize();
             if (transformSize > Av1TransformSize.Size32x32)
             {
@@ -12008,32 +11539,6 @@ internal static partial class Av1IntraSuperblockEncoder
             int visibleHeight,
             int visibleWidth)
         {
-            return this.GetDirectionalModeSkipMaskCore(
-                in modeWorkspace, sourceLuma, sourceBlue, sourceRed, sourcePlane, blockOrigin, visibleHeight, visibleWidth);
-        }
-
-        /// <summary>
-        /// Builds the directional-mode skip mask that the gradient histogram pruning level of the speed settings selects.
-        /// </summary>
-        /// <param name="modeWorkspace">The mode decision buffers, which hold the gradient cache of the superblock.</param>
-        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
-        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
-        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
-        /// <param name="sourcePlane">The source luma plane.</param>
-        /// <param name="blockOrigin">The block origin in luma samples.</param>
-        /// <param name="visibleHeight">The number of source rows inside the coded image.</param>
-        /// <param name="visibleWidth">The number of source columns inside the coded image.</param>
-        /// <returns>The bit mask for the eight directional modes, or zero when HOG pruning is disabled.</returns>
-        private byte GetDirectionalModeSkipMaskCore(
-            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            ReadOnlySpan<TSample> sourceLuma,
-            ReadOnlySpan<TSample> sourceBlue,
-            ReadOnlySpan<TSample> sourceRed,
-            Av1PlaneRegion<TSample> sourcePlane,
-            Point blockOrigin,
-            int visibleHeight,
-            int visibleWidth)
-        {
             int pruningLevel = this.picture.Parent.SpeedSettings.IntraHogPruningLevel;
             if (pruningLevel == 0)
             {
@@ -12082,97 +11587,6 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="skipTransform">Whether the block skips its residual.</param>
         /// <param name="coefficientOffset">The offset of the transform block in the plane coefficients.</param>
         private void ReconstructSelectedTransform(
-            ReadOnlySpan<TSample> sourceLuma,
-            ReadOnlySpan<TSample> sourceBlue,
-            ReadOnlySpan<TSample> sourceRed,
-            Span<TSample> reconstructionLuma,
-            Span<TSample> reconstructionBlue,
-            Span<TSample> reconstructionRed,
-            Av1SymbolEncoder writer,
-            in Av1CoefficientTables tables,
-            Span<int> transformCoefficients,
-            Span<int> dequantizedCoefficients,
-            Span<int> transformWorkspace,
-            Span<int> planeCoefficients,
-            Span<Av1EncoderTransformBlockState> planeStates,
-            Av1TransformBlockContext context,
-            bool isInter,
-            Point blockOrigin,
-            Av1BlockSize blockSize,
-            Point planeOrigin,
-            Av1Plane plane,
-            Av1TransformSize transformSize,
-            ReadOnlySpan<TSample> prediction,
-            int predictionStride,
-            Span<short> residual,
-            int inputStride,
-            Av1EncoderTransformBlockState selectedState,
-            bool skipTransform,
-            int coefficientOffset)
-        {
-            this.ReconstructSelectedTransformCore(
-                sourceLuma,
-                sourceBlue,
-                sourceRed,
-                reconstructionLuma,
-                reconstructionBlue,
-                reconstructionRed,
-                writer,
-                in tables,
-                transformCoefficients,
-                dequantizedCoefficients,
-                transformWorkspace,
-                planeCoefficients,
-                planeStates,
-                context,
-                isInter,
-                blockOrigin,
-                blockSize,
-                planeOrigin,
-                plane,
-                transformSize,
-                prediction,
-                predictionStride,
-                residual,
-                inputStride,
-                selectedState,
-                skipTransform,
-                coefficientOffset);
-        }
-
-        /// <summary>
-        /// Codes one transform block of the selected mode and adds its reconstruction to the frame.
-        /// </summary>
-        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
-        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
-        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
-        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
-        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
-        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
-        /// <param name="writer">The tile symbol encoder that prices the coefficients.</param>
-        /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
-        /// <param name="transformCoefficients">The forward transform output buffer.</param>
-        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
-        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
-        /// <param name="planeCoefficients">The coefficients of the plane of the superblock.</param>
-        /// <param name="planeStates">The transform block states of the plane of the superblock.</param>
-        /// <param name="context">The coefficient context of the transform block.</param>
-        /// <param name="isInter">Whether the block is an inter block.</param>
-        /// <param name="blockOrigin">The luma block origin.</param>
-        /// <param name="blockSize">The block size.</param>
-        /// <param name="planeOrigin">The transform block origin in plane samples.</param>
-        /// <param name="plane">The plane.</param>
-        /// <param name="transformSize">The transform size.</param>
-        /// <param name="prediction">
-        /// The prediction of the transform block. When it is the frame at the transform block, the frame needs no copy of it.
-        /// </param>
-        /// <param name="predictionStride">The stride of the prediction.</param>
-        /// <param name="residual">The residual of the transform block.</param>
-        /// <param name="inputStride">The stride of the residual.</param>
-        /// <param name="selectedState">The transform type and contexts that the search selected.</param>
-        /// <param name="skipTransform">Whether the block skips its residual.</param>
-        /// <param name="coefficientOffset">The offset of the transform block in the plane coefficients.</param>
-        private void ReconstructSelectedTransformCore(
             ReadOnlySpan<TSample> sourceLuma,
             ReadOnlySpan<TSample> sourceBlue,
             ReadOnlySpan<TSample> sourceRed,

@@ -190,67 +190,6 @@ internal sealed partial class Av1SymbolEncoder
         in Av1CoefficientOptimizationWeights weights,
         out int coefficientRate)
     {
-        return this.OptimizeCoefficientsCore(
-            in tables,
-            original,
-            quantized,
-            dequantized,
-            transformSize,
-            transformType,
-            componentType,
-            context,
-            dcDequantizer,
-            acDequantizer,
-            rateMultiplier,
-            bitDepth,
-            isInter,
-            useChromaWeights,
-            endOfBlock,
-            in weights,
-            out coefficientRate);
-    }
-
-    /// <summary>
-    /// Reduces coefficient levels and the coded end position when their combined rate and distortion decrease. Both overloads of
-    /// <c>OptimizeCoefficients</c> use this implementation.
-    /// </summary>
-    /// <param name="tables">The rate tables and scratch storage, from <see cref="GetCoefficientTables"/>.</param>
-    /// <param name="original">The forward-transform coefficients.</param>
-    /// <param name="quantized">The quantized coefficients to refine.</param>
-    /// <param name="dequantized">The corresponding reconstruction coefficients to refine.</param>
-    /// <param name="transformSize">The coded transform size.</param>
-    /// <param name="transformType">The coded transform type.</param>
-    /// <param name="componentType">The luminance or chroma component.</param>
-    /// <param name="context">The coefficient-neighbor contexts.</param>
-    /// <param name="dcDequantizer">The DC reconstruction step.</param>
-    /// <param name="acDequantizer">The AC reconstruction step.</param>
-    /// <param name="rateMultiplier">The block rate-distortion multiplier.</param>
-    /// <param name="bitDepth">The coded sample precision.</param>
-    /// <param name="isInter">Whether the prediction uses an inter transform set.</param>
-    /// <param name="useChromaWeights">Whether to use the chroma-specific optimization weights.</param>
-    /// <param name="endOfBlock">The nonzero input end position.</param>
-    /// <param name="weights">The sharpness, rate shift and quantization matrices of the trellis.</param>
-    /// <param name="coefficientRate">The rate of the refined coefficients and end position.</param>
-    /// <returns>The refined end position.</returns>
-    public ushort OptimizeCoefficientsCore(
-        in Av1CoefficientTables tables,
-        ReadOnlySpan<int> original,
-        Span<int> quantized,
-        Span<int> dequantized,
-        Av1TransformSize transformSize,
-        Av1TransformType transformType,
-        Av1ComponentType componentType,
-        Av1TransformBlockContext context,
-        int dcDequantizer,
-        int acDequantizer,
-        int rateMultiplier,
-        Av1BitDepth bitDepth,
-        bool isInter,
-        bool useChromaWeights,
-        ushort endOfBlock,
-        in Av1CoefficientOptimizationWeights weights,
-        out int coefficientRate)
-    {
         Av1TransformSize adjusted = transformSize.GetAdjusted();
         int width = adjusted.GetWidth();
         int height = adjusted.GetHeight();

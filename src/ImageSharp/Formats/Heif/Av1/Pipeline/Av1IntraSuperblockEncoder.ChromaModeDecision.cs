@@ -318,123 +318,6 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Selects the chroma mode, angle, chroma-from-luma alpha and palette of an intra block.
-        /// </summary>
-        /// <param name="writer">The symbol encoder that prices the syntax.</param>
-        /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="transformCoefficients">The forward transform output buffer.</param>
-        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
-        /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
-        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
-        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
-        /// <param name="blockResidual">The residual buffer of the block.</param>
-        /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
-        /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
-        /// <param name="paletteEdges">The palette color context edges of the tile.</param>
-        /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
-        /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
-        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
-        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
-        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
-        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
-        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
-        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
-        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
-        /// <param name="macroBlock">The neighbor availability of the block.</param>
-        /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
-        /// <param name="lumaOrigin">The block origin in luma samples.</param>
-        /// <param name="chromaOrigin">The block origin in chroma samples.</param>
-        /// <param name="blockSize">The luma block size.</param>
-        /// <param name="lumaMode">The selected luma mode.</param>
-        /// <param name="transformSize">The chroma transform size.</param>
-        /// <param name="retainedBlueStates">The transform states of the blue winner.</param>
-        /// <param name="retainedRedStates">The transform states of the red winner.</param>
-        /// <param name="paletteInfo">The palette of the block.</param>
-        /// <param name="selectedAngleDelta">The angle delta of the chroma winner.</param>
-        /// <param name="selectedChromaFromLumaIndex">The chroma-from-luma alpha index of the winner.</param>
-        /// <param name="selectedChromaFromLumaSigns">The chroma-from-luma alpha signs of the winner.</param>
-        /// <param name="selectedStatistics">The rate and distortion of the chroma winner.</param>
-        /// <returns>The chroma mode of the winner.</returns>
-        private Av1ChromaPredictionMode SelectChromaMode(
-            Av1SymbolEncoder writer,
-            in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> transformCoefficients,
-            Span<int> dequantizedCoefficients,
-            Span<int> searchDequantizedCoefficients,
-            Span<int> transformWorkspace,
-            ReadOnlySpan<int> transformTypeProbabilities,
-            Span<short> blockResidual,
-            Span<int> searchCoefficients,
-            Span<int> searchReconstructions,
-            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
-            in Av1NeighborEdges<byte> blueCoefficientEdges,
-            in Av1NeighborEdges<byte> redCoefficientEdges,
-            ReadOnlySpan<int> modeInfoGrid,
-            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            ReadOnlySpan<TSample> sourceLuma,
-            ReadOnlySpan<TSample> sourceBlue,
-            ReadOnlySpan<TSample> sourceRed,
-            Span<TSample> reconstructionLuma,
-            Span<TSample> reconstructionBlue,
-            Span<TSample> reconstructionRed,
-            Av1MacroBlockD macroBlock,
-            Av1MacroBlockModeInfo modeInfo,
-            Point lumaOrigin,
-            Point chromaOrigin,
-            Av1BlockSize blockSize,
-            Av1PredictionMode lumaMode,
-            Av1TransformSize transformSize,
-            Span<Av1EncoderTransformBlockState> retainedBlueStates,
-            Span<Av1EncoderTransformBlockState> retainedRedStates,
-            ref Av1EncoderPaletteInfo paletteInfo,
-            out int selectedAngleDelta,
-            out byte selectedChromaFromLumaIndex,
-            out sbyte selectedChromaFromLumaSigns,
-            out Av1RateDistortionStatistics selectedStatistics)
-        {
-            return this.SelectChromaModeCore(
-                writer,
-                in tables,
-                in modeWorkspace,
-                transformCoefficients,
-                dequantizedCoefficients,
-                searchDequantizedCoefficients,
-                transformWorkspace,
-                transformTypeProbabilities,
-                blockResidual,
-                searchCoefficients,
-                searchReconstructions,
-                in paletteEdges,
-                in blueCoefficientEdges,
-                in redCoefficientEdges,
-                modeInfoGrid,
-                modeInfoAllocation,
-                sourceLuma,
-                sourceBlue,
-                sourceRed,
-                reconstructionLuma,
-                reconstructionBlue,
-                reconstructionRed,
-                macroBlock,
-                modeInfo,
-                lumaOrigin,
-                chromaOrigin,
-                blockSize,
-                lumaMode,
-                transformSize,
-                retainedBlueStates,
-                retainedRedStates,
-                ref paletteInfo,
-                out selectedAngleDelta,
-                out selectedChromaFromLumaIndex,
-                out selectedChromaFromLumaSigns,
-                out selectedStatistics);
-        }
-
-        /// <summary>
         /// Searches the chroma predictions of an intra block, then the chroma palette, and keeps the cheapest.
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
@@ -474,7 +357,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="selectedChromaFromLumaSigns">The chroma-from-luma alpha signs of the winner.</param>
         /// <param name="selectedStatistics">The rate and distortion of the chroma winner.</param>
         /// <returns>The chroma mode of the winner.</returns>
-        private Av1ChromaPredictionMode SelectChromaModeCore(
+        private Av1ChromaPredictionMode SelectChromaMode(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
@@ -612,120 +495,6 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Searches the chroma prediction modes of an intra block.
-        /// </summary>
-        /// <param name="writer">The symbol encoder that prices the syntax.</param>
-        /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="transformCoefficients">The forward transform output buffer.</param>
-        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the candidate.</param>
-        /// <param name="searchDequantizedCoefficients">The dequantized coefficient buffer of the winner.</param>
-        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
-        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
-        /// <param name="blockResidual">The residual buffer of the block.</param>
-        /// <param name="searchCoefficients">The quantized coefficient buffer of the winner.</param>
-        /// <param name="searchReconstructions">The storage of the candidate and winner reconstructions of the type search.</param>
-        /// <param name="blueCoefficientEdges">The blue-difference coefficient context edges of the tile.</param>
-        /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
-        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
-        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
-        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
-        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
-        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
-        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
-        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
-        /// <param name="macroBlock">The neighbor availability of the block.</param>
-        /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
-        /// <param name="lumaOrigin">The block origin in luma samples.</param>
-        /// <param name="chromaOrigin">The block origin in chroma samples.</param>
-        /// <param name="blockSize">The luma block size.</param>
-        /// <param name="lumaMode">The selected luma mode.</param>
-        /// <param name="transformSize">The chroma transform size.</param>
-        /// <param name="retainedBlueStates">The transform states of the blue winner.</param>
-        /// <param name="retainedRedStates">The transform states of the red winner.</param>
-        /// <param name="paletteInfo">The palette of the block.</param>
-        /// <param name="selectedAngleDelta">The angle delta of the chroma winner.</param>
-        /// <param name="selectedChromaFromLumaIndex">The chroma-from-luma alpha index of the winner.</param>
-        /// <param name="selectedChromaFromLumaSigns">The chroma-from-luma alpha signs of the winner.</param>
-        /// <param name="selectedStatistics">The rate and distortion of the chroma winner.</param>
-        /// <returns>The chroma mode of the winner.</returns>
-        private Av1ChromaPredictionMode SelectChromaPrediction(
-            Av1SymbolEncoder writer,
-            in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> transformCoefficients,
-            Span<int> dequantizedCoefficients,
-            Span<int> searchDequantizedCoefficients,
-            Span<int> transformWorkspace,
-            ReadOnlySpan<int> transformTypeProbabilities,
-            Span<short> blockResidual,
-            Span<int> searchCoefficients,
-            Span<int> searchReconstructions,
-            in Av1NeighborEdges<byte> blueCoefficientEdges,
-            in Av1NeighborEdges<byte> redCoefficientEdges,
-            ReadOnlySpan<int> modeInfoGrid,
-            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            ReadOnlySpan<TSample> sourceLuma,
-            ReadOnlySpan<TSample> sourceBlue,
-            ReadOnlySpan<TSample> sourceRed,
-            Span<TSample> reconstructionLuma,
-            Span<TSample> reconstructionBlue,
-            Span<TSample> reconstructionRed,
-            Av1MacroBlockD macroBlock,
-            Av1MacroBlockModeInfo modeInfo,
-            Point lumaOrigin,
-            Point chromaOrigin,
-            Av1BlockSize blockSize,
-            Av1PredictionMode lumaMode,
-            Av1TransformSize transformSize,
-            Span<Av1EncoderTransformBlockState> retainedBlueStates,
-            Span<Av1EncoderTransformBlockState> retainedRedStates,
-            ref Av1EncoderPaletteInfo paletteInfo,
-            out int selectedAngleDelta,
-            out byte selectedChromaFromLumaIndex,
-            out sbyte selectedChromaFromLumaSigns,
-            out Av1RateDistortionStatistics selectedStatistics)
-        {
-            return this.SelectChromaPredictionCore(
-                writer,
-                in tables,
-                in modeWorkspace,
-                transformCoefficients,
-                dequantizedCoefficients,
-                searchDequantizedCoefficients,
-                transformWorkspace,
-                transformTypeProbabilities,
-                blockResidual,
-                searchCoefficients,
-                searchReconstructions,
-                in blueCoefficientEdges,
-                in redCoefficientEdges,
-                modeInfoGrid,
-                modeInfoAllocation,
-                sourceLuma,
-                sourceBlue,
-                sourceRed,
-                reconstructionLuma,
-                reconstructionBlue,
-                reconstructionRed,
-                macroBlock,
-                modeInfo,
-                lumaOrigin,
-                chromaOrigin,
-                blockSize,
-                lumaMode,
-                transformSize,
-                retainedBlueStates,
-                retainedRedStates,
-                ref paletteInfo,
-                out selectedAngleDelta,
-                out selectedChromaFromLumaIndex,
-                out selectedChromaFromLumaSigns,
-                out selectedStatistics);
-        }
-
-        /// <summary>
         /// Searches the directional, smooth and chroma-from-luma chroma modes of an intra block with their angles and
         /// alphas, and keeps the cheapest.
         /// </summary>
@@ -765,7 +534,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="selectedChromaFromLumaSigns">The chroma-from-luma alpha signs of the winner.</param>
         /// <param name="selectedStatistics">The rate and distortion of the chroma winner.</param>
         /// <returns>The chroma mode of the winner.</returns>
-        private Av1ChromaPredictionMode SelectChromaPredictionCore(
+        private Av1ChromaPredictionMode SelectChromaPrediction(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
@@ -2455,57 +2224,6 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Estimates the best chroma-from-luma alpha of one plane from the transform energy of each prediction.
-        /// </summary>
-        /// <param name="blockWorkspace">The block workspace.</param>
-        /// <param name="plane">The chroma plane.</param>
-        /// <param name="source">The source plane.</param>
-        /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
-        /// <param name="chromaOrigin">The block origin in chroma samples.</param>
-        /// <param name="dc">The DC prediction sample of the plane.</param>
-        /// <param name="lumaQ3">The zero-mean luma samples, in Q3.</param>
-        /// <param name="transformSize">The chroma transform size.</param>
-        /// <param name="bitDepth">The coded sample bit depth.</param>
-        /// <param name="frameBlock">The frame plane from the block origin, which gets each prediction.</param>
-        /// <param name="frameStride">The number of samples between rows of <paramref name="frameBlock"/>.</param>
-        /// <param name="residual">The residual samples.</param>
-        /// <param name="transformCoefficients">The transform coefficients.</param>
-        /// <param name="transformWorkspace">The forward transform workspace.</param>
-        /// <returns>The alpha candidate index of the estimate.</returns>
-        private static int FindBestChromaFromLumaEstimate(
-            Av1EncoderBlockWorkspace blockWorkspace,
-            Av1Plane plane,
-            Av1PlaneRegion<TSample> source,
-            ReadOnlySpan<TSample> sourceSamples,
-            Point chromaOrigin,
-            TSample dc,
-            ReadOnlySpan<short> lumaQ3,
-            Av1TransformSize transformSize,
-            Av1BitDepth bitDepth,
-            Span<TSample> frameBlock,
-            int frameStride,
-            Span<short> residual,
-            Span<int> transformCoefficients,
-            Span<int> transformWorkspace)
-        {
-            return FindBestChromaFromLumaEstimateCore(
-                blockWorkspace,
-                plane,
-                source,
-                sourceSamples,
-                chromaOrigin,
-                dc,
-                lumaQ3,
-                transformSize,
-                bitDepth,
-                frameBlock,
-                frameStride,
-                residual,
-                transformCoefficients,
-                transformWorkspace);
-        }
-
-        /// <summary>
         /// Estimates the best chroma-from-luma alpha of one plane. It starts at zero, then walks up and then down,
         /// and stops each walk when the transform energy does not improve.
         /// </summary>
@@ -2524,7 +2242,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformCoefficients">The transform coefficients.</param>
         /// <param name="transformWorkspace">The forward transform workspace.</param>
         /// <returns>The alpha candidate index of the estimate.</returns>
-        private static int FindBestChromaFromLumaEstimateCore(
+        private static int FindBestChromaFromLumaEstimate(
             Av1EncoderBlockWorkspace blockWorkspace,
             Av1Plane plane,
             Av1PlaneRegion<TSample> source,
@@ -2683,39 +2401,6 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="candidateRedState">The red-difference transform state of the candidate.</param>
         /// <returns>The joint rate and distortion, or an invalid result when the candidate exceeds its bound.</returns>
         private Av1RateDistortionStatistics GetChromaCandidateCost(
-            Av1SymbolEncoder writer,
-            Av1MacroBlockModeInfo modeInfo,
-            Av1PredictionMode lumaMode,
-            Av1ChromaPredictionMode chromaMode,
-            int angleDelta,
-            Av1BlockSize blockSize,
-            in Av1IntraCandidatePlane<TSample> blue,
-            in Av1IntraCandidatePlane<TSample> red,
-            int paletteDisabledCost,
-            long costLimit,
-            ref Av1EncoderTransformBlockState candidateBlueState,
-            ref Av1EncoderTransformBlockState candidateRedState)
-        {
-            return this.GetChromaCandidateCostCore(
-                writer,
-                modeInfo,
-                lumaMode,
-                chromaMode,
-                angleDelta,
-                blockSize,
-                in blue,
-                in red,
-                paletteDisabledCost,
-                costLimit,
-                ref candidateBlueState,
-                ref candidateRedState);
-        }
-
-        /// <summary>
-        /// Measures the joint rate and distortion of one chroma mode.
-        /// </summary>
-        /// <inheritdoc cref="GetChromaCandidateCost"/>
-        private Av1RateDistortionStatistics GetChromaCandidateCostCore(
             Av1SymbolEncoder writer,
             Av1MacroBlockModeInfo modeInfo,
             Av1PredictionMode lumaMode,

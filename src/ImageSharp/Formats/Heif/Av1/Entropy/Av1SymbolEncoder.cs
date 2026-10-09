@@ -1741,52 +1741,6 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         bool usesInterTransformSet,
         bool lossless)
     {
-        return this.GetCoefficientCostCore(
-            in tables,
-            transformSize,
-            transformType,
-            intraDirection,
-            coefficientBuffer,
-            componentType,
-            transformBlockContext,
-            endOfBlock,
-            useReducedTransformSet,
-            filterIntraMode,
-            usesInterTransformSet,
-            lossless);
-    }
-
-    /// <summary>
-    /// Gets the current fixed-point rate cost of the complete coefficient syntax of one transform block. Both overloads of
-    /// <c>GetCoefficientCost</c> use this implementation.
-    /// </summary>
-    /// <param name="tables">The rate tables and scratch storage, from <see cref="GetCoefficientTables"/>.</param>
-    /// <param name="transformSize">The signaled transform size.</param>
-    /// <param name="transformType">The transform type selecting the scan and context class.</param>
-    /// <param name="intraDirection">The block's intra prediction mode.</param>
-    /// <param name="coefficientBuffer">The raster-ordered signed coefficient levels.</param>
-    /// <param name="componentType">The luma or chroma component category.</param>
-    /// <param name="transformBlockContext">The neighboring skip and DC sign contexts.</param>
-    /// <param name="endOfBlock">The one-based final nonzero scan position, or zero for an empty block.</param>
-    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
-    /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
-    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
-    /// <param name="lossless">Indicates whether the segment of the block codes losslessly, which charges no transform type rate.</param>
-    /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetCoefficientCostCore(
-        in Av1CoefficientTables tables,
-        Av1TransformSize transformSize,
-        Av1TransformType transformType,
-        Av1PredictionMode intraDirection,
-        ReadOnlySpan<int> coefficientBuffer,
-        Av1ComponentType componentType,
-        Av1TransformBlockContext transformBlockContext,
-        ushort endOfBlock,
-        bool useReducedTransformSet,
-        Av1FilterIntraMode filterIntraMode,
-        bool usesInterTransformSet,
-        bool lossless)
-    {
         Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
 
         DebugGuard.MustBeLessThan((int)transformSizeContext, (int)Av1TransformSize.AllSizes, nameof(transformSizeContext));

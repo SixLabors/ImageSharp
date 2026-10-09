@@ -20,96 +20,6 @@ internal static partial class Av1IntraSuperblockEncoder
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
         /// <summary>
-        /// Searches the luma palettes of an intra block and keeps one that costs less than the best result.
-        /// </summary>
-        /// <param name="writer">The symbol encoder that prices the syntax.</param>
-        /// <param name="tables">The rate tables of the tile.</param>
-        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
-        /// <param name="transformCoefficients">The forward transform output buffer.</param>
-        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
-        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
-        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
-        /// <param name="transformEdges">The transform size context edges of the tile.</param>
-        /// <param name="paletteEdges">The palette color context edges of the tile.</param>
-        /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
-        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
-        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
-        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
-        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
-        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
-        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
-        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
-        /// <param name="macroBlock">The neighbor availability of the block.</param>
-        /// <param name="blockOrigin">The luma block origin.</param>
-        /// <param name="blockSize">The block size.</param>
-        /// <param name="retainedStates">The transform states of the luma winner.</param>
-        /// <param name="colorThreshold">The largest number of distinct colors that a palette search accepts.</param>
-        /// <param name="dcModeCost">The rate of the DC luma mode, which a palette block signals.</param>
-        /// <param name="bestStatistics">The rate and distortion of the best result.</param>
-        /// <param name="paletteInfo">The palette of the block.</param>
-        /// <param name="selectedTransformSize">The transform size of the best result.</param>
-        /// <returns><see langword="true"/> when a palette replaced the best result.</returns>
-        private bool SelectLumaPalette(
-            Av1SymbolEncoder writer,
-            in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> transformCoefficients,
-            Span<int> dequantizedCoefficients,
-            Span<int> transformWorkspace,
-            ReadOnlySpan<int> transformTypeProbabilities,
-            in Av1NeighborEdges<byte> transformEdges,
-            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
-            in Av1NeighborEdges<byte> lumaCoefficientEdges,
-            ReadOnlySpan<int> modeInfoGrid,
-            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            ReadOnlySpan<TSample> sourceLuma,
-            ReadOnlySpan<TSample> sourceBlue,
-            ReadOnlySpan<TSample> sourceRed,
-            Span<TSample> reconstructionLuma,
-            Span<TSample> reconstructionBlue,
-            Span<TSample> reconstructionRed,
-            Av1MacroBlockD macroBlock,
-            Point blockOrigin,
-            Av1BlockSize blockSize,
-            Span<Av1EncoderTransformBlockState> retainedStates,
-            int colorThreshold,
-            int dcModeCost,
-            ref Av1RateDistortionStatistics bestStatistics,
-            ref Av1EncoderPaletteInfo paletteInfo,
-            ref Av1TransformSize selectedTransformSize)
-        {
-            return this.SelectLumaPaletteCore(
-                writer,
-                in tables,
-                in modeWorkspace,
-                transformCoefficients,
-                dequantizedCoefficients,
-                transformWorkspace,
-                transformTypeProbabilities,
-                in transformEdges,
-                in paletteEdges,
-                in lumaCoefficientEdges,
-                modeInfoGrid,
-                modeInfoAllocation,
-                sourceLuma,
-                sourceBlue,
-                sourceRed,
-                reconstructionLuma,
-                reconstructionBlue,
-                reconstructionRed,
-                macroBlock,
-                blockOrigin,
-                blockSize,
-                retainedStates,
-                colorThreshold,
-                dcModeCost,
-                ref bestStatistics,
-                ref paletteInfo,
-                ref selectedTransformSize);
-        }
-
-        /// <summary>
         /// Clusters the luma colors of an intra block into palettes of each size, searches their transform sizes and
         /// keeps a palette that costs less than the best result.
         /// </summary>
@@ -141,7 +51,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="paletteInfo">The palette of the block.</param>
         /// <param name="selectedTransformSize">The transform size of the best result.</param>
         /// <returns><see langword="true"/> when a palette replaced the best result.</returns>
-        private bool SelectLumaPaletteCore(
+        private bool SelectLumaPalette(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
@@ -416,52 +326,6 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="headerBreakout">Whether the palette syntax cost alone rejected the candidate.</param>
         /// <returns><see langword="true"/> if the candidate became the best result.</returns>
         private bool EvaluateLumaPaletteCandidate(
-            ReadOnlySpan<TSample> sourceLuma,
-            ReadOnlySpan<TSample> sourceBlue,
-            ReadOnlySpan<TSample> sourceRed,
-            Span<TSample> reconstructionLuma,
-            Span<TSample> reconstructionBlue,
-            Span<TSample> reconstructionRed,
-            in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
-            Span<int> transformCoefficients,
-            Span<int> dequantizedCoefficients,
-            Span<int> transformWorkspace,
-            ReadOnlySpan<int> transformTypeProbabilities,
-            in Av1NeighborEdges<byte> lumaCoefficientEdges,
-            in LumaPaletteSearch search,
-            Span<short> centroids,
-            int headerPruneLevel,
-            ref Av1RateDistortionStatistics bestStatistics,
-            ref Av1EncoderPaletteInfo paletteInfo,
-            ref Av1TransformSize selectedTransformSize,
-            out bool headerBreakout)
-        {
-            return this.EvaluateLumaPaletteCandidateCore(
-                sourceLuma,
-                sourceBlue,
-                sourceRed,
-                reconstructionLuma,
-                reconstructionBlue,
-                reconstructionRed,
-                in tables,
-                in modeWorkspace,
-                transformCoefficients,
-                dequantizedCoefficients,
-                transformWorkspace,
-                transformTypeProbabilities,
-                in lumaCoefficientEdges,
-                in search,
-                centroids,
-                headerPruneLevel,
-                ref bestStatistics,
-                ref paletteInfo,
-                ref selectedTransformSize,
-                out headerBreakout);
-        }
-
-        /// <inheritdoc cref="EvaluateLumaPaletteCandidate"/>
-        private bool EvaluateLumaPaletteCandidateCore(
             ReadOnlySpan<TSample> sourceLuma,
             ReadOnlySpan<TSample> sourceBlue,
             ReadOnlySpan<TSample> sourceRed,

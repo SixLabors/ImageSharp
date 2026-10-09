@@ -1541,36 +1541,6 @@ internal static partial class Av1IntraSuperblockEncoder
             ref bool allowSplit,
             ref bool allowRectangles)
         {
-            return this.PruneIntraPartitionsCore(
-                workspaceStorage, sourceLuma, sourceBlue, sourceRed, blockOrigin, blockSize, level, ref allowNone, ref allowSplit, ref allowRectangles);
-        }
-
-        /// <summary>
-        /// Computes convolution features once per 64x64 parent and applies the selected block-size classifier.
-        /// </summary>
-        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
-        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
-        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
-        /// <param name="blockOrigin">The luma block origin, in samples.</param>
-        /// <param name="blockSize">The square block size of the partition node.</param>
-        /// <param name="level">The pruning level. Level 1 keeps the unsplit candidate when only square partitions remain.</param>
-        /// <param name="allowNone">Whether the unsplit candidate is searched, which the classifier can change.</param>
-        /// <param name="allowSplit">Whether the split candidate is searched, which the classifier can change.</param>
-        /// <param name="allowRectangles">Whether the rectangular candidates are searched, which the classifier can change.</param>
-        /// <returns><see langword="true"/> when the classifier keeps only the square partitions.</returns>
-        private bool PruneIntraPartitionsCore(
-            Span<int> workspaceStorage,
-            ReadOnlySpan<TSample> sourceLuma,
-            ReadOnlySpan<TSample> sourceBlue,
-            ReadOnlySpan<TSample> sourceRed,
-            Point blockOrigin,
-            Av1BlockSize blockSize,
-            int level,
-            ref bool allowNone,
-            ref bool allowSplit,
-            ref bool allowRectangles)
-        {
             Span<float> retained = this.blockWorkspace.GetIntraPartitionFeatures(workspaceStorage);
             if (blockSize == Av1BlockSize.Block64x64)
             {

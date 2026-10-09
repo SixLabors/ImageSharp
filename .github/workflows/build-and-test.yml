@@ -213,8 +213,10 @@ jobs:
         uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: actual_output_${{ runner.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
-          path: tests/Images/ActualOutput/
+          name: actual_output_${{ runner.os }}_${{ runner.arch }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
+          path: |
+            tests/Images/ActualOutput/
+            tests/ImageSharp.Tests/TestResults/
 
   Publish:
     needs: [Build]

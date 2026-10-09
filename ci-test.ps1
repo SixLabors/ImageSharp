@@ -17,7 +17,7 @@ if ($codecov -eq 'true') {
 
   # Allow toggling of profile to workaround any potential JIT errors caused by code injection.
   dotnet clean -c $codecovProfile
-  dotnet test --collect "XPlat Code Coverage" --settings .\tests\coverlet.runsettings -c $codecovProfile -f $targetFramework /p:CodeCov=true
+  dotnet test --collect "XPlat Code Coverage" --settings (Join-Path $PSScriptRoot 'tests' 'coverlet.runsettings') -c $codecovProfile -f $targetFramework /p:CodeCov=true
 }
 elseif ($platform -eq '-x86' -and $targetFramework -match $netFxRegex) {
 
@@ -33,5 +33,8 @@ elseif ($platform -eq '-x86' -and $targetFramework -match $netFxRegex) {
 }
 else {
 
-  dotnet test --no-build -c Release -f $targetFramework --blame --diag .tests\Images\ActualOutput\diaglog.txt
+  # The workflow uploads tests/Images/ActualOutput when a job fails, so the diagnostic log must be written there.
+  # Join-Path keeps the path valid on Linux and macOS, where a backslash is part of the file name.
+  $diagLog = Join-Path $PSScriptRoot 'tests' 'Images' 'ActualOutput' 'diaglog.txt'
+  dotnet test --no-build -c Release -f $targetFramework --blame --diag $diagLog
 }

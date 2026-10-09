@@ -53,12 +53,12 @@ internal sealed class Av1CdefDecoder : IDisposable
     /// <summary>
     /// The source unit, preserved borders, and unit-local direction state reused across frames.
     /// </summary>
-    private IMemoryOwner<ushort>? scratchOwner;
+    private IMemoryOwner<ushort>? filterStorageOwner;
 
     /// <summary>
     /// The requested storage length, independent of any extra capacity supplied by the allocator.
     /// </summary>
-    private int scratchLength;
+    private int filterStorageLength;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1CdefDecoder"/> class.
@@ -71,9 +71,9 @@ internal sealed class Av1CdefDecoder : IDisposable
     /// </summary>
     public void Dispose()
     {
-        this.scratchOwner?.Dispose();
-        this.scratchOwner = null;
-        this.scratchLength = 0;
+        this.filterStorageOwner?.Dispose();
+        this.filterStorageOwner = null;
+        this.filterStorageLength = 0;
     }
 
     /// <summary>
@@ -150,33 +150,33 @@ internal sealed class Av1CdefDecoder : IDisposable
         int directionStorageLength = MaximumBlocksPerUnit * sizeof(int) / sizeof(ushort);
         int blockStorageLength = MaximumBlocksPerUnit * Unsafe.SizeOf<CdefBlock>() / sizeof(ushort);
         int unitStorageOffset = SourceBufferLength + lineBufferLength + columnBufferLength;
-        int scratchLength = unitStorageOffset + (directionStorageLength * 2) + blockStorageLength;
-        IMemoryOwner<ushort>? scratchOwner = this.scratchOwner;
-        if (scratchOwner is null || this.scratchLength != scratchLength)
+        int filterStorageLength = unitStorageOffset + (directionStorageLength * 2) + blockStorageLength;
+        IMemoryOwner<ushort>? filterStorageOwner = this.filterStorageOwner;
+        if (filterStorageOwner is null || this.filterStorageLength != filterStorageLength)
         {
             // Frame dimensions and sampling determine border storage. The decoder reuses it across equal-size frames.
             // It releases the previous allocation before it resizes, so a failed allocation cannot leave a stale owner.
             this.Dispose();
-            scratchOwner = this.allocator.Allocate<ushort>(scratchLength);
-            this.scratchOwner = scratchOwner;
-            this.scratchLength = scratchLength;
+            filterStorageOwner = this.allocator.Allocate<ushort>(filterStorageLength);
+            this.filterStorageOwner = filterStorageOwner;
+            this.filterStorageLength = filterStorageLength;
         }
 
-        Span<ushort> scratch = scratchOwner.Memory.Span[..scratchLength];
-        Span<ushort> source = scratch[..SourceBufferLength];
-        Span<ushort> lineBuffer = scratch.Slice(SourceBufferLength, lineBufferLength);
-        Span<ushort> columnBuffer = scratch.Slice(SourceBufferLength + lineBufferLength, columnBufferLength);
+        Span<ushort> filterStorage = filterStorageOwner.Memory.Span[..filterStorageLength];
+        Span<ushort> source = filterStorage[..SourceBufferLength];
+        Span<ushort> lineBuffer = filterStorage.Slice(SourceBufferLength, lineBufferLength);
+        Span<ushort> columnBuffer = filterStorage.Slice(SourceBufferLength + lineBufferLength, columnBufferLength);
 
         // Every preceding plane region has an even ushort length, so the appended unit state remains 32-bit aligned.
         // Directions, variances, and block coordinates share the owner because they are reused one unit at a time.
         Span<int> directions = MemoryMarshal.Cast<ushort, int>(
-            scratch.Slice(unitStorageOffset, directionStorageLength));
+            filterStorage.Slice(unitStorageOffset, directionStorageLength));
 
         Span<int> variances = MemoryMarshal.Cast<ushort, int>(
-            scratch.Slice(unitStorageOffset + directionStorageLength, directionStorageLength));
+            filterStorage.Slice(unitStorageOffset + directionStorageLength, directionStorageLength));
 
         Span<CdefBlock> blocks = MemoryMarshal.Cast<ushort, CdefBlock>(
-            scratch.Slice(unitStorageOffset + (directionStorageLength * 2), blockStorageLength));
+            filterStorage.Slice(unitStorageOffset + (directionStorageLength * 2), blockStorageLength));
 
         Span<bool> cdefLeft = stackalloc bool[3];
         int unitColumnCount = (frameHeader.ModeInfoColumnCount + CdefUnitModeInfoSize - 1) / CdefUnitModeInfoSize;

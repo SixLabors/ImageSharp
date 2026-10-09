@@ -661,8 +661,17 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="upsampleAbove">Whether the top edge contains half-sample positions.</param>
         /// <param name="upsampleLeft">Whether the left edge contains half-sample positions.</param>
         /// <param name="angle">The adjusted prediction angle.</param>
-        /// <param name="scratch">The caller-owned block transposition workspace.</param>
-        public static void Predict(Span<byte> destination, int destinationStride, Av1TransformSize transformSize, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, bool upsampleAbove, bool upsampleLeft, int angle, Span<byte> scratch)
+        /// <param name="transposedBlock">The caller-owned block transposition workspace.</param>
+        public static void Predict(
+            Span<byte> destination,
+            int destinationStride,
+            Av1TransformSize transformSize,
+            ReadOnlySpan<byte> above,
+            ReadOnlySpan<byte> left,
+            bool upsampleAbove,
+            bool upsampleLeft,
+            int angle,
+            Span<byte> transposedBlock)
         {
             int width = transformSize.GetWidth();
             int height = transformSize.GetHeight();
@@ -679,7 +688,7 @@ internal static partial class Av1DirectionalIntraPredictor
             {
                 // Zone 3 uses a zone 1 prediction with swapped dimensions, followed by a transpose.
                 // Thus both stages read edges and store rows contiguously, and no stage scatters columns.
-                Span<byte> transposed = scratch[..(width * height)];
+                Span<byte> transposed = transposedBlock[..(width * height)];
                 PredictZone1(transposed, height, left, upsampleLeft, GetDeltaY(angle), height, width);
                 Transpose(transposed, destination, height, width, destinationStride);
             }
@@ -701,8 +710,17 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="upsampleAbove">Whether the top edge contains half-sample positions.</param>
         /// <param name="upsampleLeft">Whether the left edge contains half-sample positions.</param>
         /// <param name="angle">The adjusted prediction angle.</param>
-        /// <param name="scratch">The caller-owned block transposition workspace.</param>
-        public static void Predict(Span<short> destination, int destinationStride, Av1TransformSize transformSize, ReadOnlySpan<short> above, ReadOnlySpan<short> left, bool upsampleAbove, bool upsampleLeft, int angle, Span<short> scratch)
+        /// <param name="transposedBlock">The caller-owned block transposition workspace.</param>
+        public static void Predict(
+            Span<short> destination,
+            int destinationStride,
+            Av1TransformSize transformSize,
+            ReadOnlySpan<short> above,
+            ReadOnlySpan<short> left,
+            bool upsampleAbove,
+            bool upsampleLeft,
+            int angle,
+            Span<short> transposedBlock)
         {
             int width = transformSize.GetWidth();
             int height = transformSize.GetHeight();
@@ -717,7 +735,7 @@ internal static partial class Av1DirectionalIntraPredictor
             }
             else if (angle is > 180 and < 270)
             {
-                Span<short> transposed = scratch[..(width * height)];
+                Span<short> transposed = transposedBlock[..(width * height)];
                 PredictZone1(transposed, height, left, upsampleLeft, GetDeltaY(angle), height, width);
                 Transpose(transposed, destination, height, width, destinationStride);
             }

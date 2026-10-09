@@ -182,12 +182,12 @@ internal static partial class Av1LoopRestorationEncoder
         /// <summary>
         /// The two-pass Wiener convolution workspace.
         /// </summary>
-        public readonly Span<ushort> WienerScratch;
+        public readonly Span<ushort> WienerStorage;
 
         /// <summary>
         /// The self-guided processing-block workspace.
         /// </summary>
-        public readonly Span<int> SelfGuidedScratch;
+        public readonly Span<int> SelfGuidedStorage;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UnitSearchContext{TSample}"/> struct.
@@ -201,8 +201,8 @@ internal static partial class Av1LoopRestorationEncoder
         /// <param name="subsamplingX">The horizontal chroma shift.</param>
         /// <param name="subsamplingY">The vertical chroma shift.</param>
         /// <param name="savedRows">The six temporary rows used while installing stripe context.</param>
-        /// <param name="wienerScratch">The two-pass Wiener convolution workspace.</param>
-        /// <param name="selfGuidedScratch">The self-guided processing-block workspace.</param>
+        /// <param name="wienerStorage">The two-pass Wiener convolution workspace.</param>
+        /// <param name="selfGuidedStorage">The self-guided processing-block workspace.</param>
         public UnitSearchContext(
             Av1PlaneRegion<TSample> source,
             Av1PlaneRegion<TSample> reconstruction,
@@ -213,8 +213,8 @@ internal static partial class Av1LoopRestorationEncoder
             int subsamplingX,
             int subsamplingY,
             Span<TSample> savedRows,
-            Span<ushort> wienerScratch,
-            Span<int> selfGuidedScratch)
+            Span<ushort> wienerStorage,
+            Span<int> selfGuidedStorage)
         {
             this.Source = source;
             this.Reconstruction = reconstruction;
@@ -225,8 +225,8 @@ internal static partial class Av1LoopRestorationEncoder
             this.SubsamplingX = subsamplingX;
             this.SubsamplingY = subsamplingY;
             this.SavedRows = savedRows;
-            this.WienerScratch = wienerScratch;
-            this.SelfGuidedScratch = selfGuidedScratch;
+            this.WienerStorage = wienerStorage;
+            this.SelfGuidedStorage = selfGuidedStorage;
         }
 
         /// <summary>
@@ -268,8 +268,8 @@ internal static partial class Av1LoopRestorationEncoder
                 bounds.Bottom,
                 unit,
                 this.SavedRows,
-                this.WienerScratch,
-                this.SelfGuidedScratch);
+                this.WienerStorage,
+                this.SelfGuidedStorage);
         }
 
         /// <summary>

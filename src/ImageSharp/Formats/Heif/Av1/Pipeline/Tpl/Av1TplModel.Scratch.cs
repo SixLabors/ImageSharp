@@ -59,12 +59,12 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// <summary>
     /// The intra edge filter workspace.
     /// </summary>
-    private TSample[] edgeScratch = null!;
+    private TSample[] originalEdge = null!;
 
     /// <summary>
     /// The directional predictor workspace.
     /// </summary>
-    private TSample[] directionalScratch = null!;
+    private TSample[] transposedBlock = null!;
 
     /// <summary>
     /// The packed residual.
@@ -74,7 +74,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// <summary>
     /// The convolution intermediate of the inter predictions.
     /// </summary>
-    private short[] convolutionScratch = null!;
+    private short[] intermediateRows = null!;
 
     /// <summary>
     /// The compound intermediate of the first reference.
@@ -223,10 +223,10 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         this.searchPrediction = new TSample[SearchPredictionLength];
         this.aboveEdge = new TSample[EdgeLength];
         this.leftEdge = new TSample[EdgeLength];
-        this.edgeScratch = new TSample[Av1IntraEdgeFilter.ScratchLength];
-        this.directionalScratch = new TSample[Area];
+        this.originalEdge = new TSample[Av1IntraEdgeFilter.ScratchLength];
+        this.transposedBlock = new TSample[Area];
         this.residual = new short[Area];
-        this.convolutionScratch = new short[Av1TranslationalInterPredictor.GetScratchLength(Av1TplModelConstants.BlockSize, Av1TplModelConstants.BlockSize)];
+        this.intermediateRows = new short[Av1TranslationalInterPredictor.GetScratchLength(Av1TplModelConstants.BlockSize, Av1TplModelConstants.BlockSize)];
         this.firstIntermediate = new ushort[Area];
         this.secondIntermediate = new ushort[Area];
         this.coefficients = new int[Area];

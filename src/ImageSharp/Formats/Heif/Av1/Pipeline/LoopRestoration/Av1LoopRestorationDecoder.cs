@@ -100,39 +100,39 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
         // covers the full frame. If a later allocation fails, the owners that exist stay in this object for Dispose. Old capacity is released first.
         int maximumBlockWidth = Math.Min(Av1LoopRestorationBoundary.ProcessingStripeSize, frameHeader.FrameSize.SuperResolutionUpscaledWidth);
         int maximumStripeHeight = Av1LoopRestorationBoundary.ProcessingStripeSize;
-        int wienerScratchLength = Av1WienerFilter.GetScratchLength(maximumBlockWidth, maximumStripeHeight);
+        int wienerStorageLength = Av1WienerFilter.GetScratchLength(maximumBlockWidth, maximumStripeHeight);
         IMemoryOwner<ushort>? wiener = this.wienerOwner;
-        if (wiener is null || this.wienerLength < wienerScratchLength)
+        if (wiener is null || this.wienerLength < wienerStorageLength)
         {
             wiener?.Dispose();
             this.wienerOwner = null;
             this.wienerLength = 0;
-            wiener = this.allocator.Allocate<ushort>(wienerScratchLength);
+            wiener = this.allocator.Allocate<ushort>(wienerStorageLength);
             this.wienerOwner = wiener;
-            this.wienerLength = wienerScratchLength;
+            this.wienerLength = wienerStorageLength;
         }
 
-        int selfGuidedScratchLength = Av1SelfGuidedFilter.GetScratchLength(maximumBlockWidth, maximumStripeHeight);
+        int selfGuidedStorageLength = Av1SelfGuidedFilter.GetScratchLength(maximumBlockWidth, maximumStripeHeight);
         IMemoryOwner<int>? selfGuided = this.selfGuidedOwner;
-        if (selfGuided is null || this.selfGuidedLength < selfGuidedScratchLength)
+        if (selfGuided is null || this.selfGuidedLength < selfGuidedStorageLength)
         {
             selfGuided?.Dispose();
             this.selfGuidedOwner = null;
             this.selfGuidedLength = 0;
-            selfGuided = this.allocator.Allocate<int>(selfGuidedScratchLength);
+            selfGuided = this.allocator.Allocate<int>(selfGuidedStorageLength);
             this.selfGuidedOwner = selfGuided;
-            this.selfGuidedLength = selfGuidedScratchLength;
+            this.selfGuidedLength = selfGuidedStorageLength;
         }
 
-        Span<ushort> wienerScratch = wiener.Memory.Span[..wienerScratchLength];
-        Span<int> selfGuidedScratch = selfGuided.Memory.Span[..selfGuidedScratchLength];
+        Span<ushort> wienerStorage = wiener.Memory.Span[..wienerStorageLength];
+        Span<int> selfGuidedStorage = selfGuided.Memory.Span[..selfGuidedStorageLength];
         if (frameBuffer.BytesPerSample == 1)
         {
-            DecodeFrame<byte>(sequenceHeader, frameHeader, frameInfo, frameBuffer, boundary, destination, wienerScratch, selfGuidedScratch);
+            DecodeFrame<byte>(sequenceHeader, frameHeader, frameInfo, frameBuffer, boundary, destination, wienerStorage, selfGuidedStorage);
         }
         else
         {
-            DecodeFrame<ushort>(sequenceHeader, frameHeader, frameInfo, frameBuffer, boundary, destination, wienerScratch, selfGuidedScratch);
+            DecodeFrame<ushort>(sequenceHeader, frameHeader, frameInfo, frameBuffer, boundary, destination, wienerStorage, selfGuidedStorage);
         }
     }
 
@@ -146,8 +146,8 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
     /// <param name="frameBuffer">The source reconstruction.</param>
     /// <param name="boundary">The preserved stripe context.</param>
     /// <param name="destinationBuffer">The separate output frame.</param>
-    /// <param name="wienerScratch">The convolution workspace.</param>
-    /// <param name="selfGuidedScratch">The projection and statistics workspace.</param>
+    /// <param name="wienerStorage">The convolution workspace.</param>
+    /// <param name="selfGuidedStorage">The projection and statistics workspace.</param>
     private static void DecodeFrame<TSample>(
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
@@ -155,8 +155,8 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
         Av1FrameBuffer<byte> frameBuffer,
         Av1LoopRestorationBoundary boundary,
         Av1FrameBuffer<byte> destinationBuffer,
-        Span<ushort> wienerScratch,
-        Span<int> selfGuidedScratch)
+        Span<ushort> wienerStorage,
+        Span<int> selfGuidedStorage)
         where TSample : unmanaged
     {
         ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
@@ -181,8 +181,8 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
                 subsamplingX,
                 subsamplingY,
                 item.Size,
-                wienerScratch,
-                selfGuidedScratch);
+                wienerStorage,
+                selfGuidedStorage);
         }
 
         // Copy back only the restored planes, after every unit reads the original reconstruction.
@@ -222,8 +222,8 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
     /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
     /// <param name="subsamplingY">The vertical chroma subsampling shift.</param>
     /// <param name="unitSize">The nominal restoration-unit size in plane samples.</param>
-    /// <param name="wienerScratch">The convolution workspace.</param>
-    /// <param name="selfGuidedScratch">The projection and statistics workspace.</param>
+    /// <param name="wienerStorage">The convolution workspace.</param>
+    /// <param name="selfGuidedStorage">The projection and statistics workspace.</param>
     private static void DecodePlane<TSample>(
         ObuFrameHeader frameHeader,
         Av1FrameInfo frameInfo,
@@ -234,8 +234,8 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
         int subsamplingX,
         int subsamplingY,
         int unitSize,
-        Span<ushort> wienerScratch,
-        Span<int> selfGuidedScratch)
+        Span<ushort> wienerStorage,
+        Span<int> selfGuidedStorage)
         where TSample : unmanaged
     {
         int planeIndex = (int)plane;
@@ -334,8 +334,8 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
                     verticalEnd,
                     unit,
                     savedRows,
-                    wienerScratch,
-                    selfGuidedScratch);
+                    wienerStorage,
+                    selfGuidedStorage);
 
                 unitX += unitWidth;
             }

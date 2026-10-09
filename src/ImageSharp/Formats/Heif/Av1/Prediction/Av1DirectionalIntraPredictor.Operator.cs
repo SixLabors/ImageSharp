@@ -130,9 +130,19 @@ internal static partial class Av1DirectionalIntraPredictor
     /// <param name="upsampleAbove">Whether the top edge contains half-sample positions.</param>
     /// <param name="upsampleLeft">Whether the left edge contains half-sample positions.</param>
     /// <param name="angle">The adjusted prediction angle.</param>
-    /// <param name="scratch">The caller-owned block transposition workspace of at least <see cref="ScratchLength"/> samples.</param>
-    public static void Predict(Span<byte> destination, int destinationStride, Av1TransformSize transformSize, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, bool upsampleAbove, bool upsampleLeft, int angle, Span<byte> scratch)
-        => Predictor<DirectionalOperator>.Predict(destination, destinationStride, transformSize, above, left, upsampleAbove, upsampleLeft, angle, scratch);
+    /// <param name="transposedBlock">The caller-owned block transposition workspace of at least <see cref="ScratchLength"/> samples.</param>
+    public static void Predict(
+        Span<byte> destination,
+        int destinationStride,
+        Av1TransformSize transformSize,
+        ReadOnlySpan<byte> above,
+        ReadOnlySpan<byte> left,
+        bool upsampleAbove,
+        bool upsampleLeft,
+        int angle,
+        Span<byte> transposedBlock)
+        => Predictor<DirectionalOperator>.Predict(
+            destination, destinationStride, transformSize, above, left, upsampleAbove, upsampleLeft, angle, transposedBlock);
 
     /// <summary>
     /// Predicts a high-bit-depth directional block.
@@ -145,9 +155,19 @@ internal static partial class Av1DirectionalIntraPredictor
     /// <param name="upsampleAbove">Whether the top edge contains half-sample positions.</param>
     /// <param name="upsampleLeft">Whether the left edge contains half-sample positions.</param>
     /// <param name="angle">The adjusted prediction angle.</param>
-    /// <param name="scratch">The caller-owned block transposition workspace of at least <see cref="ScratchLength"/> samples.</param>
-    public static void Predict(Span<short> destination, int destinationStride, Av1TransformSize transformSize, ReadOnlySpan<short> above, ReadOnlySpan<short> left, bool upsampleAbove, bool upsampleLeft, int angle, Span<short> scratch)
-        => Predictor<DirectionalOperator>.Predict(destination, destinationStride, transformSize, above, left, upsampleAbove, upsampleLeft, angle, scratch);
+    /// <param name="transposedBlock">The caller-owned block transposition workspace of at least <see cref="ScratchLength"/> samples.</param>
+    public static void Predict(
+        Span<short> destination,
+        int destinationStride,
+        Av1TransformSize transformSize,
+        ReadOnlySpan<short> above,
+        ReadOnlySpan<short> left,
+        bool upsampleAbove,
+        bool upsampleLeft,
+        int angle,
+        Span<short> transposedBlock)
+        => Predictor<DirectionalOperator>.Predict(
+            destination, destinationStride, transformSize, above, left, upsampleAbove, upsampleLeft, angle, transposedBlock);
 
     /// <summary>
     /// Predicts an 8-bit directional block without hardware intrinsics.

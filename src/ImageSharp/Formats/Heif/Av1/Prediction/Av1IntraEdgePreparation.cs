@@ -35,7 +35,7 @@ internal static class Av1IntraEdgePreparation
     /// <param name="leftCount">The number of available left samples before extension.</param>
     /// <param name="filterType">Whether a relevant neighbor uses smooth prediction.</param>
     /// <param name="bitDepth">The coded sample precision.</param>
-    /// <param name="scratch">The original-edge workspace with at least <see cref="Av1IntraEdgeFilter.ScratchLength"/> samples.</param>
+    /// <param name="originalEdge">The original-edge workspace with at least <see cref="Av1IntraEdgeFilter.ScratchLength"/> samples.</param>
     /// <param name="upsampleAbove">Whether the top edge contains half-sample positions.</param>
     /// <param name="upsampleLeft">Whether the left edge contains half-sample positions.</param>
     public static void Prepare<T>(
@@ -48,7 +48,7 @@ internal static class Av1IntraEdgePreparation
         int leftCount,
         bool filterType,
         int bitDepth,
-        Span<T> scratch,
+        Span<T> originalEdge,
         out bool upsampleAbove,
         out bool upsampleLeft)
         where T : unmanaged, IBinaryInteger<T>
@@ -86,26 +86,26 @@ internal static class Av1IntraEdgePreparation
             if (needAbove && topCount > 0)
             {
                 int strength = IntraEdgeFilterStrength(width, height, angle - 90, filterType);
-                Filter(ref Unsafe.Subtract(ref above[0], 1), topCount + 1 + (needRight ? height : 0), strength, scratch);
+                Filter(ref Unsafe.Subtract(ref above[0], 1), topCount + 1 + (needRight ? height : 0), strength, originalEdge);
             }
 
             if (needLeft && leftCount > 0)
             {
                 int strength = IntraEdgeFilterStrength(height, width, angle - 180, filterType);
-                Filter(ref Unsafe.Subtract(ref left[0], 1), leftCount + 1 + (needBottom ? width : 0), strength, scratch);
+                Filter(ref Unsafe.Subtract(ref left[0], 1), leftCount + 1 + (needBottom ? width : 0), strength, originalEdge);
             }
         }
 
         upsampleAbove = UseUpsampling(width, height, angle - 90, filterType);
         if (needAbove && upsampleAbove)
         {
-            Upsample(above, width + (needRight ? height : 0), bitDepth, scratch);
+            Upsample(above, width + (needRight ? height : 0), bitDepth, originalEdge);
         }
 
         upsampleLeft = UseUpsampling(height, width, angle - 180, filterType);
         if (needLeft && upsampleLeft)
         {
-            Upsample(left, height + (needBottom ? width : 0), bitDepth, scratch);
+            Upsample(left, height + (needBottom ? width : 0), bitDepth, originalEdge);
         }
     }
 
@@ -130,17 +130,17 @@ internal static class Av1IntraEdgePreparation
     /// <param name="edge">The first edge sample, including the corner.</param>
     /// <param name="count">The number of edge samples.</param>
     /// <param name="strength">The smoothing strength.</param>
-    /// <param name="scratch">The reusable original-edge workspace.</param>
-    private static void Filter<T>(ref T edge, int count, int strength, Span<T> scratch)
+    /// <param name="originalEdge">The reusable original-edge workspace.</param>
+    private static void Filter<T>(ref T edge, int count, int strength, Span<T> originalEdge)
         where T : unmanaged, IBinaryInteger<T>
     {
         if (typeof(T) == typeof(byte))
         {
-            Av1IntraEdgeFilter.Apply(ref Unsafe.As<T, byte>(ref edge), count, strength, MemoryMarshal.Cast<T, byte>(scratch));
+            Av1IntraEdgeFilter.Apply(ref Unsafe.As<T, byte>(ref edge), count, strength, MemoryMarshal.Cast<T, byte>(originalEdge));
         }
         else
         {
-            Av1IntraEdgeFilter.Apply(ref Unsafe.As<T, short>(ref edge), count, strength, MemoryMarshal.Cast<T, short>(scratch));
+            Av1IntraEdgeFilter.Apply(ref Unsafe.As<T, short>(ref edge), count, strength, MemoryMarshal.Cast<T, short>(originalEdge));
         }
     }
 
@@ -151,17 +151,17 @@ internal static class Av1IntraEdgePreparation
     /// <param name="edge">The edge with writable prefix and extension.</param>
     /// <param name="count">The number of original edge samples.</param>
     /// <param name="bitDepth">The coded precision.</param>
-    /// <param name="scratch">The reusable original-edge workspace.</param>
-    private static void Upsample<T>(Span<T> edge, int count, int bitDepth, Span<T> scratch)
+    /// <param name="originalEdge">The reusable original-edge workspace.</param>
+    private static void Upsample<T>(Span<T> edge, int count, int bitDepth, Span<T> originalEdge)
         where T : unmanaged, IBinaryInteger<T>
     {
         if (typeof(T) == typeof(byte))
         {
-            Av1IntraEdgeUpsampler.Apply(MemoryMarshal.Cast<T, byte>(edge), count, MemoryMarshal.Cast<T, byte>(scratch));
+            Av1IntraEdgeUpsampler.Apply(MemoryMarshal.Cast<T, byte>(edge), count, MemoryMarshal.Cast<T, byte>(originalEdge));
         }
         else
         {
-            Av1IntraEdgeUpsampler.Apply(MemoryMarshal.Cast<T, short>(edge), count, bitDepth, MemoryMarshal.Cast<T, short>(scratch));
+            Av1IntraEdgeUpsampler.Apply(MemoryMarshal.Cast<T, short>(edge), count, bitDepth, MemoryMarshal.Cast<T, short>(originalEdge));
         }
     }
 

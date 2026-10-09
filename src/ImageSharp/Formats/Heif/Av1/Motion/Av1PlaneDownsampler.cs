@@ -78,12 +78,12 @@ internal static partial class Av1PlaneDownsampler
         // The intermediate plane holds every source row at halved width.
         // Every row reuses the two separated streams, so one allocation holds the plane and one pair of stream buffers.
         int separatedLength = halvedWidth + (2 * SeparationPadding);
-        using IMemoryOwner<byte> scratchOwner = allocator.Allocate<byte>((halvedWidth * height) + (2 * separatedLength));
+        using IMemoryOwner<byte> downsampleStorageOwner = allocator.Allocate<byte>((halvedWidth * height) + (2 * separatedLength));
 
-        Span<byte> scratch = scratchOwner.Memory.Span;
-        Span<byte> intermediate = scratch[..(halvedWidth * height)];
-        Span<byte> even = scratch.Slice(halvedWidth * height, separatedLength);
-        Span<byte> odd = scratch.Slice((halvedWidth * height) + separatedLength, separatedLength);
+        Span<byte> downsampleStorage = downsampleStorageOwner.Memory.Span;
+        Span<byte> intermediate = downsampleStorage[..(halvedWidth * height)];
+        Span<byte> even = downsampleStorage.Slice(halvedWidth * height, separatedLength);
+        Span<byte> odd = downsampleStorage.Slice((halvedWidth * height) + separatedLength, separatedLength);
 
         HalveRows(source, sourceStride, width, height, halvedWidth, intermediate, even, odd);
         HalveColumns(intermediate, halvedWidth, height, halvedHeight, destination, destinationStride);

@@ -22,17 +22,17 @@ internal static partial class Av1IntraEdgeUpsampler
         /// </summary>
         /// <param name="edge">The edge with prefix and doubled output capacity.</param>
         /// <param name="count">The original sample count.</param>
-        /// <param name="scratch">The reusable original-sample workspace.</param>
-        public static void Apply(Span<byte> edge, int count, Span<byte> scratch)
+        /// <param name="originalSamples">The reusable original-sample workspace.</param>
+        public static void Apply(Span<byte> edge, int count, Span<byte> originalSamples)
         {
             ref byte destination = ref MemoryMarshal.GetReference(edge);
-            ref byte source = ref MemoryMarshal.GetReference(scratch);
+            ref byte source = ref MemoryMarshal.GetReference(originalSamples);
 
             // The workspace holds the corner twice, then the original samples, then the final sample once more.
             // Each SIMD load reads exactly its input lanes. Thus `ScratchLength` samples suffice for the widest interpolation.
             source = Unsafe.Subtract(ref destination, 1);
             Unsafe.Add(ref source, 1) = source;
-            edge[..count].CopyTo(scratch[2..]);
+            edge[..count].CopyTo(originalSamples[2..]);
             Unsafe.Add(ref source, count + 2) = edge[count - 1];
             Unsafe.Subtract(ref destination, 2) = source;
             ref byte firstOutput = ref Unsafe.Subtract(ref destination, 1);
@@ -160,17 +160,17 @@ internal static partial class Av1IntraEdgeUpsampler
         /// <param name="edge">The edge with prefix and doubled output capacity.</param>
         /// <param name="count">The original sample count.</param>
         /// <param name="maximum">The maximum coded sample value.</param>
-        /// <param name="scratch">The reusable original-sample workspace.</param>
-        public static void Apply(Span<short> edge, int count, int maximum, Span<short> scratch)
+        /// <param name="originalSamples">The reusable original-sample workspace.</param>
+        public static void Apply(Span<short> edge, int count, int maximum, Span<short> originalSamples)
         {
             ref short destination = ref MemoryMarshal.GetReference(edge);
-            ref short source = ref MemoryMarshal.GetReference(scratch);
+            ref short source = ref MemoryMarshal.GetReference(originalSamples);
 
             // The workspace holds the corner twice, then the original samples, then the final sample once more.
             // Each SIMD load reads exactly its input lanes. Thus `ScratchLength` samples suffice for the widest interpolation.
             source = Unsafe.Subtract(ref destination, 1);
             Unsafe.Add(ref source, 1) = source;
-            edge[..count].CopyTo(scratch[2..]);
+            edge[..count].CopyTo(originalSamples[2..]);
             Unsafe.Add(ref source, count + 2) = edge[count - 1];
             Unsafe.Subtract(ref destination, 2) = source;
             ref short firstOutput = ref Unsafe.Subtract(ref destination, 1);

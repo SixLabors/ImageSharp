@@ -769,7 +769,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <summary>
     /// Builds an eight-bit intra prediction and its compact source residual.
     /// </summary>
-    /// <param name="transformWorkspace">The transform workspace of the block, which serves as edge and prediction scratch.</param>
+    /// <param name="transformWorkspace">The transform workspace of the block, which holds the edges and the prediction working storage.</param>
     /// <param name="source">The source samples.</param>
     /// <param name="sourceStride">The number of source samples between rows.</param>
     /// <param name="prediction">The prediction destination.</param>
@@ -813,9 +813,9 @@ internal static partial class Av1TransformBlockEncoder
         else if (mode.IsDirectional())
         {
             int angle = mode.ToAngle() + (angleDelta * Av1Constants.AngleStep);
-            Span<byte> scratch = MemoryMarshal.AsBytes(transformWorkspace);
+            Span<byte> predictionWorkspace = MemoryMarshal.AsBytes(transformWorkspace);
             int predictionLength = width * height;
-            Span<byte> directionalScratch = scratch[..predictionLength];
+            Span<byte> transposedBlock = predictionWorkspace[..predictionLength];
             bool upsampleAbove = false;
             bool upsampleLeft = false;
             if (enableIntraEdgeFilter)
@@ -825,8 +825,8 @@ internal static partial class Av1TransformBlockEncoder
                 // AV1 defaults of 127 above and 129 left.
                 int edgeLength = Av1IntraEdgePreparation.ReferenceBufferLength;
                 int prefixLength = Av1IntraEdgePreparation.ReferencePrefixLength;
-                Span<byte> aboveStorage = scratch.Slice(predictionLength, edgeLength);
-                Span<byte> leftStorage = scratch.Slice(predictionLength + edgeLength, edgeLength);
+                Span<byte> aboveStorage = predictionWorkspace.Slice(predictionLength, edgeLength);
+                Span<byte> leftStorage = predictionWorkspace.Slice(predictionLength + edgeLength, edgeLength);
                 aboveStorage.Fill(127);
                 leftStorage.Fill(129);
                 if (angle < 180)
@@ -853,7 +853,7 @@ internal static partial class Av1TransformBlockEncoder
                     hasLeft ? height : 0,
                     smoothIntraEdges,
                     8,
-                    scratch.Slice(predictionLength + (2 * edgeLength), Av1IntraEdgeFilter.ScratchLength),
+                    predictionWorkspace.Slice(predictionLength + (2 * edgeLength), Av1IntraEdgeFilter.ScratchLength),
                     out upsampleAbove,
                     out upsampleLeft);
 
@@ -870,7 +870,7 @@ internal static partial class Av1TransformBlockEncoder
                 upsampleAbove,
                 upsampleLeft,
                 angle,
-                directionalScratch);
+                transposedBlock);
         }
         else
         {
@@ -892,7 +892,7 @@ internal static partial class Av1TransformBlockEncoder
     /// <summary>
     /// Builds a high-bit-depth intra prediction and its compact source residual.
     /// </summary>
-    /// <param name="transformWorkspace">The transform workspace of the block, which serves as edge and prediction scratch.</param>
+    /// <param name="transformWorkspace">The transform workspace of the block, which holds the edges and the prediction working storage.</param>
     /// <param name="source">The source samples.</param>
     /// <param name="sourceStride">The number of source samples between rows.</param>
     /// <param name="prediction">The prediction destination.</param>
@@ -950,9 +950,9 @@ internal static partial class Av1TransformBlockEncoder
         else if (mode.IsDirectional())
         {
             int angle = mode.ToAngle() + (angleDelta * Av1Constants.AngleStep);
-            Span<short> scratch = MemoryMarshal.Cast<int, short>(transformWorkspace);
+            Span<short> predictionWorkspace = MemoryMarshal.Cast<int, short>(transformWorkspace);
             int predictionLength = width * height;
-            Span<short> directionalScratch = scratch[..predictionLength];
+            Span<short> transposedBlock = predictionWorkspace[..predictionLength];
             bool upsampleAbove = false;
             bool upsampleLeft = false;
             if (enableIntraEdgeFilter)
@@ -962,8 +962,8 @@ internal static partial class Av1TransformBlockEncoder
                 // AV1 defaults of one less than the midpoint above and one more than the midpoint left.
                 int edgeLength = Av1IntraEdgePreparation.ReferenceBufferLength;
                 int prefixLength = Av1IntraEdgePreparation.ReferencePrefixLength;
-                Span<short> aboveStorage = scratch.Slice(predictionLength, edgeLength);
-                Span<short> leftStorage = scratch.Slice(predictionLength + edgeLength, edgeLength);
+                Span<short> aboveStorage = predictionWorkspace.Slice(predictionLength, edgeLength);
+                Span<short> leftStorage = predictionWorkspace.Slice(predictionLength + edgeLength, edgeLength);
                 int midpoint = 128 << (bitDepth.GetBitCount() - 8);
                 aboveStorage.Fill((short)(midpoint - 1));
                 leftStorage.Fill((short)(midpoint + 1));
@@ -991,7 +991,7 @@ internal static partial class Av1TransformBlockEncoder
                     hasLeft ? height : 0,
                     smoothIntraEdges,
                     bitDepth.GetBitCount(),
-                    scratch.Slice(predictionLength + (2 * edgeLength), Av1IntraEdgeFilter.ScratchLength),
+                    predictionWorkspace.Slice(predictionLength + (2 * edgeLength), Av1IntraEdgeFilter.ScratchLength),
                     out upsampleAbove,
                     out upsampleLeft);
 
@@ -1008,7 +1008,7 @@ internal static partial class Av1TransformBlockEncoder
                 upsampleAbove,
                 upsampleLeft,
                 angle,
-                directionalScratch);
+                transposedBlock);
         }
         else
         {
@@ -1076,7 +1076,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1Plane plane,
         ref Av1EncoderTransformBlockState state)
     {
-        // The prediction scratch and the inverse transform share the transform workspace, read once.
+        // The prediction working storage and the inverse transform share the transform workspace, read once.
         Span<int> transformWorkspace = workspace.TransformWorkspace;
         PrepareIntraPrediction(
             transformWorkspace,
@@ -1175,7 +1175,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1BitDepth bitDepth,
         ref Av1EncoderTransformBlockState state)
     {
-        // The prediction scratch and the inverse transform share the transform workspace, read once.
+        // The prediction working storage and the inverse transform share the transform workspace, read once.
         Span<int> transformWorkspace = workspace.TransformWorkspace;
         PrepareIntraPrediction(
             transformWorkspace,

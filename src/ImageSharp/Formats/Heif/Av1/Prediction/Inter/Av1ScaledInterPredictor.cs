@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 internal static partial class Av1ScaledInterPredictor
 {
     /// <summary>
-    /// Gets the scratch capacity required by one scaled prediction block.
+    /// Gets the intermediate row capacity required by one scaled prediction block.
     /// </summary>
     /// <param name="width">The prediction width in samples.</param>
     /// <param name="height">The prediction height in samples.</param>
@@ -30,7 +30,7 @@ internal static partial class Av1ScaledInterPredictor
     }
 
     /// <summary>
-    /// Gets an upper bound of the scratch capacity of one scaled prediction block from its dimensions only.
+    /// Gets an upper bound of the intermediate row capacity of one scaled prediction block from its dimensions only.
     /// </summary>
     /// <param name="width">The prediction width in samples.</param>
     /// <param name="height">The prediction height in samples.</param>
@@ -54,7 +54,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <param name="horizontalStep">The Q10 horizontal distance between consecutive output columns.</param>
     /// <param name="verticalPhase">The Q10 vertical position of the first output row, relative to the origin row.</param>
     /// <param name="verticalStep">The Q10 vertical distance between consecutive output rows.</param>
-    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
     public static void PredictScaled(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -69,7 +69,7 @@ internal static partial class Av1ScaledInterPredictor
         int horizontalStep,
         int verticalPhase,
         int verticalStep,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         => DispatchScaled<byte, byte, NativeOperator>(
             source,
             sourceStride,
@@ -85,7 +85,7 @@ internal static partial class Av1ScaledInterPredictor
             verticalPhase,
             verticalStep,
             8,
-            scratch);
+            intermediateRows);
 
     /// <summary>
     /// Reconstructs an 8-, 10-, or 12-bit scaled prediction with variable source positions and phases.
@@ -104,7 +104,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <param name="verticalPhase">The Q10 vertical position of the first output row, relative to the origin row.</param>
     /// <param name="verticalStep">The Q10 vertical distance between consecutive output rows.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
     public static void PredictScaled(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -120,7 +120,7 @@ internal static partial class Av1ScaledInterPredictor
         int verticalPhase,
         int verticalStep,
         int bitDepth,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         => DispatchScaled<ushort, ushort, NativeOperator>(
             source,
             sourceStride,
@@ -136,7 +136,7 @@ internal static partial class Av1ScaledInterPredictor
             verticalPhase,
             verticalStep,
             bitDepth,
-            scratch);
+            intermediateRows);
 
     /// <summary>
     /// Reconstructs an 8-bit scaled predictor into the no-round compound intermediate domain.
@@ -154,7 +154,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <param name="horizontalStep">The Q10 horizontal distance between consecutive output columns.</param>
     /// <param name="verticalPhase">The Q10 vertical position of the first output row, relative to the origin row.</param>
     /// <param name="verticalStep">The Q10 vertical distance between consecutive output rows.</param>
-    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
     public static void PredictScaledCompound(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -169,7 +169,7 @@ internal static partial class Av1ScaledInterPredictor
         int horizontalStep,
         int verticalPhase,
         int verticalStep,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         => DispatchScaled<byte, ushort, CompoundOperator>(
             source,
             sourceStride,
@@ -185,7 +185,7 @@ internal static partial class Av1ScaledInterPredictor
             verticalPhase,
             verticalStep,
             8,
-            scratch);
+            intermediateRows);
 
     /// <summary>
     /// Reconstructs an 8-, 10-, or 12-bit scaled predictor into the no-round compound intermediate domain.
@@ -204,7 +204,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <param name="verticalPhase">The Q10 vertical position of the first output row, relative to the origin row.</param>
     /// <param name="verticalStep">The Q10 vertical distance between consecutive output rows.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
     public static void PredictScaledCompound(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -220,7 +220,7 @@ internal static partial class Av1ScaledInterPredictor
         int verticalPhase,
         int verticalStep,
         int bitDepth,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         => DispatchScaled<ushort, ushort, CompoundOperator>(
             source,
             sourceStride,
@@ -236,7 +236,7 @@ internal static partial class Av1ScaledInterPredictor
             verticalPhase,
             verticalStep,
             bitDepth,
-            scratch);
+            intermediateRows);
 
     /// <summary>
     /// Selects the horizontal filter family for scaled prediction.
@@ -258,7 +258,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <param name="verticalPhase">The Q10 vertical position of the first output row, relative to the origin row.</param>
     /// <param name="verticalStep">The Q10 vertical distance between consecutive output rows.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
     private static void DispatchScaled<TSource, TDestination, TOperator>(
         ReadOnlySpan<TSource> source,
         int sourceStride,
@@ -274,7 +274,7 @@ internal static partial class Av1ScaledInterPredictor
         int verticalPhase,
         int verticalStep,
         int bitDepth,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         where TSource : unmanaged
         where TDestination : unmanaged
         where TOperator : struct, IAv1ScaledPredictionOperator
@@ -296,7 +296,7 @@ internal static partial class Av1ScaledInterPredictor
                     verticalPhase,
                     verticalStep,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 break;
             case Av1InterpolationFilter.Smooth:
@@ -314,7 +314,7 @@ internal static partial class Av1ScaledInterPredictor
                     verticalPhase,
                     verticalStep,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 break;
             case Av1InterpolationFilter.Sharp:
@@ -332,7 +332,7 @@ internal static partial class Av1ScaledInterPredictor
                     verticalPhase,
                     verticalStep,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 break;
             default:
@@ -350,7 +350,7 @@ internal static partial class Av1ScaledInterPredictor
                     verticalPhase,
                     verticalStep,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 break;
         }
@@ -376,7 +376,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <param name="verticalPhase">The Q10 vertical position of the first output row, relative to the origin row.</param>
     /// <param name="verticalStep">The Q10 vertical distance between consecutive output rows.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
     private static void DispatchScaledVertical<TSource, TDestination, TOperator, THorizontal>(
         ReadOnlySpan<TSource> source,
         int sourceStride,
@@ -391,7 +391,7 @@ internal static partial class Av1ScaledInterPredictor
         int verticalPhase,
         int verticalStep,
         int bitDepth,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         where TSource : unmanaged
         where TDestination : unmanaged
         where TOperator : struct, IAv1ScaledPredictionOperator
@@ -413,7 +413,7 @@ internal static partial class Av1ScaledInterPredictor
                     verticalPhase,
                     verticalStep,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 break;
             case Av1InterpolationFilter.Smooth:
@@ -430,7 +430,7 @@ internal static partial class Av1ScaledInterPredictor
                     verticalPhase,
                     verticalStep,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 break;
             case Av1InterpolationFilter.Sharp:
@@ -447,7 +447,7 @@ internal static partial class Av1ScaledInterPredictor
                     verticalPhase,
                     verticalStep,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 break;
             default:
@@ -464,7 +464,7 @@ internal static partial class Av1ScaledInterPredictor
                     verticalPhase,
                     verticalStep,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 break;
         }
@@ -490,7 +490,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <param name="verticalPhase">The Q10 vertical position of the first output row, relative to the origin row.</param>
     /// <param name="verticalStep">The Q10 vertical distance between consecutive output rows.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScaledScratchLength"/> elements.</param>
     private static void PredictScaled<TSource, TDestination, TOperator, THorizontal, TVertical>(
         ReadOnlySpan<TSource> source,
         int sourceStride,
@@ -504,7 +504,7 @@ internal static partial class Av1ScaledInterPredictor
         int verticalPhase,
         int verticalStep,
         int bitDepth,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         where TSource : unmanaged
         where TDestination : unmanaged
         where TOperator : struct, IAv1ScaledPredictionOperator
@@ -513,8 +513,8 @@ internal static partial class Av1ScaledInterPredictor
     {
         ref TSource sourceBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), sourceOrigin);
         ref TDestination destinationBase = ref MemoryMarshal.GetReference(destination);
-        ref short scratchBase = ref MemoryMarshal.GetReference(scratch);
-        int scratchStride = Math.Max(width, Vector128<short>.Count);
+        ref short intermediateBase = ref MemoryMarshal.GetReference(intermediateRows);
+        int intermediateStride = Math.Max(width, Vector128<short>.Count);
         int intermediateHeight = ((((height - 1) * verticalStep) + verticalPhase) >> Av1ReferenceScale.SubpixelBits) + FilterCoefficientCount;
         int horizontalBias = 1 << (bitDepth + FilterBits - 1);
         int intermediateRange = bitDepth + FilterBits - Round0Bits + 2;
@@ -528,7 +528,7 @@ internal static partial class Av1ScaledInterPredictor
         for (int row = 0; row < intermediateHeight; row++)
         {
             ref TSource sourceRow = ref Unsafe.Add(ref sourceBase, (row - 3) * sourceStride);
-            ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
+            ref short intermediateRow = ref Unsafe.Add(ref intermediateBase, row * intermediateStride);
             int column = 0;
 
             if (Vector512.IsHardwareAccelerated)
@@ -548,7 +548,7 @@ internal static partial class Av1ScaledInterPredictor
                     // The narrow packs the 32-bit results into the lower half of a 16-bit vector. Only that lower half is stored.
                     Av1NonDirectionalIntraPredictorBase.Narrow(result, Vector512<int>.Zero)
                         .GetLower()
-                        .StoreUnsafe(ref scratchRow, (nuint)column);
+                        .StoreUnsafe(ref intermediateRow, (nuint)column);
                 }
             }
 
@@ -568,7 +568,7 @@ internal static partial class Av1ScaledInterPredictor
 
                     Av1NonDirectionalIntraPredictorBase.Narrow(result, Vector256<int>.Zero)
                         .GetLower()
-                        .StoreUnsafe(ref scratchRow, (nuint)column);
+                        .StoreUnsafe(ref intermediateRow, (nuint)column);
                 }
             }
 
@@ -588,7 +588,7 @@ internal static partial class Av1ScaledInterPredictor
 
                     Av1NonDirectionalIntraPredictorBase.Narrow(result, Vector128<int>.Zero)
                         .GetLower()
-                        .StoreUnsafe(ref scratchRow, (nuint)column);
+                        .StoreUnsafe(ref intermediateRow, (nuint)column);
                 }
             }
 
@@ -606,7 +606,7 @@ internal static partial class Av1ScaledInterPredictor
                     sum = NativeOperator.MultiplyAdd(sum, NativeOperator.Load(ref sourceRow, sourceColumn + tap), coefficients[tap]);
                 }
 
-                Unsafe.Add(ref scratchRow, column) = (short)RoundPowerOfTwo(sum, round0);
+                Unsafe.Add(ref intermediateRow, column) = (short)RoundPowerOfTwo(sum, round0);
             }
         }
 
@@ -623,7 +623,7 @@ internal static partial class Av1ScaledInterPredictor
                 (position & Av1ReferenceScale.SubpixelMask) >> 6,
                 useReducedVerticalFilter);
 
-            ref short scratchRow = ref Unsafe.Add(ref scratchBase, sourceRowIndex * scratchStride);
+            ref short intermediateRow = ref Unsafe.Add(ref intermediateBase, sourceRowIndex * intermediateStride);
             ref short coefficientBase = ref MemoryMarshal.GetReference(coefficients);
             ref TDestination destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
             int column = 0;
@@ -642,8 +642,8 @@ internal static partial class Av1ScaledInterPredictor
                     for (; vectorCount > 0; vectorCount--, column += Vector512<int>.Count * 2)
                     {
                         NativeOperator.Convolve(
-                            ref scratchRow,
-                            scratchStride,
+                            ref intermediateRow,
+                            intermediateStride,
                             (nuint)column,
                             ref coefficientBase,
                             FilterCoefficientCount,
@@ -671,8 +671,8 @@ internal static partial class Av1ScaledInterPredictor
                     for (; vectorCount > 0; vectorCount--, column += Vector256<int>.Count * 2)
                     {
                         NativeOperator.Convolve(
-                            ref scratchRow,
-                            scratchStride,
+                            ref intermediateRow,
+                            intermediateStride,
                             (nuint)column,
                             ref coefficientBase,
                             FilterCoefficientCount,
@@ -700,8 +700,8 @@ internal static partial class Av1ScaledInterPredictor
                     for (; vectorCount > 0; vectorCount--, column += Vector128<int>.Count * 2)
                     {
                         NativeOperator.Convolve(
-                            ref scratchRow,
-                            scratchStride,
+                            ref intermediateRow,
+                            intermediateStride,
                             (nuint)column,
                             ref coefficientBase,
                             FilterCoefficientCount,
@@ -719,8 +719,8 @@ internal static partial class Av1ScaledInterPredictor
             for (; column < width; column++)
             {
                 int sum = verticalBias + NativeOperator.Convolve(
-                    ref Unsafe.Add(ref scratchRow, column),
-                    scratchStride,
+                    ref Unsafe.Add(ref intermediateRow, column),
+                    intermediateStride,
                     ref coefficientBase,
                     FilterCoefficientCount);
 

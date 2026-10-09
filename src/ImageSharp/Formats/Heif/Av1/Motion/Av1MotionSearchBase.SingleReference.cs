@@ -489,7 +489,7 @@ internal static partial class Av1MotionSearchBase
         /// <summary>
         /// The signed intermediate storage for final prediction.
         /// </summary>
-        private readonly Span<short> convolutionScratch;
+        private readonly Span<short> convolutionStorage;
 
         /// <summary>
         /// The quantized coefficients of one transform.
@@ -585,8 +585,8 @@ internal static partial class Av1MotionSearchBase
         /// The frame luma plane that gets each prediction of the winner estimate, or the default value when the search writes no frame.
         /// </param>
         /// <param name="residual">The packed block residual destination.</param>
-        /// <param name="convolutionScratch">The signed intermediate storage for final prediction.</param>
-        /// <param name="quantized">The scratch quantized coefficients for one transform.</param>
+        /// <param name="convolutionStorage">The signed intermediate storage for final prediction.</param>
+        /// <param name="quantized">The quantized coefficients of one transform trial.</param>
         /// <param name="writer">The current tile probability state.</param>
         /// <param name="aboveContexts">The incoming top coefficient contexts.</param>
         /// <param name="leftContexts">The incoming left coefficient contexts.</param>
@@ -620,7 +620,7 @@ internal static partial class Av1MotionSearchBase
             Span<TSample> prediction,
             Av1PlaneRegion<TSample> frame,
             Span<short> residual,
-            Span<short> convolutionScratch,
+            Span<short> convolutionStorage,
             Span<int> quantized,
             Av1SymbolEncoder writer,
             ReadOnlySpan<byte> aboveContexts,
@@ -651,7 +651,7 @@ internal static partial class Av1MotionSearchBase
             this.prediction = prediction;
             this.frame = frame;
             this.residual = residual;
-            this.convolutionScratch = convolutionScratch;
+            this.convolutionStorage = convolutionStorage;
             this.quantized = quantized;
             this.writer = writer;
             this.aboveContexts = aboveContexts;
@@ -1281,7 +1281,7 @@ internal static partial class Av1MotionSearchBase
                     origin,
                     this.prediction,
                     this.residual,
-                    this.convolutionScratch,
+                    this.convolutionStorage,
                     width,
                     height,
                     horizontalFilter,

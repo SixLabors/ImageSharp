@@ -15,12 +15,12 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 internal sealed class HeifSequenceParser
 {
     /// <summary>
-    /// The reusable scratch size used by sequential table reads.
+    /// The size of the reusable read buffer of sequential table reads.
     /// </summary>
     private const int ScratchLength = 4096;
 
     /// <summary>
-    /// The configured allocator used for parser scratch and bounded table state.
+    /// The configured allocator used for the parser read buffer and bounded table state.
     /// </summary>
     private readonly MemoryAllocator allocator;
 
@@ -76,8 +76,8 @@ internal sealed class HeifSequenceParser
         long movieEnd = checked(movieStart + boxLength);
         HeifBoxReader.EnsureInsideParent(boxLength, stream.Length - movieStart);
 
-        using IMemoryOwner<byte> scratchOwner = this.allocator.Allocate<byte>(ScratchLength);
-        Span<byte> scratch = scratchOwner.GetSpan();
+        using IMemoryOwner<byte> readBufferOwner = this.allocator.Allocate<byte>(ScratchLength);
+        Span<byte> readBuffer = readBufferOwner.GetSpan();
         BoxReference movieHeader = default;
         uint colorTrackId = 0;
 
@@ -85,7 +85,7 @@ internal sealed class HeifSequenceParser
         // from forcing codec configurations and sample tables into the image decoder's retained model.
         while (stream.Position < movieEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, movieEnd, scratch, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, movieEnd, readBuffer, out Heif4CharCode childType);
             long childStart = stream.Position;
             if (childType == Heif4CharCode.Mvhd)
             {
@@ -93,7 +93,7 @@ internal sealed class HeifSequenceParser
             }
             else if (childType == Heif4CharCode.Trak)
             {
-                TrackIdentity identity = ScanTrackIdentity(stream, childLength, scratch);
+                TrackIdentity identity = ScanTrackIdentity(stream, childLength, readBuffer);
                 if (colorTrackId == 0
                     && identity.IsEnabled
                     && identity.HandlerType == Heif4CharCode.Pict
@@ -117,7 +117,7 @@ internal sealed class HeifSequenceParser
         }
 
         stream.Position = movieHeader.Offset;
-        uint movieTimescale = ParseMovieHeader(stream, movieHeader.Length, scratch);
+        uint movieTimescale = ParseMovieHeader(stream, movieHeader.Length, readBuffer);
         HeifSequenceTrack? colorTrack = null;
         HeifSequenceTrack? alphaTrack = null;
 
@@ -126,11 +126,11 @@ internal sealed class HeifSequenceParser
         stream.Position = movieStart;
         while (stream.Position < movieEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, movieEnd, scratch, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, movieEnd, readBuffer, out Heif4CharCode childType);
             long childStart = stream.Position;
             if (childType == Heif4CharCode.Trak)
             {
-                TrackIdentity identity = ScanTrackIdentity(stream, childLength, scratch);
+                TrackIdentity identity = ScanTrackIdentity(stream, childLength, readBuffer);
                 bool isColor = identity.Id == colorTrackId;
                 bool isLinkedAuxiliary = identity.AuxiliaryForTrackId == colorTrackId
                     && identity.HandlerType is Heif4CharCode.Auxv or Heif4CharCode.Pict;
@@ -138,7 +138,7 @@ internal sealed class HeifSequenceParser
                 if (isColor || (isLinkedAuxiliary && alphaTrack is null))
                 {
                     stream.Position = childStart;
-                    HeifSequenceTrack track = this.ParseTrack(stream, childLength, identity, scratch);
+                    HeifSequenceTrack track = this.ParseTrack(stream, childLength, identity, readBuffer);
                     if (isColor)
                     {
                         colorTrack = track;
@@ -178,9 +178,9 @@ internal sealed class HeifSequenceParser
     /// </summary>
     /// <param name="stream">The stream positioned at the track payload.</param>
     /// <param name="boxLength">The validated track payload length.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
     /// <returns>The track identity and image relationship fields.</returns>
-    private static TrackIdentity ScanTrackIdentity(Stream stream, long boxLength, Span<byte> scratch)
+    private static TrackIdentity ScanTrackIdentity(Stream stream, long boxLength, Span<byte> readBuffer)
     {
         long trackEnd = checked(stream.Position + boxLength);
         BoxReference trackHeader = default;
@@ -189,7 +189,7 @@ internal sealed class HeifSequenceParser
 
         while (stream.Position < trackEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, trackEnd, scratch, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, trackEnd, readBuffer, out Heif4CharCode childType);
             long childStart = stream.Position;
             switch (childType)
             {
@@ -213,7 +213,7 @@ internal sealed class HeifSequenceParser
         }
 
         stream.Position = media.Offset;
-        Heif4CharCode handlerType = ScanMediaHandler(stream, media.Length, scratch);
+        Heif4CharCode handlerType = ScanMediaHandler(stream, media.Length, readBuffer);
         if (handlerType is not Heif4CharCode.Pict and not Heif4CharCode.Auxv)
         {
             // Non-image tracks are outside this parser's retained ISOBMFF surface. Do not impose image dimensions,
@@ -229,11 +229,11 @@ internal sealed class HeifSequenceParser
         }
 
         stream.Position = trackHeader.Offset;
-        TrackIdentity identity = ParseTrackHeader(stream, trackHeader.Length, scratch);
+        TrackIdentity identity = ParseTrackHeader(stream, trackHeader.Length, readBuffer);
         if (trackReferences.IsPresent)
         {
             stream.Position = trackReferences.Offset;
-            ParseTrackReferences(stream, trackReferences.Length, ref identity, scratch);
+            ParseTrackReferences(stream, trackReferences.Length, ref identity, readBuffer);
         }
 
         identity.HandlerType = handlerType;
@@ -246,9 +246,9 @@ internal sealed class HeifSequenceParser
     /// <param name="stream">The stream positioned at the track payload.</param>
     /// <param name="boxLength">The validated track payload length.</param>
     /// <param name="identity">The fixed identity fields from the selection pass.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
     /// <returns>The selected track with its validated sample descriptors.</returns>
-    private HeifSequenceTrack ParseTrack(Stream stream, long boxLength, TrackIdentity identity, Span<byte> scratch)
+    private HeifSequenceTrack ParseTrack(Stream stream, long boxLength, TrackIdentity identity, Span<byte> readBuffer)
     {
         long trackEnd = checked(stream.Position + boxLength);
         BoxReference edit = default;
@@ -257,7 +257,7 @@ internal sealed class HeifSequenceParser
 
         while (stream.Position < trackEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, trackEnd, scratch, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, trackEnd, readBuffer, out Heif4CharCode childType);
             long childStart = stream.Position;
             if (childType == Heif4CharCode.Edts)
             {
@@ -294,7 +294,7 @@ internal sealed class HeifSequenceParser
         if (edit.IsPresent)
         {
             stream.Position = edit.Offset;
-            ParseEdit(stream, edit.Length, track, scratch);
+            ParseEdit(stream, edit.Length, track, readBuffer);
         }
 
         if (metadata.IsPresent && !this.options.SkipMetadata)
@@ -302,7 +302,7 @@ internal sealed class HeifSequenceParser
             try
             {
                 stream.Position = metadata.Offset;
-                track.Metadata = this.metadataParser.Parse(stream, metadata.Length, scratch);
+                track.Metadata = this.metadataParser.Parse(stream, metadata.Length, readBuffer);
             }
             catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.options, ex))
             {
@@ -311,7 +311,7 @@ internal sealed class HeifSequenceParser
         }
 
         stream.Position = media.Offset;
-        this.ParseMedia(stream, media.Length, track, scratch);
+        this.ParseMedia(stream, media.Length, track, readBuffer);
         if (track.TotalSampleCount == 0 || track.Samples.Length == 0)
         {
             throw new InvalidImageContentException("The HEIF image-sequence track contains no retained image samples.");
@@ -325,11 +325,11 @@ internal sealed class HeifSequenceParser
     /// </summary>
     /// <param name="stream">The stream positioned at the movie-header payload.</param>
     /// <param name="boxLength">The validated movie-header payload length.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
     /// <returns>The nonzero movie time scale.</returns>
-    private static uint ParseMovieHeader(Stream stream, long boxLength, Span<byte> scratch)
+    private static uint ParseMovieHeader(Stream stream, long boxLength, Span<byte> readBuffer)
     {
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 4, "movie header");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 4, "movie header");
         byte version = prefix[0];
         int requiredLength = version switch
         {
@@ -338,7 +338,7 @@ internal sealed class HeifSequenceParser
             _ => throw new InvalidImageContentException($"The movie header has unsupported version {version}.")
         };
 
-        prefix = ReadPrefixFromStart(stream, boxLength, scratch, requiredLength, "movie header");
+        prefix = ReadPrefixFromStart(stream, boxLength, readBuffer, requiredLength, "movie header");
         EnsureZeroFlags(prefix, "movie header");
         uint timescale = BinaryPrimitives.ReadUInt32BigEndian(prefix[(version == 0 ? 12 : 20)..]);
         if (timescale == 0)
@@ -361,9 +361,9 @@ internal sealed class HeifSequenceParser
     /// </summary>
     /// <param name="stream">The stream positioned at the track-header payload.</param>
     /// <param name="boxLength">The validated track-header payload length.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
     /// <returns>The fixed track identity fields.</returns>
-    private static TrackIdentity ParseTrackHeader(Stream stream, long boxLength, Span<byte> scratch)
+    private static TrackIdentity ParseTrackHeader(Stream stream, long boxLength, Span<byte> readBuffer)
     {
         const int fullBoxHeaderLength = sizeof(uint);
         const int trackIdAndReservedLength = 2 * sizeof(uint);
@@ -373,7 +373,7 @@ internal sealed class HeifSequenceParser
         const int fixedPointFractionalBits = 16;
         const uint trackEnabledFlag = 1 << 0;
 
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, fullBoxHeaderLength, "track header");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, fullBoxHeaderLength, "track header");
         byte version = prefix[0];
 
         // ISO/IEC 14496-12, Section 8.3.2 defines 'tkhd' as a FullBox followed by creation and modification
@@ -396,7 +396,7 @@ internal sealed class HeifSequenceParser
         int widthOffset = matrixOffset + matrixLength;
         int requiredLength = widthOffset + dimensionsLength;
 
-        prefix = ReadPrefixFromStart(stream, boxLength, scratch, requiredLength, "track header");
+        prefix = ReadPrefixFromStart(stream, boxLength, readBuffer, requiredLength, "track header");
         uint flags = ReadFlags(prefix);
         uint id = BinaryPrimitives.ReadUInt32BigEndian(prefix[trackIdOffset..]);
 
@@ -451,13 +451,13 @@ internal sealed class HeifSequenceParser
     /// <param name="stream">The stream positioned at the track-reference payload.</param>
     /// <param name="boxLength">The validated track-reference payload length.</param>
     /// <param name="identity">The track identity receiving image relationships.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
-    private static void ParseTrackReferences(Stream stream, long boxLength, ref TrackIdentity identity, Span<byte> scratch)
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
+    private static void ParseTrackReferences(Stream stream, long boxLength, ref TrackIdentity identity, Span<byte> readBuffer)
     {
         long referenceEnd = checked(stream.Position + boxLength);
         while (stream.Position < referenceEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, referenceEnd, scratch, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, referenceEnd, readBuffer, out Heif4CharCode childType);
             long childStart = stream.Position;
             if (childType is Heif4CharCode.Auxl or Heif4CharCode.Prem)
             {
@@ -466,7 +466,7 @@ internal sealed class HeifSequenceParser
                     throw new InvalidImageContentException($"The '{childType}' track reference has an invalid identifier list.");
                 }
 
-                ReadOnlySpan<byte> data = ReadPrefix(stream, childLength, scratch, 4, $"{childType} track reference");
+                ReadOnlySpan<byte> data = ReadPrefix(stream, childLength, readBuffer, 4, $"{childType} track reference");
                 uint referencedTrackId = BinaryPrimitives.ReadUInt32BigEndian(data);
                 if (referencedTrackId == 0)
                 {
@@ -502,15 +502,15 @@ internal sealed class HeifSequenceParser
     /// </summary>
     /// <param name="stream">The stream positioned at the media payload.</param>
     /// <param name="boxLength">The validated media payload length.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
     /// <returns>The declared media handler type.</returns>
-    private static Heif4CharCode ScanMediaHandler(Stream stream, long boxLength, Span<byte> scratch)
+    private static Heif4CharCode ScanMediaHandler(Stream stream, long boxLength, Span<byte> readBuffer)
     {
         long mediaEnd = checked(stream.Position + boxLength);
         BoxReference handler = default;
         while (stream.Position < mediaEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, mediaEnd, scratch, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, mediaEnd, readBuffer, out Heif4CharCode childType);
             long childStart = stream.Position;
             if (childType == Heif4CharCode.Hdlr)
             {
@@ -526,7 +526,7 @@ internal sealed class HeifSequenceParser
         }
 
         stream.Position = handler.Offset;
-        return ParseHandler(stream, handler.Length, scratch);
+        return ParseHandler(stream, handler.Length, readBuffer);
     }
 
     /// <summary>
@@ -535,8 +535,8 @@ internal sealed class HeifSequenceParser
     /// <param name="stream">The stream positioned at the media payload.</param>
     /// <param name="boxLength">The validated media payload length.</param>
     /// <param name="track">The selected track receiving media state.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
-    private void ParseMedia(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> scratch)
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
+    private void ParseMedia(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> readBuffer)
     {
         long mediaEnd = checked(stream.Position + boxLength);
         BoxReference mediaHeader = default;
@@ -545,7 +545,7 @@ internal sealed class HeifSequenceParser
 
         while (stream.Position < mediaEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, mediaEnd, scratch, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, mediaEnd, readBuffer, out Heif4CharCode childType);
             long childStart = stream.Position;
             switch (childType)
             {
@@ -569,16 +569,16 @@ internal sealed class HeifSequenceParser
         }
 
         stream.Position = mediaHeader.Offset;
-        ParseMediaHeader(stream, mediaHeader.Length, track, scratch);
+        ParseMediaHeader(stream, mediaHeader.Length, track, readBuffer);
         stream.Position = handler.Offset;
-        Heif4CharCode handlerType = ParseHandler(stream, handler.Length, scratch);
+        Heif4CharCode handlerType = ParseHandler(stream, handler.Length, readBuffer);
         if (handlerType != track.HandlerType)
         {
             throw new InvalidImageContentException("The HEIF image-sequence track handler changed between parser passes.");
         }
 
         stream.Position = mediaInformation.Offset;
-        this.ParseMediaInformation(stream, mediaInformation.Length, track, scratch);
+        this.ParseMediaInformation(stream, mediaInformation.Length, track, readBuffer);
     }
 
     /// <summary>
@@ -587,10 +587,10 @@ internal sealed class HeifSequenceParser
     /// <param name="stream">The stream positioned at the media-header payload.</param>
     /// <param name="boxLength">The validated media-header payload length.</param>
     /// <param name="track">The selected track receiving timing state.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
-    private static void ParseMediaHeader(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> scratch)
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
+    private static void ParseMediaHeader(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> readBuffer)
     {
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 4, "media header");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 4, "media header");
         byte version = prefix[0];
         int requiredLength = version switch
         {
@@ -599,7 +599,7 @@ internal sealed class HeifSequenceParser
             _ => throw new InvalidImageContentException($"The media header has unsupported version {version}.")
         };
 
-        prefix = ReadPrefixFromStart(stream, boxLength, scratch, requiredLength, "media header");
+        prefix = ReadPrefixFromStart(stream, boxLength, readBuffer, requiredLength, "media header");
         EnsureZeroFlags(prefix, "media header");
         int timescaleOffset = version == 0 ? 12 : 20;
         track.MediaTimescale = BinaryPrimitives.ReadUInt32BigEndian(prefix[timescaleOffset..]);
@@ -618,11 +618,11 @@ internal sealed class HeifSequenceParser
     /// </summary>
     /// <param name="stream">The stream positioned at the handler payload.</param>
     /// <param name="boxLength">The validated handler payload length.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
     /// <returns>The declared handler type.</returns>
-    private static Heif4CharCode ParseHandler(Stream stream, long boxLength, Span<byte> scratch)
+    private static Heif4CharCode ParseHandler(Stream stream, long boxLength, Span<byte> readBuffer)
     {
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 24, "handler");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 24, "handler");
         EnsureVersionAndFlags(prefix, 0, 0, "handler");
         if (BinaryPrimitives.ReadUInt32BigEndian(prefix[4..]) != 0)
         {
@@ -638,15 +638,15 @@ internal sealed class HeifSequenceParser
     /// <param name="stream">The stream positioned at the media-information payload.</param>
     /// <param name="boxLength">The validated media-information payload length.</param>
     /// <param name="track">The selected track receiving its sample table.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
-    private void ParseMediaInformation(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> scratch)
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
+    private void ParseMediaInformation(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> readBuffer)
     {
         long informationEnd = checked(stream.Position + boxLength);
         BoxReference dataInformation = default;
         BoxReference sampleTable = default;
         while (stream.Position < informationEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, informationEnd, scratch, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, informationEnd, readBuffer, out Heif4CharCode childType);
             long childStart = stream.Position;
             if (childType == Heif4CharCode.Dinf)
             {
@@ -666,9 +666,9 @@ internal sealed class HeifSequenceParser
         }
 
         stream.Position = dataInformation.Offset;
-        ParseDataInformation(stream, dataInformation.Length, scratch);
+        ParseDataInformation(stream, dataInformation.Length, readBuffer);
         stream.Position = sampleTable.Offset;
-        this.ParseSampleTable(stream, sampleTable.Length, track, scratch);
+        this.ParseSampleTable(stream, sampleTable.Length, track, readBuffer);
     }
 
     /// <summary>
@@ -676,14 +676,14 @@ internal sealed class HeifSequenceParser
     /// </summary>
     /// <param name="stream">The stream positioned at the data-information payload.</param>
     /// <param name="boxLength">The validated data-information payload length.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
-    private static void ParseDataInformation(Stream stream, long boxLength, Span<byte> scratch)
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
+    private static void ParseDataInformation(Stream stream, long boxLength, Span<byte> readBuffer)
     {
         long informationEnd = checked(stream.Position + boxLength);
         BoxReference dataReference = default;
         while (stream.Position < informationEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, informationEnd, scratch, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, informationEnd, readBuffer, out Heif4CharCode childType);
             long childStart = stream.Position;
             if (childType == Heif4CharCode.Dref)
             {
@@ -700,20 +700,20 @@ internal sealed class HeifSequenceParser
 
         stream.Position = dataReference.Offset;
         long referenceEnd = checked(stream.Position + dataReference.Length);
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, dataReference.Length, scratch, 8, "data reference");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, dataReference.Length, readBuffer, 8, "data reference");
         EnsureVersionAndFlags(prefix, 0, 0, "data reference");
         if (BinaryPrimitives.ReadUInt32BigEndian(prefix[4..]) != 1)
         {
             throw new InvalidImageContentException("A HEIF image-sequence track must contain exactly one data reference.");
         }
 
-        long locationLength = HeifBoxReader.ReadHeader(stream, referenceEnd, scratch, out Heif4CharCode locationType);
+        long locationLength = HeifBoxReader.ReadHeader(stream, referenceEnd, readBuffer, out Heif4CharCode locationType);
         if (locationType != Heif4CharCode.Url || locationLength != 4)
         {
             throw new InvalidImageContentException("A HEIF image-sequence track uses an external data reference.");
         }
 
-        prefix = ReadPrefix(stream, locationLength, scratch, 4, "data location");
+        prefix = ReadPrefix(stream, locationLength, readBuffer, 4, "data location");
         EnsureVersionAndFlags(prefix, 0, 1, "data location");
         if (stream.Position != referenceEnd)
         {
@@ -727,8 +727,8 @@ internal sealed class HeifSequenceParser
     /// <param name="stream">The stream positioned at the sample-table payload.</param>
     /// <param name="boxLength">The validated sample-table payload length.</param>
     /// <param name="track">The selected track receiving sample descriptors.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
-    private void ParseSampleTable(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> scratch)
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
+    private void ParseSampleTable(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> readBuffer)
     {
         long tableEnd = checked(stream.Position + boxLength);
         BoxReference sampleDescription = default;
@@ -744,7 +744,7 @@ internal sealed class HeifSequenceParser
 
         while (stream.Position < tableEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, tableEnd, scratch, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, tableEnd, readBuffer, out Heif4CharCode childType);
             long childStart = stream.Position;
             switch (childType)
             {
@@ -777,14 +777,14 @@ internal sealed class HeifSequenceParser
                     SetUnique(ref compositionToDecode, childStart, childLength, "sample table", childType);
                     break;
                 case Heif4CharCode.Sgpd:
-                    if (ReadSampleGroupType(stream, childLength, scratch) == Heif4CharCode.Refs)
+                    if (ReadSampleGroupType(stream, childLength, readBuffer) == Heif4CharCode.Refs)
                     {
                         SetUnique(ref sampleGroupDescriptions, childStart, childLength, "sample table", childType);
                     }
 
                     break;
                 case Heif4CharCode.Sbgp:
-                    if (ReadSampleGroupType(stream, childLength, scratch) == Heif4CharCode.Refs)
+                    if (ReadSampleGroupType(stream, childLength, readBuffer) == Heif4CharCode.Refs)
                     {
                         SetUnique(ref sampleToGroup, childStart, childLength, "sample table", childType);
                     }
@@ -805,11 +805,11 @@ internal sealed class HeifSequenceParser
         }
 
         stream.Position = sampleDescription.Offset;
-        this.ParseSampleDescription(stream, sampleDescription.Length, track, scratch);
+        this.ParseSampleDescription(stream, sampleDescription.Length, track, readBuffer);
         stream.Position = sampleSizes.Offset;
-        this.ParseSampleSizes(stream, sampleSizes.Length, sampleSizes.Type, track, scratch);
+        this.ParseSampleSizes(stream, sampleSizes.Length, sampleSizes.Type, track, readBuffer);
         stream.Position = sampleTiming.Offset;
-        ulong decodedDuration = ParseSampleTiming(stream, sampleTiming.Length, track, scratch);
+        ulong decodedDuration = ParseSampleTiming(stream, sampleTiming.Length, track, readBuffer);
 
         if (track.MediaDuration != 0 && track.MediaDuration != ulong.MaxValue && track.MediaDuration != decodedDuration)
         {
@@ -817,22 +817,22 @@ internal sealed class HeifSequenceParser
         }
 
         stream.Position = chunkOffsets.Offset;
-        uint chunkCount = ReadChunkCount(stream, chunkOffsets.Length, chunkOffsets.Type, scratch);
+        uint chunkCount = ReadChunkCount(stream, chunkOffsets.Length, chunkOffsets.Type, readBuffer);
         stream.Position = sampleToChunk.Offset;
         using IMemoryOwner<SampleToChunkEntry> entries = this.ParseSampleToChunk(
             stream,
             sampleToChunk.Length,
             chunkCount,
             track,
-            scratch,
+            readBuffer,
             out int entryCount);
 
         stream.Position = chunkOffsets.Offset;
-        this.ResolveSampleLocations(stream, chunkOffsets.Length, chunkOffsets.Type, chunkCount, entries.GetSpan()[..entryCount], track, scratch);
+        this.ResolveSampleLocations(stream, chunkOffsets.Length, chunkOffsets.Type, chunkCount, entries.GetSpan()[..entryCount], track, readBuffer);
         if (syncSamples.IsPresent)
         {
             stream.Position = syncSamples.Offset;
-            ParseSyncSamples(stream, syncSamples.Length, track, scratch);
+            ParseSyncSamples(stream, syncSamples.Length, track, readBuffer);
         }
         else
         {
@@ -850,7 +850,7 @@ internal sealed class HeifSequenceParser
 
         if (sampleGroupDescriptions.IsPresent)
         {
-            this.ParseDirectReferences(stream, sampleGroupDescriptions, sampleToGroup, track, scratch);
+            this.ParseDirectReferences(stream, sampleGroupDescriptions, sampleToGroup, track, readBuffer);
         }
 
         if (compositionOffsets.IsPresent || compositionToDecode.IsPresent)
@@ -868,11 +868,11 @@ internal sealed class HeifSequenceParser
     /// <param name="stream">The stream positioned at the sample-description payload.</param>
     /// <param name="boxLength">The validated sample-description payload length.</param>
     /// <param name="track">The selected track receiving its codec configuration.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
-    private void ParseSampleDescription(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> scratch)
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
+    private void ParseSampleDescription(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> readBuffer)
     {
         long descriptionEnd = checked(stream.Position + boxLength);
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 8, "sample description");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 8, "sample description");
         byte version = prefix[0];
         if (version is not 0 and not 1 || ReadFlags(prefix) != 0)
         {
@@ -884,14 +884,14 @@ internal sealed class HeifSequenceParser
             throw new InvalidImageContentException("A HEIF image-sequence track must contain exactly one sample description.");
         }
 
-        long entryLength = HeifBoxReader.ReadHeader(stream, descriptionEnd, scratch, out Heif4CharCode entryType);
+        long entryLength = HeifBoxReader.ReadHeader(stream, descriptionEnd, readBuffer, out Heif4CharCode entryType);
         if (entryType != Heif4CharCode.Av01 || entryLength < 78)
         {
             throw new InvalidImageContentException($"The image-sequence sample entry '{entryType}' is unsupported or truncated.");
         }
 
         long entryEnd = checked(stream.Position + entryLength);
-        prefix = ReadPrefix(stream, entryLength, scratch, 78, "visual sample entry");
+        prefix = ReadPrefix(stream, entryLength, readBuffer, 78, "visual sample entry");
         if (BinaryPrimitives.ReadUInt16BigEndian(prefix[6..]) != 1)
         {
             throw new InvalidImageContentException("The image-sequence sample entry uses a nonlocal data reference.");
@@ -912,7 +912,7 @@ internal sealed class HeifSequenceParser
         bool auxiliaryTypeSeen = false;
         while (stream.Position < entryEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, entryEnd, scratch, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, entryEnd, readBuffer, out Heif4CharCode childType);
             long childStart = stream.Position;
             switch (childType)
             {
@@ -935,7 +935,7 @@ internal sealed class HeifSequenceParser
                         throw new InvalidImageContentException("The image-sequence sample entry has duplicate coding constraints.");
                     }
 
-                    ParseCodingConstraints(stream, childLength, track, scratch);
+                    ParseCodingConstraints(stream, childLength, track, readBuffer);
                     codingConstraintsSeen = true;
                     break;
                 case Heif4CharCode.Auxi:
@@ -948,7 +948,7 @@ internal sealed class HeifSequenceParser
                     auxiliaryTypeSeen = true;
                     break;
                 case Heif4CharCode.Colr:
-                    this.ParseTrackColorInformation(stream, childLength, track, scratch);
+                    this.ParseTrackColorInformation(stream, childLength, track, readBuffer);
                     break;
                 case Heif4CharCode.Pasp:
                 case Heif4CharCode.Clli:
@@ -961,7 +961,7 @@ internal sealed class HeifSequenceParser
                     {
                         try
                         {
-                            ParseTrackImageProperty(stream, childLength, childType, track, scratch);
+                            ParseTrackImageProperty(stream, childLength, childType, track, readBuffer);
                         }
                         catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.options, ex))
                         {
@@ -975,7 +975,7 @@ internal sealed class HeifSequenceParser
                 case Heif4CharCode.Imir:
                     try
                     {
-                        ParseTrackImageProperty(stream, childLength, childType, track, scratch);
+                        ParseTrackImageProperty(stream, childLength, childType, track, readBuffer);
                     }
                     catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreImageDataSegmentError(this.options, ex))
                     {
@@ -1001,15 +1001,15 @@ internal sealed class HeifSequenceParser
     /// <param name="boxLength">The validated property payload length.</param>
     /// <param name="boxType">The registered image property type.</param>
     /// <param name="track">The selected image track receiving the property.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
     private static void ParseTrackImageProperty(
         Stream stream,
         long boxLength,
         Heif4CharCode boxType,
         HeifSequenceTrack track,
-        Span<byte> scratch)
+        Span<byte> readBuffer)
     {
-        ReadOnlySpan<byte> data = ReadPropertyPayload(stream, boxLength, scratch, boxType);
+        ReadOnlySpan<byte> data = ReadPropertyPayload(stream, boxLength, readBuffer, boxType);
         switch (boxType)
         {
             case Heif4CharCode.Pasp:
@@ -1103,10 +1103,10 @@ internal sealed class HeifSequenceParser
     /// <param name="stream">The stream positioned at the color-information payload.</param>
     /// <param name="boxLength">The validated color-information payload length.</param>
     /// <param name="track">The selected image track receiving the color description.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
-    private void ParseTrackColorInformation(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> scratch)
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
+    private void ParseTrackColorInformation(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> readBuffer)
     {
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 4, "color information");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 4, "color information");
         Heif4CharCode profileType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(prefix);
         if (profileType == Heif4CharCode.Nclx)
         {
@@ -1122,7 +1122,7 @@ internal sealed class HeifSequenceParser
                     throw new InvalidImageContentException("The CICP color-information property has an invalid length.");
                 }
 
-                prefix = ReadPrefixFromStart(stream, boxLength, scratch, 11, "color information");
+                prefix = ReadPrefixFromStart(stream, boxLength, readBuffer, 11, "color information");
                 track.CicpProfile = HeifPropertyParser.ParseCicpProfile(prefix[4..]);
             }
             catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreImageDataSegmentError(this.options, ex))
@@ -1158,21 +1158,21 @@ internal sealed class HeifSequenceParser
     }
 
     /// <summary>
-    /// Reads a bounded fixed-size image property through the parser's reusable scratch buffer.
+    /// Reads a bounded fixed-size image property through the parser's reusable read buffer.
     /// </summary>
     /// <param name="stream">The stream positioned at the property payload.</param>
     /// <param name="boxLength">The validated property payload length.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
     /// <param name="boxType">The property type used in malformed-image diagnostics.</param>
-    /// <returns>The complete property payload within <paramref name="scratch"/>.</returns>
-    private static ReadOnlySpan<byte> ReadPropertyPayload(Stream stream, long boxLength, Span<byte> scratch, Heif4CharCode boxType)
+    /// <returns>The complete property payload within <paramref name="readBuffer"/>.</returns>
+    private static ReadOnlySpan<byte> ReadPropertyPayload(Stream stream, long boxLength, Span<byte> readBuffer, Heif4CharCode boxType)
     {
-        if (boxLength > scratch.Length)
+        if (boxLength > readBuffer.Length)
         {
             throw new InvalidImageContentException($"The '{boxType}' image-sequence property exceeds its registered bounded size.");
         }
 
-        return ReadPrefix(stream, boxLength, scratch, (int)boxLength, $"{boxType} image-sequence property");
+        return ReadPrefix(stream, boxLength, readBuffer, (int)boxLength, $"{boxType} image-sequence property");
     }
 
     /// <summary>
@@ -1181,10 +1181,10 @@ internal sealed class HeifSequenceParser
     /// <param name="stream">The stream positioned at the coding-constraints payload.</param>
     /// <param name="boxLength">The validated coding-constraints payload length.</param>
     /// <param name="track">The selected track receiving coding constraints.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
-    private static void ParseCodingConstraints(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> scratch)
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
+    private static void ParseCodingConstraints(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> readBuffer)
     {
-        ReadOnlySpan<byte> data = ReadPrefix(stream, boxLength, scratch, 8, "coding constraints");
+        ReadOnlySpan<byte> data = ReadPrefix(stream, boxLength, readBuffer, 8, "coding constraints");
         if (boxLength != 8)
         {
             throw new InvalidImageContentException("The image-sequence coding-constraints box has an invalid length.");
@@ -1235,16 +1235,16 @@ internal sealed class HeifSequenceParser
     /// <param name="boxLength">The validated sample-size payload length.</param>
     /// <param name="boxType">The full-width or compact sample-size box type.</param>
     /// <param name="track">The selected track receiving retained sample lengths.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
-    private void ParseSampleSizes(Stream stream, long boxLength, Heif4CharCode boxType, HeifSequenceTrack track, Span<byte> scratch)
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
+    private void ParseSampleSizes(Stream stream, long boxLength, Heif4CharCode boxType, HeifSequenceTrack track, Span<byte> readBuffer)
     {
         if (boxType == Heif4CharCode.Stsz)
         {
-            this.ParseFullSampleSizes(stream, boxLength, track, scratch);
+            this.ParseFullSampleSizes(stream, boxLength, track, readBuffer);
         }
         else
         {
-            this.ParseCompactSampleSizes(stream, boxLength, track, scratch);
+            this.ParseCompactSampleSizes(stream, boxLength, track, readBuffer);
         }
     }
 
@@ -1254,10 +1254,10 @@ internal sealed class HeifSequenceParser
     /// <param name="stream">The stream positioned at the sample-size payload.</param>
     /// <param name="boxLength">The validated sample-size payload length.</param>
     /// <param name="track">The selected track receiving retained sample lengths.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
-    private void ParseFullSampleSizes(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> scratch)
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
+    private void ParseFullSampleSizes(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> readBuffer)
     {
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 12, "sample sizes");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 12, "sample sizes");
         EnsureVersionAndFlags(prefix, 0, 0, "sample sizes");
         uint constantSize = BinaryPrimitives.ReadUInt32BigEndian(prefix[4..]);
         uint sampleCount = BinaryPrimitives.ReadUInt32BigEndian(prefix[8..]);
@@ -1295,7 +1295,7 @@ internal sealed class HeifSequenceParser
             return;
         }
 
-        HeifBoxPayloadReader reader = new(stream, entryBytes, scratch, "sample sizes");
+        HeifBoxPayloadReader reader = new(stream, entryBytes, readBuffer, "sample sizes");
         for (uint i = 0; i < sampleCount; i++)
         {
             int size = ValidateSampleSize(reader.ReadUInt32());
@@ -1312,10 +1312,10 @@ internal sealed class HeifSequenceParser
     /// <param name="stream">The stream positioned at the compact sample-size payload.</param>
     /// <param name="boxLength">The validated compact sample-size payload length.</param>
     /// <param name="track">The selected track receiving retained sample lengths.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
-    private void ParseCompactSampleSizes(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> scratch)
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
+    private void ParseCompactSampleSizes(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> readBuffer)
     {
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 12, "compact sample sizes");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 12, "compact sample sizes");
         EnsureVersionAndFlags(prefix, 0, 0, "compact sample sizes");
         if (prefix[4] != 0 || prefix[5] != 0 || prefix[6] != 0 || prefix[7] is not 4 and not 8 and not 16)
         {
@@ -1338,7 +1338,7 @@ internal sealed class HeifSequenceParser
         int retainedCount = (int)Math.Min(sampleCount, (uint)this.maxFrames);
         track.TotalSampleCount = sampleCount;
         track.Samples = new HeifSequenceSample[retainedCount];
-        HeifBoxPayloadReader reader = new(stream, entryBytes, scratch, "compact sample sizes");
+        HeifBoxPayloadReader reader = new(stream, entryBytes, readBuffer, "compact sample sizes");
         for (uint i = 0; i < sampleCount; i++)
         {
             uint size;
@@ -1383,11 +1383,11 @@ internal sealed class HeifSequenceParser
     /// <param name="stream">The stream positioned at the time-to-sample payload.</param>
     /// <param name="boxLength">The validated time-to-sample payload length.</param>
     /// <param name="track">The selected track receiving retained durations.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
     /// <returns>The total decoded duration in media-time-scale units.</returns>
-    private static ulong ParseSampleTiming(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> scratch)
+    private static ulong ParseSampleTiming(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> readBuffer)
     {
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 8, "sample timing");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 8, "sample timing");
         EnsureVersionAndFlags(prefix, 0, 0, "sample timing");
         uint entryCount = BinaryPrimitives.ReadUInt32BigEndian(prefix[4..]);
         long entryBytes = checked((long)entryCount * 8);
@@ -1396,7 +1396,7 @@ internal sealed class HeifSequenceParser
             throw new InvalidImageContentException("The image-sequence timing table is empty or has an invalid length.");
         }
 
-        HeifBoxPayloadReader reader = new(stream, entryBytes, scratch, "sample timing");
+        HeifBoxPayloadReader reader = new(stream, entryBytes, readBuffer, "sample timing");
         ulong describedSamples = 0;
         ulong decodedDuration = 0;
         int retainedOffset = 0;
@@ -1443,11 +1443,11 @@ internal sealed class HeifSequenceParser
     /// <param name="stream">The stream positioned at a chunk-offset payload.</param>
     /// <param name="boxLength">The validated chunk-offset payload length.</param>
     /// <param name="boxType">The 32-bit or 64-bit chunk-offset box type.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
     /// <returns>The nonzero number of chunks.</returns>
-    private static uint ReadChunkCount(Stream stream, long boxLength, Heif4CharCode boxType, Span<byte> scratch)
+    private static uint ReadChunkCount(Stream stream, long boxLength, Heif4CharCode boxType, Span<byte> readBuffer)
     {
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 8, "chunk offsets");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 8, "chunk offsets");
         EnsureVersionAndFlags(prefix, 0, 0, "chunk offsets");
         uint chunkCount = BinaryPrimitives.ReadUInt32BigEndian(prefix[4..]);
         int entrySize = boxType == Heif4CharCode.Co64 ? 8 : 4;
@@ -1466,7 +1466,7 @@ internal sealed class HeifSequenceParser
     /// <param name="boxLength">The validated sample-to-chunk payload length.</param>
     /// <param name="chunkCount">The validated number of chunks.</param>
     /// <param name="track">The selected track whose complete sample count is validated.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
     /// <param name="retainedEntryCount">Receives the number of retained mapping entries.</param>
     /// <returns>Allocator-owned sample-to-chunk runs that cover all retained samples.</returns>
     private IMemoryOwner<SampleToChunkEntry> ParseSampleToChunk(
@@ -1474,10 +1474,10 @@ internal sealed class HeifSequenceParser
         long boxLength,
         uint chunkCount,
         HeifSequenceTrack track,
-        Span<byte> scratch,
+        Span<byte> readBuffer,
         out int retainedEntryCount)
     {
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 8, "sample-to-chunk");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 8, "sample-to-chunk");
         EnsureVersionAndFlags(prefix, 0, 0, "sample-to-chunk");
         uint entryCount = BinaryPrimitives.ReadUInt32BigEndian(prefix[4..]);
         long entryBytes = checked((long)entryCount * 12);
@@ -1489,7 +1489,7 @@ internal sealed class HeifSequenceParser
         int retainedCapacity = (int)Math.Min(entryCount, (uint)track.Samples.Length);
         IMemoryOwner<SampleToChunkEntry> owner = this.allocator.Allocate<SampleToChunkEntry>(retainedCapacity);
         Span<SampleToChunkEntry> retainedEntries = owner.GetSpan();
-        HeifBoxPayloadReader reader = new(stream, entryBytes, scratch, "sample-to-chunk");
+        HeifBoxPayloadReader reader = new(stream, entryBytes, readBuffer, "sample-to-chunk");
         uint previousFirstChunk = 0;
         uint previousSamplesPerChunk = 0;
         ulong describedSamples = 0;
@@ -1546,7 +1546,7 @@ internal sealed class HeifSequenceParser
     /// <param name="chunkCount">The validated number of chunks.</param>
     /// <param name="entries">The retained sample-to-chunk runs.</param>
     /// <param name="track">The selected track receiving absolute sample locations.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
     private void ResolveSampleLocations(
         Stream stream,
         long boxLength,
@@ -1554,11 +1554,11 @@ internal sealed class HeifSequenceParser
         uint chunkCount,
         ReadOnlySpan<SampleToChunkEntry> entries,
         HeifSequenceTrack track,
-        Span<byte> scratch)
+        Span<byte> readBuffer)
     {
-        _ = ReadChunkCount(stream, boxLength, boxType, scratch);
+        _ = ReadChunkCount(stream, boxLength, boxType, readBuffer);
         int entrySize = boxType == Heif4CharCode.Co64 ? 8 : 4;
-        HeifBoxPayloadReader reader = new(stream, checked((long)chunkCount * entrySize), scratch, "chunk offsets");
+        HeifBoxPayloadReader reader = new(stream, checked((long)chunkCount * entrySize), readBuffer, "chunk offsets");
         int retainedSample = 0;
         int runIndex = 0;
         long fileLength = stream.Length - this.fileStartOffset;
@@ -1604,10 +1604,10 @@ internal sealed class HeifSequenceParser
     /// <param name="stream">The stream positioned at the sync-sample payload.</param>
     /// <param name="boxLength">The validated sync-sample payload length.</param>
     /// <param name="track">The selected track receiving random-access markers.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
-    private static void ParseSyncSamples(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> scratch)
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
+    private static void ParseSyncSamples(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> readBuffer)
     {
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 8, "sync samples");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 8, "sync samples");
         EnsureVersionAndFlags(prefix, 0, 0, "sync samples");
         uint entryCount = BinaryPrimitives.ReadUInt32BigEndian(prefix[4..]);
         long entryBytes = checked((long)entryCount * 4);
@@ -1616,7 +1616,7 @@ internal sealed class HeifSequenceParser
             throw new InvalidImageContentException("The sync-sample table is empty or has an invalid length.");
         }
 
-        HeifBoxPayloadReader reader = new(stream, entryBytes, scratch, "sync samples");
+        HeifBoxPayloadReader reader = new(stream, entryBytes, readBuffer, "sync samples");
         uint previousSample = 0;
         for (uint i = 0; i < entryCount; i++)
         {
@@ -1647,18 +1647,18 @@ internal sealed class HeifSequenceParser
     /// <param name="descriptions">The validated direct-reference group-description payload.</param>
     /// <param name="sampleMap">The validated direct-reference sample-map payload.</param>
     /// <param name="track">The selected image track receiving its dependency graph.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
     private void ParseDirectReferences(
         Stream stream,
         BoxReference descriptions,
         BoxReference sampleMap,
         HeifSequenceTrack track,
-        Span<byte> scratch)
+        Span<byte> readBuffer)
     {
         using IMemoryOwner<SampleGroupAssignment> assignmentOwner = this.allocator.Allocate<SampleGroupAssignment>(track.Samples.Length);
         Span<SampleGroupAssignment> assignments = assignmentOwner.GetSpan()[..track.Samples.Length];
         stream.Position = sampleMap.Offset;
-        uint greatestGroupIndex = ParseSampleToGroup(stream, sampleMap.Length, track, assignments, scratch);
+        uint greatestGroupIndex = ParseSampleToGroup(stream, sampleMap.Length, track, assignments, readBuffer);
 
         // Sorting the retained value-type assignments lets each group description be applied in one sequential pass.
         // This avoids a dictionary and prevents attacker-controlled group counts from causing quadratic lookup work.
@@ -1672,7 +1672,7 @@ internal sealed class HeifSequenceParser
             assignments,
             [],
             false,
-            scratch);
+            readBuffer);
 
         using IMemoryOwner<SampleIdIndexEntry> sampleIdOwner = this.allocator.Allocate<SampleIdIndexEntry>(track.Samples.Length);
         Span<SampleIdIndexEntry> sampleIds = sampleIdOwner.GetSpan()[..track.Samples.Length];
@@ -1712,7 +1712,7 @@ internal sealed class HeifSequenceParser
             assignments,
             sampleIds,
             true,
-            scratch);
+            readBuffer);
 
         if (track.AllReferencePicturesIntra)
         {
@@ -1734,17 +1734,17 @@ internal sealed class HeifSequenceParser
     /// <param name="boxLength">The validated sample-to-group payload length.</param>
     /// <param name="track">The selected track whose complete sample count is validated.</param>
     /// <param name="assignments">The exact retained assignment span.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
     /// <returns>The greatest group-description index used by any declared sample.</returns>
     private static uint ParseSampleToGroup(
         Stream stream,
         long boxLength,
         HeifSequenceTrack track,
         Span<SampleGroupAssignment> assignments,
-        Span<byte> scratch)
+        Span<byte> readBuffer)
     {
         long payloadStart = stream.Position;
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 8, "sample-to-group");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 8, "sample-to-group");
         byte version = prefix[0];
         if (version is not 0 and not 1 || ReadFlags(prefix) != 0
             || (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(prefix[4..]) != Heif4CharCode.Refs)
@@ -1754,7 +1754,7 @@ internal sealed class HeifSequenceParser
 
         int headerLength = version == 0 ? 12 : 16;
         stream.Position = payloadStart;
-        prefix = ReadPrefix(stream, boxLength, scratch, headerLength, "sample-to-group");
+        prefix = ReadPrefix(stream, boxLength, readBuffer, headerLength, "sample-to-group");
         if (version == 1 && BinaryPrimitives.ReadUInt32BigEndian(prefix[8..]) != 0)
         {
             throw new InvalidImageContentException("The direct-reference sample group has a nonzero grouping-type parameter.");
@@ -1768,7 +1768,7 @@ internal sealed class HeifSequenceParser
             throw new InvalidImageContentException("The direct-reference sample map is empty or has an invalid length.");
         }
 
-        HeifBoxPayloadReader reader = new(stream, entryBytes, scratch, "direct-reference sample map");
+        HeifBoxPayloadReader reader = new(stream, entryBytes, readBuffer, "direct-reference sample map");
         ulong describedSamples = 0;
         int retainedOffset = 0;
         uint greatestGroupIndex = 0;
@@ -1810,7 +1810,7 @@ internal sealed class HeifSequenceParser
     /// <param name="assignments">The retained sample assignments sorted by group-description index.</param>
     /// <param name="sampleIds">The sorted positive sample identifiers, or an empty span during the sizing pass.</param>
     /// <param name="resolveReferences">Whether this pass resolves reference identifiers into compact sample indices.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
     /// <returns>The exact number of retained direct-reference indices.</returns>
     private static int ParseDirectReferenceDescriptions(
         Stream stream,
@@ -1820,10 +1820,10 @@ internal sealed class HeifSequenceParser
         ReadOnlySpan<SampleGroupAssignment> assignments,
         ReadOnlySpan<SampleIdIndexEntry> sampleIds,
         bool resolveReferences,
-        Span<byte> scratch)
+        Span<byte> readBuffer)
     {
         long payloadStart = stream.Position;
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 8, "sample-group descriptions");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 8, "sample-group descriptions");
         byte version = prefix[0];
         if (version is not 1 and not 2 || ReadFlags(prefix) != 0
             || (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(prefix[4..]) != Heif4CharCode.Refs)
@@ -1833,7 +1833,7 @@ internal sealed class HeifSequenceParser
 
         int headerLength = version == 1 ? 16 : 20;
         stream.Position = payloadStart;
-        prefix = ReadPrefix(stream, boxLength, scratch, headerLength, "sample-group descriptions");
+        prefix = ReadPrefix(stream, boxLength, readBuffer, headerLength, "sample-group descriptions");
         uint defaultLength = BinaryPrimitives.ReadUInt32BigEndian(prefix[8..]);
         uint defaultGroupIndex = version == 2 ? BinaryPrimitives.ReadUInt32BigEndian(prefix[12..]) : 0;
         int entryCountOffset = version == 1 ? 12 : 16;
@@ -1844,7 +1844,7 @@ internal sealed class HeifSequenceParser
         }
 
         long entryBytes = boxLength - headerLength;
-        HeifBoxPayloadReader reader = new(stream, entryBytes, scratch, "direct-reference descriptions");
+        HeifBoxPayloadReader reader = new(stream, entryBytes, readBuffer, "direct-reference descriptions");
         long consumedBytes = 0;
         int assignmentOffset = 0;
         int directReferenceCount = 0;
@@ -1973,11 +1973,11 @@ internal sealed class HeifSequenceParser
     /// </summary>
     /// <param name="stream">The stream positioned at the full-box payload.</param>
     /// <param name="boxLength">The validated payload length.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
     /// <returns>The declared grouping type.</returns>
-    private static Heif4CharCode ReadSampleGroupType(Stream stream, long boxLength, Span<byte> scratch)
+    private static Heif4CharCode ReadSampleGroupType(Stream stream, long boxLength, Span<byte> readBuffer)
     {
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 8, "sample group");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 8, "sample group");
         return (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(prefix[4..]);
     }
 
@@ -2003,14 +2003,14 @@ internal sealed class HeifSequenceParser
     /// <param name="stream">The stream positioned at the edit-container payload.</param>
     /// <param name="boxLength">The validated edit-container payload length.</param>
     /// <param name="track">The selected track receiving repetition behavior.</param>
-    /// <param name="scratch">The parser-owned reusable scratch span.</param>
-    private static void ParseEdit(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> scratch)
+    /// <param name="readBuffer">The parser-owned reusable read buffer.</param>
+    private static void ParseEdit(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> readBuffer)
     {
         long editEnd = checked(stream.Position + boxLength);
         BoxReference editList = default;
         while (stream.Position < editEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, editEnd, scratch, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, editEnd, readBuffer, out Heif4CharCode childType);
             long childStart = stream.Position;
             if (childType == Heif4CharCode.Elst)
             {
@@ -2026,7 +2026,7 @@ internal sealed class HeifSequenceParser
         }
 
         stream.Position = editList.Offset;
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, editList.Length, scratch, 8, "edit list");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, editList.Length, readBuffer, 8, "edit list");
         byte version = prefix[0];
         uint flags = ReadFlags(prefix);
         int entryLength = version switch
@@ -2041,7 +2041,7 @@ internal sealed class HeifSequenceParser
             throw new InvalidImageContentException("The image-sequence edit list has unsupported flags, entries, or length.");
         }
 
-        prefix = ReadPrefix(stream, entryLength, scratch, entryLength, "edit-list entry");
+        prefix = ReadPrefix(stream, entryLength, readBuffer, entryLength, "edit-list entry");
         ulong segmentDuration;
         long mediaTime;
         int rateOffset;
@@ -2195,18 +2195,18 @@ internal sealed class HeifSequenceParser
     /// </summary>
     /// <param name="stream">The source stream.</param>
     /// <param name="boxLength">The validated enclosing payload length.</param>
-    /// <param name="scratch">The reusable destination scratch span.</param>
+    /// <param name="readBuffer">The reusable destination read buffer.</param>
     /// <param name="length">The required prefix length.</param>
     /// <param name="name">The payload name used in malformed-image diagnostics.</param>
-    /// <returns>The requested prefix within <paramref name="scratch"/>.</returns>
-    private static ReadOnlySpan<byte> ReadPrefix(Stream stream, long boxLength, Span<byte> scratch, int length, string name)
+    /// <returns>The requested prefix within <paramref name="readBuffer"/>.</returns>
+    private static ReadOnlySpan<byte> ReadPrefix(Stream stream, long boxLength, Span<byte> readBuffer, int length, string name)
     {
         if (boxLength < length)
         {
             throw new InvalidImageContentException($"The {name} payload is truncated.");
         }
 
-        Span<byte> destination = scratch[..length];
+        Span<byte> destination = readBuffer[..length];
         HeifBoxReader.ReadExactly(stream, destination, $"The {name} payload is truncated.");
         return destination;
     }
@@ -2216,14 +2216,14 @@ internal sealed class HeifSequenceParser
     /// </summary>
     /// <param name="stream">The source stream positioned after a four-byte prefix.</param>
     /// <param name="boxLength">The validated enclosing payload length.</param>
-    /// <param name="scratch">The reusable destination scratch span.</param>
+    /// <param name="readBuffer">The reusable destination read buffer.</param>
     /// <param name="length">The required prefix length.</param>
     /// <param name="name">The payload name used in malformed-image diagnostics.</param>
-    /// <returns>The requested prefix within <paramref name="scratch"/>.</returns>
-    private static ReadOnlySpan<byte> ReadPrefixFromStart(Stream stream, long boxLength, Span<byte> scratch, int length, string name)
+    /// <returns>The requested prefix within <paramref name="readBuffer"/>.</returns>
+    private static ReadOnlySpan<byte> ReadPrefixFromStart(Stream stream, long boxLength, Span<byte> readBuffer, int length, string name)
     {
         stream.Position -= 4;
-        return ReadPrefix(stream, boxLength, scratch, length, name);
+        return ReadPrefix(stream, boxLength, readBuffer, length, name);
     }
 
     /// <summary>

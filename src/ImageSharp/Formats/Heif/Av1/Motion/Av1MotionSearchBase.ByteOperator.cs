@@ -19,7 +19,7 @@ internal static partial class Av1MotionSearchBase
             int referenceStride,
             int referenceOrigin,
             Span<byte> prediction,
-            Span<short> scratch,
+            Span<short> intermediateRows,
             int width,
             int height,
             Av1InterpolationFilter horizontalFilter,
@@ -39,7 +39,7 @@ internal static partial class Av1MotionSearchBase
                 verticalFilter,
                 horizontalPhase,
                 verticalPhase,
-                scratch);
+                intermediateRows);
 
         /// <inheritdoc/>
         public static void PreparePrediction(
@@ -50,7 +50,7 @@ internal static partial class Av1MotionSearchBase
             int referenceOrigin,
             Span<byte> prediction,
             Span<short> residual,
-            Span<short> scratch,
+            Span<short> intermediateRows,
             int width,
             int height,
             Av1InterpolationFilter horizontalFilter,
@@ -64,7 +64,7 @@ internal static partial class Av1MotionSearchBase
                 referenceStride,
                 referenceOrigin,
                 prediction,
-                scratch,
+                intermediateRows,
                 width,
                 height,
                 horizontalFilter,

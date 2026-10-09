@@ -75,7 +75,7 @@ internal static partial class Av1GlobalMotionSearch
         /// <param name="height">The number of rows to write.</param>
         /// <param name="bitDepth">The coded sample depth, which only the high-bit-depth filter reads.</param>
         /// <param name="parameters">The warp model.</param>
-        /// <param name="scratch">The intermediate storage of the two filter passes.</param>
+        /// <param name="intermediateTile">The intermediate storage of the two filter passes.</param>
         public static abstract void PredictWarped(
             ReadOnlySpan<TSample> source,
             int sourceStride,
@@ -88,7 +88,7 @@ internal static partial class Av1GlobalMotionSearch
             int height,
             int bitDepth,
             Av1GlobalMotionParameters parameters,
-            Span<short> scratch);
+            Span<short> intermediateTile);
 
         /// <summary>
         /// Measures the absolute error between two equally sized regions.
@@ -330,7 +330,7 @@ internal static partial class Av1GlobalMotionSearch
     /// <param name="bestError">The total above which measuring stops.</param>
     /// <param name="bitDepth">The coded sample depth.</param>
     /// <param name="warped">The buffer that holds one warped block.</param>
-    /// <param name="scratch">The intermediate storage of the warp filter.</param>
+    /// <param name="intermediateTile">The intermediate storage of the warp filter.</param>
     /// <returns>The error, or <see cref="long.MaxValue"/> when the model cannot be used or is worse.</returns>
     /// <remarks>
     /// The measure stops when the total passes <paramref name="bestError"/>. A model that is already worse cannot become better over the remaining blocks.
@@ -348,7 +348,7 @@ internal static partial class Av1GlobalMotionSearch
         long bestError,
         int bitDepth,
         Span<TSample> warped,
-        Span<short> scratch)
+        Span<short> intermediateTile)
         where TSample : unmanaged
         where TOperator : struct, IAv1GlobalMotionOperator<TSample>
     {
@@ -382,7 +382,7 @@ internal static partial class Av1GlobalMotionSearch
                     blockHeight,
                     bitDepth,
                     parameters,
-                    scratch);
+                    intermediateTile);
 
                 total += TOperator.SumAbsoluteDifferences(
                     warped,
@@ -447,9 +447,9 @@ internal static partial class Av1GlobalMotionSearch
         parameters.Type = GetModelType(parameters);
 
         using IMemoryOwner<TSample> warpedOwner = allocator.Allocate<TSample>(ErrorBlock * ErrorBlock);
-        using IMemoryOwner<short> scratchOwner = allocator.Allocate<short>(Av1WarpedInterPredictor.WarpedScratchLength);
+        using IMemoryOwner<short> intermediateTileOwner = allocator.Allocate<short>(Av1WarpedInterPredictor.WarpedScratchLength);
         Span<TSample> warped = warpedOwner.Memory.Span;
-        Span<short> scratch = scratchOwner.Memory.Span;
+        Span<short> intermediateTile = intermediateTileOwner.Memory.Span;
 
         if (refinementCount == 0)
         {
@@ -457,12 +457,24 @@ internal static partial class Av1GlobalMotionSearch
             // it proves that the model fails.
             long selectionThreshold = (long)Math.Round(referenceError * errorAdvantageThreshold, MidpointRounding.ToEven);
             return GetWarpError<TSample, TOperator>(
-                ref parameters, reference, referenceStride, source, sourceStride, width, height, map, mapStride, selectionThreshold, bitDepth, warped, scratch);
+                ref parameters,
+                reference,
+                referenceStride,
+                source,
+                sourceStride,
+                width,
+                height,
+                map,
+                mapStride,
+                selectionThreshold,
+                bitDepth,
+                warped,
+                intermediateTile);
         }
 
         long threshold = (long)Math.Round(referenceError * EarlyErrorAdvantageThreshold, MidpointRounding.ToEven);
         long bestError = GetWarpError<TSample, TOperator>(
-            ref parameters, reference, referenceStride, source, sourceStride, width, height, map, mapStride, threshold, bitDepth, warped, scratch);
+            ref parameters, reference, referenceStride, source, sourceStride, width, height, map, mapStride, threshold, bitDepth, warped, intermediateTile);
 
         if (bestError > threshold)
         {
@@ -484,7 +496,19 @@ internal static partial class Av1GlobalMotionSearch
                     parameters[index] = AddParameterOffset(index, current, step * trial);
                     ForceModelType(ref parameters, type);
                     long stepError = GetWarpError<TSample, TOperator>(
-                        ref parameters, reference, referenceStride, source, sourceStride, width, height, map, mapStride, bestError, bitDepth, warped, scratch);
+                        ref parameters,
+                        reference,
+                        referenceStride,
+                        source,
+                        sourceStride,
+                        width,
+                        height,
+                        map,
+                        mapStride,
+                        bestError,
+                        bitDepth,
+                        warped,
+                        intermediateTile);
 
                     if (stepError < bestError)
                     {
@@ -500,7 +524,19 @@ internal static partial class Av1GlobalMotionSearch
                     parameters[index] = AddParameterOffset(index, best, step * direction);
                     ForceModelType(ref parameters, type);
                     long stepError = GetWarpError<TSample, TOperator>(
-                        ref parameters, reference, referenceStride, source, sourceStride, width, height, map, mapStride, bestError, bitDepth, warped, scratch);
+                        ref parameters,
+                        reference,
+                        referenceStride,
+                        source,
+                        sourceStride,
+                        width,
+                        height,
+                        map,
+                        mapStride,
+                        bestError,
+                        bitDepth,
+                        warped,
+                        intermediateTile);
 
                     if (stepError >= bestError)
                     {
@@ -566,7 +602,7 @@ internal static partial class Av1GlobalMotionSearch
             int height,
             int bitDepth,
             Av1GlobalMotionParameters parameters,
-            Span<short> scratch)
+            Span<short> intermediateTile)
             => Av1WarpedInterPredictor.PredictWarped(
                 source,
                 sourceStride,
@@ -581,7 +617,7 @@ internal static partial class Av1GlobalMotionSearch
                 0,
                 0,
                 parameters,
-                scratch);
+                intermediateTile);
 
         /// <inheritdoc/>
         public static int SumAbsoluteDifferences(
@@ -607,7 +643,7 @@ internal static partial class Av1GlobalMotionSearch
             int height,
             int bitDepth,
             Av1GlobalMotionParameters parameters,
-            Span<short> scratch)
+            Span<short> intermediateTile)
             => Av1WarpedInterPredictor.PredictWarped(
                 source,
                 sourceStride,
@@ -623,7 +659,7 @@ internal static partial class Av1GlobalMotionSearch
                 0,
                 bitDepth,
                 parameters,
-                scratch);
+                intermediateTile);
 
         /// <inheritdoc/>
         public static int SumAbsoluteDifferences(

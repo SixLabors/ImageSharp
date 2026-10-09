@@ -63,9 +63,9 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     private readonly HeifSequenceParser sequenceParser;
 
     /// <summary>
-    /// The fixed scratch buffer reused for all item-container box headers in this decode operation.
+    /// The fixed buffer reused for all item-container box headers in this decode operation.
     /// </summary>
-    private readonly byte[] boxHeaderScratch;
+    private readonly byte[] boxHeaderBuffer;
 
     /// <summary>
     /// The item identifier selected by the primary-item box.
@@ -129,7 +129,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         this.metadata = new ImageMetadata();
         this.boxReader = new HeifBoxReader(this.configuration.MemoryAllocator);
         this.sequenceParser = new HeifSequenceParser(options);
-        this.boxHeaderScratch = new byte[8];
+        this.boxHeaderBuffer = new byte[8];
         this.items = [];
         this.itemLinks = [];
     }
@@ -173,7 +173,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         // the metadata box. Complete the top-level scan before resolving and decoding the primary item.
         while (stream.Position < stream.Length)
         {
-            long boxLength = HeifBoxReader.ReadHeader(stream, stream.Length, this.boxHeaderScratch, out Heif4CharCode boxType, true);
+            long boxLength = HeifBoxReader.ReadHeader(stream, stream.Length, this.boxHeaderBuffer, out Heif4CharCode boxType, true);
             switch (boxType)
             {
                 case Heif4CharCode.Meta:
@@ -220,7 +220,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         // metadata come from item declarations and associated properties rather than reconstructed pixels.
         while (stream.Position < stream.Length)
         {
-            long boxLength = HeifBoxReader.ReadHeader(stream, stream.Length, this.boxHeaderScratch, out Heif4CharCode boxType, true);
+            long boxLength = HeifBoxReader.ReadHeader(stream, stream.Length, this.boxHeaderBuffer, out Heif4CharCode boxType, true);
             switch (boxType)
             {
                 case Heif4CharCode.Meta:
@@ -248,7 +248,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <returns>The declared supported image presentation, or <see cref="HeifFileType.Unsupported"/>.</returns>
     private HeifFileType ReadFileTypeBox(BufferedReadStream stream)
     {
-        long boxLength = HeifBoxReader.ReadHeader(stream, stream.Length, this.boxHeaderScratch, out Heif4CharCode boxType, true);
+        long boxLength = HeifBoxReader.ReadHeader(stream, stream.Length, this.boxHeaderBuffer, out Heif4CharCode boxType, true);
         if (boxType != Heif4CharCode.Ftyp)
         {
             return HeifFileType.Unsupported;
@@ -279,7 +279,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         HeifSequence? sequence = null;
         while (stream.Position < stream.Length)
         {
-            long boxLength = HeifBoxReader.ReadHeader(stream, stream.Length, this.boxHeaderScratch, out Heif4CharCode boxType, true);
+            long boxLength = HeifBoxReader.ReadHeader(stream, stream.Length, this.boxHeaderBuffer, out Heif4CharCode boxType, true);
             switch (boxType)
             {
                 case Heif4CharCode.Meta:
@@ -925,7 +925,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         Dictionary<Heif4CharCode, (long Offset, long Length)> boxes = [];
         while (stream.Position < endPosition)
         {
-            long length = HeifBoxReader.ReadHeader(stream, endPosition, this.boxHeaderScratch, out Heif4CharCode boxType);
+            long length = HeifBoxReader.ReadHeader(stream, endPosition, this.boxHeaderBuffer, out Heif4CharCode boxType);
             if (MetadataParseOrder.Contains(boxType))
             {
                 // Association and location boxes can precede the item declarations they reference.
@@ -1288,7 +1288,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         List<(long Offset, long Length)> associations = [];
         while (stream.Position < endBoxPosition)
         {
-            long containerLength = HeifBoxReader.ReadHeader(stream, endBoxPosition, this.boxHeaderScratch, out Heif4CharCode containerType);
+            long containerLength = HeifBoxReader.ReadHeader(stream, endBoxPosition, this.boxHeaderBuffer, out Heif4CharCode containerType);
             if (containerType == Heif4CharCode.Ipco)
             {
                 if (propertyContainer.HasValue)
@@ -1334,7 +1334,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         long endPosition = stream.Position + boxLength;
         while (stream.Position < endPosition)
         {
-            long itemLength = HeifBoxReader.ReadHeader(stream, endPosition, this.boxHeaderScratch, out Heif4CharCode itemType);
+            long itemLength = HeifBoxReader.ReadHeader(stream, endPosition, this.boxHeaderBuffer, out Heif4CharCode itemType);
             if (this.Options.SkipMetadata && itemType is Heif4CharCode.Pasp
                 or Heif4CharCode.Clli
                 or Heif4CharCode.Mdcv
@@ -1352,7 +1352,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
             if (this.Options.SkipMetadata && itemType == Heif4CharCode.Colr && itemLength >= 4)
             {
-                Span<byte> profileTypeBuffer = this.boxHeaderScratch.AsSpan(0, 4);
+                Span<byte> profileTypeBuffer = this.boxHeaderBuffer.AsSpan(0, 4);
                 HeifBoxReader.ReadExactly(stream, profileTypeBuffer, "The HEIF color-information property is truncated.");
                 Heif4CharCode profileType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(profileTypeBuffer);
                 if (profileType is Heif4CharCode.RICC or Heif4CharCode.Prof)
@@ -1369,7 +1369,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
             if (!this.Options.SkipMetadata && itemType == Heif4CharCode.Colr && itemLength is >= 4 and <= int.MaxValue)
             {
-                Span<byte> profileTypeBuffer = this.boxHeaderScratch.AsSpan(0, 4);
+                Span<byte> profileTypeBuffer = this.boxHeaderBuffer.AsSpan(0, 4);
                 HeifBoxReader.ReadExactly(stream, profileTypeBuffer, "The HEIF color-information property is truncated.");
                 Heif4CharCode profileType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(profileTypeBuffer);
 

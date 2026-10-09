@@ -26,7 +26,7 @@ internal static partial class Av1LoopRestorationEncoder
     /// <param name="pruning">The parameter-set pruning policy.</param>
     /// <param name="filtered0">The retained radius-two results.</param>
     /// <param name="filtered1">The retained radius-one results.</param>
-    /// <param name="scratch">The shared processing-block workspace.</param>
+    /// <param name="blockStorage">The shared processing-block workspace.</param>
     /// <returns>The selected self-guided parameters.</returns>
     private static Av1LoopRestorationUnit SearchSelfGuided<TSample>(
         Av1PlaneRegion<TSample> source,
@@ -37,7 +37,7 @@ internal static partial class Av1LoopRestorationEncoder
         int pruning,
         Span<int> filtered0,
         Span<int> filtered1,
-        Span<int> scratch)
+        Span<int> blockStorage)
         where TSample : unmanaged
     {
         Av1LoopRestorationUnit best = default;
@@ -63,7 +63,7 @@ internal static partial class Av1LoopRestorationEncoder
                 parameterSet,
                 filtered0,
                 filtered1,
-                scratch,
+                blockStorage,
                 ref bestError,
                 ref best);
         }
@@ -86,7 +86,7 @@ internal static partial class Av1LoopRestorationEncoder
                         parameterSet,
                         filtered0,
                         filtered1,
-                        scratch,
+                        blockStorage,
                         ref bestError,
                         ref best);
                 }
@@ -101,7 +101,7 @@ internal static partial class Av1LoopRestorationEncoder
                 radiusOneSets[best.SgrParameterSet],
                 filtered0,
                 filtered1,
-                scratch,
+                blockStorage,
                 ref bestError,
                 ref best);
 
@@ -114,7 +114,7 @@ internal static partial class Av1LoopRestorationEncoder
                 radiusTwoSets[best.SgrParameterSet],
                 filtered0,
                 filtered1,
-                scratch,
+                blockStorage,
                 ref bestError,
                 ref best);
         }
@@ -134,7 +134,7 @@ internal static partial class Av1LoopRestorationEncoder
     /// <param name="parameterSet">The parameter set to evaluate.</param>
     /// <param name="filtered0">The retained radius-two results.</param>
     /// <param name="filtered1">The retained radius-one results.</param>
-    /// <param name="scratch">The shared processing-block workspace.</param>
+    /// <param name="blockStorage">The shared processing-block workspace.</param>
     /// <param name="bestError">The lowest error found so far.</param>
     /// <param name="best">The parameters associated with that error.</param>
     private static void EvaluateParameterSet<TSample>(
@@ -146,7 +146,7 @@ internal static partial class Av1LoopRestorationEncoder
         int parameterSet,
         Span<int> filtered0,
         Span<int> filtered1,
-        Span<int> scratch,
+        Span<int> blockStorage,
         ref long bestError,
         ref Av1LoopRestorationUnit best)
         where TSample : unmanaged
@@ -164,7 +164,7 @@ internal static partial class Av1LoopRestorationEncoder
                 parameterSet,
                 filtered0,
                 filtered1,
-                scratch,
+                blockStorage,
                 ref bestError,
                 ref best);
         }
@@ -179,7 +179,7 @@ internal static partial class Av1LoopRestorationEncoder
                 parameterSet,
                 filtered0,
                 filtered1,
-                scratch,
+                blockStorage,
                 ref bestError,
                 ref best);
         }
@@ -194,7 +194,7 @@ internal static partial class Av1LoopRestorationEncoder
                 parameterSet,
                 filtered0,
                 filtered1,
-                scratch,
+                blockStorage,
                 ref bestError,
                 ref best);
         }
@@ -213,7 +213,7 @@ internal static partial class Av1LoopRestorationEncoder
     /// <param name="parameterSet">The parameter set to evaluate.</param>
     /// <param name="filtered0">The retained radius-two results.</param>
     /// <param name="filtered1">The retained radius-one results.</param>
-    /// <param name="scratch">The shared processing-block workspace.</param>
+    /// <param name="blockStorage">The shared processing-block workspace.</param>
     /// <param name="bestError">The lowest error found so far.</param>
     /// <param name="best">The parameters associated with that error.</param>
     private static void EvaluateSelfGuided<TSample, TProjection>(
@@ -225,7 +225,7 @@ internal static partial class Av1LoopRestorationEncoder
         int parameterSet,
         Span<int> filtered0,
         Span<int> filtered1,
-        Span<int> scratch,
+        Span<int> blockStorage,
         ref long bestError,
         ref Av1LoopRestorationUnit best)
         where TSample : unmanaged
@@ -249,7 +249,7 @@ internal static partial class Av1LoopRestorationEncoder
                 Span<int> first = filtered0.Slice(offset, length);
                 Span<int> second = filtered1.Slice(offset, length);
                 Av1SelfGuidedFilter.GenerateFilters(
-                    storage[origin..], reconstruction.Stride, width, height, bitDepth, parameterSet, first, second, scratch);
+                    storage[origin..], reconstruction.Stride, width, height, bitDepth, parameterSet, first, second, blockStorage);
 
                 // The unit workspace keeps the packed processing blocks in place. Coefficient refinement walks the same block order, so no repacking
                 // is necessary. All sums stay integer until the full unit is accumulated, so block boundaries add no rounding.

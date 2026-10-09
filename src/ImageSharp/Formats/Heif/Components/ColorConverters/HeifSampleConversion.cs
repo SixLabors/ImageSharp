@@ -174,8 +174,8 @@ internal static class HeifSampleConversion
     /// <param name="subX">The horizontal chroma subsampling shift.</param>
     /// <param name="isCenteredX">Whether horizontally subsampled chroma is centered between luma samples.</param>
     /// <param name="destination">The reconstructed full-width chroma row.</param>
-    /// <param name="scratch0">The first pooled chroma scratch row.</param>
-    /// <param name="scratch1">The second pooled chroma scratch row.</param>
+    /// <param name="firstChromaRow">The first pooled chroma row.</param>
+    /// <param name="secondChromaRow">The second pooled chroma row.</param>
     /// <param name="bias">The encoded chroma value corresponding to normalized zero.</param>
     /// <param name="scale">The encoded chroma range.</param>
     public static void ReconstructChromaRowBilinear<TSample, TLoader>(
@@ -185,15 +185,15 @@ internal static class HeifSampleConversion
         int subX,
         bool isCenteredX,
         Span<float> destination,
-        Span<float> scratch0,
-        Span<float> scratch1,
+        Span<float> firstChromaRow,
+        Span<float> secondChromaRow,
         float bias,
         float scale)
         where TSample : unmanaged
         where TLoader : struct, IHeifSampleConverter<TSample>
     {
         int sourceLength = subX == 0 ? destination.Length : (destination.Length + 1) >> 1;
-        Span<float> top = scratch0[..sourceLength];
+        Span<float> top = firstChromaRow[..sourceLength];
         ConvertSamplesToFloat<TSample, TLoader>(row0, top, bias, scale);
 
         if (subX == 0)
@@ -205,7 +205,7 @@ internal static class HeifSampleConversion
         ReadOnlySpan<float> bottom = top;
         if (y1Weight != 0)
         {
-            Span<float> lower = scratch1[..sourceLength];
+            Span<float> lower = secondChromaRow[..sourceLength];
             ConvertSamplesToFloat<TSample, TLoader>(row1, lower, bias, scale);
             bottom = lower;
         }

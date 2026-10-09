@@ -71,19 +71,19 @@ internal static partial class Av1IntraEdgeFilter
     /// <param name="edge">The first edge sample, including the common corner when present.</param>
     /// <param name="count">The number of edge samples.</param>
     /// <param name="strength">The smoothing strength from zero through three.</param>
-    /// <param name="scratch">The source workspace with at least <see cref="ScratchLength"/> samples.</param>
-    public static void Apply(ref byte edge, int count, int strength, Span<byte> scratch)
+    /// <param name="originalEdge">The source workspace with at least <see cref="ScratchLength"/> samples.</param>
+    public static void Apply(ref byte edge, int count, int strength, Span<byte> originalEdge)
     {
         switch (strength)
         {
             case 1:
-                Filter<Strength1Operator>.Apply(ref edge, count, scratch);
+                Filter<Strength1Operator>.Apply(ref edge, count, originalEdge);
                 break;
             case 2:
-                Filter<Strength2Operator>.Apply(ref edge, count, scratch);
+                Filter<Strength2Operator>.Apply(ref edge, count, originalEdge);
                 break;
             case 3:
-                Filter<Strength3Operator>.Apply(ref edge, count, scratch);
+                Filter<Strength3Operator>.Apply(ref edge, count, originalEdge);
                 break;
         }
     }
@@ -94,19 +94,19 @@ internal static partial class Av1IntraEdgeFilter
     /// <param name="edge">The first edge sample, including the common corner when present.</param>
     /// <param name="count">The number of edge samples.</param>
     /// <param name="strength">The smoothing strength from zero through three.</param>
-    /// <param name="scratch">The source workspace with at least <see cref="ScratchLength"/> samples.</param>
-    public static void Apply(ref short edge, int count, int strength, Span<short> scratch)
+    /// <param name="originalEdge">The source workspace with at least <see cref="ScratchLength"/> samples.</param>
+    public static void Apply(ref short edge, int count, int strength, Span<short> originalEdge)
     {
         switch (strength)
         {
             case 1:
-                Filter<Strength1Operator>.Apply(ref edge, count, scratch);
+                Filter<Strength1Operator>.Apply(ref edge, count, originalEdge);
                 break;
             case 2:
-                Filter<Strength2Operator>.Apply(ref edge, count, scratch);
+                Filter<Strength2Operator>.Apply(ref edge, count, originalEdge);
                 break;
             case 3:
-                Filter<Strength3Operator>.Apply(ref edge, count, scratch);
+                Filter<Strength3Operator>.Apply(ref edge, count, originalEdge);
                 break;
         }
     }

@@ -46,7 +46,7 @@ internal sealed class Av1BlockDecoder
     /// <summary>
     /// The prediction workspace offset in signed-short storage elements.
     /// </summary>
-    private readonly int predictionScratchOffset;
+    private readonly int predictionStorageOffset;
 
     /// <summary>
     /// The reusable predictor portion of <see cref="workspace"/>, excluding compound and chroma-from-luma storage.
@@ -107,19 +107,19 @@ internal sealed class Av1BlockDecoder
         int compoundMaskLength = (maximumBlockArea + 1) >> 1;
         int predictorWorkingOffset = (2 * maximumBlockArea) + compoundMaskLength;
         int chromaFromLumaOffset = predictorWorkingOffset + predictorWorkingLength;
-        this.predictionScratchOffset = Av1TransformWorkspace.InverseMaximumLength * 2;
+        this.predictionStorageOffset = Av1TransformWorkspace.InverseMaximumLength * 2;
 
         // Integer workspaces occupy even signed-short slices. The session retains the owner while these frame-local views supply prediction and CfL contexts
         // without transferring ownership.
-        Memory<short> predictionScratch = workspace[this.predictionScratchOffset..];
+        Memory<short> predictionStorage = workspace[this.predictionStorageOffset..];
         this.predictorWorkingLength = predictorWorkingLength;
-        this.predictorWorkingOffset = this.predictionScratchOffset + predictorWorkingOffset;
-        this.chromaFromLumaBufferOffset = this.predictionScratchOffset + chromaFromLumaOffset;
+        this.predictorWorkingOffset = this.predictionStorageOffset + predictorWorkingOffset;
+        this.chromaFromLumaBufferOffset = this.predictionStorageOffset + chromaFromLumaOffset;
         this.predictionDecoder = new(sequenceHeader, frameHeader, paletteColorIndexMaps);
 
         this.chromaFromLumaContext = new(
             sequenceHeader.ColorConfig,
-            predictionScratch.Slice(chromaFromLumaOffset, Av1ChromaFromLumaContext.BufferLength));
+            predictionStorage.Slice(chromaFromLumaOffset, Av1ChromaFromLumaContext.BufferLength));
     }
 
     /// <summary>
@@ -338,8 +338,8 @@ internal sealed class Av1BlockDecoder
         }
 
         bool highBitDepth = this.frameBuffer.BytesPerSample == 2;
-        Span<short> predictionStorage = workspace[this.predictionScratchOffset..];
-        Span<short> predictorScratch = workspace.Slice(this.predictorWorkingOffset, this.predictorWorkingLength);
+        Span<short> predictionStorage = workspace[this.predictionStorageOffset..];
+        Span<short> predictorStorage = workspace.Slice(this.predictorWorkingOffset, this.predictorWorkingLength);
         for (int plane = 0; plane < colorConfig.PlaneCount; plane++)
         {
             Span<byte> framePlane = plane == 0 ? frameLuma : plane == 1 ? frameBlue : frameRed;
@@ -460,7 +460,7 @@ internal sealed class Av1BlockDecoder
                 Span<byte> compoundMask = MemoryMarshal.AsBytes(
                     predictionStorage.Slice(2 * maximumBlockArea, compoundMaskStorageLength))[..(blockSize.GetWidth() * blockSize.GetHeight())];
 
-                Span<short> predictionScratch =
+                Span<short> predictorWorkingStorage =
                     predictionStorage.Slice(
                         (2 * maximumBlockArea) + compoundMaskStorageLength,
                         this.predictorWorkingLength);
@@ -483,7 +483,7 @@ internal sealed class Av1BlockDecoder
                         blockReconstructionBuffer,
                         highBitDepthBlockReconstructionBuffer,
                         reconstructionStride,
-                        predictionScratch);
+                        predictorWorkingStorage);
 
                 int referenceCount = usesSub8x8ChromaPrediction ? 0 : isCompound ? 2 : 1;
 
@@ -588,7 +588,7 @@ internal sealed class Av1BlockDecoder
                                     subY,
                                     this.frameBuffer.BitDepth.GetBitCount(),
                                     warpedMotionParameters,
-                                    predictionScratch);
+                                    predictorWorkingStorage);
                             }
                             else
                             {
@@ -612,7 +612,7 @@ internal sealed class Av1BlockDecoder
                                     subY,
                                     this.frameBuffer.BitDepth.GetBitCount(),
                                     warpedMotionParameters,
-                                    predictionScratch);
+                                    predictorWorkingStorage);
                             }
                         }
                         else
@@ -644,7 +644,7 @@ internal sealed class Av1BlockDecoder
                                     subX,
                                     subY,
                                     warpedMotionParameters,
-                                    predictionScratch);
+                                    predictorWorkingStorage);
                             }
                             else
                             {
@@ -666,7 +666,7 @@ internal sealed class Av1BlockDecoder
                                     subX,
                                     subY,
                                     warpedMotionParameters,
-                                    predictionScratch);
+                                    predictorWorkingStorage);
                             }
                         }
 
@@ -712,7 +712,7 @@ internal sealed class Av1BlockDecoder
                             scaledHighBitDepthDestination,
                             scaledCompoundDestination,
                             destinationStride,
-                            predictionScratch);
+                            predictorWorkingStorage);
 
                         continue;
                     }
@@ -778,7 +778,7 @@ internal sealed class Av1BlockDecoder
                                 horizontalPhase,
                                 verticalPhase,
                                 this.frameBuffer.BitDepth.GetBitCount(),
-                                predictionScratch);
+                                predictorWorkingStorage);
                         }
                         else
                         {
@@ -799,7 +799,7 @@ internal sealed class Av1BlockDecoder
                                 horizontalPhase,
                                 verticalPhase,
                                 this.frameBuffer.BitDepth.GetBitCount(),
-                                predictionScratch);
+                                predictorWorkingStorage);
                         }
                     }
                     else
@@ -832,7 +832,7 @@ internal sealed class Av1BlockDecoder
                                 modeInfo.InterpolationFilters[0],
                                 horizontalPhase,
                                 verticalPhase,
-                                predictionScratch);
+                                predictorWorkingStorage);
                         }
                         else
                         {
@@ -852,7 +852,7 @@ internal sealed class Av1BlockDecoder
                                 modeInfo.InterpolationFilters[0],
                                 horizontalPhase,
                                 verticalPhase,
-                                predictionScratch);
+                                predictorWorkingStorage);
                         }
                     }
                 }
@@ -1217,7 +1217,7 @@ internal sealed class Av1BlockDecoder
                     if (highBitDepth)
                     {
                         this.predictionDecoder.DecodeInterIntra(
-                            predictorScratch,
+                            predictorStorage,
                             ref partitionInfo,
                             (Av1Plane)plane,
                             tileInfo,
@@ -1263,7 +1263,7 @@ internal sealed class Av1BlockDecoder
                     else
                     {
                         this.predictionDecoder.DecodeInterIntra(
-                            predictorScratch,
+                            predictorStorage,
                             ref partitionInfo,
                             (Av1Plane)plane,
                             tileInfo,
@@ -1322,7 +1322,7 @@ internal sealed class Av1BlockDecoder
                         secondPrediction,
                         highBitDepthSecondPrediction,
                         compoundMask,
-                        predictionScratch);
+                        predictorWorkingStorage);
                 }
             }
         }
@@ -1338,7 +1338,7 @@ internal sealed class Av1BlockDecoder
     /// <param name="frameLuma">The luma samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
     /// <param name="frameBlue">The blue-difference samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
     /// <param name="frameRed">The red-difference samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
-    /// <param name="planeCoefficients">The coefficient scratch of the plane in the superblock, read once by the caller.</param>
+    /// <param name="planeCoefficients">The coefficient storage of the plane in the superblock, read once by the caller.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     public void DecodeTransform(
         ref Av1PartitionInfo partitionInfo,
@@ -1602,7 +1602,7 @@ internal sealed class Av1BlockDecoder
     /// The high-bit-depth reconstruction view that begins one row above the block. It is empty for eight-bit frames.
     /// </param>
     /// <param name="reconstructionStride">The reconstruction row stride in samples.</param>
-    /// <param name="predictionScratch">The predictor working storage.</param>
+    /// <param name="predictorWorkingStorage">The predictor working storage.</param>
     /// <returns>
     /// <see langword="true"/> when this method wrote the complete chroma prediction. <see langword="false"/> when the ordinary path must predict the block.
     /// </returns>
@@ -1619,7 +1619,7 @@ internal sealed class Av1BlockDecoder
         Span<byte> blockReconstructionBuffer,
         Span<short> highBitDepthBlockReconstructionBuffer,
         int reconstructionStride,
-        Span<short> predictionScratch)
+        Span<short> predictorWorkingStorage)
     {
         bool isSub4X = blockSize.GetWidth() == 4 && subX != 0;
         bool isSub4Y = blockSize.GetHeight() == 4 && subY != 0;
@@ -1698,7 +1698,7 @@ internal sealed class Av1BlockDecoder
                         scaledHighBitDepthDestination,
                         default,
                         reconstructionStride,
-                        predictionScratch);
+                        predictorWorkingStorage);
                 }
                 else
                 {
@@ -1756,7 +1756,7 @@ internal sealed class Av1BlockDecoder
                             horizontalPhase,
                             verticalPhase,
                             this.frameBuffer.BitDepth.GetBitCount(),
-                            predictionScratch);
+                            predictorWorkingStorage);
                     }
                     else
                     {
@@ -1784,7 +1784,7 @@ internal sealed class Av1BlockDecoder
                             candidate.InterpolationFilters[0],
                             horizontalPhase,
                             verticalPhase,
-                            predictionScratch);
+                            predictorWorkingStorage);
                     }
                 }
 
@@ -1833,7 +1833,7 @@ internal sealed class Av1BlockDecoder
     /// </param>
     /// <param name="compoundDestination">The unrounded compound intermediate destination, or an empty span for a final prediction.</param>
     /// <param name="destinationStride">The row stride of the destination in elements.</param>
-    /// <param name="predictionScratch">The predictor working storage.</param>
+    /// <param name="predictorWorkingStorage">The predictor working storage.</param>
     private void PredictScaledReference(
         Av1FrameBuffer<byte> referenceFrameBuffer,
         Av1MotionVector motionVector,
@@ -1849,7 +1849,7 @@ internal sealed class Av1BlockDecoder
         Span<ushort> highBitDepthDestination,
         Span<ushort> compoundDestination,
         int destinationStride,
-        Span<short> predictionScratch)
+        Span<short> predictorWorkingStorage)
     {
         Av1ReferenceScale scale = new(
             referenceFrameBuffer.Width,
@@ -1911,7 +1911,7 @@ internal sealed class Av1BlockDecoder
                     verticalPhase,
                     scale.VerticalStep,
                     this.frameBuffer.BitDepth.GetBitCount(),
-                    predictionScratch);
+                    predictorWorkingStorage);
             }
             else
             {
@@ -1930,7 +1930,7 @@ internal sealed class Av1BlockDecoder
                     verticalPhase,
                     scale.VerticalStep,
                     this.frameBuffer.BitDepth.GetBitCount(),
-                    predictionScratch);
+                    predictorWorkingStorage);
             }
         }
         else
@@ -1963,7 +1963,7 @@ internal sealed class Av1BlockDecoder
                     scale.HorizontalStep,
                     verticalPhase,
                     scale.VerticalStep,
-                    predictionScratch);
+                    predictorWorkingStorage);
             }
             else
             {
@@ -1981,7 +1981,7 @@ internal sealed class Av1BlockDecoder
                     scale.HorizontalStep,
                     verticalPhase,
                     scale.VerticalStep,
-                    predictionScratch);
+                    predictorWorkingStorage);
             }
         }
     }
@@ -2005,7 +2005,7 @@ internal sealed class Av1BlockDecoder
     /// <param name="neighborPrediction">The eight-bit storage for one neighbor prediction.</param>
     /// <param name="highBitDepthNeighborPrediction">The high-bit-depth storage for one neighbor prediction.</param>
     /// <param name="maskStorage">The storage for the expanded mask of the above overlap.</param>
-    /// <param name="predictionScratch">The predictor working storage.</param>
+    /// <param name="predictorWorkingStorage">The predictor working storage.</param>
     private void ApplyOverlappedMotionCompensation(
         ref Av1PartitionInfo partitionInfo,
         int plane,
@@ -2019,7 +2019,7 @@ internal sealed class Av1BlockDecoder
         Span<byte> neighborPrediction,
         Span<ushort> highBitDepthNeighborPrediction,
         Span<byte> maskStorage,
-        Span<short> predictionScratch)
+        Span<short> predictorWorkingStorage)
     {
         Av1BlockSize blockSize = partitionInfo.ModeInfo.BlockSize;
         int blockWidthInModeInfoUnits = blockSize.Get4x4WideCount();
@@ -2075,7 +2075,7 @@ internal sealed class Av1BlockDecoder
                         neighborHeight,
                         neighborPrediction,
                         highBitDepthNeighborPrediction,
-                        predictionScratch);
+                        predictorWorkingStorage);
 
                     int overlapHeight = (Math.Min(blockSize.GetHeight(), Av1BlockSize.Block64x64.GetHeight()) >> 1) >> subY;
                     int destinationColumn = (relativeColumn << Av1Constants.ModeInfoSizeLog2) >> subX;
@@ -2161,7 +2161,7 @@ internal sealed class Av1BlockDecoder
                         neighborHeight,
                         neighborPrediction,
                         highBitDepthNeighborPrediction,
-                        predictionScratch);
+                        predictorWorkingStorage);
 
                     int overlapWidth = (Math.Min(blockSize.GetWidth(), Av1BlockSize.Block64x64.GetWidth()) >> 1) >> subX;
                     int destinationRow = (relativeRow << Av1Constants.ModeInfoSizeLog2) >> subY;
@@ -2211,7 +2211,7 @@ internal sealed class Av1BlockDecoder
     /// <param name="predictionHeight">The neighbor prediction height in samples.</param>
     /// <param name="destination">The eight-bit destination. The method writes it for eight-bit frames.</param>
     /// <param name="highBitDepthDestination">The high-bit-depth destination. The method writes it for high-bit-depth frames.</param>
-    /// <param name="predictionScratch">The predictor working storage.</param>
+    /// <param name="predictorWorkingStorage">The predictor working storage.</param>
     private void PredictObmcNeighbor(
         Av1BlockModeInfo neighbor,
         int plane,
@@ -2222,7 +2222,7 @@ internal sealed class Av1BlockDecoder
         int predictionHeight,
         Span<byte> destination,
         Span<ushort> highBitDepthDestination,
-        Span<short> predictionScratch)
+        Span<short> predictorWorkingStorage)
     {
         Av1FrameBuffer<byte> referenceFrameBuffer = this.ResolveReferenceFrame(neighbor.ReferenceFrames[0]);
         Av1MotionVector motionVector = neighbor.MotionVectors[0];
@@ -2246,7 +2246,7 @@ internal sealed class Av1BlockDecoder
                 highBitDepthDestination,
                 default,
                 predictionWidth,
-                predictionScratch);
+                predictorWorkingStorage);
 
             return;
         }
@@ -2298,7 +2298,7 @@ internal sealed class Av1BlockDecoder
                 horizontalPhase,
                 verticalPhase,
                 this.frameBuffer.BitDepth.GetBitCount(),
-                predictionScratch);
+                predictorWorkingStorage);
         }
         else
         {
@@ -2324,7 +2324,7 @@ internal sealed class Av1BlockDecoder
                 neighbor.InterpolationFilters[0],
                 horizontalPhase,
                 verticalPhase,
-                predictionScratch);
+                predictorWorkingStorage);
         }
     }
 

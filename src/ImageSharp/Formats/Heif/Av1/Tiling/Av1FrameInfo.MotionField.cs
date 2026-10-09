@@ -606,11 +606,11 @@ internal partial class Av1FrameInfo
             }
 
             this.segmentIds?.Dispose();
-            this.coefficientScratch.Dispose();
+            this.coefficientStorage.Dispose();
             this.deltaLoopFilter.Dispose();
             this.cdefStrength.Dispose();
             this.quantizerIndices.Dispose();
-            this.transformInfoScratch.Dispose();
+            this.transformInfoStorage.Dispose();
             this.modeInfoMap.Dispose();
             this.modeInfoCounts.Dispose();
             this.modeInfos.Dispose();

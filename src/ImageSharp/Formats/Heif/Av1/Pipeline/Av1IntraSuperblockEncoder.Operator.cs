@@ -333,7 +333,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Builds one spatial intra prediction and its source residual for reuse across transform candidates.
         /// </summary>
-        /// <param name="transformWorkspace">The transform workspace of the block, which serves as edge and prediction scratch.</param>
+        /// <param name="transformWorkspace">The transform workspace of the block, which holds the edges and the prediction working storage.</param>
         /// <param name="source">The source transform block, from its top-left sample.</param>
         /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
         /// <param name="prediction">The prediction destination.</param>
@@ -370,7 +370,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Builds one filter-intra prediction for reuse across transform candidates.
         /// </summary>
-        /// <param name="transformWorkspace">The transform workspace of the block, which serves as filter row scratch.</param>
+        /// <param name="transformWorkspace">The transform workspace of the block, which holds the filter intra rows.</param>
         /// <param name="source">The source transform block, from its top-left sample.</param>
         /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
         /// <param name="prediction">The prediction destination, from its top-left sample.</param>
@@ -486,7 +486,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="subsamplingY">The vertical subsampling of the plane.</param>
         /// <param name="parameters">The warped model.</param>
         /// <param name="prediction">The contiguous prediction destination.</param>
-        /// <param name="scratch">The warp filter intermediate storage.</param>
+        /// <param name="intermediateTile">The warp filter intermediate storage.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PrepareWarpedInterPrediction(
             Av1PlaneRegion<TSample> reference,
@@ -500,7 +500,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int subsamplingY,
             Av1GlobalMotionParameters parameters,
             Span<TSample> prediction,
-            Span<short> scratch,
+            Span<short> intermediateTile,
             Av1BitDepth bitDepth);
 
         /// <summary>
@@ -518,7 +518,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="subsamplingY">The vertical subsampling of the plane.</param>
         /// <param name="parameters">The warped model.</param>
         /// <param name="intermediate">The contiguous compound intermediate destination.</param>
-        /// <param name="scratch">The warp filter intermediate storage.</param>
+        /// <param name="intermediateTile">The warp filter intermediate storage.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void PrepareWarpedCompoundIntermediate(
             Av1PlaneRegion<TSample> reference,
@@ -532,7 +532,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int subsamplingY,
             Av1GlobalMotionParameters parameters,
             Span<ushort> intermediate,
-            Span<short> scratch,
+            Span<short> intermediateTile,
             Av1BitDepth bitDepth);
 
         /// <summary>
@@ -752,7 +752,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int referenceStride,
             int referenceOrigin,
             Span<byte> prediction,
-            Span<short> scratch,
+            Span<short> intermediateRows,
             int width,
             int height,
             Av1InterpolationFilter horizontalFilter,
@@ -765,7 +765,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 referenceStride,
                 referenceOrigin,
                 prediction,
-                scratch,
+                intermediateRows,
                 width,
                 height,
                 horizontalFilter,
@@ -783,7 +783,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int referenceOrigin,
             Span<byte> prediction,
             Span<short> residual,
-            Span<short> scratch,
+            Span<short> intermediateRows,
             int width,
             int height,
             Av1InterpolationFilter horizontalFilter,
@@ -799,7 +799,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 referenceOrigin,
                 prediction,
                 residual,
-                scratch,
+                intermediateRows,
                 width,
                 height,
                 horizontalFilter,
@@ -1310,12 +1310,12 @@ internal static partial class Av1IntraSuperblockEncoder
             int height = transformSize.GetHeight();
 
             // Prediction finishes before transform search, so its temporary rows can borrow the transform workspace.
-            Span<byte> filterScratch = MemoryMarshal.AsBytes(transformWorkspace).Slice(
+            Span<byte> filterRows = MemoryMarshal.AsBytes(transformWorkspace).Slice(
                 0,
                 Av1FilterIntraPredictorBase.ScratchLength);
 
             Av1FilterIntraPredictorBase.GetPredictor(filterIntraMode)
-                .Predict(prediction, predictionStride, above, left, width, height, filterScratch);
+                .Predict(prediction, predictionStride, above, left, width, height, filterRows);
 
             Av1ResidualBuilder.Subtract(
                 source,
@@ -1416,7 +1416,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int subsamplingY,
             Av1GlobalMotionParameters parameters,
             Span<byte> prediction,
-            Span<short> scratch,
+            Span<short> intermediateTile,
             Av1BitDepth bitDepth)
             => Av1WarpedInterPredictor.PredictWarped(
                 referenceSamples,
@@ -1432,7 +1432,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 subsamplingX,
                 subsamplingY,
                 parameters,
-                scratch);
+                intermediateTile);
 
         /// <inheritdoc/>
         public static void PrepareWarpedCompoundIntermediate(
@@ -1447,7 +1447,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int subsamplingY,
             Av1GlobalMotionParameters parameters,
             Span<ushort> intermediate,
-            Span<short> scratch,
+            Span<short> intermediateTile,
             Av1BitDepth bitDepth)
             => Av1WarpedInterPredictor.PredictWarpedCompound(
                 referenceSamples,
@@ -1463,7 +1463,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 subsamplingX,
                 subsamplingY,
                 parameters,
-                scratch);
+                intermediateTile);
 
         /// <inheritdoc/>
         public static void BlendMask(
@@ -1889,7 +1889,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int referenceStride,
             int referenceOrigin,
             Span<ushort> prediction,
-            Span<short> scratch,
+            Span<short> intermediateRows,
             int width,
             int height,
             Av1InterpolationFilter horizontalFilter,
@@ -1902,7 +1902,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 referenceStride,
                 referenceOrigin,
                 prediction,
-                scratch,
+                intermediateRows,
                 width,
                 height,
                 horizontalFilter,
@@ -1920,7 +1920,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int referenceOrigin,
             Span<ushort> prediction,
             Span<short> residual,
-            Span<short> scratch,
+            Span<short> intermediateRows,
             int width,
             int height,
             Av1InterpolationFilter horizontalFilter,
@@ -1936,7 +1936,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 referenceOrigin,
                 prediction,
                 residual,
-                scratch,
+                intermediateRows,
                 width,
                 height,
                 horizontalFilter,
@@ -2431,7 +2431,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height = transformSize.GetHeight();
 
             // Prediction finishes before transform search, so its temporary rows can borrow the transform workspace.
-            Span<short> filterScratch = MemoryMarshal.Cast<int, short>(transformWorkspace).Slice(
+            Span<short> filterRows = MemoryMarshal.Cast<int, short>(transformWorkspace).Slice(
                 0,
                 Av1FilterIntraPredictorBase.ScratchLength);
 
@@ -2444,7 +2444,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     width,
                     height,
                     bitDepth.GetBitCount(),
-                    filterScratch);
+                    filterRows);
 
             Av1ResidualBuilder.Subtract(
                 source,
@@ -2545,7 +2545,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int subsamplingY,
             Av1GlobalMotionParameters parameters,
             Span<ushort> prediction,
-            Span<short> scratch,
+            Span<short> intermediateTile,
             Av1BitDepth bitDepth)
             => Av1WarpedInterPredictor.PredictWarped(
                 referenceSamples,
@@ -2562,7 +2562,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 subsamplingY,
                 bitDepth.GetBitCount(),
                 parameters,
-                scratch);
+                intermediateTile);
 
         /// <inheritdoc/>
         public static void PrepareWarpedCompoundIntermediate(
@@ -2577,7 +2577,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int subsamplingY,
             Av1GlobalMotionParameters parameters,
             Span<ushort> intermediate,
-            Span<short> scratch,
+            Span<short> intermediateTile,
             Av1BitDepth bitDepth)
             => Av1WarpedInterPredictor.PredictWarpedCompound(
                 referenceSamples,
@@ -2594,7 +2594,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 subsamplingY,
                 bitDepth.GetBitCount(),
                 parameters,
-                scratch);
+                intermediateTile);
 
         /// <inheritdoc/>
         public static void BlendMask(

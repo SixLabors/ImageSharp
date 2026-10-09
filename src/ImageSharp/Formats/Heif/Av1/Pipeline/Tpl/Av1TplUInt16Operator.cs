@@ -81,7 +81,7 @@ internal readonly struct Av1TplUInt16Operator : IAv1TplSampleOperator<ushort>
         int leftCount,
         bool filterType,
         int bitDepth,
-        Span<ushort> scratch,
+        Span<ushort> originalEdge,
         out bool upsampleAbove,
         out bool upsampleLeft)
         => Av1IntraEdgePreparation.Prepare(
@@ -94,7 +94,7 @@ internal readonly struct Av1TplUInt16Operator : IAv1TplSampleOperator<ushort>
             leftCount,
             filterType,
             bitDepth,
-            MemoryMarshal.Cast<ushort, short>(scratch),
+            MemoryMarshal.Cast<ushort, short>(originalEdge),
             out upsampleAbove,
             out upsampleLeft);
 
@@ -108,7 +108,7 @@ internal readonly struct Av1TplUInt16Operator : IAv1TplSampleOperator<ushort>
         bool upsampleAbove,
         bool upsampleLeft,
         int angle,
-        Span<ushort> scratch)
+        Span<ushort> transposedBlock)
         => Av1DirectionalIntraPredictor.Predict(
             MemoryMarshal.Cast<ushort, short>(destination),
             stride,
@@ -118,7 +118,7 @@ internal readonly struct Av1TplUInt16Operator : IAv1TplSampleOperator<ushort>
             upsampleAbove,
             upsampleLeft,
             angle,
-            MemoryMarshal.Cast<ushort, short>(scratch));
+            MemoryMarshal.Cast<ushort, short>(transposedBlock));
 
     /// <inheritdoc/>
     public static void PredictTranslational(
@@ -132,7 +132,7 @@ internal readonly struct Av1TplUInt16Operator : IAv1TplSampleOperator<ushort>
         int horizontalPhase,
         int verticalPhase,
         int bitDepth,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         => Av1TranslationalInterPredictor.Predict(
             reference,
             referenceStride,
@@ -146,7 +146,7 @@ internal readonly struct Av1TplUInt16Operator : IAv1TplSampleOperator<ushort>
             horizontalPhase,
             verticalPhase,
             bitDepth,
-            scratch);
+            intermediateRows);
 
     /// <inheritdoc/>
     public static void PredictCompoundIntermediate(
@@ -160,7 +160,7 @@ internal readonly struct Av1TplUInt16Operator : IAv1TplSampleOperator<ushort>
         int horizontalPhase,
         int verticalPhase,
         int bitDepth,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         => Av1CompoundInterPredictor.PredictCompound(
             reference,
             referenceStride,
@@ -174,7 +174,7 @@ internal readonly struct Av1TplUInt16Operator : IAv1TplSampleOperator<ushort>
             horizontalPhase,
             verticalPhase,
             bitDepth,
-            scratch);
+            intermediateRows);
 
     /// <inheritdoc/>
     public static void AverageCompound(

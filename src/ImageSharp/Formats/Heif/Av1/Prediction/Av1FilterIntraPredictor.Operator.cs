@@ -48,9 +48,16 @@ internal abstract partial class Av1FilterIntraPredictorBase
         public override Av1FilterIntraMode Mode => TOperator.Mode;
 
         /// <inheritdoc/>
-        public override void Predict(Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int width, int height, Span<byte> scratch)
+        public override void Predict(
+            Span<byte> destination,
+            int destinationStride,
+            ReadOnlySpan<byte> above,
+            ReadOnlySpan<byte> left,
+            int width,
+            int height,
+            Span<byte> predictionStorage)
         {
-            Span<byte> buffer = scratch[..ScratchLength];
+            Span<byte> buffer = predictionStorage[..ScratchLength];
             ref byte bufferBase = ref MemoryMarshal.GetReference(buffer);
             ref byte aboveBase = ref MemoryMarshal.GetReference(above);
             ref byte leftBase = ref MemoryMarshal.GetReference(left);
@@ -148,9 +155,17 @@ internal abstract partial class Av1FilterIntraPredictorBase
         }
 
         /// <inheritdoc/>
-        public override void Predict(Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, int width, int height, int bitDepth, Span<short> scratch)
+        public override void Predict(
+            Span<short> destination,
+            int destinationStride,
+            ReadOnlySpan<short> above,
+            ReadOnlySpan<short> left,
+            int width,
+            int height,
+            int bitDepth,
+            Span<short> predictionStorage)
         {
-            Span<short> buffer = scratch[..ScratchLength];
+            Span<short> buffer = predictionStorage[..ScratchLength];
             ref short bufferBase = ref MemoryMarshal.GetReference(buffer);
             ref short aboveBase = ref MemoryMarshal.GetReference(above);
             ref sbyte taps = ref MemoryMarshal.GetReference(TOperator.Taps);
@@ -246,9 +261,16 @@ internal abstract partial class Av1FilterIntraPredictorBase
         }
 
         /// <inheritdoc/>
-        public override void PredictScalar(Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int width, int height, Span<byte> scratch)
+        public override void PredictScalar(
+            Span<byte> destination,
+            int destinationStride,
+            ReadOnlySpan<byte> above,
+            ReadOnlySpan<byte> left,
+            int width,
+            int height,
+            Span<byte> predictionStorage)
         {
-            Span<byte> buffer = scratch[..ScratchLength];
+            Span<byte> buffer = predictionStorage[..ScratchLength];
             ref byte aboveBase = ref MemoryMarshal.GetReference(above);
             ref sbyte taps = ref MemoryMarshal.GetReference(TOperator.Taps);
             Initialize(buffer, above, left, width, height, Unsafe.Subtract(ref aboveBase, 1));
@@ -257,9 +279,17 @@ internal abstract partial class Av1FilterIntraPredictorBase
         }
 
         /// <inheritdoc/>
-        public override void PredictScalar(Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, int width, int height, int bitDepth, Span<short> scratch)
+        public override void PredictScalar(
+            Span<short> destination,
+            int destinationStride,
+            ReadOnlySpan<short> above,
+            ReadOnlySpan<short> left,
+            int width,
+            int height,
+            int bitDepth,
+            Span<short> predictionStorage)
         {
-            Span<short> buffer = scratch[..ScratchLength];
+            Span<short> buffer = predictionStorage[..ScratchLength];
             ref short aboveBase = ref MemoryMarshal.GetReference(above);
             ref sbyte taps = ref MemoryMarshal.GetReference(TOperator.Taps);
             Initialize(buffer, above, left, width, height, Unsafe.Subtract(ref aboveBase, 1));

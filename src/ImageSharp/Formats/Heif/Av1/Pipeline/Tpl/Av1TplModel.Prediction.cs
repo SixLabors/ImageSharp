@@ -241,7 +241,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             horizontalPhase,
             verticalPhase,
             this.bitDepth.GetBitCount(),
-            this.convolutionScratch);
+            this.intermediateRows);
     }
 
     /// <summary>
@@ -285,7 +285,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
                 horizontalPhase,
                 verticalPhase,
                 this.bitDepth.GetBitCount(),
-                this.convolutionScratch);
+                this.intermediateRows);
         }
 
         TSampleOperator.AverageCompound(
@@ -548,7 +548,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
                 leftCount,
                 filterType,
                 bitCount,
-                this.edgeScratch,
+                this.originalEdge,
                 out upsampleAbove,
                 out upsampleLeft);
         }
@@ -562,7 +562,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             upsampleAbove,
             upsampleLeft,
             angle,
-            this.directionalScratch);
+            this.transposedBlock);
     }
 
     /// <summary>

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 /// </summary>
 /// <remarks>
 /// Every stage walks each row with the widest available register first and finishes with one column at a time. The window sums come
-/// from padded integral images kept in the caller-provided scratch span, beside the local coefficients and the two filtered planes.
+/// from padded integral images kept in the caller-provided filter storage, beside the local coefficients and the two filtered planes.
 /// </remarks>
 internal static partial class Av1SelfGuidedFilter
 {
@@ -143,7 +143,7 @@ internal static partial class Av1SelfGuidedFilter
     /// </summary>
     /// <param name="width">The destination processing-unit width.</param>
     /// <param name="height">The destination processing-unit height.</param>
-    /// <returns>The required scratch-span length.</returns>
+    /// <returns>The required filter storage length.</returns>
     public static int GetScratchLength(int width, int height)
     {
         int filteredLength = width * height;
@@ -164,7 +164,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="bitDepth">The encoded sample bit depth.</param>
     /// <param name="parameterSetIndex">The decoded self-guided parameter-set index.</param>
     /// <param name="projectionCoefficients">The two transmitted projection coefficients.</param>
-    /// <param name="scratch">Integer storage sized according to <see cref="GetScratchLength"/>.</param>
+    /// <param name="filterStorage">Integer storage sized according to <see cref="GetScratchLength"/>.</param>
     public static void FilterBlock<TSample>(
         ReadOnlySpan<TSample> source,
         int sourceStride,
@@ -175,13 +175,13 @@ internal static partial class Av1SelfGuidedFilter
         int bitDepth,
         int parameterSetIndex,
         ReadOnlySpan<int> projectionCoefficients,
-        Span<int> scratch)
+        Span<int> filterStorage)
         where TSample : unmanaged
     {
         int filteredLength = width * height;
-        Span<int> filtered0 = scratch[..filteredLength];
-        Span<int> filtered1 = scratch.Slice(filteredLength, filteredLength);
-        GenerateFilters(source, sourceStride, width, height, bitDepth, parameterSetIndex, filtered0, filtered1, scratch[(filteredLength * 2)..]);
+        Span<int> filtered0 = filterStorage[..filteredLength];
+        Span<int> filtered1 = filterStorage.Slice(filteredLength, filteredLength);
+        GenerateFilters(source, sourceStride, width, height, bitDepth, parameterSetIndex, filtered0, filtered1, filterStorage[(filteredLength * 2)..]);
 
         ReadOnlySpan<int> radii = ParameterRadii.Slice(parameterSetIndex * 2, 2);
         DecodeProjectionCoefficients(radii, projectionCoefficients, out int projection0, out int projection1);
@@ -243,7 +243,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="parameterSetIndex">The radius and smoothing parameter pair.</param>
     /// <param name="filtered0">The packed radius-two results, written only when that radius is enabled.</param>
     /// <param name="filtered1">The packed radius-one results, written only when that radius is enabled.</param>
-    /// <param name="scratch">The coefficient and integral-image workspace, excluding the two filtered planes.</param>
+    /// <param name="filterStorage">The coefficient and integral-image workspace, excluding the two filtered planes.</param>
     public static void GenerateFilters<TSample>(
         ReadOnlySpan<TSample> source,
         int sourceStride,
@@ -253,17 +253,17 @@ internal static partial class Av1SelfGuidedFilter
         int parameterSetIndex,
         Span<int> filtered0,
         Span<int> filtered1,
-        Span<int> scratch)
+        Span<int> filterStorage)
         where TSample : unmanaged
     {
         // Search retains these fixed-point values while it changes the projection coefficients.
         // Decoder output uses the same calculation and applies projection once afterward.
         int bufferLength = GetBufferLength(width, height);
         int bufferStride = GetBufferStride(width);
-        Span<int> blendFactors = scratch[..bufferLength];
-        Span<int> localMeans = scratch.Slice(bufferLength, bufferLength);
-        Span<int> squareIntegral = scratch.Slice(bufferLength * 2, bufferLength);
-        Span<int> sumIntegral = scratch.Slice(bufferLength * 3, bufferLength);
+        Span<int> blendFactors = filterStorage[..bufferLength];
+        Span<int> localMeans = filterStorage.Slice(bufferLength, bufferLength);
+        Span<int> squareIntegral = filterStorage.Slice(bufferLength * 2, bufferLength);
+        Span<int> sumIntegral = filterStorage.Slice(bufferLength * 3, bufferLength);
 
         BuildIntegralImages(source, sourceStride, width + (Border * 2), height + (Border * 2), bufferStride, squareIntegral, sumIntegral);
 

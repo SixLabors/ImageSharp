@@ -142,7 +142,7 @@ internal static partial class Av1LoopRestorationEncoder
                     settings.SelfGuidedPruning,
                     filtered0,
                     filtered1,
-                    context.SelfGuidedScratch);
+                    context.SelfGuidedStorage);
 
                 result.Parameters.SgrParameterSet = selfGuided.SgrParameterSet;
                 result.Parameters.SgrProjectionCoefficients = selfGuided.SgrProjectionCoefficients;

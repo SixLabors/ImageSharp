@@ -268,7 +268,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> winningPrediction = interWorkspace.SelectedLumaReconstruction;
             this.lastLumaPredictionBuffer = -1;
             Span<TSample> prediction = interWorkspace.LumaPrediction;
-            Span<TSample> scratch = interWorkspace.LumaCandidateReconstruction;
+            Span<TSample> alternatePrediction = interWorkspace.LumaCandidateReconstruction;
             Av1EncoderBlockModeInfo winner = modeInfo.Block;
             winner.SecondaryReferenceFrame = Av1ReferenceFrameType.None;
             bool checkGlobalMotion = true;
@@ -317,7 +317,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         ref winner,
                         ref winningPrediction,
                         ref prediction,
-                        ref scratch);
+                        ref alternatePrediction);
                 }
             }
 
@@ -348,7 +348,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref winner,
                 ref winningPrediction,
                 ref prediction,
-                ref scratch);
+                ref alternatePrediction);
 
             this.SelectEstimatedIntraModes(
                 writer,
@@ -702,7 +702,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="winner">The retained prediction syntax.</param>
         /// <param name="winningPrediction">The retained luma predictor.</param>
         /// <param name="prediction">The next candidate's luma predictor.</param>
-        /// <param name="scratch">The alternate interpolation predictor storage.</param>
+        /// <param name="alternatePrediction">The alternate interpolation predictor storage.</param>
         private void SelectEstimatedCompoundModes(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
@@ -730,7 +730,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderBlockModeInfo winner,
             ref Span<TSample> winningPrediction,
             ref Span<TSample> prediction,
-            ref Span<TSample> scratch)
+            ref Span<TSample> alternatePrediction)
         {
             Av1PictureParentControlSet parent = this.picture.Parent;
             ref Av1EstimatedInterSearchState state = ref this.blockWorkspace.EstimatedInterSearchState;
@@ -834,7 +834,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     vectors,
                     out _,
                     ref prediction,
-                    ref scratch,
+                    ref alternatePrediction,
                     out _,
                     out uint squaredError,
                     out _,
@@ -1955,7 +1955,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="winner">The retained winning syntax.</param>
         /// <param name="winningPrediction">The retained luma predictor.</param>
         /// <param name="prediction">The current candidate's predictor.</param>
-        /// <param name="scratch">The alternate filter predictor.</param>
+        /// <param name="alternatePrediction">The alternate filter predictor.</param>
         private void SelectEstimatedReferenceModes(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
@@ -1992,7 +1992,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderBlockModeInfo winner,
             ref Span<TSample> winningPrediction,
             ref Span<TSample> prediction,
-            ref Span<TSample> scratch)
+            ref Span<TSample> alternatePrediction)
         {
             ref Av1EstimatedInterSearchState state = ref this.blockWorkspace.EstimatedInterSearchState;
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
@@ -2087,7 +2087,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     referenceVectors,
                     out int motionRate,
                     ref prediction,
-                    ref scratch,
+                    ref alternatePrediction,
                     out uint variance,
                     out uint squaredError,
                     out long chromaDistortion,
@@ -2298,7 +2298,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="referenceVectors">The retained single-reference motion context.</param>
         /// <param name="motionRate">The selected new-motion coding cost.</param>
         /// <param name="prediction">The selected luma prediction buffer.</param>
-        /// <param name="scratch">The alternate luma prediction buffer.</param>
+        /// <param name="alternatePrediction">The alternate luma prediction buffer.</param>
         /// <param name="variance">The candidate luma variance.</param>
         /// <param name="squaredError">The candidate luma squared error.</param>
         /// <param name="chromaDistortion">The modeled chroma distortion when evaluated.</param>
@@ -2337,7 +2337,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1ReferenceMotionVectors referenceVectors,
             out int motionRate,
             ref Span<TSample> prediction,
-            ref Span<TSample> scratch,
+            ref Span<TSample> alternatePrediction,
             out uint variance,
             out uint squaredError,
             out long chromaDistortion,
@@ -2538,7 +2538,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     evaluateBlue,
                     evaluateRed,
                     ref prediction,
-                    ref scratch,
+                    ref alternatePrediction,
                     out variance,
                     out squaredError,
                     out modelEarlyTermination);
@@ -2787,7 +2787,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="evaluateBlue">Whether blue-difference residuals participate in mode selection.</param>
         /// <param name="evaluateRed">Whether red-difference residuals participate in mode selection.</param>
         /// <param name="prediction">The winning packed predictor on return.</param>
-        /// <param name="scratch">The alternate packed predictor storage on return.</param>
+        /// <param name="alternatePrediction">The alternate packed predictor storage on return.</param>
         /// <param name="variance">The winning normalized prediction variance.</param>
         /// <param name="squaredError">The winning normalized squared error.</param>
         /// <param name="earlyTermination">Whether the winning filter's residual estimate ended early.</param>
@@ -2814,7 +2814,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool evaluateBlue,
             bool evaluateRed,
             ref Span<TSample> prediction,
-            ref Span<TSample> scratch,
+            ref Span<TSample> alternatePrediction,
             out uint variance,
             out uint squaredError,
             out bool earlyTermination)
@@ -2869,7 +2869,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     0,
                     0,
                     blockSize,
-                    scratch,
+                    alternatePrediction,
                     interWorkspace.Residual,
                     interWorkspace.FilterRows,
                     firstIntermediate,
@@ -2885,7 +2885,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 TOperator.GetMoments(
                     Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin),
                     sourcePlane.Stride,
-                    scratch,
+                    alternatePrediction,
                     width,
                     width,
                     height,
@@ -2923,7 +2923,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         secondaryVector,
                         primaryReferencePlanes,
                         secondaryReferencePlanes,
-                        scratch,
+                        alternatePrediction,
                         transformSize,
                         currentVariance,
                         (uint)error,
@@ -2959,8 +2959,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     // Exchange borrowed views, not their contents. The winning predictor remains intact
                     // while the next filter writes into the other worker buffer.
                     Span<TSample> previous = prediction;
-                    prediction = scratch;
-                    scratch = previous;
+                    prediction = alternatePrediction;
+                    alternatePrediction = previous;
                 }
             }
 

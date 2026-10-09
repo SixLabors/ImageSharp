@@ -48,7 +48,7 @@ internal static partial class Av1CompoundInterPredictor
     /// <param name="verticalFilter">The vertical interpolation filter.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="scratch">
+    /// <param name="intermediateRows">
     /// Caller-owned signed intermediate storage sized by <see cref="Av1TranslationalInterPredictor.GetScratchLength(int, int)"/> when both phases are nonzero.
     /// </param>
     public static void PredictCompound(
@@ -63,7 +63,7 @@ internal static partial class Av1CompoundInterPredictor
         Av1InterpolationFilter verticalFilter,
         int horizontalPhase,
         int verticalPhase,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         => PredictCompound<CompoundPredictionOperator>(
             source,
             sourceStride,
@@ -76,7 +76,7 @@ internal static partial class Av1CompoundInterPredictor
             verticalFilter,
             horizontalPhase,
             verticalPhase,
-            scratch,
+            intermediateRows,
             useSimd: true);
 
     /// <summary>
@@ -94,7 +94,7 @@ internal static partial class Av1CompoundInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The decoded sample precision: 8, 10, or 12 bits.</param>
-    /// <param name="scratch">
+    /// <param name="intermediateRows">
     /// Caller-owned signed intermediate storage sized by <see cref="Av1TranslationalInterPredictor.GetScratchLength(int, int)"/> when both phases are nonzero.
     /// </param>
     public static void PredictCompound(
@@ -110,7 +110,7 @@ internal static partial class Av1CompoundInterPredictor
         int horizontalPhase,
         int verticalPhase,
         int bitDepth,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         => PredictCompound<CompoundPredictionOperator>(
             source,
             sourceStride,
@@ -124,7 +124,7 @@ internal static partial class Av1CompoundInterPredictor
             horizontalPhase,
             verticalPhase,
             bitDepth,
-            scratch,
+            intermediateRows,
             useSimd: true);
 
     /// <summary>
@@ -142,7 +142,7 @@ internal static partial class Av1CompoundInterPredictor
     /// <param name="verticalFilter">The vertical interpolation filter.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="scratch">Caller-owned signed intermediate storage for the two-dimensional path.</param>
+    /// <param name="intermediateRows">Caller-owned signed intermediate storage for the two-dimensional path.</param>
     /// <param name="useSimd"><see langword="true"/> to use the vector loops. <see langword="false"/> to use only the scalar loops.</param>
     private static void PredictCompound<TOperator>(
         ReadOnlySpan<byte> source,
@@ -156,7 +156,7 @@ internal static partial class Av1CompoundInterPredictor
         Av1InterpolationFilter verticalFilter,
         int horizontalPhase,
         int verticalPhase,
-        Span<short> scratch,
+        Span<short> intermediateRows,
         bool useSimd)
         where TOperator : struct, IAv1CompoundPredictionOperator
     {
@@ -251,7 +251,7 @@ internal static partial class Av1CompoundInterPredictor
             verticalCoefficients[firstVerticalCoefficient..],
             verticalTapCount,
             firstVerticalCoefficient - 3,
-            scratch,
+            intermediateRows,
             useSimd);
     }
 
@@ -271,7 +271,7 @@ internal static partial class Av1CompoundInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The decoded sample precision: 8, 10, or 12 bits.</param>
-    /// <param name="scratch">Caller-owned signed intermediate storage for the two-dimensional path.</param>
+    /// <param name="intermediateRows">Caller-owned signed intermediate storage for the two-dimensional path.</param>
     /// <param name="useSimd"><see langword="true"/> to use the vector loops. <see langword="false"/> to use only the scalar loops.</param>
     private static void PredictCompound<TOperator>(
         ReadOnlySpan<ushort> source,
@@ -286,7 +286,7 @@ internal static partial class Av1CompoundInterPredictor
         int horizontalPhase,
         int verticalPhase,
         int bitDepth,
-        Span<short> scratch,
+        Span<short> intermediateRows,
         bool useSimd)
         where TOperator : struct, IAv1CompoundPredictionOperator
     {
@@ -386,7 +386,7 @@ internal static partial class Av1CompoundInterPredictor
             firstVerticalCoefficient - 3,
             bitDepth,
             round0,
-            scratch,
+            intermediateRows,
             useSimd);
     }
 
@@ -404,7 +404,7 @@ internal static partial class Av1CompoundInterPredictor
     /// <param name="verticalFilter">The vertical interpolation filter.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="scratch">
+    /// <param name="intermediateRows">
     /// Caller-owned signed intermediate storage sized by <see cref="Av1TranslationalInterPredictor.GetScratchLength(int, int)"/> when both phases are nonzero.
     /// </param>
     public static void PredictCompoundScalar(
@@ -419,7 +419,7 @@ internal static partial class Av1CompoundInterPredictor
         Av1InterpolationFilter verticalFilter,
         int horizontalPhase,
         int verticalPhase,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         => PredictCompound<CompoundPredictionOperator>(
             source,
             sourceStride,
@@ -432,7 +432,7 @@ internal static partial class Av1CompoundInterPredictor
             verticalFilter,
             horizontalPhase,
             verticalPhase,
-            scratch,
+            intermediateRows,
             useSimd: false);
 
     /// <summary>
@@ -450,7 +450,7 @@ internal static partial class Av1CompoundInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The decoded sample precision: 8, 10, or 12 bits.</param>
-    /// <param name="scratch">
+    /// <param name="intermediateRows">
     /// Caller-owned signed intermediate storage sized by <see cref="Av1TranslationalInterPredictor.GetScratchLength(int, int)"/> when both phases are nonzero.
     /// </param>
     public static void PredictCompoundScalar(
@@ -466,7 +466,7 @@ internal static partial class Av1CompoundInterPredictor
         int horizontalPhase,
         int verticalPhase,
         int bitDepth,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         => PredictCompound<CompoundPredictionOperator>(
             source,
             sourceStride,
@@ -480,7 +480,7 @@ internal static partial class Av1CompoundInterPredictor
             horizontalPhase,
             verticalPhase,
             bitDepth,
-            scratch,
+            intermediateRows,
             useSimd: false);
 
     /// <summary>
@@ -915,7 +915,7 @@ internal static partial class Av1CompoundInterPredictor
     /// <param name="verticalCoefficients">The effective vertical kernel, which starts at its first nonzero tap.</param>
     /// <param name="verticalTapCount">The number of taps in <paramref name="verticalCoefficients"/>.</param>
     /// <param name="verticalSourceOffset">The row offset from each output row to the source row of the first vertical tap.</param>
-    /// <param name="scratch">
+    /// <param name="intermediateRows">
     /// Caller-owned signed storage for <paramref name="height"/> + <paramref name="verticalTapCount"/> - 1 rows of horizontal intermediates.
     /// The row stride is the larger of <paramref name="width"/> and <see cref="Av1TranslationalInterPredictor.MinimumScratchStride"/>.
     /// </param>
@@ -934,16 +934,16 @@ internal static partial class Av1CompoundInterPredictor
         ReadOnlySpan<short> verticalCoefficients,
         int verticalTapCount,
         int verticalSourceOffset,
-        Span<short> scratch,
+        Span<short> intermediateRows,
         bool useSimd)
         where TOperator : struct, IAv1CompoundPredictionOperator
     {
         ref byte sourceBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), sourceOrigin);
         ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
-        ref short scratchBase = ref MemoryMarshal.GetReference(scratch);
+        ref short intermediateBase = ref MemoryMarshal.GetReference(intermediateRows);
         ref short horizontalCoefficientBase = ref MemoryMarshal.GetReference(horizontalCoefficients);
         ref short verticalCoefficientBase = ref MemoryMarshal.GetReference(verticalCoefficients);
-        int scratchStride = Math.Max(width, MinimumScratchStride);
+        int intermediateStride = Math.Max(width, MinimumScratchStride);
         int intermediateHeight = height + verticalTapCount - 1;
 
         // The horizontal pass shifts the Q7 sums right by Round0Bits and stores Q4 values in the signed buffer.
@@ -954,7 +954,7 @@ internal static partial class Av1CompoundInterPredictor
                 ref sourceBase,
                 ((row + verticalSourceOffset) * sourceStride) + horizontalSourceOffset);
 
-            ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
+            ref short intermediateRow = ref Unsafe.Add(ref intermediateBase, row * intermediateStride);
             int column = 0;
 
             if (useSimd && Vector512.IsHardwareAccelerated)
@@ -974,9 +974,9 @@ internal static partial class Av1CompoundInterPredictor
                         out Vector512<int> result2,
                         out Vector512<int> result3);
 
-                    TOperator.PrepareHorizontal(result0, result1).StoreUnsafe(ref scratchRow, (nuint)column);
+                    TOperator.PrepareHorizontal(result0, result1).StoreUnsafe(ref intermediateRow, (nuint)column);
                     TOperator.PrepareHorizontal(result2, result3)
-                        .StoreUnsafe(ref scratchRow, (nuint)(column + Vector512<short>.Count));
+                        .StoreUnsafe(ref intermediateRow, (nuint)(column + Vector512<short>.Count));
                 }
             }
 
@@ -997,9 +997,9 @@ internal static partial class Av1CompoundInterPredictor
                         out Vector256<int> result2,
                         out Vector256<int> result3);
 
-                    TOperator.PrepareHorizontal(result0, result1).StoreUnsafe(ref scratchRow, (nuint)column);
+                    TOperator.PrepareHorizontal(result0, result1).StoreUnsafe(ref intermediateRow, (nuint)column);
                     TOperator.PrepareHorizontal(result2, result3)
-                        .StoreUnsafe(ref scratchRow, (nuint)(column + Vector256<short>.Count));
+                        .StoreUnsafe(ref intermediateRow, (nuint)(column + Vector256<short>.Count));
                 }
             }
 
@@ -1020,9 +1020,9 @@ internal static partial class Av1CompoundInterPredictor
                         out Vector128<int> result2,
                         out Vector128<int> result3);
 
-                    TOperator.PrepareHorizontal(result0, result1).StoreUnsafe(ref scratchRow, (nuint)column);
+                    TOperator.PrepareHorizontal(result0, result1).StoreUnsafe(ref intermediateRow, (nuint)column);
                     TOperator.PrepareHorizontal(result2, result3)
-                        .StoreUnsafe(ref scratchRow, (nuint)(column + Vector128<short>.Count));
+                        .StoreUnsafe(ref intermediateRow, (nuint)(column + Vector128<short>.Count));
                 }
             }
 
@@ -1034,13 +1034,13 @@ internal static partial class Av1CompoundInterPredictor
                     ref horizontalCoefficientBase,
                     horizontalTapCount);
 
-                Unsafe.Add(ref scratchRow, column) = TOperator.PrepareHorizontal(result);
+                Unsafe.Add(ref intermediateRow, column) = TOperator.PrepareHorizontal(result);
             }
         }
 
         for (int row = 0; row < height; row++)
         {
-            ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
+            ref short intermediateRow = ref Unsafe.Add(ref intermediateBase, row * intermediateStride);
             ref ushort destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
             int column = 0;
 
@@ -1050,8 +1050,8 @@ internal static partial class Av1CompoundInterPredictor
                 for (; vectorCount > 0; vectorCount--, column += Vector512<short>.Count)
                 {
                     Convolve(
-                        ref scratchRow,
-                        scratchStride,
+                        ref intermediateRow,
+                        intermediateStride,
                         (nuint)column,
                         ref verticalCoefficientBase,
                         verticalTapCount,
@@ -1069,8 +1069,8 @@ internal static partial class Av1CompoundInterPredictor
                 for (; vectorCount > 0; vectorCount--, column += Vector256<short>.Count)
                 {
                     Convolve(
-                        ref scratchRow,
-                        scratchStride,
+                        ref intermediateRow,
+                        intermediateStride,
                         (nuint)column,
                         ref verticalCoefficientBase,
                         verticalTapCount,
@@ -1088,8 +1088,8 @@ internal static partial class Av1CompoundInterPredictor
                 for (; vectorCount > 0; vectorCount--, column += Vector128<short>.Count)
                 {
                     Convolve(
-                        ref scratchRow,
-                        scratchStride,
+                        ref intermediateRow,
+                        intermediateStride,
                         (nuint)column,
                         ref verticalCoefficientBase,
                         verticalTapCount,
@@ -1104,8 +1104,8 @@ internal static partial class Av1CompoundInterPredictor
             for (; column < width; column++)
             {
                 int result = ConvolveScalar(
-                    ref Unsafe.Add(ref scratchRow, column),
-                    scratchStride,
+                    ref Unsafe.Add(ref intermediateRow, column),
+                    intermediateStride,
                     ref verticalCoefficientBase,
                     verticalTapCount);
 
@@ -1133,7 +1133,7 @@ internal static partial class Av1CompoundInterPredictor
     /// <param name="verticalSourceOffset">The row offset from each output row to the source row of the first vertical tap.</param>
     /// <param name="bitDepth">The decoded sample precision: 8, 10, or 12 bits.</param>
     /// <param name="round0">The first-pass right shift for <paramref name="bitDepth"/>.</param>
-    /// <param name="scratch">
+    /// <param name="intermediateRows">
     /// Caller-owned signed storage for <paramref name="height"/> + <paramref name="verticalTapCount"/> - 1 rows of horizontal intermediates.
     /// The row stride is the larger of <paramref name="width"/> and <see cref="Av1TranslationalInterPredictor.MinimumScratchStride"/>.
     /// </param>
@@ -1154,16 +1154,16 @@ internal static partial class Av1CompoundInterPredictor
         int verticalSourceOffset,
         int bitDepth,
         int round0,
-        Span<short> scratch,
+        Span<short> intermediateRows,
         bool useSimd)
         where TOperator : struct, IAv1CompoundPredictionOperator
     {
         ref ushort sourceBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), sourceOrigin);
         ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
-        ref short scratchBase = ref MemoryMarshal.GetReference(scratch);
+        ref short intermediateBase = ref MemoryMarshal.GetReference(intermediateRows);
         ref short horizontalCoefficientBase = ref MemoryMarshal.GetReference(horizontalCoefficients);
         ref short verticalCoefficientBase = ref MemoryMarshal.GetReference(verticalCoefficients);
-        int scratchStride = Math.Max(width, MinimumScratchStride);
+        int intermediateStride = Math.Max(width, MinimumScratchStride);
         int intermediateHeight = height + verticalTapCount - 1;
         int horizontalBias = 1 << (bitDepth + FilterBits - 1);
         int verticalBias = 1 << (bitDepth + (2 * FilterBits) - round0);
@@ -1177,7 +1177,7 @@ internal static partial class Av1CompoundInterPredictor
                 ((row + verticalSourceOffset) * sourceStride) + horizontalSourceOffset);
 
             ref short sourceRow = ref Unsafe.As<ushort, short>(ref sourceRowUnsigned);
-            ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
+            ref short intermediateRow = ref Unsafe.Add(ref intermediateBase, row * intermediateStride);
             int column = 0;
 
             if (useSimd && Vector512.IsHardwareAccelerated)
@@ -1196,7 +1196,7 @@ internal static partial class Av1CompoundInterPredictor
                         out Vector512<int> upper);
 
                     TOperator.PrepareHighBitDepthHorizontal(lower, upper, horizontalBias, round0)
-                        .StoreUnsafe(ref scratchRow, (nuint)column);
+                        .StoreUnsafe(ref intermediateRow, (nuint)column);
                 }
             }
 
@@ -1216,7 +1216,7 @@ internal static partial class Av1CompoundInterPredictor
                         out Vector256<int> upper);
 
                     TOperator.PrepareHighBitDepthHorizontal(lower, upper, horizontalBias, round0)
-                        .StoreUnsafe(ref scratchRow, (nuint)column);
+                        .StoreUnsafe(ref intermediateRow, (nuint)column);
                 }
             }
 
@@ -1236,7 +1236,7 @@ internal static partial class Av1CompoundInterPredictor
                         out Vector128<int> upper);
 
                     TOperator.PrepareHighBitDepthHorizontal(lower, upper, horizontalBias, round0)
-                        .StoreUnsafe(ref scratchRow, (nuint)column);
+                        .StoreUnsafe(ref intermediateRow, (nuint)column);
                 }
             }
 
@@ -1248,14 +1248,14 @@ internal static partial class Av1CompoundInterPredictor
                     ref horizontalCoefficientBase,
                     horizontalTapCount);
 
-                Unsafe.Add(ref scratchRow, column) =
+                Unsafe.Add(ref intermediateRow, column) =
                     TOperator.PrepareHighBitDepthHorizontal(result, horizontalBias, round0);
             }
         }
 
         for (int row = 0; row < height; row++)
         {
-            ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
+            ref short intermediateRow = ref Unsafe.Add(ref intermediateBase, row * intermediateStride);
             ref ushort destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
             int column = 0;
 
@@ -1265,8 +1265,8 @@ internal static partial class Av1CompoundInterPredictor
                 for (; vectorCount > 0; vectorCount--, column += Vector512<short>.Count)
                 {
                     Convolve(
-                        ref scratchRow,
-                        scratchStride,
+                        ref intermediateRow,
+                        intermediateStride,
                         (nuint)column,
                         ref verticalCoefficientBase,
                         verticalTapCount,
@@ -1285,8 +1285,8 @@ internal static partial class Av1CompoundInterPredictor
                 for (; vectorCount > 0; vectorCount--, column += Vector256<short>.Count)
                 {
                     Convolve(
-                        ref scratchRow,
-                        scratchStride,
+                        ref intermediateRow,
+                        intermediateStride,
                         (nuint)column,
                         ref verticalCoefficientBase,
                         verticalTapCount,
@@ -1305,8 +1305,8 @@ internal static partial class Av1CompoundInterPredictor
                 for (; vectorCount > 0; vectorCount--, column += Vector128<short>.Count)
                 {
                     Convolve(
-                        ref scratchRow,
-                        scratchStride,
+                        ref intermediateRow,
+                        intermediateStride,
                         (nuint)column,
                         ref verticalCoefficientBase,
                         verticalTapCount,
@@ -1322,8 +1322,8 @@ internal static partial class Av1CompoundInterPredictor
             for (; column < width; column++)
             {
                 int result = ConvolveScalar(
-                    ref Unsafe.Add(ref scratchRow, column),
-                    scratchStride,
+                    ref Unsafe.Add(ref intermediateRow, column),
+                    intermediateStride,
                     ref verticalCoefficientBase,
                     verticalTapCount);
 

@@ -28,18 +28,18 @@ internal readonly struct HeifBoxReader
     /// </summary>
     /// <param name="stream">The stream positioned at the box size field.</param>
     /// <param name="parentEndPosition">The absolute end position of the containing box or file.</param>
-    /// <param name="scratch">A caller-owned buffer of at least eight bytes that receives the header.</param>
+    /// <param name="headerBuffer">A caller-owned buffer of at least eight bytes that receives the header.</param>
     /// <param name="boxType">Receives the box four-character code.</param>
     /// <param name="topLevel">Indicates whether a size-zero box can extend to the end of the file.</param>
     /// <returns>The number of payload bytes following the complete variable-length header.</returns>
-    public static long ReadHeader(Stream stream, long parentEndPosition, Span<byte> scratch, out Heif4CharCode boxType, bool topLevel = false)
+    public static long ReadHeader(Stream stream, long parentEndPosition, Span<byte> headerBuffer, out Heif4CharCode boxType, bool topLevel = false)
     {
         if (parentEndPosition - stream.Position < 8)
         {
             throw new InvalidImageContentException("Not enough data to read the box header.");
         }
 
-        Span<byte> buffer = scratch[..8];
+        Span<byte> buffer = headerBuffer[..8];
         ReadExactly(stream, buffer, "Not enough data to read the box header.");
 
         ulong boxSize = BinaryPrimitives.ReadUInt32BigEndian(buffer);

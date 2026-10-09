@@ -38,7 +38,7 @@ internal static partial class Av1WienerFilter
     /// </summary>
     /// <param name="width">The destination stripe width.</param>
     /// <param name="height">The destination stripe height.</param>
-    /// <returns>The required scratch-span length.</returns>
+    /// <returns>The required intermediate row length.</returns>
     public static int GetScratchLength(int width, int height) => width * (height + IntermediateRowExtension);
 
     /// <summary>
@@ -54,7 +54,7 @@ internal static partial class Av1WienerFilter
     /// <param name="bitDepth">The encoded sample bit depth.</param>
     /// <param name="horizontalCoefficients">The three transmitted horizontal coefficients.</param>
     /// <param name="verticalCoefficients">The three transmitted vertical coefficients.</param>
-    /// <param name="scratch">Intermediate sample storage sized according to <see cref="GetScratchLength"/>.</param>
+    /// <param name="intermediateRows">Intermediate sample storage sized according to <see cref="GetScratchLength"/>.</param>
     public static void FilterStripe<TSample>(
         ReadOnlySpan<TSample> source,
         int sourceStride,
@@ -65,7 +65,7 @@ internal static partial class Av1WienerFilter
         int bitDepth,
         ReadOnlySpan<int> horizontalCoefficients,
         ReadOnlySpan<int> verticalCoefficients,
-        Span<ushort> scratch)
+        Span<ushort> intermediateRows)
         where TSample : unmanaged
     {
         Span<short> horizontalFilter = stackalloc short[FilterTapCount];
@@ -91,7 +91,7 @@ internal static partial class Av1WienerFilter
         FilterRows<TSample, ushort, WienerOperator>(
             source,
             sourceStride,
-            scratch,
+            intermediateRows,
             width,
             width,
             intermediateHeight,
@@ -106,7 +106,7 @@ internal static partial class Av1WienerFilter
         int maximumSample = (1 << bitDepth) - 1;
         int verticalBias = (1 << (verticalRoundBits - 1)) - (1 << (bitDepth + verticalRoundBits - 1));
         FilterRows<ushort, TSample, WienerOperator>(
-            scratch,
+            intermediateRows,
             width,
             destination,
             destinationStride,

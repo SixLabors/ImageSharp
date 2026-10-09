@@ -267,7 +267,7 @@ internal static class Av1Transform2dOperations
     /// <param name="sourceStride">The number of signed sixteen-bit values between source rows.</param>
     /// <param name="destination">The first value of the destination tile.</param>
     /// <param name="destinationStride">The number of signed sixteen-bit values between destination rows.</param>
-    /// <param name="scratch">The reusable storage for the transpose stages at Int32 and Int64 granularity.</param>
+    /// <param name="transposeStorage">The reusable storage for the transpose stages at Int32 and Int64 granularity.</param>
     /// <param name="roundShift">The signed AV1 pipeline shift applied before transposition.</param>
     /// <param name="normalizeRectangle">Whether to apply the AV1 square-root-of-two rectangular normalization.</param>
     public static void Transpose16x16Int16(
@@ -275,12 +275,12 @@ internal static class Av1Transform2dOperations
         int sourceStride,
         ref short destination,
         int destinationStride,
-        Span<long> scratch,
+        Span<long> transposeStorage,
         int roundShift,
         bool normalizeRectangle)
     {
-        ref long scratch64 = ref MemoryMarshal.GetReference(scratch);
-        ref int scratch32 = ref Unsafe.As<long, int>(ref scratch64);
+        ref long transposeBase64 = ref MemoryMarshal.GetReference(transposeStorage);
+        ref int transposeBase32 = ref Unsafe.As<long, int>(ref transposeBase64);
 
         // The unpack of each pair of adjacent rows stores two Int16 values in each Int32 element. This step is a bitwise reinterpretation, not a sign
         // extension. It keeps all sixteen source bits and exchanges the lowest row-index bit with a column-index bit.
@@ -304,8 +304,8 @@ internal static class Av1Transform2dOperations
                     Av1Transform1dMath.NewSqrt2Bits);
             }
 
-            Vector256_.UnpackLow(even, odd).AsInt32().StoreUnsafe(ref scratch32, (nuint)(row * 8));
-            Vector256_.UnpackHigh(even, odd).AsInt32().StoreUnsafe(ref scratch32, (nuint)((row + 1) * 8));
+            Vector256_.UnpackLow(even, odd).AsInt32().StoreUnsafe(ref transposeBase32, (nuint)(row * 8));
+            Vector256_.UnpackHigh(even, odd).AsInt32().StoreUnsafe(ref transposeBase32, (nuint)((row + 1) * 8));
         }
 
         // The next two loops exchange the next two index bits with Int32 and Int64 unpacks in the same buffer, so no other temporary buffer is necessary. Each
@@ -314,10 +314,10 @@ internal static class Av1Transform2dOperations
         {
             for (int offset = 0; offset < 2; offset++)
             {
-                Vector256<int> lower = Vector256.LoadUnsafe(ref scratch32, (nuint)((row + offset) * 8));
-                Vector256<int> upper = Vector256.LoadUnsafe(ref scratch32, (nuint)((row + offset + 2) * 8));
-                Vector256_.UnpackLow(lower, upper).AsInt64().StoreUnsafe(ref scratch64, (nuint)((row + offset) * 4));
-                Vector256_.UnpackHigh(lower, upper).AsInt64().StoreUnsafe(ref scratch64, (nuint)((row + offset + 2) * 4));
+                Vector256<int> lower = Vector256.LoadUnsafe(ref transposeBase32, (nuint)((row + offset) * 8));
+                Vector256<int> upper = Vector256.LoadUnsafe(ref transposeBase32, (nuint)((row + offset + 2) * 8));
+                Vector256_.UnpackLow(lower, upper).AsInt64().StoreUnsafe(ref transposeBase64, (nuint)((row + offset) * 4));
+                Vector256_.UnpackHigh(lower, upper).AsInt64().StoreUnsafe(ref transposeBase64, (nuint)((row + offset + 2) * 4));
             }
         }
 
@@ -325,10 +325,10 @@ internal static class Av1Transform2dOperations
         {
             for (int offset = 0; offset < 4; offset++)
             {
-                Vector256<long> lower = Vector256.LoadUnsafe(ref scratch64, (nuint)((row + offset) * 4));
-                Vector256<long> upper = Vector256.LoadUnsafe(ref scratch64, (nuint)((row + offset + 4) * 4));
-                Vector256_.UnpackLow(lower, upper).StoreUnsafe(ref scratch64, (nuint)((row + offset) * 4));
-                Vector256_.UnpackHigh(lower, upper).StoreUnsafe(ref scratch64, (nuint)((row + offset + 4) * 4));
+                Vector256<long> lower = Vector256.LoadUnsafe(ref transposeBase64, (nuint)((row + offset) * 4));
+                Vector256<long> upper = Vector256.LoadUnsafe(ref transposeBase64, (nuint)((row + offset + 4) * 4));
+                Vector256_.UnpackLow(lower, upper).StoreUnsafe(ref transposeBase64, (nuint)((row + offset) * 4));
+                Vector256_.UnpackHigh(lower, upper).StoreUnsafe(ref transposeBase64, (nuint)((row + offset + 4) * 4));
             }
         }
 
@@ -336,8 +336,8 @@ internal static class Av1Transform2dOperations
         // static table maps each result to its destination row.
         for (int row = 0; row < 8; row++)
         {
-            Vector256<long> lower = Vector256.LoadUnsafe(ref scratch64, (nuint)(row * 4));
-            Vector256<long> upper = Vector256.LoadUnsafe(ref scratch64, (nuint)((row + 8) * 4));
+            Vector256<long> lower = Vector256.LoadUnsafe(ref transposeBase64, (nuint)(row * 4));
+            Vector256<long> upper = Vector256.LoadUnsafe(ref transposeBase64, (nuint)((row + 8) * 4));
             Vector256<short> lowerResult = Vector256.Create(lower.GetLower(), upper.GetLower()).AsInt16();
             Vector256<short> upperResult = Vector256.Create(lower.GetUpper(), upper.GetUpper()).AsInt16();
             int lowerDestinationRow = Int16TransposeStoreOrder[row];
@@ -355,7 +355,7 @@ internal static class Av1Transform2dOperations
     /// <param name="destination">The first value of the destination tile.</param>
     /// <param name="destinationStride">The number of signed thirty-two-bit values between destination rows.</param>
     /// <param name="promotionBuffer">The reusable storage for the promoted source tile.</param>
-    /// <param name="transposeScratch">The reusable storage for the transpose stages at Int64 granularity.</param>
+    /// <param name="transposeStorage">The reusable storage for the transpose stages at Int64 granularity.</param>
     /// <param name="roundShift">The signed AV1 pipeline shift applied after promotion.</param>
     /// <param name="normalizeRectangle">Whether to apply the AV1 square-root-of-two rectangular normalization.</param>
     public static void Transpose16x16Int16ToInt32(
@@ -364,7 +364,7 @@ internal static class Av1Transform2dOperations
         ref int destination,
         int destinationStride,
         Span<int> promotionBuffer,
-        Span<long> transposeScratch,
+        Span<long> transposeStorage,
         int roundShift,
         bool normalizeRectangle)
     {
@@ -387,7 +387,7 @@ internal static class Av1Transform2dOperations
             16,
             ref destination,
             destinationStride,
-            transposeScratch,
+            transposeStorage,
             roundShift,
             normalizeRectangle);
     }
@@ -662,7 +662,7 @@ internal static class Av1Transform2dOperations
     /// <param name="sourceStride">The number of values between source rows.</param>
     /// <param name="destination">The first value in the destination matrix.</param>
     /// <param name="destinationStride">The number of values between destination rows.</param>
-    /// <param name="scratch">The caller-owned storage for sixteen vectors of signed sixty-four-bit lanes.</param>
+    /// <param name="transposeStorage">The caller-owned storage for sixteen vectors of signed sixty-four-bit lanes.</param>
     /// <param name="roundShift">The signed AV1 pipeline shift applied before transposition.</param>
     /// <param name="normalizeRectangle">Whether to apply the AV1 square-root-of-two rectangular normalization.</param>
     public static void Transpose16x16Avx512(
@@ -670,11 +670,11 @@ internal static class Av1Transform2dOperations
         int sourceStride,
         ref int destination,
         int destinationStride,
-        Span<long> scratch,
+        Span<long> transposeStorage,
         int roundShift,
         bool normalizeRectangle)
     {
-        ref long scratchBase = ref MemoryMarshal.GetReference(scratch);
+        ref long transposeBase = ref MemoryMarshal.GetReference(transposeStorage);
 
         // The lane grouping widens after each local interleave, and the sixteen rows do not stay in registers. The bounded buffer keeps the live register set
         // small. Thus the JIT does not spill a four-stage, sixteen-register cross-vector permutation network into its own stack frame.
@@ -691,8 +691,8 @@ internal static class Av1Transform2dOperations
                 odd = Av1Transform1dMath.MultiplyRound(odd, Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
             }
 
-            Vector512_.UnpackLow(even, odd).AsInt64().StoreUnsafe(ref scratchBase, (nuint)(row * 8));
-            Vector512_.UnpackHigh(even, odd).AsInt64().StoreUnsafe(ref scratchBase, (nuint)((row + 1) * 8));
+            Vector512_.UnpackLow(even, odd).AsInt64().StoreUnsafe(ref transposeBase, (nuint)(row * 8));
+            Vector512_.UnpackHigh(even, odd).AsInt64().StoreUnsafe(ref transposeBase, (nuint)((row + 1) * 8));
         }
 
         // The second stage exchanges the next row and column bits with 64-bit unpack operations. Each inner pass reads two rows before it writes them back to
@@ -701,10 +701,10 @@ internal static class Av1Transform2dOperations
         {
             for (int offset = 0; offset < 2; offset++)
             {
-                Vector512<long> lower = Vector512.LoadUnsafe(ref scratchBase, (nuint)((row + offset) * 8));
-                Vector512<long> upper = Vector512.LoadUnsafe(ref scratchBase, (nuint)((row + offset + 2) * 8));
-                Vector512_.UnpackLow(lower, upper).StoreUnsafe(ref scratchBase, (nuint)((row + offset) * 8));
-                Vector512_.UnpackHigh(lower, upper).StoreUnsafe(ref scratchBase, (nuint)((row + offset + 2) * 8));
+                Vector512<long> lower = Vector512.LoadUnsafe(ref transposeBase, (nuint)((row + offset) * 8));
+                Vector512<long> upper = Vector512.LoadUnsafe(ref transposeBase, (nuint)((row + offset + 2) * 8));
+                Vector512_.UnpackLow(lower, upper).StoreUnsafe(ref transposeBase, (nuint)((row + offset) * 8));
+                Vector512_.UnpackHigh(lower, upper).StoreUnsafe(ref transposeBase, (nuint)((row + offset + 2) * 8));
             }
         }
 
@@ -717,10 +717,10 @@ internal static class Av1Transform2dOperations
         {
             for (int offset = 0; offset < 4; offset++)
             {
-                Vector512<long> lower = Vector512.LoadUnsafe(ref scratchBase, (nuint)((row + offset) * 8));
-                Vector512<long> upper = Vector512.LoadUnsafe(ref scratchBase, (nuint)((row + offset + 4) * 8));
-                Vector512_.PermuteVar8x64x2(lower, evenBlockIndices, upper).StoreUnsafe(ref scratchBase, (nuint)((row + offset) * 8));
-                Vector512_.PermuteVar8x64x2(lower, oddBlockIndices, upper).StoreUnsafe(ref scratchBase, (nuint)((row + offset + 4) * 8));
+                Vector512<long> lower = Vector512.LoadUnsafe(ref transposeBase, (nuint)((row + offset) * 8));
+                Vector512<long> upper = Vector512.LoadUnsafe(ref transposeBase, (nuint)((row + offset + 4) * 8));
+                Vector512_.PermuteVar8x64x2(lower, evenBlockIndices, upper).StoreUnsafe(ref transposeBase, (nuint)((row + offset) * 8));
+                Vector512_.PermuteVar8x64x2(lower, oddBlockIndices, upper).StoreUnsafe(ref transposeBase, (nuint)((row + offset + 4) * 8));
             }
         }
 
@@ -728,8 +728,8 @@ internal static class Av1Transform2dOperations
         // stages produce.
         for (int row = 0; row < 8; row++)
         {
-            Vector512<long> lower = Vector512.LoadUnsafe(ref scratchBase, (nuint)(row * 8));
-            Vector512<long> upper = Vector512.LoadUnsafe(ref scratchBase, (nuint)((row + 8) * 8));
+            Vector512<long> lower = Vector512.LoadUnsafe(ref transposeBase, (nuint)(row * 8));
+            Vector512<long> upper = Vector512.LoadUnsafe(ref transposeBase, (nuint)((row + 8) * 8));
             Vector512<int> lowerResult = Vector512_.Shuffle4x128(lower.AsInt32(), upper.AsInt32(), 0x44);
             Vector512<int> upperResult = Vector512_.Shuffle4x128(lower.AsInt32(), upper.AsInt32(), 0xEE);
             int lowerDestinationRow = Vector512TransposeStoreOrder[row];

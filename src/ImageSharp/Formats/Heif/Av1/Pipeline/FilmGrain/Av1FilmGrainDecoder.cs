@@ -312,51 +312,51 @@ internal sealed class Av1FilmGrainDecoder
             ? (chromaSubblockHeight + (2 >> subsamplingY)) * (2 >> subsamplingX)
             : 0;
 
-        int scratchLength = scalingLength + lumaGrainLength + (2 * chromaGrainLength) +
+        int grainStorageLength = scalingLength + lumaGrainLength + (2 * chromaGrainLength) +
             lumaLineLength + (2 * chromaLineLength) + lumaColumnLength + (2 * chromaColumnLength);
 
         // All frame-lifetime film-grain state shares one allocator-backed owner. The slices below are disjoint,
         // and their logical ordering mirrors lookup tables, templates, horizontal boundaries, then vertical boundaries.
-        using IMemoryOwner<int> scratchOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(scratchLength);
-        Span<int> scratch = scratchOwner.GetSpan()[..scratchLength];
-        int scratchOffset = 0;
+        using IMemoryOwner<int> grainStorageOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(grainStorageLength);
+        Span<int> grainStorage = grainStorageOwner.GetSpan()[..grainStorageLength];
+        int grainStorageOffset = 0;
 
-        Span<int> scalingY = scratch.Slice(scratchOffset, 256);
-        scratchOffset += 256;
-        Span<int> scalingCb = isMonochrome ? Span<int>.Empty : scratch.Slice(scratchOffset, 256);
-        scratchOffset += scalingCb.Length;
-        Span<int> scalingCr = isMonochrome ? Span<int>.Empty : scratch.Slice(scratchOffset, 256);
-        scratchOffset += scalingCr.Length;
-        Span<int> lumaGrain = scratch.Slice(scratchOffset, lumaGrainLength);
-        scratchOffset += lumaGrain.Length;
-        Span<int> cbGrain = isMonochrome ? Span<int>.Empty : scratch.Slice(scratchOffset, chromaGrainLength);
-        scratchOffset += cbGrain.Length;
-        Span<int> crGrain = isMonochrome ? Span<int>.Empty : scratch.Slice(scratchOffset, chromaGrainLength);
-        scratchOffset += crGrain.Length;
-        Span<int> yLineBuffer = parameters.OverlapFlag ? scratch.Slice(scratchOffset, lumaLineLength) : Span<int>.Empty;
-        scratchOffset += yLineBuffer.Length;
+        Span<int> scalingY = grainStorage.Slice(grainStorageOffset, 256);
+        grainStorageOffset += 256;
+        Span<int> scalingCb = isMonochrome ? Span<int>.Empty : grainStorage.Slice(grainStorageOffset, 256);
+        grainStorageOffset += scalingCb.Length;
+        Span<int> scalingCr = isMonochrome ? Span<int>.Empty : grainStorage.Slice(grainStorageOffset, 256);
+        grainStorageOffset += scalingCr.Length;
+        Span<int> lumaGrain = grainStorage.Slice(grainStorageOffset, lumaGrainLength);
+        grainStorageOffset += lumaGrain.Length;
+        Span<int> cbGrain = isMonochrome ? Span<int>.Empty : grainStorage.Slice(grainStorageOffset, chromaGrainLength);
+        grainStorageOffset += cbGrain.Length;
+        Span<int> crGrain = isMonochrome ? Span<int>.Empty : grainStorage.Slice(grainStorageOffset, chromaGrainLength);
+        grainStorageOffset += crGrain.Length;
+        Span<int> yLineBuffer = parameters.OverlapFlag ? grainStorage.Slice(grainStorageOffset, lumaLineLength) : Span<int>.Empty;
+        grainStorageOffset += yLineBuffer.Length;
         Span<int> cbLineBuffer = parameters.OverlapFlag && !isMonochrome
-            ? scratch.Slice(scratchOffset, chromaLineLength)
+            ? grainStorage.Slice(grainStorageOffset, chromaLineLength)
             : Span<int>.Empty;
 
-        scratchOffset += cbLineBuffer.Length;
+        grainStorageOffset += cbLineBuffer.Length;
         Span<int> crLineBuffer = parameters.OverlapFlag && !isMonochrome
-            ? scratch.Slice(scratchOffset, chromaLineLength)
+            ? grainStorage.Slice(grainStorageOffset, chromaLineLength)
             : Span<int>.Empty;
 
-        scratchOffset += crLineBuffer.Length;
+        grainStorageOffset += crLineBuffer.Length;
         Span<int> yColumnBuffer = parameters.OverlapFlag
-            ? scratch.Slice(scratchOffset, lumaColumnLength)
+            ? grainStorage.Slice(grainStorageOffset, lumaColumnLength)
             : Span<int>.Empty;
 
-        scratchOffset += yColumnBuffer.Length;
+        grainStorageOffset += yColumnBuffer.Length;
         Span<int> cbColumnBuffer = parameters.OverlapFlag && !isMonochrome
-            ? scratch.Slice(scratchOffset, chromaColumnLength)
+            ? grainStorage.Slice(grainStorageOffset, chromaColumnLength)
             : Span<int>.Empty;
 
-        scratchOffset += cbColumnBuffer.Length;
+        grainStorageOffset += cbColumnBuffer.Length;
         Span<int> crColumnBuffer = parameters.OverlapFlag && !isMonochrome
-            ? scratch.Slice(scratchOffset, chromaColumnLength)
+            ? grainStorage.Slice(grainStorageOffset, chromaColumnLength)
             : Span<int>.Empty;
 
         // An empty control-point list leaves its lookup unchanged. The tables start at zero, so chroma scaling copied from luma

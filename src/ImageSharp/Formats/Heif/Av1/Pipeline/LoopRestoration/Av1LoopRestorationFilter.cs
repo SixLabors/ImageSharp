@@ -38,8 +38,8 @@ internal static class Av1LoopRestorationFilter
     /// <param name="verticalEnd">The exclusive unit row limit.</param>
     /// <param name="unit">The selected filter choice and coefficients.</param>
     /// <param name="savedRows">Storage for the temporarily overwritten source rows.</param>
-    /// <param name="wienerScratch">The two-pass convolution workspace.</param>
-    /// <param name="selfGuidedScratch">The self-guided arithmetic workspace.</param>
+    /// <param name="wienerStorage">The two-pass convolution workspace.</param>
+    /// <param name="selfGuidedStorage">The self-guided arithmetic workspace.</param>
     public static void FilterUnit<TSample>(
         Av1LoopRestorationBoundary boundary,
         int bitDepth,
@@ -58,8 +58,8 @@ internal static class Av1LoopRestorationFilter
         int verticalEnd,
         Av1LoopRestorationUnit unit,
         Span<TSample> savedRows,
-        Span<ushort> wienerScratch,
-        Span<int> selfGuidedScratch)
+        Span<ushort> wienerStorage,
+        Span<int> selfGuidedStorage)
         where TSample : unmanaged
     {
         if (unit.FilterType == Av1RestorationFilterType.None)
@@ -136,7 +136,7 @@ internal static class Av1LoopRestorationFilter
                 // The typed source and destination keep byte frames byte-backed through both filters.
                 if (unit.FilterType == Av1RestorationFilterType.Wiener)
                 {
-                    int scratchLength = Av1WienerFilter.GetScratchLength(blockWidth, stripeHeight);
+                    int storageLength = Av1WienerFilter.GetScratchLength(blockWidth, stripeHeight);
                     Av1WienerFilter.FilterStripe(
                         filterSource,
                         sourceStride,
@@ -147,11 +147,11 @@ internal static class Av1LoopRestorationFilter
                         bitDepth,
                         unit.WienerHorizontal,
                         unit.WienerVertical,
-                        wienerScratch[..scratchLength]);
+                        wienerStorage[..storageLength]);
                 }
                 else
                 {
-                    int scratchLength = Av1SelfGuidedFilter.GetScratchLength(blockWidth, stripeHeight);
+                    int storageLength = Av1SelfGuidedFilter.GetScratchLength(blockWidth, stripeHeight);
                     Av1SelfGuidedFilter.FilterBlock(
                         filterSource,
                         sourceStride,
@@ -162,7 +162,7 @@ internal static class Av1LoopRestorationFilter
                         bitDepth,
                         unit.SgrParameterSet,
                         unit.SgrProjectionCoefficients,
-                        selfGuidedScratch[..scratchLength]);
+                        selfGuidedStorage[..storageLength]);
                 }
             }
 

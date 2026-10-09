@@ -21,16 +21,16 @@ internal static partial class Av1IntraEdgeFilter
         /// </summary>
         /// <param name="edge">The first edge sample.</param>
         /// <param name="count">The number of samples including the preserved sample.</param>
-        /// <param name="scratch">The reusable source workspace.</param>
-        public static void Apply(ref byte edge, int count, Span<byte> scratch)
+        /// <param name="originalEdge">The reusable source workspace.</param>
+        public static void Apply(ref byte edge, int count, Span<byte> originalEdge)
         {
             // Each convolution reads the original edge. Thus the source copy repeats the first sample once and the last sample twice.
             // The five-tap windows then clamp at the endpoints without per-lane boundary branches.
-            scratch[0] = edge;
-            MemoryMarshal.CreateReadOnlySpan(ref edge, count).CopyTo(scratch[1..]);
-            scratch.Slice(count + 1, 2).Fill(Unsafe.Add(ref edge, count - 1));
+            originalEdge[0] = edge;
+            MemoryMarshal.CreateReadOnlySpan(ref edge, count).CopyTo(originalEdge[1..]);
+            originalEdge.Slice(count + 1, 2).Fill(Unsafe.Add(ref edge, count - 1));
 
-            ref byte source = ref MemoryMarshal.GetReference(scratch);
+            ref byte source = ref MemoryMarshal.GetReference(originalEdge);
             int outputCount = count - 1;
             int i = 0;
 
@@ -131,16 +131,16 @@ internal static partial class Av1IntraEdgeFilter
         /// </summary>
         /// <param name="edge">The first edge sample.</param>
         /// <param name="count">The number of samples including the preserved sample.</param>
-        /// <param name="scratch">The reusable source workspace.</param>
-        public static void Apply(ref short edge, int count, Span<short> scratch)
+        /// <param name="originalEdge">The reusable source workspace.</param>
+        public static void Apply(ref short edge, int count, Span<short> originalEdge)
         {
             // Each convolution reads the original edge. Thus the source copy repeats the first sample once and the last sample twice.
             // The five-tap windows then clamp at the endpoints without per-lane boundary branches.
-            scratch[0] = edge;
-            MemoryMarshal.CreateReadOnlySpan(ref edge, count).CopyTo(scratch[1..]);
-            scratch.Slice(count + 1, 2).Fill(Unsafe.Add(ref edge, count - 1));
+            originalEdge[0] = edge;
+            MemoryMarshal.CreateReadOnlySpan(ref edge, count).CopyTo(originalEdge[1..]);
+            originalEdge.Slice(count + 1, 2).Fill(Unsafe.Add(ref edge, count - 1));
 
-            ref short source = ref MemoryMarshal.GetReference(scratch);
+            ref short source = ref MemoryMarshal.GetReference(originalEdge);
             int outputCount = count - 1;
             int i = 0;
 

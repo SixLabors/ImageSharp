@@ -101,7 +101,7 @@ internal interface IAv1TplSampleOperator<TSample>
     /// <param name="leftCount">The number of available left samples.</param>
     /// <param name="filterType">Whether a neighbor uses a smooth mode.</param>
     /// <param name="bitDepth">The sample precision.</param>
-    /// <param name="scratch">The edge filter workspace.</param>
+    /// <param name="originalEdge">The edge filter workspace.</param>
     /// <param name="upsampleAbove">Receives whether the above edge was upsampled.</param>
     /// <param name="upsampleLeft">Receives whether the left edge was upsampled.</param>
     public static abstract void PrepareDirectionalEdges(
@@ -114,7 +114,7 @@ internal interface IAv1TplSampleOperator<TSample>
         int leftCount,
         bool filterType,
         int bitDepth,
-        Span<TSample> scratch,
+        Span<TSample> originalEdge,
         out bool upsampleAbove,
         out bool upsampleLeft);
 
@@ -129,7 +129,7 @@ internal interface IAv1TplSampleOperator<TSample>
     /// <param name="upsampleAbove">Whether the above edge is upsampled.</param>
     /// <param name="upsampleLeft">Whether the left edge is upsampled.</param>
     /// <param name="angle">The prediction angle.</param>
-    /// <param name="scratch">The predictor workspace of at least one block.</param>
+    /// <param name="transposedBlock">The predictor workspace of at least one block.</param>
     public static abstract void PredictDirectional(
         Span<TSample> destination,
         int stride,
@@ -139,7 +139,7 @@ internal interface IAv1TplSampleOperator<TSample>
         bool upsampleAbove,
         bool upsampleLeft,
         int angle,
-        Span<TSample> scratch);
+        Span<TSample> transposedBlock);
 
     /// <summary>
     /// Predicts one reference with the regular eight-tap filter, rounded to samples.
@@ -154,7 +154,7 @@ internal interface IAv1TplSampleOperator<TSample>
     /// <param name="horizontalPhase">The horizontal phase in sixteenth samples.</param>
     /// <param name="verticalPhase">The vertical phase in sixteenth samples.</param>
     /// <param name="bitDepth">The sample precision.</param>
-    /// <param name="scratch">The convolution workspace.</param>
+    /// <param name="intermediateRows">The convolution workspace.</param>
     public static abstract void PredictTranslational(
         ReadOnlySpan<TSample> reference,
         int referenceStride,
@@ -166,7 +166,7 @@ internal interface IAv1TplSampleOperator<TSample>
         int horizontalPhase,
         int verticalPhase,
         int bitDepth,
-        Span<short> scratch);
+        Span<short> intermediateRows);
 
     /// <summary>
     /// Predicts one reference of a compound pair into the unrounded compound intermediate with the regular filter.
@@ -181,7 +181,7 @@ internal interface IAv1TplSampleOperator<TSample>
     /// <param name="horizontalPhase">The horizontal phase in sixteenth samples.</param>
     /// <param name="verticalPhase">The vertical phase in sixteenth samples.</param>
     /// <param name="bitDepth">The sample precision.</param>
-    /// <param name="scratch">The convolution workspace.</param>
+    /// <param name="intermediateRows">The convolution workspace.</param>
     public static abstract void PredictCompoundIntermediate(
         ReadOnlySpan<TSample> reference,
         int referenceStride,
@@ -193,7 +193,7 @@ internal interface IAv1TplSampleOperator<TSample>
         int horizontalPhase,
         int verticalPhase,
         int bitDepth,
-        Span<short> scratch);
+        Span<short> intermediateRows);
 
     /// <summary>
     /// Averages two compound intermediates with equal weights into rounded samples.

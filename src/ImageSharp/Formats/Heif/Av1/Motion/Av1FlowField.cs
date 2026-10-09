@@ -134,17 +134,17 @@ internal sealed class Av1FlowField : IDisposable
     /// </remarks>
     public void Compute(MemoryAllocator allocator, Av1ImagePyramid source, Av1ImagePyramid reference, int levelCount)
     {
-        IMemoryOwner<double>? scratchOwner = null;
-        Span<double> scratch = default;
-        int scratchOrigin = 0;
+        IMemoryOwner<double>? doubledLevelOwner = null;
+        Span<double> doubledLevel = default;
+        int doubledLevelOrigin = 0;
         if (levelCount >= 2)
         {
             // This buffer holds one horizontally upscaled level. It is as tall as the source level and as wide as the field. The upscale itself
             // writes the rows above and below the level, so the allocation does not need a clear.
-            int scratchHeight = source.GetLevel(1).Height >> DownsampleShift;
-            scratchOwner = allocator.Allocate<double>((scratchHeight + (2 * BorderOuter)) * this.Stride);
-            scratch = scratchOwner.Memory.Span;
-            scratchOrigin = BorderOuter * this.Stride;
+            int doubledLevelHeight = source.GetLevel(1).Height >> DownsampleShift;
+            doubledLevelOwner = allocator.Allocate<double>((doubledLevelHeight + (2 * BorderOuter)) * this.Stride);
+            doubledLevel = doubledLevelOwner.Memory.Span;
+            doubledLevelOrigin = BorderOuter * this.Stride;
         }
 
         try
@@ -187,8 +187,8 @@ internal sealed class Av1FlowField : IDisposable
                 this.FillBorders(horizontal, levelWidth, levelHeight);
                 this.FillBorders(vertical, levelWidth, levelHeight);
 
-                this.Upscale(horizontal, levelWidth, levelHeight, scratch, scratchOrigin);
-                this.Upscale(vertical, levelWidth, levelHeight, scratch, scratchOrigin);
+                this.Upscale(horizontal, levelWidth, levelHeight, doubledLevel, doubledLevelOrigin);
+                this.Upscale(vertical, levelWidth, levelHeight, doubledLevel, doubledLevelOrigin);
 
                 // An odd level width or height gives the next level one more entry than the doubling produced. That entry takes the value of its
                 // neighbor, which keeps the ratio of the two levels at exactly two.
@@ -204,7 +204,7 @@ internal sealed class Av1FlowField : IDisposable
         }
         finally
         {
-            scratchOwner?.Dispose();
+            doubledLevelOwner?.Dispose();
         }
     }
 
@@ -310,9 +310,9 @@ internal sealed class Av1FlowField : IDisposable
     /// <param name="component">The component to double, in place.</param>
     /// <param name="width">The number of entries across the level.</param>
     /// <param name="height">The number of entries down the level.</param>
-    /// <param name="scratch">The storage of the horizontally doubled level.</param>
-    /// <param name="scratchOrigin">The index of the first entry of that storage that is not border.</param>
-    private void Upscale(Span<double> component, int width, int height, Span<double> scratch, int scratchOrigin)
+    /// <param name="doubledLevel">The storage of the horizontally doubled level.</param>
+    /// <param name="doubledLevelOrigin">The index of the first entry of that storage that is not border.</param>
+    private void Upscale(Span<double> component, int width, int height, Span<double> doubledLevel, int doubledLevelOrigin)
     {
         int upscaledWidth = width * 2;
         for (int row = 0; row < height; row++)
@@ -320,27 +320,27 @@ internal sealed class Av1FlowField : IDisposable
             int input = this.Origin + (row * this.Stride);
             UpscaleRow(
                 component.Slice(input - BorderOuter, width + (2 * BorderOuter)),
-                scratch.Slice(scratchOrigin + (row * this.Stride), upscaledWidth));
+                doubledLevel.Slice(doubledLevelOrigin + (row * this.Stride), upscaledWidth));
         }
 
         // The vertical pass reads rows above and below the level, so the buffer keeps copies of its first and last rows there.
-        ReadOnlySpan<double> topRow = scratch.Slice(scratchOrigin, upscaledWidth);
+        ReadOnlySpan<double> topRow = doubledLevel.Slice(doubledLevelOrigin, upscaledWidth);
         for (int row = -BorderOuter; row < 0; row++)
         {
-            topRow.CopyTo(scratch.Slice(scratchOrigin + (row * this.Stride), upscaledWidth));
+            topRow.CopyTo(doubledLevel.Slice(doubledLevelOrigin + (row * this.Stride), upscaledWidth));
         }
 
-        ReadOnlySpan<double> bottomRow = scratch.Slice(scratchOrigin + ((height - 1) * this.Stride), upscaledWidth);
+        ReadOnlySpan<double> bottomRow = doubledLevel.Slice(doubledLevelOrigin + ((height - 1) * this.Stride), upscaledWidth);
         for (int row = height; row < height + BorderOuter; row++)
         {
-            bottomRow.CopyTo(scratch.Slice(scratchOrigin + (row * this.Stride), upscaledWidth));
+            bottomRow.CopyTo(doubledLevel.Slice(doubledLevelOrigin + (row * this.Stride), upscaledWidth));
         }
 
         for (int row = 0; row < height; row++)
         {
             int output = this.Origin + (2 * row * this.Stride);
             UpscaleColumns(
-                scratch[(scratchOrigin + ((row - BorderOuter) * this.Stride))..],
+                doubledLevel[(doubledLevelOrigin + ((row - BorderOuter) * this.Stride))..],
                 this.Stride,
                 component.Slice(output, upscaledWidth),
                 component.Slice(output + this.Stride, upscaledWidth));

@@ -27,7 +27,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalFilter">The vertical interpolation filter.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     private static void Dispatch(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -40,11 +40,11 @@ internal static partial class Av1TranslationalInterPredictor
         Av1InterpolationFilter verticalFilter,
         int horizontalPhase,
         int verticalPhase,
-        Span<short> scratch)
+        Span<short> intermediateRows)
     {
         DebugGuard.IsTrue(
-            horizontalPhase == 0 || verticalPhase == 0 || scratch.Length >= GetScratchLength(width, height),
-            "The two-dimensional scratch holds fewer samples than GetScratchLength requires.");
+            horizontalPhase == 0 || verticalPhase == 0 || intermediateRows.Length >= GetScratchLength(width, height),
+            "The two-dimensional intermediate rows hold fewer samples than GetScratchLength requires.");
 
         switch (horizontalFilter)
         {
@@ -60,7 +60,7 @@ internal static partial class Av1TranslationalInterPredictor
                     verticalFilter,
                     horizontalPhase,
                     verticalPhase,
-                    scratch);
+                    intermediateRows);
 
                 break;
             case Av1InterpolationFilter.Smooth:
@@ -75,7 +75,7 @@ internal static partial class Av1TranslationalInterPredictor
                     verticalFilter,
                     horizontalPhase,
                     verticalPhase,
-                    scratch);
+                    intermediateRows);
 
                 break;
             case Av1InterpolationFilter.Sharp:
@@ -90,7 +90,7 @@ internal static partial class Av1TranslationalInterPredictor
                     verticalFilter,
                     horizontalPhase,
                     verticalPhase,
-                    scratch);
+                    intermediateRows);
 
                 break;
             default:
@@ -105,7 +105,7 @@ internal static partial class Av1TranslationalInterPredictor
                     verticalFilter,
                     horizontalPhase,
                     verticalPhase,
-                    scratch);
+                    intermediateRows);
 
                 break;
         }
@@ -126,7 +126,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     private static void Dispatch(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -140,11 +140,11 @@ internal static partial class Av1TranslationalInterPredictor
         int horizontalPhase,
         int verticalPhase,
         int bitDepth,
-        Span<short> scratch)
+        Span<short> intermediateRows)
     {
         DebugGuard.IsTrue(
-            horizontalPhase == 0 || verticalPhase == 0 || scratch.Length >= GetScratchLength(width, height),
-            "The two-dimensional scratch holds fewer samples than GetScratchLength requires.");
+            horizontalPhase == 0 || verticalPhase == 0 || intermediateRows.Length >= GetScratchLength(width, height),
+            "The two-dimensional intermediate rows hold fewer samples than GetScratchLength requires.");
 
         switch (horizontalFilter)
         {
@@ -161,7 +161,7 @@ internal static partial class Av1TranslationalInterPredictor
                     horizontalPhase,
                     verticalPhase,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 break;
             case Av1InterpolationFilter.Smooth:
@@ -177,7 +177,7 @@ internal static partial class Av1TranslationalInterPredictor
                     horizontalPhase,
                     verticalPhase,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 break;
             case Av1InterpolationFilter.Sharp:
@@ -193,7 +193,7 @@ internal static partial class Av1TranslationalInterPredictor
                     horizontalPhase,
                     verticalPhase,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 break;
             default:
@@ -209,7 +209,7 @@ internal static partial class Av1TranslationalInterPredictor
                     horizontalPhase,
                     verticalPhase,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 break;
         }
@@ -229,7 +229,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalFilter">The vertical interpolation filter.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     private static void DispatchScalar(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -242,7 +242,7 @@ internal static partial class Av1TranslationalInterPredictor
         Av1InterpolationFilter verticalFilter,
         int horizontalPhase,
         int verticalPhase,
-        Span<short> scratch)
+        Span<short> intermediateRows)
     {
         // This benchmark and test entry point closes the same production operators, but ends in the scalar kernels.
         // Thus the SIMD-first decoder path carries no runtime mode flag.
@@ -260,7 +260,7 @@ internal static partial class Av1TranslationalInterPredictor
                     verticalFilter,
                     horizontalPhase,
                     verticalPhase,
-                    scratch);
+                    intermediateRows);
 
                 break;
             case Av1InterpolationFilter.Smooth:
@@ -275,7 +275,7 @@ internal static partial class Av1TranslationalInterPredictor
                     verticalFilter,
                     horizontalPhase,
                     verticalPhase,
-                    scratch);
+                    intermediateRows);
 
                 break;
             case Av1InterpolationFilter.Sharp:
@@ -290,7 +290,7 @@ internal static partial class Av1TranslationalInterPredictor
                     verticalFilter,
                     horizontalPhase,
                     verticalPhase,
-                    scratch);
+                    intermediateRows);
 
                 break;
             default:
@@ -305,7 +305,7 @@ internal static partial class Av1TranslationalInterPredictor
                     verticalFilter,
                     horizontalPhase,
                     verticalPhase,
-                    scratch);
+                    intermediateRows);
 
                 break;
         }
@@ -326,7 +326,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     private static void DispatchScalar(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -340,7 +340,7 @@ internal static partial class Av1TranslationalInterPredictor
         int horizontalPhase,
         int verticalPhase,
         int bitDepth,
-        Span<short> scratch)
+        Span<short> intermediateRows)
     {
         // The scalar path closes the production table operators, so that it uses the same normative Q7 coefficients.
         switch (horizontalFilter)
@@ -358,7 +358,7 @@ internal static partial class Av1TranslationalInterPredictor
                     horizontalPhase,
                     verticalPhase,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 break;
             case Av1InterpolationFilter.Smooth:
@@ -374,7 +374,7 @@ internal static partial class Av1TranslationalInterPredictor
                     horizontalPhase,
                     verticalPhase,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 break;
             case Av1InterpolationFilter.Sharp:
@@ -390,7 +390,7 @@ internal static partial class Av1TranslationalInterPredictor
                     horizontalPhase,
                     verticalPhase,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 break;
             default:
@@ -406,7 +406,7 @@ internal static partial class Av1TranslationalInterPredictor
                     horizontalPhase,
                     verticalPhase,
                     bitDepth,
-                    scratch);
+                    intermediateRows);
 
                 break;
         }
@@ -857,7 +857,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalTapCount">The number of applied vertical taps.</param>
     /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
     private static void Filter2D(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -873,7 +873,7 @@ internal static partial class Av1TranslationalInterPredictor
         int verticalTapCount,
         int verticalSourceOffset,
         int bitDepth,
-        Span<short> scratch)
+        Span<short> intermediateRows)
     {
         if (Vector512.IsHardwareAccelerated && Vector<int>.Count == Vector512<int>.Count && width >= Vector512<byte>.Count)
         {
@@ -893,7 +893,7 @@ internal static partial class Av1TranslationalInterPredictor
                 verticalSourceOffset,
                 bitDepth,
                 Round0Bits,
-                scratch,
+                intermediateRows,
                 Vector512<int>.Zero);
 
             return;
@@ -917,7 +917,7 @@ internal static partial class Av1TranslationalInterPredictor
                 verticalSourceOffset,
                 bitDepth,
                 Round0Bits,
-                scratch,
+                intermediateRows,
                 Vector256<int>.Zero);
 
             return;
@@ -941,7 +941,7 @@ internal static partial class Av1TranslationalInterPredictor
                 verticalSourceOffset,
                 bitDepth,
                 Round0Bits,
-                scratch,
+                intermediateRows,
                 Vector128<int>.Zero);
 
             return;
@@ -963,7 +963,7 @@ internal static partial class Av1TranslationalInterPredictor
             verticalSourceOffset,
             bitDepth,
             Round0Bits,
-            scratch);
+            intermediateRows);
     }
 
     /// <summary>
@@ -984,7 +984,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
-    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
     private static void Filter2D(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -1001,7 +1001,7 @@ internal static partial class Av1TranslationalInterPredictor
         int verticalSourceOffset,
         int bitDepth,
         int round0,
-        Span<short> scratch)
+        Span<short> intermediateRows)
     {
         if (Vector512.IsHardwareAccelerated && Vector<int>.Count == Vector512<int>.Count && width >= Vector512<ushort>.Count)
         {
@@ -1021,7 +1021,7 @@ internal static partial class Av1TranslationalInterPredictor
                 verticalSourceOffset,
                 bitDepth,
                 round0,
-                scratch,
+                intermediateRows,
                 Vector512<int>.Zero);
 
             return;
@@ -1045,7 +1045,7 @@ internal static partial class Av1TranslationalInterPredictor
                 verticalSourceOffset,
                 bitDepth,
                 round0,
-                scratch,
+                intermediateRows,
                 Vector256<int>.Zero);
 
             return;
@@ -1069,7 +1069,7 @@ internal static partial class Av1TranslationalInterPredictor
                 verticalSourceOffset,
                 bitDepth,
                 round0,
-                scratch,
+                intermediateRows,
                 Vector128<int>.Zero);
 
             return;
@@ -1091,7 +1091,7 @@ internal static partial class Av1TranslationalInterPredictor
             verticalSourceOffset,
             bitDepth,
             round0,
-            scratch);
+            intermediateRows);
     }
 
     /// <summary>

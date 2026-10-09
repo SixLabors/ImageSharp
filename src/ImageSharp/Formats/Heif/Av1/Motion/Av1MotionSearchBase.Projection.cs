@@ -25,7 +25,7 @@ internal static partial class Av1MotionSearchBase
     /// <param name="verticalRange">The requested vertical search radius.</param>
     /// <param name="scrollSuperblock">Whether the expanded superblock search replaces local two-dimensional refinement.</param>
     /// <param name="bounds">The permitted final full-sample displacements.</param>
-    /// <param name="scratch">Reusable storage for the two prediction projections and two source projections.</param>
+    /// <param name="projectionStorage">Reusable storage for the two prediction projections and two source projections.</param>
     /// <param name="vector">The selected displacement in eighth-sample units.</param>
     /// <param name="zeroSad">The absolute-difference sum at zero displacement.</param>
     /// <returns>The selected prediction's absolute-difference estimate.</returns>
@@ -42,7 +42,7 @@ internal static partial class Av1MotionSearchBase
         int verticalRange,
         bool scrollSuperblock,
         Rectangle bounds,
-        Span<short> scratch,
+        Span<short> projectionStorage,
         out Av1MotionVector vector,
         out uint zeroSad)
     {
@@ -81,10 +81,10 @@ internal static partial class Av1MotionSearchBase
         bottom &= ~15;
         int horizontalCount = left + right + block.Width;
         int verticalCount = top + bottom + block.Height;
-        Span<short> horizontal = scratch[..horizontalCount];
-        Span<short> vertical = scratch.Slice(horizontalCount, verticalCount);
-        Span<short> sourceHorizontal = scratch.Slice(horizontalCount + verticalCount, block.Width);
-        Span<short> sourceVertical = scratch.Slice(horizontalCount + verticalCount + block.Width, block.Height);
+        Span<short> horizontal = projectionStorage[..horizontalCount];
+        Span<short> vertical = projectionStorage.Slice(horizontalCount, verticalCount);
+        Span<short> sourceHorizontal = projectionStorage.Slice(horizontalCount + verticalCount, block.Width);
+        Span<short> sourceVertical = projectionStorage.Slice(horizontalCount + verticalCount + block.Width, block.Height);
         int horizontalShift = BitOperations.Log2((uint)block.Height) - 1;
         int verticalShift = 3 + (block.Width >> 5);
 

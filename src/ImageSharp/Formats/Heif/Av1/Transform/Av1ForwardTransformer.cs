@@ -24,7 +24,7 @@ internal static partial class Av1ForwardTransformer
     /// Computes the unnormalized eight-by-eight Hadamard magnitude used to screen intra prediction candidates.
     /// </summary>
     /// <param name="residual">The sixty-four packed prediction residuals.</param>
-    /// <param name="workspace">The containing block's reusable transform scratch.</param>
+    /// <param name="workspace">The containing block's reusable transform workspace.</param>
     /// <returns>The sum of absolute transformed residuals at their original sample precision.</returns>
     public static int GetHadamard8x8Cost(ReadOnlySpan<short> residual, Span<int> workspace)
     {
@@ -743,8 +743,8 @@ internal static partial class Av1ForwardTransformer
         if (promote)
         {
             Span<int> buffer1 = workspace.Slice(dataOffset + packedBlockLength, blockArea);
-            int scratchOffset = dataOffset + packedBlockLength + blockArea;
-            Span<int> scratch = workspace.Slice(scratchOffset);
+            int transposeStorageOffset = dataOffset + packedBlockLength + blockArea;
+            Span<int> transposeStorage = workspace.Slice(transposeStorageOffset);
             ref int buffer1Base = ref MemoryMarshal.GetReference(buffer1);
 
             TransposeAndPromote(
@@ -755,7 +755,7 @@ internal static partial class Av1ForwardTransformer
                 width,
                 height,
                 -config.Shift1,
-                scratch);
+                transposeStorage);
 
             int rowOutputStride = width == 64 && height == 64 ? 32 : blockHeight;
 
@@ -771,14 +771,14 @@ internal static partial class Av1ForwardTransformer
                 retainedWidth,
                 -config.Shift2,
                 normalizeRectangle,
-                scratch);
+                transposeStorage);
 
             return;
         }
 
         Span<short> buffer1Packed = MemoryMarshal.Cast<int, short>(workspace.Slice(dataOffset + packedBlockLength, packedBlockLength));
-        int packedScratchOffset = dataOffset + (2 * packedBlockLength);
-        Span<int> packedScratch = workspace.Slice(packedScratchOffset);
+        int packedTransposeStorageOffset = dataOffset + (2 * packedBlockLength);
+        Span<int> packedTransposeStorage = workspace.Slice(packedTransposeStorageOffset);
         ref short buffer1PackedBase = ref MemoryMarshal.GetReference(buffer1Packed);
 
         TransposePacked(
@@ -790,7 +790,7 @@ internal static partial class Av1ForwardTransformer
             height,
             -config.Shift1,
             false,
-            packedScratch);
+            packedTransposeStorage);
 
         TransformPackedAxis<TRowOperator>(buffer1Packed, height, blockHeight, blockHeight, config.CosBitRow, workspace);
 
@@ -805,7 +805,7 @@ internal static partial class Av1ForwardTransformer
             retainedWidth,
             -config.Shift2,
             normalizeRectangle,
-            packedScratch);
+            packedTransposeStorage);
 
         StorePacked(ref buffer0Base, retainedWidth, retainedHeight, coefficients);
     }
@@ -841,7 +841,7 @@ internal static partial class Av1ForwardTransformer
         int dataOffset = Av1TransformWorkspace.Vector512StorageLength;
         Span<int> buffer0 = workspace.Slice(dataOffset, blockArea);
         Span<int> buffer1 = workspace.Slice(dataOffset + blockArea, blockArea);
-        Span<int> scratch = workspace.Slice(dataOffset + (2 * blockArea));
+        Span<int> transposeStorage = workspace.Slice(dataOffset + (2 * blockArea));
         ref int buffer0Base = ref MemoryMarshal.GetReference(buffer0);
         ref int buffer1Base = ref MemoryMarshal.GetReference(buffer1);
 
@@ -857,7 +857,7 @@ internal static partial class Av1ForwardTransformer
             height,
             -config.Shift1,
             false,
-            scratch);
+            transposeStorage);
 
         int retainedHeight = Math.Min(height, 32);
         int retainedWidth = Math.Min(width, 32);
@@ -876,7 +876,7 @@ internal static partial class Av1ForwardTransformer
             retainedWidth,
             -config.Shift2,
             normalizeRectangle,
-            scratch);
+            transposeStorage);
     }
 
     /// <summary>
@@ -1383,7 +1383,7 @@ internal static partial class Av1ForwardTransformer
     /// <param name="sourceHeight">The number of source rows.</param>
     /// <param name="roundShift">The signed AV1 scaling shift.</param>
     /// <param name="normalizeRectangle">Whether to apply the square-root-of-two rectangle normalization.</param>
-    /// <param name="scratch">The reusable transpose workspace.</param>
+    /// <param name="transposeStorage">The reusable transpose workspace.</param>
     private static void TransposePacked(
         ref short source,
         int sourceStride,
@@ -1393,10 +1393,10 @@ internal static partial class Av1ForwardTransformer
         int sourceHeight,
         int roundShift,
         bool normalizeRectangle,
-        Span<int> scratch)
+        Span<int> transposeStorage)
     {
         int tileSize = Vector256.IsHardwareAccelerated && Math.Min(sourceWidth, sourceHeight) >= 16 ? 16 : Math.Min(sourceWidth, sourceHeight) >= 8 ? 8 : 4;
-        Span<long> transposeScratch = MemoryMarshal.Cast<int, long>(scratch);
+        Span<long> longTransposeStorage = MemoryMarshal.Cast<int, long>(transposeStorage);
 
         for (int row = 0; row < sourceHeight; row += tileSize)
         {
@@ -1412,7 +1412,7 @@ internal static partial class Av1ForwardTransformer
                         sourceStride,
                         ref tileDestination,
                         destinationStride,
-                        transposeScratch,
+                        longTransposeStorage,
                         roundShift,
                         normalizeRectangle);
                 }
@@ -1450,7 +1450,7 @@ internal static partial class Av1ForwardTransformer
     /// <param name="sourceWidth">The number of source columns.</param>
     /// <param name="sourceHeight">The number of source rows.</param>
     /// <param name="roundShift">The signed AV1 scaling shift.</param>
-    /// <param name="scratch">The reusable conversion and transpose workspace.</param>
+    /// <param name="transposeStorage">The reusable conversion and transpose workspace.</param>
     private static void TransposeAndPromote(
         ref short source,
         int sourceStride,
@@ -1459,7 +1459,7 @@ internal static partial class Av1ForwardTransformer
         int sourceWidth,
         int sourceHeight,
         int roundShift,
-        Span<int> scratch)
+        Span<int> transposeStorage)
     {
         int tileSize = Vector512.IsHardwareAccelerated ? 16 : Vector256.IsHardwareAccelerated ? 8 : 4;
 
@@ -1477,8 +1477,8 @@ internal static partial class Av1ForwardTransformer
                         sourceStride,
                         ref tileDestination,
                         destinationStride,
-                        scratch[..256],
-                        MemoryMarshal.Cast<int, long>(scratch[256..]),
+                        transposeStorage[..256],
+                        MemoryMarshal.Cast<int, long>(transposeStorage[256..]),
                         roundShift,
                         false);
                 }
@@ -1489,7 +1489,7 @@ internal static partial class Av1ForwardTransformer
                         sourceStride,
                         ref tileDestination,
                         destinationStride,
-                        scratch[..64],
+                        transposeStorage[..64],
                         roundShift,
                         false);
                 }
@@ -1500,7 +1500,7 @@ internal static partial class Av1ForwardTransformer
                         sourceStride,
                         ref tileDestination,
                         destinationStride,
-                        scratch[..16],
+                        transposeStorage[..16],
                         roundShift,
                         false);
                 }
@@ -1519,7 +1519,7 @@ internal static partial class Av1ForwardTransformer
     /// <param name="sourceHeight">The number of source rows.</param>
     /// <param name="roundShift">The signed AV1 scaling shift.</param>
     /// <param name="normalizeRectangle">Whether to apply the square-root-of-two rectangle normalization.</param>
-    /// <param name="scratch">The reusable transpose workspace.</param>
+    /// <param name="transposeStorage">The reusable transpose workspace.</param>
     private static void TransposeExpanded(
         ref int source,
         int sourceStride,
@@ -1529,14 +1529,14 @@ internal static partial class Av1ForwardTransformer
         int sourceHeight,
         int roundShift,
         bool normalizeRectangle,
-        Span<int> scratch)
+        Span<int> transposeStorage)
     {
         bool useVector512 = Vector512.IsHardwareAccelerated && Math.Min(sourceWidth, sourceHeight) >= 16;
         int tileSize = useVector512
             ? 16
             : Vector256.IsHardwareAccelerated && Math.Min(sourceWidth, sourceHeight) >= 8 ? 8 : Vector128.IsHardwareAccelerated ? 4 : 1;
 
-        Span<long> transposeScratch = MemoryMarshal.Cast<int, long>(scratch);
+        Span<long> longTransposeStorage = MemoryMarshal.Cast<int, long>(transposeStorage);
 
         for (int row = 0; row < sourceHeight; row += tileSize)
         {
@@ -1552,7 +1552,7 @@ internal static partial class Av1ForwardTransformer
                         sourceStride,
                         ref tileDestination,
                         destinationStride,
-                        transposeScratch,
+                        longTransposeStorage,
                         roundShift,
                         normalizeRectangle);
                 }

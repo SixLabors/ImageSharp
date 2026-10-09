@@ -78,8 +78,15 @@ internal abstract partial class Av1FilterIntraPredictorBase
     /// <param name="left">The prepared left reference.</param>
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
-    /// <param name="scratch">The caller-owned recursive prediction workspace of at least <see cref="ScratchLength"/> samples.</param>
-    public abstract void Predict(Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int width, int height, Span<byte> scratch);
+    /// <param name="predictionStorage">The caller-owned recursive prediction workspace of at least <see cref="ScratchLength"/> samples.</param>
+    public abstract void Predict(
+        Span<byte> destination,
+        int destinationStride,
+        ReadOnlySpan<byte> above,
+        ReadOnlySpan<byte> left,
+        int width,
+        int height,
+        Span<byte> predictionStorage);
 
     /// <summary>
     /// Predicts a high-bit-depth filter-intra block.
@@ -91,8 +98,16 @@ internal abstract partial class Av1FilterIntraPredictorBase
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
     /// <param name="bitDepth">The reconstructed sample precision.</param>
-    /// <param name="scratch">The caller-owned recursive prediction workspace of at least <see cref="ScratchLength"/> samples.</param>
-    public abstract void Predict(Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, int width, int height, int bitDepth, Span<short> scratch);
+    /// <param name="predictionStorage">The caller-owned recursive prediction workspace of at least <see cref="ScratchLength"/> samples.</param>
+    public abstract void Predict(
+        Span<short> destination,
+        int destinationStride,
+        ReadOnlySpan<short> above,
+        ReadOnlySpan<short> left,
+        int width,
+        int height,
+        int bitDepth,
+        Span<short> predictionStorage);
 
     /// <summary>
     /// Predicts an 8-bit filter-intra block without hardware intrinsics.
@@ -103,8 +118,15 @@ internal abstract partial class Av1FilterIntraPredictorBase
     /// <param name="left">The prepared left reference.</param>
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
-    /// <param name="scratch">The caller-owned recursive prediction workspace of at least <see cref="ScratchLength"/> samples.</param>
-    public abstract void PredictScalar(Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int width, int height, Span<byte> scratch);
+    /// <param name="predictionStorage">The caller-owned recursive prediction workspace of at least <see cref="ScratchLength"/> samples.</param>
+    public abstract void PredictScalar(
+        Span<byte> destination,
+        int destinationStride,
+        ReadOnlySpan<byte> above,
+        ReadOnlySpan<byte> left,
+        int width,
+        int height,
+        Span<byte> predictionStorage);
 
     /// <summary>
     /// Predicts a high-bit-depth filter-intra block without hardware intrinsics.
@@ -116,6 +138,14 @@ internal abstract partial class Av1FilterIntraPredictorBase
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
     /// <param name="bitDepth">The reconstructed sample precision.</param>
-    /// <param name="scratch">The caller-owned recursive prediction workspace of at least <see cref="ScratchLength"/> samples.</param>
-    public abstract void PredictScalar(Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, int width, int height, int bitDepth, Span<short> scratch);
+    /// <param name="predictionStorage">The caller-owned recursive prediction workspace of at least <see cref="ScratchLength"/> samples.</param>
+    public abstract void PredictScalar(
+        Span<short> destination,
+        int destinationStride,
+        ReadOnlySpan<short> above,
+        ReadOnlySpan<short> left,
+        int width,
+        int height,
+        int bitDepth,
+        Span<short> predictionStorage);
 }

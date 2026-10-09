@@ -166,8 +166,8 @@ internal static class HeifPlanarColorConverter
             sourceY,
             chromaUpsampling);
 
-        using IMemoryOwner<float> scratchOwner = configuration.MemoryAllocator.Allocate<float>(converter.BufferLength);
-        Span<float> scratch = scratchOwner.GetSpan();
+        using IMemoryOwner<float> rowBufferOwner = configuration.MemoryAllocator.Allocate<float>(converter.BufferLength);
+        Span<float> rowBuffer = rowBufferOwner.GetSpan();
         Matrix3x2 matrix = transform.GetMatrix(sourceSize);
         Point origin = HeifPixelTransform.Transform(0, 0, matrix);
         Size columnStep = new((int)matrix.M11, (int)matrix.M12);
@@ -177,7 +177,7 @@ internal static class HeifPlanarColorConverter
         // once. Each row advances by an integer basis vector, and packing writes directly into that region.
         for (int y = 0; y < sourceSize.Height; y++)
         {
-            converter.Convert(y, scratch, destination, origin, columnStep);
+            converter.Convert(y, rowBuffer, destination, origin, columnStep);
             origin += rowStep;
         }
     }
@@ -534,16 +534,16 @@ internal static class HeifPlanarColorConverter
         /// Converts one reconstructed row to packed pixels.
         /// </summary>
         /// <param name="y">The zero-based output row.</param>
-        /// <param name="scratch">The reusable pooled row buffer.</param>
+        /// <param name="rowBuffer">The reusable pooled row buffer.</param>
         /// <param name="destination">The exact output region receiving the converted pixels.</param>
         /// <param name="origin">The final location of the first pixel in this source row.</param>
         /// <param name="step">The destination increment for each source pixel.</param>
-        public void Convert(int y, Span<float> scratch, Buffer2DRegion<TPixel> destination, Point origin, Size step)
+        public void Convert(int y, Span<float> rowBuffer, Buffer2DRegion<TPixel> destination, Point origin, Size step)
         {
             int width = this.width;
-            Span<float> red = scratch[..width];
-            Span<float> green = scratch.Slice(width, width);
-            Span<float> blue = scratch.Slice(width * 2, width);
+            Span<float> red = rowBuffer[..width];
+            Span<float> green = rowBuffer.Slice(width, width);
+            Span<float> blue = rowBuffer.Slice(width * 2, width);
             int sourceY = y + this.sourceY;
             ReadOnlySpan<TSample> luma = this.buffer.GetLumaRowSpan(sourceY).Slice(this.sourceX, width);
             HeifSampleConversion.ConvertSamplesToFloat<TSample, TLoader>(luma, red, this.colorConverter.LumaBias, this.colorConverter.LumaScale);
@@ -576,10 +576,10 @@ internal static class HeifPlanarColorConverter
                     }
                     else
                     {
-                        Span<float> chroma0 = scratch.Slice(packedOffset, this.chromaWidth);
-                        Span<float> chroma1 = scratch.Slice(packedOffset + this.chromaWidth, this.chromaWidth);
+                        Span<float> chroma0 = rowBuffer.Slice(packedOffset, this.chromaWidth);
+                        Span<float> chroma1 = rowBuffer.Slice(packedOffset + this.chromaWidth, this.chromaWidth);
                         Span<float> reconstructed = this.reconstructCompleteRow
-                            ? scratch.Slice(packedOffset + (this.chromaWidth * 2), this.bufferWidth)
+                            ? rowBuffer.Slice(packedOffset + (this.chromaWidth * 2), this.bufferWidth)
                             : green;
 
                         bool isCenteredX = this.chromaPositionX == 1;
@@ -648,7 +648,7 @@ internal static class HeifPlanarColorConverter
                 }
             }
 
-            Span<float> packedStorage = scratch[packedOffset..];
+            Span<float> packedStorage = rowBuffer[packedOffset..];
             ReadOnlySpan<float> alpha = this.alpha is null ? default : this.alpha.ReadRow(y)[..width];
             if (this.profileConverter is not null)
             {

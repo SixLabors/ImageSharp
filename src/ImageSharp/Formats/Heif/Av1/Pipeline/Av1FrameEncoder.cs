@@ -1988,7 +1988,7 @@ internal static partial class Av1FrameEncoder
             int height,
             int bitDepth,
             Av1GlobalMotionParameters parameters,
-            Span<short> scratch)
+            Span<short> intermediateTile)
             => Av1GlobalMotionSearch.ByteOperator.PredictWarped(
                 source,
                 sourceStride,
@@ -2001,7 +2001,7 @@ internal static partial class Av1FrameEncoder
                 height,
                 bitDepth,
                 parameters,
-                scratch);
+                intermediateTile);
 
         /// <inheritdoc/>
         public static int SumAbsoluteDifferences(
@@ -2048,7 +2048,7 @@ internal static partial class Av1FrameEncoder
             int height,
             int bitDepth,
             Av1GlobalMotionParameters parameters,
-            Span<short> scratch)
+            Span<short> intermediateTile)
             => Av1GlobalMotionSearch.UInt16Operator.PredictWarped(
                 source,
                 sourceStride,
@@ -2061,7 +2061,7 @@ internal static partial class Av1FrameEncoder
                 height,
                 bitDepth,
                 parameters,
-                scratch);
+                intermediateTile);
 
         /// <inheritdoc/>
         public static int SumAbsoluteDifferences(

@@ -205,7 +205,7 @@ internal sealed partial class Av1ChromaFromLumaContext
     /// <param name="transformSize">The chroma prediction transform dimensions.</param>
     public void ComputeParameters(Span<short> q3Buffer, Av1TransformSize transformSize)
     {
-        Guard.IsFalse(this.AreParametersComputed, nameof(this.AreParametersComputed), "Do not call cfl_compute_parameters multiple time on the same values.");
+        Guard.IsFalse(this.AreParametersComputed, nameof(this.AreParametersComputed), "The chroma-from-luma parameters are already computed.");
         this.Pad(q3Buffer, transformSize.GetWidth(), transformSize.GetHeight());
         SubtractAverage(q3Buffer, transformSize);
         this.AreParametersComputed = true;

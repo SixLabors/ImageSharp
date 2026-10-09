@@ -33,14 +33,14 @@ internal sealed class HeifTrackMetadataParser
     /// </summary>
     /// <param name="stream">The seekable HEIF stream positioned at the metadata full-box header.</param>
     /// <param name="boxLength">The validated metadata payload length.</param>
-    /// <param name="scratch">The caller-owned reusable parser scratch.</param>
+    /// <param name="readBuffer">The caller-owned reusable read buffer.</param>
     /// <returns>The retained Exif and XMP payloads.</returns>
-    public HeifSequenceMetadata Parse(Stream stream, long boxLength, Span<byte> scratch)
+    public HeifSequenceMetadata Parse(Stream stream, long boxLength, Span<byte> readBuffer)
     {
         long metadataStart = stream.Position;
         long metadataEnd = checked(metadataStart + boxLength);
         HeifBoxReader.EnsureInsideParent(boxLength, stream.Length - metadataStart);
-        ReadOnlySpan<byte> fullBoxHeader = ReadPrefix(stream, boxLength, scratch, 4, "track metadata");
+        ReadOnlySpan<byte> fullBoxHeader = ReadPrefix(stream, boxLength, readBuffer, 4, "track metadata");
         if (BinaryPrimitives.ReadUInt32BigEndian(fullBoxHeader) != 0)
         {
             throw new InvalidImageContentException("The track metadata box has unsupported version or flags.");
@@ -53,7 +53,7 @@ internal sealed class HeifTrackMetadataParser
         bool firstChild = true;
         while (stream.Position < metadataEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, metadataEnd, scratch, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, metadataEnd, readBuffer, out Heif4CharCode childType);
             long childStart = stream.Position;
             if (firstChild && childType != Heif4CharCode.Hdlr)
             {
@@ -86,7 +86,7 @@ internal sealed class HeifTrackMetadataParser
         }
 
         stream.Position = handler.Offset;
-        if (ParseHandler(stream, handler.Length, scratch) != Heif4CharCode.Pict)
+        if (ParseHandler(stream, handler.Length, readBuffer) != Heif4CharCode.Pict)
         {
             throw new InvalidImageContentException("The track metadata box does not use the picture handler.");
         }
@@ -102,14 +102,14 @@ internal sealed class HeifTrackMetadataParser
         }
 
         stream.Position = itemInformation.Offset;
-        MetadataItemIds itemIds = this.ParseItemInformation(stream, itemInformation.Length, scratch);
+        MetadataItemIds itemIds = this.ParseItemInformation(stream, itemInformation.Length, readBuffer);
         byte[]? exifData = itemIds.ExifItemId == 0
             ? null
-            : this.ReadItemPayload(stream, itemLocations, itemData, itemIds.ExifItemId, scratch);
+            : this.ReadItemPayload(stream, itemLocations, itemData, itemIds.ExifItemId, readBuffer);
 
         byte[]? xmpData = itemIds.XmpItemId == 0
             ? null
-            : this.ReadItemPayload(stream, itemLocations, itemData, itemIds.XmpItemId, scratch);
+            : this.ReadItemPayload(stream, itemLocations, itemData, itemIds.XmpItemId, readBuffer);
 
         return new HeifSequenceMetadata(exifData, xmpData);
     }
@@ -119,13 +119,13 @@ internal sealed class HeifTrackMetadataParser
     /// </summary>
     /// <param name="stream">The stream positioned at the item-information full-box header.</param>
     /// <param name="boxLength">The validated item-information payload length.</param>
-    /// <param name="scratch">The caller-owned reusable parser scratch.</param>
+    /// <param name="readBuffer">The caller-owned reusable read buffer.</param>
     /// <returns>The recognized metadata item identifiers.</returns>
-    private MetadataItemIds ParseItemInformation(Stream stream, long boxLength, Span<byte> scratch)
+    private MetadataItemIds ParseItemInformation(Stream stream, long boxLength, Span<byte> readBuffer)
     {
         long itemInformationStart = stream.Position;
         long itemInformationEnd = checked(itemInformationStart + boxLength);
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 4, "track item information");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 4, "track item information");
         byte version = prefix[0];
         int headerLength = version switch
         {
@@ -134,7 +134,7 @@ internal sealed class HeifTrackMetadataParser
             _ => throw new InvalidImageContentException($"The track item-information box has unsupported version {version}.")
         };
 
-        prefix = ReadPrefixFromStart(stream, boxLength, scratch, headerLength, "track item information");
+        prefix = ReadPrefixFromStart(stream, boxLength, readBuffer, headerLength, "track item information");
         if ((BinaryPrimitives.ReadUInt32BigEndian(prefix) & 0x00FFFFFF) != 0)
         {
             throw new InvalidImageContentException("The track item-information box has unsupported flags.");
@@ -170,13 +170,13 @@ internal sealed class HeifTrackMetadataParser
                 throw new InvalidImageContentException("The track item-information entry count exceeds its bounded payload.");
             }
 
-            long entryLength = HeifBoxReader.ReadHeader(stream, itemInformationEnd, scratch, out Heif4CharCode entryType);
+            long entryLength = HeifBoxReader.ReadHeader(stream, itemInformationEnd, readBuffer, out Heif4CharCode entryType);
             if (entryType != Heif4CharCode.Infe)
             {
                 throw new InvalidImageContentException($"The track item-information box contains unexpected child '{entryType}'.");
             }
 
-            uint itemId = ParseItemInformationEntry(stream, entryLength, scratch, out Heif4CharCode itemType, out bool isXmp);
+            uint itemId = ParseItemInformationEntry(stream, entryLength, readBuffer, out Heif4CharCode itemType, out bool isXmp);
             identifiers[i] = itemId;
             if (itemType == Heif4CharCode.Exif)
             {
@@ -225,20 +225,20 @@ internal sealed class HeifTrackMetadataParser
     /// </summary>
     /// <param name="stream">The stream positioned at the item-information-entry full-box header.</param>
     /// <param name="boxLength">The validated item-information-entry payload length.</param>
-    /// <param name="scratch">The caller-owned reusable parser scratch.</param>
+    /// <param name="readBuffer">The caller-owned reusable read buffer.</param>
     /// <param name="itemType">Receives the explicit item type for version two or three entries.</param>
     /// <param name="isXmp">Receives whether the entry declares an unencoded XMP MIME item.</param>
     /// <returns>The positive item identifier.</returns>
     private static uint ParseItemInformationEntry(
         Stream stream,
         long boxLength,
-        Span<byte> scratch,
+        Span<byte> readBuffer,
         out Heif4CharCode itemType,
         out bool isXmp)
     {
         long entryStart = stream.Position;
         long entryEnd = checked(entryStart + boxLength);
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 4, "track item-information entry");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 4, "track item-information entry");
         byte version = prefix[0];
         int fixedLength = version switch
         {
@@ -248,7 +248,7 @@ internal sealed class HeifTrackMetadataParser
             _ => throw new InvalidImageContentException($"The track item-information entry has unsupported version {version}.")
         };
 
-        prefix = ReadPrefixFromStart(stream, boxLength, scratch, fixedLength, "track item-information entry");
+        prefix = ReadPrefixFromStart(stream, boxLength, readBuffer, fixedLength, "track item-information entry");
         uint flags = BinaryPrimitives.ReadUInt32BigEndian(prefix) & 0x00FFFFFF;
         if ((flags & ~1U) != 0)
         {
@@ -277,7 +277,7 @@ internal sealed class HeifTrackMetadataParser
             return itemId;
         }
 
-        HeifBoxPayloadReader reader = new(stream, entryEnd - stream.Position, scratch, "track item-information entry");
+        HeifBoxPayloadReader reader = new(stream, entryEnd - stream.Position, readBuffer, "track item-information entry");
         reader.SkipNullTerminatedString();
         if (itemType == Heif4CharCode.Mime)
         {
@@ -304,14 +304,14 @@ internal sealed class HeifTrackMetadataParser
     /// <param name="itemLocations">The item-location payload range.</param>
     /// <param name="itemData">The optional item-data payload range.</param>
     /// <param name="itemId">The recognized metadata item identifier.</param>
-    /// <param name="scratch">The caller-owned reusable parser scratch.</param>
+    /// <param name="readBuffer">The caller-owned reusable read buffer.</param>
     /// <returns>The exact retained item payload, or <see langword="null"/> for an item without data.</returns>
     private byte[]? ReadItemPayload(
         Stream stream,
         BoxReference itemLocations,
         BoxReference itemData,
         uint itemId,
-        Span<byte> scratch)
+        Span<byte> readBuffer)
     {
         stream.Position = itemLocations.Offset;
         ItemLocationSummary summary = ParseItemLocation(
@@ -320,7 +320,7 @@ internal sealed class HeifTrackMetadataParser
             itemData,
             itemId,
             Span<MetadataExtent>.Empty,
-            scratch);
+            readBuffer);
 
         if (summary.ExtentCount == 0 || summary.TotalLength == 0)
         {
@@ -330,7 +330,7 @@ internal sealed class HeifTrackMetadataParser
         using IMemoryOwner<MetadataExtent> extentOwner = this.allocator.Allocate<MetadataExtent>(summary.ExtentCount);
         Span<MetadataExtent> extents = extentOwner.GetSpan()[..summary.ExtentCount];
         stream.Position = itemLocations.Offset;
-        ItemLocationSummary verifiedSummary = ParseItemLocation(stream, itemLocations.Length, itemData, itemId, extents, scratch);
+        ItemLocationSummary verifiedSummary = ParseItemLocation(stream, itemLocations.Length, itemData, itemId, extents, readBuffer);
         if (verifiedSummary.TotalLength != summary.TotalLength)
         {
             throw new InvalidImageContentException($"Track metadata item {itemId} changed between location parser passes.");
@@ -361,7 +361,7 @@ internal sealed class HeifTrackMetadataParser
     /// <param name="itemData">The optional item-data payload range.</param>
     /// <param name="targetItemId">The metadata item identifier whose extents are retained.</param>
     /// <param name="targetExtents">The exact target extent span, or an empty span for the counting pass.</param>
-    /// <param name="scratch">The caller-owned reusable parser scratch.</param>
+    /// <param name="readBuffer">The caller-owned reusable read buffer.</param>
     /// <returns>The target item's extent count and total payload length.</returns>
     private static ItemLocationSummary ParseItemLocation(
         Stream stream,
@@ -369,9 +369,9 @@ internal sealed class HeifTrackMetadataParser
         BoxReference itemData,
         uint targetItemId,
         Span<MetadataExtent> targetExtents,
-        Span<byte> scratch)
+        Span<byte> readBuffer)
     {
-        HeifBoxPayloadReader reader = new(stream, boxLength, scratch, "track item location");
+        HeifBoxPayloadReader reader = new(stream, boxLength, readBuffer, "track item location");
         uint versionAndFlags = reader.ReadUInt32();
         byte version = (byte)(versionAndFlags >> 24);
         if (version > 2 || (versionAndFlags & 0x00FFFFFF) != 0)
@@ -540,11 +540,11 @@ internal sealed class HeifTrackMetadataParser
     /// </summary>
     /// <param name="stream">The stream positioned at the handler full-box header.</param>
     /// <param name="boxLength">The validated handler payload length.</param>
-    /// <param name="scratch">The caller-owned reusable parser scratch.</param>
+    /// <param name="readBuffer">The caller-owned reusable read buffer.</param>
     /// <returns>The registered handler type.</returns>
-    private static Heif4CharCode ParseHandler(Stream stream, long boxLength, Span<byte> scratch)
+    private static Heif4CharCode ParseHandler(Stream stream, long boxLength, Span<byte> readBuffer)
     {
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 24, "track metadata handler");
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, readBuffer, 24, "track metadata handler");
         if (BinaryPrimitives.ReadUInt32BigEndian(prefix) != 0 || BinaryPrimitives.ReadUInt32BigEndian(prefix[4..]) != 0)
         {
             throw new InvalidImageContentException("The track metadata handler has unsupported fields.");
@@ -565,18 +565,18 @@ internal sealed class HeifTrackMetadataParser
     /// </summary>
     /// <param name="stream">The source stream.</param>
     /// <param name="boxLength">The validated enclosing payload length.</param>
-    /// <param name="scratch">The caller-owned reusable parser scratch.</param>
+    /// <param name="readBuffer">The caller-owned reusable read buffer.</param>
     /// <param name="length">The required prefix length.</param>
     /// <param name="name">The payload name used in malformed-image diagnostics.</param>
-    /// <returns>The requested prefix within <paramref name="scratch"/>.</returns>
-    private static ReadOnlySpan<byte> ReadPrefix(Stream stream, long boxLength, Span<byte> scratch, int length, string name)
+    /// <returns>The requested prefix within <paramref name="readBuffer"/>.</returns>
+    private static ReadOnlySpan<byte> ReadPrefix(Stream stream, long boxLength, Span<byte> readBuffer, int length, string name)
     {
         if (boxLength < length)
         {
             throw new InvalidImageContentException($"The {name} payload is truncated.");
         }
 
-        Span<byte> destination = scratch[..length];
+        Span<byte> destination = readBuffer[..length];
         HeifBoxReader.ReadExactly(stream, destination, $"The {name} payload is truncated.");
         return destination;
     }
@@ -586,14 +586,14 @@ internal sealed class HeifTrackMetadataParser
     /// </summary>
     /// <param name="stream">The source stream positioned after a four-byte prefix.</param>
     /// <param name="boxLength">The validated enclosing payload length.</param>
-    /// <param name="scratch">The caller-owned reusable parser scratch.</param>
+    /// <param name="readBuffer">The caller-owned reusable read buffer.</param>
     /// <param name="length">The required prefix length.</param>
     /// <param name="name">The payload name used in malformed-image diagnostics.</param>
-    /// <returns>The requested prefix within <paramref name="scratch"/>.</returns>
-    private static ReadOnlySpan<byte> ReadPrefixFromStart(Stream stream, long boxLength, Span<byte> scratch, int length, string name)
+    /// <returns>The requested prefix within <paramref name="readBuffer"/>.</returns>
+    private static ReadOnlySpan<byte> ReadPrefixFromStart(Stream stream, long boxLength, Span<byte> readBuffer, int length, string name)
     {
         stream.Position -= 4;
-        return ReadPrefix(stream, boxLength, scratch, length, name);
+        return ReadPrefix(stream, boxLength, readBuffer, length, name);
     }
 
     /// <summary>

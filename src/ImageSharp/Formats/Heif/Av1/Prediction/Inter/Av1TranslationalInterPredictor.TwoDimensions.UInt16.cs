@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 internal static partial class Av1TranslationalInterPredictor
 {
     /// <summary>
-    /// Filters a high-bit-depth block in eight-sample vectors through caller-owned signed scratch.
+    /// Filters a high-bit-depth block in eight-sample vectors through caller-owned signed intermediate rows.
     /// </summary>
     /// <param name="source">The complete padded reference plane.</param>
     /// <param name="sourceStride">The distance between reference rows in samples.</param>
@@ -30,7 +30,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
-    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
     /// <param name="initial">The start value of each accumulator lane. The vector type selects this overload.</param>
     private static void Filter2D(
         ReadOnlySpan<ushort> source,
@@ -48,15 +48,15 @@ internal static partial class Av1TranslationalInterPredictor
         int verticalSourceOffset,
         int bitDepth,
         int round0,
-        Span<short> scratch,
+        Span<short> intermediateRows,
         Vector128<int> initial)
     {
         ref ushort sourceBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), sourceOrigin);
         ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
-        ref short scratchBase = ref MemoryMarshal.GetReference(scratch);
+        ref short intermediateBase = ref MemoryMarshal.GetReference(intermediateRows);
         ref short horizontalCoefficientBase = ref MemoryMarshal.GetReference(horizontalCoefficients);
         ref short verticalCoefficientBase = ref MemoryMarshal.GetReference(verticalCoefficients);
-        int scratchStride = Math.Max(width, MinimumScratchStride);
+        int intermediateStride = Math.Max(width, MinimumScratchStride);
         int intermediateHeight = height + verticalTapCount - 1;
 
         // The horizontal bias of 2^(bitDepth + 6) keeps every intermediate value nonnegative and inside a signed 16-bit lane.
@@ -69,13 +69,13 @@ internal static partial class Av1TranslationalInterPredictor
                 ((row + verticalSourceOffset) * sourceStride) + horizontalSourceOffset);
 
             ref short sourceRow = ref Unsafe.As<ushort, short>(ref sourceRowUnsigned);
-            ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
+            ref short intermediateRow = ref Unsafe.Add(ref intermediateBase, row * intermediateStride);
             int processedColumns = 0;
 
             if (width < Vector128<ushort>.Count)
             {
                 // Subsampled chroma of a block smaller than 8x8 can be two samples wide. The padding of the reference plane makes the full load safe.
-                // The minimum scratch stride keeps all eight intermediate lanes for the vertical pass.
+                // The minimum intermediate stride keeps all eight intermediate lanes for the vertical pass.
                 Convolve(
                     ref sourceRow,
                     1,
@@ -88,7 +88,7 @@ internal static partial class Av1TranslationalInterPredictor
 
                 Av1NonDirectionalIntraPredictorBase.Narrow(
                     RoundPowerOfTwo(result0, round0),
-                    RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref scratchRow);
+                    RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref intermediateRow);
 
                 continue;
             }
@@ -108,12 +108,12 @@ internal static partial class Av1TranslationalInterPredictor
 
                 Av1NonDirectionalIntraPredictorBase.Narrow(
                     RoundPowerOfTwo(result0, round0),
-                    RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref scratchRow, (nuint)processedColumns);
+                    RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref intermediateRow, (nuint)processedColumns);
             }
 
             FilterHorizontalTail(
                 ref sourceRowUnsigned,
-                ref scratchRow,
+                ref intermediateRow,
                 processedColumns,
                 width,
                 ref horizontalCoefficientBase,
@@ -133,15 +133,15 @@ internal static partial class Av1TranslationalInterPredictor
 
         for (int row = 0; row < height; row++)
         {
-            ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
+            ref short intermediateRow = ref Unsafe.Add(ref intermediateBase, row * intermediateStride);
             ref ushort destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
             int processedColumns = 0;
 
             if (width < Vector128<ushort>.Count)
             {
                 Convolve(
-                    ref scratchRow,
-                    scratchStride,
+                    ref intermediateRow,
+                    intermediateStride,
                     0,
                     ref verticalCoefficientBase,
                     verticalTapCount,
@@ -162,8 +162,8 @@ internal static partial class Av1TranslationalInterPredictor
             for (; vectorCount > 0; vectorCount--, processedColumns += Vector128<ushort>.Count)
             {
                 Convolve(
-                    ref scratchRow,
-                    scratchStride,
+                    ref intermediateRow,
+                    intermediateStride,
                     (nuint)processedColumns,
                     ref verticalCoefficientBase,
                     verticalTapCount,
@@ -177,11 +177,11 @@ internal static partial class Av1TranslationalInterPredictor
             }
 
             FilterVerticalTail(
-                ref scratchRow,
+                ref intermediateRow,
                 ref destinationRow,
                 processedColumns,
                 width,
-                scratchStride,
+                intermediateStride,
                 ref verticalCoefficientBase,
                 verticalTapCount,
                 bitDepth,
@@ -190,7 +190,7 @@ internal static partial class Av1TranslationalInterPredictor
     }
 
     /// <summary>
-    /// Filters a high-bit-depth block in sixteen-sample vectors through caller-owned signed scratch.
+    /// Filters a high-bit-depth block in sixteen-sample vectors through caller-owned signed intermediate rows.
     /// </summary>
     /// <param name="source">The complete padded reference plane.</param>
     /// <param name="sourceStride">The distance between reference rows in samples.</param>
@@ -207,7 +207,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
-    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
     /// <param name="initial">The start value of each accumulator lane. The vector type selects this overload.</param>
     private static void Filter2D(
         ReadOnlySpan<ushort> source,
@@ -225,15 +225,15 @@ internal static partial class Av1TranslationalInterPredictor
         int verticalSourceOffset,
         int bitDepth,
         int round0,
-        Span<short> scratch,
+        Span<short> intermediateRows,
         Vector256<int> initial)
     {
         ref ushort sourceBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), sourceOrigin);
         ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
-        ref short scratchBase = ref MemoryMarshal.GetReference(scratch);
+        ref short intermediateBase = ref MemoryMarshal.GetReference(intermediateRows);
         ref short horizontalCoefficientBase = ref MemoryMarshal.GetReference(horizontalCoefficients);
         ref short verticalCoefficientBase = ref MemoryMarshal.GetReference(verticalCoefficients);
-        int scratchStride = Math.Max(width, MinimumScratchStride);
+        int intermediateStride = Math.Max(width, MinimumScratchStride);
         int intermediateHeight = height + verticalTapCount - 1;
         Vector256<int> horizontalInitial = initial + Vector256.Create(1 << (bitDepth + FilterBits - 1));
         int vectorEnd = (int)(Numerics.Vector256Count<ushort>(width) * (nuint)Vector256<ushort>.Count);
@@ -245,7 +245,7 @@ internal static partial class Av1TranslationalInterPredictor
                 ((row + verticalSourceOffset) * sourceStride) + horizontalSourceOffset);
 
             ref short sourceRow = ref Unsafe.As<ushort, short>(ref sourceRowUnsigned);
-            ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
+            ref short intermediateRow = ref Unsafe.Add(ref intermediateBase, row * intermediateStride);
             int processedColumns = 0;
 
             for (; processedColumns < vectorEnd; processedColumns += Vector256<ushort>.Count)
@@ -262,12 +262,12 @@ internal static partial class Av1TranslationalInterPredictor
 
                 Av1NonDirectionalIntraPredictorBase.Narrow(
                     RoundPowerOfTwo(result0, round0),
-                    RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref scratchRow, (nuint)processedColumns);
+                    RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref intermediateRow, (nuint)processedColumns);
             }
 
             FilterHorizontalTail(
                 ref sourceRowUnsigned,
-                ref scratchRow,
+                ref intermediateRow,
                 processedColumns,
                 width,
                 ref horizontalCoefficientBase,
@@ -286,15 +286,15 @@ internal static partial class Av1TranslationalInterPredictor
 
         for (int row = 0; row < height; row++)
         {
-            ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
+            ref short intermediateRow = ref Unsafe.Add(ref intermediateBase, row * intermediateStride);
             ref ushort destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
             int processedColumns = 0;
 
             for (; processedColumns < vectorEnd; processedColumns += Vector256<ushort>.Count)
             {
                 Convolve(
-                    ref scratchRow,
-                    scratchStride,
+                    ref intermediateRow,
+                    intermediateStride,
                     (nuint)processedColumns,
                     ref verticalCoefficientBase,
                     verticalTapCount,
@@ -308,11 +308,11 @@ internal static partial class Av1TranslationalInterPredictor
             }
 
             FilterVerticalTail(
-                ref scratchRow,
+                ref intermediateRow,
                 ref destinationRow,
                 processedColumns,
                 width,
-                scratchStride,
+                intermediateStride,
                 ref verticalCoefficientBase,
                 verticalTapCount,
                 bitDepth,
@@ -321,7 +321,7 @@ internal static partial class Av1TranslationalInterPredictor
     }
 
     /// <summary>
-    /// Filters a high-bit-depth block in thirty-two-sample vectors through caller-owned signed scratch.
+    /// Filters a high-bit-depth block in thirty-two-sample vectors through caller-owned signed intermediate rows.
     /// </summary>
     /// <param name="source">The complete padded reference plane.</param>
     /// <param name="sourceStride">The distance between reference rows in samples.</param>
@@ -338,7 +338,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
-    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
     /// <param name="initial">The start value of each accumulator lane. The vector type selects this overload.</param>
     private static void Filter2D(
         ReadOnlySpan<ushort> source,
@@ -356,15 +356,15 @@ internal static partial class Av1TranslationalInterPredictor
         int verticalSourceOffset,
         int bitDepth,
         int round0,
-        Span<short> scratch,
+        Span<short> intermediateRows,
         Vector512<int> initial)
     {
         ref ushort sourceBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), sourceOrigin);
         ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
-        ref short scratchBase = ref MemoryMarshal.GetReference(scratch);
+        ref short intermediateBase = ref MemoryMarshal.GetReference(intermediateRows);
         ref short horizontalCoefficientBase = ref MemoryMarshal.GetReference(horizontalCoefficients);
         ref short verticalCoefficientBase = ref MemoryMarshal.GetReference(verticalCoefficients);
-        int scratchStride = Math.Max(width, MinimumScratchStride);
+        int intermediateStride = Math.Max(width, MinimumScratchStride);
         int intermediateHeight = height + verticalTapCount - 1;
         Vector512<int> horizontalInitial = initial + Vector512.Create(1 << (bitDepth + FilterBits - 1));
         int vectorEnd = (int)(Numerics.Vector512Count<ushort>(width) * (nuint)Vector512<ushort>.Count);
@@ -376,7 +376,7 @@ internal static partial class Av1TranslationalInterPredictor
                 ((row + verticalSourceOffset) * sourceStride) + horizontalSourceOffset);
 
             ref short sourceRow = ref Unsafe.As<ushort, short>(ref sourceRowUnsigned);
-            ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
+            ref short intermediateRow = ref Unsafe.Add(ref intermediateBase, row * intermediateStride);
             int processedColumns = 0;
 
             for (; processedColumns < vectorEnd; processedColumns += Vector512<ushort>.Count)
@@ -393,12 +393,12 @@ internal static partial class Av1TranslationalInterPredictor
 
                 Av1NonDirectionalIntraPredictorBase.Narrow(
                     RoundPowerOfTwo(result0, round0),
-                    RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref scratchRow, (nuint)processedColumns);
+                    RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref intermediateRow, (nuint)processedColumns);
             }
 
             FilterHorizontalTail(
                 ref sourceRowUnsigned,
-                ref scratchRow,
+                ref intermediateRow,
                 processedColumns,
                 width,
                 ref horizontalCoefficientBase,
@@ -417,15 +417,15 @@ internal static partial class Av1TranslationalInterPredictor
 
         for (int row = 0; row < height; row++)
         {
-            ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
+            ref short intermediateRow = ref Unsafe.Add(ref intermediateBase, row * intermediateStride);
             ref ushort destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
             int processedColumns = 0;
 
             for (; processedColumns < vectorEnd; processedColumns += Vector512<ushort>.Count)
             {
                 Convolve(
-                    ref scratchRow,
-                    scratchStride,
+                    ref intermediateRow,
+                    intermediateStride,
                     (nuint)processedColumns,
                     ref verticalCoefficientBase,
                     verticalTapCount,
@@ -439,11 +439,11 @@ internal static partial class Av1TranslationalInterPredictor
             }
 
             FilterVerticalTail(
-                ref scratchRow,
+                ref intermediateRow,
                 ref destinationRow,
                 processedColumns,
                 width,
-                scratchStride,
+                intermediateStride,
                 ref verticalCoefficientBase,
                 verticalTapCount,
                 bitDepth,
@@ -455,7 +455,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// Finishes a high-bit-depth horizontal intermediate row after its selected vector width.
     /// </summary>
     /// <param name="source">The sample that the first horizontal tap reads for column zero.</param>
-    /// <param name="scratch">The first sample of the intermediate row.</param>
+    /// <param name="intermediateRows">The first sample of the intermediate row.</param>
     /// <param name="firstColumn">The first column that the vector loop did not write.</param>
     /// <param name="width">The row width in samples.</param>
     /// <param name="coefficients">The first applied horizontal coefficient.</param>
@@ -464,7 +464,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="round0">The rounding shift of the horizontal pass.</param>
     private static void FilterHorizontalTail(
         ref ushort source,
-        ref short scratch,
+        ref short intermediateRows,
         int firstColumn,
         int width,
         ref short coefficients,
@@ -481,28 +481,28 @@ internal static partial class Av1TranslationalInterPredictor
                 ref coefficients,
                 tapCount);
 
-            Unsafe.Add(ref scratch, column) = (short)RoundPowerOfTwo(sum, round0);
+            Unsafe.Add(ref intermediateRows, column) = (short)RoundPowerOfTwo(sum, round0);
         }
     }
 
     /// <summary>
     /// Finishes a high-bit-depth vertical output row after its selected vector width.
     /// </summary>
-    /// <param name="scratch">The intermediate sample that the first vertical tap reads for column zero.</param>
+    /// <param name="intermediateRows">The intermediate sample that the first vertical tap reads for column zero.</param>
     /// <param name="destination">The first sample of the destination row.</param>
     /// <param name="firstColumn">The first column that the vector loop did not write.</param>
     /// <param name="width">The row width in samples.</param>
-    /// <param name="scratchStride">The distance between intermediate rows in samples.</param>
+    /// <param name="intermediateStride">The distance between intermediate rows in samples.</param>
     /// <param name="coefficients">The first applied vertical coefficient.</param>
     /// <param name="tapCount">The number of applied vertical taps.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
     private static void FilterVerticalTail(
-        ref short scratch,
+        ref short intermediateRows,
         ref ushort destination,
         int firstColumn,
         int width,
-        int scratchStride,
+        int intermediateStride,
         ref short coefficients,
         int tapCount,
         int bitDepth,
@@ -517,8 +517,8 @@ internal static partial class Av1TranslationalInterPredictor
         for (int column = firstColumn; column < width; column++)
         {
             int sum = verticalBias + ConvolveScalar(
-                ref Unsafe.Add(ref scratch, column),
-                scratchStride,
+                ref Unsafe.Add(ref intermediateRows, column),
+                intermediateStride,
                 ref coefficients,
                 tapCount);
 
@@ -545,7 +545,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
-    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
+    /// <param name="intermediateRows">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
     private static void Filter2DScalar(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -562,26 +562,26 @@ internal static partial class Av1TranslationalInterPredictor
         int verticalSourceOffset,
         int bitDepth,
         int round0,
-        Span<short> scratch)
+        Span<short> intermediateRows)
     {
         ref ushort sourceBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), sourceOrigin);
         ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
-        ref short scratchBase = ref MemoryMarshal.GetReference(scratch);
+        ref short intermediateBase = ref MemoryMarshal.GetReference(intermediateRows);
         ref short horizontalCoefficientBase = ref MemoryMarshal.GetReference(horizontalCoefficients);
         ref short verticalCoefficientBase = ref MemoryMarshal.GetReference(verticalCoefficients);
-        int scratchStride = Math.Max(width, MinimumScratchStride);
+        int intermediateStride = Math.Max(width, MinimumScratchStride);
         int intermediateHeight = height + verticalTapCount - 1;
         int horizontalBias = 1 << (bitDepth + FilterBits - 1);
 
         for (int row = 0; row < intermediateHeight; row++)
         {
             ref ushort sourceRow = ref Unsafe.Add(ref sourceBase, ((row + verticalSourceOffset) * sourceStride) + horizontalSourceOffset);
-            ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
+            ref short intermediateRow = ref Unsafe.Add(ref intermediateBase, row * intermediateStride);
 
             for (int column = 0; column < width; column++)
             {
                 int sum = horizontalBias + ConvolveScalar(ref Unsafe.Add(ref sourceRow, column), 1, ref horizontalCoefficientBase, horizontalTapCount);
-                Unsafe.Add(ref scratchRow, column) = (short)RoundPowerOfTwo(sum, round0);
+                Unsafe.Add(ref intermediateRow, column) = (short)RoundPowerOfTwo(sum, round0);
             }
         }
 
@@ -593,12 +593,17 @@ internal static partial class Av1TranslationalInterPredictor
 
         for (int row = 0; row < height; row++)
         {
-            ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
+            ref short intermediateRow = ref Unsafe.Add(ref intermediateBase, row * intermediateStride);
             ref ushort destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
 
             for (int column = 0; column < width; column++)
             {
-                int sum = verticalBias + ConvolveScalar(ref Unsafe.Add(ref scratchRow, column), scratchStride, ref verticalCoefficientBase, verticalTapCount);
+                int sum = verticalBias + ConvolveScalar(
+                    ref Unsafe.Add(ref intermediateRow, column),
+                    intermediateStride,
+                    ref verticalCoefficientBase,
+                    verticalTapCount);
+
                 int result = RoundPowerOfTwo(sum, round1) - roundOffset;
                 Unsafe.Add(ref destinationRow, column) = (ushort)Math.Clamp(result, 0, maximum);
             }

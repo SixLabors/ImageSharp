@@ -88,12 +88,12 @@ internal sealed partial class Av1FrameInfo : IDisposable
     public const int CoefficientCountPerModeInfo = 16;
 
     /// <summary>
-    /// Owns the luma and chroma coefficient scratch for the superblock currently being decoded.
+    /// Owns the luma and chroma coefficient storage for the superblock currently being decoded.
     /// </summary>
-    private readonly IMemoryOwner<int> coefficientScratch;
+    private readonly IMemoryOwner<int> coefficientStorage;
 
     /// <summary>
-    /// The number of luma coefficient entries at the start of <see cref="coefficientScratch"/>.
+    /// The number of luma coefficient entries at the start of <see cref="coefficientStorage"/>.
     /// </summary>
     private readonly int lumaCoefficientCount;
 
@@ -158,9 +158,9 @@ internal sealed partial class Av1FrameInfo : IDisposable
     private int segmentIdRowCount;
 
     /// <summary>
-    /// Owns the luma and shared-chroma transform-information scratch for the superblock currently being decoded.
+    /// Owns the luma and shared-chroma transform-information storage for the superblock currently being decoded.
     /// </summary>
-    private readonly IMemoryOwner<Av1TransformInfo> transformInfoScratch;
+    private readonly IMemoryOwner<Av1TransformInfo> transformInfoStorage;
 
     /// <summary>
     /// Stores the active base quantizer index for each frame superblock.
@@ -271,21 +271,21 @@ internal sealed partial class Av1FrameInfo : IDisposable
             ? 0
             : this.lumaCoefficientCount >> this.subsamplingFactor;
 
-        IMemoryOwner<int>? allocatedCoefficientScratch = null;
+        IMemoryOwner<int>? allocatedCoefficientStorage = null;
         MemoryGroup<Av1BlockModeInfo>? allocatedModeInfos = null;
         Buffer2D<int>? allocatedModeInfoCounts = null;
         Av1FrameModeInfoMap? allocatedModeInfoMap = null;
-        IMemoryOwner<Av1TransformInfo>? allocatedTransformInfoScratch = null;
+        IMemoryOwner<Av1TransformInfo>? allocatedTransformInfoStorage = null;
         Buffer2D<int>? allocatedQuantizerIndices = null;
         Buffer2D<int>? allocatedCdefStrength = null;
         Buffer2D<int>? allocatedDeltaLoopFilter = null;
 
         try
         {
-            // Reconstruction consumes one superblock before parsing the next. One allocator-owned scratch surface
+            // Reconstruction consumes one superblock before parsing the next. One allocator-owned storage surface
             // therefore covers all three planes without per-block arrays or unmanaged ownership outside ImageSharp.
-            int coefficientScratchLength = checked(this.lumaCoefficientCount + (2 * this.chromaCoefficientCount));
-            allocatedCoefficientScratch = this.memoryAllocator.Allocate<int>(coefficientScratchLength, AllocationOptions.Clean);
+            int coefficientStorageLength = checked(this.lumaCoefficientCount + (2 * this.chromaCoefficientCount));
+            allocatedCoefficientStorage = this.memoryAllocator.Allocate<int>(coefficientStorageLength, AllocationOptions.Clean);
 
             // A decoded block can cover multiple 4x4 positions. Each allocator-backed row stores one
             // superblock's traversal records, while the map resolves every covered 4x4 position to them.
@@ -304,8 +304,8 @@ internal sealed partial class Av1FrameInfo : IDisposable
 
             // Tile parsing reconstructs each superblock before it moves to the next one. Thus one owner for all three planes holds every active transform, and
             // the frame keeps no frame-wide copies.
-            int transformInfoScratchLength = checked(this.modeInfoCountPerSuperblock * 3);
-            allocatedTransformInfoScratch = this.memoryAllocator.Allocate<Av1TransformInfo>(transformInfoScratchLength, clean);
+            int transformInfoStorageLength = checked(this.modeInfoCountPerSuperblock * 3);
+            allocatedTransformInfoStorage = this.memoryAllocator.Allocate<Av1TransformInfo>(transformInfoStorageLength, clean);
             allocatedQuantizerIndices = this.memoryAllocator.Allocate2D<int>(1, superblockCount, clean);
 
             // A 128x128 superblock contains four 64x64 CDEF filter blocks. A 64x64 superblock contains one.
@@ -319,19 +319,19 @@ internal sealed partial class Av1FrameInfo : IDisposable
             allocatedDeltaLoopFilter?.Dispose();
             allocatedCdefStrength?.Dispose();
             allocatedQuantizerIndices?.Dispose();
-            allocatedTransformInfoScratch?.Dispose();
+            allocatedTransformInfoStorage?.Dispose();
             allocatedModeInfoMap?.Dispose();
             allocatedModeInfoCounts?.Dispose();
             allocatedModeInfos?.Dispose();
-            allocatedCoefficientScratch?.Dispose();
+            allocatedCoefficientStorage?.Dispose();
             throw;
         }
 
-        this.coefficientScratch = allocatedCoefficientScratch;
+        this.coefficientStorage = allocatedCoefficientStorage;
         this.modeInfos = allocatedModeInfos;
         this.modeInfoCounts = allocatedModeInfoCounts;
         this.modeInfoMap = allocatedModeInfoMap;
-        this.transformInfoScratch = allocatedTransformInfoScratch;
+        this.transformInfoStorage = allocatedTransformInfoStorage;
         this.quantizerIndices = allocatedQuantizerIndices;
         this.cdefStrength = allocatedCdefStrength;
         this.deltaLoopFilter = allocatedDeltaLoopFilter;
@@ -358,7 +358,7 @@ internal sealed partial class Av1FrameInfo : IDisposable
     public Av1InterPredictionFeatures InterPredictionFeatures { get; private set; }
 
     /// <summary>
-    /// Records one decoded luma transform type before the current-superblock scratch is reused.
+    /// Records one decoded luma transform type before the current-superblock storage is reused.
     /// </summary>
     /// <param name="transformType">The decoded luma transform type.</param>
     public void RecordLumaTransformType(Av1TransformType transformType) =>
@@ -645,7 +645,7 @@ internal sealed partial class Av1FrameInfo : IDisposable
     }
 
     /// <summary>
-    /// Gets the transform-information scratch for one plane of the current superblock.
+    /// Gets the transform-information storage for one plane of the current superblock.
     /// </summary>
     /// <param name="plane">The zero-based plane index.</param>
     /// <returns>The luma storage for plane zero; otherwise, the shared chroma storage.</returns>
@@ -660,41 +660,41 @@ internal sealed partial class Av1FrameInfo : IDisposable
     }
 
     /// <summary>
-    /// Gets the luma transform-information scratch for the current superblock.
+    /// Gets the luma transform-information storage for the current superblock.
     /// </summary>
     /// <returns>The current-superblock luma transform-information span.</returns>
     public Span<Av1TransformInfo> GetSuperblockTransformY()
-        => this.transformInfoScratch.GetSpan()[..this.modeInfoCountPerSuperblock];
+        => this.transformInfoStorage.GetSpan()[..this.modeInfoCountPerSuperblock];
 
     /// <summary>
-    /// Gets the shared chroma transform-information scratch for the current superblock.
+    /// Gets the shared chroma transform-information storage for the current superblock.
     /// </summary>
     /// <returns>The current-superblock chroma transform-information span.</returns>
     public Span<Av1TransformInfo> GetSuperblockTransformUv()
-        => this.transformInfoScratch.GetSpan().Slice(
+        => this.transformInfoStorage.GetSpan().Slice(
             this.modeInfoCountPerSuperblock,
             this.modeInfoCountPerSuperblock << 1);
 
     /// <summary>
-    /// Gets the luma coefficient scratch reused for the current superblock.
+    /// Gets the luma coefficient storage reused for the current superblock.
     /// </summary>
     /// <returns>The current superblock luma coefficient span.</returns>
     public Span<int> GetCoefficientsY()
-        => this.coefficientScratch.GetSpan()[..this.lumaCoefficientCount];
+        => this.coefficientStorage.GetSpan()[..this.lumaCoefficientCount];
 
     /// <summary>
-    /// Gets the blue-difference chroma coefficient scratch reused for the current superblock.
+    /// Gets the blue-difference chroma coefficient storage reused for the current superblock.
     /// </summary>
     /// <returns>The current superblock blue-difference chroma coefficient span.</returns>
     public Span<int> GetCoefficientsU()
-        => this.coefficientScratch.GetSpan().Slice(this.lumaCoefficientCount, this.chromaCoefficientCount);
+        => this.coefficientStorage.GetSpan().Slice(this.lumaCoefficientCount, this.chromaCoefficientCount);
 
     /// <summary>
-    /// Gets the red-difference chroma coefficient scratch reused for the current superblock.
+    /// Gets the red-difference chroma coefficient storage reused for the current superblock.
     /// </summary>
     /// <returns>The current superblock red-difference chroma coefficient span.</returns>
     public Span<int> GetCoefficientsV()
-        => this.coefficientScratch.GetSpan().Slice(
+        => this.coefficientStorage.GetSpan().Slice(
             this.lumaCoefficientCount + this.chromaCoefficientCount,
             this.chromaCoefficientCount);
 

@@ -21,7 +21,7 @@ internal static partial class Av1MotionSearchBase
         /// <param name="referenceStride">The reference row stride.</param>
         /// <param name="referenceOrigin">The displaced integer origin.</param>
         /// <param name="prediction">The packed prediction destination.</param>
-        /// <param name="scratch">The signed intermediate convolution storage.</param>
+        /// <param name="intermediateRows">The signed intermediate convolution storage.</param>
         /// <param name="width">The prediction width.</param>
         /// <param name="height">The prediction height.</param>
         /// <param name="horizontalFilter">The horizontal interpolation family.</param>
@@ -34,7 +34,7 @@ internal static partial class Av1MotionSearchBase
             int referenceStride,
             int referenceOrigin,
             Span<TSample> prediction,
-            Span<short> scratch,
+            Span<short> intermediateRows,
             int width,
             int height,
             Av1InterpolationFilter horizontalFilter,
@@ -53,7 +53,7 @@ internal static partial class Av1MotionSearchBase
         /// <param name="referenceOrigin">The displaced integer reference origin.</param>
         /// <param name="prediction">The packed prediction destination.</param>
         /// <param name="residual">The packed residual destination.</param>
-        /// <param name="scratch">The signed intermediate convolution storage.</param>
+        /// <param name="intermediateRows">The signed intermediate convolution storage.</param>
         /// <param name="width">The prediction width.</param>
         /// <param name="height">The prediction height.</param>
         /// <param name="horizontalFilter">The final horizontal interpolation family.</param>
@@ -69,7 +69,7 @@ internal static partial class Av1MotionSearchBase
             int referenceOrigin,
             Span<TSample> prediction,
             Span<short> residual,
-            Span<short> scratch,
+            Span<short> intermediateRows,
             int width,
             int height,
             Av1InterpolationFilter horizontalFilter,

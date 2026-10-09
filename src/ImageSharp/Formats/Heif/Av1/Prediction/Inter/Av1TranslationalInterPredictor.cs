@@ -37,7 +37,7 @@ internal static partial class Av1TranslationalInterPredictor
     internal const int MaximumExtraRows = FilterCoefficientCount - 1;
 
     /// <summary>
-    /// The minimum scratch stride that lets a 128-bit byte kernel handle four- and eight-sample blocks.
+    /// The minimum intermediate row stride that lets a 128-bit byte kernel handle four- and eight-sample blocks.
     /// </summary>
     internal const int MinimumScratchStride = 16;
 
@@ -46,7 +46,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// </summary>
     /// <param name="width">The prediction width in samples.</param>
     /// <param name="height">The prediction height in samples.</param>
-    /// <returns>The scratch capacity required by either sample-storage overload.</returns>
+    /// <returns>The intermediate row capacity required by either sample-storage overload.</returns>
     public static int GetScratchLength(int width, int height) => Math.Max(width, MinimumScratchStride) * (height + MaximumExtraRows);
 
     /// <summary>
@@ -63,7 +63,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalFilter">The vertical interpolation filter.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     public static void Predict(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -76,7 +76,7 @@ internal static partial class Av1TranslationalInterPredictor
         Av1InterpolationFilter verticalFilter,
         int horizontalPhase,
         int verticalPhase,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         => Dispatch(
             source,
             sourceStride,
@@ -89,7 +89,7 @@ internal static partial class Av1TranslationalInterPredictor
             verticalFilter,
             horizontalPhase,
             verticalPhase,
-            scratch);
+            intermediateRows);
 
     /// <summary>
     /// Reconstructs an 8-, 10-, or 12-bit translational prediction using the widest supported SIMD kernel.
@@ -106,7 +106,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The decoded sample precision: 8, 10, or 12 bits.</param>
-    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     public static void Predict(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -120,7 +120,7 @@ internal static partial class Av1TranslationalInterPredictor
         int horizontalPhase,
         int verticalPhase,
         int bitDepth,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         => Dispatch(
             source,
             sourceStride,
@@ -134,7 +134,7 @@ internal static partial class Av1TranslationalInterPredictor
             horizontalPhase,
             verticalPhase,
             bitDepth,
-            scratch);
+            intermediateRows);
 
     /// <summary>
     /// Reconstructs an 8-bit translational prediction without explicit hardware intrinsics.
@@ -150,7 +150,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalFilter">The vertical interpolation filter.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     public static void PredictScalar(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -163,7 +163,7 @@ internal static partial class Av1TranslationalInterPredictor
         Av1InterpolationFilter verticalFilter,
         int horizontalPhase,
         int verticalPhase,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         => DispatchScalar(
             source,
             sourceStride,
@@ -176,7 +176,7 @@ internal static partial class Av1TranslationalInterPredictor
             verticalFilter,
             horizontalPhase,
             verticalPhase,
-            scratch);
+            intermediateRows);
 
     /// <summary>
     /// Reconstructs an 8-, 10-, or 12-bit translational prediction without explicit hardware intrinsics.
@@ -193,7 +193,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The decoded sample precision: 8, 10, or 12 bits.</param>
-    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
+    /// <param name="intermediateRows">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     public static void PredictScalar(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -207,7 +207,7 @@ internal static partial class Av1TranslationalInterPredictor
         int horizontalPhase,
         int verticalPhase,
         int bitDepth,
-        Span<short> scratch)
+        Span<short> intermediateRows)
         => DispatchScalar(
             source,
             sourceStride,
@@ -221,5 +221,5 @@ internal static partial class Av1TranslationalInterPredictor
             horizontalPhase,
             verticalPhase,
             bitDepth,
-            scratch);
+            intermediateRows);
 }

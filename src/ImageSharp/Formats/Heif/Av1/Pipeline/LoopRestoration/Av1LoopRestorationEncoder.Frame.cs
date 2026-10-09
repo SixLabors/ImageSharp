@@ -154,8 +154,8 @@ internal static partial class Av1LoopRestorationEncoder
         Span<int> filterStorage = filterOwner.Memory.Span;
         Span<int> filtered0 = filterStorage[..projectionLength];
         Span<int> filtered1 = filterStorage.Slice(projectionLength, projectionLength);
-        Span<int> selfGuidedScratch = filterStorage.Slice(2 * projectionLength, selfGuidedLength);
-        Span<ushort> wienerScratch = MemoryMarshal.Cast<int, ushort>(filterStorage[((2 * projectionLength) + selfGuidedLength)..])[..wienerLength];
+        Span<int> selfGuidedStorage = filterStorage.Slice(2 * projectionLength, selfGuidedLength);
+        Span<ushort> wienerStorage = MemoryMarshal.Cast<int, ushort>(filterStorage[((2 * projectionLength) + selfGuidedLength)..])[..wienerLength];
         Span<TSample> savedRows = MemoryMarshal.Cast<ushort, TSample>(boundary.GetStripeSaveBuffer());
         int rateQIndex = qIndex + header.QuantizationParameters.DeltaQDc[0];
 
@@ -192,8 +192,8 @@ internal static partial class Av1LoopRestorationEncoder
                     subX,
                     subY,
                     savedRows,
-                    wienerScratch,
-                    selfGuidedScratch);
+                    wienerStorage,
+                    selfGuidedStorage);
 
                 selectedModes[plane] = SearchPlane(
                     picture,
@@ -292,8 +292,8 @@ internal static partial class Av1LoopRestorationEncoder
                 subX,
                 subY,
                 savedRows,
-                wienerScratch,
-                selfGuidedScratch);
+                wienerStorage,
+                selfGuidedStorage);
 
             int columns = Math.Max(1, (region.Width + (bestUnitSize >> 1)) / bestUnitSize);
             int rows = Math.Max(1, (region.Height + (bestUnitSize >> 1)) / bestUnitSize);

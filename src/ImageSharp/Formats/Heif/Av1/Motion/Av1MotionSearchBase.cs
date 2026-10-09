@@ -229,7 +229,7 @@ internal static partial class Av1MotionSearchBase
             bool forceMesh = false,
             int? meshPruneDistance = null)
         {
-            Point clampedStart = this.Clamp(start);
+            Point clampedStart = ClampToBounds(start, this.bounds);
             int rowStep = 1;
             if (this.secondPrediction.IsEmpty && this.blockSize.Height >= 16)
             {
@@ -254,11 +254,12 @@ internal static partial class Av1MotionSearchBase
             while (true)
             {
                 secondBest = null;
+                SadCost cost = new(this, rowStep);
                 FullPixelResult best;
                 bool centerCostOnly = false;
                 if (method <= FullPixelSearchMethod.ClampedDiamond)
                 {
-                    best = this.SearchDiamond(clampedStart, stepParameter, sites, rowStep, ref secondBest);
+                    best = SearchDiamond(ref cost, clampedStart, stepParameter, sites, this.bounds, true, ref secondBest);
                 }
                 else
                 {
@@ -304,8 +305,8 @@ internal static partial class Av1MotionSearchBase
 
                 if (runMesh)
                 {
-                    FullPixelResult mesh = this.SearchMesh(
-                        best.Vector, settings.GetMeshPattern(intraBlockCopy), fineMeshInterval, rowStep, ref secondBest);
+                    FullPixelResult mesh = SearchMesh(
+                        ref cost, best.Vector, settings.GetMeshPattern(intraBlockCopy), fineMeshInterval, this.bounds, ref secondBest);
 
                     // The mesh publishes its neighborhood and preceding winner before its final variance comparison.
                     // This order gives the later fractional selection the search state of the mesh winner, also when the mesh winner loses.
@@ -338,7 +339,7 @@ internal static partial class Av1MotionSearchBase
             visited.Clear();
             ReadOnlySpan<sbyte> columns = [0, -1, 1, 0, -1, -1, 1, 1];
             ReadOnlySpan<sbyte> rows = [-1, 0, 0, 1, -1, 1, -1, 1];
-            Point best = this.Clamp(start);
+            Point best = ClampToBounds(start, this.bounds);
             sadCost = this.GetSadCost(best, 1);
             int center = (searchRange * gridStride) + searchRange;
             visited[center] = 1;
@@ -372,113 +373,6 @@ internal static partial class Av1MotionSearchBase
 
                 best = new Point(best.X + columns[bestSite], best.Y + rows[bestSite]);
                 center += (rows[bestSite] * gridStride) + columns[bestSite];
-            }
-
-            return best;
-        }
-
-        /// <summary>
-        /// Runs decreasing-radius searches from the same start and compares their winners by variance.
-        /// </summary>
-        /// <param name="start">The clamped initial displacement in full samples.</param>
-        /// <param name="stepParameter">The number of outer search stages to exclude.</param>
-        /// <param name="sites">The retained geometry configured for this method and reference stride.</param>
-        /// <param name="rowStep">One to measure every row, or two to measure alternate rows.</param>
-        /// <param name="secondBest">The preceding integer winner, updated at each move.</param>
-        /// <returns>The winner with the lowest variance cost.</returns>
-        private FullPixelResult SearchDiamond(
-            Point start,
-            int stepParameter,
-            Av1MotionSearchSites sites,
-            int rowStep,
-            ref Point? secondBest)
-        {
-            int startCost = this.GetSadCost(start, rowStep);
-            Point winner = this.SearchDiamondSteps(start, startCost, stepParameter, sites, rowStep, ref secondBest, out int centeredSteps);
-            FullPixelResult best = this.GetVarianceResult(winner);
-            int furtherSteps = sites.StageCount - 1 - stepParameter;
-
-            // Each restart searches from the start again with fewer outer stages.
-            // The stages that the earlier paths spent at the start, plus one, set how many more outer stages the restart excludes.
-            while (centeredSteps < furtherSteps)
-            {
-                centeredSteps++;
-                winner = this.SearchDiamondSteps(
-                    start, startCost, stepParameter + centeredSteps, sites, rowStep, ref secondBest, out int skippedSteps);
-
-                FullPixelResult candidate = this.GetVarianceResult(winner);
-                if (candidate.Cost < best.Cost)
-                {
-                    best = candidate;
-                }
-
-                centeredSteps += skippedSteps;
-            }
-
-            return best;
-        }
-
-        /// <summary>
-        /// Visits ordered sites once per radius, and counts the initial center stays for later restart pruning.
-        /// </summary>
-        /// <param name="start">The clamped initial displacement in full samples.</param>
-        /// <param name="startCost">The SAD-plus-rate cost of the start.</param>
-        /// <param name="stepParameter">The number of outer search stages to exclude.</param>
-        /// <param name="sites">The retained geometry configured for this method and reference stride.</param>
-        /// <param name="rowStep">One to measure every row, or two to measure alternate rows.</param>
-        /// <param name="secondBest">The preceding integer winner, updated at each move.</param>
-        /// <param name="centeredSteps">The number of stages before the first move from the start, plus the repeated radii that the search skipped.</param>
-        /// <returns>The winning displacement in full samples.</returns>
-        private Point SearchDiamondSteps(
-            Point start,
-            int startCost,
-            int stepParameter,
-            Av1MotionSearchSites sites,
-            int rowStep,
-            ref Point? secondBest,
-            out int centeredSteps)
-        {
-            Point best = start;
-            int bestCost = startCost;
-            bool movedFromStart = false;
-            centeredSteps = 0;
-            for (int stage = sites.StageCount - stepParameter - 1; stage >= 0; stage--)
-            {
-                ReadOnlySpan<Av1MotionSearchSites.Site> stageSites = sites.GetSites(stage);
-                int centerIndex = this.referenceOrigin + (best.Y * this.referenceStride) + best.X;
-                int bestSite = 0;
-                for (int index = 1; index <= sites.GetCandidateCount(stage); index++)
-                {
-                    Av1MotionSearchSites.Site site = stageSites[index];
-                    Point candidate = new(best.X + site.Column, best.Y + site.Row);
-                    if (this.bounds.Contains(candidate) && this.TryImproveSad(candidate, centerIndex + site.Offset, rowStep, ref bestCost))
-                    {
-                        bestSite = index;
-                    }
-                }
-
-                if (bestSite != 0)
-                {
-                    secondBest = best;
-                    Av1MotionSearchSites.Site site = stageSites[bestSite];
-                    best = new Point(best.X + site.Column, best.Y + site.Row);
-                    movedFromStart = true;
-                }
-
-                if (!movedFromStart)
-                {
-                    centeredSteps++;
-                }
-
-                // After a center stay, the search skips repeated outer radii. After a move, these radii stay eligible.
-                if (bestSite == 0 && stage > 2)
-                {
-                    while (stage > 2 && sites.GetRadius(stage - 1) == sites.GetRadius(stage))
-                    {
-                        centeredSteps++;
-                        stage--;
-                    }
-                }
             }
 
             return best;
@@ -662,85 +556,6 @@ internal static partial class Av1MotionSearchBase
         }
 
         /// <summary>
-        /// Runs content-selected mesh passes, and adjusts the initial range to the current displacement magnitude.
-        /// </summary>
-        /// <param name="start">The winner of the stepped search in full samples.</param>
-        /// <param name="pattern">Four range and interval pairs, in full samples.</param>
-        /// <param name="fineInterval">Whether the initial interval is capped at four.</param>
-        /// <param name="rowStep">One to measure every row, or two to measure alternate rows.</param>
-        /// <param name="secondBest">The preceding integer winner, updated at each improvement.</param>
-        /// <returns>The mesh winner with its variance cost.</returns>
-        private FullPixelResult SearchMesh(Point start, ReadOnlySpan<int> pattern, bool fineInterval, int rowStep, ref Point? secondBest)
-        {
-            // The first range grows to 5/4 of the largest start component, up to 256 samples.
-            // The interval grows by the same ratio, so the first pass keeps its number of steps.
-            int originalRange = pattern[0];
-            int interval = pattern[1];
-            int range = Math.Min(Math.Max(originalRange, (5 * Math.Max(Math.Abs(start.X), Math.Abs(start.Y))) / 4), 256);
-            interval = Math.Max(interval, range / (originalRange / interval));
-            if (fineInterval)
-            {
-                interval = Math.Min(interval, 4);
-            }
-
-            Point best = this.SearchMeshPass(start, range, interval, rowStep, ref secondBest);
-            if (interval > 1 && range > 7)
-            {
-                for (int pass = 1; pass < 4; pass++)
-                {
-                    best = this.SearchMeshPass(best, pattern[pass * 2], pattern[(pass * 2) + 1], rowStep, ref secondBest);
-                    if (pattern[(pass * 2) + 1] == 1)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            return this.GetVarianceResult(best);
-        }
-
-        /// <summary>
-        /// Scans mesh rows from a fixed center. Each strict replacement keeps the previous winner as the second best.
-        /// </summary>
-        /// <param name="start">The pass center in full samples. The pass clamps it to the bounds.</param>
-        /// <param name="range">The largest distance from the center on each axis.</param>
-        /// <param name="interval">The distance between searched rows and columns. An interval of one searches every site.</param>
-        /// <param name="rowStep">One to measure every row, or two to measure alternate rows.</param>
-        /// <param name="secondBest">The preceding integer winner, updated at each improvement.</param>
-        /// <returns>The pass winner in full samples.</returns>
-        private Point SearchMeshPass(Point start, int range, int interval, int rowStep, ref Point? secondBest)
-        {
-            start = this.Clamp(start);
-            Point best = start;
-            int bestCost = this.GetSadCost(start, rowStep);
-            int minimumRow = Math.Max(-range, this.bounds.Top - start.Y);
-            int maximumRow = Math.Min(range, this.bounds.Bottom - 1 - start.Y);
-            int minimumColumn = Math.Max(-range, this.bounds.Left - start.X);
-            int maximumColumn = Math.Min(range, this.bounds.Right - 1 - start.X);
-            int columnStep = interval > 1 ? interval : 4;
-            for (int row = minimumRow; row <= maximumRow; row += interval)
-            {
-                for (int column = minimumColumn; column <= maximumColumn; column += columnStep)
-                {
-                    // A full unit-step group visits four adjacent columns in order. The partial last group has an exclusive end.
-                    // Thus the last column of a partial group is not searched.
-                    int count = interval > 1 ? 1 : column + 3 <= maximumColumn ? 4 : maximumColumn - column;
-                    for (int index = 0; index < count; index++)
-                    {
-                        Point candidate = new(start.X + column + index, start.Y + row);
-                        if (this.TryImproveSad(candidate, rowStep, ref bestCost))
-                        {
-                            secondBest = best;
-                            best = candidate;
-                        }
-                    }
-                }
-            }
-
-            return best;
-        }
-
-        /// <summary>
         /// Publishes SAD-plus-rate values at the center and its four axial neighbors for fractional pruning.
         /// </summary>
         /// <param name="best">The integer winner in full samples.</param>
@@ -756,24 +571,6 @@ internal static partial class Av1MotionSearchBase
                 costList[index + 1] = this.bounds.Contains(candidate) ? this.GetSadCost(candidate, rowStep) : int.MaxValue;
             }
         }
-
-        /// <summary>
-        /// Clamps a starting displacement to the prediction-distinct full-pixel range.
-        /// </summary>
-        /// <param name="vector">The displacement in full samples.</param>
-        /// <returns>The clamped displacement.</returns>
-        private Point Clamp(Point vector)
-            => new(Math.Clamp(vector.X, this.bounds.Left, this.bounds.Right - 1), Math.Clamp(vector.Y, this.bounds.Top, this.bounds.Bottom - 1));
-
-        /// <summary>
-        /// Measures a candidate and lowers the best cost when the candidate costs less.
-        /// </summary>
-        /// <param name="vector">The candidate displacement in full samples.</param>
-        /// <param name="rowStep">One to measure every row, or two to measure alternate rows.</param>
-        /// <param name="bestCost">The best cost so far, replaced when the candidate costs less.</param>
-        /// <returns><see langword="true"/> when the candidate has a strictly lower cost.</returns>
-        private bool TryImproveSad(Point vector, int rowStep, ref int bestCost)
-            => this.TryImproveSad(vector, this.referenceOrigin + (vector.Y * this.referenceStride) + vector.X, rowStep, ref bestCost);
 
         /// <summary>
         /// Measures a candidate at a known reference index, so a site offset avoids a stride multiplication.
@@ -792,8 +589,7 @@ internal static partial class Av1MotionSearchBase
                 return false;
             }
 
-            int rate = this.costs.GetCost(new Av1MotionVector(vector.Y * 8, vector.X * 8), this.integerReferenceVector);
-            int cost = Av1RateDistortion.GetMotionSearchSadCost(this.sadPerBit, rate, sad);
+            int cost = sad + this.GetSadRateCost(vector);
             if (cost >= bestCost)
             {
                 return false;
@@ -809,11 +605,18 @@ internal static partial class Av1MotionSearchBase
         /// <param name="vector">The displacement in full samples.</param>
         /// <param name="rowStep">One to measure every row, or two to measure alternate rows.</param>
         /// <returns>The SAD-plus-rate cost.</returns>
-        private int GetSadCost(Point vector, int rowStep)
+        private int GetSadCost(Point vector, int rowStep) => this.GetSad(vector, rowStep, 0) + this.GetSadRateCost(vector);
+
+        /// <summary>
+        /// Gets the motion-rate cost of a displacement in the absolute-difference domain. The rate is measured from the spatial reference
+        /// rounded to full samples.
+        /// </summary>
+        /// <param name="vector">The displacement in full samples.</param>
+        /// <returns>The rate cost, which is never negative.</returns>
+        private int GetSadRateCost(Point vector)
         {
-            int sad = this.GetSad(vector, rowStep, 0);
             int rate = this.costs.GetCost(new Av1MotionVector(vector.Y * 8, vector.X * 8), this.integerReferenceVector);
-            return Av1RateDistortion.GetMotionSearchSadCost(this.sadPerBit, rate, sad);
+            return Av1RateDistortion.GetMotionSearchSadCost(this.sadPerBit, rate, 0);
         }
 
         /// <summary>
@@ -909,6 +712,62 @@ internal static partial class Av1MotionSearchBase
             int rate = this.costs.GetCost(new Av1MotionVector(vector.Y * 8, vector.X * 8), this.referenceVector);
             int motionCost = Av1RateDistortion.GetMotionSearchCost(this.rateMultiplier, rate, 0);
             return new FullPixelResult(vector, variance, (int)squares, motionCost);
+        }
+
+        /// <summary>
+        /// Measures the coding-pass error of a full-sample candidate for the shared diamond and mesh searches.
+        /// It fixes the row step of the absolute differences for one search path.
+        /// </summary>
+        private readonly ref struct SadCost : IFullPixelCost
+        {
+            /// <summary>
+            /// The search that owns the source, reference and rate state.
+            /// </summary>
+            private readonly FullPixelSearch<TSample, TOperator> search;
+
+            /// <summary>
+            /// One to measure every row, or two to measure alternate rows.
+            /// </summary>
+            private readonly int rowStep;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="SadCost"/> struct.
+            /// </summary>
+            /// <param name="search">The search that owns the source, reference and rate state.</param>
+            /// <param name="rowStep">One to measure every row, or two to measure alternate rows.</param>
+            public SadCost(FullPixelSearch<TSample, TOperator> search, int rowStep)
+            {
+                this.search = search;
+                this.rowStep = rowStep;
+            }
+
+            /// <summary>
+            /// Gets the reference index of a candidate.
+            /// </summary>
+            /// <param name="vector">The candidate displacement in full samples.</param>
+            /// <returns>The reference index of the displaced block origin.</returns>
+            public int GetReferenceIndex(Point vector) => this.search.referenceOrigin + (vector.Y * this.search.referenceStride) + vector.X;
+
+            /// <summary>
+            /// Measures the single or compound absolute difference at the row step of this path.
+            /// </summary>
+            /// <param name="referenceIndex">The reference index of the displaced block origin.</param>
+            /// <returns>The absolute-difference sum in the eight-bit error domain.</returns>
+            public int GetSad(int referenceIndex) => this.search.GetSad(referenceIndex, this.rowStep, 0);
+
+            /// <summary>
+            /// Gets the motion-rate cost of a candidate in the absolute-difference domain.
+            /// </summary>
+            /// <param name="vector">The candidate displacement in full samples.</param>
+            /// <returns>The rate cost, which is never negative.</returns>
+            public int GetSadRateCost(Point vector) => this.search.GetSadRateCost(vector);
+
+            /// <summary>
+            /// Measures the variance and the motion cost of a finished search path. It always measures every row.
+            /// </summary>
+            /// <param name="vector">The winner of the path in full samples.</param>
+            /// <returns>The normalized variance, squared error, and motion cost.</returns>
+            public FullPixelResult GetVarianceResult(Point vector) => this.search.GetVarianceResult(vector);
         }
     }
 }

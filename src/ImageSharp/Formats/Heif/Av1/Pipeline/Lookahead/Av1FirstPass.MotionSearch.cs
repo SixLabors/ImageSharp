@@ -12,8 +12,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 /// </content>
 /// <remarks>
 /// The first pass resets the motion speed features before it searches, so it never samples alternate rows, whatever the frame size and speed.
-/// The coding-pass search settings cannot express that for large frames or the faster speeds, so the first pass keeps its own traversal over
-/// the shared sample kernels.
+/// The coding-pass search settings cannot express that for large frames or the faster speeds, so the first pass runs the shared diamond and
+/// mesh searches directly with its own error measure and mesh decision.
 /// </remarks>
 internal sealed partial class Av1FirstPass<TSample, TOperator>
 {
@@ -78,8 +78,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
             limits.ColumnMaximum = Math.Min(limits.ColumnMaximum, rightMargin);
         }
 
-        int meshSpeed = Math.Min((int)this.speed, 5);
-        MotionSearch search = new()
+        MotionSearchCost cost = new()
         {
             Source = frame.Source,
             SourceStride = frame.SourceStride,
@@ -89,31 +88,48 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
             ReferenceIndex = frame.ReconstructionOrigin + (y * frame.ReconstructionStride) + x,
             Width = blockSize.GetWidth(),
             Height = blockSize.GetHeight(),
-            AreaLog2 = blockSize.Get4x4WidthLog2() + blockSize.Get4x4HeightLog2(),
-            Limits = limits,
             ReferenceVector = referenceVector,
             FullReferenceVector = start,
             Costs = frame.Costs,
             SadPerBit = this.sadPerBit,
             RateMultiplier = frame.RateMultiplier,
-            PrecisionShift = this.bitDepth.GetBitCount() - 8,
-            Sites = frame.Sites,
-            MeshThreshold = frame.MeshThreshold,
-            PruneMesh = this.pruneMeshSearch,
-            MeshPattern = MeshPatterns.Slice(meshSpeed * 8, 8),
-            FineInterval = fineSearchInterval
+            PrecisionShift = this.bitDepth.GetBitCount() - 8
         };
 
-        int error = search.Search(start, stepParameter, out Point searchVector);
-        if (error < int.MaxValue)
+        // The shared searches take exclusive upper edges. The first pass does not use the preceding winner that they report.
+        Rectangle bounds = Rectangle.FromLTRB(limits.ColumnMinimum, limits.RowMinimum, limits.ColumnMaximum + 1, limits.RowMaximum + 1);
+        Point? secondBest = null;
+        Av1MotionSearchBase.FullPixelResult result = Av1MotionSearchBase.SearchDiamond(
+            ref cost, Av1MotionSearchBase.ClampToBounds(start, bounds), stepParameter, frame.Sites, bounds, true, ref secondBest);
+
+        // A poor site-search result continues with a mesh search. The threshold is scaled from a 16x16 block to the block area.
+        int areaLog2 = blockSize.Get4x4WidthLog2() + blockSize.Get4x4HeightLog2();
+        bool runMesh = result.Cost > (frame.MeshThreshold >> (10 - areaLog2));
+
+        // A winner close to the unclamped start skips the mesh.
+        if (this.pruneMeshSearch && Math.Max(Math.Abs(start.Y - result.Vector.Y), Math.Abs(start.X - result.Vector.X)) <= 4)
         {
-            error = search.GetPredictionSquaredError(searchVector) + NewMotionVectorModePenalty;
+            runMesh = false;
         }
 
+        if (runMesh)
+        {
+            int meshSpeed = Math.Min((int)this.speed, 5);
+            Av1MotionSearchBase.FullPixelResult mesh = Av1MotionSearchBase.SearchMesh(
+                ref cost, result.Vector, MeshPatterns.Slice(meshSpeed * 8, 8), fineSearchInterval, bounds, ref secondBest);
+
+            if (mesh.Cost < result.Cost)
+            {
+                result = mesh;
+            }
+        }
+
+        // The motion error is the squared error of the winner plus its vector cost and the new-vector surcharge.
+        int error = result.SquaredError + result.MotionCost + NewMotionVectorModePenalty;
         if (error < bestError)
         {
             bestError = error;
-            bestVector = searchVector;
+            bestVector = result.Vector;
         }
     }
 
@@ -154,9 +170,10 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Borrows the source block, reference plane, limits and costs of one full-sample search.
+    /// Borrows the source block, reference plane and costs of one full-sample search. It measures every row of the block and serves as the
+    /// error measure of the shared diamond and mesh searches.
     /// </summary>
-    private ref struct MotionSearch
+    private ref struct MotionSearchCost : Av1MotionSearchBase.IFullPixelCost
     {
         /// <summary>The complete source plane.</summary>
         public ReadOnlySpan<TSample> Source;
@@ -182,12 +199,6 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         /// <summary>The block height.</summary>
         public int Height;
 
-        /// <summary>The base-two logarithm of the block area in 4x4 units.</summary>
-        public int AreaLog2;
-
-        /// <summary>The inclusive vector limits.</summary>
-        public FullMotionVectorLimits Limits;
-
         /// <summary>The reference of the variance-domain vector cost, in eighth samples.</summary>
         public Av1MotionVector ReferenceVector;
 
@@ -206,323 +217,23 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         /// <summary>The shift that reduces absolute differences to eight-bit precision.</summary>
         public int PrecisionShift;
 
-        /// <summary>The first-pass site geometry.</summary>
-        public Av1MotionSearchSites Sites;
-
-        /// <summary>The 16x16 variance above which a mesh follows the site search.</summary>
-        public int MeshThreshold;
-
-        /// <summary>Whether a site winner near its start skips the mesh.</summary>
-        public bool PruneMesh;
-
-        /// <summary>The range and interval pairs of the mesh passes.</summary>
-        public ReadOnlySpan<int> MeshPattern;
-
-        /// <summary>Whether the first mesh interval is capped at four.</summary>
-        public bool FineInterval;
-
         /// <summary>
-        /// Runs the site search. When its result is poor and not pruned, a mesh search around its winner follows.
-        /// </summary>
-        /// <param name="start">The unclamped start.</param>
-        /// <param name="stepParameter">The number of outer stages to skip.</param>
-        /// <param name="best">Receives the winning vector.</param>
-        /// <returns>The winning variance plus vector cost.</returns>
-        public readonly int Search(Point start, int stepParameter, out Point best)
-        {
-            int variance = this.FullPixelDiamond(start, stepParameter, out best);
-
-            // The threshold is scaled from a 16x16 block to the block area.
-            bool runMesh = variance > (this.MeshThreshold >> (10 - this.AreaLog2));
-
-            // A winner close to the unclamped start skips the mesh.
-            if (this.PruneMesh && Math.Max(Math.Abs(start.Y - best.Y), Math.Abs(start.X - best.X)) <= 4)
-            {
-                runMesh = false;
-            }
-
-            if (runMesh)
-            {
-                int meshVariance = this.FullPixelExhaustive(best, out Point meshBest);
-                if (meshVariance < variance)
-                {
-                    variance = meshVariance;
-                    best = meshBest;
-                }
-            }
-
-            return variance;
-        }
-
-        /// <summary>
-        /// Measures the squared error of a vector plus its variance-domain cost. High bit depths round the error to eight-bit precision.
+        /// Gets the reference index of a candidate.
         /// </summary>
         /// <param name="vector">The full-sample vector.</param>
-        /// <returns>The squared error plus the vector cost.</returns>
-        public readonly int GetPredictionSquaredError(Point vector)
-        {
-            this.GetMoments(vector, out _, out long squares);
-            return (int)squares + this.GetVectorErrorCost(vector);
-        }
+        /// <returns>The reference index of the displaced block origin.</returns>
+        public readonly int GetReferenceIndex(Point vector) => this.ReferenceIndex + (vector.Y * this.ReferenceStride) + vector.X;
 
         /// <summary>
-        /// Repeats site searches of decreasing initial radius from the same clamped start and keeps the lowest variance cost. A search that stays
-        /// at its center for several stages lets the next restart skip them.
+        /// Measures the absolute differences of every row of the block at eight-bit precision.
         /// </summary>
-        /// <param name="start">The unclamped start.</param>
-        /// <param name="stepParameter">The number of outer stages the first search skips.</param>
-        /// <param name="best">Receives the winning vector.</param>
-        /// <returns>The winning variance plus vector cost.</returns>
-        private readonly int FullPixelDiamond(Point start, int stepParameter, out Point best)
-        {
-            start = this.Clamp(start);
-            int startSad = this.GetSadCost(start);
-            this.DiamondSearchSad(start, startSad, stepParameter, out int centerSteps, out best);
-            int bestCost = this.GetVarianceCost(best);
-
-            int furtherSteps = this.Sites.StageCount - 1 - stepParameter;
-            int step = centerSteps;
-            while (step < furtherSteps)
-            {
-                step++;
-                this.DiamondSearchSad(start, startSad, stepParameter + step, out int skippedSteps, out Point candidate);
-                int candidateCost = this.GetVarianceCost(candidate);
-                if (candidateCost < bestCost)
-                {
-                    bestCost = candidateCost;
-                    best = candidate;
-                }
-
-                step += skippedSteps;
-            }
-
-            return bestCost;
-        }
-
-        /// <summary>
-        /// Moves to the best site of each stage from the outermost searched radius inward. Each site costs its absolute differences plus its
-        /// vector cost. Stages searched before the first move count as center stays.
-        /// </summary>
-        /// <param name="start">The clamped start.</param>
-        /// <param name="startSad">The absolute-difference cost of the start.</param>
-        /// <param name="searchStep">The number of outer stages to skip.</param>
-        /// <param name="centerSteps">Receives the number of stages searched before the first move.</param>
-        /// <param name="best">Receives the winning vector.</param>
-        /// <returns>The winning absolute-difference cost.</returns>
-        private readonly int DiamondSearchSad(Point start, int startSad, int searchStep, out int centerSteps, out Point best)
-        {
-            best = start;
-            int bestSad = startSad;
-            bool offCenter = false;
-            centerSteps = 0;
-            for (int step = this.Sites.StageCount - searchStep - 1; step >= 0; step--)
-            {
-                ReadOnlySpan<Av1MotionSearchSites.Site> sites = this.Sites.GetSites(step);
-                int count = this.Sites.GetCandidateCount(step);
-                int bestSite = 0;
-
-                // Every stage tests each site against the limits. When all sites of a stage lie inside the limits, every test passes and the
-                // result is the same as a search without the test.
-                for (int index = 1; index <= count; index++)
-                {
-                    Av1MotionSearchSites.Site site = sites[index];
-                    Point candidate = new(best.X + site.Column, best.Y + site.Row);
-                    if (!this.IsInRange(candidate))
-                    {
-                        continue;
-                    }
-
-                    // The vector cost is added only when the difference alone can still win.
-                    int sad = this.GetSad(candidate);
-                    if (sad < bestSad)
-                    {
-                        int cost = sad + this.GetVectorSadCost(candidate);
-                        if (cost < bestSad)
-                        {
-                            bestSad = cost;
-                            bestSite = index;
-                        }
-                    }
-                }
-
-                if (bestSite != 0)
-                {
-                    Av1MotionSearchSites.Site site = sites[bestSite];
-                    best = new Point(best.X + site.Column, best.Y + site.Row);
-                    offCenter = true;
-                }
-
-                if (!offCenter)
-                {
-                    centerSteps++;
-                }
-
-                // A center stay skips the stages that repeat its radius. The first-pass radii never repeat.
-                if (bestSite == 0 && step > 2)
-                {
-                    while (this.Sites.GetRadius(step - 1) == this.Sites.GetRadius(step) && step > 2)
-                    {
-                        centerSteps++;
-                        step--;
-                    }
-                }
-            }
-
-            return bestSad;
-        }
-
-        /// <summary>
-        /// Runs the mesh passes around a vector. The first pass widens its range to cover the magnitude of the vector and keeps its interval
-        /// ratio. Later passes narrow until an interval of one.
-        /// </summary>
-        /// <param name="start">The vector around which the mesh starts.</param>
-        /// <param name="best">Receives the winning vector.</param>
-        /// <returns>The winning variance plus vector cost.</returns>
-        private readonly int FullPixelExhaustive(Point start, out Point best)
-        {
-            const int minimumRange = 7;
-            const int maximumRange = 256;
-            best = start;
-            int range = this.MeshPattern[0];
-            int interval = this.MeshPattern[1];
-            if (range < minimumRange || range > maximumRange || interval < 1 || interval > range)
-            {
-                return int.MaxValue;
-            }
-
-            int baselineIntervalDivisor = range / interval;
-            range = Math.Max(range, (5 * Math.Max(Math.Abs(best.Y), Math.Abs(best.X))) / 4);
-            range = Math.Min(range, maximumRange);
-            interval = Math.Max(interval, range / baselineIntervalDivisor);
-            if (this.FineInterval)
-            {
-                interval = Math.Min(interval, 4);
-            }
-
-            int bestCost = this.ExhaustiveMeshSearch(best, range, interval, out best);
-            if (interval > 1 && range > minimumRange)
-            {
-                for (int pass = 1; pass < 4; pass++)
-                {
-                    bestCost = this.ExhaustiveMeshSearch(best, this.MeshPattern[pass * 2], this.MeshPattern[(pass * 2) + 1], out best);
-                    if (this.MeshPattern[(pass * 2) + 1] == 1)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            if (bestCost < int.MaxValue)
-            {
-                bestCost = this.GetVarianceCost(best);
-            }
-
-            return bestCost;
-        }
-
-        /// <summary>
-        /// Visits a grid of vectors around a clamped center. A unit interval visits whole groups of four columns. A final partial group stops one
-        /// column short of the range.
-        /// </summary>
-        /// <param name="start">The center.</param>
-        /// <param name="range">The grid radius.</param>
-        /// <param name="step">The row interval, and the column interval above one.</param>
-        /// <param name="best">Receives the winning vector.</param>
-        /// <returns>The winning absolute-difference cost.</returns>
-        private readonly int ExhaustiveMeshSearch(Point start, int range, int step, out Point best)
-        {
-            start = this.Clamp(start);
-            best = start;
-            int bestSad = this.GetSadCost(start);
-            int columnStep = step > 1 ? step : 4;
-            int startRow = Math.Max(-range, this.Limits.RowMinimum - start.Y);
-            int startColumn = Math.Max(-range, this.Limits.ColumnMinimum - start.X);
-            int endRow = Math.Min(range, this.Limits.RowMaximum - start.Y);
-            int endColumn = Math.Min(range, this.Limits.ColumnMaximum - start.X);
-            for (int row = startRow; row <= endRow; row += step)
-            {
-                for (int column = startColumn; column <= endColumn; column += columnStep)
-                {
-                    int count = step > 1 ? 1 : column + 3 <= endColumn ? 4 : endColumn - column;
-                    for (int i = 0; i < count; i++)
-                    {
-                        Point candidate = new(start.X + column + i, start.Y + row);
-
-                        // The vector cost is added only when the difference alone can still win.
-                        int sad = this.GetSad(candidate);
-                        if (sad < bestSad)
-                        {
-                            int cost = sad + this.GetVectorSadCost(candidate);
-                            if (cost < bestSad)
-                            {
-                                bestSad = cost;
-                                best = candidate;
-                            }
-                        }
-                    }
-                }
-            }
-
-            return bestSad;
-        }
-
-        /// <summary>
-        /// Measures the variance of a vector plus its variance-domain cost.
-        /// </summary>
-        /// <param name="vector">The full-sample vector.</param>
-        /// <returns>The variance plus the vector cost.</returns>
-        private readonly int GetVarianceCost(Point vector)
-        {
-            this.GetMoments(vector, out int sum, out long squares);
-
-            // At high bit depths the sum and the squares round separately, which can make the variance negative. The variance clamps at zero.
-            long variance = Math.Max(squares - (((long)sum * sum) / (this.Width * this.Height)), 0);
-            return (int)variance + this.GetVectorErrorCost(vector);
-        }
-
-        /// <summary>
-        /// Measures the signed and squared differences of a vector. At the higher bit depths, each rounds to eight-bit precision.
-        /// </summary>
-        /// <param name="vector">The full-sample vector.</param>
-        /// <param name="sum">Receives the rounded signed sum.</param>
-        /// <param name="squares">Receives the rounded squared sum.</param>
-        private readonly void GetMoments(Point vector, out int sum, out long squares)
-        {
-            TOperator.GetMoments(
-                this.Source[this.SourceIndex..],
-                this.SourceStride,
-                this.Reference[(this.ReferenceIndex + (vector.Y * this.ReferenceStride) + vector.X)..],
-                this.ReferenceStride,
-                this.Width,
-                this.Height,
-                out sum,
-                out squares);
-
-            if (this.PrecisionShift != 0)
-            {
-                sum = (sum + (1 << (this.PrecisionShift - 1))) >> this.PrecisionShift;
-                int squaredShift = 2 * this.PrecisionShift;
-                squares = (squares + (1L << (squaredShift - 1))) >> squaredShift;
-            }
-        }
-
-        /// <summary>
-        /// Measures the absolute differences of a vector plus its absolute-difference cost.
-        /// </summary>
-        /// <param name="vector">The full-sample vector.</param>
-        /// <returns>The absolute differences plus the vector cost.</returns>
-        private readonly int GetSadCost(Point vector) => this.GetSad(vector) + this.GetVectorSadCost(vector);
-
-        /// <summary>
-        /// Measures the absolute differences of a vector at eight-bit precision.
-        /// </summary>
-        /// <param name="vector">The full-sample vector.</param>
+        /// <param name="referenceIndex">The reference index of the displaced block origin.</param>
         /// <returns>The absolute differences.</returns>
-        private readonly int GetSad(Point vector)
+        public readonly int GetSad(int referenceIndex)
             => TOperator.SumAbsoluteDifferences(
                 this.Source[this.SourceIndex..],
                 this.SourceStride,
-                this.Reference[(this.ReferenceIndex + (vector.Y * this.ReferenceStride) + vector.X)..],
+                this.Reference[referenceIndex..],
                 this.ReferenceStride,
                 this.Width,
                 this.Height) >> this.PrecisionShift;
@@ -531,8 +242,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         /// Gets the absolute-difference cost of a vector relative to the full-sample reference vector.
         /// </summary>
         /// <param name="vector">The full-sample vector.</param>
-        /// <returns>The vector cost.</returns>
-        private readonly int GetVectorSadCost(Point vector)
+        /// <returns>The vector cost, which is never negative.</returns>
+        public readonly int GetSadRateCost(Point vector)
         {
             Av1MotionVector difference = new((vector.Y - this.FullReferenceVector.Y) * 8, (vector.X - this.FullReferenceVector.X) * 8);
             int rate = this.Costs.GetCost(difference, default);
@@ -540,33 +251,35 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         }
 
         /// <summary>
-        /// Gets the variance-domain cost of a vector relative to the reference vector.
+        /// Measures the variance and the squared error of a vector, and its variance-domain cost relative to the reference vector.
         /// </summary>
         /// <param name="vector">The full-sample vector.</param>
-        /// <returns>The vector cost.</returns>
-        private readonly int GetVectorErrorCost(Point vector)
+        /// <returns>The variance, squared error and vector cost.</returns>
+        public readonly Av1MotionSearchBase.FullPixelResult GetVarianceResult(Point vector)
         {
+            TOperator.GetMoments(
+                this.Source[this.SourceIndex..],
+                this.SourceStride,
+                this.Reference[this.GetReferenceIndex(vector)..],
+                this.ReferenceStride,
+                this.Width,
+                this.Height,
+                out int sum,
+                out long squares);
+
+            // At the higher bit depths the sum and the squares each round to eight-bit precision. The separate rounding can make the variance
+            // negative, so the variance clamps at zero.
+            if (this.PrecisionShift != 0)
+            {
+                sum = (sum + (1 << (this.PrecisionShift - 1))) >> this.PrecisionShift;
+                int squaredShift = 2 * this.PrecisionShift;
+                squares = (squares + (1L << (squaredShift - 1))) >> squaredShift;
+            }
+
+            long variance = Math.Max(squares - (((long)sum * sum) / (this.Width * this.Height)), 0);
             int rate = this.Costs.GetCost(new Av1MotionVector(vector.Y * 8, vector.X * 8), this.ReferenceVector);
-            return Av1RateDistortion.GetMotionSearchCost(this.RateMultiplier, rate, 0);
+            int motionCost = Av1RateDistortion.GetMotionSearchCost(this.RateMultiplier, rate, 0);
+            return new Av1MotionSearchBase.FullPixelResult(vector, (int)variance, (int)squares, motionCost);
         }
-
-        /// <summary>
-        /// Clamps a vector to the limits.
-        /// </summary>
-        /// <param name="vector">The full-sample vector.</param>
-        /// <returns>The clamped vector.</returns>
-        private readonly Point Clamp(Point vector)
-            => new(
-                Math.Clamp(vector.X, this.Limits.ColumnMinimum, this.Limits.ColumnMaximum),
-                Math.Clamp(vector.Y, this.Limits.RowMinimum, this.Limits.RowMaximum));
-
-        /// <summary>
-        /// Tests whether a vector lies inside the limits.
-        /// </summary>
-        /// <param name="vector">The full-sample vector.</param>
-        /// <returns>Whether the vector is inside the limits.</returns>
-        private readonly bool IsInRange(Point vector)
-            => vector.X >= this.Limits.ColumnMinimum && vector.X <= this.Limits.ColumnMaximum &&
-                vector.Y >= this.Limits.RowMinimum && vector.Y <= this.Limits.RowMaximum;
     }
 }

@@ -94,11 +94,21 @@ internal static partial class Av1IntraSuperblockEncoder
                 Math.Clamp((start.Column + 3 + (start.Column >= 0 ? 1 : 0)) >> 3, fullBounds.Left, fullBounds.Right - 1),
                 Math.Clamp((start.Row + 3 + (start.Row >= 0 ? 1 : 0)) >> 3, fullBounds.Top, fullBounds.Bottom - 1));
 
-            int startRate = motionVectorCosts.GetCost(new Av1MotionVector(best.Y * 8, best.X * 8), integerReference);
-            int bestSad = GetObmcSad(reference, referencePlane.Stride, referenceOrigin, best, weightedSource, mask, width, height) +
-                Av1RateDistortion.GetMotionSearchSadCost(sadPerBit, startRate, 0);
+            ObmcCost cost = new(
+                reference,
+                referencePlane.Stride,
+                referenceOrigin,
+                weightedSource,
+                mask,
+                width,
+                height,
+                motionVectorCosts,
+                referenceVector,
+                integerReference,
+                sadPerBit,
+                this.rateMultiplier,
+                this.bitDepth.GetBitCount());
 
-            ReadOnlySpan<Point> neighbors = [new(0, -1), new(-1, 0), new(1, 0), new(0, 1)];
             Av1MotionSearchSettings motionSettings = this.picture.Parent.MotionSearchSettings;
             if (!motionSettings.UseRefiningObmcSearch)
             {
@@ -108,49 +118,27 @@ internal static partial class Av1IntraSuperblockEncoder
                     stepParameter = (Av1MotionSearchBase.GetInitialStepParameter(spatialMagnitude) + stepParameter) / 2;
                 }
 
+                // The OBMC diamond search visits every stage, also stages that repeat the radius of a stage where it stayed at its center.
+                // It does not use the preceding winner.
                 Av1MotionSearchSettings.FullPixelSearchMethod method = motionSettings.GetFullPixelMethod(blockSize);
                 Av1MotionSearchSites sites = this.blockWorkspace.GetMotionSearchSites(workspaceStorage, method, referencePlane.Stride);
-                best = this.SearchObmcDiamond(
-                    reference,
-                    referencePlane.Stride,
-                    referenceOrigin,
-                    best,
-                    stepParameter,
-                    sites,
-                    fullBounds,
-                    referenceVector,
-                    integerReference,
-                    in motionVectorCosts,
-                    sadPerBit,
-                    weightedSource,
-                    mask,
-                    width,
-                    height);
+                Point? secondBest = null;
+                best = Av1MotionSearchBase.SearchDiamond(ref cost, best, stepParameter, sites, fullBounds, false, ref secondBest).Vector;
             }
             else
             {
+                ReadOnlySpan<Point> neighbors = [new(0, -1), new(-1, 0), new(1, 0), new(0, 1)];
+                int bestSad = Av1MotionSearchBase.GetSadCost(ref cost, best);
                 for (int iteration = 0; iteration < 8; iteration++)
                 {
                     int bestSite = -1;
                     for (int site = 0; site < neighbors.Length; site++)
                     {
                         Point candidate = new(best.X + neighbors[site].X, best.Y + neighbors[site].Y);
-                        if (!fullBounds.Contains(candidate))
+                        if (fullBounds.Contains(candidate) &&
+                            Av1MotionSearchBase.TryImproveSad(ref cost, candidate, cost.GetReferenceIndex(candidate), ref bestSad))
                         {
-                            continue;
-                        }
-
-                        int sad = GetObmcSad(reference, referencePlane.Stride, referenceOrigin, candidate, weightedSource, mask, width, height);
-                        if (sad < bestSad)
-                        {
-                            sad += Av1RateDistortion.GetMotionSearchSadCost(
-                                sadPerBit, motionVectorCosts.GetCost(new Av1MotionVector(candidate.Y * 8, candidate.X * 8), integerReference), 0);
-
-                            if (sad < bestSad)
-                            {
-                                bestSad = sad;
-                                bestSite = site;
-                            }
+                            bestSite = site;
                         }
                     }
 
@@ -364,236 +352,6 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Runs the diamond search from the start at the given step. Then it runs the search again from the start at each finer step that
-        /// the earlier searches did not settle at their start. It keeps the vector with the lowest OBMC variance plus vector cost.
-        /// </summary>
-        /// <param name="reference">The reference plane samples.</param>
-        /// <param name="referenceStride">The reference plane stride.</param>
-        /// <param name="referenceOrigin">The index of the block origin in the reference plane.</param>
-        /// <param name="start">The full-sample vector that starts the search.</param>
-        /// <param name="stepParameter">The coarsest search stage.</param>
-        /// <param name="sites">The search sites of every stage.</param>
-        /// <param name="bounds">The full-sample search range.</param>
-        /// <param name="referenceVector">The reference of the new vector.</param>
-        /// <param name="integerReference">The reference vector rounded to full samples.</param>
-        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
-        /// <param name="sadPerBit">The SAD weight of one bit of vector rate.</param>
-        /// <param name="weightedSource">The source with the neighbor predictions removed.</param>
-        /// <param name="mask">The OBMC blend weights.</param>
-        /// <param name="width">The block width.</param>
-        /// <param name="height">The block height.</param>
-        /// <returns>The selected full-sample vector.</returns>
-        private readonly Point SearchObmcDiamond(
-            ReadOnlySpan<TSample> reference,
-            int referenceStride,
-            int referenceOrigin,
-            Point start,
-            int stepParameter,
-            Av1MotionSearchSites sites,
-            Rectangle bounds,
-            Av1MotionVector referenceVector,
-            Av1MotionVector integerReference,
-            in Av1MotionVectorCosts motionVectorCosts,
-            int sadPerBit,
-            ReadOnlySpan<int> weightedSource,
-            ReadOnlySpan<int> mask,
-            int width,
-            int height)
-        {
-            Point best = SearchObmcDiamondSteps(
-                reference,
-                referenceStride,
-                referenceOrigin,
-                start,
-                stepParameter,
-                sites,
-                bounds,
-                integerReference,
-                in motionVectorCosts,
-                sadPerBit,
-                weightedSource,
-                mask,
-                width,
-                height,
-                out int stage);
-
-            int bestCost = this.GetObmcFullPixelCost(
-                reference,
-                referenceStride,
-                referenceOrigin,
-                best,
-                referenceVector,
-                in motionVectorCosts,
-                weightedSource,
-                mask,
-                width,
-                height);
-
-            int furtherStages = sites.StageCount - 1 - stepParameter;
-            int centeredStages = 0;
-            while (stage < furtherStages)
-            {
-                stage++;
-                if (centeredStages != 0)
-                {
-                    centeredStages--;
-                    continue;
-                }
-
-                Point candidate = SearchObmcDiamondSteps(
-                    reference,
-                    referenceStride,
-                    referenceOrigin,
-                    start,
-                    stepParameter + stage,
-                    sites,
-                    bounds,
-                    integerReference,
-                    in motionVectorCosts,
-                    sadPerBit,
-                    weightedSource,
-                    mask,
-                    width,
-                    height,
-                    out centeredStages);
-
-                int cost = this.GetObmcFullPixelCost(
-                    reference,
-                    referenceStride,
-                    referenceOrigin,
-                    candidate,
-                    referenceVector,
-                    in motionVectorCosts,
-                    weightedSource,
-                    mask,
-                    width,
-                    height);
-
-                if (cost < bestCost)
-                {
-                    bestCost = cost;
-                    best = candidate;
-                }
-            }
-
-            return best;
-        }
-
-        /// <summary>
-        /// Visits the sites of each stage from the given step down to the finest. Each stage moves to the site with the lowest OBMC SAD
-        /// plus vector cost. The method counts the stages that leave the search at its start.
-        /// </summary>
-        /// <param name="reference">The reference plane samples.</param>
-        /// <param name="referenceStride">The reference plane stride.</param>
-        /// <param name="referenceOrigin">The index of the block origin in the reference plane.</param>
-        /// <param name="start">The full-sample vector that starts the search.</param>
-        /// <param name="stepParameter">The coarsest search stage.</param>
-        /// <param name="sites">The search sites of every stage.</param>
-        /// <param name="bounds">The full-sample search range.</param>
-        /// <param name="integerReference">The reference vector rounded to full samples.</param>
-        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
-        /// <param name="sadPerBit">The SAD weight of one bit of vector rate.</param>
-        /// <param name="weightedSource">The source with the neighbor predictions removed.</param>
-        /// <param name="mask">The OBMC blend weights.</param>
-        /// <param name="width">The block width.</param>
-        /// <param name="height">The block height.</param>
-        /// <param name="centeredStages">The number of stages that leave the search at its start.</param>
-        /// <returns>The selected full-sample vector.</returns>
-        private static Point SearchObmcDiamondSteps(
-            ReadOnlySpan<TSample> reference,
-            int referenceStride,
-            int referenceOrigin,
-            Point start,
-            int stepParameter,
-            Av1MotionSearchSites sites,
-            Rectangle bounds,
-            Av1MotionVector integerReference,
-            in Av1MotionVectorCosts motionVectorCosts,
-            int sadPerBit,
-            ReadOnlySpan<int> weightedSource,
-            ReadOnlySpan<int> mask,
-            int width,
-            int height,
-            out int centeredStages)
-        {
-            centeredStages = 0;
-            Point best = start;
-            int startRate = motionVectorCosts.GetCost(new Av1MotionVector(best.Y * 8, best.X * 8), integerReference);
-            int bestSad = GetObmcSad(reference, referenceStride, referenceOrigin, best, weightedSource, mask, width, height) +
-                Av1RateDistortion.GetMotionSearchSadCost(sadPerBit, startRate, 0);
-
-            for (int stage = sites.StageCount - stepParameter - 1; stage >= 0; stage--)
-            {
-                ReadOnlySpan<Av1MotionSearchSites.Site> stageSites = sites.GetSites(stage);
-                int bestSite = 0;
-                for (int index = 1; index <= sites.GetCandidateCount(stage); index++)
-                {
-                    Point candidate = new(best.X + stageSites[index].Column, best.Y + stageSites[index].Row);
-                    if (!bounds.Contains(candidate))
-                    {
-                        continue;
-                    }
-
-                    int sad = GetObmcSad(reference, referenceStride, referenceOrigin, candidate, weightedSource, mask, width, height);
-                    if (sad < bestSad)
-                    {
-                        sad += Av1RateDistortion.GetMotionSearchSadCost(
-                            sadPerBit, motionVectorCosts.GetCost(new Av1MotionVector(candidate.Y * 8, candidate.X * 8), integerReference), 0);
-
-                        if (sad < bestSad)
-                        {
-                            bestSad = sad;
-                            bestSite = index;
-                        }
-                    }
-                }
-
-                if (bestSite != 0)
-                {
-                    best = new Point(best.X + stageSites[bestSite].Column, best.Y + stageSites[bestSite].Row);
-                }
-                else if (best == start)
-                {
-                    centeredStages++;
-                }
-            }
-
-            return best;
-        }
-
-        /// <summary>
-        /// Returns the OBMC variance of the reference block at a full-sample vector plus the vector cost.
-        /// </summary>
-        /// <param name="reference">The reference plane samples.</param>
-        /// <param name="referenceStride">The reference plane stride.</param>
-        /// <param name="referenceOrigin">The index of the block origin in the reference plane.</param>
-        /// <param name="vector">The full-sample vector.</param>
-        /// <param name="referenceVector">The reference of the new vector.</param>
-        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
-        /// <param name="weightedSource">The source with the neighbor predictions removed.</param>
-        /// <param name="mask">The OBMC blend weights.</param>
-        /// <param name="width">The block width.</param>
-        /// <param name="height">The block height.</param>
-        /// <returns>The variance plus the vector cost.</returns>
-        private readonly int GetObmcFullPixelCost(
-            ReadOnlySpan<TSample> reference,
-            int referenceStride,
-            int referenceOrigin,
-            Point vector,
-            Av1MotionVector referenceVector,
-            in Av1MotionVectorCosts motionVectorCosts,
-            ReadOnlySpan<int> weightedSource,
-            ReadOnlySpan<int> mask,
-            int width,
-            int height)
-        {
-            Av1MotionVector fullVector = new(vector.Y * 8, vector.X * 8);
-            int index = referenceOrigin + (vector.Y * referenceStride) + vector.X;
-            int variance = this.GetObmcVariance(reference[index..], referenceStride, weightedSource, mask, width, height);
-            return variance + Av1RateDistortion.GetMotionSearchCost(this.rateMultiplier, motionVectorCosts.GetCost(fullVector, referenceVector), 0);
-        }
-
-        /// <summary>
         /// Measures one fractional candidate and keeps it when it lowers the cost.
         /// </summary>
         /// <param name="vector">The fractional candidate vector.</param>
@@ -718,34 +476,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.bitDepth.GetBitCount());
             }
 
-            int variance = this.GetObmcVariance(motionSearchPrediction, width, weightedSource, mask, width, height);
+            int variance = GetObmcVariance(motionSearchPrediction, width, weightedSource, mask, width, height, this.bitDepth.GetBitCount(), out _);
             return variance + Av1RateDistortion.GetMotionSearchCost(this.rateMultiplier, motionVectorCosts.GetCost(vector, referenceVector), 0);
-        }
-
-        /// <summary>
-        /// Returns the OBMC SAD of the reference block at a full-sample vector.
-        /// </summary>
-        /// <param name="reference">The reference plane samples.</param>
-        /// <param name="referenceStride">The reference plane stride.</param>
-        /// <param name="referenceOrigin">The index of the block origin in the reference plane.</param>
-        /// <param name="vector">The full-sample vector.</param>
-        /// <param name="weightedSource">The source with the neighbor predictions removed.</param>
-        /// <param name="mask">The OBMC blend weights.</param>
-        /// <param name="width">The block width.</param>
-        /// <param name="height">The block height.</param>
-        /// <returns>The OBMC SAD.</returns>
-        private static int GetObmcSad(
-            ReadOnlySpan<TSample> reference,
-            int referenceStride,
-            int referenceOrigin,
-            Point vector,
-            ReadOnlySpan<int> weightedSource,
-            ReadOnlySpan<int> mask,
-            int width,
-            int height)
-        {
-            int index = referenceOrigin + (vector.Y * referenceStride) + vector.X;
-            return TOperator.SumObmcAbsoluteDifferences(reference[index..], referenceStride, weightedSource, mask, width, height);
         }
 
         /// <summary>
@@ -757,25 +489,32 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="mask">The OBMC blend weights.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
+        /// <param name="bitCount">The coded sample precision in bits.</param>
+        /// <param name="squaredError">Receives the weighted squared error at the 8-bit scale.</param>
         /// <returns>The OBMC variance. A negative result after the rounding becomes zero.</returns>
-        private readonly int GetObmcVariance(
+        private static int GetObmcVariance(
             ReadOnlySpan<TSample> prediction,
             int predictionStride,
             ReadOnlySpan<int> weightedSource,
             ReadOnlySpan<int> mask,
             int width,
-            int height)
+            int height,
+            int bitCount,
+            out int squaredError)
         {
             TOperator.GetObmcMoments(prediction, predictionStride, weightedSource, mask, width, height, out int sum, out ulong squares);
-            int shift = (this.bitDepth.GetBitCount() - 8) * 2;
+            int shift = (bitCount - 8) * 2;
             if (shift == 0)
             {
+                // At eight bits the squared error and the variance are unsigned 32-bit values. The subtraction wraps instead of clamping at zero.
                 uint sse = (uint)squares;
+                squaredError = (int)sse;
                 return (int)(sse - (uint)((long)sum * sum / (width * height)));
             }
 
             int normalizedSum = (int)((sum + (1L << ((shift >> 1) - 1))) >> (shift >> 1));
             uint normalizedSquares = (uint)((squares + (1UL << (shift - 1))) >> shift);
+            squaredError = (int)normalizedSquares;
             long variance = normalizedSquares - ((long)normalizedSum * normalizedSum / (width * height));
             return variance >= 0 ? (int)variance : 0;
         }
@@ -929,6 +668,173 @@ internal static partial class Av1IntraSuperblockEncoder
             for (int row = 0; row < height; row++)
             {
                 TOperator.SubtractObmcSource(sourceSamples[(row * sourcePlane.Stride)..], weightedSource.Slice(row * width, width));
+            }
+        }
+
+        /// <summary>
+        /// Measures the OBMC error of a full-sample candidate for the shared diamond search and for the refining search. The error compares
+        /// the reference block, weighted by the OBMC mask, with the source that has the neighbor predictions removed.
+        /// </summary>
+        private readonly ref struct ObmcCost : Av1MotionSearchBase.IFullPixelCost
+        {
+            /// <summary>
+            /// The reference plane samples.
+            /// </summary>
+            private readonly ReadOnlySpan<TSample> reference;
+
+            /// <summary>
+            /// The reference plane stride.
+            /// </summary>
+            private readonly int referenceStride;
+
+            /// <summary>
+            /// The index of the block origin in the reference plane.
+            /// </summary>
+            private readonly int referenceOrigin;
+
+            /// <summary>
+            /// The source with the neighbor predictions removed.
+            /// </summary>
+            private readonly ReadOnlySpan<int> weightedSource;
+
+            /// <summary>
+            /// The OBMC blend weights.
+            /// </summary>
+            private readonly ReadOnlySpan<int> mask;
+
+            /// <summary>
+            /// The block width.
+            /// </summary>
+            private readonly int width;
+
+            /// <summary>
+            /// The block height.
+            /// </summary>
+            private readonly int height;
+
+            /// <summary>
+            /// The motion vector rates of the frame precision.
+            /// </summary>
+            private readonly Av1MotionVectorCosts costs;
+
+            /// <summary>
+            /// The reference of the variance-domain vector cost, in eighth samples.
+            /// </summary>
+            private readonly Av1MotionVector referenceVector;
+
+            /// <summary>
+            /// The reference vector rounded to full samples, in eighth samples. The absolute-difference vector cost uses it.
+            /// </summary>
+            private readonly Av1MotionVector integerReference;
+
+            /// <summary>
+            /// The SAD weight of one bit of vector rate.
+            /// </summary>
+            private readonly int sadPerBit;
+
+            /// <summary>
+            /// The rate multiplier of the variance domain.
+            /// </summary>
+            private readonly int rateMultiplier;
+
+            /// <summary>
+            /// The coded sample precision in bits.
+            /// </summary>
+            private readonly int bitCount;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="ObmcCost"/> struct.
+            /// </summary>
+            /// <param name="reference">The reference plane samples.</param>
+            /// <param name="referenceStride">The reference plane stride.</param>
+            /// <param name="referenceOrigin">The index of the block origin in the reference plane.</param>
+            /// <param name="weightedSource">The source with the neighbor predictions removed.</param>
+            /// <param name="mask">The OBMC blend weights.</param>
+            /// <param name="width">The block width.</param>
+            /// <param name="height">The block height.</param>
+            /// <param name="costs">The motion vector rates of the frame precision.</param>
+            /// <param name="referenceVector">The reference of the variance-domain vector cost, in eighth samples.</param>
+            /// <param name="integerReference">The reference vector rounded to full samples, in eighth samples.</param>
+            /// <param name="sadPerBit">The SAD weight of one bit of vector rate.</param>
+            /// <param name="rateMultiplier">The rate multiplier of the variance domain.</param>
+            /// <param name="bitCount">The coded sample precision in bits.</param>
+            public ObmcCost(
+                ReadOnlySpan<TSample> reference,
+                int referenceStride,
+                int referenceOrigin,
+                ReadOnlySpan<int> weightedSource,
+                ReadOnlySpan<int> mask,
+                int width,
+                int height,
+                Av1MotionVectorCosts costs,
+                Av1MotionVector referenceVector,
+                Av1MotionVector integerReference,
+                int sadPerBit,
+                int rateMultiplier,
+                int bitCount)
+            {
+                this.reference = reference;
+                this.referenceStride = referenceStride;
+                this.referenceOrigin = referenceOrigin;
+                this.weightedSource = weightedSource;
+                this.mask = mask;
+                this.width = width;
+                this.height = height;
+                this.costs = costs;
+                this.referenceVector = referenceVector;
+                this.integerReference = integerReference;
+                this.sadPerBit = sadPerBit;
+                this.rateMultiplier = rateMultiplier;
+                this.bitCount = bitCount;
+            }
+
+            /// <summary>
+            /// Gets the reference index of a candidate.
+            /// </summary>
+            /// <param name="vector">The full-sample vector.</param>
+            /// <returns>The reference index of the displaced block origin.</returns>
+            public int GetReferenceIndex(Point vector) => this.referenceOrigin + (vector.Y * this.referenceStride) + vector.X;
+
+            /// <summary>
+            /// Measures the OBMC SAD of the reference block at a reference index.
+            /// </summary>
+            /// <param name="referenceIndex">The reference index of the displaced block origin.</param>
+            /// <returns>The OBMC SAD.</returns>
+            public int GetSad(int referenceIndex)
+                => TOperator.SumObmcAbsoluteDifferences(
+                    this.reference[referenceIndex..], this.referenceStride, this.weightedSource, this.mask, this.width, this.height);
+
+            /// <summary>
+            /// Gets the absolute-difference vector cost of a candidate relative to the rounded reference vector.
+            /// </summary>
+            /// <param name="vector">The full-sample vector.</param>
+            /// <returns>The vector cost, which is never negative.</returns>
+            public int GetSadRateCost(Point vector)
+            {
+                int rate = this.costs.GetCost(new Av1MotionVector(vector.Y * 8, vector.X * 8), this.integerReference);
+                return Av1RateDistortion.GetMotionSearchSadCost(this.sadPerBit, rate, 0);
+            }
+
+            /// <summary>
+            /// Measures the OBMC variance of the reference block at a full-sample vector and its variance-domain vector cost.
+            /// </summary>
+            /// <param name="vector">The full-sample vector.</param>
+            /// <returns>The OBMC variance, the weighted squared error and the vector cost.</returns>
+            public Av1MotionSearchBase.FullPixelResult GetVarianceResult(Point vector)
+            {
+                int variance = GetObmcVariance(
+                    this.reference[this.GetReferenceIndex(vector)..],
+                    this.referenceStride,
+                    this.weightedSource,
+                    this.mask,
+                    this.width,
+                    this.height,
+                    this.bitCount,
+                    out int squaredError);
+
+                int rate = this.costs.GetCost(new Av1MotionVector(vector.Y * 8, vector.X * 8), this.referenceVector);
+                int motionCost = Av1RateDistortion.GetMotionSearchCost(this.rateMultiplier, rate, 0);
+                return new Av1MotionSearchBase.FullPixelResult(vector, variance, squaredError, motionCost);
             }
         }
     }

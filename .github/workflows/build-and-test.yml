@@ -19,7 +19,7 @@ jobs:
         isARM:
           - ${{ contains(github.event.pull_request.labels.*.name, 'arch:arm32') || contains(github.event.pull_request.labels.*.name, 'arch:arm64') }}
         options:
-          - os: buildjet-4vcpu-ubuntu-2204-arm
+          - os: ubuntu-22.04-arm
             framework: net6.0
             sdk: 6.0.x
             runtime: -x64
@@ -42,7 +42,7 @@ jobs:
         exclude:
           - isARM: false
             options:
-              os: buildjet-4vcpu-ubuntu-2204-arm
+              os: ubuntu-22.04-arm
 
     runs-on: ${{matrix.options.os}}
 
@@ -126,7 +126,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: actual_output_${{ runner.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
+          name: actual_output_${{ matrix.options.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
           path: tests/Images/ActualOutput/
 
   Publish:

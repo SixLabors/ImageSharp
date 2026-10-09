@@ -592,7 +592,7 @@ public class Av1EntropyTests
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
         for (int i = 0; i < values.Length; i++)
         {
-            actuals[i] = decoder.ReadTransformType(transformSizeContext, true, false, false, false, filterIntraMode, intraDirection);
+            actuals[i] = decoder.ReadTransformType(transformSizeContext, true, false, false, true, filterIntraMode, intraDirection);
         }
 
         // Assert
@@ -653,7 +653,7 @@ public class Av1EntropyTests
                 useReducedTransformSet,
                 isInter: true,
                 useFilterIntra: false,
-                isLossless: false,
+                hasSegmentQuantizer: true,
                 Av1FilterIntraMode.AllFilterIntraModes,
                 Av1PredictionMode.DC);
 

@@ -314,7 +314,8 @@ public class Av1CoefficientsEntropyTests
             endOfBlock,
             useReducedTransformSet,
             filterIntraMode,
-            usesInterTransformSet: false);
+            usesInterTransformSet: false,
+            segmentQIndex: BaseQIndex);
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
@@ -334,6 +335,7 @@ public class Av1CoefficientsEntropyTests
             transformBlockContext,
             transformSize,
             false,
+            true,
             useReducedTransformSet,
             transformType,
             ref transformInfo,

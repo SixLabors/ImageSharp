@@ -4920,7 +4920,8 @@ internal partial class Av1TileWriter
                         transformBlock.EndOfBlock,
                         frameHeader.UseReducedTransformSet,
                         block.FilterIntraMode,
-                        usesInterTransformSet);
+                        usesInterTransformSet,
+                        frameHeader.QuantizationParameters.QIndex[entropyCodingContext.MacroBlockModeInfo.Block.SegmentId]);
 
                     // A traversal with retained contexts never reads the neighbor edges, so only a traversal that derives
                     // its contexts keeps them up to date.

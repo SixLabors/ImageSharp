@@ -115,7 +115,7 @@ internal static partial class Av1FrameEncoder
                 this.PictureBuffer.Reset(frameHeader);
                 this.ApplyLaggedQuantizer(trialQIndex);
                 parent.RetainsFrameProbabilities = pass == 1;
-                this.SymbolEncoder.BeginFrame(null, trialQIndex, modelQIndex);
+                this.SymbolEncoder.BeginFrame(null, modelQIndex);
                 Av1TileEncoder.AnalyzeIntraFrame<TSample, TOperator>(
                     this.SymbolEncoder,
                     source,

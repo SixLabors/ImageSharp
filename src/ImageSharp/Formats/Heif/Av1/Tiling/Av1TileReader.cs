@@ -1992,6 +1992,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             transformBlockContext,
             transformSize,
             isLossless,
+            this.FrameHeader.QuantizationParameters.QIndex[partitionInfo.ModeInfo.SegmentId] > 0,
             this.FrameHeader.UseReducedTransformSet,
             lumaTransformType,
             ref transformInfo,

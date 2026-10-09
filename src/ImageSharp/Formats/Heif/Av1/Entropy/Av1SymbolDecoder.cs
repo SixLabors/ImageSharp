@@ -1072,7 +1072,7 @@ internal ref struct Av1SymbolDecoder
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
     /// <param name="isInter">Indicates whether the block uses inter prediction.</param>
     /// <param name="useFilterIntra">Indicates whether filter-intra prediction selected the intra direction.</param>
-    /// <param name="isLossless">Indicates whether the active segment uses lossless transforms.</param>
+    /// <param name="hasSegmentQuantizer">Whether the quantizer index of the block segment, without the block delta, is above zero.</param>
     /// <param name="filterIntraMode">The filter-intra mode when enabled.</param>
     /// <param name="intraDirection">The ordinary intra prediction mode.</param>
     /// <returns>The decoded transform type, or DCT-DCT when no transform type is signaled.</returns>
@@ -1081,14 +1081,16 @@ internal ref struct Av1SymbolDecoder
         bool useReducedTransformSet,
         bool isInter,
         bool useFilterIntra,
-        bool isLossless,
+        bool hasSegmentQuantizer,
         Av1FilterIntraMode filterIntraMode,
         Av1PredictionMode intraDirection)
     {
         Av1TransformType transformType = Av1TransformType.DctDct;
 
-        // A lossless segment selects DCT-DCT and carries no transform-type symbol.
-        if (isLossless)
+        // A segment with quantizer index zero carries no transform-type symbol and uses DCT-DCT. The test reads the
+        // quantizer index, not the lossless flag: a segment with index zero and nonzero DC or AC deltas is not lossless,
+        // but it still has no symbol.
+        if (!hasSegmentQuantizer)
         {
             return transformType;
         }
@@ -1180,6 +1182,7 @@ internal ref struct Av1SymbolDecoder
     /// <param name="transformBlockContext">The neighboring skip and DC sign contexts.</param>
     /// <param name="transformSize">The signaled transform size.</param>
     /// <param name="isLossless">Indicates whether the active segment is lossless.</param>
+    /// <param name="hasSegmentQuantizer">Whether the quantizer index of the block segment, without the block delta, is above zero.</param>
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
     /// <param name="lumaTransformType">The luma transform type shared by inter-predicted chroma.</param>
     /// <param name="transformInfo">The transform descriptor updated with the decoded type and end-of-block position.</param>
@@ -1203,6 +1206,7 @@ internal ref struct Av1SymbolDecoder
         Av1TransformBlockContext transformBlockContext,
         Av1TransformSize transformSize,
         bool isLossless,
+        bool hasSegmentQuantizer,
         bool useReducedTransformSet,
         Av1TransformType lumaTransformType,
         ref Av1TransformInfo transformInfo,
@@ -1249,7 +1253,7 @@ internal ref struct Av1SymbolDecoder
                 useReducedTransformSet,
                 usesInterTransformSet,
                 modeInfo.UseFilterIntra,
-                isLossless,
+                hasSegmentQuantizer,
                 modeInfo.FilterIntraMode,
                 modeInfo.YMode);
         }

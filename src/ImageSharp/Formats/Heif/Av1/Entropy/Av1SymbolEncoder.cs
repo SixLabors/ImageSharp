@@ -308,11 +308,6 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     private Av1SymbolWriter writer;
 
     /// <summary>
-    /// The frame base quantizer, which decides whether transform types are coded. A sequence sets it for each frame.
-    /// </summary>
-    private int baseQIndex;
-
-    /// <summary>
     /// The base quantizer used to select coefficient probability models. A sequence sets it for each frame, because
     /// a rate-controlled frame can change the quantizer context of its defaults.
     /// </summary>
@@ -402,7 +397,6 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
             this.RefreshCosts();
             this.writer = new(configuration, updateCdf);
-            this.baseQIndex = qIndex;
             this.modelQIndex = qIndex;
         }
         catch
@@ -557,25 +551,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// The retained context of the frame's primary reference, or <see langword="null"/> for the normative defaults.
     /// The context must stay unchanged while the frame is coded.
     /// </param>
-    /// <param name="baseQIndex">The base quantizer index of the frame, which selects the default coefficient models.</param>
-    public void BeginFrame(Av1FrameEntropyContext? primaryReferenceContext, int baseQIndex)
-        => this.BeginFrame(primaryReferenceContext, baseQIndex, baseQIndex);
-
-    /// <summary>
-    /// Selects the context every tile of the next frame starts from, and resets the tile state to it. An earlier quantizer than the quantizer of
-    /// the frame selects the default coefficient models.
-    /// </summary>
-    /// <param name="primaryReferenceContext">
-    /// The retained context of the frame's primary reference, or <see langword="null"/> for the normative defaults.
-    /// The context must stay unchanged while the frame is coded.
+    /// <param name="modelQIndex">
+    /// The base quantizer index that selects the default coefficient models. This is the base quantizer index of the frame, except during
+    /// the screen content tool search, which keeps the quantizer from before its trial quantizer.
     /// </param>
-    /// <param name="baseQIndex">The base quantizer index of the frame.</param>
-    /// <param name="modelQIndex">The base quantizer index that selects the default coefficient models. It is the quantizer before the
-    /// screen content tool search sets its trial quantizer.</param>
-    public void BeginFrame(Av1FrameEntropyContext? primaryReferenceContext, int baseQIndex, int modelQIndex)
+    public void BeginFrame(Av1FrameEntropyContext? primaryReferenceContext, int modelQIndex)
     {
         this.frameBase = primaryReferenceContext;
-        this.baseQIndex = baseQIndex;
         this.modelQIndex = modelQIndex;
         this.hasContextUpdateTile = false;
         this.Reset();
@@ -1401,6 +1383,9 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="useReducedTransformSet">Whether the reduced transform set applies.</param>
     /// <param name="filterIntraMode">The filter-intra prediction mode.</param>
     /// <param name="usesInterTransformSet">Whether inter transform syntax applies.</param>
+    /// <param name="segmentQIndex">
+    /// The quantizer index of the block segment without the block delta. A transform type symbol is written only when it is above zero.
+    /// </param>
     /// <returns>The coefficient context consumed by adjacent transforms.</returns>
     public int WriteCoefficients<TOperation>(
         ref Span<byte> output,
@@ -1413,7 +1398,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         ushort endOfBlock,
         bool useReducedTransformSet,
         Av1FilterIntraMode filterIntraMode,
-        bool usesInterTransformSet)
+        bool usesInterTransformSet,
+        int segmentQIndex)
         where TOperation : struct, ISymbolOperation
     {
         Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
@@ -1456,7 +1442,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
                 transformSize,
                 usesInterTransformSet,
                 useReducedTransformSet,
-                this.baseQIndex,
+                segmentQIndex,
                 filterIntraMode,
                 intraDirection);
         }

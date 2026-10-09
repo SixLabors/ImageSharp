@@ -540,7 +540,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <remarks>
         /// The candidate and best buffers swap on each improvement, so the winner is never copied inside the loop.
         /// On return the best span arguments hold the winner. The best reconstruction is valid only when the winner has coefficients and
-        /// <paramref name="reconstructWinner"/> is set, or when the search measured the winner in pixels.
+        /// either <paramref name="winnerDestination"/> is not empty or the search measured the winner in pixels, and the winner is not in
+        /// <paramref name="winnerDestination"/> instead (<see cref="TransformTypeSearchResult.WinnerInDestination"/>).
         /// </remarks>
         /// <param name="writer">The tile symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
@@ -560,12 +561,14 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="filterIntraMode">The filter intra mode, or <see cref="Av1FilterIntraMode.AllFilterIntraModes"/>.</param>
         /// <param name="derivedTransformType">The type a chroma block derives, which it searches alone. Reference: av1_get_tx_type().</param>
         /// <param name="costLimit">The budget left for the transform block. Reference: ref_best_rd.</param>
-        /// <param name="reconstructWinner">
-        /// Whether a later transform block of an intra block predicts from the winner. Reference: the position test of recon_intra().
+        /// <param name="winnerDestination">
+        /// The prediction in the frame when a later transform block of an intra block predicts from the winner, and empty otherwise.
+        /// A winner with coefficients that the search did not reconstruct is then reconstructed here in place, over its prediction.
         /// </param>
         /// <param name="prediction">The prediction samples.</param>
+        /// <param name="predictionStride">The number of prediction samples between rows.</param>
         /// <param name="residual">The residual samples.</param>
-        /// <param name="inputStride">The number of prediction and residual samples between rows.</param>
+        /// <param name="inputStride">The number of residual samples between rows.</param>
         /// <param name="candidateReconstruction">The reconstruction of the candidate being measured.</param>
         /// <param name="bestReconstruction">The reconstruction of the winner.</param>
         /// <param name="candidateCoefficients">The quantized coefficients of the candidate.</param>
@@ -592,8 +595,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1FilterIntraMode filterIntraMode,
             Av1TransformType derivedTransformType,
             long costLimit,
-            bool reconstructWinner,
+            scoped Span<TSample> winnerDestination,
             scoped ReadOnlySpan<TSample> prediction,
+            int predictionStride,
             scoped Span<short> residual,
             int inputStride,
             ref Span<TSample> candidateReconstruction,
@@ -888,7 +892,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             sourceStride,
                             transformOrigin,
                             prediction,
-                            inputStride,
+                            predictionStride,
                             candidateReconstruction,
                             transformWidth,
                             transformSize,
@@ -950,9 +954,12 @@ internal static partial class Av1IntraSuperblockEncoder
             // The winner is reconstructed only when it has coefficients and either a later transform block predicts from it, or policy 1
             // measures its final distortion in pixels. An empty winner reconstructs to its prediction, which the caller uses instead.
             // Reference: calc_pixel_domain_distortion_final with best_eob, and recon_intra(), at the end of search_tx_type().
+            bool reconstructWinner = !winnerDestination.IsEmpty;
             bool measureWinner = measureWinnerInPixelDomain && best.State.EndOfBlock != 0;
             if (!bestReconstructed && best.State.EndOfBlock != 0 && (reconstructWinner || measureWinner))
             {
+                // A later transform block predicts from the frame, so a winner that it reads is reconstructed there in place, over
+                // its prediction. The caller then copies nothing. No type is measured after this, so the prediction is no longer needed.
                 long pixelDistortion = TOperator.ReconstructPredictionCandidate(
                     this.blockWorkspace,
                     transformWorkspace,
@@ -961,14 +968,16 @@ internal static partial class Av1IntraSuperblockEncoder
                     sourceStride,
                     transformOrigin,
                     prediction,
-                    inputStride,
-                    bestReconstruction,
-                    transformWidth,
+                    predictionStride,
+                    reconstructWinner ? winnerDestination : bestReconstruction,
+                    reconstructWinner ? predictionStride : transformWidth,
                     transformSize,
                     plane,
                     this.BlockLossless,
                     this.bitDepth,
                     best.ReconstructionState);
+
+                best.WinnerInDestination = reconstructWinner;
 
                 if (measureWinner)
                 {
@@ -1028,6 +1037,13 @@ internal static partial class Av1IntraSuperblockEncoder
             /// The state that reconstructs the winner, which for a DC-only chroma block carries the derived type.
             /// </summary>
             public Av1EncoderTransformBlockState ReconstructionState;
+
+            /// <summary>
+            /// Whether the search reconstructed the winner in place in the winner destination, so the frame already holds it.
+            /// When this is false and a later transform block predicts from a winner with coefficients, the best reconstruction
+            /// holds the winner, which the search measured in pixels, and the caller copies it into the frame.
+            /// </summary>
+            public bool WinnerInDestination;
         }
     }
 }

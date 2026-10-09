@@ -77,19 +77,21 @@ internal readonly ref struct Av1IntraCandidatePlane<TSample>
     public Point BlockOrigin { get; init; }
 
     /// <summary>
-    /// Gets the contiguous reconstruction of the candidate.
+    /// Gets the contiguous storage that a candidate reconstructs into when it measures its distortion in pixels.
+    /// The frame keeps the prediction of the candidate, so the reconstruction cannot go there.
     /// </summary>
     public Span<TSample> Reconstruction { get; init; }
 
     /// <summary>
-    /// Gets the frame plane that gets the prediction.
+    /// Gets the frame plane from the block origin. Each candidate writes its prediction here, and its residual and
+    /// distortion read the prediction from here.
     /// </summary>
-    public Av1PlaneRegion<TSample> Frame { get; init; }
+    public Span<TSample> FrameBlock { get; init; }
 
     /// <summary>
-    /// Gets all samples of <see cref="Frame"/>.
+    /// Gets the number of samples between rows of <see cref="FrameBlock"/>.
     /// </summary>
-    public Span<TSample> FrameSamples { get; init; }
+    public int FrameStride { get; init; }
 
     /// <summary>
     /// Gets the top reference samples, after the shared corner.

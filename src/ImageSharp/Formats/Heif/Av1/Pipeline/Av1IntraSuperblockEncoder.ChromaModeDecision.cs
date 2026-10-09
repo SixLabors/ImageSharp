@@ -171,9 +171,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     Span<TSample> above = modeWorkspace.GetReferenceSamples(0);
 
                     Span<TSample> left = modeWorkspace.GetReferenceSamples(1);
+                    Span<TSample> frameBlock = Av1TransformBlockEncoder.GetPlaneSpan(
+                        SelectPlane(plane, reconstructionLuma, reconstructionBlue, reconstructionRed), reconstruction, origin);
+
                     this.PrepareTransformReferenceSamples(
-                        Av1TransformBlockEncoder.GetPlaneSpan(
-                            SelectPlane(plane, reconstructionLuma, reconstructionBlue, reconstructionRed), reconstruction, origin),
+                        frameBlock,
                         reconstruction.Stride,
                         blockOrigin,
                         blockSize,
@@ -242,9 +244,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         context,
                         lumaQ3,
                         alpha,
-                        samples,
-                        reconstruction,
-                        SelectPlane(plane, reconstructionLuma, reconstructionBlue, reconstructionRed),
+                        frameBlock,
+                        reconstruction.Stride,
                         coefficients,
                         ref states[0],
                         out planeRate);
@@ -289,7 +290,6 @@ internal static partial class Av1IntraSuperblockEncoder
                         SelectPlane(plane, reconstructionLuma, reconstructionBlue, reconstructionRed),
                         colors,
                         map,
-                        samples,
                         coefficients,
                         states,
                         topContexts,
@@ -924,6 +924,11 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> redSourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourceRed, redSource, chromaOrigin);
             Span<TSample> blueFrame = reconstructionBlue;
             Span<TSample> redFrame = reconstructionRed;
+
+            // Each trial predicts straight into the frame at the block.
+            Span<TSample> blueFrameBlock = Av1TransformBlockEncoder.GetPlaneSpan(blueFrame, blueReconstruction, chromaOrigin);
+            Span<TSample> redFrameBlock = Av1TransformBlockEncoder.GetPlaneSpan(redFrame, redReconstruction, chromaOrigin);
+
             bool smoothChromaEdges = this.UseSmoothIntraEdges(modeInfoGrid, modeInfoAllocation, macroBlock, lumaOrigin, blockSize, Av1Plane.U);
             Span<TSample> blueAboveStorage = modeWorkspace.GetReferenceSamples(0);
             Span<TSample> blueLeftStorage = modeWorkspace.GetReferenceSamples(1);
@@ -1022,8 +1027,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 SourceStride = blueSource.Stride,
                 BlockOrigin = chromaOrigin,
                 Reconstruction = candidateBlueReconstruction[..sampleCount],
-                Frame = blueReconstruction,
-                FrameSamples = blueFrame,
+                FrameBlock = blueFrameBlock,
+                FrameStride = blueReconstruction.Stride,
                 Above = blueAbove,
                 Left = blueLeft,
                 HasLeft = hasLeft,
@@ -1057,8 +1062,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 SourceStride = redSource.Stride,
                 BlockOrigin = chromaOrigin,
                 Reconstruction = candidateRedReconstruction[..sampleCount],
-                Frame = redReconstruction,
-                FrameSamples = redFrame,
+                FrameBlock = redFrameBlock,
+                FrameStride = redReconstruction.Stride,
                 Above = redAbove,
                 Left = redLeft,
                 HasLeft = hasLeft,
@@ -1148,9 +1153,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             lumaQ3,
                             transformSize,
                             this.bitDepth,
-                            candidateBlueReconstruction,
-                            blueReconstruction,
-                            blueFrame,
+                            blueFrameBlock,
+                            blueReconstruction.Stride,
                             modeWorkspace.Residual,
                             transformCoefficients,
                             transformWorkspace);
@@ -1167,9 +1171,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             lumaQ3,
                             transformSize,
                             this.bitDepth,
-                            candidateRedReconstruction,
-                            redReconstruction,
-                            redFrame,
+                            redFrameBlock,
+                            redReconstruction.Stride,
                             modeWorkspace.Residual,
                             transformCoefficients,
                             transformWorkspace);
@@ -1241,9 +1244,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                 blueContext,
                                 lumaQ3,
                                 Av1ChromaFromLumaMath.CandidateIndexToAlpha(alphaCandidateIndex),
-                                candidateBlueReconstruction[..sampleCount],
-                                blueReconstruction,
-                                blueFrame,
+                                blueFrameBlock,
+                                blueReconstruction.Stride,
                                 candidateBlueCoefficients[..sampleCount],
                                 ref candidateBlueState,
                                 out blueRates[alphaCandidateIndex]);
@@ -1280,9 +1282,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                 redContext,
                                 lumaQ3,
                                 Av1ChromaFromLumaMath.CandidateIndexToAlpha(alphaCandidateIndex),
-                                candidateRedReconstruction[..sampleCount],
-                                redReconstruction,
-                                redFrame,
+                                redFrameBlock,
+                                redReconstruction.Stride,
                                 candidateRedCoefficients[..sampleCount],
                                 ref candidateRedState,
                                 out redRates[alphaCandidateIndex]);
@@ -1376,7 +1377,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         {
                             // The alpha tables keep only rate and distortion. A selected candidate that is not the last trial
                             // of its plane is coded again here to get its coefficients. That is not a trial, so it does not
-                            // write the frame. The last trial left its own state and buffers, so it needs no second coding.
+                            // write the frame: it predicts into the contiguous candidate storage, and the frame keeps the
+                            // prediction of the last trial. The last trial left its own state and buffers, so it needs no
+                            // second coding.
                             if (selectedBlueCandidateIndex != lastCodedBlueCandidate)
                             {
                                 candidateBlueState = default;
@@ -1402,8 +1405,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     lumaQ3,
                                     Av1ChromaFromLumaMath.CandidateIndexToAlpha(selectedBlueCandidateIndex),
                                     candidateBlueReconstruction[..sampleCount],
-                                    default,
-                                    default,
+                                    width,
                                     candidateBlueCoefficients[..sampleCount],
                                     ref candidateBlueState,
                                     out _);
@@ -1436,8 +1438,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     lumaQ3,
                                     Av1ChromaFromLumaMath.CandidateIndexToAlpha(selectedRedCandidateIndex),
                                     candidateRedReconstruction[..sampleCount],
-                                    default,
-                                    default,
+                                    width,
                                     candidateRedCoefficients[..sampleCount],
                                     ref candidateRedState,
                                     out _);
@@ -1656,12 +1657,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize maximumUnitBlockSize =
                 Av1BlockSize.Block64x64.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
 
-            Span<TSample> candidateBlueReconstruction =
-                modeWorkspace.GetCandidateReconstruction(0)[..blockSampleCount];
-
-            Span<TSample> candidateRedReconstruction =
-                modeWorkspace.GetCandidateReconstruction(1)[..blockSampleCount];
-
             Span<int> candidateBlueCoefficients =
                 modeWorkspace.GetCandidateCoefficients(0)[..blockSampleCount];
 
@@ -1838,7 +1833,6 @@ internal static partial class Av1IntraSuperblockEncoder
                         blueReconstructionSamples,
                         [],
                         default,
-                        candidateBlueReconstruction,
                         candidateBlueCoefficients,
                         candidateBlueStates,
                         blueTopContexts,
@@ -1896,7 +1890,6 @@ internal static partial class Av1IntraSuperblockEncoder
                         redReconstructionSamples,
                         [],
                         default,
-                        candidateRedReconstruction,
                         candidateRedCoefficients,
                         candidateRedStates,
                         redTopContexts,
@@ -2009,8 +2002,10 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Codes one plane of an intra or palette candidate, one transform block at a time, in coding order.
-        /// Each transform block writes its prediction into the frame, and then its reconstruction when recon_intra()
-        /// writes it. Reference: av1_txfm_rd_in_plane() and block_rd_txfm() for an intra block.
+        /// Each transform block predicts straight into the frame, and then gets its reconstruction there when a later
+        /// transform block predicts from it. The edges inside the block come from the frame, which holds the earlier
+        /// transform blocks of the candidate.
+        /// Reference: av1_txfm_rd_in_plane() and block_rd_txfm() for an intra block.
         /// </summary>
         /// <param name="writer">The coefficient entropy costs.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
@@ -2043,7 +2038,6 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="reconstructionSamples">The samples of <paramref name="reconstruction"/>, which the caller reads once outside its loops.</param>
         /// <param name="paletteColors">The palette colors; empty for an intra candidate.</param>
         /// <param name="colorIndexMap">The palette color index map; empty for an intra candidate.</param>
-        /// <param name="candidateReconstruction">The contiguous candidate reconstruction of the plane block.</param>
         /// <param name="candidateCoefficients">The storage that the type search quantizes each candidate into.</param>
         /// <param name="candidateStates">The candidate transform states.</param>
         /// <param name="topContexts">The top coefficient contexts of the plane block.</param>
@@ -2084,7 +2078,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> reconstructionSamples,
             ReadOnlySpan<ushort> paletteColors,
             Av1PlaneRegion<byte> colorIndexMap,
-            Span<TSample> candidateReconstruction,
             Span<int> candidateCoefficients,
             Span<Av1EncoderTransformBlockState> candidateStates,
             Span<byte> topContexts,
@@ -2118,9 +2111,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? Av1ComponentType.Luminance
                 : Av1ComponentType.Chroma;
 
-            // Palette samples and centroids remain live across size candidates. Its prediction scratch
-            // is disjoint from those inputs, whereas ordinary prediction can use the transient workspace.
-            Span<TSample> prediction = (paletteColors.IsEmpty ? modeWorkspace.Prediction : modeWorkspace.Palette.GetPrediction(0))[..transformSampleCount];
+            // Palette samples and centroids remain live across size candidates. Its residual scratch
+            // is disjoint from those inputs, whereas ordinary residuals can use the transient workspace.
             Span<short> residual = (paletteColors.IsEmpty ? modeWorkspace.Residual : modeWorkspace.Palette.GetResidual(0))[..transformSampleCount];
             Span<TSample> aboveStorage = modeWorkspace.GetReferenceSamples(0);
             Span<TSample> leftStorage = modeWorkspace.GetReferenceSamples(1);
@@ -2149,7 +2141,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // The edge filter strength depends on the neighbors of the block alone, so every transform block shares it.
             bool smoothEdges = this.UseSmoothIntraEdges(modeInfoGrid, modeInfoAllocation, macroBlock, lumaOrigin, blockSize, plane);
-            ReadOnlySpan<TSample> reconstructionBlock = reconstructionSamples[reconstruction.GetOffset(chromaOrigin.X, chromaOrigin.Y)..];
+            Span<TSample> reconstructionBlock = reconstructionSamples[reconstruction.GetOffset(chromaOrigin.X, chromaOrigin.Y)..];
+            int frameStride = reconstruction.Stride;
             Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, 0).Block.PartitionType;
 
             // Residual syntax completes each bounded 64x64 luma region, scaled for chroma, before
@@ -2166,24 +2159,28 @@ internal static partial class Av1IntraSuperblockEncoder
                         for (int columnOffset = regionColumn; columnOffset < unitRight; columnOffset += transformWidth)
                         {
                             int transformColumn = columnOffset / transformWidth;
-                            int reconstructionOffset = (rowOffset * blockWidth) + columnOffset;
                             Point transformOrigin = chromaOrigin + new Size(columnOffset, rowOffset);
+
+                            // The prediction goes straight into the frame, and the residual and the type search read it there.
+                            Span<TSample> prediction = reconstructionBlock[((rowOffset * frameStride) + columnOffset)..];
                             if (paletteColors.IsEmpty)
                             {
+                                // The earlier transform blocks of this candidate are already in the frame, so the edges
+                                // inside the block come from the frame too, as they do for every other edge.
                                 this.PrepareTransformReferenceSamples(
                                     reconstructionBlock,
-                                    reconstruction.Stride,
+                                    frameStride,
                                     lumaOrigin,
                                     blockSize,
                                     macroBlock,
                                     partitionType,
                                     transformRow,
                                     transformColumn,
-                                    blockWidth,
+                                    frameStride,
                                     transformSize,
                                     subsamplingX,
                                     subsamplingY,
-                                    candidateReconstruction,
+                                    reconstructionBlock,
                                     aboveStorage,
                                     leftStorage,
                                     true,
@@ -2195,7 +2192,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     sourceSamples[source.GetOffset(transformOrigin.X, transformOrigin.Y)..],
                                     source.Stride,
                                     prediction,
-                                    transformSize.GetWidth(),
+                                    frameStride,
                                     aboveStorage.Slice(1, transformWidth + transformHeight),
                                     leftStorage.Slice(1, transformWidth + transformHeight),
                                     hasLeft,
@@ -2218,13 +2215,10 @@ internal static partial class Av1IntraSuperblockEncoder
                                     paletteColors,
                                     colorIndexMap.GetSubRegion(columnOffset, rowOffset, transformWidth, transformHeight),
                                     prediction,
+                                    frameStride,
                                     residual,
                                     transformSize);
                             }
-
-                            // The prediction goes into the frame. Reference: av1_predict_intra_block_facade() into pd->dst in block_rd_txfm().
-                            Av1TransformBlockEncoder.WriteFrameSamples(
-                                reconstruction, reconstructionSamples, transformOrigin, prediction, transformWidth, transformWidth, transformHeight);
 
                             Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
                                 componentType,
@@ -2267,8 +2261,9 @@ internal static partial class Av1IntraSuperblockEncoder
                                 Av1FilterIntraMode.AllFilterIntraModes,
                                 transformType,
                                 costLimit == long.MaxValue ? long.MaxValue : costLimit - accumulatedCost,
-                                !lastTransformBlock,
+                                lastTransformBlock ? default : prediction,
                                 prediction,
+                                frameStride,
                                 residual,
                                 transformWidth,
                                 ref candidateTransformReconstruction,
@@ -2278,18 +2273,13 @@ internal static partial class Av1IntraSuperblockEncoder
                                 ref candidateDequantized,
                                 ref bestDequantized);
 
-                            // The block and the frame get the reconstruction only when the block has coefficients and is not the last
-                            // transform block of the plane block. Otherwise they keep the prediction, which is also the reconstruction
+                            // The frame gets the reconstruction only when the block has coefficients and is not the last
+                            // transform block of the plane block. Otherwise it keeps the prediction, which is also the reconstruction
                             // of an empty block. Reference: the end of block and position tests of recon_intra(), which writes pd->dst.
+                            // The search reconstructed such a winner in the frame already, unless it measured the winner in pixels
+                            // during the type loop. That reconstruction is copied, because it costs less than a second inverse transform.
                             bool publishReconstruction = searchResult.State.EndOfBlock != 0 && !lastTransformBlock;
-                            ReadOnlySpan<TSample> publishedSamples = publishReconstruction ? bestTransformReconstruction : prediction;
-                            for (int row = 0; row < transformHeight; row++)
-                            {
-                                publishedSamples.Slice(row * transformWidth, transformWidth)
-                                    .CopyTo(candidateReconstruction.Slice(reconstructionOffset + (row * blockWidth), transformWidth));
-                            }
-
-                            if (publishReconstruction)
+                            if (publishReconstruction && !searchResult.WinnerInDestination)
                             {
                                 Av1TransformBlockEncoder.WriteFrameSamples(
                                     reconstruction,
@@ -2385,12 +2375,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="context">The coefficient context of the transform block.</param>
         /// <param name="lumaQ3">The zero-mean luma samples, in Q3.</param>
         /// <param name="alphaQ3">The signed alpha, in Q3.</param>
-        /// <param name="reconstruction">
-        /// The contiguous candidate samples, which get the prediction. A CfL block is one transform block, so no later block predicts from its
-        /// reconstruction and the search does not build it. Reference: the last block test of recon_intra().
+        /// <param name="prediction">
+        /// The storage that gets the prediction, from its top-left sample. A trial passes the frame at the block, which then keeps the
+        /// prediction. A second coding of a selected candidate passes contiguous candidate storage, so the frame keeps what the last trial
+        /// wrote. A CfL block is one transform block, so no later block predicts from its reconstruction and the search does not build it.
         /// </param>
-        /// <param name="frame">The frame plane that gets the prediction, as libaom writes pd->dst; empty when the call is not a libaom trial.</param>
-        /// <param name="frameSamples">The samples of the complete frame plane, read once by the caller; empty with an empty frame plane.</param>
+        /// <param name="predictionStride">The number of samples between rows of <paramref name="prediction"/>.</param>
         /// <param name="coefficients">The storage that the type search quantizes the candidate into.</param>
         /// <param name="state">The candidate transform state.</param>
         /// <param name="rate">The coefficient rate.</param>
@@ -2416,27 +2406,23 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformBlockContext context,
             ReadOnlySpan<short> lumaQ3,
             int alphaQ3,
-            Span<TSample> reconstruction,
-            Av1PlaneRegion<TSample> frame,
-            Span<TSample> frameSamples,
+            Span<TSample> prediction,
+            int predictionStride,
             Span<int> coefficients,
             ref Av1EncoderTransformBlockState state,
             out int rate)
         {
-            // CfL adds the scaled luma AC part to the DC prediction. The prediction is built in the candidate samples.
+            // CfL adds the scaled luma AC part to the DC prediction. The predictor computes every sample from the DC value
+            // in the first sample, so only that sample is set before it runs.
             int width = transformSize.GetWidth();
             int height = transformSize.GetHeight();
             int sampleCount = transformSize.GetSize2d();
-            Span<TSample> prediction = reconstruction[..sampleCount];
-            prediction.Fill(dc);
-            TOperator.ApplyChromaFromLuma(lumaQ3, prediction, alphaQ3, transformSize, this.bitDepth);
+            prediction[0] = dc;
+            TOperator.ApplyChromaFromLuma(lumaQ3, prediction, predictionStride, alphaQ3, transformSize, this.bitDepth);
 
-            // The prediction goes into the frame. The block is one transform block, so the frame keeps the prediction.
-            // Reference: av1_predict_intra_block_facade() into pd->dst in block_rd_txfm(), and the last block test of recon_intra().
-            Av1TransformBlockEncoder.WriteFrameSamples(frame, frameSamples, chromaOrigin, prediction, width, width, height);
             Span<short> blockResidual = residual[..sampleCount];
             ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourceSamples, source, chromaOrigin);
-            TOperator.SubtractPrediction(sourceBlock, source.Stride, prediction, blockResidual, width, height);
+            TOperator.SubtractPrediction(sourceBlock, source.Stride, prediction, predictionStride, blockResidual, width, height);
 
             Span<TSample> candidateReconstruction = Av1EncoderBlockWorkspace.GetSearchReconstruction<TSample>(searchReconstructions, 0)[..sampleCount];
             Span<TSample> bestReconstruction = Av1EncoderBlockWorkspace.GetSearchReconstruction<TSample>(searchReconstructions, 1)[..sampleCount];
@@ -2466,8 +2452,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1FilterIntraMode.AllFilterIntraModes,
                 Av1TransformType.DctDct,
                 long.MaxValue,
-                false,
+                default,
                 prediction,
+                predictionStride,
                 blockResidual,
                 width,
                 ref candidateReconstruction,
@@ -2496,9 +2483,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaQ3">The zero-mean luma samples, in Q3.</param>
         /// <param name="transformSize">The chroma transform size.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
-        /// <param name="prediction">The contiguous prediction samples.</param>
-        /// <param name="frame">The frame plane that gets each prediction, as libaom writes pd->dst.</param>
-        /// <param name="frameSamples">The samples of the complete frame plane, read once by the caller.</param>
+        /// <param name="frameBlock">The frame plane from the block origin, which gets each prediction.</param>
+        /// <param name="frameStride">The number of samples between rows of <paramref name="frameBlock"/>.</param>
         /// <param name="residual">The residual samples.</param>
         /// <param name="transformCoefficients">The transform coefficients.</param>
         /// <param name="transformWorkspace">The forward transform workspace.</param>
@@ -2513,9 +2499,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<short> lumaQ3,
             Av1TransformSize transformSize,
             Av1BitDepth bitDepth,
-            Span<TSample> prediction,
-            Av1PlaneRegion<TSample> frame,
-            Span<TSample> frameSamples,
+            Span<TSample> frameBlock,
+            int frameStride,
             Span<short> residual,
             Span<int> transformCoefficients,
             Span<int> transformWorkspace)
@@ -2530,9 +2515,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 lumaQ3,
                 transformSize,
                 bitDepth,
-                prediction,
-                frame,
-                frameSamples,
+                frameBlock,
+                frameStride,
                 residual,
                 transformCoefficients,
                 transformWorkspace);
@@ -2551,9 +2535,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaQ3">The zero-mean luma samples, in Q3.</param>
         /// <param name="transformSize">The chroma transform size.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
-        /// <param name="prediction">The contiguous prediction samples.</param>
-        /// <param name="frame">The frame plane that gets each prediction, as libaom writes pd->dst.</param>
-        /// <param name="frameSamples">The samples of the complete frame plane, read once by the caller.</param>
+        /// <param name="frameBlock">The frame plane from the block origin, which gets each prediction.</param>
+        /// <param name="frameStride">The number of samples between rows of <paramref name="frameBlock"/>.</param>
         /// <param name="residual">The residual samples.</param>
         /// <param name="transformCoefficients">The transform coefficients.</param>
         /// <param name="transformWorkspace">The forward transform workspace.</param>
@@ -2568,9 +2551,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<short> lumaQ3,
             Av1TransformSize transformSize,
             Av1BitDepth bitDepth,
-            Span<TSample> prediction,
-            Av1PlaneRegion<TSample> frame,
-            Span<TSample> frameSamples,
+            Span<TSample> frameBlock,
+            int frameStride,
             Span<short> residual,
             Span<int> transformCoefficients,
             Span<int> transformWorkspace)
@@ -2589,14 +2571,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 for (int step = firstStep; step <= Av1ChromaFromLumaMath.AlphaMagnitudeCount; step++)
                 {
                     int candidate = Av1ChromaFromLumaMath.AlphaZeroIndex + (direction * step);
-                    prediction[..sampleCount].Fill(dc);
-                    TOperator.ApplyChromaFromLuma(lumaQ3, prediction, Av1ChromaFromLumaMath.CandidateIndexToAlpha(candidate), transformSize, bitDepth);
 
-                    // The prediction goes into the frame. Reference: av1_predict_intra_block_facade() into pd->dst in intra_model_rd().
-                    Av1TransformBlockEncoder.WriteFrameSamples(
-                        frame, frameSamples, chromaOrigin, prediction, transformSize.GetWidth(), transformSize.GetWidth(), transformSize.GetHeight());
+                    // Each estimate predicts straight into the frame, and its residual reads it there. The predictor computes
+                    // every sample from the DC value in the first sample, which the previous estimate overwrote.
+                    frameBlock[0] = dc;
+                    TOperator.ApplyChromaFromLuma(
+                        lumaQ3, frameBlock, frameStride, Av1ChromaFromLumaMath.CandidateIndexToAlpha(candidate), transformSize, bitDepth);
 
-                    TOperator.SubtractPrediction(sourceBlock, source.Stride, prediction, residual, transformSize.GetWidth(), transformSize.GetHeight());
+                    TOperator.SubtractPrediction(
+                        sourceBlock, source.Stride, frameBlock, frameStride, residual, transformSize.GetWidth(), transformSize.GetHeight());
 
                     // intra_model_rd() subtracts with the border padding of the picture.
                     Av1TransformBlockEncoder.PadBorderResidual(

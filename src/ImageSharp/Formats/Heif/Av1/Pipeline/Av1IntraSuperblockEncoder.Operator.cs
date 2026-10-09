@@ -111,7 +111,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
         /// <param name="paletteColors">The palette colors in index order.</param>
         /// <param name="colorIndexMap">The complete padded color-index map.</param>
-        /// <param name="prediction">The contiguous prediction destination.</param>
+        /// <param name="prediction">The prediction destination, from its top-left sample.</param>
+        /// <param name="predictionStride">The number of samples between rows of <paramref name="prediction"/>.</param>
         /// <param name="residual">The contiguous source-minus-prediction destination.</param>
         /// <param name="transformSize">The prediction dimensions.</param>
         public static abstract void PreparePalette(
@@ -120,6 +121,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<ushort> paletteColors,
             Av1PlaneRegion<byte> colorIndexMap,
             Span<TSample> prediction,
+            int predictionStride,
             Span<short> residual,
             Av1TransformSize transformSize);
 
@@ -312,7 +314,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState state);
 
         /// <summary>
-        /// Encodes one intra candidate into contiguous decision scratch.
+        /// Encodes one intra candidate. Its prediction goes into the frame, which keeps it.
         /// </summary>
         /// <param name="plane">The values and buffers of the plane that every candidate of the block shares.</param>
         /// <param name="mode">The intra prediction mode.</param>
@@ -372,7 +374,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformWorkspace">The transform workspace of the block, which serves as filter row scratch.</param>
         /// <param name="source">The source transform block, from its top-left sample.</param>
         /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
-        /// <param name="prediction">The contiguous prediction destination.</param>
+        /// <param name="prediction">The prediction destination, from its top-left sample.</param>
+        /// <param name="predictionStride">The number of samples between rows of <paramref name="prediction"/>.</param>
         /// <param name="above">The top reference samples, with prefix storage for the shared corner.</param>
         /// <param name="left">The left reference samples.</param>
         /// <param name="residual">The contiguous source-minus-prediction destination.</param>
@@ -384,6 +387,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> source,
             int sourceStride,
             Span<TSample> prediction,
+            int predictionStride,
             ReadOnlySpan<TSample> above,
             ReadOnlySpan<TSample> left,
             Span<short> residual,
@@ -431,6 +435,25 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> source,
             int sourceStride,
             ReadOnlySpan<TSample> prediction,
+            Span<short> residual,
+            int width,
+            int height);
+
+        /// <summary>
+        /// Subtracts a prediction with its own row stride from its source, such as a prediction in the frame.
+        /// </summary>
+        /// <param name="source">The source block, from its top-left sample.</param>
+        /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
+        /// <param name="prediction">The prediction, from its top-left sample.</param>
+        /// <param name="predictionStride">The number of samples between rows of <paramref name="prediction"/>.</param>
+        /// <param name="residual">The destination signed residual samples, packed at the block width.</param>
+        /// <param name="width">The plane block width.</param>
+        /// <param name="height">The plane block height.</param>
+        public static abstract void SubtractPrediction(
+            ReadOnlySpan<TSample> source,
+            int sourceStride,
+            ReadOnlySpan<TSample> prediction,
+            int predictionStride,
             Span<short> residual,
             int width,
             int height);
@@ -644,13 +667,18 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Applies the selected luma adjustment to a DC-predicted chroma block.
         /// </summary>
         /// <param name="lumaQ3">The zero-mean Q3 luma surface.</param>
-        /// <param name="prediction">The DC prediction receiving the adjustment.</param>
+        /// <param name="prediction">
+        /// The prediction receiving the adjustment, from its top-left sample. Only its first sample must hold the DC prediction:
+        /// every sample is computed from that value.
+        /// </param>
+        /// <param name="predictionStride">The number of samples between rows of <paramref name="prediction"/>.</param>
         /// <param name="alphaQ3">The signed Q3 scale.</param>
         /// <param name="transformSize">The chroma dimensions.</param>
         /// <param name="bitDepth">The coded sample precision.</param>
         public static abstract void ApplyChromaFromLuma(
             ReadOnlySpan<short> lumaQ3,
             Span<TSample> prediction,
+            int predictionStride,
             int alphaQ3,
             Av1TransformSize transformSize,
             Av1BitDepth bitDepth);
@@ -689,7 +717,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockOrigin">The transform-block origin in plane samples, which gives the visible extent.</param>
         /// <param name="prediction">The prediction samples at the transform origin.</param>
         /// <param name="inputStride">The number of prediction samples between rows.</param>
-        /// <param name="reconstruction">The candidate reconstruction.</param>
+        /// <param name="reconstruction">
+        /// The candidate reconstruction. When it starts at the first prediction sample, the candidate is reconstructed in place
+        /// over its prediction.
+        /// </param>
         /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
         /// <param name="transformSize">The transform dimensions.</param>
         /// <param name="plane">The component plane containing the block.</param>
@@ -1130,6 +1161,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<ushort> paletteColors,
             Av1PlaneRegion<byte> colorIndexMap,
             Span<byte> prediction,
+            int predictionStride,
             Span<short> residual,
             Av1TransformSize transformSize)
         {
@@ -1139,7 +1171,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 paletteColors,
                 colorIndexMap,
                 prediction,
-                width,
+                predictionStride,
                 width,
                 height);
 
@@ -1147,7 +1179,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 source,
                 sourceStride,
                 prediction,
-                width,
+                predictionStride,
                 residual,
                 width,
                 width,
@@ -1287,6 +1319,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<byte> source,
             int sourceStride,
             Span<byte> prediction,
+            int predictionStride,
             ReadOnlySpan<byte> above,
             ReadOnlySpan<byte> left,
             Span<short> residual,
@@ -1303,13 +1336,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1FilterIntraPredictorBase.ScratchLength);
 
             Av1FilterIntraPredictorBase.GetPredictor(filterIntraMode)
-                .Predict(prediction, width, above, left, width, height, filterScratch);
+                .Predict(prediction, predictionStride, above, left, width, height, filterScratch);
 
             Av1ResidualBuilder.Subtract(
                 source,
                 sourceStride,
                 prediction,
-                width,
+                predictionStride,
                 residual,
                 width,
                 width,
@@ -1352,6 +1385,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 width,
                 height);
         }
+
+        /// <inheritdoc/>
+        public static void SubtractPrediction(
+            ReadOnlySpan<byte> source,
+            int sourceStride,
+            ReadOnlySpan<byte> prediction,
+            int predictionStride,
+            Span<short> residual,
+            int width,
+            int height)
+            => Av1ResidualBuilder.Subtract(source, sourceStride, prediction, predictionStride, residual, width, width, height);
 
         /// <inheritdoc/>
         public static void SubtractPrediction(
@@ -1792,11 +1836,12 @@ internal static partial class Av1IntraSuperblockEncoder
         public static void ApplyChromaFromLuma(
             ReadOnlySpan<short> lumaQ3,
             Span<byte> prediction,
+            int predictionStride,
             int alphaQ3,
             Av1TransformSize transformSize,
             Av1BitDepth bitDepth)
             => Av1ChromaFromLumaPredictor.Predict(
-                lumaQ3, prediction, transformSize.GetWidth(), alphaQ3, transformSize.GetWidth(), transformSize.GetHeight());
+                lumaQ3, prediction, predictionStride, alphaQ3, transformSize.GetWidth(), transformSize.GetHeight());
 
         /// <inheritdoc/>
         public static void AddSelectedResidual(
@@ -2234,6 +2279,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<ushort> paletteColors,
             Av1PlaneRegion<byte> colorIndexMap,
             Span<ushort> prediction,
+            int predictionStride,
             Span<short> residual,
             Av1TransformSize transformSize)
         {
@@ -2243,7 +2289,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 paletteColors,
                 colorIndexMap,
                 MemoryMarshal.Cast<ushort, short>(prediction),
-                width,
+                predictionStride,
                 width,
                 height);
 
@@ -2251,7 +2297,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 source,
                 sourceStride,
                 prediction,
-                width,
+                predictionStride,
                 residual,
                 width,
                 width,
@@ -2394,6 +2440,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<ushort> source,
             int sourceStride,
             Span<ushort> prediction,
+            int predictionStride,
             ReadOnlySpan<ushort> above,
             ReadOnlySpan<ushort> left,
             Span<short> residual,
@@ -2412,7 +2459,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1FilterIntraPredictorBase.GetPredictor(filterIntraMode)
                 .Predict(
                     MemoryMarshal.Cast<ushort, short>(prediction),
-                    width,
+                    predictionStride,
                     MemoryMarshal.Cast<ushort, short>(above),
                     MemoryMarshal.Cast<ushort, short>(left),
                     width,
@@ -2424,7 +2471,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 source,
                 sourceStride,
                 prediction,
-                width,
+                predictionStride,
                 residual,
                 width,
                 width,
@@ -2467,6 +2514,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 width,
                 height);
         }
+
+        /// <inheritdoc/>
+        public static void SubtractPrediction(
+            ReadOnlySpan<ushort> source,
+            int sourceStride,
+            ReadOnlySpan<ushort> prediction,
+            int predictionStride,
+            Span<short> residual,
+            int width,
+            int height)
+            => Av1ResidualBuilder.Subtract(source, sourceStride, prediction, predictionStride, residual, width, width, height);
 
         /// <inheritdoc/>
         public static void SubtractPrediction(
@@ -2915,13 +2973,14 @@ internal static partial class Av1IntraSuperblockEncoder
         public static void ApplyChromaFromLuma(
             ReadOnlySpan<short> lumaQ3,
             Span<ushort> prediction,
+            int predictionStride,
             int alphaQ3,
             Av1TransformSize transformSize,
             Av1BitDepth bitDepth)
             => Av1ChromaFromLumaPredictor.Predict(
                 lumaQ3,
                 MemoryMarshal.Cast<ushort, short>(prediction),
-                transformSize.GetWidth(),
+                predictionStride,
                 alphaQ3,
                 bitDepth.GetBitCount(),
                 transformSize.GetWidth(),

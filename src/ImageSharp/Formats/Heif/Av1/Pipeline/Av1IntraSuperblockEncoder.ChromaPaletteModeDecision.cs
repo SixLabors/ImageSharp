@@ -201,8 +201,6 @@ internal static partial class Av1IntraSuperblockEncoder
             int height = chromaBlockSize.GetHeight();
             int sampleCount = width * height;
             int transformBlockCount = sampleCount / transformSize.GetSize2d();
-            Span<TSample> candidateBlueReconstruction = modeWorkspace.GetCandidateReconstruction(0)[..sampleCount];
-            Span<TSample> candidateRedReconstruction = modeWorkspace.GetCandidateReconstruction(1)[..sampleCount];
             Span<int> candidateBlueCoefficients = modeWorkspace.GetCandidateCoefficients(0)[..sampleCount];
             Span<int> candidateRedCoefficients = modeWorkspace.GetCandidateCoefficients(1)[..sampleCount];
             Span<Av1EncoderTransformBlockState> candidateBlueStates = modeWorkspace.CandidateTransformBlocks[..transformBlockCount];
@@ -456,7 +454,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     blueReconstructionSamples,
                     bluePaletteColors,
                     colorIndexMap,
-                    candidateBlueReconstruction,
                     candidateBlueCoefficients,
                     candidateBlueStates,
                     blueTopContexts,
@@ -505,7 +502,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     redReconstructionSamples,
                     redPaletteColors,
                     colorIndexMap,
-                    candidateRedReconstruction,
                     candidateRedCoefficients,
                     candidateRedStates,
                     redTopContexts,

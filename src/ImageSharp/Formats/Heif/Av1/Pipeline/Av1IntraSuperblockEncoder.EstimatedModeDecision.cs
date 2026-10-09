@@ -707,20 +707,16 @@ internal static partial class Av1IntraSuperblockEncoder
                             Av1TransformType blockTransformType = transformType;
                             if (!paletteColors.IsEmpty)
                             {
-                                Span<TSample> prediction = modeWorkspace.Prediction[..sampleCount];
+                                // The palette prediction goes straight into the frame, as the spatial prediction below does.
                                 TOperator.PreparePalette(
                                     sourceSamples[source.GetOffset(origin.X, origin.Y)..],
                                     source.Stride,
                                     paletteColors,
                                     paletteMap.GetSubRegion(x, y, width, height),
-                                    prediction,
+                                    transform,
+                                    destination.Stride,
                                     residual,
                                     transformSize);
-
-                                for (int row = 0; row < height; row++)
-                                {
-                                    prediction.Slice(row * width, width).CopyTo(transform.Slice(row * destination.Stride, width));
-                                }
 
                                 blockTransformType = keepsSearchedTypes ? state.TransformType : Av1TransformType.DctDct;
                             }

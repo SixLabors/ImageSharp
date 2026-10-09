@@ -8556,12 +8556,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 Span<Av1EncoderTransformBlockState> states = context.GetTransformStates(plane);
                 Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
                 Av1PlaneRegion<TSample> destinationPlane = this.reconstruction.GetPlane(plane);
-                ReadOnlySpan<TSample> reconstructedBlock = Av1TransformBlockEncoder.GetPlaneSpan(
+                Span<TSample> reconstructedBlock = Av1TransformBlockEncoder.GetPlaneSpan(
                     SelectPlane(plane, reconstructionLuma, reconstructionBlue, reconstructionRed), destinationPlane, planeOrigin);
 
-                // Prediction stays outside transient CfL storage. The zero-mean luma surface survives
-                // both chroma planes while the residual and inverse-transform workspaces are reused.
-                Span<TSample> prediction = modeWorkspace.GetCandidateReconstruction(0)[..sampleCount];
+                int frameStride = destinationPlane.Stride;
+
+                // Each transform block predicts straight into the frame, where its residual is added in place. A CfL block
+                // first computes its DC value in separate storage, outside transient CfL storage, because the zero-mean luma
+                // surface survives both chroma planes while the residual and inverse-transform workspaces are reused.
+                Span<TSample> chromaFromLumaDc = modeWorkspace.GetCandidateReconstruction(0)[..sampleCount];
                 Span<short> residual = modeWorkspace.Residual[..sampleCount];
                 Span<TSample> aboveStorage = modeWorkspace.GetReferenceSamples(0);
                 Span<TSample> leftStorage = modeWorkspace.GetReferenceSamples(1);
@@ -8635,6 +8638,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             {
                                 Point transformOrigin = planeOrigin + new Size(x, y);
                                 ReadOnlySpan<TSample> sourceTransform = sourceSamples[sourcePlane.GetOffset(transformOrigin.X, transformOrigin.Y)..];
+                                Span<TSample> prediction = reconstructedBlock[((y * frameStride) + x)..];
                                 if (paletteSize > 0)
                                 {
                                     TOperator.PreparePalette(
@@ -8643,21 +8647,23 @@ internal static partial class Av1IntraSuperblockEncoder
                                         snapshot.Palette.GetColors(plane),
                                         paletteMap.GetSubRegion(x, y, transformWidth, transformHeight),
                                         prediction,
+                                        frameStride,
                                         residual,
                                         transformSize);
                                 }
                                 else
                                 {
+                                    // The edges are read before the prediction overwrites the frame at this transform block.
                                     this.PrepareTransformReferenceSamples(
                                         reconstructedBlock,
-                                        destinationPlane.Stride,
+                                        frameStride,
                                         blockOrigin,
                                         blockSize,
                                         macroBlock,
                                         partitionType,
                                         y / transformHeight,
                                         x / transformWidth,
-                                        destinationPlane.Stride,
+                                        frameStride,
                                         transformSize,
                                         subX,
                                         subY,
@@ -8672,9 +8678,9 @@ internal static partial class Av1IntraSuperblockEncoder
                                     ReadOnlySpan<TSample> left = leftStorage.Slice(1, transformWidth + transformHeight);
                                     if (planeIndex > 0 && usesChromaFromLuma)
                                     {
-                                        TOperator.PrepareChromaFromLumaDc(
-                                            prediction, above, left, hasLeft, hasAbove, transformSize, this.bitDepth);
-
+                                        // The CfL predictor computes every sample from the DC value in the first sample.
+                                        TOperator.PrepareChromaFromLumaDc(chromaFromLumaDc, above, left, hasLeft, hasAbove, transformSize, this.bitDepth);
+                                        prediction[0] = chromaFromLumaDc[0];
                                         int jointSign = snapshot.Block.PredictionUnit.ChromaFromLumaSigns;
                                         int indices = snapshot.Block.PredictionUnit.ChromaFromLumaIndex;
                                         int sign = plane == Av1Plane.U ? Av1ChromaFromLumaMath.SignU(jointSign) : Av1ChromaFromLumaMath.SignV(jointSign);
@@ -8683,9 +8689,9 @@ internal static partial class Av1IntraSuperblockEncoder
                                             ? 0
                                             : (magnitude + 1) * (sign == Av1ChromaFromLumaMath.SignNegative ? -1 : 1);
 
-                                        TOperator.ApplyChromaFromLuma(lumaQ3, prediction, alpha, transformSize, this.bitDepth);
+                                        TOperator.ApplyChromaFromLuma(lumaQ3, prediction, frameStride, alpha, transformSize, this.bitDepth);
                                         TOperator.SubtractPrediction(
-                                            sourceTransform, sourcePlane.Stride, prediction, residual, transformSize.GetWidth(), transformSize.GetHeight());
+                                            sourceTransform, sourcePlane.Stride, prediction, frameStride, residual, transformWidth, transformHeight);
                                     }
                                     else if (planeIndex == 0 && snapshot.Block.FilterIntraMode != Av1FilterIntraMode.AllFilterIntraModes)
                                     {
@@ -8694,6 +8700,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                             sourceTransform,
                                             sourcePlane.Stride,
                                             prediction,
+                                            frameStride,
                                             above,
                                             left,
                                             residual,
@@ -8712,7 +8719,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                             sourceTransform,
                                             sourcePlane.Stride,
                                             prediction,
-                                            transformSize.GetWidth(),
+                                            frameStride,
                                             above,
                                             left,
                                             hasLeft,
@@ -8759,6 +8766,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     plane,
                                     transformSize,
                                     prediction,
+                                    frameStride,
                                     residual,
                                     transformSize.GetWidth(),
                                     states[stateIndex],
@@ -11038,20 +11046,17 @@ internal static partial class Av1IntraSuperblockEncoder
             int contextHeight = blockSize.Get4x4HighCount();
             Size frameContextSize = new(this.picture.Parent.FrameHeader.ModeInfoColumnCount, this.picture.Parent.FrameHeader.ModeInfoRowCount);
             Span<TSample> reconstructionSamples = reconstructionLuma;
-            ReadOnlySpan<TSample> frameBlock = reconstructionSamples[reconstructionPlane.GetOffset(blockOrigin.X, blockOrigin.Y)..];
+            Span<TSample> frameBlock = reconstructionSamples[reconstructionPlane.GetOffset(blockOrigin.X, blockOrigin.Y)..];
+            int frameStride = reconstructionPlane.Stride;
             ReadOnlySpan<TSample> sourceSamples = sourceLuma;
             Av1PartitionType partitionType = blockState.PartitionType;
 
-            // Reuse the second candidate plane for one prediction and two transform reconstructions.
-            // Their disjoint spans remain live while the first candidate plane accumulates the block mosaic.
+            // Each transform block predicts straight into the frame. The second candidate plane holds the two transform
+            // reconstructions of the type search, because the frame keeps the prediction that every type reads.
             Span<TSample> transformSamples = modeWorkspace.GetCandidateReconstruction(1);
-            Span<TSample> prediction = transformSamples[..transformSampleCount];
-            Span<TSample> candidateTransformReconstruction = transformSamples.Slice(
-                transformSampleCount,
-                transformSampleCount);
-
+            Span<TSample> candidateTransformReconstruction = transformSamples[..transformSampleCount];
             Span<TSample> bestTransformReconstruction = transformSamples.Slice(
-                transformSampleCount * 2,
+                transformSampleCount,
                 transformSampleCount);
 
             // The second coefficient plane holds four transform-sized spans: the candidate and best quantized
@@ -11199,6 +11204,10 @@ internal static partial class Av1IntraSuperblockEncoder
                                 transformRow * transformHeight);
 
                             ReadOnlySpan<TSample> sourceTransform = sourceSamples[sourcePlane.GetOffset(transformOrigin.X, transformOrigin.Y)..];
+
+                            // The prediction goes straight into the frame, which keeps it until the winner replaces it. The
+                            // residual, the depth prune, the noise pattern test and the type search all read it there.
+                            Span<TSample> prediction = frameBlock[((y * frameStride) + x)..];
                             if (paletteSize > 0)
                             {
                                 // Palette prediction is block-local. A view over the retained map avoids copying indices or
@@ -11213,6 +11222,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                         transformWidth,
                                         transformHeight),
                                     prediction,
+                                    frameStride,
                                     residual,
                                     transformSize);
                             }
@@ -11222,14 +11232,14 @@ internal static partial class Av1IntraSuperblockEncoder
                                 // inside the block come from the frame too, as they do for every other edge.
                                 this.PrepareTransformReferenceSamples(
                                     frameBlock,
-                                    reconstructionPlane.Stride,
+                                    frameStride,
                                     blockOrigin,
                                     blockSize,
                                     macroBlock,
                                     partitionType,
                                     transformRow,
                                     transformColumn,
-                                    reconstructionPlane.Stride,
+                                    frameStride,
                                     transformSize,
                                     0,
                                     0,
@@ -11247,7 +11257,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                         sourceTransform,
                                         sourcePlane.Stride,
                                         prediction,
-                                        transformSize.GetWidth(),
+                                        frameStride,
                                         aboveStorage.Slice(1, transformWidth + transformHeight),
                                         leftStorage.Slice(1, transformWidth + transformHeight),
                                         hasLeft,
@@ -11269,6 +11279,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                         sourceTransform,
                                         sourcePlane.Stride,
                                         prediction,
+                                        frameStride,
                                         aboveStorage.Slice(1, transformWidth + transformHeight),
                                         leftStorage.Slice(1, transformWidth + transformHeight),
                                         residual,
@@ -11278,10 +11289,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 }
                             }
 
-                            // The reference predicts into the frame, and the frame keeps the prediction until the winner
-                            // replaces it. The winner write below covers the same samples, so the prediction goes into the
-                            // frame here only for the two readers before that write: the depth prune that leaves the grid,
-                            // and the noise pattern test.
+                            // The depth prune leaves the grid with the prediction in the frame.
                             if (this.picture.Parent.SpeedSettings.PruneIntraTransformDepth &&
                                 this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Winner &&
                                 !lossless && this.bitDepth.GetBitCount() == 8 &&
@@ -11292,23 +11300,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                 skipSmallerTransforms = depthChoice < 0;
                                 if (depthChoice > 0)
                                 {
-                                    Av1TransformBlockEncoder.WriteFrameSamples(
-                                        reconstructionPlane,
-                                        reconstructionSamples,
-                                        transformOrigin,
-                                        prediction,
-                                        transformWidth,
-                                        transformWidth,
-                                        transformHeight);
-
                                     return Av1RateDistortionStatistics.Invalid;
                                 }
-                            }
-
-                            if (this.UsesHighBitDepthSharpness)
-                            {
-                                Av1TransformBlockEncoder.WriteFrameSamples(
-                                    reconstructionPlane, reconstructionSamples, transformOrigin, prediction, transformWidth, transformWidth, transformHeight);
                             }
 
                             Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
@@ -11355,8 +11348,9 @@ internal static partial class Av1IntraSuperblockEncoder
                                 filterIntraMode,
                                 Av1TransformType.AllTransformTypes,
                                 remainingCostLimit,
-                                laterBlockPredicts,
+                                laterBlockPredicts ? prediction : default,
                                 prediction,
+                                frameStride,
                                 residual,
                                 transformWidth,
                                 ref candidateTransformReconstruction,
@@ -11382,13 +11376,21 @@ internal static partial class Av1IntraSuperblockEncoder
                             // later. Reference: the end of block and position gates of recon_intra().
                             bool publishReconstruction = bestTransformState.EndOfBlock != 0 && laterBlockPredicts;
 
-                            ReadOnlySpan<TSample> publishedSamples =
-                                publishReconstruction ? bestTransformReconstruction : prediction;
-
-                            // The frame keeps the prediction of the block, or its reconstruction when a later block of
-                            // the grid predicts from it.
-                            Av1TransformBlockEncoder.WriteFrameSamples(
-                                reconstructionPlane, reconstructionSamples, transformOrigin, publishedSamples, transformWidth, transformWidth, transformHeight);
+                            // The frame keeps the prediction of the block, or its reconstruction when a later block of the grid
+                            // predicts from it. The search reconstructed such a winner in the frame already, unless it measured
+                            // the winner in pixels during the type loop. That reconstruction is copied, because it costs less
+                            // than a second inverse transform.
+                            if (publishReconstruction && !searchResult.WinnerInDestination)
+                            {
+                                Av1TransformBlockEncoder.WriteFrameSamples(
+                                    reconstructionPlane,
+                                    reconstructionSamples,
+                                    transformOrigin,
+                                    bestTransformReconstruction,
+                                    transformWidth,
+                                    transformWidth,
+                                    transformHeight);
+                            }
 
                             hasCoefficients |= bestTransformState.EndOfBlock != 0;
                             rate += bestTransformRate;
@@ -11927,14 +11929,12 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // The caller reads every span and block value once for all mode trials, so the tile loop below only
             // indexes them.
-            Span<TSample> prediction = inputs.Prediction;
             Span<short> residual = inputs.Residual;
             Span<TSample> aboveStorage = inputs.AboveStorage;
             Span<TSample> leftStorage = inputs.LeftStorage;
             Span<int> transformCoefficients = inputs.TransformCoefficients;
             Span<int> transformWorkspace = inputs.TransformWorkspace;
-            Span<TSample> reconstructionSamples = inputs.ReconstructionSamples;
-            ReadOnlySpan<TSample> frameBlock = inputs.FrameBlock;
+            Span<TSample> frameBlock = inputs.FrameBlock;
             ReadOnlySpan<TSample> sourceSamples = inputs.SourceSamples;
             bool smoothEdges = inputs.SmoothEdges;
             bool enableEdgeFilter = inputs.EnableEdgeFilter;
@@ -11976,6 +11976,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     ReadOnlySpan<TSample> sourceTransform = sourceSamples[sourcePlane.GetOffset(transformOrigin.X, transformOrigin.Y)..];
                     ReadOnlySpan<TSample> above = aboveStorage.Slice(1, 2 * tileSize);
                     ReadOnlySpan<TSample> left = leftStorage.Slice(1, 2 * tileSize);
+
+                    // The tile predicts straight into the frame, after its edges were read, and its residual reads it there.
+                    Span<TSample> prediction = frameBlock[((y * frameStride) + x)..];
                     if (filterMode == Av1FilterIntraMode.AllFilterIntraModes)
                     {
                         TOperator.PrepareIntra(
@@ -11983,7 +11986,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             sourceTransform,
                             sourceStride,
                             prediction,
-                            tileSize,
+                            frameStride,
                             above,
                             left,
                             hasLeft,
@@ -12003,6 +12006,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             sourceTransform,
                             sourceStride,
                             prediction,
+                            frameStride,
                             above,
                             left,
                             residual,
@@ -12017,9 +12021,6 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.blockWorkspace, Av1Plane.Y, transformOrigin, residual, tileSize, tileSize, tileSize, Av1TransformType.DctDct);
 
                     cost += Av1ForwardTransformer.GetHadamardCost(residual, tileSize, tileSize, highBitDepth, transformCoefficients, transformWorkspace);
-
-                    Av1TransformBlockEncoder.WriteFrameSamples(
-                        reconstructionPlane, reconstructionSamples, transformOrigin, prediction, tileSize, tileSize, tileSize);
                 }
             }
 
@@ -12237,9 +12238,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="planeOrigin">The transform block origin in plane samples.</param>
         /// <param name="plane">The plane.</param>
         /// <param name="transformSize">The transform size.</param>
-        /// <param name="prediction">The prediction of the transform block.</param>
+        /// <param name="prediction">
+        /// The prediction of the transform block. When it is the frame at the transform block, the frame needs no copy of it.
+        /// </param>
+        /// <param name="predictionStride">The stride of the prediction.</param>
         /// <param name="residual">The residual of the transform block.</param>
-        /// <param name="inputStride">The stride of the prediction and the residual.</param>
+        /// <param name="inputStride">The stride of the residual.</param>
         /// <param name="selectedState">The transform type and contexts that the search selected.</param>
         /// <param name="skipTransform">Whether the block skips its residual.</param>
         /// <param name="coefficientOffset">The offset of the transform block in the plane coefficients.</param>
@@ -12265,6 +12269,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1Plane plane,
             Av1TransformSize transformSize,
             ReadOnlySpan<TSample> prediction,
+            int predictionStride,
             Span<short> residual,
             int inputStride,
             Av1EncoderTransformBlockState selectedState,
@@ -12293,6 +12298,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 plane,
                 transformSize,
                 prediction,
+                predictionStride,
                 residual,
                 inputStride,
                 selectedState,
@@ -12324,9 +12330,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="planeOrigin">The transform block origin in plane samples.</param>
         /// <param name="plane">The plane.</param>
         /// <param name="transformSize">The transform size.</param>
-        /// <param name="prediction">The prediction of the transform block.</param>
+        /// <param name="prediction">
+        /// The prediction of the transform block. When it is the frame at the transform block, the frame needs no copy of it.
+        /// </param>
+        /// <param name="predictionStride">The stride of the prediction.</param>
         /// <param name="residual">The residual of the transform block.</param>
-        /// <param name="inputStride">The stride of the prediction and the residual.</param>
+        /// <param name="inputStride">The stride of the residual.</param>
         /// <param name="selectedState">The transform type and contexts that the search selected.</param>
         /// <param name="skipTransform">Whether the block skips its residual.</param>
         /// <param name="coefficientOffset">The offset of the transform block in the plane coefficients.</param>
@@ -12352,6 +12361,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1Plane plane,
             Av1TransformSize transformSize,
             ReadOnlySpan<TSample> prediction,
+            int predictionStride,
             Span<short> residual,
             int inputStride,
             Av1EncoderTransformBlockState selectedState,
@@ -12362,11 +12372,15 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> destination = Av1TransformBlockEncoder.GetPlaneSpan(
                 SelectPlane(plane, reconstructionLuma, reconstructionBlue, reconstructionRed), destinationPlane, planeOrigin);
 
+            // An intra block predicts straight into the frame, so only a prediction held elsewhere is copied there.
             int width = transformSize.GetWidth();
             int height = transformSize.GetHeight();
-            for (int row = 0; row < height; row++)
+            if (!Unsafe.AreSame(ref MemoryMarshal.GetReference(prediction), ref MemoryMarshal.GetReference(destination)))
             {
-                prediction.Slice(row * inputStride, width).CopyTo(destination.Slice(row * destinationPlane.Stride, width));
+                for (int row = 0; row < height; row++)
+                {
+                    prediction.Slice(row * predictionStride, width).CopyTo(destination.Slice(row * destinationPlane.Stride, width));
+                }
             }
 
             Span<int> coefficients = planeCoefficients.Slice(coefficientOffset, transformSize.GetSize2d());
@@ -12544,24 +12558,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 bool smoothEdges,
                 bool enableEdgeFilter)
             {
-                this.Prediction = modeWorkspace.Prediction;
                 this.Residual = modeWorkspace.Residual;
                 this.AboveStorage = modeWorkspace.GetReferenceSamples(2);
                 this.LeftStorage = modeWorkspace.GetReferenceSamples(3);
                 this.TransformCoefficients = transformCoefficients;
                 this.TransformWorkspace = transformWorkspace;
                 this.SourceSamples = sourceSamples;
-                this.ReconstructionSamples = reconstructionSamples;
-                this.FrameBlock = this.ReconstructionSamples[reconstructionPlane.GetOffset(blockOrigin.X, blockOrigin.Y)..];
+                this.FrameBlock = reconstructionSamples[reconstructionPlane.GetOffset(blockOrigin.X, blockOrigin.Y)..];
                 this.PartitionType = partitionType;
                 this.SmoothEdges = smoothEdges;
                 this.EnableEdgeFilter = enableEdgeFilter;
             }
-
-            /// <summary>
-            /// Gets the buffer that receives each tile prediction.
-            /// </summary>
-            public Span<TSample> Prediction { get; }
 
             /// <summary>
             /// Gets the buffer that receives each tile residual.
@@ -12594,14 +12601,9 @@ internal static partial class Av1IntraSuperblockEncoder
             public ReadOnlySpan<TSample> SourceSamples { get; }
 
             /// <summary>
-            /// Gets all samples of the reconstructed luma plane.
+            /// Gets the reconstructed luma plane from the block origin. Each tile reads its edges here and then predicts into it.
             /// </summary>
-            public Span<TSample> ReconstructionSamples { get; }
-
-            /// <summary>
-            /// Gets the reconstructed luma plane from the block origin.
-            /// </summary>
-            public ReadOnlySpan<TSample> FrameBlock { get; }
+            public Span<TSample> FrameBlock { get; }
 
             /// <summary>
             /// Gets the partition type of the block.

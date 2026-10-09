@@ -102,7 +102,7 @@ internal static partial class Av1TransformBlockEncoder
     }
 
     /// <summary>
-    /// Encodes one eight-bit intra candidate into contiguous decision scratch.
+    /// Encodes one eight-bit intra candidate. Its prediction goes into the frame, which keeps it.
     /// </summary>
     /// <param name="candidate">The values and buffers of the plane that every candidate of the block shares.</param>
     /// <param name="mode">The intra prediction mode.</param>
@@ -125,6 +125,8 @@ internal static partial class Av1TransformBlockEncoder
         int sourceStride = candidate.SourceStride;
         Point blockOrigin = candidate.BlockOrigin;
         Span<byte> reconstruction = candidate.Reconstruction;
+        Span<byte> prediction = candidate.FrameBlock;
+        int predictionStride = candidate.FrameStride;
 
         // The transform and the quantizer of the plane.
         Av1Plane plane = candidate.Plane;
@@ -144,12 +146,14 @@ internal static partial class Av1TransformBlockEncoder
         Span<int> dequantizedCoefficients = candidate.DequantizedCoefficients;
         Span<int> transformWorkspace = candidate.TransformWorkspace;
 
+        // The prediction goes straight into the frame, and the residual reads it there. This candidate is the last transform
+        // block of its plane block, so the frame keeps the prediction.
         PrepareIntraPrediction(
             transformWorkspace,
             source,
             sourceStride,
-            reconstruction,
-            width,
+            prediction,
+            predictionStride,
             candidate.Above,
             candidate.Left,
             candidate.HasLeft,
@@ -160,10 +164,6 @@ internal static partial class Av1TransformBlockEncoder
             candidate.SmoothIntraEdges,
             residual,
             transformSize);
-
-        // The prediction goes into the frame. This candidate is the last transform block of its plane block, so the frame keeps the prediction.
-        // Reference: av1_predict_intra_block_facade() into pd->dst in block_rd_txfm(), and the last block test of recon_intra().
-        WriteFrameSamples(candidate.Frame, candidate.FrameSamples, blockOrigin, reconstruction, width, width, height);
 
         // search_tx_type measures the residual energy of the visible samples and
         // selects transform-domain distortion when the speed policy and that energy allow it. A 64-point
@@ -244,20 +244,6 @@ internal static partial class Av1TransformBlockEncoder
             blockMseQ8,
             ref state);
 
-        if (state.EndOfBlock > 0)
-        {
-            Av1InverseTransformer.Reconstruct8Bit(
-                dequantizedCoefficients,
-                reconstruction,
-                width,
-                transformSize,
-                state.TransformType,
-                (int)plane,
-                state.EndOfBlock,
-                lossless,
-                transformWorkspace);
-        }
-
         if (useTransformDomainDistortion)
         {
             // An empty transform reconstructs the prediction, so its error is the residual energy.
@@ -272,21 +258,32 @@ internal static partial class Av1TransformBlockEncoder
                     out sse);
         }
 
-        // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
-        long distortion = Av1ResidualBuilder.SumSquaredError(
+        // Only a pixel-domain distortion needs the reconstruction. The frame keeps the prediction, so a candidate with
+        // coefficients reconstructs into the contiguous storage. An empty candidate reconstructs to its prediction, so it
+        // is measured in place in the frame with no copy and no inverse transform.
+        bool hasCoefficients = state.EndOfBlock > 0;
+        long distortion = ReconstructPredictionLossyCandidateCore(
+            workspace,
+            transformWorkspace,
+            dequantizedCoefficients,
             source,
             sourceStride,
-            reconstruction,
-            width,
-            visibleWidth,
-            visibleHeight);
+            blockOrigin,
+            prediction,
+            predictionStride,
+            hasCoefficients ? reconstruction : prediction,
+            hasCoefficients ? width : predictionStride,
+            transformSize,
+            lossless,
+            plane,
+            state);
 
         Av1ComponentType componentType = plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma;
         return BoundPixelDistortion(
             workspace,
             componentType,
             state.TransformType,
-            distortion << 4,
+            distortion,
             residualEnergy,
             state.EndOfBlock,
             transformCoefficients,
@@ -311,7 +308,9 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="blockOrigin">The transform origin in plane samples, which gives the visible extent.</param>
     /// <param name="prediction">The prepared prediction surface.</param>
     /// <param name="inputStride">The number of prediction samples between rows.</param>
-    /// <param name="reconstruction">The candidate reconstruction.</param>
+    /// <param name="reconstruction">
+    /// The candidate reconstruction. When it starts at the first prediction sample, the candidate is reconstructed in place over its prediction.
+    /// </param>
     /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
     /// <param name="transformSize">The candidate transform dimensions.</param>
     /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible inverse transform.</param>
@@ -360,7 +359,9 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="blockOrigin">The transform origin in plane samples, which gives the visible extent.</param>
     /// <param name="prediction">The prepared prediction surface.</param>
     /// <param name="inputStride">The number of prediction samples between rows.</param>
-    /// <param name="reconstruction">The candidate reconstruction.</param>
+    /// <param name="reconstruction">
+    /// The candidate reconstruction. When it starts at the first prediction sample, the candidate is reconstructed in place over its prediction.
+    /// </param>
     /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
     /// <param name="transformSize">The candidate transform dimensions.</param>
     /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible inverse transform.</param>
@@ -426,9 +427,13 @@ internal static partial class Av1TransformBlockEncoder
         {
             // Each transform trial overwrites reconstruction but consumes the prepared prediction read-only.
             // Row copies preserve a larger candidate surface without materializing a second compact block.
-            for (int row = 0; row < height; row++)
+            // A reconstruction over its own prediction needs no copy, because the inverse transform adds in place.
+            if (!Unsafe.AreSame(ref MemoryMarshal.GetReference(prediction), ref MemoryMarshal.GetReference(reconstruction)))
             {
-                prediction.Slice(row * inputStride, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
+                for (int row = 0; row < height; row++)
+                {
+                    prediction.Slice(row * inputStride, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
+                }
             }
 
             if (state.EndOfBlock > 0)
@@ -531,7 +536,7 @@ internal static partial class Av1TransformBlockEncoder
     }
 
     /// <summary>
-    /// Encodes one high-bit-depth intra candidate into contiguous decision scratch.
+    /// Encodes one high-bit-depth intra candidate. Its prediction goes into the frame, which keeps it.
     /// </summary>
     /// <param name="candidate">The values and buffers of the plane that every candidate of the block shares.</param>
     /// <param name="mode">The intra prediction mode.</param>
@@ -554,6 +559,8 @@ internal static partial class Av1TransformBlockEncoder
         int sourceStride = candidate.SourceStride;
         Point blockOrigin = candidate.BlockOrigin;
         Span<ushort> reconstruction = candidate.Reconstruction;
+        Span<ushort> prediction = candidate.FrameBlock;
+        int predictionStride = candidate.FrameStride;
 
         // The transform and the quantizer of the plane.
         Av1Plane plane = candidate.Plane;
@@ -574,12 +581,14 @@ internal static partial class Av1TransformBlockEncoder
         Span<int> dequantizedCoefficients = candidate.DequantizedCoefficients;
         Span<int> transformWorkspace = candidate.TransformWorkspace;
 
+        // The prediction goes straight into the frame, and the residual reads it there. This candidate is the last transform
+        // block of its plane block, so the frame keeps the prediction.
         PrepareIntraPrediction(
             transformWorkspace,
             source,
             sourceStride,
-            reconstruction,
-            width,
+            prediction,
+            predictionStride,
             candidate.Above,
             candidate.Left,
             candidate.HasLeft,
@@ -591,10 +600,6 @@ internal static partial class Av1TransformBlockEncoder
             residual,
             transformSize,
             bitDepth);
-
-        // The prediction goes into the frame. This candidate is the last transform block of its plane block, so the
-        // frame keeps the prediction.
-        WriteFrameSamples(candidate.Frame, candidate.FrameSamples, blockOrigin, reconstruction, width, width, height);
 
         // search_tx_type measures the residual energy of the visible samples and
         // selects transform-domain distortion when the speed policy and that energy allow it. A 64-point
@@ -674,21 +679,6 @@ internal static partial class Av1TransformBlockEncoder
             blockMseQ8,
             ref state);
 
-        if (state.EndOfBlock > 0)
-        {
-            Av1InverseTransformer.ReconstructHighBitDepth(
-                dequantizedCoefficients,
-                MemoryMarshal.Cast<ushort, short>(reconstruction),
-                width,
-                transformSize,
-                state.TransformType,
-                (int)plane,
-                state.EndOfBlock,
-                lossless,
-                bitDepth,
-                transformWorkspace);
-        }
-
         if (useTransformDomainDistortion)
         {
             // An empty transform reconstructs the prediction, so its error is the residual energy.
@@ -703,26 +693,33 @@ internal static partial class Av1TransformBlockEncoder
                     out sse);
         }
 
-        // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
-        long distortion = Av1ResidualBuilder.SumSquaredError(
+        // Only a pixel-domain distortion needs the reconstruction. The frame keeps the prediction, so a candidate with
+        // coefficients reconstructs into the contiguous storage. An empty candidate reconstructs to its prediction, so it
+        // is measured in place in the frame with no copy and no inverse transform.
+        bool hasCoefficients = state.EndOfBlock > 0;
+        long distortion = ReconstructPredictionLossyCandidateCore(
+            workspace,
+            transformWorkspace,
+            dequantizedCoefficients,
             source,
             sourceStride,
-            reconstruction,
-            width,
-            visibleWidth,
-            visibleHeight);
-
-        int shift = (bitDepth.GetBitCount() - 8) * 2;
-        long normalizedDistortion = shift == 0
-            ? distortion
-            : (distortion + (1L << (shift - 1))) >> shift;
+            blockOrigin,
+            prediction,
+            predictionStride,
+            hasCoefficients ? reconstruction : prediction,
+            hasCoefficients ? width : predictionStride,
+            transformSize,
+            lossless,
+            plane,
+            bitDepth,
+            state);
 
         Av1ComponentType componentType = plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma;
         return BoundPixelDistortion(
             workspace,
             componentType,
             state.TransformType,
-            normalizedDistortion << 4,
+            distortion,
             residualEnergy,
             state.EndOfBlock,
             transformCoefficients,
@@ -747,7 +744,9 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="blockOrigin">The transform origin in plane samples, which gives the visible extent.</param>
     /// <param name="prediction">The prepared prediction surface.</param>
     /// <param name="inputStride">The number of prediction samples between rows.</param>
-    /// <param name="reconstruction">The candidate reconstruction.</param>
+    /// <param name="reconstruction">
+    /// The candidate reconstruction. When it starts at the first prediction sample, the candidate is reconstructed in place over its prediction.
+    /// </param>
     /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
     /// <param name="transformSize">The candidate transform dimensions.</param>
     /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible inverse transform.</param>
@@ -799,7 +798,9 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="blockOrigin">The transform origin in plane samples, which gives the visible extent.</param>
     /// <param name="prediction">The prepared prediction surface.</param>
     /// <param name="inputStride">The number of prediction samples between rows.</param>
-    /// <param name="reconstruction">The candidate reconstruction.</param>
+    /// <param name="reconstruction">
+    /// The candidate reconstruction. When it starts at the first prediction sample, the candidate is reconstructed in place over its prediction.
+    /// </param>
     /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
     /// <param name="transformSize">The candidate transform dimensions.</param>
     /// <param name="lossless">Whether the segment of the block codes losslessly, which selects the reversible inverse transform.</param>
@@ -829,9 +830,13 @@ internal static partial class Av1TransformBlockEncoder
 
         // Each transform trial overwrites reconstruction but consumes the prepared prediction read-only.
         // Row copies preserve a larger candidate surface without materializing a second compact block.
-        for (int row = 0; row < height; row++)
+        // A reconstruction over its own prediction needs no copy, because the inverse transform adds in place.
+        if (!Unsafe.AreSame(ref MemoryMarshal.GetReference(prediction), ref MemoryMarshal.GetReference(reconstruction)))
         {
-            prediction.Slice(row * inputStride, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
+            for (int row = 0; row < height; row++)
+            {
+                prediction.Slice(row * inputStride, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
+            }
         }
 
         if (state.EndOfBlock > 0)

@@ -13,6 +13,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 [Trait("Format", "Webp")]
 public class WebpMetaDataTests
 {
+    /// <summary>
+    /// Rejects ICC payload sizes that cannot be read before allocating the profile.
+    /// </summary>
+    /// <param name="hex">The reported malformed WebP file.</param>
+    [Theory]
+    [InlineData("524946462200000057454250565038580A0000002000000000000000000049434350FEFFFFFF01020304")]
+    [InlineData("524946460000000057454250565038580A00000020000000010000010000494343500000004000000000")]
+    [InlineData("524946462200000057454250565038580A0000002000000000000000000049434350FFFFFFFF01020304")]
+    public void DecodeAndIdentify_WithInvalidIccExtent_ThrowInvalidImageContentException(string hex)
+    {
+        byte[] payload = Convert.FromHexString(hex);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Load(payload));
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(payload));
+    }
+
     [Theory]
     [WithFile(TestImages.Webp.Lossy.BikeWithExif, PixelTypes.Rgba32, false)]
     [WithFile(TestImages.Webp.Lossy.BikeWithExif, PixelTypes.Rgba32, true)]

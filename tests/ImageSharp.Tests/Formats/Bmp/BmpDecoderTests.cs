@@ -19,6 +19,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp;
 [ValidateDisposedMemoryAllocations]
 public class BmpDecoderTests
 {
+    /// <summary>
+    /// Rejects the reported BMP profile extent before allocating its declared size.
+    /// </summary>
+    [Fact]
+    public void Decode_WithProfileLargerThanRemainingData_ThrowsInvalidImageContentException()
+    {
+        byte[] payload = Convert.FromHexString(
+            "424D8E000000000000008A0000007C0000000100000001000000010018000000" +
+            "0000000000000000000000000000000000000000000000000000000000000000" +
+            "0000000000000000000000000000000000000000000000000000000000000000" +
+            "000000000000000000000000000000000000000000000000000000000000C800" +
+            "00000000004000000000000000");
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Load(payload));
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(payload));
+    }
+
     public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
 
     public static readonly string[] MiscBmpFiles = Miscellaneous;

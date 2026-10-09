@@ -1337,12 +1337,22 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             // > 108 bytes
             infoHeaderType = BmpInfoHeaderType.WinVersion5;
             this.infoHeader = BmpInfoHeader.ParseV5(buffer);
-            if (this.infoHeader.ProfileData != 0 && this.infoHeader.ProfileSize != 0)
+            if (!this.Options.SkipMetadata && this.infoHeader.ProfileData != 0 && this.infoHeader.ProfileSize != 0)
             {
                 // Read color profile.
                 long streamPosition = stream.Position;
+                long profileStart = infoHeaderStart + this.infoHeader.ProfileData;
+
+                // Validate the external offset and size before allocating. Subtraction avoids
+                // overflowing an end offset calculated from the declared profile size.
+                if (this.infoHeader.ProfileData < 0 || this.infoHeader.ProfileSize <= 0 ||
+                    profileStart > stream.Length || this.infoHeader.ProfileSize > stream.Length - profileStart)
+                {
+                    BmpThrowHelper.ThrowInvalidImageContentException("Not enough data to read BMP ICC profile.");
+                }
+
                 byte[] iccProfileData = new byte[this.infoHeader.ProfileSize];
-                stream.Position = infoHeaderStart + this.infoHeader.ProfileData;
+                stream.Position = profileStart;
                 stream.Read(iccProfileData);
                 this.metadata.IccProfile = new IccProfile(iccProfileData);
                 stream.Position = streamPosition;

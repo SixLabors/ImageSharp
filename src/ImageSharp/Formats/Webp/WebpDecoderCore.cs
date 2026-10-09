@@ -351,6 +351,13 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     private void ReadExifProfile(BufferedReadStream stream, ImageMetadata metadata, Span<byte> buffer)
     {
         uint exifChunkSize = ReadChunkSize(stream, buffer);
+        if (exifChunkSize > int.MaxValue || exifChunkSize > stream.Length - stream.Position)
+        {
+            // Preserve v3's recovery from truncated EXIF without allocating its declared size.
+            stream.Position = stream.Length;
+            return;
+        }
+
         if (this.skipMetadata)
         {
             stream.Skip((int)exifChunkSize);
@@ -401,6 +408,13 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     private void ReadXmpProfile(BufferedReadStream stream, ImageMetadata metadata, Span<byte> buffer)
     {
         uint xmpChunkSize = ReadChunkSize(stream, buffer);
+        if (xmpChunkSize > int.MaxValue || xmpChunkSize > stream.Length - stream.Position)
+        {
+            // Preserve v3's recovery from truncated XMP without allocating its declared size.
+            stream.Position = stream.Length;
+            return;
+        }
+
         if (this.skipMetadata)
         {
             stream.Skip((int)xmpChunkSize);
@@ -427,7 +441,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// <param name="buffer">Temporary buffer.</param>
     private void ReadIccProfile(BufferedReadStream stream, ImageMetadata metadata, Span<byte> buffer)
     {
-        uint iccpChunkSize = ReadChunkSize(stream, buffer);
+        int iccpChunkSize = WebpChunkParsingUtils.ValidateMetadataChunkSize(stream, ReadChunkSize(stream, buffer));
         if (this.skipMetadata)
         {
             stream.Skip((int)iccpChunkSize);
@@ -532,6 +546,12 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         if (stream.Read(buffer, 0, 4) == 4)
         {
             uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
+            if (chunkSize == uint.MaxValue)
+            {
+                // The mandatory padding byte cannot fit in the returned 32-bit extent.
+                WebpThrowHelper.ThrowInvalidImageContentException("Invalid WebP chunk size.");
+            }
+
             return (chunkSize % 2 == 0) ? chunkSize : chunkSize + 1;
         }
 

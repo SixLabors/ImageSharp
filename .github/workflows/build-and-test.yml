@@ -29,10 +29,10 @@ jobs:
             sdk: 6.0.x
             runtime: -x64
             codecov: false
-          - os: macos-26-intel
+          - os: macos-26
             framework: net6.0
             sdk: 6.0.x
-            runtime: -x64
+            runtime: -arm64
             codecov: false
           - os: windows-2022
             framework: net6.0

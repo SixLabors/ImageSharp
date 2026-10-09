@@ -16,9 +16,8 @@ internal sealed partial class Av1LevelBuffer
     /// Reduces coefficients to the saturated magnitudes that entropy contexts read.
     /// </summary>
     /// <remarks>
-    /// Every overload describes the same lane-wise reduction. A context never distinguishes
-    /// magnitudes above 127, so clamping there lets the plane hold one byte per coefficient instead
-    /// of four.
+    /// Every member describes the same lane-wise reduction. A context never distinguishes magnitudes above 127. The clamp at 127
+    /// lets the plane hold one byte for each coefficient instead of four.
     /// </remarks>
     internal interface IAv1LevelOperator
     {
@@ -48,8 +47,8 @@ internal sealed partial class Av1LevelBuffer
     /// Takes the magnitude of a coefficient and clamps it to the largest signed byte.
     /// </summary>
     /// <remarks>
-    /// The vector forms clamp with two saturating packs, from thirty-two bits to sixteen and from sixteen to eight,
-    /// with the magnitude taken between them, so no separate minimum is needed.
+    /// The vector forms use two saturating packs, from thirty-two bits to sixteen and from sixteen to eight. They take the magnitude
+    /// between the packs, then clamp it to 127 with an unsigned minimum before the second pack.
     /// </remarks>
     private readonly struct LevelOperator : IAv1LevelOperator
     {

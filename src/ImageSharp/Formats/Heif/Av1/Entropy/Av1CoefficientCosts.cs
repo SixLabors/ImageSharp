@@ -174,7 +174,7 @@ internal readonly ref struct Av1CoefficientCosts
     public static int GetSkip(ReadOnlySpan<int> plane, int context, int symbol) => plane[0 + (context * 2) + symbol];
 
     /// <summary>
-    /// Gets a base end of block rate.
+    /// Gets the rate of a base level symbol at the end-of-block position.
     /// </summary>
     /// <param name="plane">The coefficient rate entries.</param>
     /// <param name="context">The symbol context.</param>
@@ -183,17 +183,17 @@ internal readonly ref struct Av1CoefficientCosts
     public static int GetBaseEndOfBlock(ReadOnlySpan<int> plane, int context, int symbol) => plane[BaseEndOfBlockOffset + (context * 3) + symbol];
 
     /// <summary>
-    /// Gets a base rate.
+    /// Gets the rate of a base level symbol.
     /// </summary>
     /// <param name="plane">The coefficient rate entries.</param>
     /// <param name="context">The symbol context.</param>
-    /// <param name="symbol">The symbol index.</param>
+    /// <param name="symbol">The symbol index from 0 through 3, or 4 plus a level to get the rate change when that level drops by one.</param>
     /// <returns>The rate in 1/512-bit units.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetBase(ReadOnlySpan<int> plane, int context, int symbol) => plane[BaseOffset + (context * 8) + symbol];
 
     /// <summary>
-    /// Gets a extra rate.
+    /// Gets the rate of an end-of-block extra bit.
     /// </summary>
     /// <param name="plane">The coefficient rate entries.</param>
     /// <param name="context">The symbol context.</param>
@@ -211,11 +211,11 @@ internal readonly ref struct Av1CoefficientCosts
     public static int GetSign(ReadOnlySpan<int> plane, int context, int symbol) => plane[SignOffset + (context * 2) + symbol];
 
     /// <summary>
-    /// Gets a range rate.
+    /// Gets the total rate of the range symbols for one level remainder.
     /// </summary>
     /// <param name="plane">The coefficient rate entries.</param>
     /// <param name="context">The symbol context.</param>
-    /// <param name="symbol">The symbol index.</param>
+    /// <param name="symbol">The remainder from 0 through 12, or 13 plus a remainder to get the rate change from the remainder before it.</param>
     /// <returns>The rate in 1/512-bit units.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetRange(ReadOnlySpan<int> plane, int context, int symbol) => plane[RangeOffset + (context * 26) + symbol];

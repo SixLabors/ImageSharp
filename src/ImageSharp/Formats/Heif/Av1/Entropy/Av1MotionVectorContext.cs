@@ -92,8 +92,8 @@ internal sealed class Av1MotionVectorContext
     {
         int jointType = reader.ReadSymbol(this.Joint);
 
-        // Joint values 1 and 3 carry a horizontal delta; values 2 and 3 carry a vertical delta. Reading only the
-        // signaled components preserves the normative entropy-symbol order and leaves zero components unadapted.
+        // Joint values 1 and 3 carry a horizontal delta. Values 2 and 3 carry a vertical delta. The reader reads only the signaled
+        // components. This keeps the normative symbol order, and the distributions of a zero component do not adapt.
         int row = jointType >= 2 ? this.Vertical.Read(ref reader, precision) : 0;
         int column = (jointType & 1) != 0 ? this.Horizontal.Read(ref reader, precision) : 0;
 
@@ -331,7 +331,7 @@ internal sealed class Av1MotionVectorContext
                 }
 
                 // Class one uses a base of two whole samples, or sixteen eighth-sample units, and every later class doubles
-                // that base. CLASS0_SIZE shifted by class + 2 expresses the same scale directly in eighth-sample units.
+                // that base. ClassZeroSize shifted by class + 2 gives the same scale directly in eighth-sample units.
                 magnitudeBase = ClassZeroSize << (magnitudeClass + 2);
             }
 
@@ -340,8 +340,8 @@ internal sealed class Av1MotionVectorContext
 
             if (precision != Av1MotionVectorPrecision.Integer)
             {
-                // Class-zero magnitudes select one of two fractional CDFs using the already decoded integer offset;
-                // larger classes share one fractional CDF because their expanded integer range supplies the context.
+                // A class-zero magnitude uses the decoded integer offset to select one of two fractional CDFs. Larger classes share one
+                // fractional CDF.
                 Av1Distribution fractionalDistribution = isClassZero ? this.ClassZeroFractional[integerOffset] : this.Fractional;
                 fractional = reader.ReadSymbol(fractionalDistribution);
 

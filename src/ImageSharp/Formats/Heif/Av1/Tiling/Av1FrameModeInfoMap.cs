@@ -66,7 +66,7 @@ internal partial class Av1FrameInfo
         }
 
         /// <summary>
-        /// Maps every 4x4 location covered by a decoded block to the next mode-information index.
+        /// Maps every 4x4 location covered by a decoded block to the specified storage index. Then it increments <see cref="NextIndex"/>.
         /// </summary>
         /// <param name="modeInfoLocation">The block origin in 4x4 mode-information units.</param>
         /// <param name="blockSize">The decoded block size.</param>

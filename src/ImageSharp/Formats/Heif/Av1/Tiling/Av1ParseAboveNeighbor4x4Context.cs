@@ -109,8 +109,8 @@ internal sealed class Av1ParseAboveNeighbor4x4Context : IDisposable
             modeInfoColumnEnd - modeInfoColumnStart,
             sequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2);
 
-        // Edge transforms inspect their nominal extent even when the visible tile ends sooner. Reset the
-        // superblock padding as well, and scale coefficient-context extents to each plane's sampling grid.
+        // An edge transform reads its full nominal extent, also when the visible tile ends sooner. As a result, the reset also covers
+        // the superblock padding. The coefficient contexts of a subsampled chroma plane have half the width.
         Span<byte> storage = this.GetStorage();
         this.GetTransformWidths(storage)[..width].Fill((byte)Av1TransformSize.Size64x64.GetWidth());
         this.GetPartitionWidths(storage)[..width].Clear();

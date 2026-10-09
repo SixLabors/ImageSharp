@@ -18,13 +18,12 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
     private readonly IMemoryOwner<byte> stateStorage;
 
     /// <summary>
-    /// The exact packed state region cleared between frames without touching excess pool capacity.
+    /// The exact packed state region. The buffer clears this region between frames and does not touch the excess pool capacity.
     /// </summary>
     private readonly Memory<byte> stateMemory;
 
     /// <summary>
-    /// The owner of the intra-block-copy search buffer of each square block size, from 4x4 at index 0. A size without
-    /// a buffer has no owner.
+    /// The owner of the intra-block-copy search buffer of each square block size, from 4x4 at index 0. A size without a buffer has no owner.
     /// </summary>
     private InlineArray6<IMemoryOwner<byte>> intraBlockCopySearchStorage;
 
@@ -69,8 +68,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1EncoderPictureBuffer"/> class with the maximum state
-    /// required by a fixed-geometry sequence.
+    /// Initializes a new instance of the <see cref="Av1EncoderPictureBuffer"/> class with the maximum state that a fixed-geometry sequence needs.
     /// </summary>
     /// <param name="configuration">The configuration providing picture-lifetime memory.</param>
     /// <param name="sequenceHeader">The sequence header defining superblock and chroma geometry.</param>
@@ -79,9 +77,9 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
     /// <param name="height">The visible luma height.</param>
     /// <param name="maximumHashBlockSize">The largest square block eligible for hash search.</param>
     /// <param name="disallow4x4AllFrames">Whether each allocated mode-information value represents an 8x8 region.</param>
-    /// <param name="allocateScreenContentState">Whether palette neighbor state can be required by any frame.</param>
-    /// <param name="allocateMotionVectorState">Whether inter or intra-block-copy vectors can be required by any frame.</param>
-    /// <param name="allocateIntraBlockCopySearch">Whether intra-block-copy search state can be required by any frame.</param>
+    /// <param name="allocateScreenContentState">Whether any frame can need palette neighbor state.</param>
+    /// <param name="allocateMotionVectorState">Whether any frame can need inter or intra-block-copy vectors.</param>
+    /// <param name="allocateIntraBlockCopySearch">Whether any frame can need intra-block-copy search state.</param>
     public Av1EncoderPictureBuffer(
         Configuration configuration,
         ObuSequenceHeader sequenceHeader,
@@ -149,8 +147,8 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
 
             int paletteTokenStorageOffset = checked(paletteStorageEnd + blockPaletteStorageLength);
 
-            // Each of the two palette planes needs at most one packed token per sample. Maximum-superblock
-            // rounding keeps this picture-owned capacity valid for either supported superblock geometry.
+            // Each of the two palette planes needs at most one packed token per sample. The capacity rounds both dimensions up to the maximum
+            // superblock size, so it is large enough for both supported superblock sizes.
             int paletteTokenStorageLength = allocateScreenContentState
                 ? checked(
                     Av1Math.AlignPowerOf2(width, Av1Constants.MaxSuperBlockSizeLog2) *
@@ -204,9 +202,9 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             int restorationStorageLength = checked((restorationUnitCount + restorationReferenceCount) * Unsafe.SizeOf<Av1LoopRestorationUnit>());
             int stateStorageLength = checked(restorationStorageOffset + restorationStorageLength);
 
-            // Segmentation and every tile edge share one clean picture lifetime. The partition region begins at its
-            // native alignment. CDEF, quantizer, and encoded-tile bounds occupy one aligned trailing integer region
-            // instead of allocating separate managed arrays for every picture.
+            // One clean allocation holds the segmentation map and every tile edge for the life of the picture. The partition region begins at
+            // its native alignment. The CDEF presets, the previous quantizers and the encoded tile lengths share one aligned integer region at
+            // the end. This avoids separate managed arrays for every picture.
             this.stateStorage = configuration.MemoryAllocator.Allocate<byte>(
                 stateStorageLength,
                 AllocationOptions.Clean);
@@ -245,16 +243,16 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
 
             Memory<Av1EncoderDisplacementVector> displacementVectors = Memory<Av1EncoderDisplacementVector>.Empty;
 
-            // Final syntax parameters use their own eight-byte entries so frequent neighbor lookups retain
-            // the compact mode-info layout. This typed view borrows the same picture-state owner.
+            // The final syntax parameters use their own eight-byte entries, so frequent neighbor lookups keep the compact mode-information
+            // layout. This typed view borrows the same owner of the picture state.
             ByteMemoryManager<Av1EncoderBlockStruct> blockEncodingMemory = new(
                 stateStorage.Slice(paletteTokenStorageEnd, blockEncodingStorageLength));
 
             Memory<Av1EncoderReferenceContext> referenceContexts = Memory<Av1EncoderReferenceContext>.Empty;
             if (allocateMotionVectorState)
             {
-                // Each component lies strictly inside plus or minus 16384. Two signed 16-bit fields preserve both
-                // inter and intra-block-copy vectors without expanding every compact mode-information entry.
+                // Each component lies strictly inside plus or minus 16384. Two signed 16-bit fields hold both inter and intra-block-copy vectors
+                // without a larger compact mode-information entry.
                 ByteMemoryManager<Av1EncoderDisplacementVector> displacementVectorMemory = new(
                     stateStorage.Slice(displacementVectorStorageOffset, displacementVectorStorageLength));
 
@@ -268,10 +266,9 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             Av1IntraBlockCopySearchIndex intraBlockCopySearch = default;
             if (allocateIntraBlockCopySearch)
             {
-                // Each block size has its own buffer outside the packed picture state. One buffer for all sizes grows
-                // past the pool block size on small pictures. A larger buffer comes from native memory, and its memory
-                // pressure starts a full collection for each picture. The index writes every value that it reads
-                // before each frame, so the buffers need no clear.
+                // Each block size has its own buffer outside the packed picture state. One buffer for all sizes grows past the pool block size on
+                // small pictures. A larger buffer comes from native memory, and its memory pressure starts a full collection for each picture.
+                // Before each frame, the index writes every value that it reads, so the buffers need no clear.
                 InlineArray6<Memory<byte>> levels = default;
                 int maximumStoredSize = Av1IntraBlockCopySearchIndex.GetMaximumStoredSize(width, height, maximumHashBlockSize);
                 for (int size = 4, level = 0; size <= maximumStoredSize; size <<= 1, level++)
@@ -296,8 +293,8 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             Memory<Av1LoopRestorationUnit> restorationReferences = default;
             if (sequenceHeader.EnableRestoration)
             {
-                // Unit decisions and tile histories share the existing picture owner. The smallest
-                // allowed unit size determines capacity; selecting larger units uses a shorter prefix.
+                // The unit decisions and the tile histories share the existing picture owner. The smallest allowed unit size sets the capacity.
+                // Larger units use a shorter prefix.
                 ByteMemoryManager<Av1LoopRestorationUnit> restorationMemory = new(
                     stateStorage.Slice(restorationStorageOffset, restorationStorageLength));
 
@@ -362,8 +359,8 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                     GranularityNormalLog2 = Av1Constants.ModeInfoSizeLog2
                 };
 
-                // Variable-transform contexts consult both edges without separate availability flags. The largest
-                // transform makes an unavailable edge compare as unsplit until a coded neighbor publishes its size.
+                // Variable-transform contexts read both edges without separate availability flags. The largest transform size makes an
+                // unavailable edge compare as unsplit until a coded neighbor writes its size.
                 this.transformContexts[tileIndex].Fill((byte)Av1Constants.MaxTransformSize);
 
                 if (allocateScreenContentState)
@@ -422,8 +419,8 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         }
         catch
         {
-            // The context objects only borrow these owners. A failed constructor must release the
-            // completed allocations itself because the enclosing sequence never receives this picture.
+            // The context objects only borrow these owners. A failed constructor releases the completed allocations itself, because the
+            // enclosing sequence never receives this picture.
             this.stateStorage?.Dispose();
             this.DisposeIntraBlockCopySearchStorage();
             this.modeInfo.Dispose();
@@ -446,8 +443,8 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         this.modeInfo.Allocation.Span.Clear();
         this.stateMemory.Span.Clear();
 
-        // Transform contexts begin at the largest transform size until an encoded neighbor publishes its
-        // selected size. This sentinel must be restored after the packed state owner is cleared.
+        // Transform contexts begin at the largest transform size until an encoded neighbor writes its selected size. The clear of the packed
+        // state removes this sentinel, so the loop writes it again.
         foreach (Av1NeighborArrayUnit<byte> context in this.transformContexts)
         {
             context.Fill((byte)Av1Constants.MaxTransformSize);
@@ -460,9 +457,8 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         this.Picture.Parent.Common.FrameSize = frameHeader.FrameSize;
         this.Picture.Parent.Common.TilesInfo = frameHeader.TilesInfo;
 
-        // A frame of a scaled layer is smaller than the allocation, so it uses a prefix of every grid row and of the
-        // grid rows, at the stride of the allocation. Reference: the mi_params that av1_set_frame_size() sets for each
-        // frame size.
+        // A frame of a scaled layer is smaller than the allocation. It uses the first columns of the first grid rows, at the stride of the
+        // allocation.
         this.Picture.Parent.Common.ModeInfoColumnCount = frameHeader.ModeInfoColumnCount;
         this.Picture.Parent.Common.ModeInfoRowCount = frameHeader.ModeInfoRowCount;
 

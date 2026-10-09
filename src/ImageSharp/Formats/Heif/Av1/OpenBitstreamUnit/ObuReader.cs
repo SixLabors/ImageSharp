@@ -35,8 +35,7 @@ internal sealed class ObuReader
     private uint currentOperatingPointIdc;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ObuReader"/> class using operating-point index zero without a
-    /// reconstructed reference map.
+    /// Initializes a new instance of the <see cref="ObuReader"/> class using operating-point index zero without a reconstructed reference map.
     /// </summary>
     public ObuReader()
         : this(0)
@@ -44,16 +43,14 @@ internal sealed class ObuReader
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ObuReader"/> class for one selected AV1 operating point without a
-    /// reconstructed reference map.
+    /// Initializes a new instance of the <see cref="ObuReader"/> class for one selected AV1 operating point without a reconstructed reference map.
     /// </summary>
     /// <param name="operatingPointIndex">The zero-based sequence-header operating-point index to decode.</param>
     public ObuReader(byte operatingPointIndex)
         => this.operatingPointIndex = operatingPointIndex;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ObuReader"/> class for one selected AV1 operating point and
-    /// retained reference map.
+    /// Initializes a new instance of the <see cref="ObuReader"/> class for one selected AV1 operating point and retained reference map.
     /// </summary>
     /// <param name="operatingPointIndex">The zero-based sequence-header operating-point index to decode.</param>
     /// <param name="referenceFrames">The reconstructed reference frames retained by the owning decoder.</param>
@@ -64,8 +61,11 @@ internal sealed class ObuReader
     }
 
     /// <summary>
-    /// Supplies a tile reader while preserving distinct fixed-reader and factory call contracts.
+    /// Supplies a tile reader while it keeps the fixed-reader and factory call contracts separate.
     /// </summary>
+    /// <remarks>
+    /// The generic struct providers allocate no closure for a fixed-reader payload. No caller can pass an invalid pair of nullable arguments.
+    /// </remarks>
     private interface ITileReaderProvider
     {
         /// <summary>
@@ -207,8 +207,8 @@ internal sealed class ObuReader
                     throw new InvalidImageContentException("The AV1 OBU header exceeds its declared boundary.");
                 }
 
-                // AV1-ISOBMFF permits the final low-overhead OBU to omit its size field. In that form the remaining
-                // sample bytes are the payload, which also makes this OBU final because no following boundary exists.
+                // AV1-ISOBMFF permits the final low-overhead OBU to omit its size field. In that form, the remaining sample bytes are the payload.
+                // No boundary follows, so this OBU is also the final OBU.
                 int payloadSize = header.HasSize ? header.PayloadSize : boundedObuSize - headerAndLengthSize;
                 if ((uint)payloadSize > (uint)(boundedObuSize - headerAndLengthSize))
                 {
@@ -224,14 +224,14 @@ internal sealed class ObuReader
                 dataSize -= isAnnexB ? annexObuSize : completeObuSize;
                 header.PayloadSize = payloadSize;
 
-                // A dedicated payload reader prevents malformed syntax from consuming the following OBU. The parent
-                // advances once here, so ignored metadata, padding, and reserved OBUs are skipped without copying.
+                // A dedicated payload reader prevents malformed syntax from consuming the following OBU. The parent advances once here. As a
+                // result, the reader skips ignored metadata, padding, and reserved OBUs without a copy.
                 Span<byte> obuPayload = reader.ReadBytes(payloadSize);
 
-                // AV1 operating_point_idc uses bits 0-7 for temporal IDs and bits 8-11 for spatial IDs. the reference decoder
-                // requires both selected bits for an extended OBU, while an all-zero mask and unextended OBUs apply
-                // universally. Sequence headers establish the mask and temporal delimiters define framing, so neither
-                // can be filtered even when their extension identifies a layer outside the selected operating point.
+                // AV1 `operating_point_idc` uses bits 0-7 for temporal IDs and bits 8-11 for spatial IDs. An extended OBU belongs to the
+                // operating point only when both of its bits are set. An all-zero mask and OBUs without an extension apply to all layers. Sequence
+                // headers set the mask and temporal delimiters set the framing. As a result, the reader never drops them, even when their
+                // extension identifies a layer outside the selected operating point.
                 bool isOperatingPointIndependent = header.Type is ObuType.SequenceHeader or ObuType.TemporalDelimiter;
                 bool isInCurrentOperatingPoint = this.currentOperatingPointIdc == 0
                     || !header.HasExtension
@@ -266,9 +266,9 @@ internal sealed class ObuReader
 
                         this.currentOperatingPointIdc = this.SequenceHeader.OperatingPoint[this.operatingPointIndex].Idc;
 
-                        // A sequence header starts a new reference domain. Clear both the syntax snapshot and decoded
-                        // owners only after the complete header and selected operating point have been accepted, so a
-                        // later inter header cannot pair an empty parser map with samples retained from the old sequence.
+                        // A sequence header starts a new reference state. The reader clears the syntax state and the decoded frames only after it
+                        // accepts the complete header and the selected operating point. As a result, a later inter header cannot pair an empty
+                        // parser map with samples from the old sequence.
                         this.frameReferenceState.Reset();
                         this.referenceFrames?.Reset();
                         decodedPayloadSize = Av1Math.DivideBy8Floor(payloadReader.BitPosition);
@@ -299,7 +299,7 @@ internal sealed class ObuReader
 
                         if (primaryFrameHeader.ShowExistingFrame)
                         {
-                            // This header completes by selecting retained samples; no tile group belongs to it.
+                            // This header completes the frame with retained samples. No tile group belongs to it.
                             activeDecoder ??= tileReaderProvider.Get();
                             decoderToComplete = activeDecoder;
                         }
@@ -317,8 +317,8 @@ internal sealed class ObuReader
                             throw new InvalidImageContentException("The redundant AV1 frame header does not match its primary header.");
                         }
 
-                        // The primary header already owns the decoded frame state. Matching its encoded bytes avoids
-                        // parsing the same adaptive frame-header syntax twice.
+                        // The primary header already owns the decoded frame state. A compare of its encoded bytes avoids a second parse of the
+                        // same frame-header syntax.
                         decodedPayloadSize = primaryFrameHeaderPayload.Length;
                         break;
                     case ObuType.Frame:
@@ -346,9 +346,8 @@ internal sealed class ObuReader
 
                         if (combinedFrameHeader.ShowExistingFrame)
                         {
-                            // The reference decoder permits show_existing_frame only in a standalone frame-header OBU. A
-                            // combined frame OBU is required to continue with a tile group and therefore cannot use
-                            // the header-only retained-frame presentation form.
+                            // AV1 permits `show_existing_frame` only in a standalone frame-header OBU. A combined frame OBU must continue with a
+                            // tile group, so it cannot use the header-only form that shows a retained frame.
                             throw new InvalidImageContentException("A combined AV1 frame OBU cannot display an existing frame.");
                         }
 
@@ -362,8 +361,8 @@ internal sealed class ObuReader
 
                         activeDecoder ??= tileReaderProvider.Get();
 
-                        // A combined frame OBU reaches this label after its frame-header portion has
-                        // been consumed, leaving the same tile-group syntax as a standalone tile OBU.
+                        // A combined frame OBU reaches this label after the reader consumes its frame-header part. The rest is the same tile-group
+                        // syntax as a standalone tile OBU.
                         this.ReadTileGroup(ref payloadReader, activeDecoder, header, ref nextTileStart, out bool frameDecodingFinished);
                         if (frameDecodingFinished)
                         {
@@ -378,16 +377,16 @@ internal sealed class ObuReader
                             throw new InvalidImageContentException("An AV1 temporal delimiter interrupts an incomplete coded frame.");
                         }
 
-                        // AV1 section 5.6 defines no delimiter syntax. The common post-switch validation still permits
-                        // zero bytes between the empty syntax and the declared payload boundary, matching the reference decoder.
+                        // AV1 section 5.6 defines no delimiter syntax. The common check after the switch permits zero bytes between the empty
+                        // syntax and the declared payload boundary.
                         decodedPayloadSize = 0;
                         break;
                     case ObuType.Metadata:
                         decodedPayloadSize = this.ReadMetadata(obuPayload);
                         break;
                     case ObuType.TileList:
-                        // Tile-list OBUs require AV1 large-scale tile mode, which this decoder does not implement.
-                        // Rejecting the syntax avoids silently returning a partial reconstruction.
+                        // Tile-list OBUs require AV1 large-scale tile mode, which this decoder does not implement. The reader rejects the syntax, so
+                        // it never returns a partial reconstruction without an error.
                         throw new InvalidImageContentException("AV1 tile-list OBUs are not supported.");
                     case ObuType.Padding:
                         int lastNonzeroIndex = obuPayload.Length - 1;
@@ -396,8 +395,8 @@ internal sealed class ObuReader
                             lastNonzeroIndex--;
                         }
 
-                        // AV1 padding contains only its trailing one bit and optional zero bytes. A header-only
-                        // padding OBU is also valid, so the empty payload bypasses this final-byte check.
+                        // AV1 padding contains only its trailing one bit and optional zero bytes. A header-only padding OBU is also valid, so an
+                        // empty payload skips this final-byte check.
                         if (lastNonzeroIndex >= 0 && obuPayload[lastNonzeroIndex] != 0x80)
                         {
                             throw new InvalidImageContentException("The AV1 padding OBU has invalid trailing bits.");
@@ -411,9 +410,8 @@ internal sealed class ObuReader
                         decodedPayloadSize = payloadSize;
                         break;
                     default:
-                        // Reserved OBUs do not contribute to this still-image reconstruction pass. Their declared payload has
-                        // already been skipped by the parent reader. The reference decoder rejects a nonempty unrecognized
-                        // payload that contains only zeros because it has no trailing one bit.
+                        // Reserved OBUs do not contribute to this still-image reconstruction. The parent reader already skipped their declared
+                        // payload. The reader rejects a nonempty unrecognized payload that contains only zeros, because it has no trailing one bit.
                         if (payloadSize > 0)
                         {
                             int ignoredLastNonzeroIndex = payloadSize - 1;
@@ -432,8 +430,8 @@ internal sealed class ObuReader
                         break;
                 }
 
-                // Parsed syntax may be followed only by zero bytes within its declared OBU payload. Ignored metadata
-                // and reserved OBUs set decodedPayloadSize to the full payload because their syntax is not consumed here.
+                // Inside its declared OBU payload, only zero bytes can follow the parsed syntax. Ignored metadata and reserved OBUs set
+                // `decodedPayloadSize` to the full payload, because the reader does not consume their syntax here.
                 for (int i = decodedPayloadSize; i < obuPayload.Length; i++)
                 {
                     if (obuPayload[i] != 0)
@@ -444,8 +442,8 @@ internal sealed class ObuReader
 
                 if (decoderToComplete is not null)
                 {
-                    // Complete reconstruction and reference-buffer ownership before publishing the matching syntax
-                    // state. Any decoder failure leaves the preceding session snapshot intact for deterministic cleanup.
+                    // The reconstruction and the reference-buffer ownership complete before the reader publishes the matching syntax state. If
+                    // the decoder fails, the earlier session state stays intact for deterministic cleanup.
                     decoderToComplete.CompleteFrame();
                     this.frameReferenceState.CompleteFrame(
                         this.CurrentFrameHeader,
@@ -465,20 +463,12 @@ internal sealed class ObuReader
 
             completed = true;
         }
-        catch (IndexOutOfRangeException exception)
-        {
-            throw new InvalidImageContentException("The AV1 OBU syntax exceeds its payload boundary.", exception);
-        }
-        catch (ArgumentOutOfRangeException exception)
-        {
-            throw new InvalidImageContentException("The AV1 OBU syntax exceeds its payload boundary.", exception);
-        }
         finally
         {
             if (!completed)
             {
-                // A bounded payload can commit earlier layers before a later OBU fails. Those transitions cannot be
-                // rolled back after displaced owners have been released, so invalidate the complete decoder session.
+                // A bounded payload can commit earlier layers before a later OBU fails. After the reader releases the displaced owners, it
+                // cannot roll back those changes. As a result, it resets the complete decoder session.
                 this.Reset();
             }
         }
@@ -515,9 +505,8 @@ internal sealed class ObuReader
         header.HasExtension = reader.ReadBoolean();
         header.HasSize = reader.ReadBoolean();
 
-        // The reference decoder consumes obu_reserved_1bit without rejecting its value. Reserved fields do not change the
-        // decoded syntax, so accepting either value preserves forward-compatible framing while the forbidden bit
-        // remains a hard error above.
+        // The reader consumes `obu_reserved_1bit` and accepts either value. Reserved fields do not change the decoded syntax, so this keeps
+        // forward-compatible framing. The forbidden bit above stays a hard error.
         _ = reader.ReadBoolean();
 
         if (header.HasExtension)
@@ -526,7 +515,7 @@ internal sealed class ObuReader
             header.TemporalId = (int)reader.ReadLiteral(3);
             header.SpatialId = (int)reader.ReadLiteral(2);
 
-            // The reference decoder likewise consumes extension_header_reserved_3bits without interpreting their value.
+            // The reader also consumes `extension_header_reserved_3bits` and ignores their value.
             _ = reader.ReadLiteral(3);
         }
         else
@@ -623,8 +612,8 @@ internal sealed class ObuReader
         if (metadataTypeValue == (ulong)ObuMetadataType.Reserved
             || metadataTypeValue > (ulong)ObuMetadataType.Timecode)
         {
-            // Reserved and private metadata have no syntax the decoder can interpret. libaom still requires their
-            // opaque payload, including its trailing bit, to contain at least one nonzero byte.
+            // Reserved and private metadata have no syntax that the decoder can interpret. The opaque payload includes the trailing bit, so it
+            // must still contain at least one nonzero byte.
             if (FindLastNonzeroByteIndex(metadataPayload) < 0)
             {
                 throw new InvalidImageContentException("The AV1 metadata OBU is missing its trailing one bit.");
@@ -859,8 +848,8 @@ internal sealed class ObuReader
         sequenceHeader.IsReducedStillPictureHeader = reader.ReadBoolean();
         if (!sequenceHeader.IsStillPicture && sequenceHeader.IsReducedStillPictureHeader)
         {
-            // The reduced header omits state required by a multi-frame sequence, so AV1 permits it only when the
-            // sequence is explicitly declared to contain a single still picture.
+            // The reduced header omits state that a multi-frame sequence requires. As a result, AV1 permits it only when the sequence declares
+            // that it contains a single still picture.
             throw new InvalidImageContentException("An AV1 reduced still-picture header requires the still-picture flag.");
         }
 
@@ -933,8 +922,8 @@ internal sealed class ObuReader
                     sequenceHeader.OperatingPoint[i].IsDecoderModelInfoPresent = reader.ReadBoolean();
                     if (sequenceHeader.OperatingPoint[i].IsDecoderModelInfoPresent)
                     {
-                        // Retain the scheduling values so the parsed sequence header can be written again without
-                        // losing decoder-model state that is independent from pixel reconstruction.
+                        // The reader keeps the scheduling values, so a writer can write the parsed sequence header again. Pixel reconstruction does
+                        // not use this decoder-model state.
                         ObuDecoderModelInfo decoderModelInfo = sequenceHeader.GetDecoderModelInfo();
                         ReadOperatingParametersInfo(
                             ref reader,
@@ -962,8 +951,8 @@ internal sealed class ObuReader
             }
         }
 
-        // The operating-point selector is supplied by the bounded item or sequence decoder. Every operating point is
-        // still parsed above because its timing syntax precedes the shared coded-image dimensions.
+        // The bounded item decoder or sequence decoder supplies the operating-point selector. The code above still parses every operating
+        // point, because its timing syntax comes before the shared coded-image dimensions.
         sequenceHeader.FrameWidthBits = (int)reader.ReadLiteral(4) + 1;
         sequenceHeader.FrameHeightBits = (int)reader.ReadLiteral(4) + 1;
         sequenceHeader.MaxFrameWidth = (int)reader.ReadLiteral(sequenceHeader.FrameWidthBits) + 1;
@@ -1118,8 +1107,8 @@ internal sealed class ObuReader
                 throw new InvalidImageContentException("The AV1 sRGB identity-matrix color configuration is incompatible with its sequence profile.");
             }
 
-            // AV1 defines this RGB identity-matrix combination as full-range 4:4:4 and omits
-            // the range and subsampling syntax that other color combinations carry.
+            // AV1 defines this RGB identity-matrix combination as full-range 4:4:4. It omits the range and subsampling syntax of other color
+            // combinations.
             colorConfig.ColorRange = true;
             colorConfig.SubSamplingX = false;
             colorConfig.SubSamplingY = false;
@@ -1284,8 +1273,8 @@ internal sealed class ObuReader
 
         frameHeader.FrameSize.SuperResolutionUpscaledWidth = frameHeader.FrameSize.FrameWidth;
 
-        // AV1 signals the upscaled width first. Tile and block decoding use the nearest-integer coded width obtained
-        // from the fixed scale numerator and signaled denominator.
+        // AV1 signals the upscaled width first. Tile and block decoding use the coded width, which is the upscaled width times the fixed scale
+        // numerator, divided by the signaled denominator and rounded to the nearest integer.
         frameHeader.FrameSize.FrameWidth =
             ((frameHeader.FrameSize.SuperResolutionUpscaledWidth * Av1Constants.ScaleNumerator) +
             (frameHeader.FrameSize.SuperResolutionDenominator / 2)) /
@@ -1293,8 +1282,8 @@ internal sealed class ObuReader
 
         if (frameHeader.FrameSize.SuperResolutionDenominator != Av1Constants.ScaleNumerator)
         {
-            // Appendix A requires an active super-resolution coded width of at least 16 samples,
-            // except when the signaled upscaled image itself is narrower than that minimum.
+            // Appendix A requires a coded width of at least 16 samples when super-resolution is active. The exception is an upscaled image that
+            // is narrower than 16 samples.
             int minimumWidth = Math.Min(16, frameHeader.FrameSize.SuperResolutionUpscaledWidth);
             frameHeader.FrameSize.FrameWidth = Math.Max(minimumWidth, frameHeader.FrameSize.FrameWidth);
         }
@@ -1311,8 +1300,8 @@ internal sealed class ObuReader
 
         if (renderSizeAndFrameSizeDifferent)
         {
-            // render_width_minus_1 and render_height_minus_1 are fixed 16-bit fields, independent of the sequence's
-            // coded-dimension bit widths.
+            // `render_width_minus_1` and `render_height_minus_1` are fixed 16-bit fields. They do not use the bit widths of the coded
+            // dimensions in the sequence header.
             frameHeader.FrameSize.RenderWidth = (int)reader.ReadLiteral(16) + 1;
             frameHeader.FrameSize.RenderHeight = (int)reader.ReadLiteral(16) + 1;
         }
@@ -1338,9 +1327,9 @@ internal sealed class ObuReader
             frameHeader.FrameSize.FrameWidth = (int)reader.ReadLiteral(sequenceHeader.FrameWidthBits) + 1;
             frameHeader.FrameSize.FrameHeight = (int)reader.ReadLiteral(sequenceHeader.FrameHeightBits) + 1;
 
-            // Section 5.9.7 signals frame dimensions using the sequence maxima's bit widths, but the resulting values
-            // remain constrained by those maxima. Rejecting the oversized result here prevents later buffer geometry
-            // from accepting a value that the sequence header does not permit.
+            // Section 5.9.7 signals frame dimensions with the bit widths of the sequence maxima, but the values must not exceed those maxima.
+            // The reader rejects an oversized result here, so later buffer geometry never accepts a value that the sequence header does not
+            // permit.
             if (frameHeader.FrameSize.FrameWidth > sequenceHeader.MaxFrameWidth ||
                 frameHeader.FrameSize.FrameHeight > sequenceHeader.MaxFrameHeight)
             {
@@ -1370,8 +1359,8 @@ internal sealed class ObuReader
         Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
         bool foundReference = false;
 
-        // frame_size_with_refs carries one found_ref bit per selected role only until the first one is set. A set bit
-        // terminates this syntax immediately; no flags for the remaining roles are present in the bitstream.
+        // `frame_size_with_refs` carries one `found_ref` bit per selected role, until the first bit that is set. A set bit ends this syntax
+        // immediately. The bitstream has no flags for the remaining roles.
         for (int reference = 0; reference < Av1Constants.ReferencesPerFrame; reference++)
         {
             if (!reader.ReadBoolean())
@@ -1382,9 +1371,9 @@ internal sealed class ObuReader
             Av1ReferenceFrame referenceFrame = referenceFrames.ResolveRequired((int)referenceFrameIndices[reference]);
             ObuFrameSize referenceSize = referenceFrame.FrameHeader.FrameSize;
 
-            // AV1 5.9.7 inherits the reference buffer's visible post-super-resolution dimensions, corresponding to
-            // the reference decoder's y_crop_width and y_crop_height, plus its render rectangle. The current frame then signals its own
-            // super-resolution denominator, so the reference's coded width and denominator are not copied.
+            // AV1 5.9.7 inherits the visible dimensions of the reference buffer after super-resolution, and its render rectangle. The current
+            // frame then signals its own super-resolution denominator. As a result, the reader does not copy the coded width and denominator
+            // of the reference.
             frameSize.FrameWidth = referenceFrame.FrameBuffer.Width;
             frameSize.FrameHeight = referenceFrame.FrameBuffer.Height;
             frameSize.RenderWidth = referenceSize.RenderWidth;
@@ -1397,8 +1386,8 @@ internal sealed class ObuReader
 
         if (!foundReference)
         {
-            // When no reference supplies dimensions, frame_size_with_refs carries the ordinary explicit frame size,
-            // current super-resolution syntax, and render-size syntax in that order.
+            // When no reference supplies dimensions, `frame_size_with_refs` carries the explicit frame size, the super-resolution syntax, and
+            // the render-size syntax, in that order.
             this.ReadFrameSize(ref reader, true);
             this.ReadRenderSize(ref reader);
         }
@@ -1412,9 +1401,8 @@ internal sealed class ObuReader
             int referenceWidth = referenceFrame.FrameBuffer.Width;
             int referenceHeight = referenceFrame.FrameBuffer.Height;
 
-            // AV1 6.8.6 permits a reference dimension from one half through sixteen times the current coded
-            // dimension. setup_frame_size_with_refs requires at least one of the seven selected roles to satisfy both
-            // axes before the frame may proceed.
+            // AV1 6.8.6 permits a reference dimension from one half through sixteen times the current coded dimension. At least one of the
+            // seven selected roles must satisfy both axes, or the reader rejects the frame.
             hasCompatibleReferenceSize |=
                 (2 * frameSize.FrameWidth) >= referenceWidth &&
                 (2 * frameSize.FrameHeight) >= referenceHeight &&
@@ -1423,9 +1411,8 @@ internal sealed class ObuReader
 
             ObuColorConfig referenceColorConfig = referenceFrame.FrameBuffer.ColorConfig;
 
-            // Every selected reference participates in the same prediction sample domain. Mixing bit depth or chroma
-            // subsampling would change sample interpretation and is prohibited even when that role is not selected by
-            // any block in the current frame.
+            // Every selected reference uses the same sample format for prediction. A different bit depth or chroma subsampling changes the
+            // meaning of the samples. As a result, the reader rejects it, even when no block in the current frame selects that role.
             if (referenceFrame.FrameBuffer.BitDepth != colorConfig.BitDepth ||
                 referenceColorConfig.SubSamplingX != colorConfig.SubSamplingX ||
                 referenceColorConfig.SubSamplingY != colorConfig.SubSamplingY)
@@ -1447,8 +1434,8 @@ internal sealed class ObuReader
     /// <returns>The fixed filter family or the per-block switchable selection.</returns>
     private static Av1InterpolationFilter ReadFrameInterpolationFilter(ref Av1BitStreamReader reader)
     {
-        // A leading one omits the two-bit fixed-family field and delegates the choice to each inter block. Otherwise,
-        // the literal values map directly to regular, smooth, sharp, and bilinear as defined by AV1 6.10.2.
+        // A leading one omits the two-bit fixed-family field and gives the choice to each inter block. Otherwise, the literal values map
+        // directly to regular, smooth, sharp, and bilinear, as AV1 6.10.2 defines.
         return reader.ReadBoolean()
             ? Av1InterpolationFilter.Switchable
             : (Av1InterpolationFilter)reader.ReadLiteral(2);
@@ -1473,8 +1460,8 @@ internal sealed class ObuReader
 
         int maxTileAreaOfSuperBlock = Av1Constants.MaxTileArea >> (superblockSizeLog2 << 1);
 
-        // The bitstream constrains tile dimensions in superblocks, while the decoder stores
-        // boundaries in mode-information units for direct use during block traversal.
+        // The bitstream limits tile dimensions in superblocks. The decoder stores boundaries in mode-information units for direct use during
+        // block traversal.
         tileInfo.MaxTileWidthSuperblock = Av1Constants.MaxTileWidth >> superblockSizeLog2;
         tileInfo.MaxTileHeightSuperblock = (Av1Constants.MaxTileArea / Av1Constants.MaxTileWidth) >> superblockSizeLog2;
         tileInfo.MinLog2TileColumnCount = TileLog2(tileInfo.MaxTileWidthSuperblock, superblockColumnCount);
@@ -1483,8 +1470,8 @@ internal sealed class ObuReader
         tileInfo.MinLog2TileCount = Math.Max(tileInfo.MinLog2TileColumnCount, TileLog2(maxTileAreaOfSuperBlock, superblockColumnCount * superblockRowCount));
         tileInfo.HasUniformTileSpacing = reader.ReadBoolean();
 
-        // Boundary storage is bounded by AV1's active tile limits. Sequence-sized arrays would retain
-        // thousands of unused entries on wide frames even though AV1 permits at most 64 rows or columns.
+        // The tile limits of AV1 set the size of the boundary storage. AV1 permits at most 64 tile rows or columns. Arrays sized from the
+        // sequence keep thousands of unused entries on wide frames.
         if (tileInfo.HasUniformTileSpacing)
         {
             tileInfo.TileColumnCountLog2 = tileInfo.MinLog2TileColumnCount;
@@ -1614,9 +1601,8 @@ internal sealed class ObuReader
                 int tileWidth = (tileInfo.TileColumnStartModeInfo[column + 1] - tileInfo.TileColumnStartModeInfo[column])
                     << Av1Constants.ModeInfoSizeLog2;
 
-                // The reference decoder excludes the rightmost column from this conformance check because it receives the
-                // remainder of the coded width. Every inner column must be at least 64 pixels, doubled when the frame
-                // is super-resolution scaled.
+                // The check excludes the rightmost column, because that column receives the remainder of the coded width. Every inner column
+                // must be at least 64 pixels wide. When the frame uses super-resolution scaling, the minimum is 128 pixels.
                 if (tileWidth < minimumInnerTileWidth)
                 {
                     throw new InvalidImageContentException("The AV1 frame contains an inner tile column narrower than the permitted minimum.");
@@ -1730,7 +1716,8 @@ internal sealed class ObuReader
                     frameHeader.RefreshFrameFlags = 0;
                     if (this.frameReferenceState.HasCurrentFrameId)
                     {
-                        // Non-key existing-frame presentation does not consume or replace decoder current_frame_id.
+                        // When a non-key existing frame is shown, the session keeps its current frame identifier. The header does not read or
+                        // replace it.
                         frameHeader.CurrentFrameId = this.frameReferenceState.CurrentFrameId;
                     }
                 }
@@ -1868,8 +1855,8 @@ internal sealed class ObuReader
                 int bufferRemovalTimeLength = (int)decoderModelInfo.BufferRemovalTimeLength;
                 foreach (ObuOperatingPoint operatingPoint in sequenceHeader.OperatingPoint)
                 {
-                    // A layer-specific OBU carries one removal time only for operating points which select both
-                    // of its layer IDs; the value affects scheduling, so consume it without retaining video state.
+                    // A layer-specific OBU carries one removal time only for each operating point that selects both of its layer IDs. The
+                    // value affects only scheduling, so the reader consumes it and does not keep it.
                     bool appliesToLayer = operatingPoint.Idc == 0 ||
                         (((operatingPoint.Idc >> header.TemporalId) & 1U) != 0 &&
                         ((operatingPoint.Idc >> (header.SpatialId + 8)) & 1U) != 0);
@@ -1937,8 +1924,8 @@ internal sealed class ObuReader
 
             if (retainedReferenceFrames is null)
             {
-                // Inter-frame size syntax reads dimensions from reconstructed references. Header-only parser users do
-                // not own those samples, while the production decoder establishes this dependency in its constructor.
+                // Inter-frame size syntax reads dimensions from reconstructed references. A header-only parser does not own those samples. The
+                // production decoder supplies the reference store in its constructor.
                 throw new InvalidOperationException("AV1 inter-frame parsing requires a reconstructed reference map.");
             }
 
@@ -1946,8 +1933,8 @@ internal sealed class ObuReader
 
             if (frameHeader.PrimaryReferenceSlot.HasValue)
             {
-                // Reference-index parsing validates the resolved slot before publishing it on the header. Retaining
-                // the owner here keeps every inherited frame state tied to the same normative primary reference.
+                // The reference-index parse validates the slot before it stores the slot on the header. The reader keeps the owner here, so
+                // every inherited frame state comes from the same primary reference.
                 primaryReference = retainedReferenceFrames.ResolveRequired(frameHeader.PrimaryReferenceSlot.Value);
             }
 
@@ -1978,16 +1965,13 @@ internal sealed class ObuReader
 
         if (mightAllowReferenceFrameMotionVectors)
         {
-            // AV1 5.9.2 carries this flag only when temporal order hints and the sequence-level reference-MV tool are
-            // both available. All other frame classes derive false without consuming a bit.
+            // AV1 5.9.2 carries this flag only when temporal order hints and the sequence-level reference-MV tool are both available. All other
+            // frames derive false and consume no bit.
             frameHeader.UseReferenceFrameMotionVectors = reader.ReadBoolean();
         }
 
-        // SetupFrameBufferReferences(sequenceHeader, frameHeader);
-        // CheckAddTemporalMotionVectorBuffer(sequenceHeader, frameHeader);
-
-        // Sign bias is derived from retained reference order hints when frame motion state is initialized. It is not
-        // mutable uncompressed-header state and therefore is not duplicated here.
+        // The frame motion state derives the sign bias from the retained reference order hints when it initializes. The sign bias is not mutable
+        // uncompressed-header state, so the frame header does not store a copy.
         if (sequenceHeader.IsReducedStillPictureHeader || frameHeader.DisableCdfUpdate)
         {
             frameHeader.DisableFrameEndUpdateCdf = true;
@@ -1999,26 +1983,25 @@ internal sealed class ObuReader
 
         if (primaryReference is not null)
         {
-            // When update flags omit new values, loop-filter deltas inherit from the primary frame. Copying the two
-            // fixed tables before parsing lets the existing header object retain unchanged entries without aliases.
+            // When the update flags omit new values, the loop-filter deltas come from the primary frame. The reader copies the two fixed tables
+            // before the parse. As a result, the header keeps the unchanged entries and does not share the tables of the primary frame.
             primaryReference.FrameHeader.LoopFilterParameters.ReferenceDeltas.CopyTo(frameHeader.LoopFilterParameters.ReferenceDeltas);
             primaryReference.FrameHeader.LoopFilterParameters.ModeDeltas.CopyTo(frameHeader.LoopFilterParameters.ModeDeltas);
         }
 
-        // Entropy defaults depend on base_q_idx, which follows tile information in the header. Av1TileReader therefore
-        // loads either the retained primary snapshot or the selected quantizer-band defaults at the first tile boundary.
+        // Entropy defaults depend on `base_q_idx`, which comes after the tile information in the header. As a result, `Av1TileReader` loads
+        // the retained primary state or the defaults of the selected quantizer band at the first tile boundary.
 
-        // Reference-map refresh remains transactional until reconstruction completes; parsing only records the
-        // validated refresh flags and selected slots on the frame header.
+        // The reference-map refresh stays pending until the reconstruction completes. The parse only records the validated refresh flags and
+        // selected slots on the frame header.
         frameHeader.TilesInfo = ReadTileInfo(ref reader, sequenceHeader, frameHeader);
         ReadQuantizationParameters(ref reader, sequenceHeader, frameHeader);
         ReadSegmentationParameters(ref reader, frameHeader, primaryReference?.FrameHeader.SegmentationParameters);
         ReadFrameDeltaQParameters(ref reader, frameHeader);
         ReadFrameDeltaLoopFilterParameters(ref reader, frameHeader);
 
-        // SetupSegmentationDequantization();
-        // The primary frame retains its decoded segment map in Av1FrameInfo. Inter block parsing copies or predicts
-        // segment identifiers from that map according to update_map instead of duplicating it in the frame header.
+        // The primary frame keeps its decoded segment map in `Av1FrameInfo`. Inter block parsing copies or predicts segment identifiers from that
+        // map as `update_map` selects, so the frame header does not store a copy of the map.
         Av1QuantizationLookup.UpdateFrameQuantizationState(frameHeader);
 
         if (frameHeader.CodedLossless)
@@ -2073,8 +2056,8 @@ internal sealed class ObuReader
 
             referenceFrames.FillOccupancy(slotOccupancy);
 
-            // Short signaling transmits only LAST and GOLDEN. The remaining five roles are a normative derivation from
-            // the persisted slot order hints and physical slot occupancy, not frame-ID validity or a decoder heuristic.
+            // Short signaling transmits only LAST and GOLDEN. The specification derives the other five roles from the stored slot order hints
+            // and the slot occupancy. Frame-ID validity does not change this derivation.
             Av1ReferenceFrameDerivation.DeriveShortSignaledReferences(
                 frameHeader.OrderHint,
                 sequenceHeader.OrderHintInfo.OrderHintBits,
@@ -2097,9 +2080,8 @@ internal sealed class ObuReader
                 referenceFrameIndices[reference] = slot;
             }
 
-            // Slot occupancy and frame-ID validity are independent normative states. Short signaling derives roles
-            // from every occupied slot before this per-role validity check, matching av1_set_frame_refs followed by
-            // the reference decoder's valid_for_referencing check.
+            // Slot occupancy and frame-ID validity are two independent states. Short signaling derives the roles from every occupied slot. The
+            // validity check of each role comes after that derivation.
             if (referenceFrames.Resolve((int)slot) is null)
             {
                 throw new InvalidImageContentException("An AV1 inter frame selects an unoccupied reference-map slot.");
@@ -2124,8 +2106,8 @@ internal sealed class ObuReader
 
         if (frameHeader.PrimaryReferenceFrame != Av1Constants.PrimaryReferenceFrameNone)
         {
-            // primary_ref_frame indexes the seven inter-reference roles, not the eight-slot retained map. Resolve it
-            // once so entropy, segmentation, loop-filter, and motion state all select the same retained owner later.
+            // `primary_ref_frame` indexes the seven inter-reference roles, not the eight slots of the retained map. The reader resolves it
+            // once, so the entropy, segmentation, loop-filter, and motion state all select the same retained owner later.
             frameHeader.PrimaryReferenceSlot = (byte)referenceFrameIndices[(int)frameHeader.PrimaryReferenceFrame];
         }
     }
@@ -2214,8 +2196,7 @@ internal sealed class ObuReader
             frameHeader.LoopRestorationParameters.Items[(int)Av1Plane.U].Type != ObuRestorationType.None ||
             frameHeader.LoopRestorationParameters.Items[(int)Av1Plane.V].Type != ObuRestorationType.None);
 
-        // All tile sizes except the final size are explicitly stored as size-minus-one. The
-        // last tile consumes the bytes that remain in the OBU payload.
+        // The tile group stores each tile size except the last as size minus one. The last tile consumes the bytes that remain in the OBU payload.
         for (int tileNum = tileGroupStart; tileNum <= tileGroupEnd; tileNum++)
         {
             bool isLastTile = tileNum == tileGroupEnd;
@@ -2230,8 +2211,8 @@ internal sealed class ObuReader
                 uint tileDataSizeMinusOne = reader.ReadLittleEndian(tileInfo.TileSizeBytes);
                 header.PayloadSize -= tileInfo.TileSizeBytes;
 
-                // Compare in the encoded unsigned domain before adding one. A four-byte 0xFFFFFFFF field would
-                // otherwise wrap to a zero-length signed tile and shift the following tile boundary.
+                // The compare uses the encoded unsigned value, before the addition of one. Otherwise, a four-byte 0xFFFFFFFF field wraps to a
+                // zero-length signed tile and moves the boundary of the next tile.
                 if (tileDataSizeMinusOne >= (uint)header.PayloadSize)
                 {
                     throw new InvalidImageContentException("The AV1 tile size exceeds the remaining tile-group payload.");
@@ -2454,8 +2435,8 @@ internal sealed class ObuReader
             }
             else
             {
-                // update_data equal to zero preserves the complete feature mask and values from the primary frame.
-                // The current header owns its arrays, so later reference replacement cannot mutate inherited state.
+                // When `update_data` is zero, the frame keeps the complete feature mask and values of the primary frame. The current header owns
+                // its arrays, so a later reference replacement cannot change the inherited state.
                 if (primaryParameters is null)
                 {
                     throw new InvalidImageContentException("AV1 segmentation cannot inherit data without a primary reference.");
@@ -2587,8 +2568,8 @@ internal sealed class ObuReader
         int planesCount = sequenceHeader.ColorConfig.PlaneCount;
         for (int i = 0; i < planesCount; i++)
         {
-            // The AV1 frame syntax orders its two restoration bits as none, switchable,
-            // Wiener, and self-guided projection, matching ObuRestorationType values.
+            // The AV1 frame syntax orders its two restoration bits as none, switchable, Wiener, and self-guided projection. These are the
+            // `ObuRestorationType` values.
             frameHeader.LoopRestorationParameters.Items[i].Type = (ObuRestorationType)reader.ReadLiteral(2);
 
             if (frameHeader.LoopRestorationParameters.Items[i].Type != ObuRestorationType.None)
@@ -2610,8 +2591,8 @@ internal sealed class ObuReader
             }
             else if (frameHeader.LoopRestorationParameters.UnitShift != 0)
             {
-                // A 64x64-superblock frame signals the extra size bit only after selecting a
-                // restoration unit larger than 64 samples with the first size bit.
+                // A frame with 64x64 superblocks signals the extra size bit only when the first size bit selects a restoration unit larger than
+                // 64 samples.
                 frameHeader.LoopRestorationParameters.UnitShift += (int)reader.ReadLiteral(1);
             }
 
@@ -2680,8 +2661,8 @@ internal sealed class ObuReader
         byte? primaryReferenceSlot = frameHeader.PrimaryReferenceSlot;
         if (primaryReferenceSlot is not null)
         {
-            // primary_ref_frame identifies the preceding frame whose same seven canonical reference roles supply the
-            // recentering values. Reference-slot validation has already completed before this syntax is reached.
+            // `primary_ref_frame` identifies the earlier frame whose models for the same seven reference roles supply the recentering values.
+            // The reference slots are already valid when the reader reaches this syntax.
             Av1ReferenceFrameStore referenceFrames = this.referenceFrames
                 ?? throw new InvalidImageContentException("AV1 global motion requires a reconstructed reference map.");
 
@@ -2734,8 +2715,8 @@ internal sealed class ObuReader
         parameters.Type = type;
         if (type >= Av1GlobalMotionType.RotationZoom)
         {
-            // Diagonal terms are coded as a delta from the identity scale, whereas off-diagonal terms are centered
-            // directly around zero. Both are restored to the common sixteen-bit matrix precision after decoding.
+            // Diagonal terms are coded as a delta from the identity scale. Off-diagonal terms are centered on zero. After the decode, the
+            // reader scales both back to the common sixteen-bit matrix precision.
             int referenceHorizontalScale =
                 (referenceParameters[2] >> Av1GlobalMotionParameters.AlphaPrecisionDifference) -
                 (1 << Av1GlobalMotionParameters.AlphaPrecisionBits);
@@ -2777,17 +2758,17 @@ internal sealed class ObuReader
         }
         else
         {
-            // Rotation-zoom constrains the second matrix row to the perpendicular vector of the first row. Identity
-            // and translation models retain the same derived identity coefficients.
+            // Rotation-zoom sets the second matrix row to the perpendicular vector of the first row. Identity and translation models get the
+            // same derived identity coefficients.
             parameters[4] = -parameters[3];
             parameters[5] = parameters[2];
         }
 
         if (type >= Av1GlobalMotionType.Translation)
         {
-            // Translation-only models use a wider coordinate domain than affine models. When high-precision motion is
-            // disabled, AV1 removes one coded bit and adds one reconstruction shift so the physical displacement grid
-            // remains in quarter-sample units. Affine translation retains the fixed model-to-translation precision gap.
+            // Translation-only models use a wider coordinate range than affine models. When high-precision motion is disabled, AV1 removes one
+            // coded bit and adds one reconstruction shift. As a result, the displacement grid stays in quarter-sample units. Affine translation
+            // keeps the fixed precision difference between the model and the translation.
             int precisionAdjustment = type == Av1GlobalMotionType.Translation && !allowHighPrecisionMotionVector ? 1 : 0;
             int translationBits = type == Av1GlobalMotionType.Translation
                 ? Av1GlobalMotionParameters.AbsoluteTranslationOnlyBits - precisionAdjustment
@@ -2813,8 +2794,8 @@ internal sealed class ObuReader
                 referenceParameters[1] >> translationPrecisionDifference) * translationDecodeFactor;
         }
 
-        // Invalid shear does not invalidate the frame header. AV1 retains the decoded model and marks it unavailable
-        // to warped prediction, which is why validity is stored with the parameters instead of throwing here.
+        // Invalid shear does not make the frame header invalid. AV1 keeps the decoded model and marks it unavailable to warped prediction. For
+        // this reason, the parameters store the validity and the reader does not throw here.
         parameters.UpdateShearParameters();
     }
 
@@ -2875,8 +2856,8 @@ internal sealed class ObuReader
         }
         else
         {
-            // Only inter frames can inherit parameters from a reference frame. Intra frames always carry a complete
-            // parameter set when grain is enabled.
+            // Only inter frames can inherit parameters from a reference frame. When grain is enabled, other frames always carry a complete
+            // parameter set.
             grainParams.UpdateGrain = true;
         }
 
@@ -2902,8 +2883,8 @@ internal sealed class ObuReader
             uint grainSeed = grainParams.GrainSeed;
             uint referenceIndex = grainParams.FilmGrainParamsRefIdx;
 
-            // AV1 inherits the complete parameter set but always uses the new frame's independently signaled seed.
-            // Fixed inline buffers make this a value copy rather than nine small array allocations.
+            // AV1 inherits the complete parameter set, but always uses the seed that the new frame signals. The fixed inline buffers make this
+            // a value copy, not nine small array allocations.
             grainParams.CopyFrom(referenceFrame.FrameHeader.FilmGrainParameters);
             grainParams.GrainSeed = grainSeed;
             grainParams.FilmGrainParamsRefIdx = referenceIndex;
@@ -3065,23 +3046,43 @@ internal sealed class ObuReader
         return k;
     }
 
-    // The generic providers keep the fixed-reader and factory contracts distinct without allocating
-    // a closure for fixed-reader payloads or admitting an invalid pair of nullable arguments.
+    /// <summary>
+    /// Supplies a tile reader from a factory that creates one reader for each coded frame.
+    /// </summary>
     private readonly struct TileReaderFactoryProvider : ITileReaderProvider
     {
         private readonly Func<IAv1TileReader> creator;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TileReaderFactoryProvider"/> struct.
+        /// </summary>
+        /// <param name="creator">The factory that creates one tile reader for each coded frame.</param>
         public TileReaderFactoryProvider(Func<IAv1TileReader> creator) => this.creator = creator;
 
+        /// <summary>
+        /// Creates a new tile reader for the current frame.
+        /// </summary>
+        /// <returns>The new tile reader.</returns>
         public IAv1TileReader Get() => this.creator();
     }
 
+    /// <summary>
+    /// Supplies the same existing tile reader for every coded frame.
+    /// </summary>
     private readonly struct FixedTileReaderProvider : ITileReaderProvider
     {
         private readonly IAv1TileReader tileReader;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FixedTileReaderProvider"/> struct.
+        /// </summary>
+        /// <param name="tileReader">The tile reader to use for every coded frame.</param>
         public FixedTileReaderProvider(IAv1TileReader tileReader) => this.tileReader = tileReader;
 
+        /// <summary>
+        /// Gets the fixed tile reader.
+        /// </summary>
+        /// <returns>The fixed tile reader.</returns>
         public IAv1TileReader Get() => this.tileReader;
     }
 }

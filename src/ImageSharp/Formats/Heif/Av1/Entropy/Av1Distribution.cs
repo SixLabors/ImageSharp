@@ -278,7 +278,7 @@ internal sealed class Av1Distribution
         Span<ushort> probabilities = this.probabilities;
 
         // Q15 thresholds range from zero through 32768, including zero-mass intervals, and fit in unsigned 16-bit storage.
-        // Convert the forward defaults before narrowing; the final zero sentinel is already initialized.
+        // The loop converts the forward defaults to inverse thresholds before it narrows them. The last zero sentinel is already zero.
         for (int i = 0; i < props.Length - 1; i++)
         {
             probabilities[i] = (ushort)(ProbabilityTop - props[i]);
@@ -298,8 +298,8 @@ internal sealed class Av1Distribution
         Span<ushort> probabilities = this.probabilities;
         sourceProbabilities[..source.NumberOfSymbols].CopyTo(probabilities);
 
-        // The adaptation rate depends on both the alphabet size and prior update count, so copying only the
-        // thresholds would make the cloned frame context diverge after its next symbol.
+        // The adaptation rate depends on the alphabet size and on the earlier update count. A copy of only the thresholds makes the
+        // cloned frame context diverge after its next symbol.
         this.speed = source.speed;
         this.updateCount = source.updateCount;
         this.NumberOfSymbols = source.NumberOfSymbols;
@@ -342,8 +342,8 @@ internal sealed class Av1Distribution
     /// <param name="source">The distribution state to copy.</param>
     public void CopyFrom(Av1Distribution source)
     {
-        // Entropy contexts are created from the same fixed default table shape. Copy only mutable state so resetting a
-        // working tile never allocates or replaces the distribution objects referenced by the symbol decoder.
+        // All entropy contexts come from the same fixed default table shape. This method copies only the mutable state. As a result, a
+        // reset of a working tile never allocates or replaces the distribution objects that the symbol decoder references.
         ReadOnlySpan<ushort> sourceProbabilities = source.probabilities;
         Span<ushort> probabilities = this.probabilities;
         sourceProbabilities[..source.NumberOfSymbols].CopyTo(probabilities);
@@ -409,16 +409,16 @@ internal sealed class Av1Distribution
     /// <param name="value">The zero-based symbol that was coded.</param>
     public void Update(int value)
     {
-        // AV1 slows adaptation after 16 and 32 observations. The symbol-count term is precomputed by each overload
-        // because every distribution has a fixed alphabet size.
+        // AV1 slows adaptation after 16 and 32 observations. Each constructor sets the symbol-count term, because every distribution
+        // has a fixed alphabet size.
         int rate15 = this.updateCount > 15 ? 1 : 0;
         int rate31 = this.updateCount > 31 ? 1 : 0;
         int rate = 3 + rate15 + rate31 + this.speed;
         int tmp = ProbabilityTop;
 
-        // Switching tmp to zero at the observed symbol moves the thresholds on either side toward the sample while
-        // preserving their inverse-cumulative ordering in one pass. Arithmetic stays wide until the stored update;
-        // each step moves toward zero or 32768, so narrowing cannot discard a significant probability bit.
+        // At the observed symbol, tmp changes to zero. As a result, one pass moves the thresholds on both sides toward the sample and
+        // keeps their inverse-cumulative order. The arithmetic stays wide until the stored update. Each step moves toward zero or 32768,
+        // so the narrowing cannot lose a significant probability bit.
         //
         // The thresholds are read through a reference to the first one, so no span is made for each symbol. The loop
         // stops before the last entry, which stays zero.

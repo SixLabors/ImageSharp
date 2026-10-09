@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
-/// Stores the partition tree and decoded mode information for one AV1 superblock.
+/// Gives access to the frame-owned mode information, coefficients and filter state of one decoded AV1 superblock.
 /// </summary>
 internal readonly struct Av1SuperblockInfo
 {

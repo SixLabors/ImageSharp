@@ -302,13 +302,13 @@ internal sealed partial class Av1FrameInfo : IDisposable
                     this.modeInfoSizePerSuperblock * this.superblockColumnCount,
                     this.modeInfoSizePerSuperblock * this.superblockRowCount));
 
-            // Tile parsing reconstructs each superblock before advancing to the next one. A single three-plane
-            // scratch owner therefore preserves every active transform while avoiding frame-wide retained copies.
+            // Tile parsing reconstructs each superblock before it moves to the next one. Thus one owner for all three planes holds every active transform, and
+            // the frame keeps no frame-wide copies.
             int transformInfoScratchLength = checked(this.modeInfoCountPerSuperblock * 3);
             allocatedTransformInfoScratch = this.memoryAllocator.Allocate<Av1TransformInfo>(transformInfoScratchLength, clean);
             allocatedQuantizerIndices = this.memoryAllocator.Allocate2D<int>(1, superblockCount, clean);
 
-            // A 128x128 superblock contains four 64x64 CDEF filter blocks; a 64x64 superblock contains one.
+            // A 128x128 superblock contains four 64x64 CDEF filter blocks. A 64x64 superblock contains one.
             this.cdefStrengthFactorLog2 = (superblockSizeLog2 - 6) << 1;
             allocatedCdefStrength = this.memoryAllocator.Allocate2D<int>(1 << this.cdefStrengthFactorLog2, superblockCount, clean);
             allocatedCdefStrength.MemoryGroup.Fill(-1);
@@ -461,8 +461,8 @@ internal sealed partial class Av1FrameInfo : IDisposable
             primaryReferenceState.SegmentIdColumnCount == this.segmentIdColumnCount &&
             primaryReferenceState.SegmentIdRowCount == this.segmentIdRowCount)
         {
-            // libaom copies the selected primary frame's block coverage when update_map is zero. Copying the
-            // same contiguous map once establishes the identical final state without repeating a row copy per block.
+            // When `segmentation_update_map` is zero, every block inherits the segment IDs of the primary frame. One copy of the whole contiguous map gives the
+            // same final state as one row copy per block.
             primarySegmentIds.CopyTo(this.segmentIds);
         }
     }
@@ -501,8 +501,8 @@ internal sealed partial class Av1FrameInfo : IDisposable
             primaryReferenceState.SegmentIdColumnCount != this.segmentIdColumnCount ||
             primaryReferenceState.SegmentIdRowCount != this.segmentIdRowCount)
         {
-            // the reference decoder exposes the prior map only when both mode-info dimensions match the active frame. Treating a
-            // differently sized retained map as absent prevents coordinates from being reinterpreted with a new stride.
+            // The prior map is usable only when both mode-info dimensions match the active frame. A retained map of a different size counts as absent, so no
+            // coordinate reads it with a wrong stride.
             return 0;
         }
 
@@ -510,8 +510,8 @@ internal sealed partial class Av1FrameInfo : IDisposable
         int rowCount = Math.Min(blockSize.Get4x4HighCount(), this.segmentIdRowCount - modeInfoPosition.Y);
         int segmentId = Av1Constants.MaxSegmentCount;
 
-        // Temporal prediction uses the minimum over every clipped 4x4 cell, not merely the block origin. This is the
-        // dec_get_segment_id rule used when segmentation_temporal_update selects the retained primary map.
+        // Temporal prediction uses the minimum over every clipped 4x4 cell, not only the block origin. This rule applies when `segmentation_temporal_update`
+        // selects the retained primary map.
         for (int row = 0; row < rowCount; row++)
         {
             ReadOnlySpan<byte> segmentRow = primarySegmentIds
@@ -540,8 +540,7 @@ internal sealed partial class Av1FrameInfo : IDisposable
         Buffer2D<byte> segmentIds = this.segmentIds
             ?? throw new InvalidOperationException("The AV1 frame has no writable segmentation map.");
 
-        // Each block contributes one ID to all covered 4x4 cells. Filling contiguous row slices retains the native
-        // row-major layout without the per-row object indirection of the previous jagged map.
+        // Each block writes one ID to all covered 4x4 cells. The loop fills one contiguous slice in each row of the row-major map.
         for (int row = 0; row < rowCount; row++)
         {
             segmentIds
@@ -575,8 +574,8 @@ internal sealed partial class Av1FrameInfo : IDisposable
             int planeWidth = Av1Math.DivideLog2Ceiling(frameHeader.FrameSize.SuperResolutionUpscaledWidth, subsamplingX);
             int planeHeight = Av1Math.DivideLog2Ceiling(frameHeader.FrameSize.FrameHeight, subsamplingY);
 
-            // A final unit may extend to 150 percent of the nominal size, so AV1 rounds the
-            // unit count to nearest instead of unconditionally rounding a partial unit upward.
+            // A final unit can extend to 150 percent of the nominal size. Thus AV1 rounds the unit count to the nearest integer and does not round a partial
+            // unit up.
             int columnCount = Math.Max((planeWidth + (item.Size >> 1)) / item.Size, 1);
             int rowCount = Math.Max((planeHeight + (item.Size >> 1)) / item.Size, 1);
             loopRestorationUnitColumns[planeIndex] = columnCount;

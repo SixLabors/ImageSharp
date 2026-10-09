@@ -60,15 +60,13 @@ internal struct Av1RateDistortionStatistics
     public bool HasCoefficients { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the searched residual is skippable before the block's skip-cost
-    /// comparison: every transform is empty, or a recursive luma transform search found the skip cost no higher.
+    /// Gets or sets a value indicating whether the searched residual can be skipped before the skip-cost comparison of the block. This is true
+    /// when every transform is empty, or when a recursive luma transform search found that the skip cost is not higher.
     /// </summary>
-    /// <remarks>This is the <c>skip_txfm</c> of the search's <c>RD_STATS</c>.</remarks>
     public bool AllTransformsEmpty { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the luma residual was predicted to quantize to nothing before any
-    /// transform search. Reference: the skip_txfm result that set_skip_txfm() leaves.
+    /// Gets or sets a value indicating whether the encoder predicted, before any transform search, that the luma residual quantizes to nothing.
     /// </summary>
     public bool SkipPredicted { get; set; }
 
@@ -78,9 +76,8 @@ internal struct Av1RateDistortionStatistics
     public long LumaCost { get; set; }
 
     /// <summary>
-    /// Gets or sets the cost of the transform choice alone: its coefficients, the non-skip flag and the
-    /// transform-size syntax, without the prediction syntax. A later transform depth is bounded by it.
-    /// Reference: the rd that uniform_txfm_yrd() returns.
+    /// Gets or sets the cost of the transform choice alone. It includes the coefficients, the non-skip flag and the transform-size syntax, but not
+    /// the prediction syntax. This cost is the bound for the search at a later transform depth.
     /// </summary>
     public long TransformCost { get; set; }
 
@@ -96,8 +93,8 @@ internal struct Av1RateDistortionStatistics
     /// <param name="other">The valid candidate to add.</param>
     public void Add(int rateMultiplier, Av1RateDistortionStatistics other)
     {
-        // Round the combined rate only once. Adding the already rounded child costs can change
-        // partition and inter/intra decisions even when both children have the same reconstruction.
+        // Round the combined rate only once. A sum of the rounded child costs can change partition and inter-intra decisions, even when both
+        // children have the same reconstruction.
         this.Rate += other.Rate;
         this.ResidualRate += other.ResidualRate;
         this.Distortion += other.Distortion;
@@ -107,9 +104,8 @@ internal struct Av1RateDistortionStatistics
     }
 
     /// <summary>
-    /// Adds an eighth to the distortion and the luma cost of a valid inter prediction, and prices it again. The image
-    /// tune favors intra prediction in this way. Reference: the AOM_TUNE_IQ branches of adjust_cost() and
-    /// adjust_rdcost() in motion_mode_rd(), whose caller prices the adjusted distortion with RDCOST.
+    /// Adds one eighth to the distortion and to the luma cost of a valid inter prediction. Then it calculates the cost again from the adjusted
+    /// distortion. The image tune uses this bias to prefer intra prediction.
     /// </summary>
     /// <param name="rateMultiplier">The rate multiplier for the current block.</param>
     public void AddInterPredictionBias(int rateMultiplier)
@@ -123,8 +119,8 @@ internal struct Av1RateDistortionStatistics
     }
 
     /// <summary>
-    /// Adds one eighth to the distortion and one eighth to the current cost. The current cost can differ from the price of the rate and distortion.
-    /// Reference: the AOM_TUNE_IQ branch of adjust_rdcost().
+    /// Adds one eighth to the distortion and one eighth to the current cost. The image tune uses this bias to prefer intra prediction. The current
+    /// cost can differ from the price of the rate and the distortion, so this method does not calculate the cost again.
     /// </summary>
     public void AddInterCostBias()
     {
@@ -133,9 +129,8 @@ internal struct Av1RateDistortionStatistics
     }
 
     /// <summary>
-    /// Adds the sharpness 3 offset of a prediction smoother than its source to the distortion, prices the cost
-    /// again, and adds the priced offset to a valid luma cost. Reference: the sharpness branches of adjust_cost()
-    /// and adjust_rdcost() in motion_mode_rd().
+    /// Adds the sharpness 3 offset to the distortion when the prediction is smoother than its source. Then it calculates the cost again and adds
+    /// the cost of the offset to a valid luma cost.
     /// </summary>
     /// <param name="rateMultiplier">The rate multiplier of the block.</param>
     /// <param name="offset">The amount by which the source variance measure exceeds the prediction's.</param>
@@ -149,8 +144,7 @@ internal struct Av1RateDistortionStatistics
     }
 
     /// <summary>
-    /// Adds the sharpness 3 offset to the distortion and prices the cost again. Reference: the sharpness branch of
-    /// adjust_rdcost().
+    /// Adds the sharpness 3 offset to the distortion and calculates the cost again.
     /// </summary>
     /// <param name="rateMultiplier">The rate multiplier of the block.</param>
     /// <param name="offset">The amount by which the source variance measure exceeds the block samples'.</param>
@@ -161,22 +155,21 @@ internal struct Av1RateDistortionStatistics
     }
 
     /// <summary>
-    /// Changes an extra cost into distortion, rounded to the nearest unit, and adds it. Then it calculates the cost again.
-    /// Reference: the extra_rd to extra_dist conversion of the sub-block energy adjustment in adjust_rdcost().
+    /// Changes an extra cost into distortion, rounded to the nearest unit, and adds it. Then it calculates the cost again. The sub-block energy
+    /// adjustment supplies the extra cost.
     /// </summary>
     /// <param name="rateMultiplier">The rate multiplier of the block.</param>
     /// <param name="extraCost">The extra cost, which must be positive.</param>
     public void AddEnergyCost(int rateMultiplier, long extraCost)
     {
-        // RDCOST shifts the distortion up by RDDIV_BITS. So the extra cost shifts down by the same amount to become distortion.
+        // The cost function shifts the distortion left by 7 bits. So the extra cost shifts right by the same amount to become distortion.
         const int DistortionShift = 7;
         this.Distortion += (extraCost + (1L << (DistortionShift - 1))) >> DistortionShift;
         this.Cost = Av1RateDistortion.GetCost(rateMultiplier, this.Rate, this.Distortion);
     }
 
     /// <summary>
-    /// Recomputes the cost at another rate multiplier, keeping an invalid candidate invalid.
-    /// Reference: av1_rd_cost_update().
+    /// Calculates the cost again at another rate multiplier. An invalid candidate stays invalid. A negative rate is valid.
     /// </summary>
     /// <param name="rateMultiplier">The rate multiplier.</param>
     public void UpdateCost(int rateMultiplier)
@@ -195,9 +188,8 @@ internal struct Av1RateDistortionStatistics
     /// <returns>The remaining bound, or an unbounded sentinel when either input is invalid.</returns>
     public readonly Av1RateDistortionStatistics Subtract(int rateMultiplier, Av1RateDistortionStatistics other)
     {
-        // Search starts without a winning candidate. Preserve that unbounded state instead of subtracting
-        // from sentinel integers; finite bounds subtract raw components before the single rate rounding, which
-        // rounds the magnitude of a negative rate. Reference: av1_rd_stats_subtraction().
+        // The search starts without a winning candidate. Keep that unbounded state instead of a subtraction from the sentinel values.
+        // Finite bounds subtract the raw rate and distortion before the single rate rounding. That rounding uses the magnitude of a negative rate.
         if (this.Cost == long.MaxValue || other.Cost == long.MaxValue)
         {
             return Invalid;

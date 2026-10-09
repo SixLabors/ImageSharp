@@ -14,19 +14,19 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 internal sealed class Av1EncoderCoefficientBuffer : IDisposable
 {
     /// <summary>
-    /// The number of coefficients represented by one entry in libaom's EOB arrays.
+    /// The number of coefficients in one 4x4 unit. Each 4x4 unit has one transform block state entry.
     /// </summary>
     public const int TransformBlockUnitCoefficientCount = 1 << (Av1Constants.ModeInfoSizeLog2 * 2);
 
-    /// <summary>
-    /// Stores one complete superblock's coefficients and packed transform-block state in each row.
-    /// </summary>
     /// <summary>
     /// The number of coefficient positions one packed transform-block state occupies.
     /// </summary>
     private static readonly int StorageElementsPerTransformBlock =
         Unsafe.SizeOf<Av1EncoderTransformBlockState>() / sizeof(int);
 
+    /// <summary>
+    /// Stores the coefficients and the packed transform block states of one superblock in each row.
+    /// </summary>
     private readonly Buffer2D<int> storage;
 
     /// <summary>
@@ -62,10 +62,9 @@ internal sealed class Av1EncoderCoefficientBuffer : IDisposable
         int storageElementsPerSuperblock = this.CoefficientsPerSuperblock +
             (this.TransformBlocksPerSuperblock * StorageElementsPerTransformBlock);
 
-        // libaom stores finalized coefficients by raster-ordered superblock. A two-dimensional owner preserves that
-        // layout, and packing the EOB/type state into the same row removes its two additional frame-sized allocations.
-        // A transform block the search never reached must read as DCT_DCT with no coefficients, the
-        // way a frame's transform type map does. Reference: the av1_zero() of xd->tx_type_map.
+        // Each row holds the final coefficients of one superblock, in raster order. The end-of-block and transform type states share
+        // that row, so the frame needs no separate allocations for them. The clean allocation makes a transform block that the search
+        // never reached read as DCT_DCT with no coefficients, which is the zero value of a transform type map.
         this.storage = configuration.MemoryAllocator.Allocate2D<int>(
             storageElementsPerSuperblock,
             this.SuperblockCount,

@@ -16,8 +16,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// </summary>
 internal sealed class ObuWriter : IDisposable
 {
-    // Sequence and uncompressed-frame syntax have fixed field and array limits. A 512-byte owner covers their
-    // maximum supported representation without retaining any entropy-coded tile bytes in the header scratch.
+    // Sequence and uncompressed-frame syntax have fixed field and array limits. A 512-byte buffer holds the largest supported header. The
+    // buffer never holds entropy-coded tile bytes.
     private const int MaximumHeaderLength = 512;
 
     private readonly IMemoryOwner<byte> headerOwner;
@@ -101,8 +101,8 @@ internal sealed class ObuWriter : IDisposable
     }
 
     /// <summary>
-    /// Writes a coded frame that continues the current temporal unit, after a hidden frame of the same unit.
-    /// Reference: the frame OBU that av1_pack_bitstream() writes without a temporal delimiter.
+    /// Writes a coded frame that continues the current temporal unit, after a hidden frame of the same unit. No temporal delimiter comes before
+    /// the frame.
     /// </summary>
     /// <typeparam name="TTileWriter">The non-boxed tile source type.</typeparam>
     /// <param name="stream">The destination stream.</param>
@@ -122,8 +122,7 @@ internal sealed class ObuWriter : IDisposable
     }
 
     /// <summary>
-    /// Writes a frame header OBU that shows a frame already in a reference slot.
-    /// Reference: the OBU_FRAME_HEADER of a show_existing_frame in av1_pack_bitstream(), with av1_add_trailing_bits().
+    /// Writes a frame header OBU that shows a frame already in a reference slot. The header ends with trailing bits.
     /// </summary>
     /// <param name="stream">The destination stream.</param>
     /// <param name="sequenceHeader">The sequence header established by an earlier sample.</param>
@@ -192,10 +191,8 @@ internal sealed class ObuWriter : IDisposable
     }
 
     /// <summary>
-    /// Returns the extension byte of a layer-specific OBU: the temporal and spatial layer of the frame. A sequence
-    /// whose operating points select layers needs it on every layer-specific OBU, and a sequence whose operating points
-    /// all decode every layer must not have it. Reference: the obu_extension_flag of av1_write_obu_header(), with
-    /// has_nonzero_operating_point_idc, and the obu_extension_header of av1_pack_bitstream().
+    /// Returns the extension byte of a layer-specific OBU, which holds the temporal and spatial layer of the frame. If an operating point of the
+    /// sequence selects layers, every layer-specific OBU needs the byte. If all operating points decode every layer, the OBU must not have it.
     /// </summary>
     /// <param name="sequenceHeader">The sequence header with the operating points.</param>
     /// <param name="frameHeader">The frame header with the layer of the frame.</param>
@@ -222,8 +219,7 @@ internal sealed class ObuWriter : IDisposable
     /// <returns>The encoded OBU header byte.</returns>
     private static byte WriteObuHeader(ObuType type, bool hasExtension)
     {
-        // The set fields are the four-bit type, the extension flag and the has-size flag; the forbidden and reserved
-        // bits remain zero.
+        // The set fields are the four-bit type, the extension flag and the has-size flag. The forbidden bit and the reserved bit stay zero.
         return (byte)(((byte)type << 3) | (hasExtension ? 0x04 : 0) | 0x02);
     }
 
@@ -500,8 +496,7 @@ internal sealed class ObuWriter : IDisposable
             colorConfig.TransferCharacteristics == ObuTransferCharacteristics.Srgb &&
             colorConfig.MatrixCoefficients == ObuMatrixCoefficients.Identity)
         {
-            // AV1 fixes this RGB identity-matrix combination to full-range 4:4:4 and omits
-            // the range and subsampling fields used by YUV configurations.
+            // AV1 fixes this RGB identity-matrix combination to full-range 4:4:4. It omits the range and subsampling fields of YUV configurations.
         }
         else
         {
@@ -600,10 +595,9 @@ internal sealed class ObuWriter : IDisposable
     }
 
     /// <summary>
-    /// Writes the size of an inter frame whose size differs from the sequence size: one found flag per reference until
-    /// a reference has the same upscaled size, which the frame then inherits, or else the explicit frame size and
-    /// render size. Every frame an encoder writes has the sequence size as its render size, so only the frame sizes
-    /// are compared. Reference: write_frame_size_with_refs().
+    /// Writes the size of an inter frame whose size differs from the sequence size. It writes one found flag per reference until a reference has
+    /// the same upscaled size. The frame then inherits that size. If no reference matches, it writes the explicit frame size and render size.
+    /// Every frame that this encoder writes has the sequence size as its render size. As a result, the method compares only the frame sizes.
     /// </summary>
     /// <param name="writer">The bit writer receiving the frame size.</param>
     /// <param name="sequenceHeader">The sequence header defining dimension field widths.</param>
@@ -668,8 +662,8 @@ internal sealed class ObuWriter : IDisposable
         writer.WriteBoolean(tileInfo.HasUniformTileSpacing);
         if (tileInfo.HasUniformTileSpacing)
         {
-            // Uniform spaced tiles with power-of-two number of rows and columns
-            // tile columns
+            // Uniform spacing gives power-of-two tile counts. Each logarithm is a unary increment above its minimum, with a stop bit when the
+            // value is less than the maximum. The columns come first.
             int ones = log2TileColumnCount - tileInfo.MinLog2TileColumnCount;
             while (ones-- > 0)
             {
@@ -681,7 +675,7 @@ internal sealed class ObuWriter : IDisposable
                 writer.WriteBoolean(false);
             }
 
-            // rows
+            // The minimum row logarithm depends on the column logarithm, because the total tile count has a minimum.
             tileInfo.MinLog2TileRowCount = Math.Max(tileInfo.MinLog2TileCount - log2TileColumnCount, 0);
             ones = log2TileRowCount - tileInfo.MinLog2TileRowCount;
             while (ones-- > 0)
@@ -703,8 +697,8 @@ internal sealed class ObuWriter : IDisposable
                     ? superblockColumnCount
                     : tileInfo.TileColumnStartModeInfo[i + 1] >> superblockShift;
 
-                // The stored terminal boundary is clipped to the visible mode-info width. libaom retains the exact
-                // superblock endpoint, so the final tile uses the derived frame-wide superblock count instead.
+                // The stored end of the last tile is the frame width in 4x4 units, which can end inside a superblock. As a result, the last
+                // tile ends at the superblock column count of the frame.
                 uint widthInSuperBlocks = (uint)(endSuperBlock - startSuperBlock);
                 uint maxWidth = (uint)Math.Min(superblockColumnCount - startSuperBlock, tileInfo.MaxTileWidthSuperblock);
                 writer.WriteNonSymmetric(widthInSuperBlocks - 1, maxWidth);
@@ -723,7 +717,7 @@ internal sealed class ObuWriter : IDisposable
                     ? superblockRowCount
                     : tileInfo.TileRowStartModeInfo[i + 1] >> superblockShift;
 
-                // As with columns, the final visible mode-info boundary may end inside its containing superblock.
+                // As with columns, the stored end of the last tile can end inside a superblock.
                 uint heightInSuperBlocks = (uint)(endSuperBlock - startSuperBlock);
                 uint maxHeight = (uint)Math.Min(superblockRowCount - startSuperBlock, tileInfo.MaxTileHeightSuperblock);
                 writer.WriteNonSymmetric(heightInSuperBlocks - 1, maxHeight);
@@ -805,7 +799,7 @@ internal sealed class ObuWriter : IDisposable
         }
         else
         {
-            // Guard.IsTrue(frameHeader.AllowScreenContentTools == sequenceHeader.ForceScreenContentTools);
+            // The sequence forces the value, so the header omits the flag. The frame value must equal the sequence value.
         }
 
         if (frameHeader.AllowScreenContentTools)
@@ -816,7 +810,7 @@ internal sealed class ObuWriter : IDisposable
             }
             else
             {
-                // Guard.IsTrue(frameHeader.ForceIntegerMotionVector == sequenceHeader.ForceIntegerMotionVector, nameof(frameHeader.ForceIntegerMotionVector), "Frame and sequence must be in sync");
+                // The sequence forces the value, so the header omits the flag. The frame value must equal the sequence value.
             }
         }
 
@@ -845,7 +839,7 @@ internal sealed class ObuWriter : IDisposable
 
         if (sequenceHeader.DecoderModelInfoPresentFlag)
         {
-            // Image-sequence timing is carried by the container track, so encoded samples do not signal decoder-buffer removal times.
+            // The container track carries the timing of an image sequence, so encoded samples do not signal decoder-buffer removal times.
             writer.WriteBoolean(false);
         }
 
@@ -997,7 +991,7 @@ internal sealed class ObuWriter : IDisposable
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader)
     {
-        // Long signaling is deterministic and permits every reference role to select the same retained slot.
+        // The writer does not use short signaling. Explicit slot indices are deterministic and let every reference role select the same slot.
         if (sequenceHeader.EnableOrderHint)
         {
             writer.WriteBoolean(false);
@@ -1053,14 +1047,14 @@ internal sealed class ObuWriter : IDisposable
     {
         int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
 
-        // libaom starts the tile-group header at the next byte after the uncompressed frame header. This
-        // boundary is required before the optional flag because the flag belongs to tile_group_obu syntax.
+        // The tile-group header starts at the next byte after the uncompressed frame header. The alignment comes before the optional flag,
+        // because the flag belongs to the `tile_group_obu` syntax.
         AlignToByteBoundary(ref writer);
 
         if (tileCount > 1)
         {
-            // A combined frame always carries the complete raster tile group. The zero bit selects those implicit
-            // full-frame bounds instead of adding explicit start and end tile indices.
+            // A combined frame always carries all tiles in raster order. The zero bit selects these implicit bounds of the full frame. As a
+            // result, the header has no explicit start and end tile indices.
             writer.WriteBoolean(false);
         }
 
@@ -1165,9 +1159,8 @@ internal sealed class ObuWriter : IDisposable
             return;
         }
 
-        // A frame with no primary reference starts a new segmentation domain, so AV1 infers update-map and
-        // update-data as enabled. Any other frame signals them, and keeps the features of its primary reference unless
-        // it updates the data. Reference: encode_segmentation().
+        // A frame with no primary reference starts new segmentation state, so AV1 infers the update-map and update-data flags as enabled. Any
+        // other frame signals the flags. That frame keeps the features of its primary reference unless it updates the data.
         if (frameHeader.PrimaryReferenceFrame != Av1Constants.PrimaryReferenceFrameNone)
         {
             writer.WriteBoolean(segmentation.SegmentationUpdateMap == 1);
@@ -1240,11 +1233,9 @@ internal sealed class ObuWriter : IDisposable
             return;
         }
 
-        // encode_loopfilter signals an update only when a delta differs from the primary reference
-        // frame's, or from the defaults when the frame has none (is_mode_ref_delta_meaningful),
-        // and then marks each delta that changed. The encoder
-        // keeps the default deltas, so every reference it writes carries them and they are the
-        // comparison for every frame.
+        // The writer signals an update only when a delta differs from the deltas of the primary reference frame. If the frame has no primary
+        // reference, the comparison uses the default deltas. The update then marks each delta that changed. This encoder always keeps the
+        // default deltas, so every reference that it writes carries them. As a result, the defaults are the comparison for every frame.
         bool update = false;
         for (int i = 0; i < Av1Constants.TotalReferencesPerFrame; i++)
         {
@@ -1367,8 +1358,8 @@ internal sealed class ObuWriter : IDisposable
     }
 
     /// <summary>
-    /// Writes global-motion parameters when permitted by the frame type. Each model is coded against the model of the
-    /// same reference in the primary reference frame. Reference: write_global_motion().
+    /// Writes global-motion parameters when the frame type permits them. Each model is coded relative to the model of the same reference in the
+    /// primary reference frame.
     /// </summary>
     /// <param name="writer">The bit writer positioned at the global-motion syntax.</param>
     /// <param name="frameHeader">The current frame header.</param>
@@ -1394,6 +1385,10 @@ internal sealed class ObuWriter : IDisposable
     /// <summary>
     /// Writes one global-motion model relative to the same-role model in the primary reference frame.
     /// </summary>
+    /// <param name="writer">The bit writer positioned at the model syntax.</param>
+    /// <param name="parameters">The model to write.</param>
+    /// <param name="referenceParameters">The model of the same reference in the primary reference frame.</param>
+    /// <param name="allowHighPrecisionMotionVector">Whether translation can keep one-eighth-sample precision.</param>
     private static void WriteGlobalMotionModel(
         ref Av1BitStreamWriter writer,
         Av1GlobalMotionParameters parameters,
@@ -1415,9 +1410,13 @@ internal sealed class ObuWriter : IDisposable
     }
 
     /// <summary>
-    /// Writes the parameters of one global-motion model, after its type, against the same-role model in the primary
-    /// reference frame. Reference: write_global_motion_params().
+    /// Writes the parameters of one global-motion model, after its type. Each parameter is coded relative to the same parameter of the same-role
+    /// model in the primary reference frame.
     /// </summary>
+    /// <param name="writer">The bit writer positioned after the model type.</param>
+    /// <param name="parameters">The model to write.</param>
+    /// <param name="referenceParameters">The model of the same reference in the primary reference frame.</param>
+    /// <param name="allowHighPrecisionMotionVector">Whether translation can keep one-eighth-sample precision.</param>
     private static void WriteGlobalMotionModelParameters(
         ref Av1BitStreamWriter writer,
         Av1GlobalMotionParameters parameters,
@@ -1503,12 +1502,12 @@ internal sealed class ObuWriter : IDisposable
     }
 
     /// <summary>
-    /// Gets the number of header bits that the parameters of one global-motion model take, without its type bits.
-    /// Reference: gm_get_params_cost(), before its shift to rate units.
+    /// Gets the number of header bits that the parameters of one global-motion model take, without its type bits. The result is a bit count,
+    /// not a rate value.
     /// </summary>
     /// <param name="parameters">The model to measure.</param>
     /// <param name="referenceParameters">The model of the same reference in the primary reference frame.</param>
-    /// <param name="allowHighPrecisionMotionVector">Whether translation may retain one-eighth-sample precision.</param>
+    /// <param name="allowHighPrecisionMotionVector">Whether translation can keep one-eighth-sample precision.</param>
     /// <returns>The parameter length in bits.</returns>
     internal static int GetGlobalMotionParameterBitCount(
         Av1GlobalMotionParameters parameters,
@@ -1577,7 +1576,7 @@ internal sealed class ObuWriter : IDisposable
 
         writer.WriteLiteral(grainParams.GrainSeed, 16);
 
-        // An inter frame may reuse the grain of a reference slot. Reference: write_film_grain_params().
+        // An inter frame can reuse the grain parameters of a reference slot. Other frame types always update them.
         if (frameHeader.FrameType == ObuFrameType.InterFrame)
         {
             writer.WriteBoolean(grainParams.UpdateGrain);

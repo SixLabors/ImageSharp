@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
-/// Stores encoder block geometry and its selected coding-mode information.
+/// Stores the packed coding decisions that the encoder selects for one final block.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Pack = 1, Size = StorageSize)]
 internal struct Av1EncoderBlockStruct
@@ -22,8 +22,8 @@ internal struct Av1EncoderBlockStruct
     /// </summary>
     private Av1EncoderPredictionUnit predictionUnit;
 
-    // These syntax values have AV1-defined byte-sized ranges. Storing their encoded widths explicitly
-    // prevents CLR field alignment from inflating every entry in the 1,024-element decision workspace.
+    // AV1 limits each of these syntax values to one byte. Byte fields stop CLR field alignment from growing every entry of the
+    // 1,024-element decision workspace.
     private byte hasChroma;
     private byte quantizationIndex;
     private byte segmentId;
@@ -69,7 +69,7 @@ internal struct Av1EncoderBlockStruct
     /// Gets or sets the dynamic-reference-list index selected for an inter block.
     /// </summary>
     /// <remarks>
-    /// Filter-intra and inter prediction are mutually exclusive, so both syntax branches share one packed byte.
+    /// A block uses filter-intra prediction or inter prediction, never both. As a result, both values share one packed byte.
     /// </remarks>
     public int ReferenceMotionVectorIndex
     {

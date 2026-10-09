@@ -71,8 +71,8 @@ internal static class Av1ProbabilityCost
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public static int GetSymbolCost(int probability)
     {
-        // The range coder reserves a minimum interval even when CDF adaptation collapses a symbol's mass.
-        // RD costs use that same floor; the raw probability conversion below retains its separate numerical domain.
+        // The range coder keeps a minimum interval, also when CDF adaptation collapses the mass of a symbol. Rate costs use the same
+        // floor. The raw probability conversion below keeps its own clamp.
         return GetProbabilityCost(Math.Max(probability, Av1Distribution.ProbabilityMinimum));
     }
 

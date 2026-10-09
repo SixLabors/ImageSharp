@@ -266,119 +266,130 @@ internal readonly ref struct Av1ModeCosts
     private const int SegmentIdOffset = SegmentIdPredictedOffset + SegmentIdPredictedLength;
 
     private const int ChromaFromLumaOffset = SegmentIdOffset + SegmentIdLength;
+
+    /// <summary>
+    /// The number of rate entries that the storage of one instance holds. Each table starts where the previous table ends.
+    /// </summary>
     public const int StorageLength = ChromaFromLumaOffset + ChromaFromLumaLength;
 
+    /// <summary>
+    /// The caller-owned rate storage. Each table keeps its rows one after another, with a fixed stride of one full alphabet for each row.
+    /// </summary>
     private readonly Span<int> storage;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1ModeCosts"/> struct over caller-owned storage.
+    /// </summary>
+    /// <param name="storage">The rate storage, with at least <see cref="StorageLength"/> entries.</param>
     public Av1ModeCosts(Span<int> storage) => this.storage = storage;
 
     /// <summary>
-    /// Gets the partition types rate entries.
+    /// Gets the partition-type rate entries.
     /// </summary>
     private Span<int> PartitionTypes => this.storage.Slice(PartitionTypesOffset, PartitionTypesLength);
 
     /// <summary>
-    /// Gets the frame ymode rate entries.
+    /// Gets the inter-frame luma-mode rate entries.
     /// </summary>
     private Span<int> FrameYMode => this.storage.Slice(FrameYModeOffset, FrameYModeLength);
 
     /// <summary>
-    /// Gets the key frame ymode rate entries.
+    /// Gets the key-frame luma-mode rate entries.
     /// </summary>
     private Span<int> KeyFrameYMode => this.storage.Slice(KeyFrameYModeOffset, KeyFrameYModeLength);
 
     /// <summary>
-    /// Gets the uv mode rate entries.
+    /// Gets the chroma-mode rate entries.
     /// </summary>
     private Span<int> UvMode => this.storage.Slice(UvModeOffset, UvModeLength);
 
     /// <summary>
-    /// Gets the filter intra rate entries.
+    /// Gets the filter-intra enable rate entries.
     /// </summary>
     private Span<int> FilterIntra => this.storage.Slice(FilterIntraOffset, FilterIntraLength);
 
     /// <summary>
-    /// Gets the filter intra mode rate entries.
+    /// Gets the filter-intra mode rate entries.
     /// </summary>
     private Span<int> FilterIntraMode => this.storage.Slice(FilterIntraModeOffset, FilterIntraModeLength);
 
     /// <summary>
-    /// Gets the angle delta rate entries.
+    /// Gets the angle-delta rate entries.
     /// </summary>
     private Span<int> AngleDelta => this.storage.Slice(AngleDeltaOffset, AngleDeltaLength);
 
     /// <summary>
-    /// Gets the intra block copy rate entries.
+    /// Gets the intra-block-copy rate entries.
     /// </summary>
     private Span<int> IntraBlockCopy => this.storage.Slice(IntraBlockCopyOffset, IntraBlockCopyLength);
 
     /// <summary>
-    /// Gets the palette ysize rate entries.
+    /// Gets the luma palette-size rate entries.
     /// </summary>
     private Span<int> PaletteYSize => this.storage.Slice(PaletteYSizeOffset, PaletteYSizeLength);
 
     /// <summary>
-    /// Gets the palette uv size rate entries.
+    /// Gets the chroma palette-size rate entries.
     /// </summary>
     private Span<int> PaletteUvSize => this.storage.Slice(PaletteUvSizeOffset, PaletteUvSizeLength);
 
     /// <summary>
-    /// Gets the palette ycolor index rate entries.
+    /// Gets the luma palette color-index rate entries.
     /// </summary>
     private Span<int> PaletteYColorIndex => this.storage.Slice(PaletteYColorIndexOffset, PaletteYColorIndexLength);
 
     /// <summary>
-    /// Gets the palette uv color index rate entries.
+    /// Gets the chroma palette color-index rate entries.
     /// </summary>
     private Span<int> PaletteUvColorIndex => this.storage.Slice(PaletteUvColorIndexOffset, PaletteUvColorIndexLength);
 
     /// <summary>
-    /// Gets the palette ymode rate entries.
+    /// Gets the luma palette-mode rate entries.
     /// </summary>
     private Span<int> PaletteYMode => this.storage.Slice(PaletteYModeOffset, PaletteYModeLength);
 
     /// <summary>
-    /// Gets the palette uv mode rate entries.
+    /// Gets the chroma palette-mode rate entries.
     /// </summary>
     private Span<int> PaletteUvMode => this.storage.Slice(PaletteUvModeOffset, PaletteUvModeLength);
 
     /// <summary>
-    /// Gets the skip mode rate entries.
+    /// Gets the skip-mode rate entries.
     /// </summary>
     private Span<int> SkipMode => this.storage.Slice(SkipModeOffset, SkipModeLength);
 
     /// <summary>
-    /// Gets the new mv rate entries.
+    /// Gets the new-motion-vector rate entries.
     /// </summary>
     private Span<int> NewMv => this.storage.Slice(NewMvOffset, NewMvLength);
 
     /// <summary>
-    /// Gets the zero mv rate entries.
+    /// Gets the global-motion-vector rate entries.
     /// </summary>
     private Span<int> ZeroMv => this.storage.Slice(ZeroMvOffset, ZeroMvLength);
 
     /// <summary>
-    /// Gets the ref mv rate entries.
+    /// Gets the nearest-or-near motion-vector rate entries.
     /// </summary>
     private Span<int> RefMv => this.storage.Slice(RefMvOffset, RefMvLength);
 
     /// <summary>
-    /// Gets the drl rate entries.
+    /// Gets the dynamic reference-list rate entries.
     /// </summary>
     private Span<int> Drl => this.storage.Slice(DrlOffset, DrlLength);
 
     /// <summary>
-    /// Gets the single reference rate entries.
+    /// Gets the single-reference selection rate entries.
     /// </summary>
     private Span<int> SingleReference => this.storage.Slice(SingleReferenceOffset, SingleReferenceLength);
 
     /// <summary>
-    /// Gets the comp inter rate entries.
+    /// Gets the single-versus-compound reference rate entries.
     /// </summary>
     private Span<int> CompInter => this.storage.Slice(CompInterOffset, CompInterLength);
 
     /// <summary>
-    /// Gets the compound reference type rate entries.
+    /// Gets the compound reference-direction rate entries.
     /// </summary>
     private Span<int> CompoundReferenceType => this.storage.Slice(CompoundReferenceTypeOffset, CompoundReferenceTypeLength);
 
@@ -388,271 +399,348 @@ internal readonly ref struct Av1ModeCosts
     private Span<int> UnidirectionalCompoundReference => this.storage.Slice(UnidirectionalCompoundReferenceOffset, UnidirectionalCompoundReferenceLength);
 
     /// <summary>
-    /// Gets the compound reference rate entries.
+    /// Gets the bidirectional compound forward-reference rate entries.
     /// </summary>
     private Span<int> CompoundReference => this.storage.Slice(CompoundReferenceOffset, CompoundReferenceLength);
 
     /// <summary>
-    /// Gets the compound backward reference rate entries.
+    /// Gets the bidirectional compound backward-reference rate entries.
     /// </summary>
     private Span<int> CompoundBackwardReference => this.storage.Slice(CompoundBackwardReferenceOffset, CompoundBackwardReferenceLength);
 
     /// <summary>
-    /// Gets the intra inter rate entries.
+    /// Gets the intra-versus-inter rate entries.
     /// </summary>
     private Span<int> IntraInter => this.storage.Slice(IntraInterOffset, IntraInterLength);
 
     /// <summary>
-    /// Gets the inter compound mode rate entries.
+    /// Gets the compound inter-mode rate entries.
     /// </summary>
     private Span<int> InterCompoundMode => this.storage.Slice(InterCompoundModeOffset, InterCompoundModeLength);
 
     /// <summary>
-    /// Gets the compound type rate entries.
+    /// Gets the masked compound-type rate entries.
     /// </summary>
     private Span<int> CompoundType => this.storage.Slice(CompoundTypeOffset, CompoundTypeLength);
 
     /// <summary>
-    /// Gets the wedge index rate entries.
+    /// Gets the wedge-index rate entries.
     /// </summary>
     private Span<int> WedgeIndex => this.storage.Slice(WedgeIndexOffset, WedgeIndexLength);
 
     /// <summary>
-    /// Gets the inter intra rate entries.
+    /// Gets the inter-intra enable rate entries.
     /// </summary>
     private Span<int> InterIntra => this.storage.Slice(InterIntraOffset, InterIntraLength);
 
     /// <summary>
-    /// Gets the wedge inter intra rate entries.
+    /// Gets the inter-intra wedge-enable rate entries.
     /// </summary>
     private Span<int> WedgeInterIntra => this.storage.Slice(WedgeInterIntraOffset, WedgeInterIntraLength);
 
     /// <summary>
-    /// Gets the inter intra mode rate entries.
+    /// Gets the inter-intra mode rate entries.
     /// </summary>
     private Span<int> InterIntraMode => this.storage.Slice(InterIntraModeOffset, InterIntraModeLength);
 
     /// <summary>
-    /// Gets the compound index rate entries.
+    /// Gets the average-or-distance-weighted compound rate entries.
     /// </summary>
     private Span<int> CompoundIndex => this.storage.Slice(CompoundIndexOffset, CompoundIndexLength);
 
     /// <summary>
-    /// Gets the compound group index rate entries.
+    /// Gets the unmasked-or-masked compound-group rate entries.
     /// </summary>
     private Span<int> CompoundGroupIndex => this.storage.Slice(CompoundGroupIndexOffset, CompoundGroupIndexLength);
 
     /// <summary>
-    /// Gets the motion mode rate entries.
+    /// Gets the three-way motion-mode rate entries for blocks that can use warped motion.
     /// </summary>
     private Span<int> MotionMode => this.storage.Slice(MotionModeOffset, MotionModeLength);
 
     /// <summary>
-    /// Gets the obmc rate entries.
+    /// Gets the two-way motion-mode rate entries for blocks that can use OBMC but not warped motion.
     /// </summary>
     private Span<int> Obmc => this.storage.Slice(ObmcOffset, ObmcLength);
 
     /// <summary>
-    /// Gets the switchable interpolation rate entries.
+    /// Gets the switchable interpolation-filter rate entries.
     /// </summary>
     private Span<int> SwitchableInterpolation => this.storage.Slice(SwitchableInterpolationOffset, SwitchableInterpolationLength);
 
     /// <summary>
-    /// Gets the skip rate entries.
+    /// Gets the transform-skip rate entries.
     /// </summary>
     private Span<int> Skip => this.storage.Slice(SkipOffset, SkipLength);
 
     /// <summary>
-    /// Gets the transform size rate entries.
+    /// Gets the transform-size rate entries.
     /// </summary>
     private Span<int> TransformSize => this.storage.Slice(TransformSizeOffset, TransformSizeLength);
 
     /// <summary>
-    /// Gets the transform partition rate entries.
+    /// Gets the variable-transform partition rate entries.
     /// </summary>
     private Span<int> TransformPartition => this.storage.Slice(TransformPartitionOffset, TransformPartitionLength);
 
     /// <summary>
-    /// Gets the inter extended transform rate entries.
+    /// Gets the inter transform-type rate entries.
     /// </summary>
     private Span<int> InterExtendedTransform => this.storage.Slice(InterExtendedTransformOffset, InterExtendedTransformLength);
 
     /// <summary>
-    /// Gets the intra extended transform rate entries.
+    /// Gets the intra transform-type rate entries.
     /// </summary>
     private Span<int> IntraExtendedTransform => this.storage.Slice(IntraExtendedTransformOffset, IntraExtendedTransformLength);
 
     /// <summary>
-    /// Gets the switchable restoration rate entries.
+    /// Gets the switchable loop-restoration type rate entries.
     /// </summary>
     private Span<int> SwitchableRestoration => this.storage.Slice(SwitchableRestorationOffset, SwitchableRestorationLength);
 
     /// <summary>
-    /// Gets the wiener restoration rate entries.
+    /// Gets the Wiener restoration enable rate entries.
     /// </summary>
     private Span<int> WienerRestoration => this.storage.Slice(WienerRestorationOffset, WienerRestorationLength);
 
     /// <summary>
-    /// Gets the sgr projection restoration rate entries.
+    /// Gets the self-guided restoration enable rate entries.
     /// </summary>
     private Span<int> SgrProjectionRestoration => this.storage.Slice(SgrProjectionRestorationOffset, SgrProjectionRestorationLength);
 
     /// <summary>
-    /// Gets the segment id predicted rate entries.
+    /// Gets the temporal segment-prediction flag rate entries.
     /// </summary>
     private Span<int> SegmentIdPredicted => this.storage.Slice(SegmentIdPredictedOffset, SegmentIdPredictedLength);
 
     /// <summary>
-    /// Gets the segment id rate entries.
+    /// Gets the spatially predicted segment-identifier rate entries.
     /// </summary>
     private Span<int> SegmentId => this.storage.Slice(SegmentIdOffset, SegmentIdLength);
 
     /// <summary>
-    /// Gets the chroma from luma rate entries.
+    /// Gets the chroma-from-luma rate entries. Each joint sign has one U row and one V row. The U row includes the joint-sign rate.
     /// </summary>
     private Span<int> ChromaFromLuma => this.storage.Slice(ChromaFromLumaOffset, ChromaFromLumaLength);
 
     /// <summary>
-    /// Gets a retained spatially predicted segment identifier rate in 1/512-bit units. Reference: spatial_pred_cost.
+    /// Gets a retained spatially predicted segment identifier rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The neighboring segment context.</param>
+    /// <param name="symbol">The coded segment symbol.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetSegmentId(int row, int symbol)
         => this.SegmentId[(row * SegmentIdAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained temporal segment prediction flag rate in 1/512-bit units. Reference: tmp_pred_cost.
+    /// Gets a retained temporal segment prediction flag rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The context from the above and left prediction flags.</param>
+    /// <param name="symbol">Zero when the flag is clear or one when it is set.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetSegmentIdPredicted(int row, int symbol)
         => this.SegmentIdPredicted[(row * SegmentIdPredictedAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained partition types rate in 1/512-bit units.
+    /// Gets a retained partition-type rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The partition context.</param>
+    /// <param name="symbol">The partition type symbol.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetPartitionTypes(int row, int symbol)
         => this.PartitionTypes[(row * PartitionTypesAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained frame ymode rate in 1/512-bit units.
+    /// Gets a retained inter-frame luma-mode rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The block-size group.</param>
+    /// <param name="symbol">The luma prediction mode.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetFrameYMode(int row, int symbol)
         => this.FrameYMode[(row * FrameYModeAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained key frame ymode rate in 1/512-bit units.
+    /// Gets a retained key-frame luma-mode rate in 1/512-bit units.
     /// </summary>
+    /// <param name="plane">The above intra-mode context.</param>
+    /// <param name="row">The left intra-mode context.</param>
+    /// <param name="symbol">The luma prediction mode.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetKeyFrameYMode(int plane, int row, int symbol)
         => this.KeyFrameYMode[(((plane * KeyFrameYModeRowCount) + row) * KeyFrameYModeAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained uv mode rate in 1/512-bit units.
+    /// Gets a retained chroma-mode rate in 1/512-bit units.
     /// </summary>
+    /// <param name="plane">One when chroma-from-luma is allowed, otherwise zero.</param>
+    /// <param name="row">The luma prediction mode.</param>
+    /// <param name="symbol">The chroma prediction mode.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetUvMode(int plane, int row, int symbol)
         => this.UvMode[(((plane * UvModeRowCount) + row) * UvModeAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained filter intra rate in 1/512-bit units.
+    /// Gets a retained filter-intra enable rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The block size.</param>
+    /// <param name="symbol">Zero when filter intra is off or one when it is on.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetFilterIntra(int row, int symbol)
         => this.FilterIntra[(row * FilterIntraAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained filter intra mode rate in 1/512-bit units.
+    /// Gets a retained filter-intra mode rate in 1/512-bit units.
     /// </summary>
+    /// <param name="symbol">The filter-intra mode.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetFilterIntraMode(int symbol)
         => this.FilterIntraMode[symbol];
 
     /// <summary>
-    /// Gets a retained angle delta rate in 1/512-bit units.
+    /// Gets a retained angle-delta rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The directional mode row.</param>
+    /// <param name="symbol">The unsigned angle-delta symbol.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetAngleDelta(int row, int symbol)
         => this.AngleDelta[(row * AngleDeltaAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained intra block copy rate in 1/512-bit units.
+    /// Gets a retained intra-block-copy flag rate in 1/512-bit units.
     /// </summary>
+    /// <param name="symbol">Zero when intra-block copy is off or one when it is on.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetIntraBlockCopy(int symbol)
         => this.IntraBlockCopy[symbol];
 
     /// <summary>
-    /// Gets a retained palette ysize rate in 1/512-bit units.
+    /// Gets a retained luma palette-size rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The block-size context.</param>
+    /// <param name="symbol">The palette size minus two.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetPaletteYSize(int row, int symbol)
         => this.PaletteYSize[(row * PaletteYSizeAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained palette uv size rate in 1/512-bit units.
+    /// Gets a retained chroma palette-size rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The block-size context.</param>
+    /// <param name="symbol">The palette size minus two.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetPaletteUvSize(int row, int symbol)
         => this.PaletteUvSize[(row * PaletteUvSizeAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained palette ycolor index rate in 1/512-bit units.
+    /// Gets a retained luma palette color-index rate in 1/512-bit units.
     /// </summary>
+    /// <param name="plane">The palette size minus two.</param>
+    /// <param name="row">The color-index context.</param>
+    /// <param name="symbol">The color-order index.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetPaletteYColorIndex(int plane, int row, int symbol)
         => this.PaletteYColorIndex[(((plane * PaletteYColorIndexRowCount) + row) * PaletteYColorIndexAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained palette uv color index rate in 1/512-bit units.
+    /// Gets a retained chroma palette color-index rate in 1/512-bit units.
     /// </summary>
+    /// <param name="plane">The palette size minus two.</param>
+    /// <param name="row">The color-index context.</param>
+    /// <param name="symbol">The color-order index.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetPaletteUvColorIndex(int plane, int row, int symbol)
         => this.PaletteUvColorIndex[(((plane * PaletteUvColorIndexRowCount) + row) * PaletteUvColorIndexAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained palette ymode rate in 1/512-bit units.
+    /// Gets a retained luma palette-mode rate in 1/512-bit units.
     /// </summary>
+    /// <param name="plane">The block-size context.</param>
+    /// <param name="row">The count of neighbors that use a palette.</param>
+    /// <param name="symbol">Zero when the palette is off or one when it is on.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetPaletteYMode(int plane, int row, int symbol)
         => this.PaletteYMode[(((plane * PaletteYModeRowCount) + row) * PaletteYModeAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained palette uv mode rate in 1/512-bit units.
+    /// Gets a retained chroma palette-mode rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">One when luma uses a palette, otherwise zero.</param>
+    /// <param name="symbol">Zero when the palette is off or one when it is on.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetPaletteUvMode(int row, int symbol)
         => this.PaletteUvMode[(row * PaletteUvModeAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained new mv rate in 1/512-bit units.
+    /// Gets a retained new-motion-vector decision rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The new-motion-vector context.</param>
+    /// <param name="symbol">Zero for NEWMV or one for the other modes.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetNewMv(int row, int symbol)
         => this.NewMv[(row * NewMvAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained zero mv rate in 1/512-bit units.
+    /// Gets a retained global-motion decision rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The global-motion context.</param>
+    /// <param name="symbol">Zero for GLOBALMV or one for the other modes.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetZeroMv(int row, int symbol)
         => this.ZeroMv[(row * ZeroMvAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained ref mv rate in 1/512-bit units.
+    /// Gets a retained nearest-or-near decision rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The spatial reference-motion-vector context.</param>
+    /// <param name="symbol">Zero for NEARESTMV or one for NEARMV.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetRefMv(int row, int symbol)
         => this.RefMv[(row * RefMvAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained drl rate in 1/512-bit units.
+    /// Gets a retained dynamic reference-list decision rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The candidate-weight context.</param>
+    /// <param name="symbol">One when the selection advances past the current candidate, otherwise zero.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetDrl(int row, int symbol)
         => this.Drl[(row * DrlAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained single reference rate in 1/512-bit units.
+    /// Gets a retained single-reference tree decision rate in 1/512-bit units.
     /// </summary>
+    /// <param name="plane">The neighboring reference-vote context.</param>
+    /// <param name="row">The zero-based tree decision.</param>
+    /// <param name="symbol">The binary decision.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetSingleReference(int plane, int row, int symbol)
         => this.SingleReference[(((plane * SingleReferenceRowCount) + row) * SingleReferenceAlphabetSize) + symbol];
 
     /// <summary>
     /// Gets a retained single-versus-compound reference rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The reference-mode context.</param>
+    /// <param name="symbol">Zero for a single reference or one for compound references.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetCompInter(int row, int symbol)
         => this.CompInter[(row * CompInterAlphabetSize) + symbol];
 
     /// <summary>
     /// Gets a retained compound reference-direction rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The compound reference-type context.</param>
+    /// <param name="symbol">Zero for a unidirectional pair or one for a bidirectional pair.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetCompoundReferenceType(int row, int symbol)
         => this.CompoundReferenceType[(row * CompoundReferenceTypeAlphabetSize) + symbol];
 
     /// <summary>
     /// Gets a retained unidirectional compound-reference branch rate in 1/512-bit units.
     /// </summary>
+    /// <param name="plane">The neighboring reference-vote context.</param>
+    /// <param name="row">The zero-based tree decision.</param>
+    /// <param name="symbol">The binary decision.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetUnidirectionalCompoundReference(int plane, int row, int symbol)
         => this.UnidirectionalCompoundReference[
             (((plane * UnidirectionalCompoundReferenceRowCount) + row) * UnidirectionalCompoundReferenceAlphabetSize) + symbol];
@@ -660,6 +748,10 @@ internal readonly ref struct Av1ModeCosts
     /// <summary>
     /// Gets a retained bidirectional compound forward-reference branch rate in 1/512-bit units.
     /// </summary>
+    /// <param name="plane">The neighboring reference-vote context.</param>
+    /// <param name="row">The zero-based tree decision.</param>
+    /// <param name="symbol">The binary decision.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetCompoundReference(int plane, int row, int symbol)
         => this.CompoundReference[
             (((plane * CompoundReferenceRowCount) + row) * CompoundReferenceAlphabetSize) + symbol];
@@ -667,6 +759,10 @@ internal readonly ref struct Av1ModeCosts
     /// <summary>
     /// Gets a retained bidirectional compound backward-reference branch rate in 1/512-bit units.
     /// </summary>
+    /// <param name="plane">The neighboring reference-vote context.</param>
+    /// <param name="row">The zero-based tree decision.</param>
+    /// <param name="symbol">The binary decision.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetCompoundBackwardReference(int plane, int row, int symbol)
         => this.CompoundBackwardReference[
             (((plane * CompoundBackwardReferenceRowCount) + row) * CompoundBackwardReferenceAlphabetSize) + symbol];
@@ -674,110 +770,166 @@ internal readonly ref struct Av1ModeCosts
     /// <summary>
     /// Gets a retained compound inter-mode rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The compound inter-mode context.</param>
+    /// <param name="symbol">The compound mode, counted from NEAREST_NEARESTMV.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetInterCompoundMode(int row, int symbol)
         => this.InterCompoundMode[(row * InterCompoundModeAlphabetSize) + symbol];
 
     /// <summary>
     /// Gets a retained masked compound-type rate in 1/512-bit units.
     /// </summary>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="symbol">Zero for a wedge mask or one for a difference-weighted mask.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetCompoundType(Av1BlockSize blockSize, int symbol)
         => this.CompoundType[((int)blockSize * CompoundTypeAlphabetSize) + symbol];
 
     /// <summary>
     /// Gets a retained wedge-index rate in 1/512-bit units.
     /// </summary>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="symbol">The wedge index.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetWedgeIndex(Av1BlockSize blockSize, int symbol)
         => this.WedgeIndex[((int)blockSize * WedgeIndexAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained motion-mode rate of a block that may use warped motion, in 1/512-bit units.
-    /// Reference: motion_mode_cost.
+    /// Gets a retained motion-mode rate of a block that can use warped motion, in 1/512-bit units.
     /// </summary>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="mode">The motion mode.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetMotionMode(Av1BlockSize blockSize, Av1MotionMode mode)
         => this.MotionMode[((int)blockSize * MotionModeAlphabetSize) + (int)mode];
 
     /// <summary>
-    /// Gets a retained motion-mode rate of a block that may use OBMC but not warped motion, in 1/512-bit units.
-    /// Reference: motion_mode_cost1.
+    /// Gets a retained motion-mode rate of a block that can use OBMC but not warped motion, in 1/512-bit units.
     /// </summary>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="mode">The motion mode, Simple Translation or OBMC.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetObmc(Av1BlockSize blockSize, Av1MotionMode mode)
         => this.Obmc[((int)blockSize * ObmcAlphabetSize) + (int)mode];
 
     /// <summary>
     /// Gets a retained inter-intra enable rate in 1/512-bit units.
     /// </summary>
+    /// <param name="blockSize">The block size, which selects its size group.</param>
+    /// <param name="symbol">Zero when inter-intra is off or one when it is on.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetInterIntra(Av1BlockSize blockSize, int symbol)
         => this.InterIntra[(blockSize.GetSizeGroup() * InterIntraAlphabetSize) + symbol];
 
     /// <summary>
     /// Gets a retained inter-intra mode rate in 1/512-bit units.
     /// </summary>
+    /// <param name="blockSize">The block size, which selects its size group.</param>
+    /// <param name="mode">The inter-intra mode.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetInterIntraMode(Av1BlockSize blockSize, Av1InterIntraMode mode)
         => this.InterIntraMode[(blockSize.GetSizeGroup() * InterIntraModeAlphabetSize) + (int)mode];
 
     /// <summary>
     /// Gets a retained inter-intra wedge-enable rate in 1/512-bit units.
     /// </summary>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="symbol">Zero when the wedge is off or one when it is on.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetWedgeInterIntra(Av1BlockSize blockSize, int symbol)
         => this.WedgeInterIntra[((int)blockSize * WedgeInterIntraAlphabetSize) + symbol];
 
     /// <summary>
     /// Gets a retained unmasked compound-index rate in 1/512-bit units.
     /// </summary>
+    /// <param name="context">The compound-index context.</param>
+    /// <param name="symbol">Zero for distance weighting or one for equal averaging.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetCompoundIndex(int context, int symbol)
         => this.CompoundIndex[(context * CompoundIndexAlphabetSize) + symbol];
 
     /// <summary>
     /// Gets a retained compound-group rate in 1/512-bit units.
     /// </summary>
+    /// <param name="context">The compound-group context.</param>
+    /// <param name="symbol">Zero for unmasked or one for masked compound prediction.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetCompoundGroupIndex(int context, int symbol)
         => this.CompoundGroupIndex[(context * CompoundGroupIndexAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained intra inter rate in 1/512-bit units.
+    /// Gets a retained intra-versus-inter rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The intra-inter context.</param>
+    /// <param name="symbol">Zero for intra or one for inter prediction.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetIntraInter(int row, int symbol)
         => this.IntraInter[(row * IntraInterAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained switchable interpolation rate in 1/512-bit units.
+    /// Gets a retained switchable interpolation-filter rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The interpolation-filter context.</param>
+    /// <param name="symbol">The interpolation filter.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetSwitchableInterpolation(int row, int symbol)
         => this.SwitchableInterpolation[(row * SwitchableInterpolationAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained skip rate in 1/512-bit units.
+    /// Gets a retained transform-skip rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The neighboring skip context.</param>
+    /// <param name="symbol">One when the block has no coded coefficients, otherwise zero.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetSkip(int row, int symbol)
         => this.Skip[(row * SkipAlphabetSize) + symbol];
 
     /// <summary>
     /// Gets a retained compound skip-mode rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The neighboring skip-mode context.</param>
+    /// <param name="symbol">Zero when skip mode is off or one when it is on.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetSkipMode(int row, int symbol)
         => this.SkipMode[(row * SkipModeAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained transform size rate in 1/512-bit units.
+    /// Gets a retained transform-size rate in 1/512-bit units.
     /// </summary>
+    /// <param name="plane">The maximum transform category.</param>
+    /// <param name="row">The neighboring transform-size context.</param>
+    /// <param name="symbol">The transform subdivision depth.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetTransformSize(int plane, int row, int symbol)
         => this.TransformSize[(((plane * TransformSizeRowCount) + row) * TransformSizeAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained transform partition rate in 1/512-bit units.
+    /// Gets a retained variable-transform partition rate in 1/512-bit units.
     /// </summary>
+    /// <param name="row">The transform partition context.</param>
+    /// <param name="symbol">One when the transform node splits, otherwise zero.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetTransformPartition(int row, int symbol)
         => this.TransformPartition[(row * TransformPartitionAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained inter extended transform rate in 1/512-bit units.
+    /// Gets a retained inter transform-type rate in 1/512-bit units.
     /// </summary>
+    /// <param name="plane">The inter transform-set distribution index.</param>
+    /// <param name="row">The square transform size.</param>
+    /// <param name="symbol">The coded transform-type symbol.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetInterExtendedTransform(int plane, int row, int symbol)
         => this.InterExtendedTransform[(((plane * InterExtendedTransformRowCount) + row) * InterExtendedTransformAlphabetSize) + symbol];
 
     /// <summary>
-    /// Gets a retained intra extended transform rate in 1/512-bit units.
+    /// Gets a retained intra transform-type rate in 1/512-bit units.
     /// </summary>
+    /// <param name="cube">The intra transform-set distribution index.</param>
+    /// <param name="plane">The square transform size.</param>
+    /// <param name="row">The intra prediction direction.</param>
+    /// <param name="symbol">The coded transform-type symbol.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetIntraExtendedTransform(int cube, int plane, int row, int symbol)
         => this.IntraExtendedTransform[
             (((((cube * IntraExtendedTransformPlaneCount) + plane) * IntraExtendedTransformRowCount) + row) * IntraExtendedTransformAlphabetSize) + symbol];
@@ -785,6 +937,9 @@ internal readonly ref struct Av1ModeCosts
     /// <summary>
     /// Gets the combined U/V magnitude and joint-sign rate in 1/512-bit units.
     /// </summary>
+    /// <param name="index">The packed chroma-from-luma alpha index, which holds the U and V magnitude indices.</param>
+    /// <param name="joinedSign">The joint U/V sign symbol.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     public int GetChromaFromLuma(int index, int joinedSign)
     {
         int offset = joinedSign * ChromaFromLumaPlaneCount * ChromaFromLumaAlphabetSize;
@@ -816,10 +971,11 @@ internal readonly ref struct Av1ModeCosts
     /// <summary>
     /// Replaces the retained rates with the costs of the supplied entropy distributions.
     /// </summary>
+    /// <param name="context">The entropy context whose current distributions give the new rates.</param>
     public void Update(Av1FrameEntropyContext context)
     {
-        // Fixed strides preserve the context and alphabet dimensions. Unused symbols are not read:
-        // each caller selects its legal alphabet before indexing a retained rate.
+        // Fixed strides keep the context and alphabet dimensions. Callers do not read unused symbols, because each caller selects its legal alphabet before it
+        // reads a retained rate.
         FillRows(context.PartitionTypes, this.PartitionTypes, PartitionTypesAlphabetSize);
         FillRows(context.FrameYMode, this.FrameYMode, FrameYModeAlphabetSize);
         FillPlanes(context.KeyFrameYMode, this.KeyFrameYMode, KeyFrameYModeAlphabetSize, KeyFrameYModeRowCount);
@@ -879,8 +1035,8 @@ internal readonly ref struct Av1ModeCosts
         FillRows(context.SegmentIdPredicted, this.SegmentIdPredicted, SegmentIdPredictedAlphabetSize);
         FillRows(context.SegmentId, this.SegmentId, SegmentIdAlphabetSize);
 
-        // The joint sign is charged once, in U's row. A zero component has no magnitude symbol,
-        // so its complete magnitude row is constant rather than conditionally charged in every trial.
+        // The U row carries the joint-sign rate once. A zero component has no magnitude symbol, so its whole row holds one constant value. As a result, a trial
+        // does not need a condition to skip the magnitude rate.
         Span<int> chromaFromLuma = this.ChromaFromLuma;
         for (int sign = 0; sign < ChromaFromLumaSignCount; sign++)
         {
@@ -911,6 +1067,12 @@ internal readonly ref struct Av1ModeCosts
         }
     }
 
+    /// <summary>
+    /// Writes the symbol costs of each distribution into consecutive rows of fixed width.
+    /// </summary>
+    /// <param name="distributions">The distributions, one for each row.</param>
+    /// <param name="costs">The destination rows.</param>
+    /// <param name="alphabetSize">The row stride, which is at least the symbol count of every distribution.</param>
     private static void FillRows(Av1Distribution[] distributions, Span<int> costs, int alphabetSize)
     {
         for (int row = 0; row < distributions.Length; row++)
@@ -919,6 +1081,13 @@ internal readonly ref struct Av1ModeCosts
         }
     }
 
+    /// <summary>
+    /// Writes the symbol costs of a two-level distribution table into consecutive planes of fixed size.
+    /// </summary>
+    /// <param name="distributions">The distributions, one row array for each plane.</param>
+    /// <param name="costs">The destination planes.</param>
+    /// <param name="alphabetSize">The row stride.</param>
+    /// <param name="rowCount">The number of rows in each plane.</param>
     private static void FillPlanes(Av1Distribution[][] distributions, Span<int> costs, int alphabetSize, int rowCount)
     {
         int planeLength = rowCount * alphabetSize;
@@ -928,6 +1097,14 @@ internal readonly ref struct Av1ModeCosts
         }
     }
 
+    /// <summary>
+    /// Writes the symbol costs of a three-level distribution table into consecutive cubes of fixed size.
+    /// </summary>
+    /// <param name="distributions">The distributions, one plane array for each cube.</param>
+    /// <param name="costs">The destination cubes.</param>
+    /// <param name="alphabetSize">The row stride.</param>
+    /// <param name="rowCount">The number of rows in each plane.</param>
+    /// <param name="planeCount">The number of planes in each cube.</param>
     private static void FillCubes(Av1Distribution[][][] distributions, Span<int> costs, int alphabetSize, int rowCount, int planeCount)
     {
         int cubeLength = planeCount * rowCount * alphabetSize;

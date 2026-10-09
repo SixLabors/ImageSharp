@@ -42,8 +42,8 @@ internal sealed class Av1EncoderModeInfoBuffer : IDisposable
         int allocationByteLength = checked(allocationLength * Unsafe.SizeOf<Av1MacroBlockModeInfo>());
         int storageLength = checked(gridByteLength + allocationByteLength);
 
-        // The pointer grid and value allocation share one frame lifetime. Packing both regions into one clean
-        // owner retains libaom's independent typed layouts without its separate allocation and cleanup paths.
+        // The index grid and the value allocation have the same frame lifetime. One clean owner holds both typed regions, so the
+        // frame needs only one allocation and one release.
         this.owner = configuration.MemoryAllocator.Allocate<byte>(storageLength, AllocationOptions.Clean);
         Memory<byte> storage = this.owner.Memory[..storageLength];
         this.grid = new ByteMemoryManager<int>(storage[..gridByteLength]);

@@ -27,9 +27,8 @@ internal sealed class Av1SymbolWriter : IDisposable
     private const int InitialCount = -9;
 
     /// <summary>
-    /// The size of a new tile buffer in bytes. A tile that writes more bytes grows its buffer, so this size only sets
-    /// how often a large tile grows; it never limits the output. It is the start size that the reference encoder
-    /// gives each tile.
+    /// The size of a new tile buffer in bytes. A tile that writes more bytes grows its buffer. As a result, this size only sets how
+    /// often a large tile grows. It never limits the output.
     /// </summary>
     internal const int InitialTileBufferLength = 62025;
 
@@ -200,7 +199,8 @@ internal sealed class Av1SymbolWriter : IDisposable
     /// <param name="bitCount">The number of low-order bits to write.</param>
     public void WriteLiteral(ref Span<byte> output, uint value, int bitCount)
     {
-        const uint p = 0x4000U; // (0x7FFFFFU - (128 << 15) + 128) >> 8;
+        // A literal bit is equiprobable: its Q15 probability is half of 32768.
+        const uint p = 0x4000U;
         for (int bit = bitCount - 1; bit >= 0; bit--)
         {
             bool bitValue = ((value >> bit) & 0x1) > 0;
@@ -284,7 +284,7 @@ internal sealed class Av1SymbolWriter : IDisposable
     }
 
     /// <summary>
-    /// Encode a single binary value.
+    /// Encodes one binary value with a fixed Q15 probability.
     /// </summary>
     /// <param name="output">The tile buffer from <see cref="GetTileBuffer"/>. A write that grows the buffer replaces it.</param>
     /// <param name="val">The value to encode.</param>
@@ -318,14 +318,14 @@ internal sealed class Av1SymbolWriter : IDisposable
     }
 
     /// <summary>
-    /// Encodes a symbol given an inverse cumulative distribution function(CDF) table in Q15.
+    /// Encodes a symbol with an inverse cumulative distribution function (CDF) table in Q15.
     /// </summary>
     /// <param name="output">The tile buffer from <see cref="GetTileBuffer"/>. A write that grows the buffer replaces it.</param>
     /// <param name="symbol">The value to encode.</param>
     /// <param name="distribution">
-    /// CDF_PROB_TOP minus the CDF, such that symbol s falls in the range
-    /// [s > 0 ? (CDF_PROB_TOP - icdf[s - 1]) : 0, CDF_PROB_TOP - icdf[s]).
-    /// The values must be monotonically non - increasing, and icdf[nsyms - 1] must be 0.
+    /// The inverse CDF: <see cref="Av1Distribution.ProbabilityTop"/> minus the CDF. Symbol s covers the range from
+    /// (s &gt; 0 ? ProbabilityTop - icdf[s - 1] : 0) to ProbabilityTop - icdf[s], with the upper bound excluded.
+    /// The values must not increase, and the last value must be 0.
     /// </param>
     private void EncodeIntegerQ15(ref Span<byte> output, int symbol, Av1Distribution distribution)
         => this.EncodeIntegerQ15(
@@ -376,9 +376,8 @@ internal sealed class Av1SymbolWriter : IDisposable
     }
 
     /// <summary>
-    /// Takes updated low and range values, renormalizes them so that <paramref name="rng"/>
-    /// lies between 32768 and 65536 (flushing bytes from low to the tile buffer if necessary),
-    /// and stores them back in the encoder context.
+    /// Renormalizes updated low and range values so that <paramref name="rng"/> lies between 32768 and 65536, and stores them in the
+    /// encoder state. When enough bits are complete, it flushes bytes from low to the tile buffer.
     /// </summary>
     /// <param name="output">The tile buffer from <see cref="GetTileBuffer"/>. A flush that grows the buffer replaces it.</param>
     /// <param name="low">The new value of <see cref="low"/>.</param>
@@ -411,8 +410,8 @@ internal sealed class Av1SymbolWriter : IDisposable
             bool hasCarry = (bytes & carryMask) != 0;
             bytes &= carryMask - 1;
 
-            // Writing one big-endian word avoids a byte-at-a-time hot loop. Only readyByteCount bytes become part
-            // of the logical output; the following bytes are overwritten by the next flush.
+            // One big-endian word store avoids a byte-at-a-time hot loop. Only readyByteCount bytes become part of the logical
+            // output. The next flush overwrites the bytes after them.
             BinaryPrimitives.WriteUInt64BigEndian(
                 output.Slice(this.position, sizeof(ulong)),
                 bytes << ((sizeof(ulong) - readyByteCount) << 3));

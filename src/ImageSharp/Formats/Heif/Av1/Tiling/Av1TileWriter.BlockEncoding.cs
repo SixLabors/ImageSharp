@@ -327,8 +327,8 @@ internal partial class Av1TileWriter
                 position.Y + (height / 2) < this.picture.Parent.Common.ModeInfoRowCount &&
                 position.X + (width / 2) < this.picture.Parent.Common.ModeInfoColumnCount)
             {
-                // A half-sized top-left block alone cannot distinguish an asymmetric partition from a split.
-                // The mapped blocks at the two half boundaries identify which half remains unsplit.
+                // A half-sized top-left block alone cannot distinguish an asymmetric partition from a split. The mapped blocks at the two half boundaries
+                // identify which half stays unsplit.
                 Av1BlockSize below = this.picture.GetFromModeInfoGrid(modeInfoGrid, modeInfoAllocation, position + new Size(0, height / 2)).Block.BlockSize;
                 Av1BlockSize right = this.picture.GetFromModeInfoGrid(modeInfoGrid, modeInfoAllocation, position + new Size(width / 2, 0)).Block.BlockSize;
                 if (selectedWidth == width)
@@ -361,8 +361,8 @@ internal partial class Av1TileWriter
                 return Av1PartitionType.Split;
             }
 
-            // At a frame edge only the basic partitions are available. Each smaller dimension contributes
-            // one split axis; recursive descent then reaches the retained leaf geometry.
+            // At a frame edge, only the basic partitions are available. Each smaller dimension adds one split axis. The recursive descent then
+            // reaches the retained leaf geometry.
             return selectedWidth == width
                 ? Av1PartitionType.Horizontal
                 : selectedHeight == height ? Av1PartitionType.Vertical : Av1PartitionType.Split;

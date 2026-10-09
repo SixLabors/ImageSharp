@@ -117,9 +117,8 @@ internal class Av1PictureControlSet
     public required Memory<int> TileDataLengths { get; set; }
 
     /// <summary>
-    /// Gets or sets the selected restoration units of every component plane, plane after plane. A loop over the planes
-    /// reads this span once and slices each plane at its <see cref="RestorationUnitOffsets"/> entry for the plane's unit count.
-    /// Reference: the unit_info of each rst_info plane.
+    /// Gets or sets the selected restoration units of every component plane, plane after plane. A loop over the planes reads this span once.
+    /// It slices each plane at its <see cref="RestorationUnitOffsets"/> entry for the unit count of that plane.
     /// </summary>
     public Memory<Av1LoopRestorationUnit> RestorationUnits { get; set; }
 
@@ -161,8 +160,7 @@ internal class Av1PictureControlSet
     }
 
     /// <summary>
-    /// Gets the mode-information entry mapped to a frame position from the grid and allocation, which the caller
-    /// read once.
+    /// Gets the mode-information entry mapped to a frame position from the grid and allocation, which the caller read once.
     /// </summary>
     /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
     /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
@@ -185,8 +183,7 @@ internal class Av1PictureControlSet
     }
 
     /// <summary>
-    /// Gets the secondary displacement vector mapped to a compound block from the grid and reference contexts, which
-    /// the caller read once.
+    /// Gets the secondary displacement vector mapped to a compound block from the grid and reference contexts, which the caller read once.
     /// </summary>
     /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
     /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
@@ -216,8 +213,7 @@ internal class Av1PictureControlSet
 
 #pragma warning disable CA1517 // False positive: https://github.com/dotnet/sdk/issues/53388
     /// <summary>
-    /// Stores the secondary displacement vector selected at a compound block origin in the reference contexts, which
-    /// the caller read once.
+    /// Stores the secondary displacement vector selected at a compound block origin in the reference contexts, which the caller read once.
     /// </summary>
     /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
     /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
@@ -269,8 +265,7 @@ internal class Av1PictureControlSet
         => this.MapModeInfoBlock(this.ModeInfoGrid.Span, modeInfoPosition, blockSize);
 
     /// <summary>
-    /// Maps every coded 4x4 position covered by a block to the block's mode-information allocation entry, in the grid
-    /// that the caller read once.
+    /// Maps every coded 4x4 position covered by a block to the block's mode-information allocation entry, in the grid that the caller read once.
     /// </summary>
     /// <param name="grid">The mode-information allocation-index grid of the picture.</param>
     /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
@@ -282,8 +277,8 @@ internal class Av1PictureControlSet
         int mappedWidth = Math.Min(this.Parent.Common.ModeInfoColumnCount - modeInfoPosition.X, blockSize.Get4x4WideCount());
         int mappedHeight = Math.Min(this.Parent.Common.ModeInfoRowCount - modeInfoPosition.Y, blockSize.Get4x4HighCount());
 
-        // Libaom's pointer grid aliases every covered 4x4 entry to one mode-info allocation. Integer indices keep
-        // the same aliasing without one managed object and one managed reference per grid position.
+        // Every covered 4x4 entry holds the index of the same mode-information allocation entry. Integer indices give this aliasing
+        // without one managed object and one managed reference per grid position.
         for (int row = 0; row < mappedHeight; row++)
         {
             int gridOffset = ((modeInfoPosition.Y + row) * modeInfoStride) + modeInfoPosition.X;
@@ -292,7 +287,7 @@ internal class Av1PictureControlSet
     }
 
     /// <summary>
-    /// Writes a segment identifier to every entry of a segment map that a block covers. Reference: set_segment_id().
+    /// Writes a segment identifier to every entry of a segment map that a block covers.
     /// </summary>
     /// <param name="segment_ids">The segment map, one entry per 4x4 block.</param>
     /// <param name="blockSize">The block size.</param>

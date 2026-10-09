@@ -62,8 +62,7 @@ internal static class Av1SymbolContextHelper
     private const int TransformSetCount = 6;
 
     /// <summary>
-    /// The collection expression of a span property rebuilds its array on every read, so each table
-    /// that a cost query reaches lives in a field instead.
+    /// The collection expression of a span property rebuilds its array on every read, so each table that a cost query reaches lives in a field instead.
     /// </summary>
     private static readonly int[] EndOfBlockOffsetBitValues = [0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -304,7 +303,7 @@ internal static class Av1SymbolContextHelper
         int forwardDistance = Math.Abs(orderHintInfo.GetRelativeDistance(secondaryOrderHint, frameHeader.OrderHint));
         int backwardDistance = Math.Abs(orderHintInfo.GetRelativeDistance(frameHeader.OrderHint, primaryOrderHint));
 
-        // Reference: get_comp_index_context(). A single-reference ALTREF neighbor counts 1.
+        // A compound neighbor adds its compound index flag. A single-reference ALTREF neighbor adds 1.
         int context = forwardDistance == backwardDistance ? 3 : 0;
         if (macroBlock.IsUpAvailable)
         {
@@ -344,8 +343,8 @@ internal static class Av1SymbolContextHelper
         int topClass = Math.Min(top, 4);
         int leftClass = Math.Min(left, 4);
 
-        // AV1 groups each edge into zero, low, or high coefficient-level classes. Retaining the reference decoder's complete table
-        // lets the reader and writer share one compile-time mapping without an encoder-side jagged-array allocation.
+        // AV1 groups each edge into zero, low, or high coefficient-level classes. The full 5x5 table lets the reader and writer share one compile-time mapping,
+        // and the encoder allocates no jagged array.
         return TransformBlockSkipContexts[(topClass * 5) + leftClass];
     }
 
@@ -448,9 +447,8 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// Section 8.3.2 in the spec, under coeff_br. Optimized for end of block based
-    /// on the fact that {0, 1}, {1, 0}, {1, 1}, {0, 2} and {2, 0} will all be 0 in
-    /// the end of block case.
+    /// Derives the base-range context of the final nonzero coefficient from its two-dimensional position. The forward neighbors {0, 1}, {1, 0}, {1, 1}, {0, 2},
+    /// and {2, 0} of the final coefficient are all zero, so only the position selects the context.
     /// </summary>
     /// <param name="pos">The final nonzero coefficient position.</param>
     /// <param name="transformClass">The transform direction class.</param>
@@ -476,8 +474,9 @@ internal static class Av1SymbolContextHelper
     /// Derives a base-range context from the transform-class-specific forward neighbors.
     /// </summary>
     /// <remarks>
-    /// Spec section 8.2.3, under 'coeff_br'. The padded level plane keeps every neighbor offset valid, so one
-    /// reference plus fixed offsets replaces a row lookup per neighbor.
+    /// This method follows the CDF selection process for coeff_br in the AV1 specification. The context is the rounded half of the neighbor sum, capped at 6.
+    /// The DC coefficient adds 0, the low-frequency region adds 7, and all other positions add 14. The padded level plane keeps every neighbor offset valid, so
+    /// one reference with fixed offsets replaces a row lookup for each neighbor.
     /// </remarks>
     /// <param name="level">The coefficient's own entry in the padded level plane.</param>
     /// <param name="stride">The padded row stride.</param>
@@ -712,9 +711,8 @@ internal static class Av1SymbolContextHelper
         int last = eob - 1;
         if (last > 0)
         {
-            // The whole block is derived at once. Positions after the end of block are unused, so
-            // their contexts cost nothing to discard, and deriving them keeps one traversal rather
-            // than a scan-order loop that repeats the same arithmetic.
+            // The method derives the contexts of the whole block in one traversal. Positions after the end of block are not used, so their extra contexts cost
+            // nothing. One traversal avoids a scan-order loop that repeats the same arithmetic.
             Av1NzMap.GetNzMapContexts(
                 ref levelBase,
                 levels.Stride,
@@ -807,9 +805,9 @@ internal static class Av1SymbolContextHelper
             return 0;
         }
 
-        // The context is the sum of the coefficient magnitudes in scan order. The sum stops as soon as it passes the
-        // mask, which it is then clamped to. The scan holds a position for every coefficient of the transform, and
-        // the end of block is at most that count, so the reads go through references with no range checks.
+        // The context is the sum of the coefficient magnitudes in scan order. The loop stops when the sum passes the mask, and the code then clamps the sum to
+        // the mask. The scan holds a position for every coefficient of the transform, and the end of block is at most that count, so the reads go through
+        // references with no range checks.
         ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
         DebugGuard.MustBeLessThanOrEqualTo((int)endOfBlock, scan.Length, nameof(endOfBlock));
         DebugGuard.MustBeGreaterThanOrEqualTo(coefficients.Length, scan.Length, nameof(coefficients));
@@ -884,8 +882,8 @@ internal static class Av1SymbolContextHelper
             bool aboveIsIntra = aboveModeInfo.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra;
             bool leftIsIntra = leftModeInfo.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra;
 
-            // AV1 reserves context three for two intra neighbors, context one for a mixed pair, and context zero for
-            // two inter neighbors. These values directly index intra_inter_cdf and are not probability ranks.
+            // AV1 reserves context three for two intra neighbors, context one for a mixed pair, and context zero for two inter neighbors. These values index
+            // the intra-inter distributions directly and are not probability ranks.
             if (aboveIsIntra && leftIsIntra)
             {
                 return 3;
@@ -894,8 +892,7 @@ internal static class Av1SymbolContextHelper
             return aboveIsIntra || leftIsIntra ? 1 : 0;
         }
 
-        // A single intra neighbor uses context two. A single inter neighbor and a block with no neighbors both use
-        // context zero, matching the unavailable-neighbor behavior in the reference decoder's av1_get_intra_inter_context.
+        // A single intra neighbor uses context two. A single inter neighbor and a block with no neighbors both use context zero.
         if (above is not null)
         {
             return above.Value.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra ? 2 : 0;
@@ -917,8 +914,8 @@ internal static class Av1SymbolContextHelper
     /// <returns>The context in the inclusive range zero through four.</returns>
     public static int GetReferenceModeContext(Av1BlockModeInfo? above, Av1BlockModeInfo? left)
     {
-        // The reference decoder first classifies whether each neighbor uses a second inter reference. Single neighbors then contribute
-        // their forward/backward direction, while intra neighbors take the same branch as a non-forward reference.
+        // The method first checks whether each neighbor uses a second inter reference. Single-reference neighbors then add their forward or backward direction.
+        // If the other neighbor is compound, an intra neighbor counts the same as a backward reference.
         if (above is not null && left is not null)
         {
             Av1BlockModeInfo aboveModeInfo = above.Value;
@@ -1087,7 +1084,7 @@ internal static class Av1SymbolContextHelper
         Av1MacroBlockD macroBlock,
         int direction)
     {
-        // Reference: get_ref_filter_type(). A compound neighbor contributes when either of its references matches.
+        // A neighbor gives its filter when either of its references matches the primary reference of the block.
         int aboveFilter = SwitchableInterpolationFilterCount;
         int leftFilter = SwitchableInterpolationFilterCount;
         if (macroBlock.IsUpAvailable)
@@ -1169,7 +1166,6 @@ internal static class Av1SymbolContextHelper
 
     /// <summary>
     /// Gets the compound reference-direction context from compact encoder neighbors.
-    /// Reference: av1_get_comp_reference_type_context().
     /// </summary>
     /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
     /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
@@ -1253,7 +1249,6 @@ internal static class Av1SymbolContextHelper
 
     /// <summary>
     /// Returns whether a compact encoder block predicts from two references in the same direction.
-    /// Reference: has_uni_comp_refs().
     /// </summary>
     /// <param name="modeInfo">The neighboring block.</param>
     /// <returns><see langword="true"/> for a unidirectional compound block.</returns>
@@ -1265,13 +1260,18 @@ internal static class Av1SymbolContextHelper
     /// <summary>
     /// Combines the two neighboring filter states into the shared encoder and decoder context layout.
     /// </summary>
+    /// <param name="aboveFilter">The filter of the above neighbor, or <see cref="SwitchableInterpolationFilterCount"/> when it gives no filter.</param>
+    /// <param name="leftFilter">The filter of the left neighbor, or <see cref="SwitchableInterpolationFilterCount"/> when it gives no filter.</param>
+    /// <param name="isCompound">A value indicating whether the current block uses two references.</param>
+    /// <param name="direction">Zero for the vertical filter or one for the horizontal filter.</param>
+    /// <returns>The context in the inclusive range zero through fifteen.</returns>
     private static int GetSwitchableInterpolationContext(int aboveFilter, int leftFilter, bool isCompound, int direction)
     {
         const int filterContextCount = SwitchableInterpolationFilterCount + 1;
         const int horizontalContextOffset = filterContextCount * 2;
 
-        // The sixteen rows are single vertical, compound vertical, single horizontal, then compound horizontal,
-        // with four neighbor states in each group. Both storage representations must use this same mapping.
+        // The sixteen rows are single vertical, compound vertical, single horizontal, then compound horizontal, with four neighbor states in each group. Both
+        // storage representations must use this same mapping.
         int context = (isCompound ? filterContextCount : 0) + (direction * horizontalContextOffset);
 
         if (leftFilter == aboveFilter)
@@ -1279,8 +1279,8 @@ internal static class Av1SymbolContextHelper
             return context + leftFilter;
         }
 
-        // The fourth neighbor state means no matching primary reference or disagreement between contributing
-        // neighbors. It is not the Bilinear filter, which is absent from the switchable alphabet.
+        // The fourth neighbor state means no matching primary reference or disagreement between contributing neighbors. It is not the Bilinear filter, which is
+        // absent from the switchable alphabet.
         if (leftFilter == SwitchableInterpolationFilterCount)
         {
             return context + aboveFilter;
@@ -1345,8 +1345,8 @@ internal static class Av1SymbolContextHelper
         int currentWeight = referenceWeights[referenceIndex];
         int nextWeight = referenceWeights[referenceIndex + 1];
 
-        // Candidate weights at or above the reference-category threshold carry a strong spatial match. The four
-        // normative pairings use context zero for strong/strong and weak/strong, one for strong/weak, and two for weak/weak.
+        // Candidate weights at or above the reference-category threshold carry a strong spatial match. The four normative pairings use context zero for
+        // strong/strong and weak/strong, one for strong/weak, and two for weak/weak.
         if (currentWeight >= ReferenceCategoryLevel && nextWeight >= ReferenceCategoryLevel)
         {
             return 0;
@@ -1368,8 +1368,8 @@ internal static class Av1SymbolContextHelper
     /// <param name="referenceCounts">The eight-entry reference-count destination indexed by <see cref="Av1ReferenceFrameType"/>.</param>
     public static void CollectNeighborReferenceCounts(Av1BlockModeInfo? above, Av1BlockModeInfo? left, Span<byte> referenceCounts)
     {
-        // The caller reuses fixed inline storage across blocks. Clearing all eight entries matches the reference decoder's
-        // av1_collect_neighbors_ref_counts and prevents an unavailable neighbor from retaining an earlier block's vote.
+        // The caller reuses fixed inline storage across blocks. The method clears all eight entries, so an unavailable neighbor does not keep the vote of an
+        // earlier block.
         referenceCounts.Clear();
 
         if (above is not null)
@@ -1475,12 +1475,16 @@ internal static class Av1SymbolContextHelper
     /// <summary>
     /// Gets the first unidirectional compound-reference decision context.
     /// </summary>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by <see cref="Av1ReferenceFrameType"/>.</param>
+    /// <returns>The context in the inclusive range zero through two.</returns>
     public static int GetUnidirectionalCompoundBackwardContext(ReadOnlySpan<byte> referenceCounts)
         => GetSingleReferenceBackwardContext(referenceCounts);
 
     /// <summary>
     /// Gets the context that selects Last3 or Golden instead of Last2 for a forward unidirectional pair.
     /// </summary>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by <see cref="Av1ReferenceFrameType"/>.</param>
+    /// <returns>The context in the inclusive range zero through two.</returns>
     public static int GetUnidirectionalCompoundLast3OrGoldenContext(ReadOnlySpan<byte> referenceCounts)
     {
         int last2Count = referenceCounts[(int)Av1ReferenceFrameType.Last2];
@@ -1493,36 +1497,48 @@ internal static class Av1SymbolContextHelper
     /// <summary>
     /// Gets the context that selects Golden instead of Last3 for a forward unidirectional pair.
     /// </summary>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by <see cref="Av1ReferenceFrameType"/>.</param>
+    /// <returns>The context in the inclusive range zero through two.</returns>
     public static int GetUnidirectionalCompoundGoldenContext(ReadOnlySpan<byte> referenceCounts)
         => GetSingleReferenceGoldenContext(referenceCounts);
 
     /// <summary>
     /// Gets the context that selects Last3 or Golden instead of Last or Last2 for a bidirectional pair.
     /// </summary>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by <see cref="Av1ReferenceFrameType"/>.</param>
+    /// <returns>The context in the inclusive range zero through two.</returns>
     public static int GetCompoundForwardLast3OrGoldenContext(ReadOnlySpan<byte> referenceCounts)
         => GetSingleReferenceLast3OrGoldenContext(referenceCounts);
 
     /// <summary>
     /// Gets the context that selects Last2 instead of Last for a bidirectional pair.
     /// </summary>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by <see cref="Av1ReferenceFrameType"/>.</param>
+    /// <returns>The context in the inclusive range zero through two.</returns>
     public static int GetCompoundForwardLast2Context(ReadOnlySpan<byte> referenceCounts)
         => GetSingleReferenceLast2Context(referenceCounts);
 
     /// <summary>
     /// Gets the context that selects Golden instead of Last3 for a bidirectional pair.
     /// </summary>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by <see cref="Av1ReferenceFrameType"/>.</param>
+    /// <returns>The context in the inclusive range zero through two.</returns>
     public static int GetCompoundForwardGoldenContext(ReadOnlySpan<byte> referenceCounts)
         => GetSingleReferenceGoldenContext(referenceCounts);
 
     /// <summary>
     /// Gets the context that selects Alternate instead of Backward or Alternate2 for a bidirectional pair.
     /// </summary>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by <see cref="Av1ReferenceFrameType"/>.</param>
+    /// <returns>The context in the inclusive range zero through two.</returns>
     public static int GetCompoundBackwardAlternateContext(ReadOnlySpan<byte> referenceCounts)
         => GetSingleReferenceAlternateContext(referenceCounts);
 
     /// <summary>
     /// Gets the context that selects Alternate2 instead of Backward for a bidirectional pair.
     /// </summary>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by <see cref="Av1ReferenceFrameType"/>.</param>
+    /// <returns>The context in the inclusive range zero through two.</returns>
     public static int GetCompoundBackwardAlternate2Context(ReadOnlySpan<byte> referenceCounts)
         => GetSingleReferenceAlternate2Context(referenceCounts);
 
@@ -1570,8 +1586,7 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// Codes a segment identifier as an alternating distance from its spatial predictor, the inverse of
-    /// <see cref="NegativeDeinterleave"/>. Reference: av1_neg_interleave().
+    /// Codes a segment identifier as an alternating distance from its spatial predictor, the inverse of <see cref="NegativeDeinterleave"/>.
     /// </summary>
     /// <param name="value">The segment identifier, below <paramref name="max"/>.</param>
     /// <param name="reference">The predicted segment identifier.</param>
@@ -1677,8 +1692,8 @@ internal static class Av1SymbolContextHelper
 
         referenceCounts[(int)referenceFrames[0]]++;
 
-        // A current block may use one reference, but the conditioning neighbors may be compound blocks. The reference decoder counts
-        // both labels so later single-reference decisions remain bit-exact when compound support is enabled.
+        // The current block can use one reference while a neighbor is a compound block. AV1 counts both labels of a compound neighbor, so later
+        // single-reference decisions stay bit-exact.
         if (referenceFrames[1] > Av1ReferenceFrameType.Intra)
         {
             referenceCounts[(int)referenceFrames[1]]++;
@@ -1697,24 +1712,32 @@ internal static class Av1SymbolContextHelper
     /// <summary>
     /// Determines whether a decoded block uses an inter reference.
     /// </summary>
+    /// <param name="modeInfo">The decoded block.</param>
+    /// <returns><see langword="true"/> when the first reference is Last or later.</returns>
     private static bool IsInterBlock(Av1BlockModeInfo modeInfo)
         => modeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Last;
 
     /// <summary>
     /// Determines whether a decoded block has a second inter reference.
     /// </summary>
+    /// <param name="modeInfo">The decoded block.</param>
+    /// <returns><see langword="true"/> for a compound block.</returns>
     private static bool HasCompoundReference(Av1BlockModeInfo modeInfo)
         => modeInfo.ReferenceFrames[1] > Av1ReferenceFrameType.Intra;
 
     /// <summary>
     /// Determines whether both compound references point in the same display-order direction.
     /// </summary>
+    /// <param name="modeInfo">The decoded compound block.</param>
+    /// <returns><see langword="true"/> when both references are forward or both are backward.</returns>
     private static bool HasUnidirectionalCompoundReferences(Av1BlockModeInfo modeInfo)
         => IsBackwardReference(modeInfo.ReferenceFrames[0]) == IsBackwardReference(modeInfo.ReferenceFrames[1]);
 
     /// <summary>
     /// Determines whether a retained reference belongs to the backward group.
     /// </summary>
+    /// <param name="referenceFrame">The reference frame.</param>
+    /// <returns><see langword="true"/> for Backward, Alternate2, or Alternate.</returns>
     private static bool IsBackwardReference(Av1ReferenceFrameType referenceFrame)
         => referenceFrame >= Av1ReferenceFrameType.Backward;
 

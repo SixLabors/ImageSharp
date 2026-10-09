@@ -35,9 +35,7 @@ internal class Av1PictureParentControlSet
     public Av1FrameUpdateType FrameUpdateType { get; set; }
 
     /// <summary>
-    /// Gets a value indicating whether the frame is coded from the source of an alternate reference, as a coded
-    /// overlay is. Reference: rc.is_src_frame_alt_ref, which av1_configure_buffer_updates() sets for OVERLAY_UPDATE
-    /// and INTNL_OVERLAY_UPDATE.
+    /// Gets a value indicating whether the frame codes the source of an alternate reference. Overlay and intermediate overlay frames do this.
     /// </summary>
     public bool IsSourceAlternateReference =>
         this.FrameUpdateType is Av1FrameUpdateType.Overlay or Av1FrameUpdateType.IntermediateOverlay;
@@ -58,50 +56,44 @@ internal class Av1PictureParentControlSet
     public Memory<int> SelectedInterpolationCounts { get; set; }
 
     /// <summary>
-    /// Gets the coded blocks that could use warped motion, split by whether they do. Reference: the warped_used
-    /// counts of encode_b().
+    /// Gets the counts of coded blocks that can use warped motion. Entry 0 counts the blocks that do not use it. Entry 1 counts the blocks that use it.
     /// </summary>
     public int[] WarpedUsage { get; } = new int[2];
 
     /// <summary>
-    /// Gets the OBMC probability of each block size for the frame's update type. Reference: the obmc_probs row of
-    /// frame_probs.
+    /// Gets the OBMC probability of each block size for the update type of the frame.
     /// </summary>
     public int[] ObmcProbabilities { get; } = new int[(int)Av1BlockSize.AllSizes];
 
     /// <summary>
-    /// Gets the count of blocks that could use OBMC and did not or did, two entries per block size.
-    /// Reference: rd_counts.obmc_used.
+    /// Gets the counts of blocks that can use OBMC, two entries per block size. The first entry counts the blocks that do not use OBMC.
+    /// The second entry counts the blocks that use it.
     /// </summary>
     public int[] ObmcUsage { get; } = new int[(int)Av1BlockSize.AllSizes * 2];
 
     /// <summary>
-    /// Gets the display distance of each reference type from the frame, negative for a past reference and zero for
-    /// a disabled one. Reference: ref_relative_dist of set_rel_frame_dist().
+    /// Gets the display distance of each reference type from the frame. The distance is negative for a past reference and zero for a disabled one.
     /// </summary>
     public int[] ReferenceDistances { get; } = new int[Av1Constants.ReferenceFrameCount + 1];
 
     /// <summary>
-    /// Gets or sets the references whose single-reference modes the block-level pruning keeps, one bit per
-    /// reference type. Reference: keep_single_ref_frame_mask.
+    /// Gets or sets the references whose single-reference modes the block-level pruning keeps, one bit per reference type.
     /// </summary>
     public int KeepSingleReferenceMask { get; set; }
 
     /// <summary>
     /// Gets or sets the references whose compound pairs the block-level pruning keeps, one bit per reference type.
-    /// Reference: keep_comp_ref_frame_mask.
     /// </summary>
     public int KeepCompoundReferenceMask { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether every reference precedes the frame in display order.
-    /// Reference: all_one_sided_refs from refs_are_one_sided().
     /// </summary>
     public bool AllOneSidedReferences { get; set; }
 
     /// <summary>
-    /// Gets a value indicating whether the frame drops every compound reference pair, because one-sided compound is
-    /// disabled and every reference lies on one side. Reference: the first branch of setup_prune_ref_frame_mask().
+    /// Gets a value indicating whether the frame drops every compound reference pair. This occurs when one-sided compound is disabled and every
+    /// reference lies on one side.
     /// </summary>
     public bool PrunesAllCompoundReferences => this.AllOneSidedReferences && this.SpeedSettings.DisableOneSidedCompound;
 
@@ -141,7 +133,7 @@ internal class Av1PictureParentControlSet
     public HeifEncodingSpeed EncodingSpeed { get; set; }
 
     /// <summary>
-    /// Gets or sets the resolved libaom speed-feature policy for this picture.
+    /// Gets or sets the resolved speed-feature policy for this picture.
     /// </summary>
     public Av1EncoderSpeedSettings SpeedSettings { get; set; }
 
@@ -151,146 +143,128 @@ internal class Av1PictureParentControlSet
     public Av1EncoderOptions EncoderOptions { get; set; } = Av1EncoderOptions.Create(HeifEncodingSpeed.Level6);
 
     /// <summary>
-    /// Gets or sets the configured quantizer index of constant-quality rate control. Reference: rc_cfg.cq_level.
+    /// Gets or sets the configured quantizer index of constant-quality rate control.
     /// </summary>
     public int ConstantQualityIndex { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether any superblock used a quantizer other than the frame quantizer.
-    /// Reference: deltaq_used.
     /// </summary>
     public bool DeltaQUsed { get; set; }
 
     /// <summary>
-    /// Gets or sets the quantizer delta of the last superblock that chose one, which later frames keep until another
-    /// superblock chooses one. Reference: x->delta_qindex.
+    /// Gets or sets the quantizer delta of the last superblock that chose one. Later frames keep this value until another superblock chooses one.
     /// </summary>
     public int SuperblockDeltaQIndex { get; set; }
 
     /// <summary>
-    /// Gets or sets the temporal dependency statistics of the frame, or <see langword="null"/> when the encoder does
-    /// not run the temporal dependency model for it. The statistics are read only when
-    /// <see cref="TplStatisticsReady"/> is set. Reference: tpl_data->tpl_frame[cpi->gf_frame_index].
+    /// Gets or sets the temporal dependency statistics of the frame, or <see langword="null"/> when the encoder does not run the temporal
+    /// dependency model for it. The encoder reads the statistics only when <see cref="TplStatisticsReady"/> is set.
     /// </summary>
     public Av1TplFrameStatistics? TplFrame { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the temporal dependency model measured valid statistics for the frame
-    /// in the current golden group. Reference: av1_tpl_stats_ready(&amp;cpi->ppi->tpl_data, cpi->gf_frame_index).
+    /// Gets or sets a value indicating whether the temporal dependency model measured valid statistics for the frame in the current golden group.
     /// </summary>
     public bool TplStatisticsReady { get; set; }
 
     /// <summary>
-    /// Gets or sets the importance of the frame from its temporal dependency statistics: the exponential of the
-    /// source-distortion weighted mean log ratio of its reconstruction cost to its reconstruction plus dependency
-    /// cost. Reference: cpi->rd.r0, which process_tpl_stats_frame() sets.
+    /// Gets or sets the importance of the frame from its temporal dependency statistics. The value is the exponential of a mean log ratio,
+    /// weighted by source distortion. The ratio divides the reconstruction cost by the sum of the reconstruction and dependency costs.
     /// </summary>
     public double TplImportance { get; set; }
 
     /// <summary>
-    /// Gets or sets the golden boost of the frame's group, after process_tpl_stats_frame() combined it with the
-    /// temporal dependency boost. Reference: cpi->ppi->p_rc.gfu_boost.
+    /// Gets or sets the golden boost of the group of the frame, after the encoder combined it with the temporal dependency boost.
     /// </summary>
     public int GoldenBoost { get; set; }
 
     /// <summary>
-    /// Gets or sets the pyramid layer depth of the frame in its golden group. Reference:
-    /// cpi->ppi->gf_group.layer_depth[cpi->gf_frame_index].
+    /// Gets or sets the pyramid layer depth of the frame in its golden group.
     /// </summary>
     public int LayerDepth { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the rate multipliers take the layer depth and golden boost
-    /// adjustments: one-pass good-quality coding with a lookahead. Reference: is_stat_consumption_stage(cpi), with
-    /// cpi->ppi->lap_enabled.
+    /// Gets or sets a value indicating whether the rate multipliers apply the layer depth and golden boost adjustments.
+    /// One-pass good-quality coding with a lookahead sets it.
     /// </summary>
     public bool IsStatConsumptionStage { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether each coding block derives its rate multiplier from the superblock
-    /// quantizer and, with ready temporal dependency statistics, from its importance. The tile encoder sets it
-    /// before analysis. Reference: cpi->cb_delta_rdmult_enabled from enable_delta_rdmult().
+    /// Gets or sets a value indicating whether each coding block derives its rate multiplier from the superblock quantizer. When temporal
+    /// dependency statistics are ready, the block importance also changes the multiplier. The tile encoder sets this value before analysis.
     /// </summary>
     public bool CodingBlockDeltaRateMultiplier { get; set; }
 
     /// <summary>
-    /// Gets a value indicating whether the temporal dependency model supplies statistics for the frame's update
-    /// type: key frames, golden frames and alternate references. Reference: is_frame_tpl_eligible().
+    /// Gets a value indicating whether the temporal dependency model supplies statistics for the update type of the frame.
+    /// Key frames, golden frames and alternate references get statistics.
     /// </summary>
     public bool IsTplEligible =>
         this.FrameUpdateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
 
     /// <summary>
-    /// Gets or sets the rate multiplier scaling factor of each 16x16 luma block for the SSIM and image tunes, or
-    /// <see langword="null"/> for the other tunes. Reference: ssim_rdmult_scaling_factors.
+    /// Gets or sets the rate multiplier scaling factor of each 16x16 luma block for the SSIM and image tunes, or <see langword="null"/> for the
+    /// other tunes.
     /// </summary>
     public double[]? SsimRateMultiplierFactors { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the sequence encoder measured <see cref="SsimRateMultiplierFactors"/>
-    /// before it resized the source, so frame encoding must keep them. Reference: the av1_set_mb_ssim_rdmult_scaling()
-    /// call of encode_frame_to_data_rate().
+    /// Gets or sets a value indicating whether the sequence encoder measured <see cref="SsimRateMultiplierFactors"/> before it resized the source.
+    /// When this value is set, frame encoding keeps these factors.
     /// </summary>
     public bool HasPrecomputedSsimRateMultiplierFactors { get; set; }
 
     /// <summary>
-    /// Gets or sets the frame border of the encoder configuration, in luma samples, which bounds the projection
-    /// motion search: a complete superblock plus 32 samples, or 288 samples while a fixed resize mode is set.
-    /// Reference: cpi->oxcf.border_in_pixels from av1_get_enc_border_size().
+    /// Gets or sets the frame border of the encoder configuration, in luma samples. This border limits the projection motion search.
+    /// It is a complete superblock plus 32 samples, or 288 samples while a fixed resize mode is set.
     /// </summary>
     public int EncoderBorder { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the frame has the screen content type. The source detection of the last
-    /// intra frame sets it, and a key frame's screen content trial can raise it. The rate control and the adaptive quantization read it. It is not the
-    /// screen content tune, which the encoder never sets.
+    /// Gets or sets a value indicating whether the frame has the screen content type. The source detection of the last intra frame sets it.
+    /// The screen content trial of a key frame can also set it. The rate control and the adaptive quantization read it.
+    /// It is not the screen content tune, which the encoder never sets.
     /// </summary>
     public bool IsScreenContent { get; set; }
 
     /// <summary>
-    /// Gets or sets the size every superblock is partitioned into instead of searching its partition, or
-    /// <see cref="Av1BlockSize.Invalid"/> to search it. Reference: the FIXED_PARTITION partition_search_type with
-    /// fixed_partition_size.
+    /// Gets or sets the block size that every superblock splits into without a partition search, or <see cref="Av1BlockSize.Invalid"/> to search
+    /// the partition.
     /// </summary>
     public Av1BlockSize FixedPartitionSize { get; set; } = Av1BlockSize.Invalid;
 
     /// <summary>
-    /// Gets or sets the number of luma samples in the finally coded blocks that use a luma palette. Reference:
-    /// palette_pixel_num.
+    /// Gets or sets the number of luma samples in the finally coded blocks that use a luma palette.
     /// </summary>
     public int PalettePixelCount { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the next frame preparation keeps the frame probabilities that an
-    /// earlier coding of the same frame updated, instead of restoring them at a key frame. Reference: the single
-    /// copy_frame_prob_info() call of encode_with_recode_loop(), before av1_determine_sc_tools_with_encoding().
+    /// Gets or sets a value indicating whether the next frame preparation keeps the frame probabilities that an earlier coding of the same frame
+    /// updated. When this value is not set, a key frame restores the probabilities.
     /// </summary>
     public bool RetainsFrameProbabilities { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the frame is being coded again at a new quantizer after its size missed
-    /// the bit target, so that the frame preparation keeps the motion search step and vector magnitude of the first
-    /// coding. Reference: the loop_count of encode_with_recode_loop(), after av1_set_mv_search_params().
+    /// Gets or sets a value indicating whether the encoder codes the frame again at a new quantizer, because its size missed the bit target.
+    /// When this value is set, the frame preparation keeps the motion search step and vector magnitude of the first coding.
     /// </summary>
     public bool RecodesFrame { get; set; }
 
     /// <summary>
-    /// Gets or sets whether the frame allowed the screen content tools before its screen content trial, which the
-    /// frame-size speed features keep, or <see langword="null"/> when no trial changed them. Reference: the
-    /// allow_screen_content_tools that set_size_independent_vars() reads before av1_determine_sc_tools_with_encoding().
+    /// Gets or sets whether the frame allowed the screen content tools before its screen content trial, or <see langword="null"/> when no trial
+    /// changed them. The frame-size speed features keep this value.
     /// </summary>
     public bool? ScreenContentToolsBeforeTrial { get; set; }
 
     /// <summary>
-    /// Gets or sets the quantizer of the frame's screen content trial, or -1 when the frame ran none. The trial
-    /// updates the quantizer-dependent speed features before the frame does. Reference: q_for_screen_content_quick_run
-    /// in av1_determine_sc_tools_with_encoding().
+    /// Gets or sets the quantizer of the screen content trial of the frame, or -1 when the frame ran no trial.
+    /// The trial updates the quantizer-dependent speed features before the frame does.
     /// </summary>
     public int ScreenContentTrialQIndex { get; set; } = -1;
 
     /// <summary>
     /// Gets or sets a value indicating whether the look-ahead statistics classify the frame as graphics or animation.
-    /// Reference: cpi->twopass_frame.fr_content_type == FC_GRAPHICS_ANIMATION.
     /// </summary>
     public bool IsGraphicsAnimation { get; set; }
 
@@ -346,101 +320,87 @@ internal class Av1PictureParentControlSet
 
     /// <summary>
     /// Gets or sets a value indicating whether the frame refreshes the golden reference.
-    /// Reference: cpi->refresh_frame.golden_frame.
     /// </summary>
     public bool RefreshesGolden { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the frame refreshes the alternate reference.
-    /// Reference: cpi->refresh_frame.alt_ref_frame.
     /// </summary>
     public bool RefreshesAlternate { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether variance adaptive quantization chooses the segment of each block from
-    /// its source variance in this frame, rather than taking it from the previous map. Reference: cpi->vaq_refresh.
+    /// Gets or sets a value indicating whether variance adaptive quantization chooses the segment of each block from its source variance in this
+    /// frame. When this value is not set, the segment comes from the previous map.
     /// </summary>
     public bool VarianceSegmentRefresh { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether complexity adaptive quantization chooses the segment of each searched
-    /// block in this frame. Reference: is_frame_aq_enabled() with is_sb_aq_enabled() in av1_caq_select_segment().
+    /// Gets or sets a value indicating whether complexity adaptive quantization chooses the segment of each searched block in this frame.
     /// </summary>
     public bool ComplexitySegmentRefresh { get; set; }
 
     /// <summary>
-    /// Gets or sets the frame's target rate per 64x64 area, which complexity adaptive quantization compares a block's
-    /// rate with. Reference: rc->sb64_target_rate.
+    /// Gets or sets the target rate of the frame per 64x64 area. Complexity adaptive quantization compares the rate of a block with this value.
     /// </summary>
     public int SuperblockTargetRate { get; set; }
 
     /// <summary>
-    /// Gets or sets the cyclic refresh of a real-time sequence that uses it, or <see langword="null"/>. Reference:
-    /// cpi->cyclic_refresh.
+    /// Gets or sets the cyclic refresh of a real-time sequence that uses it, or <see langword="null"/>.
     /// </summary>
     public Av1CyclicRefresh? CyclicRefresh { get; set; }
 
     /// <summary>
-    /// Gets or sets the segment map of the primary reference frame, or an empty map when the frame has none or that
-    /// frame did not use segmentation. Reference: cm->last_frame_seg_map.
+    /// Gets or sets the segment map of the primary reference frame. The map is empty when the frame has no primary reference frame, or when that
+    /// reference frame did not use segmentation.
     /// </summary>
     public ReadOnlyMemory<byte> PreviousSegmentMap { get; set; }
 
     /// <summary>
-    /// Gets or sets the segment map the encoder keeps across frames. A frame that updates its map reads it, except
-    /// when it refreshes its variance segments. Skipped blocks write their predicted segment, and complexity adaptive
-    /// quantization writes each searched block and reads the segment each coded block takes. Reference:
-    /// cpi->enc_seg.map.
+    /// Gets or sets the segment map that the encoder keeps across frames. A frame that updates its map reads it, except when it refreshes its
+    /// variance segments. Skipped blocks write their predicted segment. Complexity adaptive quantization writes each searched block.
+    /// It also reads the segment that each coded block takes.
     /// </summary>
     public Memory<byte> EncoderSegmentMap { get; set; }
 
     /// <summary>
-    /// Gets or sets the segment map that the frame buffer holds while the frame is searched, which is what its previous
-    /// frame left until the bitstream is written. Only cyclic refresh writes it during the search. Reference:
-    /// cm->cur_frame->seg_map in av1_get_spatial_seg_pred().
+    /// Gets or sets the segment map that the frame buffer holds during the frame search. Until the encoder writes the bitstream, it holds the map
+    /// that the previous frame left. Only cyclic refresh writes it during the search.
     /// </summary>
     public Memory<byte> SearchSegmentMap { get; set; }
 
     /// <summary>
-    /// Gets or sets the noise estimate of a real-time sequence that uses it, or <see langword="null"/>. Reference:
-    /// cpi->noise_estimate.
+    /// Gets or sets the noise estimate of a real-time sequence that uses it, or <see langword="null"/>.
     /// </summary>
     public Av1NoiseEstimate? NoiseEstimate { get; set; }
 
     /// <summary>
-    /// Gets the noise level that cyclic refresh reads: the level of the last completed estimate, or the lowest level
-    /// when the estimate is off. Reference: the noise_level of av1_cyclic_refresh_update_segment().
+    /// Gets the noise level that cyclic refresh reads. It is the level of the last completed estimate, or the lowest level when the estimate is off.
     /// </summary>
     public int NoiseLevel => this.NoiseEstimate is { Enabled: true } noiseEstimate ? noiseEstimate.Level : Av1NoiseEstimate.LowestLevel;
 
     /// <summary>
-    /// Gets the noise level of the running estimate, or the low level when the estimate is off. Reference: the
-    /// av1_noise_estimate_extract_level() calls that default to kLow.
+    /// Gets the noise level of the running estimate, or the low level when the estimate is off.
     /// </summary>
     public int RunningNoiseLevel => this.NoiseEstimate is { Enabled: true } noiseEstimate ? noiseEstimate.ExtractLevel() : Av1NoiseEstimate.LowLevel;
 
     /// <summary>
-    /// Gets or sets the estimated rate of coding the segment identifiers spatially. Reference:
-    /// rd_counts.seg_tmp_pred_cost[0].
+    /// Gets or sets the estimated rate to code the segment identifiers with spatial prediction.
     /// </summary>
     public long SpatialSegmentCost { get; set; }
 
     /// <summary>
-    /// Gets or sets the estimated rate of coding the segment identifiers against the primary reference frame's map.
-    /// Reference: rd_counts.seg_tmp_pred_cost[1].
+    /// Gets or sets the estimated rate to code the segment identifiers against the map of the primary reference frame.
     /// </summary>
     public long TemporalSegmentCost { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether distortion stops at the frame edge rather than at the coded
-    /// eight-sample boundary, and the residual beyond the frame edge is filled from its visible part. Good-quality
-    /// sequences enable it. Reference: cpi->do_border_pad.
+    /// Gets or sets a value indicating whether distortion stops at the frame edge rather than at the coded eight-sample boundary.
+    /// When this value is set, the visible part of the residual also fills the residual beyond the frame edge. Good-quality sequences set it.
     /// </summary>
     public bool BorderPad { get; set; }
 
     /// <summary>
-    /// Gets or sets the control that adjusts the refreshed slots after the frame is coded, or
-    /// <see langword="null"/> to keep them.
+    /// Gets or sets the control that adjusts the refreshed slots after the frame is coded, or <see langword="null"/> to keep them.
     /// </summary>
     public IAv1ReferenceRefreshControl? ReferenceRefreshControl { get; set; }
 
@@ -460,15 +420,14 @@ internal class Av1PictureParentControlSet
     public int MaximumMotionVectorMagnitude { get; set; } = -1;
 
     /// <summary>
-    /// Gets or sets the motion vector statistics the packing pass collects for the next frame's precision choice, or
+    /// Gets or sets the motion vector statistics that the packing pass collects for the precision choice of the next frame, or
     /// <see langword="null"/> when the frame does not collect them.
     /// </summary>
     public Av1MotionVectorStatistics? MotionVectorStatistics { get; set; }
 
     /// <summary>
-    /// Returns the rate multiplier of a quantizer for the frame. With stat consumption, a frame other than a key
-    /// frame scales it by its layer depth and adds its golden boost share; otherwise it is the multiplier of the
-    /// quantizer alone. Reference: av1_compute_rd_mult(), with use_fixed_qp_offsets zero.
+    /// Returns the rate multiplier of a quantizer for the frame. In the stat consumption stage, a frame that is not a key frame scales the
+    /// multiplier by its layer depth and adds its share of the golden boost. In other stages, the multiplier depends only on the quantizer.
     /// </summary>
     /// <param name="qIndex">The quantizer index, including the luma DC delta.</param>
     /// <param name="bitDepth">The sample precision.</param>
@@ -481,8 +440,7 @@ internal class Av1PictureParentControlSet
                 qIndex, bitDepth, this.FrameUpdateType, this.EncoderOptions.Tuning, this.SpeedSettings.IsRealtime);
         }
 
-        // The stat consumption stage excludes real-time usage. Reference: the mode test of
-        // is_stat_consumption_stage().
+        // The stat consumption stage excludes real-time usage, so this path passes no real-time flag.
         return Av1TplRateDistortion.GetRateMultiplier(
             qIndex,
             bitDepth,
@@ -496,9 +454,8 @@ internal class Av1PictureParentControlSet
     }
 
     /// <summary>
-    /// Gets the right and bottom limits of the samples that a distortion measures in one plane. Without border
-    /// padding they are the coded eight-sample boundary. With it they are the frame edge, and a subsampled plane
-    /// rounds the distance to that edge up. Reference: set_pixels_to_frame_edge() and get_visible_dimensions().
+    /// Gets the right and bottom limits of the samples that a distortion measures in one plane. Without border padding, the limits are the coded
+    /// eight-sample boundary. With border padding, the limits are the frame edge, and a subsampled plane rounds the distance to that edge up.
     /// </summary>
     /// <param name="subsamplingX">The horizontal subsampling shift of the plane.</param>
     /// <param name="subsamplingY">The vertical subsampling shift of the plane.</param>

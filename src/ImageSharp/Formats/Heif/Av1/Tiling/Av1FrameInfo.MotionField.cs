@@ -157,9 +157,8 @@ internal partial class Av1FrameInfo
             return;
         }
 
-        // The retained field transfers to compact reference state after reconstruction. Keeping it allocator-backed
-        // avoids placing a frame-sized array on the managed heap. Clean storage is required because an all-zero entry
-        // denotes the normative empty field.
+        // The retained field moves to the compact reference state after reconstruction. The allocator owns it, so no frame-sized array goes on the managed
+        // heap. The storage must be clean because an all-zero entry is the normative empty field.
         int retainedRowCount = (this.activeModeInfoRowCount + 1) >> MotionFieldModeInfoShift;
         IMemoryOwner<RetainedMotionFieldEntry> retainedMotionFieldOwner =
             configuration.MemoryAllocator.Allocate<RetainedMotionFieldEntry>(
@@ -343,8 +342,8 @@ internal partial class Av1FrameInfo
         Span<Av1ReferenceFrameType> referenceFrames = modeInfo.ReferenceFrames;
         Span<Av1MotionVector> motionVectors = modeInfo.MotionVectors;
 
-        // A compound block can supply two vectors to one retained cell. Visit both in coded order so the last
-        // eligible past-reference vector wins; same-order, future, and out-of-range vectors cannot replace it.
+        // A compound block can supply two vectors to one retained cell. The loop visits both in coded order, so the last eligible past-reference vector wins.
+        // Same-order, future, and out-of-range vectors cannot replace it.
         ReadOnlySpan<sbyte> motionFieldReferenceSides = this.motionFieldReferenceSides;
         for (int referenceIndex = 0; referenceIndex < 2; referenceIndex++)
         {
@@ -375,9 +374,8 @@ internal partial class Av1FrameInfo
         int firstFieldColumn = modeInfoPosition.X >> MotionFieldModeInfoShift;
         RetainedMotionFieldEntry entry = new(selectedMotionVector, selectedReference);
 
-        // One decoded block supplies the same retained candidate to every covered 8x8 cell. Filling each contiguous
-        // row lets the runtime select its optimized span implementation while later sub-8x8 blocks retain the
-        // normative ability to overwrite the shared cell in traversal order.
+        // One decoded block writes the same retained candidate to every covered 8x8 cell. The loop fills one contiguous span per row. A later sub-8x8 block can
+        // overwrite a shared cell, as the normative traversal order requires.
         for (int row = 0; row < fieldHeight; row++)
         {
             int rowOffset = ((firstFieldRow + row) * retainedMotionField.Stride) + firstFieldColumn;
@@ -446,8 +444,7 @@ internal partial class Av1FrameInfo
     }
 
     /// <summary>
-    /// Projects the retained vectors of one start frame into a temporal candidate grid. Reference: the block loop
-    /// of motion_field_projection().
+    /// Projects the retained vectors of one start frame into a temporal candidate grid.
     /// </summary>
     /// <param name="orderHintInfo">The sequence modulo order-hint configuration.</param>
     /// <param name="retainedMotionField">The retained 8x8 motion field of the start frame.</param>
@@ -527,13 +524,14 @@ internal partial class Av1FrameInfo
     /// <summary>
     /// Detaches the compact state required while this decoded frame occupies the reference map.
     /// </summary>
+    /// <returns>The detached reference state. Repeated calls return the same instance.</returns>
     public ReferenceState PrepareReferenceState()
     {
         ReferenceState? state = this.referenceState;
         if (state is null)
         {
-            // Future frames need the segment map, 8x8 motion field, and original reference-order hints.
-            // Transfer their owners without copying; reconstruction scratch remains local to this frame.
+            // Future frames need the segment map, the 8x8 motion field, and the original reference order hints. The method transfers their owners without a
+            // copy. Reconstruction scratch stays local to this frame.
             state = new ReferenceState(
                 this.segmentIds,
                 this.segmentIdColumnCount,
@@ -578,8 +576,8 @@ internal partial class Av1FrameInfo
     {
         if (this.ownsInitialLease)
         {
-            // Av1TileReader can complete through both the OBU lifecycle and decoder cleanup. Keeping the initial lease
-            // idempotent lets either path dispose safely without affecting reference-frame or result-state owners.
+            // Av1TileReader can complete through the OBU lifecycle and through decoder cleanup. The initial lease is idempotent, so either path can dispose
+            // safely. Reference-frame and result-state owners are not affected.
             this.ownsInitialLease = false;
             this.ReleaseOwner();
         }
@@ -644,9 +642,8 @@ internal partial class Av1FrameInfo
         int baseBlockRow = (blockRow >> 3) << 3;
         int baseBlockColumn = (blockColumn >> 3) << 3;
 
-        // One field cell spans 8 samples, while vectors use one-eighth-sample units; dividing by 64 converts between
-        // them. Division must truncate toward zero: an arithmetic right shift would move negative sub-cell
-        // displacements into the preceding cell.
+        // One field cell spans 8 samples, and vectors use one-eighth-sample units, so a division by 64 converts between them. The division must truncate toward
+        // zero. An arithmetic right shift moves negative sub-cell displacements into the preceding cell.
         int rowOffset = motionVector.Row / (1 << MotionVectorToFieldOffsetShift);
         int columnOffset = motionVector.Column / (1 << MotionVectorToFieldOffsetShift);
         projectedRow = reverseDirection ? blockRow - rowOffset : blockRow + rowOffset;
@@ -657,8 +654,8 @@ internal partial class Av1FrameInfo
             return false;
         }
 
-        // AV1 keeps a projection in the same 64x64 row band and permits one additional 64-sample horizontal band on
-        // either side. This bounds temporal-candidate lookup while accommodating common lateral motion.
+        // AV1 keeps a projection in the same 64x64 row band and permits one additional 64-sample horizontal band on either side. This limit bounds the
+        // temporal-candidate lookup and still allows common lateral motion.
         return projectedRow >= baseBlockRow &&
             projectedRow < baseBlockRow + 8 &&
             projectedColumn >= baseBlockColumn - MaximumHorizontalFieldOffset &&
@@ -674,6 +671,8 @@ internal partial class Av1FrameInfo
         /// <summary>
         /// Initializes a new instance of the <see cref="MotionFieldStorage{T}"/> struct.
         /// </summary>
+        /// <param name="owner">The allocator-owned field entries. The new instance takes ownership.</param>
+        /// <param name="stride">The number of entries in one field row.</param>
         public MotionFieldStorage(IMemoryOwner<T> owner, int stride)
         {
             this.Owner = owner;
@@ -704,6 +703,8 @@ internal partial class Av1FrameInfo
         /// <summary>
         /// Initializes a new instance of the <see cref="SelectedReferenceFrames"/> struct.
         /// </summary>
+        /// <param name="referenceFrames">The reference map that holds the retained frames.</param>
+        /// <param name="referenceFrameIndices">The map slot of each of the seven roles, in LAST to ALTREF order.</param>
         public SelectedReferenceFrames(Av1ReferenceFrameStore referenceFrames, ReadOnlySpan<uint> referenceFrameIndices)
         {
             this.Last = referenceFrames.ResolveRequired((int)referenceFrameIndices[0]);
@@ -753,6 +754,7 @@ internal partial class Av1FrameInfo
         /// <summary>
         /// Gets the retained frame for one canonical inter-reference role.
         /// </summary>
+        /// <param name="referenceFrame">The canonical inter-reference role, from LAST to ALTREF.</param>
         public Av1ReferenceFrame this[Av1ReferenceFrameType referenceFrame] => referenceFrame switch
         {
             Av1ReferenceFrameType.Last => this.Last,
@@ -831,8 +833,13 @@ internal partial class Av1FrameInfo
         private int ownerCount = 1;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReferenceState"/> class by taking ownership of retained buffers.
+        /// Initializes a new instance of the <see cref="ReferenceState"/> class. The new instance takes ownership of the retained buffers.
         /// </summary>
+        /// <param name="segmentIds">The 4x4 segmentation map, or <see langword="null"/> when segmentation is disabled.</param>
+        /// <param name="segmentIdColumnCount">The number of active 4x4 columns in <paramref name="segmentIds"/>.</param>
+        /// <param name="segmentIdRowCount">The number of active 4x4 rows in <paramref name="segmentIds"/>.</param>
+        /// <param name="retainedMotionField">The per-8x8 motion field, or <see langword="null"/> when the temporal tool is disabled.</param>
+        /// <param name="motionFieldReferenceOrderHints">The order hint of each logical inter-reference role of the frame.</param>
         public ReferenceState(
             Buffer2D<byte>? segmentIds,
             int segmentIdColumnCount,

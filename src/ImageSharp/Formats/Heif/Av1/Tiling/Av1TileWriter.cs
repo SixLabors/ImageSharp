@@ -21,8 +21,8 @@ internal partial class Av1TileWriter
     /// Maps each AV1 block size to the five-bit partition contexts written to its bottom and right edges.
     /// </summary>
     /// <remarks>
-    /// Each set bit represents a split level from 128x128 through 8x8. For example, <c>11111</c>
-    /// records every split level, while <c>10000</c> records only the 128x128 split.
+    /// Each set bit represents a split level from 128x128 through 8x8. For example, <c>11111</c> records every split level, while <c>10000</c> records
+    /// only the 128x128 split.
     /// </remarks>
     private static readonly Av1PartitionContext[] PartitionContextLookup =
         [
@@ -228,8 +228,8 @@ internal partial class Av1TileWriter
             ref Av1LoopRestorationUnit reference = ref references[referenceOffset + plane];
             ReadOnlySpan<Av1LoopRestorationUnit> units = allUnits.Slice(unitOffsets[plane], rows * columns);
 
-            // Each unit is signaled before the partition syntax of the superblock containing its
-            // upper-left corner. Coefficient histories advance only for transmitted filters.
+            // The writer signals each unit before the partition syntax of the superblock that contains its upper-left corner. The coefficient
+            // histories advance only for transmitted filters.
             for (int row = firstRow; row < lastRow; row++)
             {
                 for (int column = firstColumn; column < lastColumn; column++)
@@ -239,8 +239,8 @@ internal partial class Av1TileWriter
             }
         }
 
-        // Partition decisions are stored in preorder, so recursive traversal keeps the current geometry
-        // on the stack and visits each selected child after its parent.
+        // The superblock stores its partition decisions in preorder. The recursive traversal keeps the current geometry on the stack and
+        // visits each selected child after its parent.
         WritePartitionTree<TOperation, TBlockEncoder, TSample>(
             ref output,
             pcs,
@@ -511,9 +511,8 @@ internal partial class Av1TileWriter
         int halfBlockSize = blockSize.GetWidth() >> 1;
         int quarterBlockSize = blockSize.GetWidth() >> 2;
 
-        // The real-time search encodes through nonrd_use_partition(), which never adapts the partition
-        // distributions, so its partition costs stay at the frame context. Only the packed partition adapts them.
-        // Reference: the partition update_cdf() of encode_sb(), which the non-RD path does not call.
+        // The real-time search never adapts the partition distributions, so its partition costs stay at the frame context. Only the packed
+        // partition adapts them.
         if (TOperation.WritesOutput || !pcs.Parent.SpeedSettings.IsRealtime)
         {
             EncodePartition<TOperation>(ref output, pcs, writer, blockSize, partition, blockOrigin, in partitionEdges);
@@ -841,8 +840,8 @@ internal partial class Av1TileWriter
             case Av1PartitionType.Split:
                 if (blockSize == Av1BlockSize.Block8x8)
                 {
-                    // A split 8x8 node terminates in four 4x4 coding blocks. AV1 does not carry another
-                    // partition symbol at that size, so the children are final blocks rather than tree nodes.
+                    // A split 8x8 node ends in four 4x4 coding blocks. AV1 has no partition symbol at that size, so the children are final
+                    // blocks rather than tree nodes.
                     for (int childIndex = 0; childIndex < 4; childIndex++)
                     {
                         Point childOrigin = blockOrigin + new Size(
@@ -2066,8 +2065,8 @@ internal partial class Av1TileWriter
                 break;
         }
 
-        // nonrd_use_partition() leaves the partition contexts cleared while it encodes, so real-time partition
-        // costs read zero neighbor contexts. Only the packed partitions update them.
+        // The real-time search leaves the partition contexts cleared while it encodes, so real-time partition costs read zero neighbor contexts.
+        // Only the packed partitions update them.
         if (TOperation.WritesOutput || !pcs.Parent.SpeedSettings.IsRealtime)
         {
             UpdatePartitionContexts(in partitionEdges, blockOrigin, subSize, blockSize, partition);
@@ -2446,6 +2445,17 @@ internal partial class Av1TileWriter
         return;
     }
 
+    /// <summary>
+    /// Gets the partition symbol context from the above and left partition edges, and reports which halves of the block lie inside the frame.
+    /// An edge entry that holds <see cref="byte.MaxValue"/> counts as zero.
+    /// </summary>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="blockSize">The square parent block size.</param>
+    /// <param name="blockOrigin">The block origin in samples.</param>
+    /// <param name="partitionContexts">The partition neighbor arrays for the tile.</param>
+    /// <param name="hasRows">Receives whether the bottom half of the block starts inside the frame.</param>
+    /// <param name="hasColumns">Receives whether the right half of the block starts inside the frame.</param>
+    /// <returns>The partition context, which combines the block-size level with the above and left split bits.</returns>
     private static int GetPartitionContext(
         Av1PictureControlSet pcs,
         Av1BlockSize blockSize,
@@ -2630,8 +2640,8 @@ internal partial class Av1TileWriter
             pcs.Parent.Common.ModeInfoRowCount,
             pcs.Parent.Common.ModeInfoColumnCount);
 
-        // Producing the decision here exposes exactly the reconstructed neighbors, coefficient contexts,
-        // and adaptive probabilities that the following syntax writes.
+        // The handler makes the decision here, so it sees exactly the reconstructed neighbors, coefficient contexts and adaptive probabilities
+        // that the following syntax writes.
         tb_ptr.Workspace.PaletteInfo = default;
         ref Av1EncoderPaletteInfo paletteInfo = ref tb_ptr.Workspace.PaletteInfo;
         blockEncoder.EncodeBlock(
@@ -2695,7 +2705,7 @@ internal partial class Av1TileWriter
             {
                 blockPalettes[allocationOffset] = paletteInfo;
 
-                // Reference: the palette_pixels count of encode_superblock() for an OUTPUT_ENABLED block.
+                // The pass that stores the final decisions counts the luma samples of every final block that uses a luma palette.
                 if (IsPaletteAllowed(true, blockSize) && paletteInfo.PaletteSizes[0] > 0)
                 {
                     pcs.Parent.PalettePixelCount += blockSize.GetWidth() * blockSize.GetHeight();
@@ -2705,8 +2715,8 @@ internal partial class Av1TileWriter
 
         bool skipWritingCoefficients = macroBlockModeInfo.Block.Skip;
 
-        // Segmentation, skip, filter, and quantizer syntax precede the prediction-domain branch in both
-        // intra and inter frames. Keeping this prefix shared preserves the decoder's symbol order.
+        // Segmentation, skip, filter and quantizer syntax come before the prediction-domain branch in both intra and inter frames. This shared
+        // prefix keeps the symbol order that the decoder reads.
         {
             if (pcs.Parent.FrameHeader.SegmentationParameters.Enabled && pcs.Parent.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
             {
@@ -2883,8 +2893,8 @@ internal partial class Av1TileWriter
                         int candidateCount = Math.Min(4, referenceMotionVectors.Count);
                         referenceMotionVectors.Weights[..candidateCount].CopyTo(referenceContext.Weights);
 
-                        // A stack with no candidates still has a differential fallback vector. Candidate
-                        // weights exist only for discovered entries, while reference zero always remains usable.
+                        // A stack with no candidates still has a differential fallback vector. Candidate weights exist only for discovered entries,
+                        // but reference zero is always usable.
                         int referenceCount = Math.Max(1, candidateCount);
                         for (int index = 0; index < referenceCount; index++)
                         {
@@ -2933,8 +2943,7 @@ internal partial class Av1TileWriter
                         Av1PredictionMode.NearNewMotionVector or
                         Av1PredictionMode.NewNearMotionVector)
                     {
-                        // NEARMV reserves stack entry zero for NEARESTMV, so its DRL decisions advance from
-                        // near entry zero to one and then from one to two.
+                        // NEARMV reserves stack entry zero for NEARESTMV, so its DRL decisions advance from near entry zero to one and then from one to two.
                         for (int index = 1; index < 3 && referenceContext.Count > index + 1; index++)
                         {
                             bool advance = referenceMotionVectorIndex >= index;
@@ -2981,8 +2990,8 @@ internal partial class Av1TileWriter
 
                         if (TOperation.WritesOutput && pcs.Parent.MotionSearchSettings.AutomaticStepSizeLevel != 0)
                         {
-                            // Retain the absolute displacement, not the coded difference from the reference.
-                            // Only packed NEWMV syntax contributes to the following frame's search range.
+                            // Keep the absolute displacement, not the coded difference from the reference vector. Only packed NEWMV syntax contributes
+                            // to the search range of the next frame.
                             int magnitude = Math.Max(Math.Abs(vector.Row), Math.Abs(vector.Column)) >> Av1MotionVector.SubpixelBits;
                             pcs.Parent.MaximumMotionVectorMagnitude = Math.Max(pcs.Parent.MaximumMotionVectorMagnitude, magnitude);
                         }
@@ -3010,8 +3019,7 @@ internal partial class Av1TileWriter
 
                     if (TOperation.WritesOutput && pcs.Parent.MotionVectorStatistics is Av1MotionVectorStatistics statistics)
                     {
-                        // The final blocks are visited in the coding order the reference walks the frame in after
-                        // encoding it. Reference: av1_collect_mv_stats().
+                        // The packing pass visits the final blocks in coding order, so the statistics collect each block in that order.
                         statistics.CollectInterBlock(
                             lumaMode,
                             macroBlockModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra,
@@ -3045,8 +3053,8 @@ internal partial class Av1TileWriter
                     Av1MotionVector vector = pcs.GetDisplacementVector(modeInfoGrid, displacementVectors, modeInfoPosition);
                     if (Math.Abs(vector.Row) < 8 && Math.Abs(vector.Column) < 8)
                     {
-                        // Count the retained block once, during packing. Two-row units include a
-                        // partial bottom row, while the block width retains its coded geometry.
+                        // Count the retained block once, during packing. Two-row units include a partial bottom row, but the block width keeps its
+                        // coded geometry.
                         int rows = Math.Min(frm_hdr.ModeInfoRowCount - modeInfoPosition.Y, blockSize.Get4x4HighCount());
                         pcs.Parent.LowMotionArea += ((rows + 1) & ~1) * blockSize.Get4x4WideCount();
                     }
@@ -3096,8 +3104,7 @@ internal partial class Av1TileWriter
 
                 if (macroBlockModeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.None)
                 {
-                    // The mode is coded whenever the frame and the neighbors allow another one.
-                    // Reference: write_motion_mode().
+                    // The writer codes the motion mode whenever the frame and the neighbors allow more than one mode.
                     Av1MotionMode lastAllowedMode = Av1EncoderMotionVariation.GetLastAllowedMotionMode(
                         pcs,
                         macroBlock,
@@ -3110,7 +3117,7 @@ internal partial class Av1TileWriter
                         pcs.Parent.WarpedUsage[macroBlockModeInfo.Block.MotionMode == Av1MotionMode.Warped ? 1 : 0]++;
                     }
 
-                    // Reference: the obmc_used count of encode_superblock().
+                    // The packing pass counts the blocks that can use OBMC, per block size and by whether they use it.
                     if (TOperation.WritesOutput && lastAllowedMode >= Av1MotionMode.Obmc)
                     {
                         pcs.Parent.ObmcUsage[((int)blockSize * 2) + (macroBlockModeInfo.Block.MotionMode == Av1MotionMode.Obmc ? 1 : 0)]++;
@@ -3263,9 +3270,8 @@ internal partial class Av1TileWriter
                     int blockWidth = blockSize.GetWidth();
                     int blockHeight = blockSize.GetHeight();
 
-                    // A chroma plane narrower or shorter than four samples belongs to a block that shares
-                    // its chroma with the neighbour it pairs with, so its map covers the pair.
-                    // Reference: av1_get_block_dimensions().
+                    // A chroma plane narrower or shorter than four samples belongs to a block that shares its chroma with the neighbor it pairs
+                    // with, so its map covers the pair.
                     int planeBlockWidth = blockWidth >> subX;
                     int planeBlockHeight = blockHeight >> subY;
                     int chromaSub8Width = planeType == Av1PlaneType.Uv && planeBlockWidth < 4 ? 2 : 0;
@@ -3273,8 +3279,8 @@ internal partial class Av1TileWriter
                     int planeWidth = planeBlockWidth + chromaSub8Width;
                     int planeHeight = planeBlockHeight + chromaSub8Height;
 
-                    // Palette syntax covers coded alignment samples too. Visible-frame clipping would omit symbols
-                    // that the decoder consumes before transform syntax and corrupt the remainder of the tile.
+                    // Palette syntax also covers the coded alignment samples. The decoder reads these symbols before the transform syntax.
+                    // A map clipped to the visible frame omits them and corrupts the rest of the tile.
                     int columns = ((blockWidth + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subX) + chromaSub8Width;
                     int rows = ((blockHeight + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subY) + chromaSub8Height;
                     int tokenCount = rows * columns;
@@ -3342,7 +3348,7 @@ internal partial class Av1TileWriter
             }
         }
 
-        // Palette colors are published only after the current block's mode and map have consumed the preceding edges.
+        // The writer publishes the palette colors only after the mode and map of the current block read the preceding edges.
         if (frm_hdr.AllowScreenContentTools)
         {
             const Av1NeighborArrayUnit<Av1EncoderPaletteInfo>.UnitMask PaletteContextMask =
@@ -3352,7 +3358,7 @@ internal partial class Av1TileWriter
             paletteEdges.Write(paletteInfo, blockOrigin, new Size(blockSize.GetWidth(), blockSize.GetHeight()), PaletteContextMask);
         }
 
-        // Coefficient neighbor state follows the same post-symbol ownership boundary.
+        // The coefficient neighbor state also changes only after the symbols of the block.
         UpdateNeighbors(
             pcs,
             entropyCodingContext,
@@ -3497,21 +3503,21 @@ internal partial class Av1TileWriter
                 }
             }
 
-            // Each coded leaf has already published its own edge dimensions. Replacing those
-            // edges with the root size would change the next block's transform partition contexts.
+            // Each coded leaf already published its own edge dimensions. The root size must not replace those edges, because that changes the
+            // transform partition contexts of the next block.
             return;
         }
 
         Size blockDimensions = new(blockSize.GetWidth(), blockSize.GetHeight());
 
-        // Above entries retain transform widths and left entries retain heights, including rectangular selections.
+        // Above entries keep transform widths and left entries keep heights, also for rectangular selections.
         transformEdges.Write((byte)transformSize.GetWidth(), blockOrigin, blockDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Top);
         transformEdges.Write((byte)transformSize.GetHeight(), blockOrigin, blockDimensions, Av1NeighborArrayUnit<byte>.UnitMask.Left);
     }
 
     /// <summary>
-    /// Writes the split flags of one node of a variable inter transform tree, then its children, and publishes the
-    /// size of each coded leaf on the transform-size edges.
+    /// Writes the split flags of one node of a variable inter transform tree, then its children. It publishes the size of each coded leaf on the
+    /// transform-size edges.
     /// </summary>
     /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
     /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
@@ -3566,6 +3572,9 @@ internal partial class Av1TileWriter
                 _ => Av1TransformSize.Size8x8
             };
 
+            // Each largest square transform of the block owns two context categories, the 64x64 size first. The second category of a pair marks
+            // a node smaller than that square, when the square is larger than 8x8. Each context category has three contexts. A neighbor
+            // transform that is narrower or shorter than this node adds one.
             int category = ((transformSize.GetSquareUpSize() != maximumSquareTransform && maximumSquareTransform > Av1TransformSize.Size8x8) ? 1 : 0) +
                 ((((int)Av1TransformSize.SquareSizes - 1) - (int)maximumSquareTransform) * 2);
 
@@ -3695,6 +3704,14 @@ internal partial class Av1TileWriter
         }
     }
 
+    /// <summary>
+    /// Determines whether the chroma-from-luma mode is available for a block.
+    /// </summary>
+    /// <param name="frameHeader">The current frame syntax and segment lossless state.</param>
+    /// <param name="colorConfig">The sequence chroma subsampling configuration.</param>
+    /// <param name="macroBlockModeInfo">The selected block modes, which give the segment of the block.</param>
+    /// <param name="blockSize">The luma block size.</param>
+    /// <returns><see langword="true"/> when the block can use chroma-from-luma prediction; otherwise, <see langword="false"/>.</returns>
     private static bool IsChromaFromLumaAllowed(
         ObuFrameHeader frameHeader,
         ObuColorConfig colorConfig,
@@ -3770,8 +3787,7 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// Gets the luma mode rate from the frame-appropriate distribution, with the neighbor contexts that the caller
-    /// read once for all modes of the block.
+    /// Gets the luma mode rate from the frame-appropriate distribution, with the neighbor contexts that the caller read once for all modes of the block.
     /// </summary>
     /// <param name="modeCosts">The mode rates that the caller read once.</param>
     /// <param name="blockSize">The selected block size.</param>
@@ -3904,7 +3920,7 @@ internal partial class Av1TileWriter
     /// <returns>The context in the inclusive range zero through five.</returns>
     public static int GetCompoundGroupIndexContext(ReadOnlySpan<int> modeInfoGrid, Span<Av1MacroBlockModeInfo> modeInfoAllocation, Av1MacroBlockD macroBlock)
     {
-        // Reference: get_comp_group_idx_context(). A single-reference ALTREF neighbor counts 3.
+        // A compound neighbor adds its group index. A single-reference ALTREF neighbor adds 3.
         int context = 0;
         if (macroBlock.IsUpAvailable)
         {
@@ -3938,8 +3954,8 @@ internal partial class Av1TileWriter
         Av1MacroBlockD macroBlock,
         Span<byte> referenceCounts)
     {
-        // The caller supplies short-lived fixed storage for one block. Clearing it here keeps unavailable
-        // neighbors from retaining votes collected for a preceding block.
+        // The caller supplies short-lived fixed storage for one block. The clear removes the votes of a preceding block, so an unavailable
+        // neighbor adds no vote.
         referenceCounts.Clear();
         if (macroBlock.IsUpAvailable)
         {
@@ -4009,10 +4025,8 @@ internal partial class Av1TileWriter
         int blockSizeContext = GetPaletteBlockSizeContext(blockSize);
         int yPaletteSize = paletteInfo.PaletteSizes[0];
 
-        // The encoder's own probability pass leaves the luma palette flag and size alone for a block that
-        // carries no chroma, because its intra statistics return before the palette update when the block is
-        // not a chroma reference. The bitstream codes them either way.
-        // Reference: the is_chroma_ref return ahead of update_palette_cdf() in sum_intra_stats().
+        // The adaptation pass does not adapt the luma palette flag and size of a block that carries no chroma. For such a block, the intra
+        // statistics stop before the palette update. The bitstream codes the flag and size in both cases.
         ObuColorConfig colorConfig = scs.SequenceHeader.ColorConfig;
         bool updatesLumaPalette = TOperation.WritesOutput ||
             IsChromaReference(blockOrigin, blockSize, colorConfig.SubSamplingX, colorConfig.SubSamplingY);
@@ -4067,7 +4081,6 @@ internal partial class Av1TileWriter
 
     /// <summary>
     /// Reports whether a block is the one that carries the chroma of its subsampled area.
-    /// Reference: is_chroma_reference().
     /// </summary>
     /// <param name="blockOrigin">The block origin in luma samples.</param>
     /// <param name="blockSize">The block size.</param>
@@ -4087,6 +4100,12 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Builds the sorted palette-color cache from the available above and left encoder edges.
     /// </summary>
+    /// <param name="paletteContexts">The palette color context edges of the tile.</param>
+    /// <param name="macroBlock">The current block's mapped neighbor state.</param>
+    /// <param name="blockOrigin">The block origin in luma samples.</param>
+    /// <param name="plane">The plane whose palette colors the cache holds.</param>
+    /// <param name="cache">The destination of the merged colors.</param>
+    /// <returns>The number of colors written to <paramref name="cache"/>.</returns>
     internal static int GetPaletteCache(
         in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteContexts,
         Av1MacroBlockD macroBlock,
@@ -4114,12 +4133,18 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Gets the palette probability context derived from the logarithmic block area.
     /// </summary>
+    /// <param name="blockSize">The block size.</param>
+    /// <returns>The base-2 logarithm of the block area minus 6, which is zero for an 8x8 block.</returns>
     internal static int GetPaletteBlockSizeContext(Av1BlockSize blockSize)
         => Av1Math.Log2(blockSize.GetWidth() * blockSize.GetHeight()) - 6;
 
     /// <summary>
     /// Counts the available above and left luma neighbors that selected palette mode.
     /// </summary>
+    /// <param name="paletteContexts">The palette color context edges of the tile.</param>
+    /// <param name="macroBlock">The current block's mapped neighbor state.</param>
+    /// <param name="blockOrigin">The block origin in luma samples.</param>
+    /// <returns>The number of neighbors with a luma palette, from zero through two.</returns>
     internal static int GetPaletteYModeContext(
         in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteContexts,
         Av1MacroBlockD macroBlock,
@@ -4256,16 +4281,16 @@ internal partial class Av1TileWriter
     /// <returns>Whether the block writes a vertical filter and, when enabled, a horizontal filter.</returns>
     public static bool UsesSwitchableInterpolation(ObuFrameHeader frameHeader, Av1EncoderBlockModeInfo modeInfo)
     {
-        // A warped block filters with the warp filter alone. Reference: av1_is_interp_needed().
+        // A warped block filters with the warp filter alone, so it carries no interpolation filter symbols.
         if (frameHeader.InterpolationFilter != Av1InterpolationFilter.Switchable || modeInfo.SkipMode ||
             modeInfo.MotionMode == Av1MotionMode.Warped)
         {
             return false;
         }
 
-        // Global identity and affine models infer the regular filter on blocks at least 8x8, for GLOBALMV and for
-        // GLOBAL_GLOBALMV. A translation model on any reference still carries filter symbols, including integer
-        // translations. Residual skip does not suppress these symbols. Reference: is_nontrans_global_motion().
+        // Global identity and affine models infer the regular filter on blocks of at least 8x8, for GLOBALMV and for GLOBAL_GLOBALMV.
+        // A translation model on any reference still carries filter symbols, also for integer translations. Residual skip does not remove
+        // these symbols.
         if (modeInfo.Mode is not (Av1PredictionMode.GlobalMotionVector or Av1PredictionMode.GlobalGlobalMotionVector) ||
             Math.Min(modeInfo.BlockSize.GetWidth(), modeInfo.BlockSize.GetHeight()) < Av1BlockSize.Block8x8.GetWidth())
         {
@@ -4291,7 +4316,8 @@ internal partial class Av1TileWriter
         => frameHeader.AllowScreenContentTools && frameHeader.AllowIntraBlockCopy;
 
     /// <summary>
-    /// Updates coefficient neighbor arrays after writing a block.
+    /// Updates the coefficient neighbor arrays and the coded coefficient positions of a skipped block after the writer writes it.
+    /// A block with coded coefficients updates them in its transform syntax, so this method does not change them for such a block.
     /// </summary>
     /// <param name="pcs">The picture coding state.</param>
     /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
@@ -4318,9 +4344,9 @@ internal partial class Av1TileWriter
         Size size = new(blockSize.GetWidth(), blockSize.GetHeight());
         if (skip_coeff)
         {
-            // The coefficient positions of a block belong to the transforms it codes, so a block that crosses
-            // the frame edge owns fewer positions than its size. A skipped block reads no transform unit, and
-            // therefore repeats the same count here that EncodeTransformCoefficientRegion would advance.
+            // The coefficient positions of a block belong to the transforms that it codes, so a block that crosses the frame edge owns fewer
+            // positions than its size. A skipped block reads no transform unit. This code adds the same count that
+            // EncodeTransformCoefficientRegion adds for a coded block.
             Av1MacroBlockD macroBlock = entropyCodingContext.MacroBlock;
             int maximumBlocksWide = size.Width;
             int maximumBlocksHigh = size.Height;
@@ -4341,8 +4367,8 @@ internal partial class Av1TileWriter
             bool lossless = pcs.Parent.FrameHeader.LosslessArray[mbmi.Block.SegmentId];
             Av1TransformSize lumaTransformSize = lossless ? Av1TransformSize.Size4x4 : mbmi.Block.TransformSize;
 
-            // A skipped block has an all-zero residual, so publish a zero sign/level context over its edges
-            // and advance coefficient positions without reading transform units.
+            // A skipped block has an all-zero residual. The code publishes a zero sign and level context over its edges, and advances the
+            // coefficient positions without reading transform units.
             const Av1NeighborArrayUnit<byte>.UnitMask BothEdges = Av1NeighborArrayUnit<byte>.UnitMask.Left | Av1NeighborArrayUnit<byte>.UnitMask.Top;
             lumaCoefficientEdges.Write(0, blockOrigin, size, BothEdges);
 
@@ -4375,9 +4401,8 @@ internal partial class Av1TileWriter
     /// Calculates the coefficient positions that one plane of a block owns in the superblock buffer.
     /// </summary>
     /// <remarks>
-    /// Only transforms whose origin lies inside the coded block extent are coded, and each one owns its
-    /// complete sample count. This repeats the traversal bounds of
-    /// <see cref="EncodeTransformCoefficientRegion{TOperation}"/> for one uniform transform size.
+    /// Only the transforms whose origin lies inside the coded block extent are coded, and each one owns its complete sample count. This method
+    /// repeats the traversal bounds of <see cref="EncodeTransformCoefficientRegion{TOperation}"/> for one uniform transform size.
     /// </remarks>
     /// <param name="maximumBlocksWide">The coded luma block width in four-sample units.</param>
     /// <param name="maximumBlocksHigh">The coded luma block height in four-sample units.</param>
@@ -4392,8 +4417,8 @@ internal partial class Av1TileWriter
         int subsamplingX,
         int subsamplingY)
     {
-        // A chroma-owning block that is narrower or shorter than its luma pair still codes its shared
-        // transform, so the subsampled extent rounds upward.
+        // A chroma-owning block that is narrower or shorter than its luma pair still codes its shared transform, so the subsampled extent
+        // rounds up.
         int planeBlocksWide = Av1Math.RoundPowerOf2(maximumBlocksWide, subsamplingX);
         int planeBlocksHigh = Av1Math.RoundPowerOf2(maximumBlocksHigh, subsamplingY);
         int transformBlocksWide = transformSize.Get4x4WideCount();
@@ -4473,8 +4498,8 @@ internal partial class Av1TileWriter
 
             ref Av1MacroBlockModeInfo firstBlock = ref pcs.GetFromModeInfoGrid(modeInfoGrid, modeInfoAllocation, firstBlockPosition);
 
-            // CDEF strength belongs to the first mode-info block in the 64x64 filter unit even when skipped
-            // blocks delay transmission until a later coding block.
+            // The CDEF strength belongs to the first mode-information block of the 64x64 filter unit, even when skipped blocks delay the
+            // strength until a later coding block.
             writer.WriteCdefStrength<TOperation>(ref output, firstBlock.CdefStrength, frameHeader.CdefParameters.BitCount);
             tileCdefPreset[index] = firstBlock.CdefStrength;
         }
@@ -4515,8 +4540,7 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// Writes or adapts to the luma and chroma transform coefficients of one block, in the 64x64 region order of
-    /// the residual syntax.
+    /// Writes or adapts to the luma and chroma transform coefficients of one block, in the 64x64 region order of the residual syntax.
     /// </summary>
     /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
     /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
@@ -4582,10 +4606,8 @@ internal partial class Av1TileWriter
         Point chromaBlockOrigin = GetChromaBlockOrigin(blockOrigin, subsamplingX, subsamplingY);
         int chromaAreaStart = 0;
 
-        // The adaptation pass visits each plane across the whole block before the next plane, unlike the
-        // syntax below, which interleaves the planes of each 64x64 region. The order changes how a shared
-        // distribution adapts once a block spans more than one region.
-        // Reference: av1_update_txb_context(), which calls av1_foreach_transformed_block_in_plane() per plane.
+        // The adaptation pass visits each plane across the whole block before the next plane. The syntax below interleaves the planes of each
+        // 64x64 region instead. The order changes how a shared distribution adapts when a block spans more than one region.
         if (!TOperation.WritesOutput && (maximumBlocksWide > maximumUnitBlocksWide || maximumBlocksHigh > maximumUnitBlocksHigh))
         {
             for (int planeIndex = 0; planeIndex < (hasChroma ? 3 : 1); planeIndex++)
@@ -4641,8 +4663,8 @@ internal partial class Av1TileWriter
             return;
         }
 
-        // Residual syntax is region-major, then plane-major. Keeping the three plane calls together
-        // prevents a 128x128 block from emitting later luma regions before earlier chroma regions.
+        // Residual syntax is region-major, then plane-major. The three plane calls stay together, so a 128x128 block does not emit later luma
+        // regions before earlier chroma regions.
         for (int regionRow = 0; regionRow < maximumBlocksHigh; regionRow += maximumUnitBlocksHigh)
         {
             int unitBottom = Math.Min(regionRow + maximumUnitBlocksHigh, maximumBlocksHigh);
@@ -4674,8 +4696,8 @@ internal partial class Av1TileWriter
                     int chromaRegionRow = regionRow >> subsamplingY;
                     int chromaRegionColumn = regionColumn >> subsamplingX;
 
-                    // Region limits count 4x4 units. Round the subsampled end upward so a chroma-owning
-                    // 4x4, 4x8, or 8x4 luma block still emits its shared 4x4 chroma transform.
+                    // Region limits count 4x4 units. The subsampled end rounds up, so a chroma-owning 4x4, 4x8 or 8x4 luma block still emits its
+                    // shared 4x4 chroma transform.
                     int chromaUnitBottom = Av1Math.RoundPowerOf2(unitBottom, subsamplingY);
                     int chromaUnitRight = Av1Math.RoundPowerOf2(unitRight, subsamplingX);
                     EncodeTransformCoefficientRegion<TOperation>(
@@ -4723,8 +4745,8 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// Writes or adapts to the transform coefficients of one plane inside one 64x64 region of a block, and publishes
-    /// the coefficient contexts of each transform block on the plane edges.
+    /// Writes or adapts to the transform coefficients of one plane inside one 64x64 region of a block. It publishes the coefficient contexts of
+    /// each transform block on the plane edges.
     /// </summary>
     /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
     /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
@@ -4812,8 +4834,8 @@ internal partial class Av1TileWriter
         Av1TransformSize traversalSize = variableLuma ? rootSize.GetSubSize().GetSubSize() : transformSize;
         int leafCount = rootSize.GetSize2d() / traversalSize.GetSize2d();
 
-        // Split inter transforms follow their syntax tree. Intra and chroma roots each have one leaf,
-        // preserving their raster traversal while all paths share coefficient and context ownership.
+        // Split inter transforms follow their syntax tree. Intra and chroma roots each have one leaf, so they keep their raster traversal.
+        // All paths share the same coefficient and context ownership.
         for (int rootRow = regionRow; rootRow < unitBottom; rootRow += rootSize.Get4x4HighCount())
         {
             for (int rootColumn = regionColumn; rootColumn < unitRight; rootColumn += rootSize.Get4x4WideCount())
@@ -4867,23 +4889,23 @@ internal partial class Av1TileWriter
                             planeBlockSize,
                             transformSize);
 
-                        // Neighbor probabilities must describe the selected transform at analysis time, before
-                        // final packing revisits the frame. Both context alphabets fit in the existing spare byte.
+                        // The stored contexts describe the selected transform at analysis time, before the final packing visits the frame again.
+                        // Both context alphabets fit in the existing spare byte.
                         transformBlock.EntropyContext = (byte)(blockContext.SkipContext | (blockContext.DcSignContext << 4));
                     }
 
                     Av1TransformType transformType = transformBlock.TransformType;
                     if (isLuma && transformBlock.EndOfBlock == 0)
                     {
-                        // Empty luma transforms carry no transform-type symbol, so retain the canonical state.
+                        // Empty luma transforms carry no transform-type symbol, so the code stores the default DCT_DCT type.
                         transformType = transformBlock.TransformType = Av1TransformType.DctDct;
                     }
 
                     if (TOperation.WritesOutput && transformBlock.EndOfBlock != 0 &&
                         pcs.Parent.SpeedSettings.TrackTransformTypeProbabilities)
                     {
-                        // Only the final packing traversal counts selected transforms. Partition trials and
-                        // coefficient analysis revisit the same samples and must not change frame history.
+                        // Only the final packing traversal counts the selected transforms. Partition trials and coefficient analysis visit the
+                        // same samples again, and they must not change the frame history.
                         transformTypeCounts[((int)transformSize * Av1TransformTypeProbabilities.TypeCount) + (int)transformType]++;
                     }
 
@@ -4923,8 +4945,8 @@ internal partial class Av1TileWriter
         }
         else if (plane == Av1Plane.V || advanceBlueArea)
         {
-            // U and V share the same per-plane coded-area positions; advance only after V completes the region,
-            // unless U runs across the whole block on its own.
+            // U and V share the same coded-area positions of each plane. The position advances only after V completes the region, unless U
+            // runs across the whole block alone.
             entropyCodingContext.CodedAreaSuperblockUv = codedArea;
         }
     }
@@ -4956,8 +4978,8 @@ internal partial class Av1TileWriter
         Point transformOrigin,
         Size frameContextSize)
     {
-        // Transforms retain their full size at the frame edge, but padded samples cannot contribute
-        // activity to later transforms. Clear the unused tail even when an earlier trial populated it.
+        // Transforms keep their full size at the frame edge, but padded samples cannot add activity to later transforms. The code clears the
+        // unused tail, also when an earlier trial filled it.
         int topCount = Math.Min(topContexts.Length, frameContextSize.Width - (transformOrigin.X >> Av1Constants.ModeInfoSizeLog2));
         int leftCount = Math.Min(leftContexts.Length, frameContextSize.Height - (transformOrigin.Y >> Av1Constants.ModeInfoSizeLog2));
         topContexts[..topCount].Fill(context);
@@ -5012,8 +5034,8 @@ internal partial class Av1TileWriter
         int top = 0;
         int left = 0;
 
-        // Each context packs a coefficient-level class in the low bits and the DC sign class above it.
-        // Accumulating both values in one traversal supplies every luma and chroma context without scratch storage.
+        // Each context packs a coefficient-level class in the low bits and the DC sign class above it. One traversal accumulates both values,
+        // and gives every luma and chroma context without extra storage.
         foreach (byte context in topContexts)
         {
             byte sign = (byte)(context >> Av1Constants.CoefficientContextBitCount);
@@ -5063,8 +5085,8 @@ internal partial class Av1TileWriter
         }
         else
         {
-            // Chroma contexts use only the presence of nonzero levels on each edge, plus an offset
-            // that distinguishes a transform smaller than its containing plane block.
+            // Chroma contexts use only the presence of nonzero levels on each edge, plus an offset that marks a transform smaller than its
+            // containing plane block.
             int contextBase = (left != 0 ? 1 : 0) + (top != 0 ? 1 : 0);
             int contextOffset = planeBlockSize.GetPelsLog2Count() > transformSize.ToBlockSize().GetPelsLog2Count() ? 10 : 7;
             blockContext.SkipContext = contextBase + contextOffset;
@@ -5111,9 +5133,8 @@ internal partial class Av1TileWriter
         int spatial_pred = GetSpatialSegmentationPrediction(pcs.Parent.Common, segmentationNeighborMap, macroBlock, blockOrigin, out int cdf_num);
         if (!beforeSkip && skip)
         {
-            // Post-skip segment syntax can infer the spatial predictor once the decoder already knows the block is skipped.
-            // The bitstream also records it in the encoder's own map. Reference: the skip_txfm branch of
-            // write_segment_id().
+            // When the segment identifier follows the skip flag of a skipped block, the decoder infers the spatial predictor. The packing pass
+            // also stores this predictor in the segment map that the encoder keeps.
             pcs.UpdateSegmentation(segmentationNeighborMap, blockSize, blockOrigin, spatial_pred);
             if (TOperation.WritesOutput)
             {
@@ -5124,13 +5145,11 @@ internal partial class Av1TileWriter
             return;
         }
 
-        // The segment syntax is only coded into the bitstream; the encoding pass never adapts its distributions.
-        // Reference: update_stats(), which updates no segment distribution.
+        // Only the packing pass codes the segment syntax. The adaptation pass never adapts the segment distributions.
         if (TOperation.WritesOutput)
         {
-            // An inter frame that codes its map against the primary reference first signals the prediction flag.
-            // The encoder never sets the flag, so every identifier is then coded spatially. Reference: the
-            // seg_id_predicted of write_inter_segment_id(), which only the skip path writes.
+            // An inter frame that codes its map against the primary reference first signals the prediction flag. The encoder always writes
+            // this flag as zero here, so it codes every identifier spatially.
             if (!pcs.Parent.FrameHeader.IsIntra && segmentation_params.SegmentationTemporalUpdate == 1)
             {
                 writer.WriteSegmentIdPredicted<TOperation>(ref output, false, 0);
@@ -5144,8 +5163,7 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// Derives a segment identifier predictor and entropy context from the upper-left, above, and left neighbors of a
-    /// segment map. Reference: av1_get_spatial_seg_pred().
+    /// Derives a segment identifier predictor and entropy context from the upper-left, above, and left neighbors of a segment map.
     /// </summary>
     /// <param name="cm">The frame dimensions in mode-information units.</param>
     /// <param name="segmentation_map">The segment map that holds the neighbors.</param>
@@ -5204,7 +5222,7 @@ internal partial class Av1TileWriter
             cdf_index = 0;
         }
 
-        // Select the majority value when possible; otherwise AV1 gives the left neighbor precedence.
+        // When the above value matches the upper-left value, it is the majority value. Otherwise AV1 gives the left neighbor precedence.
         if (prev_u == unavailableSegmentId)
         {
             return prev_l == unavailableSegmentId ? 0 : prev_l;
@@ -5268,8 +5286,8 @@ internal partial class Av1TileWriter
         int skipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext);
         int nonSkipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext) + emptyTransformRate;
 
-        // Current libaom keeps intra blocks non-skipped. Empty transforms make both choices
-        // decoder-identical, so select skip only when its complete live rate is strictly lower.
+        // Empty transforms give the same decoded block for both choices, so the code selects skip only when its complete live rate is strictly
+        // lower.
         return skipRate < nonSkipRate;
     }
 

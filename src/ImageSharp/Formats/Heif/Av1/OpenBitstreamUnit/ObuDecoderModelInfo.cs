@@ -9,24 +9,22 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 internal sealed class ObuDecoderModelInfo
 {
     /// <summary>
-    /// Gets or sets BufferDelayLength. Specifies the length of the decoder_buffer_delay and the encoder_buffer_delay
-    /// syntax elements, in bits.
+    /// Gets or sets the length, in bits, of the `decoder_buffer_delay` and `encoder_buffer_delay` syntax elements.
     /// </summary>
     public uint BufferDelayLength { get; set; }
 
     /// <summary>
-    /// Gets or sets NumUnitsInDecodingTick. This is the number of time units of a decoding clock operating at the frequency time_scale Hz
-    /// that corresponds to one increment of a clock tick counter.
+    /// Gets or sets the number of time units of the decoding clock in one clock tick. The decoding clock runs at `time_scale` Hz.
     /// </summary>
     public uint NumUnitsInDecodingTick { get; set; }
 
     /// <summary>
-    /// Gets or sets BufferRemovalTimeLength. Specifies the length of the buffer_removal_time syntax element, in bits.
+    /// Gets or sets the length, in bits, of the `buffer_removal_time` syntax element.
     /// </summary>
     public uint BufferRemovalTimeLength { get; set; }
 
     /// <summary>
-    /// Gets or sets the FramePresentationTimeLength. Specifies the length of the frame_presentation_time syntax element, in bits.
+    /// Gets or sets the length, in bits, of the `frame_presentation_time` syntax element.
     /// </summary>
     public uint FramePresentationTimeLength { get; set; }
 }

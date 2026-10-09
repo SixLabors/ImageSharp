@@ -25,11 +25,11 @@ internal readonly struct Av1EncoderSpeedSettings
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1EncoderSpeedSettings"/> struct.
     /// </summary>
-    /// <param name="speed">The native-valued cpu-used tier.</param>
+    /// <param name="speed">The encoding speed tier.</param>
     /// <param name="allIntra">Whether the sequence uses the all-intra profile.</param>
     /// <param name="intraFrame">Whether the current picture is intra-only.</param>
     /// <param name="updateType">
-    /// The picture's role in its golden-frame group. Reference: gf_group->update_type[cpi->gf_frame_index].
+    /// The role of the picture in its golden-frame group.
     /// </param>
     /// <param name="qIndex">The current base quantizer index.</param>
     /// <param name="frameSize">The visible frame dimensions.</param>
@@ -39,8 +39,8 @@ internal readonly struct Av1EncoderSpeedSettings
     /// <see langword="null"/> when it is <paramref name="screenContent"/>. A key frame whose screen content trial turns
     /// the tools on keeps its detected value here.
     /// </param>
-    /// <param name="sharpness">The encoder sharpness, 0 to 7. Reference: oxcf->algo_cfg.sharpness.</param>
-    /// <param name="tuning">The tune metric. Reference: oxcf->tune_cfg.tuning.</param>
+    /// <param name="sharpness">The encoder sharpness, 0 to 7.</param>
+    /// <param name="tuning">The tune metric.</param>
     public Av1EncoderSpeedSettings(
         HeifEncodingSpeed speed,
         bool allIntra,
@@ -54,9 +54,7 @@ internal readonly struct Av1EncoderSpeedSettings
         Av1Tuning tuning = Av1Tuning.Psnr)
     {
         // The image and SSIMULACRA 2 tunes search intra modes more thoroughly in inter frames, because a layered image
-        // can code its key frame at a lower quality than its inter frames. Reference: the AOM_TUNE_IQ and
-        // AOM_TUNE_SSIMULACRA2 blocks of set_good_speed_features_framesize_independent(),
-        // set_good_speed_feature_framesize_dependent() and set_rt_speed_features_framesize_independent().
+        // can code its key frame at a lower quality than its inter frames.
         bool imageTuning = tuning.IsImageTuning();
 
         this.Speed = speed;
@@ -67,28 +65,23 @@ internal readonly struct Av1EncoderSpeedSettings
         this.intraFrame = intraFrame;
         this.minimumDimension = Math.Min(frameSize.Width, frameSize.Height);
 
-        // Good-quality usage derives many features from the frame's role in its group. A boosted frame is an
-        // intra-only, golden, or alternate-reference update and is coded at a higher quality than the frames
-        // around it; the second class adds the internal alternate-reference updates; only the ordinary displayed
-        // frames of a group are last-frame updates. Reference: frame_is_boosted(), is_boosted_arf2_bwd_type, and
-        // is_lf_frame in set_good_speed_features_framesize_independent() and
-        // set_good_speed_feature_framesize_dependent().
+        // Good-quality usage derives many settings from the role of the frame in its group. A boosted frame is an intra-only, golden or
+        // alternate-reference update. The encoder codes it at a higher quality than the frames around it. The second class adds the
+        // internal alternate-reference updates. Only the ordinary displayed frames of a group are last-frame updates.
         bool boosted = intraFrame || updateType is Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
         bool boostedOrInternalAlternate = boosted || updateType == Av1FrameUpdateType.IntermediateAlternate;
         bool lastFrameUpdate = updateType == Av1FrameUpdateType.Last;
         this.IsBoosted = boosted;
 
-        // GOOD mode disables dual interpolation filtering in its baseline speed features. All-intra pictures do not
-        // write inter filters, so keeping the sequence flag disabled avoids advertising an unused coding tool.
+        // Good-quality usage disables dual interpolation filters at every speed. All-intra pictures do not write inter filters. The
+        // sequence flag stays off, so the header does not signal an unused coding tool.
         this.EnableDualFilter = false;
 
-        // Real-time usage never enables loop restoration. Reference: the g_usage test that sets
-        // tool_cfg->enable_restoration in av1_cx_iface.
+        // Real-time usage never enables loop restoration. All-intra usage enables it below speed 5.
         this.EnableRestoration = (allIntra || speed < HeifEncodingSpeed.Level7) &&
             (!allIntra || speed < HeifEncodingSpeed.Level5);
 
-        // GOOD mode keeps distance-weighted compound at speed 0 only, and real-time usage disables it.
-        // Reference: use_dist_wtd_comp_flag in the good and rt framesize-independent speed features.
+        // Good-quality usage keeps distance-weighted compound at speed 0 only. Real-time usage disables it.
         this.UseDistanceWeightedCompound = !allIntra && speed == HeifEncodingSpeed.Level0;
         this.AllowHighPrecisionMotionVector = !intraFrame && qIndex < 128;
         this.UseVarianceBasedPartition = speed >= HeifEncodingSpeed.Level7;
@@ -99,8 +92,8 @@ internal readonly struct Av1EncoderSpeedSettings
                 ? Av1BlockSize.Block8x8
                 : Av1BlockSize.Block4x4;
 
-        // Fast still-image search caps its leaves at 32 samples. Larger roots must split before
-        // mode evaluation; slower still-image and sequence searches retain the full size range.
+        // Fast still-image search caps its leaves at 32 samples. Larger roots must split before mode evaluation. Slower still-image
+        // searches and sequence searches keep the full size range.
         this.MaximumPartitionSize = allIntra && speed >= HeifEncodingSpeed.Level6
             ? Av1BlockSize.Block32x32
             : Av1BlockSize.Block128x128;
@@ -109,8 +102,8 @@ internal readonly struct Av1EncoderSpeedSettings
         this.LumaPaletteHeaderPruneLevel = allIntra ? speed == HeifEncodingSpeed.Level0 ? 1 : 2 : 0;
         this.EarlyTerminateChromaPaletteSearch = allIntra || speed >= HeifEncodingSpeed.Level6;
 
-        // Search depth counts splits below the largest transform. Square blocks normally test one
-        // split; rectangular blocks at the slowest tier can test two unless the size/quantizer policy narrows it.
+        // Search depth counts splits below the largest transform. Square blocks usually test one split. At speed 0, rectangular blocks
+        // test two splits, except in a frame of 720p or larger with a quantizer index of 128 or less.
         this.IntraSquareTransformSearchDepth = !allIntra && speed >= HeifEncodingSpeed.Level7 ? 0 : 1;
         this.IntraRectangularTransformSearchDepth = speed == HeifEncodingSpeed.Level0 &&
             !(minimumDimension >= 720 && qIndex <= 128) ? 2 : 1;
@@ -122,8 +115,8 @@ internal readonly struct Av1EncoderSpeedSettings
         this.AdaptiveModeThresholdLevel = allIntra ? 0 : realtime ? 4 : speed >= HeifEncodingSpeed.Level2 ? 1 : 0;
         this.PruneSkippableInterModes = !allIntra && (realtime || speed >= HeifEncodingSpeed.Level5);
 
-        // skip_intra_in_interframe: good quality uses 2 in an inter frame from speed 2, and from speed 3 keeps 1 in a
-        // boosted frame and uses 2 or 3 by resolution in the others. The image tune turns it off.
+        // Intra pruning in inter frames: good quality uses level 2 in an inter frame from speed 2. From speed 3, a boosted frame keeps
+        // level 1 and the other frames use level 2 or 3 by resolution. The image tune turns the pruning off.
         this.IntraInInterPruningLevel = allIntra || imageTuning ? 0 : realtime ? 5 : speed >= HeifEncodingSpeed.Level4 ? 4 :
             speed >= HeifEncodingSpeed.Level3 ? boosted ? 1 : minimumDimension >= 720 ? 2 : 3 :
             speed >= HeifEncodingSpeed.Level2 && !intraFrame ? 2 : 1;
@@ -164,8 +157,8 @@ internal readonly struct Av1EncoderSpeedSettings
                         minimumDimension >= 480 ? Av1BlockSize.Block64x64 : Av1BlockSize.Block32x32
                     : minimumDimension >= 480 ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
 
-        // Entries run from 128x128 down to 8x8. Negative thresholds disable the model at that size;
-        // high-resolution frames use normalized features only at the two slower configured speed tiers.
+        // Entries run from 128x128 down to 8x8. A negative threshold disables the model at that size. Frames of 720p or larger use the
+        // model only at speeds 1 and 2.
         this.partitionBreakoutThresholds[0] = -1;
         this.partitionBreakoutThresholds[1] = -1;
         this.partitionBreakoutThresholds[2] = -1;
@@ -190,8 +183,8 @@ internal readonly struct Av1EncoderSpeedSettings
         this.TransformTypeProbabilityPruning = realtime || minimumDimension < 480 || speed < HeifEncodingSpeed.Level2
             ? 0 : speed >= HeifEncodingSpeed.Level4 ? 2 : 1;
 
-        // fast_inter_tx_type_prob_thresh: good quality speed 6 below 720p keeps the higher threshold in boosted and
-        // internal alternate-reference frames.
+        // The inter transform type threshold: good quality from speed 6 below 720p keeps the higher threshold in boosted and internal
+        // alternate-reference frames.
         this.InterTransformTypeProbabilityThreshold = realtime ? 0 :
             !allIntra && speed >= HeifEncodingSpeed.Level6 && minimumDimension < 720
                 ? boostedOrInternalAlternate ? 450 : 150
@@ -205,25 +198,26 @@ internal readonly struct Av1EncoderSpeedSettings
         this.ModelBasedInterpolationBreakout = !allIntra;
         this.PruneNearMotionByTranslation = !allIntra && !realtime;
 
-        // reduce_inter_modes: good quality uses 1 in a boosted frame, and 2 at speed 0 or 3 from speed 1 in the others.
+        // Inter reference reduction: good quality uses level 1 in a boosted frame. The other frames use level 2 at speed 0 and level 3
+        // from speed 1.
         this.ReduceInterReferenceIndices = allIntra ? 0 : realtime ? intraFrame ? 1 : 3 :
             boosted ? 1 : speed >= HeifEncodingSpeed.Level1 ? 3 : 2;
 
-        // prune_nearest_near_mv_using_refmv_weight: good quality from speed 5 below 720p, and from speed 6, in a frame
-        // that is not boosted. The screen-content condition applies where the flag is read.
+        // Good quality prunes spatial motion vectors by weight in a frame that is not boosted, from speed 5 below 720p and from speed 6
+        // at every size. The code that reads the flag applies the screen-content condition.
         this.PruneSpatialMotionByWeight = !allIntra && !realtime && !boosted &&
             (speed >= HeifEncodingSpeed.Level6 || (speed >= HeifEncodingSpeed.Level5 && minimumDimension < 720));
 
         this.NearNeighborPruningLevel = allIntra ? 0 : realtime || speed >= HeifEncodingSpeed.Level6 ? 3 :
             speed >= HeifEncodingSpeed.Level5 ? minimumDimension <= 480 ? 1 : 2 : 0;
 
-        // skip_interp_filter_search: good quality from speed 5 in a frame that is not boosted.
+        // Good quality skips the single-reference interpolation search from speed 5 in a frame that is not boosted.
         this.SkipSingleInterpolationSearch = !allIntra && !realtime && !boosted && speed >= HeifEncodingSpeed.Level5;
         this.UseWinnerInterpolation = realtime;
         this.UseSimpleInterpolationModel = realtime;
         this.WinnerInterpolationUsesSharp = minimumDimension <= 240;
 
-        // prune_comp_search_by_single_result: good quality prunes less in a boosted frame.
+        // Compound pruning by single-reference results: good quality prunes less in a boosted frame.
         this.CompoundSingleResultPruningLevel = allIntra ? 0 : realtime ? 2 :
             speed >= HeifEncodingSpeed.Level3 ? boosted ? 4 : 2 :
             speed >= HeifEncodingSpeed.Level2 ? boosted ? 4 : 1 :
@@ -242,7 +236,7 @@ internal readonly struct Av1EncoderSpeedSettings
         this.SkipInterpolationChromaModel = !allIntra && !realtime && speed >= HeifEncodingSpeed.Level1;
         this.SkipSharpInterpolationAfterSmooth = !allIntra && !realtime && speed >= HeifEncodingSpeed.Level4;
 
-        // use_more_sharp_interp: good quality below speed 4 in a frame that is not boosted.
+        // Good quality prefers the sharp interpolation filter below speed 4 in a frame that is not boosted.
         this.PreferSharpInterpolation = !allIntra && !realtime && !boosted && speed < HeifEncodingSpeed.Level4;
         this.UseNeighborInterpolation = !allIntra && (!realtime ? speed >= HeifEncodingSpeed.Level4 :
             speed >= HeifEncodingSpeed.Level9 && minimumDimension is >= 360 and < 1080);
@@ -250,16 +244,15 @@ internal readonly struct Av1EncoderSpeedSettings
         this.UseLocalJointMotionSearch = !realtime;
         this.ReuseCompoundTypeDecision = !realtime && speed >= HeifEncodingSpeed.Level3;
 
-        // reuse_mask_search_results: good quality from speed 2, and at speed 1 up to base_qindex 200 in a frame that
-        // is neither boosted nor an internal alternate reference. Reference:
-        // set_good_speed_features_framesize_independent() and av1_set_speed_features_qindex_dependent().
+        // Good quality reuses compound mask results from speed 2. At speed 1, it reuses them up to a base quantizer index of 200, in a
+        // frame that is not boosted and not an internal alternate reference.
         this.ReuseCompoundMaskResults = !realtime && (speed >= HeifEncodingSpeed.Level2 ||
             (speed == HeifEncodingSpeed.Level1 && qIndex <= 200 && !boostedOrInternalAlternate));
 
         this.UseCompoundWedgeModel = !realtime && speed >= HeifEncodingSpeed.Level1;
         this.FastWedgeSignEstimation = realtime;
 
-        // prune_comp_type_by_model_rd: good quality from speed 1 in a frame that is not boosted.
+        // Good quality prunes compound types by the model cost from speed 1 in a frame that is not boosted.
         this.PruneCompoundTypeByModel = !realtime && speed >= HeifEncodingSpeed.Level1 && !boosted;
         this.CompoundTypePruningLevel = realtime || speed >= HeifEncodingSpeed.Level2 ? 2 :
             speed >= HeifEncodingSpeed.Level1 ? 1 : 0;
@@ -268,8 +261,8 @@ internal readonly struct Av1EncoderSpeedSettings
             speed >= HeifEncodingSpeed.Level3 ? minimumDimension >= 720 ? 100 : int.MaxValue :
             speed >= HeifEncodingSpeed.Level2 ? 100 : 0;
 
-        // disable_interinter_wedge_newmv_search: good quality speed 2 below 720p refines only in boosted and internal
-        // alternate-reference frames, and from speed 3 only in boosted frames.
+        // Wedge motion refinement: good quality at speed 2 below 720p refines only in boosted and internal alternate-reference frames.
+        // From speed 3, it refines only in boosted frames.
         this.RefineWedgeMotion = realtime || speed < HeifEncodingSpeed.Level2 ||
             (speed == HeifEncodingSpeed.Level2 ? minimumDimension >= 720 || boostedOrInternalAlternate : boosted);
 
@@ -285,12 +278,11 @@ internal readonly struct Av1EncoderSpeedSettings
         this.InterIntraWedgeVarianceThreshold = realtime || speed >= HeifEncodingSpeed.Level3 ? int.MaxValue :
             speed == HeifEncodingSpeed.Level2 ? minimumDimension >= 480 ? 100 : int.MaxValue : 0;
 
-        // Good quality estimates inter residuals with the curve-fitted model unless sharpness or the image tune is set.
-        // Reference: inter_mode_rd_model_estimation in set_good_speed_features_framesize_independent().
+        // Good quality estimates inter residuals with the curve-fitted model, unless sharpness or the image tune is set.
         this.InterModeEstimation = allIntra || intraFrame ? 0 : realtime ? 2 : sharpness != 0 || imageTuning ? 0 : 1;
 
-        // limit_inter_mode_cands limits only the last-frame updates of good quality, and limit_txfm_eval_per_mode
-        // and inter_mode_txfm_breakout the frames that are not boosted.
+        // Good quality limits the inter mode candidates only in last-frame updates. The repeat threshold and the transform breakout
+        // apply only to frames that are not boosted.
         this.InterModeCandidateLimit = realtime ? 2 : !lastFrameUpdate ? int.MaxValue :
             speed >= HeifEncodingSpeed.Level3 ? 6 :
             speed >= HeifEncodingSpeed.Level2 ? minimumDimension >= 720 ? 10 : 9 : int.MaxValue;
@@ -308,7 +300,7 @@ internal readonly struct Av1EncoderSpeedSettings
             realtime ? 4 : speed >= HeifEncodingSpeed.Level3 ? 2 : speed >= HeifEncodingSpeed.Level2 ? 1 : 0;
         this.PruneRectangularPartitionsUsingIntraMode = allIntra && speed >= HeifEncodingSpeed.Level6;
 
-        // skip_non_sq_part_based_on_none: good quality from speed 3 in a last-frame update only.
+        // Good quality skips rectangular partitions after a skippable NONE partition from speed 3, in a last-frame update only.
         this.SkippablePartitionPruningLevel = !allIntra && !realtime && lastFrameUpdate && speed >= HeifEncodingSpeed.Level3
             ? minimumDimension >= 720 ? 2 : 1
             : 0;
@@ -316,9 +308,8 @@ internal readonly struct Av1EncoderSpeedSettings
         this.TerminatePartitionSearchAfterInvalidNoneAndSplit = realtime || speed >= HeifEncodingSpeed.Level4 ||
             (!allIntra && speed >= HeifEncodingSpeed.Level3 && minimumDimension >= 480);
 
-        // The quantizer pass overrides the speed ladder in every mode but realtime: speed 3 relaxes the
-        // check from base_qindex 170, and speeds up to 2 keep the first level.
-        // Reference: the less_rectangular_check_level terms of av1_set_speed_features_qindex_dependent().
+        // The quantizer rule replaces the speed ladder in every usage except real-time. Speed 3 relaxes the check from a base quantizer
+        // index of 170, and speeds up to 2 keep the first level.
         this.RectangularPartitionPruningLevel = realtime || speed >= HeifEncodingSpeed.Level4
             ? 2
             : speed == HeifEncodingSpeed.Level3 ? qIndex >= 170 ? 1 : 2 : 1;
@@ -383,8 +374,8 @@ internal readonly struct Av1EncoderSpeedSettings
         this.AdaptIntraModelCountToNeighbors = allIntra && speed >= HeifEncodingSpeed.Level6;
         this.PruneOddIntraAngleDeltas = allIntra && speed >= HeifEncodingSpeed.Level6;
 
-        // adaptive_txb_search_level: all-intra keeps 2 from speed 1. Good quality raises unboosted frames to 3 from
-        // speed 3, and turns the level off for sharpness 3.
+        // Adaptive transform search level: all-intra keeps level 2 from speed 1. Good quality raises frames that are not boosted to
+        // level 3 from speed 3, and turns the level off for sharpness 3.
         bool goodQualitySharpness3 = !allIntra && !realtime && sharpness == 3;
         this.InterAdaptiveTransformSearchLevel = realtime ? 2
             : goodQualitySharpness3 ? 0
@@ -393,7 +384,7 @@ internal readonly struct Av1EncoderSpeedSettings
 
         this.UseLumaCostForChromaBound = !allIntra && !realtime && speed >= HeifEncodingSpeed.Level3;
 
-        // use_mb_rd_hash: good quality from speed 2.
+        // Good quality uses the block residual hash from speed 2.
         this.UseMacroblockRateDistortionHash = !allIntra && !realtime && speed >= HeifEncodingSpeed.Level2;
         this.InterTransformNoSplitCandidateCount = allIntra || realtime || speed == HeifEncodingSpeed.Level0
             ? 0
@@ -405,14 +396,13 @@ internal readonly struct Av1EncoderSpeedSettings
             ? 3
             : speed >= HeifEncodingSpeed.Level1 || (minimumDimension >= 1080 && qIndex <= 108) ? 2 : 1;
 
-        // winner_mode_tx_type_pruning: good quality speed 2 below 480p prunes in a frame that is not boosted.
+        // Winner transform type pruning: good quality at speed 2 below 480p prunes in a frame that is not boosted.
         int winnerTypePruning = realtime || speed >= HeifEncodingSpeed.Level6 ? 4
             : speed >= HeifEncodingSpeed.Level4 ? 2
             : speed >= HeifEncodingSpeed.Level3 || (speed >= HeifEncodingSpeed.Level2 && !boosted && minimumDimension < 480) ? 1 : 0;
 
-        // Good quality speed 5 prunes more strongly in an inter frame without screen content, at any quantizer
-        // below 480p and at a low quantizer from 480p. Reference: the speed 5 winner_mode_tx_type_pruning of
-        // set_good_speed_features_qindex_dependent().
+        // Good quality at speed 5 prunes more strongly in an inter frame without screen content. This applies at any quantizer below
+        // 480p, and at a quantizer index below 128 from 480p.
         if (!realtime && !allIntra && speed == HeifEncodingSpeed.Level5 && !intraFrame && !screenContent &&
             qIndex < (minimumDimension >= 480 ? 128 : 256))
         {
@@ -436,8 +426,7 @@ internal readonly struct Av1EncoderSpeedSettings
             _ => defaultInterTypePruning
         };
 
-        // use_skip_flag_prediction: good quality with sharpness 3 never predicts an empty residual. Reference: the
-        // sharpness 3 overrides at the end of set_good_speed_features_framesize_independent().
+        // Good quality with sharpness 3 never predicts an empty residual.
         this.SkipFlagPredictionLevel = goodQualitySharpness3 ? 0 : realtime || speed >= HeifEncodingSpeed.Level3 ? 2 : 1;
         this.InterTransformSizePruningLevel = realtime ? 0 : speed >= HeifEncodingSpeed.Level3
             ? 3
@@ -445,30 +434,27 @@ internal readonly struct Av1EncoderSpeedSettings
 
         this.EnableCoefficientOptimization = !realtime;
 
-        // lpf_pick: the full-image search is the default (init_lpf_sf); all-intra and good quality drop the
-        // separate direction searches from speed 4, all-intra derives the levels from the quantizer from
-        // speed 6, and realtime always does.
+        // The loop filter pick method: the full-image search is the default. All-intra and good quality drop the separate direction
+        // searches from speed 4. All-intra derives the levels from the quantizer from speed 6, and real-time usage always does.
         this.LoopFilterPickMethod = realtime || (allIntra && speed >= HeifEncodingSpeed.Level6)
             ? Av1LoopFilterPickMethod.FromQuantizer
             : speed >= HeifEncodingSpeed.Level4 ? Av1LoopFilterPickMethod.FullImageNonDual : Av1LoopFilterPickMethod.FullImage;
 
         // Good quality from speed 3 stops the level search of an inter frame at a step of two.
-        // Reference: use_coarse_filter_level_search.
         this.UseCoarseFilterLevelSearch = !realtime && !allIntra && !intraFrame && speed >= HeifEncodingSpeed.Level3;
 
         // Real-time usage, and good quality from speed 3, drop compound prediction from two references on the same
-        // side of the frame. Reference: disable_onesided_comp.
+        // side of the frame.
         this.DisableOneSidedCompound = realtime || (!allIntra && speed >= HeifEncodingSpeed.Level3);
 
         // Good quality from speed 1 searches no compound mode in an alternate reference frame of the base layer.
-        // Reference: skip_arf_compound.
         this.SkipAlternateReferenceCompound = !realtime && !allIntra && speed >= HeifEncodingSpeed.Level1;
 
-        // selective_ref_frame: good quality starts at 1 and raises the level with speed; speed 0 uses 2 for a
-        // 1080p frame at a low quantizer; real-time usage uses 4.
-        // prune_comp_ref_frames: good quality prunes compound pairs from speed 3 above 480p; at speed 4 from 720p,
-        // and from 480p outside the boosted and internal alternate-reference frames; everywhere at speed 5, and
-        // every pair that is not kept at speed 6. Reference: set_good_speed_feature_framesize_dependent().
+        // Selective reference frames: good quality starts at level 1 and raises the level with speed. Speed 0 uses level 2 for a 1080p
+        // frame at a low quantizer. Real-time usage uses level 4.
+        // Compound reference pruning: good quality prunes compound pairs from speed 3 above 480p. At speed 4, it prunes from 720p, and
+        // from 480p outside the boosted and internal alternate-reference frames. At speed 5, it prunes everywhere. At speed 6, it
+        // prunes every pair that is not kept.
         int compoundPruning = 0;
         if (!realtime && !allIntra && speed >= HeifEncodingSpeed.Level3)
         {
@@ -493,7 +479,7 @@ internal readonly struct Av1EncoderSpeedSettings
 
         this.CompoundReferencePruningLevel = compoundPruning;
 
-        // alt_ref_search_fp: good quality uses 1 from speed 2 and 2 from speed 4; real-time usage uses 2.
+        // Alternate reference search: good quality uses level 1 from speed 2 and level 2 from speed 4. Real-time usage uses level 2.
         this.AlternateReferenceSearchLevel = realtime ? 2 : allIntra ? 0 : speed switch
         {
             >= HeifEncodingSpeed.Level4 => 2,
@@ -510,8 +496,8 @@ internal readonly struct Av1EncoderSpeedSettings
             _ => minimumDimension >= 1080 && qIndex <= 108 ? 2 : 1
         };
 
-        // prune_inter_modes_based_on_tpl: good quality prunes LAST2 modes at every speed, and from speed 3 a frame
-        // that is not boosted prunes more with speed; a boosted frame keeps level 1. Real-time usage leaves it off.
+        // Inter mode pruning by the temporal dependency model: good quality prunes LAST2 modes at every speed. From speed 3, a frame
+        // that is not boosted prunes more with speed. A boosted frame keeps level 1. Real-time usage leaves the pruning off.
         this.TplInterModePruningLevel = realtime || allIntra ? 0 : boosted ? 1 : speed switch
         {
             >= HeifEncodingSpeed.Level6 => 4,
@@ -526,8 +512,8 @@ internal readonly struct Av1EncoderSpeedSettings
         this.EstimateTransformTypeRateDistortion = allIntra && speed is HeifEncodingSpeed.Level4 or HeifEncodingSpeed.Level5;
         this.IntraTransformTypeSearchLevel = speed < HeifEncodingSpeed.Level4 ? 0 : allIntra || realtime ? 2 : 1;
 
-        // enable_winner_mode_for_tx_size_srch: good quality speed 2 below 480p defers in a frame that is not boosted,
-        // speed 3 in an inter frame, and every frame from speed 4.
+        // Deferred transform size search: good quality at speed 2 below 480p defers in a frame that is not boosted. Speed 3 defers in
+        // an inter frame, and speed 4 and above defer in every frame.
         this.DeferTransformSizeSearch = allIntra
             ? speed >= HeifEncodingSpeed.Level4
             : speed >= HeifEncodingSpeed.Level4 || (speed == HeifEncodingSpeed.Level3 && !intraFrame) ||
@@ -542,8 +528,8 @@ internal readonly struct Av1EncoderSpeedSettings
         this.SkipFilterIntraAfterInvalidDc = !allIntra && speed >= HeifEncodingSpeed.Level2;
         this.FilterIntraPruneLevel = allIntra ? speed >= HeifEncodingSpeed.Level6 ? 2 : speed >= HeifEncodingSpeed.Level2 ? 1 : 0 : 0;
 
-        // perform_coeff_opt: good quality speed 1 keeps the lower level in a boosted frame, and the faster speeds in
-        // boosted and internal alternate-reference frames.
+        // Coefficient optimization level: good quality at speed 1 keeps the lower level in a boosted frame. The faster speeds keep the
+        // lower level in boosted and internal alternate-reference frames.
         int coefficientLevel = speed switch
         {
             HeifEncodingSpeed.Level0 => 1,
@@ -590,17 +576,14 @@ internal readonly struct Av1EncoderSpeedSettings
             ? (uint.MaxValue, uint.MaxValue)
             : this.ModeCoefficientOptimizationThresholds;
 
-        // Transform-domain distortion follows tx_domain_dist_level, tx_domain_dist_thres_level, and
-        // enable_winner_mode_for_use_tx_domain_dist. Sequence speed 0 applies the 1080p rule of
-        // av1_set_speed_features_qindex_dependent(), and good quality uses level 1 in a boosted frame.
+        // Transform-domain distortion has a level, a threshold level and a winner-stage switch. Sequence speed 0 applies the rule for
+        // 1080p frames at a low quantizer. Good quality uses level 1 in a boosted frame.
         bool largeLowQuantizer = speed == HeifEncodingSpeed.Level0 && minimumDimension >= 1080 && qIndex <= 108;
         int distortionLevel = realtime ? 2 : allIntra
             ? speed >= HeifEncodingSpeed.Level6 ? 3 : speed >= HeifEncodingSpeed.Level1 ? 1 : 0
             : speed >= HeifEncodingSpeed.Level1 || largeLowQuantizer ? boosted ? 1 : 2 : 0;
 
-        // Real-time usage raises the threshold level to 3 from speed 6, and this port reaches real-time usage
-        // from speed 7 only. Good-quality usage keeps level 1 from speed 1. Reference: tx_domain_dist_thres_level
-        // in set_rt_speed_features_framesize_independent() and set_good_speed_features_framesize_independent().
+        // Real-time usage starts at speed 7 and uses threshold level 3. Good-quality usage keeps level 1 from speed 1.
         int distortionThresholdLevel = realtime ? 3 : allIntra
             ? speed >= HeifEncodingSpeed.Level4 ? 3 : speed >= HeifEncodingSpeed.Level1 ? 1 : 0
             : speed >= HeifEncodingSpeed.Level1 || largeLowQuantizer ? 1 : 0;
@@ -614,7 +597,7 @@ internal readonly struct Av1EncoderSpeedSettings
             _ => uint.MaxValue
         };
 
-        // tx_domain_dist_types rows in libaom order: default, mode, and winner evaluation.
+        // The distortion types for the default, mode and winner evaluation stages, in that order.
         (int Default, int Mode, int Winner) distortionTypes = distortionLevel switch
         {
             1 => (1, 2, 0),
@@ -634,14 +617,14 @@ internal readonly struct Av1EncoderSpeedSettings
 
         this.SkipTransformSearchAfterEmptyBlock = realtime || speed >= HeifEncodingSpeed.Level1 || (!allIntra && largeLowQuantizer);
 
-        // Skip and DC-only block prediction follows dc_blk_pred_level and the predict_dc_levels rows. Good quality
-        // speed 4 keeps level 0 in a boosted frame.
+        // Skip and DC-only block prediction has one level, which selects a row of stage levels. Good quality at speed 4 keeps level 0
+        // in a boosted frame.
         int dcPredictionLevel = realtime ? intraFrame ? 0 : 3 : allIntra
             ? speed >= HeifEncodingSpeed.Level6 ? 1 : 0
             : speed >= HeifEncodingSpeed.Level6 ? 3 : speed >= HeifEncodingSpeed.Level5 ? 2
                 : speed >= HeifEncodingSpeed.Level4 ? boosted ? 0 : 2 : 0;
 
-        // predict_dc_levels rows in libaom order: default, mode, and winner evaluation.
+        // The prediction levels for the default, mode and winner evaluation stages, in that order.
         (int Default, int Mode, int Winner) dcPredictionLevels = dcPredictionLevel switch
         {
             1 => (1, 1, 0),
@@ -749,13 +732,13 @@ internal readonly struct Av1EncoderSpeedSettings
     public int PartitionBreakoutRateThreshold { get; }
 
     /// <summary>
-    /// Gets the native-valued cpu-used tier.
+    /// Gets the encoding speed tier.
     /// </summary>
     public HeifEncodingSpeed Speed { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the picture is an intra-only, golden, or alternate-reference update, which is
-    /// coded at a higher quality than the frames around it. Reference: frame_is_boosted().
+    /// Gets a value indicating whether the picture is an intra-only, golden, or alternate-reference update. The encoder codes such a
+    /// picture at a higher quality than the frames around it.
     /// </summary>
     public bool IsBoosted { get; }
 
@@ -765,9 +748,8 @@ internal readonly struct Av1EncoderSpeedSettings
     public bool EnableDualFilter { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the sequence enables inter-intra compound prediction. The sequence clears the
-    /// flag when disable_interintra_wedge_var_thresh is UINT_MAX: in real-time usage, and in good-quality usage from
-    /// speed 3, or at speed 2 below 480p. Reference: av1_set_speed_features_framesize_dependent().
+    /// Gets a value indicating whether the sequence enables inter-intra compound prediction. The flag is off when the inter-intra wedge
+    /// search is off: in real-time usage, and in good-quality usage from speed 3 or at speed 2 below 480p.
     /// </summary>
     public bool EnableInterIntraCompound => this.allIntra ||
         (!this.realtime && (this.Speed < HeifEncodingSpeed.Level2 ||
@@ -794,9 +776,8 @@ internal readonly struct Av1EncoderSpeedSettings
     public bool UseVarianceBasedPartition { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the frame allowed the screen content tools when the frame-size speed features
-    /// were set, which is before the screen content trial of a key frame. Reference: the allow_screen_content_tools
-    /// that set_good_speed_features_framesize_independent() reads through set_size_independent_vars().
+    /// Gets a value indicating whether the frame allowed the screen content tools when the encoder set the frame-size speed settings.
+    /// The encoder sets them before the screen content trial of a key frame.
     /// </summary>
     public bool FrameSizeScreenContentTools { get; }
 
@@ -849,20 +830,19 @@ internal readonly struct Av1EncoderSpeedSettings
     public bool UseChromaTrellisRateMultiplier => this.allIntra || this.realtime;
 
     /// <summary>
-    /// Gets a value indicating whether the sequence follows the reference real-time usage.
+    /// Gets a value indicating whether the sequence uses the real-time settings.
     /// </summary>
     public bool IsRealtime => this.realtime;
 
     /// <summary>
-    /// Gets a value indicating whether each 64x64 unit may leave CDEF off through a second, empty strength.
-    /// Reference: skip_cdef_sb in set_rt_speed_feature_framesize_dependent(), speed 9 at 360p and larger.
+    /// Gets a value indicating whether each 64x64 unit can leave CDEF off through a second, empty strength. Real-time usage sets it
+    /// at speed 9, for frames of 360p and larger.
     /// </summary>
     public bool SkipCdefSuperblock => this.realtime && this.Speed >= HeifEncodingSpeed.Level9 && this.minimumDimension >= 360;
 
     /// <summary>
     /// Gets the warped-motion usage probability, out of 128, below which a frame disallows warped motion, or 0 to
-    /// keep it allowed. Reference: prune_warped_prob_thresh, 8 in real-time usage from speed 6, and in GOOD usage
-    /// from speed 5 at 480p (8) and 720p (16).
+    /// keep it allowed. Real-time usage uses 8 from speed 6. Good-quality usage from speed 5 uses 8 at 480p and 16 at 720p.
     /// </summary>
     public int WarpedProbabilityThreshold
         => this.realtime
@@ -872,7 +852,7 @@ internal readonly struct Av1EncoderSpeedSettings
 
     /// <summary>
     /// Gets the frame probability below which a block size does not search OBMC: none before good-quality speed 2,
-    /// a small threshold at speeds 2 and 3, and every block from speed 4. Reference: prune_obmc_prob_thresh.
+    /// a small threshold at speeds 2 and 3, and every block from speed 4.
     /// </summary>
     public int ObmcProbabilityThreshold
         => this.realtime || this.allIntra ? 0
@@ -880,9 +860,8 @@ internal readonly struct Av1EncoderSpeedSettings
             : this.Speed >= HeifEncodingSpeed.Level2 ? this.minimumDimension >= 720 ? 16 : 8 : 0;
 
     /// <summary>
-    /// Gets the level that adapts the ALTREF lag to the average source SAD, or 0 for the fixed lag of 4 frames.
-    /// Reference: sad_based_adp_altref_lag in set_rt_speed_feature_framesize_dependent(), speed 9 at 360p and
-    /// larger, with a separate level from 720p.
+    /// Gets the level that adapts the ALTREF lag to the average source SAD, or 0 for the fixed lag of 4 frames. Real-time usage sets
+    /// it at speed 9 for frames of 360p and larger, with a separate level from 720p.
     /// </summary>
     public int AlternateReferenceLagLevel
         => this.realtime && this.Speed >= HeifEncodingSpeed.Level9 && this.minimumDimension >= 360
@@ -891,20 +870,19 @@ internal readonly struct Av1EncoderSpeedSettings
 
     /// <summary>
     /// Gets a value indicating whether warped motion is pruned further, which also restores the frame probability
-    /// tables at every golden refresh. Reference: extra_prune_warped, set in real-time usage from speed 6.
+    /// tables at every golden refresh. Real-time usage sets it from speed 6.
     /// </summary>
     public bool ExtraPruneWarped => this.realtime && this.Speed >= HeifEncodingSpeed.Level6;
 
     /// <summary>
-    /// Gets a value indicating whether a coded constant-bitrate frame may force or cancel the golden refresh.
-    /// Reference: gf_refresh_based_on_qp, set in real-time usage from speed 6.
+    /// Gets a value indicating whether a coded constant-bitrate frame can force or cancel the golden refresh. Real-time usage sets
+    /// it from speed 6.
     /// </summary>
     public bool UsesQuantizerGoldenRefresh => this.realtime && this.Speed >= HeifEncodingSpeed.Level6;
 
     /// <summary>
     /// Gets a value indicating whether a compound candidate of the large-block model is dropped when its luma
-    /// variance exceeds that of either of its single-reference modes. Reference:
-    /// prune_compoundmode_with_singlecompound_var, set in real-time usage from speed 7.
+    /// variance exceeds that of either of its single-reference modes. Real-time usage sets it from speed 7.
     /// </summary>
     public bool PrunesCompoundBySingleVariance => this.realtime && this.Speed >= HeifEncodingSpeed.Level7;
 
@@ -1032,8 +1010,8 @@ internal readonly struct Av1EncoderSpeedSettings
     public int InterAdaptiveTransformSearchLevel { get; }
 
     /// <summary>
-    /// Gets the predicted-skip level that selects, per evaluation stage, how an inter luma residual is judged
-    /// to quantize to nothing. Reference: use_skip_flag_prediction and predict_skip_levels.
+    /// Gets the predicted-skip level. For each evaluation stage, it selects how the search decides that an inter luma residual
+    /// quantizes to nothing.
     /// </summary>
     public int SkipFlagPredictionLevel { get; }
 
@@ -1148,7 +1126,7 @@ internal readonly struct Av1EncoderSpeedSettings
     public int InterWinnerPruningLevel { get; }
 
     /// <summary>
-    /// Gets the trellis optimization level. Reference: perform_coeff_opt.
+    /// Gets the trellis optimization level.
     /// </summary>
     public int CoefficientOptimizationLevel { get; }
 
@@ -1180,7 +1158,7 @@ internal readonly struct Av1EncoderSpeedSettings
 
     /// <summary>
     /// Gets a value indicating whether a compound pair is searched only when one of its references has a single
-    /// reference result within ten percent of the best. Reference: prune_compound_using_single_ref.
+    /// reference result within ten percent of the best.
     /// </summary>
     public bool PruneCompoundUsingSingleReference { get; }
 
@@ -1196,13 +1174,13 @@ internal readonly struct Av1EncoderSpeedSettings
 
     /// <summary>
     /// Gets a value indicating whether the luma palette search leaves the color map rate out of the palette cost.
-    /// Real-time speed 7 and above set it. Reference: rt_sf.discount_color_cost.
+    /// Real-time speed 7 and above set it.
     /// </summary>
     public bool DiscountPaletteColorCost => this.realtime && this.Speed >= HeifEncodingSpeed.Level7;
 
     /// <summary>
     /// Gets a value indicating whether an inter frame chooses its motion vector precision from the statistics of the
-    /// last coded frame. Good-quality speeds 0 to 2 set it. Reference: hl_sf.high_precision_mv_usage = LAST_MV_DATA.
+    /// last coded frame. Good-quality speeds 0 to 2 set it.
     /// </summary>
     public bool UsesLastMotionVectorData => !this.realtime && !this.allIntra && this.Speed <= HeifEncodingSpeed.Level2;
 
@@ -1263,9 +1241,8 @@ internal readonly struct Av1EncoderSpeedSettings
 
     /// <summary>
     /// Gets the motion range level that skips intra search for a block above <see cref="MaximumIntraBlockSize"/>
-    /// whose best single-reference motion is small, or zero to never skip it.
+    /// whose best single-reference motion is small, or zero to never skip it. Only real-time usage sets it.
     /// </summary>
-    /// <remarks>This is <c>rt_sf.prune_intra_mode_based_on_mv_range</c>.</remarks>
     public int IntraModeMotionRangePruneLevel { get; }
 
     /// <summary>
@@ -1382,45 +1359,44 @@ internal readonly struct Av1EncoderSpeedSettings
     public bool UseCoarseFilterLevelSearch { get; }
 
     /// <summary>
-    /// Gets the level that limits the references an inter frame searches. Reference: selective_ref_frame.
+    /// Gets the level that limits the references an inter frame searches.
     /// </summary>
     public int SelectiveReferenceFrameLevel { get; }
 
     /// <summary>
-    /// Gets the level that prunes compound reference pairs which are neither kept nor the closest pair. Level one
-    /// and two keep a pair with the best predicted-vector SAD on each side, and level three prunes it too.
-    /// Reference: prune_comp_ref_frames.
+    /// Gets the level that prunes compound reference pairs that are neither kept nor the closest pair. Levels one and two keep a pair
+    /// with the best predicted-vector SAD on each side. Level three prunes that pair too.
     /// </summary>
     public int CompoundReferencePruningLevel { get; }
 
     /// <summary>
     /// Gets the level that limits the references of a frame coded from the source of an alternate reference, and of
-    /// an unshown frame whose alternate references lie in the past. Reference: alt_ref_search_fp.
+    /// an unshown frame whose alternate references lie in the past.
     /// </summary>
     public int AlternateReferenceSearchLevel { get; }
 
     /// <summary>
-    /// Gets the level at which inter modes whose references predicted much worse than the best reference in the
-    /// temporal dependency model are skipped, or zero to never skip them. Reference: prune_inter_modes_based_on_tpl.
+    /// Gets the level that skips inter modes whose references predicted much worse than the best reference in the temporal dependency
+    /// model, or zero to never skip them.
     /// </summary>
     public int TplInterModePruningLevel { get; }
 
     /// <summary>
-    /// Gets the pyramid level on which the global motion search finds its corners. Reference: gm_sf.downsample_level.
+    /// Gets the pyramid level on which the global motion search finds its corners.
     /// </summary>
     public int GlobalMotionDownsampleLevel =>
         this.Speed >= HeifEncodingSpeed.Level6 ? 2 : this.Speed >= HeifEncodingSpeed.Level4 ? 1 : 0;
 
     /// <summary>
-    /// Gets the number of refinement steps of each global motion model. Reference: gm_sf.num_refinement_steps.
+    /// Gets the number of refinement steps of each global motion model.
     /// </summary>
     public int GlobalMotionRefinementSteps =>
         this.Speed >= HeifEncodingSpeed.Level3 ? 0 : this.Speed >= HeifEncodingSpeed.Level2 ? 2 : 5;
 
     /// <summary>
-    /// Gets the level at which a zero-vector global mode is dropped when its prediction error exceeds that of the best
-    /// new vector of its reference: zero off, one with a margin of a quarter, two without margin. Real-time usage does
-    /// not use the full mode search. Reference: gm_sf.prune_zero_mv_with_sse.
+    /// Gets the level that drops a zero-vector global mode when its prediction error exceeds that of the best new vector of its
+    /// reference. Zero is off, one uses a margin of a quarter, and two uses no margin. Real-time usage does not use the full mode
+    /// search, so the level is zero there.
     /// </summary>
     public int ZeroVectorSsePruningLevel =>
         this.realtime ? 0 : this.Speed >= HeifEncodingSpeed.Level4 ? 2 : this.Speed >= HeifEncodingSpeed.Level3 ? 1 : 0;
@@ -1458,7 +1434,7 @@ internal readonly struct Av1EncoderSpeedSettings
 
     /// <summary>
     /// Gets a value indicating whether an inter luma transform search reuses the result of an earlier search of the
-    /// same residual in the superblock. Reference: use_mb_rd_hash.
+    /// same residual in the superblock.
     /// </summary>
     public bool UseMacroblockRateDistortionHash { get; }
 
@@ -1596,16 +1572,17 @@ internal readonly struct Av1EncoderSpeedSettings
         => this.Speed >= HeifEncodingSpeed.Level8 ? 2 : 1;
 
     /// <summary>
-    /// Gets whether intra convolution pruning retains unsplit screen-content candidates. A frame-size speed feature.
-    /// Reference: intra_cnn_based_part_prune_level.
+    /// Gets whether intra convolution pruning retains unsplit screen-content candidates. The level depends on the screen content state
+    /// at the time of the frame-size settings.
     /// </summary>
+    /// <returns>The pruning level, or zero when the pruning is off.</returns>
     public int GetIntraPartitionPruningLevel()
         => this.realtime || this.Speed == HeifEncodingSpeed.Level0 ? 0
             : this.FrameSizeScreenContentTools ? this.allIntra && this.Speed >= HeifEncodingSpeed.Level5 ? 1 : 0 : 2;
 
     /// <summary>
     /// Gets the gate level that compares a prediction-only cost with the best one before an inter transform search.
-    /// Boosted frames search every transform. Reference: txfm_rd_gate_level, read by get_txfm_rd_gate_level().
+    /// Boosted frames search every transform.
     /// </summary>
     /// <param name="updateType">The frame update type.</param>
     /// <param name="searchCase">The search that applies the gate.</param>
@@ -1638,7 +1615,7 @@ internal readonly struct Av1EncoderSpeedSettings
 
     /// <summary>
     /// Gets how strongly the mode loop drops single-reference modes of a reference whose predicted-vector SAD is
-    /// far above the best of its direction. Reference: prune_single_ref.
+    /// far above the best of its direction.
     /// </summary>
     /// <param name="updateType">The frame update type.</param>
     /// <returns>The pruning level, from zero for none to four.</returns>
@@ -1665,9 +1642,8 @@ internal readonly struct Av1EncoderSpeedSettings
     }
 
     /// <summary>
-    /// Gets which winners of the inter mode search skip the winner refinement. Real-time usage has its own levels;
-    /// good quality from speed 3 uses level four in a frame that is not boosted.
-    /// Reference: prune_winner_mode_eval_level.
+    /// Gets which winners of the inter mode search skip the winner refinement. Real-time usage has its own levels. Good quality from
+    /// speed 3 uses level four in a frame that is not boosted.
     /// </summary>
     /// <param name="updateType">The frame update type.</param>
     /// <returns>The pruning level, from zero for none to four.</returns>
@@ -1685,7 +1661,6 @@ internal readonly struct Av1EncoderSpeedSettings
     /// <summary>
     /// Gets which partitions search only the references that the square blocks of the superblock picked: one for
     /// the extended partitions, two for the horizontal and vertical partitions as well.
-    /// Reference: prune_ref_frame_for_rect_partitions.
     /// </summary>
     /// <param name="updateType">The frame update type.</param>
     /// <returns>The pruning level, from zero for none to two.</returns>
@@ -1712,9 +1687,8 @@ internal readonly struct Av1EncoderSpeedSettings
     }
 
     /// <summary>
-    /// Gets how many simple-translation winners of the mode loop search the other motion modes after it. Zero
-    /// searches every motion mode inside the loop. Reference: motion_mode_for_winner_cand with
-    /// num_winner_motion_modes.
+    /// Gets how many simple-translation winners of the mode loop search the other motion modes after it. Zero searches every motion
+    /// mode inside the loop.
     /// </summary>
     /// <param name="updateType">The frame update type.</param>
     /// <returns>The number of retained winners.</returns>
@@ -1730,12 +1704,11 @@ internal readonly struct Av1EncoderSpeedSettings
     }
 
     /// <summary>
-    /// Gets the level of the model-based early exit of the recursive transform search. Speed 0 enables it, except
-    /// at low quantizers. Reference: tx_sf.model_based_prune_tx_search_level, with the speed 0 quantizer rules of
-    /// av1_set_speed_features_qindex_dependent().
+    /// Gets the level of the model-based early exit of the recursive transform search. Speed 0 enables it, except at low quantizers.
+    /// The quantizer limit depends on the frame size and on the update type.
     /// </summary>
     /// <param name="updateType">The frame update type.</param>
-    /// <returns>The level; 0 disables the exit.</returns>
+    /// <returns>The level. Zero disables the exit.</returns>
     public int GetModelBasedTransformPruneLevel(Av1FrameUpdateType updateType)
     {
         if (this.realtime || this.Speed != HeifEncodingSpeed.Level0)
@@ -1752,6 +1725,11 @@ internal readonly struct Av1EncoderSpeedSettings
     /// <summary>
     /// Gets split suppression, pruning aggressiveness, and unsplit termination for motion-based partition decisions.
     /// </summary>
+    /// <param name="screenContent">Whether the frame permits screen-content tools.</param>
+    /// <param name="updateType">The frame update type.</param>
+    /// <returns>
+    /// The split suppression level, the pruning aggressiveness (-1 when off), and whether an unsplit block can end the search.
+    /// </returns>
     public (int SplitLevel, int Aggressiveness, bool TerminateNone) GetSimpleMotionPartitionSettings(
         bool screenContent,
         Av1FrameUpdateType updateType)
@@ -1882,8 +1860,6 @@ internal readonly struct Av1EncoderSpeedSettings
 
     /// <summary>
     /// Gets the references that the global motion search of an inter frame visits. Real-time usage does not search.
-    /// Reference: gm_search_type in set_good_speed_features_framesize_independent() and
-    /// set_rt_speed_feature_framesize_independent().
     /// </summary>
     /// <param name="boosted">Whether the frame is a key, golden or alternate reference frame.</param>
     /// <returns>The search type.</returns>
@@ -1899,7 +1875,6 @@ internal readonly struct Av1EncoderSpeedSettings
 
     /// <summary>
     /// Returns whether the global motion search stops at the first reference without a usable model.
-    /// The threaded override does not apply to the single-threaded encoder. Reference: prune_ref_frame_for_gm_search.
     /// </summary>
     /// <param name="boosted">Whether the frame is a key, golden or alternate reference frame.</param>
     /// <returns><see langword="true"/> when the search stops early.</returns>
@@ -1946,8 +1921,8 @@ internal readonly struct Av1EncoderSpeedSettings
             else if (!this.allIntra && !intraFrame && this.Speed is >= HeifEncodingSpeed.Level4 and < HeifEncodingSpeed.Level6 &&
                 blockQIndex < 35)
             {
-                // Good quality speeds 4 and 5 use level one in an inter frame; from speed 6 a boosted frame uses
-                // level zero. Reference: prune_rectangular_split_based_on_qidx.
+                // At speeds 4 and 5, a low block quantizer in an inter frame removes rectangular search below 16x16. At speed 6, a
+                // boosted frame keeps the full range.
                 minimum = Av1BlockSize.Block16x16;
             }
         }
@@ -1958,8 +1933,11 @@ internal readonly struct Av1EncoderSpeedSettings
     /// <summary>
     /// Gets the permitted chroma prediction modes for the maximum chroma transform.
     /// </summary>
+    /// <param name="transformSize">The maximum chroma transform size of the block.</param>
+    /// <returns>A bit mask with one bit for each <see cref="Av1ChromaPredictionMode"/> value.</returns>
     public ushort GetChromaModeMask(Av1TransformSize transformSize)
     {
+        // Bit 0 is DC, bits 1 and 2 are vertical and horizontal, and bit 13 is chroma-from-luma. 0x3FFF allows all fourteen modes.
         Av1TransformSize squareSize = transformSize.GetSquareUpSize();
         if (this.chromaModeRestriction == 3)
         {

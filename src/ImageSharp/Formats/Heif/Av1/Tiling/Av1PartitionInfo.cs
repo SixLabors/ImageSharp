@@ -193,8 +193,7 @@ internal ref struct Av1PartitionInfo
         this.ModeBlockToTopEdge = -this.RowIndex << shift;
         this.ModeBlockToBottomEdge = (frameHeader.ModeInfoRowCount - bh4 - this.RowIndex) << shift;
 
-        // The bitstream expresses block size on the luma grid. Chroma dimensions are derived by
-        // subsampling that grid while retaining at least one 4x4 chroma unit for narrow blocks.
+        // The bitstream gives the block size on the luma grid. The chroma size subsamples that grid and keeps at least one 4x4 unit.
         const int modeInfoSize = 1 << Av1Constants.ModeInfoSizeLog2;
         this.lumaWidthInPixels = bw4 * modeInfoSize;
         this.lumaHeightInPixels = bh4 * modeInfoSize;
@@ -345,8 +344,7 @@ internal ref struct Av1PartitionInfo
         bool hasTopRight = !((row & squareSize) != 0 && (column & squareSize) != 0);
         int traversalSize = squareSize;
 
-        // Split partitions decode three quadrants before the bottom-right quadrant. Walking the enclosing split levels
-        // excludes a right-hand block whenever traversal has not reached that block yet.
+        // Split partitions decode the bottom-right quadrant last. The loop walks the enclosing split levels and excludes a top-right block that is not decoded.
         while (traversalSize < superblockModeInfoSize)
         {
             if ((column & traversalSize) == 0)
@@ -363,8 +361,8 @@ internal ref struct Av1PartitionInfo
             traversalSize <<= 1;
         }
 
-        // Rectangular partitions override the square traversal rule because their sub-blocks are decoded along the
-        // long axis. Earlier vertical rectangles have a completed row above; later horizontal rectangles do not.
+        // Rectangular partitions override the square rule because the decoder visits their sub-blocks along the long axis. The first vertical rectangle has a
+        // decoded block at its top right. A later horizontal rectangle does not.
         if (width < height && ((columnIndex + width) & (height - 1)) != 0)
         {
             hasTopRight = true;
@@ -375,7 +373,7 @@ internal ref struct Av1PartitionInfo
             hasTopRight = false;
         }
 
-        // The lower-left square of a vertical-A partition precedes its right-hand rectangle in bitstream order.
+        // The lower-left square of a vertical-A partition comes before its right-hand rectangle, so its top-right block is not decoded yet.
         if (partitionType == Av1PartitionType.VerticalA && width == height && (row & traversalSize) != 0)
         {
             hasTopRight = false;

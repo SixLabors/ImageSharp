@@ -16,10 +16,9 @@ internal static partial class Av1NzMap
     /// Reduces the levels of the forward neighbors of one coefficient to a magnitude band.
     /// </summary>
     /// <remarks>
-    /// Every overload describes the same lane-wise reduction. A level is clipped to three, the five
-    /// clipped levels are summed, the sum is halved with rounding, and the result is clipped to
-    /// four. The traversal chooses which five neighbors to pass; the bands are the same for every
-    /// transform class.
+    /// Every overload describes the same lane-wise reduction. The reduction clips each level to three and adds the five clipped levels.
+    /// Then it halves the sum with rounding and clips the result to four. The traversal chooses which five neighbors to pass. The bands
+    /// are the same for every transform class.
     /// </remarks>
     internal interface IAv1NzMapCountOperator
     {
@@ -86,9 +85,6 @@ internal static partial class Av1NzMap
     /// <summary>
     /// Sums five clipped neighbor levels, halves the sum with rounding, and clips it to four bands.
     /// </summary>
-    /// <remarks>
-    /// Reference: get_nz_mag() and get_nz_map_ctx_from_stats().
-    /// </remarks>
     private readonly struct CountOperator : IAv1NzMapCountOperator
     {
         /// <summary>
@@ -120,8 +116,8 @@ internal static partial class Av1NzMap
             Vector128<byte> level3,
             Vector128<byte> level4)
         {
-            // Each lane is one independent coefficient. Five clipped levels reach fifteen, so the
-            // sum stays inside a byte lane and no widening is needed.
+            // Each lane is one independent coefficient. Five clipped levels add up to at most fifteen, so the sum stays inside a byte
+            // lane and needs no widening. The 256-bit and 512-bit forms use the same lane layout.
             Vector128<byte> limit = Vector128.Create(LevelLimit);
             Vector128<byte> total = Vector128.Min(level0, limit) + Vector128.Min(level1, limit) +
                 Vector128.Min(level2, limit) + Vector128.Min(level3, limit) + Vector128.Min(level4, limit);

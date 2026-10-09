@@ -50,8 +50,7 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
         this.topLength = topSize;
         int totalLength = checked(leftSize + topSize);
 
-        // Both context edges share the picture lifetime, so one clean allocator-backed buffer
-        // preserves their zero-initialized starting state without separate owner lifetimes.
+        // Both context edges have the picture lifetime. One clean allocation holds both edges and gives them their zero start state.
         this.owner = configuration.MemoryAllocator.Allocate<T>(totalLength, AllocationOptions.Clean);
         this.memory = this.owner.Memory[..totalLength];
     }

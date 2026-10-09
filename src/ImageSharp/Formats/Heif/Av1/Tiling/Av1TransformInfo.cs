@@ -34,7 +34,7 @@ internal struct Av1TransformInfo
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1TransformInfo"/> struct.
     /// </summary>
-    /// <param name="originalInfo">The <see cref="Av1TransformInfo"/> to copy the information from.</param>
+    /// <param name="originalInfo">The <see cref="Av1TransformInfo"/> to copy the size and offsets from. The other members keep their default values.</param>
     public Av1TransformInfo(Av1TransformInfo originalInfo)
     {
         this.Size = originalInfo.Size;
@@ -63,7 +63,7 @@ internal struct Av1TransformInfo
     public int OffsetY { get; set; }
 
     /// <summary>
-    /// Gets or sets the end position of the coded coefficients in entropy scan order; zero means no residual.
+    /// Gets or sets the end position of the coded coefficients in entropy scan order. Zero means that the block has no residual.
     /// </summary>
     public ushort EndOfBlock { get; set; }
 

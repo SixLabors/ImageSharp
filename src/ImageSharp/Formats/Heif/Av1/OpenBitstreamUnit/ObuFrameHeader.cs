@@ -28,9 +28,8 @@ internal sealed class ObuFrameHeader
     private InlineArray8<uint> referenceFrameId;
 
     /// <summary>
-    /// Stores the upscaled width and the height of the frame in each of the eight reference-map slots, which an
-    /// encoder compares with the current frame size. Reference: the y_crop_width and y_crop_height of each reference
-    /// buffer in write_frame_size_with_refs().
+    /// Stores the upscaled width and the height of the frame in each of the eight reference-map slots. The encoder compares these sizes with
+    /// the current frame size when it writes the frame size.
     /// </summary>
     private InlineArray8<Size> referenceFrameSize;
 
@@ -75,12 +74,12 @@ internal sealed class ObuFrameHeader
     public bool AllowIntraBlockCopy { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether reference-frame motion vectors may be used.
+    /// Gets or sets a value indicating whether the frame can use reference-frame motion vectors.
     /// </summary>
     public bool UseReferenceFrameMotionVectors { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether motion vectors may use high precision.
+    /// Gets or sets a value indicating whether motion vectors can use high precision.
     /// </summary>
     public bool AllowHighPrecisionMotionVector { get; set; }
 
@@ -99,7 +98,7 @@ internal sealed class ObuFrameHeader
     public Av1InterpolationFilter InterpolationFilter { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether inter blocks may select a non-translational motion mode.
+    /// Gets or sets a value indicating whether inter blocks can select a non-translational motion mode.
     /// </summary>
     public bool IsMotionModeSwitchable { get; set; }
 
@@ -234,7 +233,7 @@ internal sealed class ObuFrameHeader
     public bool ShowFrame { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the frame may be displayed by a later header.
+    /// Gets or sets a value indicating whether a later header can show the frame.
     /// </summary>
     public bool ShowableFrame { get; set; }
 
@@ -274,14 +273,13 @@ internal sealed class ObuFrameHeader
     public uint OrderHint { get; set; }
 
     /// <summary>
-    /// Gets or sets the zero-based inter-reference type that supplies the initial frame context, or the no-reference
-    /// sentinel.
+    /// Gets or sets the zero-based inter-reference type that supplies the initial frame context, or the no-reference sentinel.
     /// </summary>
     public uint PrimaryReferenceFrame { get; set; } = Av1Constants.PrimaryReferenceFrameNone;
 
     /// <summary>
-    /// Gets or sets the resolved reference-map slot supplying the initial frame context, or <see langword="null"/> when
-    /// the frame uses the default context.
+    /// Gets or sets the reference-map slot that supplies the initial frame context, or <see langword="null"/> when the frame uses the default
+    /// context.
     /// </summary>
     public byte? PrimaryReferenceSlot { get; set; }
 
@@ -332,9 +330,8 @@ internal sealed class ObuFrameHeader
     public Span<Av1GlobalMotionParameters> GetGlobalMotionParameters() => this.globalMotionParameters;
 
     /// <summary>
-    /// Gets the global-motion models of the primary reference frame, which the models of this frame are coded
-    /// against. Every model is the identity when the frame has no primary reference. The encoder fills them before it
-    /// writes the header. Reference: the prev_frame global_motion that write_global_motion() reads.
+    /// Gets the global-motion models of the primary reference frame. The models of this frame are coded relative to these models. When the
+    /// frame has no primary reference, every model is the identity. The encoder fills them before it writes the header.
     /// </summary>
     /// <returns>The mutable seven-entry global-motion parameter table.</returns>
     public Span<Av1GlobalMotionParameters> GetPreviousGlobalMotionParameters() => this.previousGlobalMotionParameters;
@@ -356,8 +353,8 @@ internal sealed class ObuFrameHeader
             uint referenceFrameId = referenceFrameIds[slot];
             if (this.CurrentFrameId > referenceWindow)
             {
-                // Without wraparound, a retained identifier is valid only in the closed interval ending at the
-                // current identifier and extending referenceWindow values backwards.
+                // Without wraparound, a retained identifier is valid only in the closed interval that ends at the current identifier and starts
+                // `referenceWindow` values before it.
                 if (referenceFrameId > this.CurrentFrameId || referenceFrameId < this.CurrentFrameId - referenceWindow)
                 {
                     referenceValidity[slot] = false;
@@ -365,8 +362,8 @@ internal sealed class ObuFrameHeader
             }
             else
             {
-                // When the backwards window crosses zero, valid identifiers occupy both ends of the modulo domain.
-                // Only the open interval between the current identifier and the wrapped lower bound is invalid.
+                // When the window crosses zero, valid identifiers occupy both ends of the modulo range. Only the open interval between the
+                // current identifier and the wrapped lower bound is invalid.
                 uint wrappedLowerBound = frameIdModulus + this.CurrentFrameId - referenceWindow;
                 if (referenceFrameId > this.CurrentFrameId && referenceFrameId < wrappedLowerBound)
                 {

@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
+using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Memory;
 
@@ -111,6 +112,64 @@ public class Av1InterFrameModeInfoTests
 
         Assert.Equal(Av1InterpolationFilter.Smooth, modeInfo.InterpolationFilters[0]);
         Assert.Equal((Av1InterpolationFilter)expectedHorizontalFilter, modeInfo.InterpolationFilters[1]);
+    }
+
+    /// <summary>
+    /// Verifies that an inter block cannot predict from a reference outside the AV1 scaling range of the current frame.
+    /// </summary>
+    /// <remarks>
+    /// AV1 permits a reference that is at most twice and at least one sixteenth of the coded frame size on each axis. The scaled predictor
+    /// sizes its intermediate rows and the reference border for that range, so a reference outside it must be rejected before prediction.
+    /// </remarks>
+    /// <param name="referenceSize">The width and height of the reference frame for the 64x64 current frame.</param>
+    /// <param name="isValid">Whether AV1 permits prediction from that reference.</param>
+    [Theory]
+    [InlineData(128, true)]
+    [InlineData(129, false)]
+    [InlineData(4, true)]
+    [InlineData(3, false)]
+    public void ReadInterFrameModeInfoRejectsReferenceOutsideScalingRange(int referenceSize, bool isValid)
+    {
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
+        ObuFrameHeader frameHeader = CreateFrameHeader();
+
+        // Segment zero forces GLOBALMV. The block is then inter coded and selects the last-frame role without reference symbols. Every role
+        // maps to slot zero, which holds the reference under test.
+        ObuSegmentationParameters segmentationParameters = frameHeader.SegmentationParameters;
+        segmentationParameters.Enabled = true;
+        segmentationParameters.SetFeatureEnabled(0, (int)ObuSegmentationLevelFeature.GlobalMotionVector, true);
+
+        ObuSequenceHeader referenceSequenceHeader = CreateSequenceHeader();
+        referenceSequenceHeader.MaxFrameWidth = referenceSize;
+        referenceSequenceHeader.MaxFrameHeight = referenceSize;
+        using Av1ReferenceFrameStore referenceFrames = new();
+        Av1FrameBuffer<byte> referenceFrameBuffer = new(Configuration.Default, referenceSequenceHeader, Av1ColorFormat.Yuv400, false);
+        referenceFrames.Commit(0b0000_0001, new Av1ReferenceFrame(referenceFrameBuffer, new ObuFrameHeader()), showFrame: false);
+
+        using Av1TileReader tileReader = new(
+            Configuration.Default,
+            sequenceHeader,
+            frameHeader,
+            new Av1FrameEntropyContexts(frameHeader.QuantizationParameters.BaseQIndex),
+            null,
+            referenceFrames);
+
+        using Av1SymbolWriter writer = new(Configuration.Default, updateCdf: true);
+        Span<byte> output = writer.GetTileBuffer();
+        writer.WriteSymbol(ref output, false, Av1DefaultDistributions.Skip[0]);
+        using IMemoryOwner<byte> encoded = writer.Exit();
+        Memory<byte> encodedMemory = encoded.Memory;
+        Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x8, Point.Empty);
+
+        if (isValid)
+        {
+            modeInfo = ReadInterFrameModeInfo(tileReader, encodedMemory, modeInfo);
+            Assert.Equal(Av1ReferenceFrameType.Last, modeInfo.ReferenceFrames[0]);
+        }
+        else
+        {
+            Assert.Throws<InvalidImageContentException>(() => ReadInterFrameModeInfo(tileReader, encodedMemory, modeInfo));
+        }
     }
 
     /// <summary>

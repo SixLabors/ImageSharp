@@ -89,7 +89,7 @@ internal readonly ref struct Av1MotionVectorCosts
         const int WeightShift = 7;
         int rate = this.GetCost(value, reference);
 
-        // Mode selection discounts displacement syntax by 120/128; the half-divisor rounds to nearest.
+        // Mode selection discounts displacement syntax by 120/128. The added half divisor rounds to the nearest value.
         return ((rate * DisplacementVectorCostWeight) + (1 << (WeightShift - 1))) >> WeightShift;
     }
 
@@ -153,9 +153,9 @@ internal readonly ref struct Av1MotionVectorCosts
             }
         }
 
-        // Magnitudes encode value minus one. Each exponent doubles the integer offset range, reusing the
-        // previously completed lower half. The first eight entries temporarily carry fractional and sign rates
-        // alone; class-zero syntax is installed only after all larger magnitudes have consumed those seeds.
+        // Magnitudes encode value minus one. Each exponent doubles the integer offset range and reuses the completed lower half. For a
+        // time, the first eight entries carry only the fractional and sign rates. The class-zero costs replace them after all larger
+        // magnitudes have used those seeds.
         for (int exponentIndex = 0; exponentIndex < 10; exponentIndex++)
         {
             int exponent = 8 << exponentIndex;

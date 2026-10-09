@@ -72,8 +72,8 @@ internal sealed partial class Av1SymbolEncoder
 
         rate += GetOptimizationEndOfBlockRate(endOfBlockRates, endOfBlock, costs);
 
-        // Model each magnitude with its observed Laplacian entropy. The last coefficient is known
-        // nonzero, while preceding scan positions include zeros; its cost therefore uses a separate term.
+        // Model each magnitude with its observed Laplacian entropy. The last coefficient is always nonzero, but the scan positions before it
+        // include zeros. As a result, the last coefficient uses a separate cost term.
         ReadOnlySpan<int> magnitudeCosts = [-1143, 53, 545, 825, 1031, 1209, 1393, 1577, 1763, 1947, 2132, 2317, 2501, 2686, 2871];
         ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
         rate += (Math.Abs(coefficients[scan[endOfBlock - 1]]) - 1) << 11;
@@ -106,8 +106,8 @@ internal sealed partial class Av1SymbolEncoder
     /// <param name="endOfBlock">The nonzero input end position.</param>
     /// <param name="weights">The sharpness, rate shift and quantization matrices of the trellis.</param>
     /// <param name="coefficientRate">
-    /// The rate of the refined coefficients and end position, excluding the skip flag and the transform type.
-    /// It is the rate that <c>av1_optimize_txb</c> accumulates, so the caller needs no second cost pass.
+    /// The rate of the refined coefficients and end position, without the skip flag and the transform type. The optimization accumulates this
+    /// rate, so the caller needs no second cost pass.
     /// </param>
     /// <returns>The refined end position.</returns>
     public ushort OptimizeCoefficients(
@@ -150,8 +150,8 @@ internal sealed partial class Av1SymbolEncoder
     }
 
     /// <summary>
-    /// Reduces coefficient levels and the coded end position when their combined rate and distortion decrease, with
-    /// the rate tables that the caller read once for its search loop.
+    /// Reduces coefficient levels and the coded end position when their combined rate and distortion decrease. It uses the rate tables that the
+    /// caller read once for its search loop.
     /// </summary>
     /// <param name="tables">The rate tables and scratch storage, from <see cref="GetCoefficientTables"/>.</param>
     /// <param name="original">The forward-transform coefficients.</param>
@@ -211,8 +211,8 @@ internal sealed partial class Av1SymbolEncoder
     }
 
     /// <summary>
-    /// Reduces coefficient levels and the coded end position when their combined rate and distortion decrease,
-    /// without the work counter.
+    /// Reduces coefficient levels and the coded end position when their combined rate and distortion decrease. Both overloads of
+    /// <c>OptimizeCoefficients</c> use this implementation.
     /// </summary>
     /// <param name="tables">The rate tables and scratch storage, from <see cref="GetCoefficientTables"/>.</param>
     /// <param name="original">The forward-transform coefficients.</param>
@@ -278,9 +278,8 @@ internal sealed partial class Av1SymbolEncoder
         int shift = transformSize.GetScale();
         int planeWeight = componentType == Av1ComponentType.Luminance ? isInter ? 16 : 17 : useChromaWeights ? isInter ? 10 : 13 : 20;
 
-        // Coefficient errors remain at their native precision. Scale the rate multiplier into that
-        // domain once; each comparison retains the signed error change relative to a zero coefficient.
-        // Sharpness lowers the multiplier, and the image tunes shift it further. Reference: av1_optimize_txb().
+        // Coefficient errors stay at their native precision. Scale the rate multiplier into that domain once. Each comparison keeps the signed
+        // error change relative to a zero coefficient. Sharpness lowers the multiplier, and the image tunes shift it further.
         int sharpness = weights.Sharpness;
         int endOfBlockCutoff = weights.EndOfBlockCutoff;
         long multiplier = (long)rateMultiplier * (8 - sharpness) * (planeWeight << (2 * (bitDepth.GetBitCount() - 8)));
@@ -313,8 +312,8 @@ internal sealed partial class Av1SymbolEncoder
         nonzeroIndices[0] = coefficientIndex;
         int nonzeroCount = 1;
 
-        // The last nonzero coefficient cannot disappear in this first step. A level-one tail instead
-        // seeds the later end-position search, which can remove it together with preceding zeros.
+        // The last nonzero coefficient cannot disappear in this first step. Instead, a level-one tail starts the later end-position search.
+        // That search can remove the tail together with the zeros before it.
         if (magnitude >= 2)
         {
             ReduceGeneralCoefficient(
@@ -371,8 +370,8 @@ internal sealed partial class Av1SymbolEncoder
 
         scanIndex--;
 
-        // While at most two nonzero coefficients follow, each coefficient may also become the new last one. The class is
-        // a type parameter so that each specialization folds its neighbor and position selection.
+        // While no more than two nonzero coefficients follow, each coefficient can also become the new last one. The class is a type parameter,
+        // so each specialization folds its neighbor and position selection at compile time.
         switch (transformClass)
         {
             case Av1TransformClass.Class2D:
@@ -467,8 +466,7 @@ internal sealed partial class Av1SymbolEncoder
                 break;
         }
 
-        // When at most two nonzero coefficients remain, the whole block may cost less coded as a skip. Sharpness never
-        // replaces the block with a skip.
+        // When no more than two nonzero coefficients remain, a skip of the whole block can cost less. Sharpness never replaces the block with a skip.
         if (scanIndex == -1 && nonzeroCount <= 2 && sharpness == 0)
         {
             int nonSkipRate = Av1CoefficientCosts.GetSkip(costs, context.SkipContext, 0);
@@ -486,8 +484,8 @@ internal sealed partial class Av1SymbolEncoder
             }
         }
 
-        // Once three nonzero coefficients remain, only individual level reductions are considered. The class
-        // is a type parameter so that each specialization folds its neighbor and position selection.
+        // When three nonzero coefficients remain, the search tries only individual level reductions. The class is a type parameter, so each
+        // specialization folds its neighbor and position selection at compile time.
         switch (transformClass)
         {
             case Av1TransformClass.Class2D:
@@ -586,12 +584,11 @@ internal sealed partial class Av1SymbolEncoder
     }
 
     /// <summary>
-    /// Considers, for each coefficient from the current scan position down while at most two nonzero coefficients
-    /// follow it, a lower level and making it the new last coefficient.
+    /// Tries a lower level and a new end of block at each coefficient from the current scan position down. The loop continues while no more than
+    /// two nonzero coefficients follow the current position.
     /// </summary>
     /// <remarks>
-    /// The loop lives in its own method, specialized for each transform class, so that its locals stay in registers and
-    /// the class tests fold.
+    /// The loop is in its own method, specialized for each transform class. As a result, its locals stay in registers and the class tests fold.
     /// </remarks>
     /// <typeparam name="TClass">The transform direction class.</typeparam>
     /// <param name="original">The unquantized transform coefficients.</param>
@@ -777,8 +774,8 @@ internal sealed partial class Av1SymbolEncoder
 
             if ((sharpness == 0 || newEnd >= endOfBlockCutoff) && newCost < cost)
             {
-                // Only the sparse tail is considered for end-position removal. Clearing its retained
-                // nonzero entries also updates the forward-neighbor levels consumed by earlier positions.
+                // Only the sparse tail is a candidate for removal with the end position. The loop clears the nonzero entries of the tail. This also
+                // updates the levels that earlier positions read as forward neighbors.
                 for (int i = 0; i < nonzeroCount; i++)
                 {
                     int removed = nonzeroIndices[i];
@@ -817,9 +814,27 @@ internal sealed partial class Av1SymbolEncoder
     /// Reduces individual coefficient levels from the current scan position down to the second coefficient.
     /// </summary>
     /// <remarks>
-    /// This is <c>update_coeff_simple</c>. A coefficient reconstructed below its original magnitude cannot
-    /// benefit from a further reduction. The loop lives in its own method so that its locals stay in registers.
+    /// A coefficient with a reconstruction below its original magnitude gets no benefit from a further reduction. The loop is in its own
+    /// method, so its locals stay in registers.
     /// </remarks>
+    /// <typeparam name="TClass">The transform direction class.</typeparam>
+    /// <param name="original">The unquantized transform coefficients.</param>
+    /// <param name="quantized">The quantized coefficients, which accepted reductions update.</param>
+    /// <param name="dequantized">The dequantized coefficients, which accepted reductions update.</param>
+    /// <param name="levelPlane">The padded level plane, which accepted reductions update.</param>
+    /// <param name="widthLog2">The base-two logarithm of the coded transform width.</param>
+    /// <param name="levelStride">The number of bytes between rows of the level plane.</param>
+    /// <param name="scan">The scan order of the transform.</param>
+    /// <param name="scanIndex">The current scan position. On return, it is the first position that the loop did not visit.</param>
+    /// <param name="transformSize">The transform size.</param>
+    /// <param name="costs">The coefficient rates of the transform size and plane.</param>
+    /// <param name="acDequantizer">The AC dequantizer. The loop never visits the DC coefficient.</param>
+    /// <param name="multiplier">The rate multiplier in the coefficient error domain.</param>
+    /// <param name="shift">The transform scale shift.</param>
+    /// <param name="sharpness">The sharpness. When it is not zero, the loop keeps every level-one coefficient.</param>
+    /// <param name="distortionWeights">The quantization matrix weights of the distortion, or empty.</param>
+    /// <param name="inverseWeights">The inverse quantization matrix weights, or empty.</param>
+    /// <param name="accumulatedRate">The rate of the coefficients after the current position.</param>
     private static void ReduceSimpleCoefficients<TClass>(
         ReadOnlySpan<int> original,
         Span<int> quantized,
@@ -843,10 +858,9 @@ internal sealed partial class Av1SymbolEncoder
         Av1TransformClass transformClass = TClass.Class;
         ref byte offsets = ref MemoryMarshal.GetReference(Av1NzMap.GetContextOffsets(transformSize));
 
-        // A coefficient reconstructed below its original magnitude cannot benefit from a further reduction.
-        // The scan, coefficient, and level spans are sized for this block; reference arithmetic keeps the
-        // per-coefficient loop free of range checks, as update_coeff_simple is. The loop state lives in
-        // locals so that it stays in registers; the by-reference arguments update once at the end.
+        // A coefficient with a reconstruction below its original magnitude gets no benefit from a further reduction. The scan, coefficient and
+        // level spans have the size of this block. Arithmetic on `ref` locals keeps the loop free of range checks. The loop state is in locals,
+        // so it stays in registers. The by-reference arguments update once at the end.
         ref short scanBase = ref MemoryMarshal.GetReference(scan);
         ref int originalBase = ref MemoryMarshal.GetReference(original);
         ref int quantizedBase = ref MemoryMarshal.GetReference(quantized);
@@ -875,7 +889,7 @@ internal sealed partial class Av1SymbolEncoder
                 continue;
             }
 
-            // Signs are unpredictable, so the magnitudes form without branches, as the compiled abs() of the reference does.
+            // Signs are unpredictable, so the magnitudes come from a sign mask without branches.
             int signMask = coefficient >> 31;
             int magnitude = (coefficient ^ signMask) - signMask;
             int originalValue = Unsafe.Add(ref originalBase, position);
@@ -886,8 +900,8 @@ internal sealed partial class Av1SymbolEncoder
             long reconstructionMagnitude = (reconstructionValue ^ reconstructionSign) - reconstructionSign;
             if (magnitude == 1)
             {
-                // A level-one coefficient can only drop to zero, which has no distortion change and no range or sign
-                // rate, so neither the dequantizer nor the range context is needed. Sharpness keeps every level one.
+                // A level-one coefficient can only drop to zero. Zero has no distortion change and no range or sign rate, so this path needs no
+                // dequantizer and no range context. Sharpness keeps every level one.
                 int levelOneRate = Unsafe.Add(ref baseCosts, (nuint)1) + Av1ProbabilityCost.GetLiteralCost(1);
                 if (reconstructionMagnitude < originalMagnitude || sharpness != 0)
                 {
@@ -920,7 +934,7 @@ internal sealed partial class Av1SymbolEncoder
             int rate = Unsafe.Add(ref baseCosts, (nuint)(uint)Math.Min(magnitude, 3)) + Av1ProbabilityCost.GetLiteralCost(1);
             int rateDifference = magnitude <= 3 ? Unsafe.Add(ref baseCosts, (nuint)(uint)(magnitude + 4)) : 0;
 
-            // From here the level is at least two, which sharpness may still lower.
+            // From here the level is at least two. Sharpness does not stop a reduction of this level.
             if (magnitude > Av1Constants.BaseLevelsCount)
             {
                 int rangeContext = Av1SymbolContextHelper.GetBaseRangeContext(
@@ -934,8 +948,8 @@ internal sealed partial class Av1SymbolEncoder
                     rateDifference += Unsafe.Add(ref rangeCosts, (nuint)13);
                 }
 
-                // The second half of each cost row stores adjacent-level differences. Beyond the
-                // modeled range, reducing a power-of-two residual also removes Golomb suffix bits.
+                // The second half of each cost row stores the rate differences between adjacent levels. Above the modeled range, a reduction of a
+                // power-of-two remainder also removes Golomb suffix bits.
                 if (magnitude >= 15)
                 {
                     uint remainder = (uint)(magnitude - 14);
@@ -989,6 +1003,31 @@ internal sealed partial class Av1SymbolEncoder
         accumulatedRate = rateSum;
     }
 
+    /// <summary>
+    /// Tries to lower the level of the coefficient at one scan position by one. It keeps the lower level when the cost decreases. The search
+    /// uses this method for the last coefficient and for the DC coefficient.
+    /// </summary>
+    /// <param name="original">The unquantized transform coefficients.</param>
+    /// <param name="quantized">The quantized coefficients, which an accepted reduction updates.</param>
+    /// <param name="dequantized">The dequantized coefficients, which an accepted reduction updates.</param>
+    /// <param name="levelPlane">The padded level plane, which an accepted reduction updates.</param>
+    /// <param name="widthLog2">The base-two logarithm of the coded transform width.</param>
+    /// <param name="coefficientCount">The number of coded coefficients of the transform.</param>
+    /// <param name="scan">The scan order of the transform.</param>
+    /// <param name="scanIndex">The scan position of the coefficient.</param>
+    /// <param name="endOfBlock">The end of block. The coefficient at the position before it uses the end-of-block context.</param>
+    /// <param name="transformSize">The transform size.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <param name="costs">The coefficient rates of the transform size and plane.</param>
+    /// <param name="dcSignContext">The sign context of the DC coefficient.</param>
+    /// <param name="dcDequantizer">The DC dequantizer.</param>
+    /// <param name="acDequantizer">The AC dequantizer.</param>
+    /// <param name="multiplier">The rate multiplier in the coefficient error domain.</param>
+    /// <param name="shift">The transform scale shift.</param>
+    /// <param name="distortionWeights">The quantization matrix weights of the distortion, or empty.</param>
+    /// <param name="inverseWeights">The inverse quantization matrix weights, or empty.</param>
+    /// <param name="accumulatedRate">The accumulated rate, to which the method adds the rate of the chosen level.</param>
+    /// <param name="accumulatedDistortion">The accumulated distortion change, to which the method adds the change of the chosen level.</param>
     private static void ReduceGeneralCoefficient(
         ReadOnlySpan<int> original,
         Span<int> quantized,
@@ -1089,9 +1128,13 @@ internal sealed partial class Av1SymbolEncoder
     }
 
     /// <summary>
-    /// Gets the reconstruction step of one coefficient, weighted by the inverse quantization matrix when one applies.
-    /// Reference: get_dqv().
+    /// Gets the reconstruction step of one coefficient. When an inverse quantization matrix applies, the matrix weights the step.
     /// </summary>
+    /// <param name="coefficientIndex">The raster index of the coefficient. Index zero is the DC coefficient.</param>
+    /// <param name="dcDequantizer">The DC dequantizer.</param>
+    /// <param name="acDequantizer">The AC dequantizer.</param>
+    /// <param name="inverseWeights">The inverse quantization matrix weights, or empty.</param>
+    /// <returns>The reconstruction step.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetDequantizer(int coefficientIndex, int dcDequantizer, int acDequantizer, ReadOnlySpan<byte> inverseWeights)
     {
@@ -1106,8 +1149,8 @@ internal sealed partial class Av1SymbolEncoder
     }
 
     /// <summary>
-    /// Gets the change in squared error from a zero coefficient to a reconstruction, weighted by the quantization
-    /// matrix of the QM-PSNR metric when one applies.
+    /// Gets the change in squared error from a zero coefficient to a reconstruction. When the QM-PSNR metric applies, its quantization matrix
+    /// weights the error.
     /// </summary>
     /// <param name="original">The unquantized coefficient.</param>
     /// <param name="reconstruction">The dequantized coefficient.</param>
@@ -1129,8 +1172,8 @@ internal sealed partial class Av1SymbolEncoder
             : GetWeightedError(original, reconstruction, shift, distortionWeights, coefficientIndex) - zeroError;
 
     /// <summary>
-    /// Gets the weighted error of a zero reconstruction, which every difference of one coefficient subtracts, so that
-    /// a coefficient with two candidate levels measures it once. It is zero when no quantization matrix applies.
+    /// Gets the weighted error of a zero reconstruction. Every difference of one coefficient subtracts this error, so a coefficient with two
+    /// candidate levels measures it once. It is zero when no quantization matrix applies.
     /// </summary>
     /// <param name="original">The unquantized coefficient.</param>
     /// <param name="shift">The transform scale shift.</param>
@@ -1142,8 +1185,8 @@ internal sealed partial class Av1SymbolEncoder
         => distortionWeights.IsEmpty ? 0 : GetWeightedError(original, 0, shift, distortionWeights, coefficientIndex);
 
     /// <summary>
-    /// Gets the squared error between a coefficient and a reconstruction, weighted by the quantization matrix and
-    /// rounded back to the coefficient error domain.
+    /// Gets the squared error between a coefficient and a reconstruction. The quantization matrix weights the error, and the result rounds back
+    /// to the coefficient error domain.
     /// </summary>
     /// <param name="original">The unquantized coefficient.</param>
     /// <param name="reconstruction">The dequantized coefficient.</param>
@@ -1234,18 +1277,27 @@ internal sealed partial class Av1SymbolEncoder
         return rate;
     }
 
+    /// <summary>
+    /// Selects the two-dimensional transform class.
+    /// </summary>
     private readonly struct TwoDimensionalClass : ITransformClass
     {
         /// <inheritdoc/>
         public static Av1TransformClass Class => Av1TransformClass.Class2D;
     }
 
+    /// <summary>
+    /// Selects the horizontal transform class.
+    /// </summary>
     private readonly struct HorizontalClass : ITransformClass
     {
         /// <inheritdoc/>
         public static Av1TransformClass Class => Av1TransformClass.ClassHorizontal;
     }
 
+    /// <summary>
+    /// Selects the vertical transform class.
+    /// </summary>
     private readonly struct VerticalClass : ITransformClass
     {
         /// <inheritdoc/>

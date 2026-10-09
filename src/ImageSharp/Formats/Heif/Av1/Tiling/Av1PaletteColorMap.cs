@@ -104,10 +104,9 @@ internal static class Av1PaletteColorMap
     /// Derives the palette color context and the coded color rank for one map sample while encoding.
     /// </summary>
     /// <remarks>
-    /// The encoder needs only the rank of the current color, not the complete neighbor-ordered color list that
-    /// the decoder maintains. With at most three neighbors (left, above, above-left), merging duplicates and
-    /// ordering the survivors takes a few comparisons, so no score table, inverse order, or selection sort is
-    /// needed. The result equals <see cref="GetContext"/> for every map.
+    /// The encoder needs only the rank of the current color, not the complete neighbor-ordered color list that the decoder keeps.
+    /// A sample has at most three neighbors (left, above, above-left). A few comparisons merge duplicates and order the remaining
+    /// colors, so this method needs no score table, inverse order or selection sort. The result equals <see cref="GetContext"/> for every map.
     /// </remarks>
     /// <param name="colorIndexMap">The palette index map, addressed with <paramref name="stride"/>.</param>
     /// <param name="stride">The number of map samples between rows.</param>
@@ -135,9 +134,9 @@ internal static class Av1PaletteColorMap
             return 0;
         }
 
-        // Visit left, above, then above-left. Direct neighbors weigh two and the diagonal weighs one, so distinct
-        // neighbors are already in descending score order with the lower palette index first on the only
-        // possible tie.
+        // The order is left, above, then above-left. Direct neighbors weigh two and the diagonal weighs one. As a result, distinct
+        // neighbors are already in descending score order. The only possible tie is left and above, which the swap below orders by
+        // palette index.
         const int invalid = byte.MaxValue;
         int color0 = colorIndexMap[index - 1];
         int color1 = colorIndexMap[index - stride];

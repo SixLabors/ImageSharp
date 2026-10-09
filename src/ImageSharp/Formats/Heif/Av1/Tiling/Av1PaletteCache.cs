@@ -56,6 +56,12 @@ internal static class Av1PaletteCache
         return count;
     }
 
+    /// <summary>
+    /// Appends a color to the cache if it differs from the last cached color. The inputs are sorted, so this removes every duplicate.
+    /// </summary>
+    /// <param name="cache">The destination cache.</param>
+    /// <param name="count">The number of colors in <paramref name="cache"/>. The method increments it when it appends a color.</param>
+    /// <param name="color">The color to append.</param>
     private static void Add(Span<ushort> cache, ref int count, ushort color)
     {
         if (count == 0 || cache[count - 1] != color)

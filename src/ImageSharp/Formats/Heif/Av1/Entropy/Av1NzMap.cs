@@ -398,9 +398,8 @@ internal static partial class Av1NzMap
     /// The two-dimensional positional offsets as bytes, in the order of <see cref="NzMapContextOffset"/>.
     /// </summary>
     /// <remarks>
-    /// This is declared after the table it converts. Static fields of one type are initialized in
-    /// declaration order, and the order of two partial files is not defined, so a declaration in
-    /// another file would read an empty table.
+    /// This field comes after the table it converts. The runtime initializes the static fields of one type in declaration order.
+    /// The order of two partial files is not defined. As a result, this declaration must stay in the file of the table, or it reads an empty table.
     /// </remarks>
     private static readonly byte[][] NzMapContextOffsetBytes = BuildOffsetBytes();
 
@@ -445,7 +444,7 @@ internal static partial class Av1NzMap
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetNzMagnitude(ref byte level, int stride, Av1TransformClass transformClass)
     {
-        // Large levels must not dominate probability selection; AV1 contributes at most three from each neighbor.
+        // Large levels must not dominate the probability selection. AV1 adds at most three from each neighbor.
         // The neighbors lie to the right and below, so every offset is a positive native-width value.
         nuint row = (nuint)(uint)stride;
         int mag = ClipMax3(Unsafe.Add(ref level, (nuint)1)); // { 0, 1 }
@@ -560,8 +559,7 @@ internal static partial class Av1NzMap
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int ClipMax3(int value)
     {
-        // Levels are never negative, so the sign of (value - 3) selects the clip without a branch, as the
-        // clip_max3 table of libaom's get_nz_mag does.
+        // Levels are never negative, so the sign of (value - 3) selects the clip without a branch.
         int excess = value - 3;
         return 3 + (excess & (excess >> 31));
     }

@@ -4,22 +4,22 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
-/// Names the inter searches that gate their transform search separately. Reference: TX_SEARCH_CASE.
+/// Names the inter searches that have a separate transform search level.
 /// </summary>
 internal enum Av1TransformSearchCase
 {
     /// <summary>
-    /// A search without its own level. Reference: TX_SEARCH_DEFAULT.
+    /// A search that uses the default transform search level.
     /// </summary>
     Default = 0,
 
     /// <summary>
-    /// The motion-mode search of a block larger than 16x16 inside the mode loop. Reference: TX_SEARCH_MOTION_MODE.
+    /// The motion-mode search of a block larger than 16x16 inside the mode loop.
     /// </summary>
     MotionMode = 1,
 
     /// <summary>
-    /// The compound-type search when masked compound is enabled. Reference: TX_SEARCH_COMP_TYPE_MODE.
+    /// The compound-type search when masked compound is enabled.
     /// </summary>
     CompoundType = 2,
 }

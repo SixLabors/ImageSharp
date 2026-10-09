@@ -69,8 +69,8 @@ internal sealed class ObuFilmGrainParameters
     public bool UpdateGrain { get; set; }
 
     /// <summary>
-    /// Gets or sets the physical reference-map index from which this frame inherited its film-grain parameters.
-    /// The index must match one of the frame's seven selected inter-reference slots.
+    /// Gets or sets the reference-map slot from which this frame inherits its film-grain parameters. The slot must be one of the seven
+    /// slots that the frame selects for its inter references.
     /// </summary>
     public uint FilmGrainParamsRefIdx { get; set; }
 
@@ -83,8 +83,8 @@ internal sealed class ObuFilmGrainParameters
     /// Gets the fourteen-entry storage for the luma scaling-point coordinates.
     /// </summary>
     /// <remarks>
-    /// Only the first <see cref="NumYPoints"/> entries are active. Coordinates use the eight-bit scale and must be
-    /// strictly increasing; 10-bit and 12-bit sample values are divided by four and sixteen respectively.
+    /// Only the first <see cref="NumYPoints"/> entries are active. Coordinates use the eight-bit scale and must be strictly increasing. For
+    /// 10-bit samples, the coordinate is the sample value divided by four. For 12-bit samples, it is the sample value divided by sixteen.
     /// </remarks>
     public Span<byte> PointYValue => this.pointYValue;
 

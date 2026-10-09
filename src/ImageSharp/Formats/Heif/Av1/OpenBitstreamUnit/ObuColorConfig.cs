@@ -14,13 +14,13 @@ internal sealed class ObuColorConfig
     public bool IsColorDescriptionPresent { get; set; }
 
     /// <summary>
-    /// Gets the number of color channels in this image. Can have the value 1 or 3.
+    /// Gets the number of color planes. The value is 1 for a monochrome image and <see cref="Av1Constants.MaxPlanes"/> otherwise.
     /// </summary>
     public int PlaneCount => this.IsMonochrome ? 1 : Av1Constants.MaxPlanes;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the image has a single greyscale plane, will have
-    /// <see cref="Av1Constants.MaxPlanes"/> color planes otherwise.
+    /// Gets or sets a value indicating whether the image has a single greyscale plane. When the value is <see langword="false"/>, the image has
+    /// <see cref="Av1Constants.MaxPlanes"/> color planes.
     /// </summary>
     public bool IsMonochrome { get; set; }
 
@@ -77,8 +77,8 @@ internal sealed class ObuColorConfig
     {
         if (this.IsMonochrome)
         {
-            // AV1 sets both subsampling flags for monochrome sequences even though no chroma planes exist. The
-            // mono_chrome syntax therefore owns the plane layout and must take precedence over those derived flags.
+            // AV1 sets both subsampling flags for a monochrome sequence, but the sequence has no chroma planes. As a result, the `mono_chrome`
+            // flag decides the plane layout before the subsampling flags.
             return Av1ColorFormat.Yuv400;
         }
 

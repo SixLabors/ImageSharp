@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
-/// Identifies the orientation of an AV1 difference-weighted compound mask.
+/// Identifies the polarity of an AV1 difference-weighted compound mask.
 /// </summary>
 internal enum Av1DifferenceWeightedMaskType : byte
 {

@@ -42,8 +42,7 @@ internal ref struct Av1SymbolDecoder
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1SymbolDecoder"/> struct over a caller-owned tile entropy
-    /// context.
+    /// Initializes a new instance of the <see cref="Av1SymbolDecoder"/> struct over a caller-owned tile entropy context.
     /// </summary>
     /// <param name="configuration">The configuration providing temporary memory.</param>
     /// <param name="tileData">The entropy-coded tile payload.</param>
@@ -55,8 +54,8 @@ internal ref struct Av1SymbolDecoder
         Av1FrameEntropyContext context,
         bool updateCdf)
     {
-        // The context owner controls reset and publication. Holding one reference here keeps the range decoder small
-        // and prevents a second set of aliases from becoming a competing source of entropy state.
+        // The context owner controls reset and publication. This struct keeps one reference to the context and no copies of its tables, so the decoder stays
+        // small and the context stays the only source of entropy state.
         this.context = context;
         this.reader = new Av1SymbolReader(tileData, updateCdf);
     }
@@ -107,7 +106,7 @@ internal ref struct Av1SymbolDecoder
         int value = r.ReadLiteral(bitCount - 1);
         if (value < threshold)
         {
-            // The short prefix covers the lower values; only the remaining prefixes consume a final bit.
+            // Values below the threshold use only the short prefix. The other values read one more bit.
             return value;
         }
 
@@ -214,7 +213,7 @@ internal ref struct Av1SymbolDecoder
 
         if (this.ReadLiteral(1) != 0)
         {
-            // V deltas wrap in the unsigned sample domain so complementary chroma colors remain compact.
+            // V deltas wrap in the unsigned sample range. As a result, colors near the two ends of the range need only small deltas.
             int bits = bitDepth - 4 + this.ReadLiteral(2);
             int sampleRange = 1 << bitDepth;
             vColors[0] = (ushort)this.ReadLiteral(bitDepth);
@@ -264,7 +263,7 @@ internal ref struct Av1SymbolDecoder
         int columns,
         Av1PlaneRegion<byte> colorIndexMap)
     {
-        // The map is resolved once; samples are addressed from its first sample by the plane stride.
+        // The code resolves the map span once. It addresses each sample from the first sample with the plane stride.
         Span<byte> map = colorIndexMap.Samples[colorIndexMap.Origin..];
         int stride = colorIndexMap.Stride;
         map[0] = (byte)this.ReadUniform(paletteSize);
@@ -390,8 +389,7 @@ internal ref struct Av1SymbolDecoder
             int groupSize = 1 << bitCount;
             if (valueCount <= groupStart + (3 * groupSize))
             {
-                // The final group absorbs the remaining alphabet through truncated-binary coding
-                // once fewer than three full subexponential groups remain.
+                // If the rest of the alphabet fits in three groups of this size, one truncated binary code covers all of the rest.
                 return this.ReadUniform(valueCount - groupStart) + groupStart;
             }
 
@@ -418,8 +416,8 @@ internal ref struct Av1SymbolDecoder
             return value;
         }
 
-        // Even and odd codes alternate above and below the reference so nearby values receive
-        // the shortest finite-subexponential representations.
+        // Even codes map to values at or above the reference and odd codes map to values below it. As a result, values near the reference get the shortest
+        // codes.
         return (value & 1) == 0
             ? (value >> 1) + reference
             : reference - ((value + 1) >> 1);
@@ -667,15 +665,15 @@ internal ref struct Av1SymbolDecoder
     /// </summary>
     /// <param name="blockSize">The decoded block size that selects the motion-mode distribution.</param>
     /// <param name="allowWarpedMotion">
-    /// A value indicating whether the block may select Warped in addition to Simple Translation and OBMC.
+    /// A value indicating whether the block can select Warped in addition to Simple Translation and OBMC.
     /// </param>
     /// <returns>The decoded motion mode.</returns>
     public Av1MotionMode ReadMotionMode(Av1BlockSize blockSize, bool allowWarpedMotion)
     {
         ref Av1SymbolReader r = ref this.reader;
 
-        // AV1 uses a separate binary CDF when Warped is ineligible; reading the first two leaves from the three-way
-        // CDF would use different probabilities and desynchronize the range decoder even when Simple is selected.
+        // If Warped is not allowed, AV1 uses a separate binary CDF. The first two leaves of the three-way CDF have other probabilities. A read from that CDF
+        // desynchronizes the range decoder, also when the block selects Simple.
         return allowWarpedMotion
             ? (Av1MotionMode)r.ReadSymbol(this.context.MotionMode[(int)blockSize])
             : (Av1MotionMode)r.ReadSymbol(this.context.Obmc[(int)blockSize]);
@@ -777,8 +775,8 @@ internal ref struct Av1SymbolDecoder
         ref Av1SymbolReader r = ref this.reader;
         int newMvContext = Av1SymbolContextHelper.GetNewMvContext(modeContext);
 
-        // AV1 assigns symbol zero to the NEWMV leaf and symbol one to the rest of the tree. Returning at the leaf is
-        // required both for the selected mode and to avoid consuming the unrelated lower decisions.
+        // AV1 assigns symbol zero to the NEWMV leaf and symbol one to the rest of the tree. The method returns at the leaf, so it does not read the lower
+        // decisions of the tree.
         if (r.ReadSymbol(this.context.NewMv[newMvContext]) == 0)
         {
             return Av1PredictionMode.NewMotionVector;
@@ -790,8 +788,8 @@ internal ref struct Av1SymbolDecoder
             return Av1PredictionMode.GlobalMotionVector;
         }
 
-        // The final zero symbol selects the nearest spatial candidate; one selects the near candidate and may be
-        // followed by dynamic-reference-list syntax when more than one near candidate is available.
+        // In the last decision, symbol zero selects the nearest spatial candidate and symbol one selects the near candidate. If more than one near candidate is
+        // available, dynamic reference list syntax follows the near mode.
         int refMvContext = Av1SymbolContextHelper.GetRefMvContext(modeContext);
         return r.ReadSymbol(this.context.RefMv[refMvContext]) == 0
             ? Av1PredictionMode.NearestMotionVector
@@ -877,7 +875,7 @@ internal ref struct Av1SymbolDecoder
     /// Reads one binary decision from the single-reference selection tree.
     /// </summary>
     /// <param name="context">The neighboring reference-vote context.</param>
-    /// <param name="decision">The zero-based tree decision matching one <c>single_ref_cdf</c> column.</param>
+    /// <param name="decision">The zero-based tree decision, which selects one column of the single-reference distributions.</param>
     /// <returns><see langword="true"/> when the decision selects symbol one; otherwise, <see langword="false"/>.</returns>
     private bool ReadSingleReferenceDecision(int context, int decision)
     {
@@ -931,8 +929,8 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
 
-        // Multi-delta syntax adapts one CDF per filter channel. Sharing the scalar-delta CDF would let
-        // an earlier channel change the range intervals used to decode the next channel in the same block.
+        // Multi-delta syntax adapts one CDF for each filter channel. With one shared CDF, an earlier channel changes the range intervals that decode the next
+        // channel in the same block.
         Av1Distribution distribution = isMulti ? this.context.DeltaLoopFilterMultiAbsolute[channel] : this.context.DeltaLoopFilterAbsolute;
         int deltaLoopFilterAbsolute = r.ReadSymbol(distribution);
         if (deltaLoopFilterAbsolute == Av1Constants.DeltaLoopFilterSmall)
@@ -1222,8 +1220,8 @@ internal ref struct Av1SymbolDecoder
         Av1PlaneType planeType = (Av1PlaneType)Math.Min(plane, 1);
         int culLevel = 0;
 
-        // AV1 omits high-frequency coefficients beyond 32 samples on every 64-point transform dimension. Reusing
-        // tile-owned storage avoids an allocator round trip for every transform block.
+        // AV1 codes no coefficients past 32 samples in a 64-point transform dimension, so the level plane uses the adjusted size. The reset reuses storage that
+        // the tile owns, so a transform block does not allocate.
         levels.Reset(new Size(width, height), levelStorage);
 
         bool allZero = this.ReadTransformBlockSkip(transformSizeContext, transformBlockContext.SkipContext);
@@ -1244,8 +1242,8 @@ internal ref struct Av1SymbolDecoder
         bool usesInterTransformSet = modeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Last || modeInfo.UseIntraBlockCopy;
         if (plane == (int)Av1Plane.Y)
         {
-            // Transform-set selection follows the prediction class. Intra-block copy uses inter residual syntax even
-            // though its reference is the current frame; ordinary inter blocks are identified by their retained ref.
+            // The prediction class selects the transform set. Intra-block copy uses inter residual syntax, but its reference is the current frame. Other inter
+            // blocks have a first reference frame of Last or later.
             transformInfo.Type = this.ReadTransformType(
                 transformSize,
                 useReducedTransformSet,
@@ -1272,8 +1270,8 @@ internal ref struct Av1SymbolDecoder
 
         endOfBlock = this.ReadEndOfBlockPosition(transformSize, transformClass, transformSizeContext, planeType);
 
-        // Every level read and write of the block goes through the active plane, read once here. The reset above
-        // cleared the active plane and all of its context padding.
+        // Every level read and write of the block goes through the active plane, read once here. The reset above cleared the active plane and all of its
+        // context padding.
         Span<byte> activeLevels = levels.GetActiveLevels(levelStorage);
         this.ReadCoefficientsEndOfBlock(transformClass, endOfBlock, scan, levels, activeLevels, transformSizeContext, planeType);
         if (endOfBlock > 1)
@@ -1327,8 +1325,7 @@ internal ref struct Av1SymbolDecoder
         int endOfBlockShift = Av1SymbolContextHelper.EndOfBlockOffsetBits[endOfBlockPoint];
         if (endOfBlockShift > 0)
         {
-            // The local table retains placeholders for the first three tokens, unlike the reference decoder's compact table,
-            // so the decoded token is also the distribution index.
+            // The local table keeps placeholders for the first three tokens, so the decoded token is also the distribution index.
             int endOfBlockContext = endOfBlockPoint;
             bool bit = this.ReadEndOfBlockExtra(transformSizeContext, planeType, endOfBlockContext);
             if (bit)
@@ -1525,8 +1522,8 @@ internal ref struct Av1SymbolDecoder
                 level &= 0xfffff;
                 culLevel += level;
 
-                // The entropy context uses the masked quantized magnitude, while reconstruction consumes the
-                // dequantized raster coefficient. Write it directly into the current superblock's zeroed region.
+                // The entropy context uses the masked quantized magnitude. Reconstruction uses the dequantized raster coefficient, which goes directly into the
+                // zeroed region of the current superblock.
                 coefficientBuffer[pos] = quantization.Dequantize(level, pos, sign != 0);
                 maximumCoefficientIndex = Math.Max(maximumCoefficientIndex, pos);
             }
@@ -1605,7 +1602,7 @@ internal ref struct Av1SymbolDecoder
     }
 
     /// <summary>
-    /// Accumulates coefficient base-range symbols until the terminal symbol or AV1 range limit is reached.
+    /// Adds coefficient base-range symbols to a level. The loop stops at the first symbol below the maximum symbol or at the AV1 range limit.
     /// </summary>
     /// <param name="transformSizeContext">The square transform-size probability context.</param>
     /// <param name="planeType">The luma or chroma plane category.</param>
@@ -1688,8 +1685,8 @@ internal ref struct Av1SymbolDecoder
         int transformSizeWide = transformSize.Get4x4WideCount();
         int transformSizeHigh = transformSize.Get4x4HighCount();
 
-        // The accumulated level is saturated to three bits before its DC sign class (0, 1, or 2) is packed
-        // above it. The largest stored context is therefore 23, including positive DC at saturated activity.
+        // The caller saturates the summed level to three bits and packs the DC sign class (0, 1, or 2) above it. As a result, the largest stored context is 23,
+        // which is a positive DC with a saturated level.
         byte context = (byte)culLevel;
 
         if (modeBlockToRightEdge < 0)
@@ -1750,13 +1747,13 @@ internal ref struct Av1SymbolDecoder
             }
             else if (usesInterTransformSet)
             {
-                // Inter prediction, including intra-block copy, shares the luma transform type with chroma at the
-                // corresponding luma-grid position rather than deriving an implicit type from the chroma mode.
+                // For inter prediction and intra-block copy, chroma uses the luma transform type at the matching position on the luma grid. Chroma does not
+                // derive an implicit type from its own mode.
                 transformType = lumaTransformType;
             }
             else
             {
-                // Chroma has its own intra mode, so its implicit transform must be derived independently of luma.
+                // Chroma has its own intra mode, so the implicit chroma transform type comes from that mode and not from luma.
                 transformType = Av1SymbolContextHelper.GetDefaultIntraTransformType(
                     modeInfo.UvMode.ToLumaMode(),
                     transformSize,
@@ -1788,8 +1785,8 @@ internal ref struct Av1SymbolDecoder
     {
         Av1Distribution input = inputs[context];
 
-        // At the bottom edge, AV1 gathers every vertical-like partition mass into the split branch of the
-        // temporary binary CDF. Reading the frequency directly avoids allocating an adaptive distribution.
+        // At the bottom edge, AV1 adds the mass of each partition with a vertical split in the top half to the split branch of a temporary binary CDF. This
+        // method reads the frequency directly, so it does not allocate an adaptive distribution.
         uint frequency = GetElementProbability(input, Av1PartitionType.Vertical);
         frequency += GetElementProbability(input, Av1PartitionType.Split);
         frequency += GetElementProbability(input, Av1PartitionType.HorizontalA);
@@ -1814,8 +1811,8 @@ internal ref struct Av1SymbolDecoder
     {
         Av1Distribution input = inputs[context];
 
-        // At the right edge, AV1 gathers every horizontal-like partition mass into the split branch of the
-        // temporary binary CDF. Reading the frequency directly avoids allocating an adaptive distribution.
+        // At the right edge, AV1 adds the mass of each partition with a horizontal split in the left half to the split branch of a temporary binary CDF. This
+        // method reads the frequency directly, so it does not allocate an adaptive distribution.
         uint frequency = GetElementProbability(input, Av1PartitionType.Horizontal);
         frequency += GetElementProbability(input, Av1PartitionType.Split);
         frequency += GetElementProbability(input, Av1PartitionType.HorizontalA);

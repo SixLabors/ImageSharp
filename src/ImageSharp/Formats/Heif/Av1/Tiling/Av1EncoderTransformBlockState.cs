@@ -28,10 +28,9 @@ internal struct Av1EncoderTransformBlockState
     public byte EntropyContext;
 
     /// <summary>
-    /// Stores the context this transform block hands to the blocks below it and to its right: the
-    /// clamped sum of the coded levels, with the DC sign above it. A search keeps this beside the
-    /// block it measured, so a later pass reads the winning value without coding the block again.
-    /// Reference: the txb_entropy_ctx member of PICK_MODE_CONTEXT.
+    /// Stores the context this transform block gives to the blocks below it and to its right: the clamped sum of the coded levels,
+    /// with the DC sign above it. A search keeps this value with the block it measured. A later pass then reads the winning value
+    /// without coding the block again.
     /// </summary>
     public byte CoefficientContext;
 

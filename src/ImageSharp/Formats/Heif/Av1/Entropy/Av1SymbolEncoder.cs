@@ -288,7 +288,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     private readonly Av1Distribution[] chromaFromLumaAlpha;
 
     /// <summary>
-    /// Indicates whether the range writer has been disposed.
+    /// Indicates whether the encoder released the range writer and its workspace.
     /// </summary>
     private bool isDisposed;
 
@@ -338,8 +338,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     {
         this.entropyContext = new Av1FrameEntropyContext(qIndex);
 
-        // Encoder and decoder now share the same mutable context shape. Every field aliases that single graph so
-        // sequence samples can restore normative defaults without replacing any distribution or array.
+        // The encoder and the decoder use the same mutable context shape. Every field aliases that single graph, so a sequence sample can restore
+        // the normative defaults without a replacement of any distribution or array.
         this.tileIntraBlockCopy = this.entropyContext.IntraBlockCopy;
         this.motionVector = this.entropyContext.MotionVector;
         this.displacementVector = this.entropyContext.DisplacementVector;
@@ -390,8 +390,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         this.dcSign = this.entropyContext.DcSign;
         this.endOfBlockExtra = this.entropyContext.EndOfBlockExtra;
 
-        // Transform dimensions are bounded by the AV1 coefficient-coding rules, so the complete entropy scratch
-        // is known with the tile output capacity and remains valid for every transform in every sequence sample.
+        // The AV1 coefficient coding rules limit the transform dimensions. As a result, the size of the entropy workspace is known here, and the
+        // workspace stays valid for every transform of every sequence sample.
         this.levels = new Av1LevelBuffer(configuration);
         try
         {
@@ -407,7 +407,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         }
         catch
         {
-            // The level buffer is already owned here; a later allocation failure cannot be unwound by the caller.
+            // The constructor already owns the level buffer here. After a later allocation failure, the caller cannot release it.
             this.entropyWorkspace?.Dispose();
             this.levels.Dispose();
             throw;
@@ -557,23 +557,21 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// The retained context of the frame's primary reference, or <see langword="null"/> for the normative defaults.
     /// The context must stay unchanged while the frame is coded.
     /// </param>
-    /// <param name="baseQIndex">The base quantizer index of the frame, which selects the default coefficient models.
-    /// Reference: av1_setup_past_independence() with av1_default_coef_probs().</param>
+    /// <param name="baseQIndex">The base quantizer index of the frame, which selects the default coefficient models.</param>
     public void BeginFrame(Av1FrameEntropyContext? primaryReferenceContext, int baseQIndex)
         => this.BeginFrame(primaryReferenceContext, baseQIndex, baseQIndex);
 
     /// <summary>
-    /// Selects the context every tile of the next frame starts from, with default coefficient models chosen by an
-    /// earlier quantizer than the frame's, and resets the tile state to it.
+    /// Selects the context every tile of the next frame starts from, and resets the tile state to it. An earlier quantizer than the quantizer of
+    /// the frame selects the default coefficient models.
     /// </summary>
     /// <param name="primaryReferenceContext">
     /// The retained context of the frame's primary reference, or <see langword="null"/> for the normative defaults.
     /// The context must stay unchanged while the frame is coded.
     /// </param>
     /// <param name="baseQIndex">The base quantizer index of the frame.</param>
-    /// <param name="modelQIndex">The base quantizer index that selects the default coefficient models. Reference: the
-    /// cm->quant_params.base_qindex that av1_setup_frame() reads before av1_determine_sc_tools_with_encoding() sets
-    /// the trial quantizer.</param>
+    /// <param name="modelQIndex">The base quantizer index that selects the default coefficient models. It is the quantizer before the
+    /// screen content tool search sets its trial quantizer.</param>
     public void BeginFrame(Av1FrameEntropyContext? primaryReferenceContext, int baseQIndex, int modelQIndex)
     {
         this.frameBase = primaryReferenceContext;
@@ -584,18 +582,16 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Copies the adapted distributions of the context-update tile into a retained frame context, with the
-    /// observation counters reset: the tile kept by <see cref="RetainContextUpdateTile"/>, or the last coded tile.
-    /// Reference: the backward-adaptation copy of the context-update tile's tctx into cm->fc, followed by
-    /// av1_reset_cdf_symbol_counters().
+    /// Copies the adapted distributions of the context-update tile into a retained frame context, and resets the observation counters. The
+    /// context-update tile is the tile that <see cref="RetainContextUpdateTile"/> kept, or else the last coded tile.
     /// </summary>
     /// <param name="destination">The retained frame context that receives the snapshot.</param>
     public void SnapshotTo(Av1FrameEntropyContext destination)
         => (this.hasContextUpdateTile ? this.contextUpdateTile! : this.entropyContext).SnapshotTo(destination);
 
     /// <summary>
-    /// Keeps the adapted distributions of the tile just coded as the frame's context-update tile. Reference: the
-    /// largest_tile_id of write_tiles_in_tg_obus(), whose tctx becomes cm->fc.
+    /// Keeps the adapted distributions of the tile that the encoder coded last as the context-update tile of the frame. The frame context after
+    /// the frame comes from this tile.
     /// </summary>
     public void RetainContextUpdateTile()
     {
@@ -680,7 +676,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             int threshold = (1 << bitCount) - valueCount;
             if (value < threshold)
             {
-                // The lower values use the short prefix; every remaining value carries one final disambiguating bit.
+                // The lower values use the short prefix. Every other value adds one final bit that tells two values apart.
                 _ = TOperation.ProcessLiteral(ref w, ref output, (uint)value, bitCount - 1);
                 return;
             }
@@ -847,7 +843,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             cacheColorFound,
             uncachedColors);
 
-        // Palette RD modeling charges every available cache flag even though emission can stop once all colors match.
+        // The palette rate model charges every available cache flag. The writer stops the flags when all colors match, so the model can charge more.
         int bitCount = colorCache.Length +
             GetDeltaEncodedColorBitCount(uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 1);
 
@@ -913,7 +909,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             cacheColorFound,
             uncachedColors);
 
-        // Palette RD modeling charges every available cache flag even though emission can stop once all colors match.
+        // The palette rate model charges every available cache flag. The writer stops the flags when all colors match, so the model can charge more.
         int bitCount = colorCache.Length +
             GetDeltaEncodedColorBitCount(uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 0);
 
@@ -984,7 +980,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
                 int signedDelta = vColors[i] - vColors[i - 1];
                 int delta = Math.Abs(signedDelta);
 
-                // Chroma wraps in its unsigned sample domain, so signal whichever circular direction has less magnitude.
+                // Chroma wraps in its unsigned sample domain, so write the circular direction with the smaller magnitude.
                 if (delta <= sampleRange - delta)
                 {
                     this.WriteLiteral<TOperation>(ref output, (uint)delta, deltaBits);
@@ -1337,8 +1333,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetSplitOrHorizontalCost(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
     {
-        // A block clipped at a frame edge is costed from the frame context, not from the adapted tile
-        // distributions. Reference: set_partition_cost_for_edge_blk(), which reads cm->fc->partition_cdf.
+        // The rate of a block clipped at a frame edge comes from the frame context, not from the adapted tile distributions.
         int frequency = (int)Av1SymbolDecoder.GetSplitOrHorizontalFrequency(
             this.frameBase?.PartitionTypes ?? DefaultFramePartitionTypes,
             blockSize,
@@ -1379,8 +1374,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetSplitOrVerticalCost(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
     {
-        // A block clipped at a frame edge is costed from the frame context, not from the adapted tile
-        // distributions. Reference: set_partition_cost_for_edge_blk(), which reads cm->fc->partition_cdf.
+        // The rate of a block clipped at a frame edge comes from the frame context, not from the adapted tile distributions.
         int frequency = (int)Av1SymbolDecoder.GetSplitOrVerticalFrequency(
             this.frameBase?.PartitionTypes ?? DefaultFramePartitionTypes,
             blockSize,
@@ -1585,8 +1579,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// Completes the rate of a refined transform block from the coefficient rate that the trellis accumulated.
     /// </summary>
     /// <remarks>
-    /// This is the tail of <c>av1_optimize_txb</c>: the skip flag, and for a coded luma block the transform
-    /// type, join the accumulated coefficient rate.
+    /// The method adds the skip flag rate to the accumulated coefficient rate. For a coded luma block, it also adds the transform type rate.
     /// </remarks>
     /// <param name="transformSize">The signaled transform size.</param>
     /// <param name="transformType">The transform type.</param>
@@ -1630,8 +1623,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the complete rate of a transform block whose coefficient rate the trellis already measured, with the
-    /// rate tables that the caller read once for its search loop.
+    /// Gets the complete rate of a transform block whose coefficient rate the trellis already measured. It uses the rate tables that the caller
+    /// read once for its search loop.
     /// </summary>
     /// <param name="tables">The rate tables and scratch storage, from <see cref="GetCoefficientTables"/>.</param>
     /// <param name="transformSize">The signaled transform size.</param>
@@ -1732,8 +1725,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the current fixed-point rate cost of one transform block's complete coefficient syntax, with the rate
-    /// tables that the caller read once for its search loop.
+    /// Gets the current fixed-point rate cost of the complete coefficient syntax of one transform block. It uses the rate tables that the caller
+    /// read once for its search loop.
     /// </summary>
     /// <param name="tables">The rate tables and scratch storage, from <see cref="GetCoefficientTables"/>.</param>
     /// <param name="transformSize">The signaled transform size.</param>
@@ -1778,7 +1771,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the current fixed-point rate cost of one transform block's complete coefficient syntax, without the work counter.
+    /// Gets the current fixed-point rate cost of the complete coefficient syntax of one transform block. Both overloads of
+    /// <c>GetCoefficientCost</c> use this implementation.
     /// </summary>
     /// <param name="tables">The rate tables and scratch storage, from <see cref="GetCoefficientTables"/>.</param>
     /// <param name="transformSize">The signaled transform size.</param>
@@ -1835,8 +1829,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             height,
             out Span<sbyte> coefficientContexts);
 
-        // The final coefficient uses scan-position contexts only. Earlier coefficients need the complete
-        // forward-neighbor level map, so a one-coefficient candidate avoids initializing that plane.
+        // The final coefficient uses only scan-position contexts. Earlier coefficients need the complete forward-neighbor level map. As a
+        // result, a candidate with one coefficient does not initialize that plane.
         Span<byte> levelStorage = tables.LevelStorage;
         if (needsLevelMap)
         {
@@ -1905,8 +1899,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         rate += Av1ProbabilityCost.GetLiteralCost(1);
 
-        // The scan, the coefficients, the contexts, and the cost plane are all sized for this block. Reference
-        // arithmetic keeps the loop free of range checks, as the C reference loop is.
+        // The scan, the coefficients, the contexts and the cost plane all have the size of this block. Arithmetic on `ref` locals keeps the loop
+        // free of range checks.
         ref short scanBase = ref MemoryMarshal.GetReference(scan);
         ref int coefficientBase = ref MemoryMarshal.GetReference(coefficientBuffer);
         ref sbyte contextBase = ref MemoryMarshal.GetReference(coefficientContexts);
@@ -2014,10 +2008,9 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         int height,
         out Span<sbyte> coefficientContexts)
     {
-        // AV1 omits high-frequency coefficients beyond 32 samples on every 64-point transform dimension. The tile
-        // creates maximum-sized workspaces once, then changes only the active views for subsequent transform blocks.
-        // Level initialization writes the plane and all of its forward-neighbor padding, so the active
-        // layout needs no clear between transform blocks.
+        // AV1 omits the high-frequency coefficients after 32 samples on every 64-point transform dimension. The tile creates workspaces of the
+        // maximum size once. Then it changes only the active views for each new transform block. Level initialization writes the plane and all
+        // of its forward-neighbor padding, so the active layout needs no clear between transform blocks.
         this.levels.Reset(new Size(width, height), clear: false);
         coefficientContexts = tables.Contexts[..(width * height)];
         return this.levels;
@@ -2086,8 +2079,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             int eobShift = eobOffsetBitCount - 1;
             int bit = Av1Math.GetBit(eobExtra, eobShift);
 
-            // The first three tokens have no extra-bit distribution. Their placeholders keep later
-            // distributions indexed directly by the encoded token.
+            // The first three tokens have no extra-bit distribution. Their placeholders let the encoded token index the later distributions directly.
             int endOfBlockContext = endOfBlockPosition;
             rate += TOperation.ProcessSymbol(
                 ref w,
@@ -2095,8 +2087,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
                 bit,
                 this.endOfBlockExtra[(int)transformSizeContext][(int)componentType][endOfBlockContext]);
 
-            // The context-coded high bit has already been consumed. The literal writer emits the remaining
-            // low-order suffix most-significant-bit first, preserving the AV1 syntax with one traversal call.
+            // The symbol above codes the high bit with its context. The literal writer writes the remaining low-order suffix bits, most
+            // significant bit first. This keeps the AV1 syntax with one traversal call.
             rate += TOperation.ProcessLiteral(ref w, ref output, (uint)eobExtra, eobOffsetBitCount - 1);
         }
 
@@ -2223,6 +2215,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         _ = TOperation.ProcessSymbol(ref w, ref output, split ? 1 : 0, this.transformPartition[context]);
     }
 
+    /// <summary>
+    /// Gets the subdivision depth of a transform size below the maximum transform of a block.
+    /// </summary>
+    /// <param name="blockSize">The block size defining the maximum transform.</param>
+    /// <param name="transformSize">The selected transform size. It must be the maximum transform or one of its subdivisions.</param>
+    /// <param name="categoryDepth">The number of subdivisions from the maximum transform to 4x4, which selects the distribution category.</param>
+    /// <returns>The number of subdivisions from the maximum transform to <paramref name="transformSize"/>.</returns>
     private static int GetTransformSizeDepth(
         Av1BlockSize blockSize,
         Av1TransformSize transformSize,
@@ -2301,6 +2300,14 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         _ = TOperation.ProcessLiteral(ref this.writer, ref output, x, length);
     }
 
+    /// <summary>
+    /// Gets the rate of the base-range symbols of a coefficient level above the base levels. For a level above the base range, the rate also
+    /// includes the exponential-Golomb suffix.
+    /// </summary>
+    /// <param name="level">The coefficient level, which is more than the base level count.</param>
+    /// <param name="costs">The coefficient rates of the transform size and plane.</param>
+    /// <param name="context">The base-range context of the coefficient.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetBaseRangeCost(int level, ReadOnlySpan<int> costs, int context)
     {
@@ -2320,6 +2327,11 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         return rate;
     }
 
+    /// <summary>
+    /// Gets the bit length of one more than an exponential-Golomb suffix value. The code writes this length minus one zeros, then the value plus one.
+    /// </summary>
+    /// <param name="level">The nonnegative suffix value.</param>
+    /// <returns>The number of significant bits of <paramref name="level"/> + 1.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetGolombBitLength(int level) => (int)Av1Math.Log2_32((uint)level + 1u) + 1;
 
@@ -2499,14 +2511,14 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
             int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSetType, usesInterTransformSet);
 
-            // Set zero contains only DCT-DCT, which was excluded by the multiple-choice condition above.
+            // Set zero contains only DCT-DCT. The multiple-choice condition above excludes it.
             DebugGuard.MustBeGreaterThan(extendedSet, 0, nameof(extendedSet));
 
             int transformIndex = Av1SymbolContextHelper.GetExtendedTransformIndex(transformSetType, transformType);
             ref Av1SymbolWriter w = ref this.writer;
             if (usesInterTransformSet)
             {
-                // Inter transforms are conditioned only by the transform set and square size.
+                // The inter transform distribution depends only on the transform set and the square size.
                 return TOperation.ProcessSymbol(
                     ref w,
                     ref output,
@@ -2668,7 +2680,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         if (!isSmallValue)
         {
-            // Escape magnitudes encode their bit width first, followed by the offset within that width's range.
+            // An escape magnitude writes its bit width first. Then it writes the offset in the range of that width.
             int remainingBitCount = Av1Math.MostSignificantBit((uint)(abs - 1));
             int threshold = (1 << remainingBitCount) + 1;
             _ = TOperation.ProcessLiteral(ref w, ref output, (uint)(remainingBitCount - 1), 3);
@@ -3121,13 +3133,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Writes the motion mode of a single-reference inter block. Reference: write_motion_mode(), which codes
-    /// nothing when only simple translation is allowed, the OBMC flag when OBMC is the last allowed mode, and
-    /// the three-way mode otherwise.
+    /// Writes the motion mode of a single-reference inter block. It writes nothing when the only allowed mode is simple translation. It writes
+    /// the OBMC flag when OBMC is the last allowed mode. Otherwise it writes the three-way mode.
     /// </summary>
     /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
     /// <param name="blockSize">The block size.</param>
-    /// <param name="lastAllowedMode">The last motion mode the block may signal.</param>
+    /// <param name="lastAllowedMode">The last motion mode that the block can signal.</param>
     /// <param name="motionMode">The selected motion mode.</param>
     /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
     public void WriteMotionMode<TOperation>(ref Span<byte> output, Av1BlockSize blockSize, Av1MotionMode lastAllowedMode, Av1MotionMode motionMode)
@@ -3207,13 +3218,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         if (!masked)
         {
-            // The average and distance-weighted types pay the compound index even in a sequence that does not code
-            // it. Reference: calc_masked_type_cost().
+            // The average and distance-weighted types pay the compound index, also in a sequence that does not code it.
             return rate + modeCosts.GetCompoundIndex(compoundIndexContext, compoundType == Av1CompoundType.Average ? 1 : 0);
         }
 
         rate += modeCosts.GetCompoundType(blockSize, compoundType == Av1CompoundType.DifferenceWeighted ? 1 : 0);
 
+        // Each masked type adds one literal bit, 512 units: the wedge sign or the difference-weighted mask type.
         if (compoundType == Av1CompoundType.Wedge)
         {
             rate += modeCosts.GetWedgeIndex(blockSize, wedgeIndex) + 512;
@@ -3262,9 +3273,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         if (!masked)
         {
-            // The statistics pass adapts the compound index even in a sequence that does not code it, and the rate
-            // search prices it from that distribution. Reference: update_stats(), against the enable_dist_wtd_comp
-            // test of pack_inter_mode_mvs().
+            // The statistics pass adapts the compound index distribution, also in a sequence that does not code the index. The rate search
+            // prices the index from that distribution. Only the bitstream write omits the index when the sequence disables it.
             if (jointCompoundEnabled || !TOperation.WritesOutput)
             {
                 _ = TOperation.ProcessSymbol(
@@ -3277,8 +3287,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
             return;
         }
 
-        // The masked type is coded only where wedges exist; other sizes imply the difference-weighted mask.
-        // Reference: the is_interinter_compound_used(COMPOUND_WEDGE, bsize) test of pack_inter_mode_mvs().
+        // The bitstream codes the masked type only for block sizes that allow wedges. Other sizes always use the difference-weighted mask.
         bool wedgeAllowed = blockSize is Av1BlockSize.Block8x8 or Av1BlockSize.Block8x16 or Av1BlockSize.Block16x8 or
             Av1BlockSize.Block16x16 or Av1BlockSize.Block16x32 or Av1BlockSize.Block32x16 or Av1BlockSize.Block32x32 or
             Av1BlockSize.Block8x32 or Av1BlockSize.Block32x8;
@@ -3397,7 +3406,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         ref Av1SymbolWriter w = ref this.writer;
         _ = TOperation.ProcessSymbol(ref w, ref output, joinedSign, this.chromaFromLumaSign);
 
-        // Magnitudes are only signaled for nonzero signs; the shared helper keeps encoder and decoder mappings exact.
+        // The bitstream codes a magnitude only for a nonzero sign. The shared helper keeps the encoder and decoder mappings identical.
         int signU = Av1ChromaFromLumaMath.SignU(joinedSign);
         if (signU != Av1ChromaFromLumaMath.SignZero)
         {
@@ -3425,7 +3434,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="rows">The number of coded map rows.</param>
     /// <param name="columns">The number of coded map columns.</param>
     /// <param name="colorIndexMap">The complete row-addressable color-index map.</param>
-    /// <param name="tokens">The token destination for retaining operations; otherwise an empty span.</param>
+    /// <param name="tokens">The token destination for an operation that retains tokens, or an empty span.</param>
     /// <returns>The rate cost in 1/512-bit units, or zero while writing.</returns>
     private int ProcessPaletteColorMap<TOperation>(
         ref Span<byte> output,
@@ -3446,13 +3455,12 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         int tokenIndex = 1;
 
-        // Resolve the map once. The wavefront visits a different row for every sample, so a row lookup
-        // per sample costs more than the context derivation. A palette map is one contiguous allocation, so
-        // the wavefront indexes it from the map origin with the stride.
+        // Resolve the map once. The wavefront visits a different row for every sample, so a row lookup per sample costs more than the context
+        // derivation. A palette map is one contiguous allocation, so the wavefront indexes it from the map origin with the stride.
         int mapStride = colorIndexMap.Stride;
         ReadOnlySpan<byte> map = colorIndexMap.Samples[colorIndexMap.Origin..];
 
-        // The rates are read once for the whole map, as cost_and_tokenize_map() takes its color_cost table once.
+        // Read the rates once for the whole map.
         Av1ModeCosts modeCosts = this.ModeCosts;
 
         for (int diagonal = 1; diagonal < rows + columns - 1; diagonal++)
@@ -3471,8 +3479,8 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
                 if (TOperation.RetainsTokens)
                 {
-                    // Three low bits retain the color rank; the upper nibble retains its spatial context.
-                    // Packing later reads this byte without consulting a reused prediction map.
+                    // The three low bits keep the color rank. The upper nibble keeps its spatial context. The later packing step reads this byte,
+                    // so it does not read a reused prediction map.
                     tokens[tokenIndex++] = (byte)((colorContext << 4) | colorOrderIndex);
                 }
 
@@ -3508,7 +3516,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         Span<byte> inCache = stackalloc byte[Av1Constants.PaletteMaxSize];
         inCache.Clear();
 
-        // Cache-order flags drive the bitstream while palette-order flags preserve the sorted uncached output.
+        // The cache-order flags go to the bitstream. The palette-order flags keep the uncached output in sorted order.
         int cachedColorCount = 0;
         for (int cacheIndex = 0; cacheIndex < colorCache.Length && cachedColorCount < colors.Length; cacheIndex++)
         {
@@ -3590,6 +3598,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <param name="colors">The sorted colors.</param>
     /// <param name="bitDepth">The number of bits in each color sample.</param>
     /// <param name="minimumDelta">The minimum representable difference between adjacent colors.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
     private void WriteDeltaEncodedColors<TOperation>(
         ref Span<byte> output,
         scoped ReadOnlySpan<ushort> colors,
@@ -3741,6 +3750,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// </summary>
     private readonly struct CoefficientCostOperation : ISymbolOperation
     {
+        /// <inheritdoc/>
         public static bool WritesOutput => false;
 
         /// <inheritdoc/>
@@ -3771,6 +3781,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Emits palette-map syntax and reports no estimated rate.
     /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
     private readonly struct PaletteColorMapWriteOperation<TOperation> : IPaletteColorMapOperation
         where TOperation : struct, ISymbolOperation
     {

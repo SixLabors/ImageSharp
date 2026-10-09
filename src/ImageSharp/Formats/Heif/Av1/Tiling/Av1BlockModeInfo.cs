@@ -61,12 +61,12 @@ internal struct Av1BlockModeInfo
     private InlineArray8<ushort> chromaRedPaletteColors;
 
     /// <summary>
-    /// Stores the luma palette color-index map.
+    /// Stores the bounds of the luma palette color-index map in the shared palette map.
     /// </summary>
     private Rectangle lumaPaletteColorIndexBounds;
 
     /// <summary>
-    /// Stores the shared chroma palette color-index map.
+    /// Stores the bounds of the chroma palette color-index map in the shared palette map. Both chroma planes use this map.
     /// </summary>
     private Rectangle chromaPaletteColorIndexBounds;
 
@@ -110,8 +110,8 @@ internal struct Av1BlockModeInfo
         this.BlockSize = blockSize;
         this.PositionInSuperblock = positionInSuperblock;
 
-        // Both entries begin absent because inter syntax has not selected either reference yet. Intra parsing replaces
-        // the primary entry with the current frame while retaining None as the optional secondary reference.
+        // Both entries start as None because the inter syntax did not select a reference yet. Intra parsing sets the primary entry to the current frame and
+        // keeps None as the secondary reference.
         this.referenceFrames[0] = Av1ReferenceFrameType.None;
         this.referenceFrames[1] = Av1ReferenceFrameType.None;
     }
@@ -163,8 +163,7 @@ internal struct Av1BlockModeInfo
     /// Gets the interpolation filters used for vertical and horizontal subpixel prediction.
     /// </summary>
     /// <remarks>
-    /// Index zero is the vertical filter and index one is the horizontal filter, matching the reference decoder's
-    /// <c>InterpFilters.y_filter</c> and <c>InterpFilters.x_filter</c> layout.
+    /// Index zero is the vertical filter. Index one is the horizontal filter.
     /// </remarks>
     [UnscopedRef]
     public Span<Av1InterpolationFilter> InterpolationFilters => this.interpolationFilters;

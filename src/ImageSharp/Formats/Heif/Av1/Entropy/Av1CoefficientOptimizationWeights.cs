@@ -4,9 +4,8 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
 /// <summary>
-/// The encoder configuration that coefficient optimization reads: the sharpness, the shift of the rate multiplier and
-/// the quantization matrices of one transform block. Reference: the sharpness, rshift, qmatrix and iqmatrix of
-/// av1_optimize_txb().
+/// The encoder configuration that coefficient optimization reads for one transform block. It holds the sharpness, the shift of the rate multiplier,
+/// and the quantization matrices.
 /// </summary>
 internal readonly ref struct Av1CoefficientOptimizationWeights
 {
@@ -29,13 +28,12 @@ internal readonly ref struct Av1CoefficientOptimizationWeights
     }
 
     /// <summary>
-    /// Gets the weights of the default configuration. It has no sharpness, the default shift and cutoff, and flat matrices.
+    /// Gets the weights of the default configuration. The sharpness is zero, the shift and the cutoff are 5, and the matrices are flat.
     /// </summary>
     public static Av1CoefficientOptimizationWeights Default => new(0, 5, 5, default, default);
 
     /// <summary>
     /// Gets the last scan position that sharpness protects. Up to this position, sharpness keeps a level above two and keeps the end of block.
-    /// Reference: min_eob_cutoff in update_coeff_eob().
     /// </summary>
     public int EndOfBlockCutoff { get; }
 

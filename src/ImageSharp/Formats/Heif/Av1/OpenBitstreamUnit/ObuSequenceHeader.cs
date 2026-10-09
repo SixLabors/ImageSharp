@@ -14,7 +14,7 @@ internal sealed class ObuSequenceHeader
     private bool use128x128Superblock;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ObuSequenceHeader"/> class with the normative 64x64 superblock geometry.
+    /// Initializes a new instance of the <see cref="ObuSequenceHeader"/> class with the 64x64 superblock geometry.
     /// </summary>
     public ObuSequenceHeader() => this.Use128x128Superblock = false;
 
@@ -54,7 +54,7 @@ internal sealed class ObuSequenceHeader
     public ObuDecoderModelInfo? DecoderModelInfo { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether operating points may carry initial display delays.
+    /// Gets or sets a value indicating whether operating points can carry initial display delays.
     /// </summary>
     public bool InitialDisplayDelayPresentFlag { get; set; }
 
@@ -108,7 +108,7 @@ internal sealed class ObuSequenceHeader
         {
             this.use128x128Superblock = value;
 
-            // Superblock selection controls every downstream partition-grid unit, so update the derived geometry atomically.
+            // The superblock size sets the unit of every partition grid. The setter updates all derived sizes together, so they always agree.
             this.SuperblockSize = value ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
             this.SuperblockSizeLog2 = value ? 7 : 6;
             this.SuperblockModeInfoSize = 1 << (this.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2);
@@ -148,8 +148,7 @@ internal sealed class ObuSequenceHeader
         get => this.OrderHintInfo.EnableOrderHint;
         set
         {
-            // Order-hint availability is consumed through OrderHintInfo by frame parsing, so
-            // keep the sequence-facing flag and dependent tool state synchronized.
+            // Frame parsing reads this flag from `OrderHintInfo`. The property stores the flag there, so both views have one value.
             this.OrderHintInfo.EnableOrderHint = value;
         }
     }
@@ -200,7 +199,7 @@ internal sealed class ObuSequenceHeader
     public ObuColorConfig ColorConfig { get; set; } = new ObuColorConfig();
 
     /// <summary>
-    /// Gets or sets a value indicating whether frame headers may carry film-grain parameters.
+    /// Gets or sets a value indicating whether frame headers can carry film-grain parameters.
     /// </summary>
     public bool AreFilmGrainingParametersPresent { get; set; }
 

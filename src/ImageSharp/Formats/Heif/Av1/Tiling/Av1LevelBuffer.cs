@@ -154,7 +154,7 @@ internal sealed partial class Av1LevelBuffer : IDisposable
     /// <summary>
     /// Gets a padded coefficient row by its unpadded vertical coordinate.
     /// </summary>
-    /// <param name="y">The row coordinate, which may address the top context padding.</param>
+    /// <param name="y">The row coordinate. A negative value addresses the top context padding.</param>
     /// <returns>The selected row, including its horizontal context padding.</returns>
     public Span<byte> GetRow(int y)
     {
@@ -187,8 +187,7 @@ internal sealed partial class Av1LevelBuffer : IDisposable
     {
         this.Reset(size, clear: false);
 
-        // Clear only the active layout because stale neighboring levels would otherwise select the wrong coefficient
-        // distributions.
+        // Stale neighbor levels select the wrong coefficient distributions. Only the active layout and its padding need a clear.
         int totalHeight = Av1Constants.TransformPadTop + size.Height + Av1Constants.TransformPadBottom;
         storage[..(this.Stride * totalHeight)].Clear();
     }
@@ -206,7 +205,7 @@ internal sealed partial class Av1LevelBuffer : IDisposable
             return;
         }
 
-        // Tile parsing is sequential, so one maximum-sized rent serves every transform; only the active layout changes.
+        // Tile parsing is sequential, so one maximum-sized allocation serves every transform. Only the active layout changes.
         ObjectDisposedException.ThrowIf(this.memory == null, this);
         this.Size = size;
         this.WidthLog2 = BitOperations.Log2((uint)size.Width);

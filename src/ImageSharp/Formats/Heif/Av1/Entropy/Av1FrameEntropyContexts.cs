@@ -68,13 +68,13 @@ internal sealed class Av1FrameEntropyContexts
         }
         else
         {
-            // A retained context is independent from the working and published graphs. Copying it here preserves the
-            // reference owner's snapshot while the current frame adapts its own tile-local state.
+            // A retained context is independent from the working and published graphs. This copy keeps the snapshot of the reference
+            // owner unchanged while the current frame adapts its own tile-local state.
             this.Base.CopyFrom(primaryReferenceContext);
         }
 
-        // The context-update tile can precede later tiles. Published therefore cannot alias Working: a later tile
-        // must be free to overwrite Working while the selected completed-frame state remains available to the owner.
+        // The context-update tile can come before other tiles. As a result, Published cannot alias Working. A later tile overwrites
+        // Working, and the selected completed-frame state must stay available to the owner.
         this.Base.SnapshotTo(this.Published);
     }
 
@@ -88,8 +88,8 @@ internal sealed class Av1FrameEntropyContexts
         this.Base.SnapshotTo(this.Working);
         this.Base.SnapshotTo(this.Published);
 
-        // Returned graphs contain no live reference state and remain private to this decoder. Retaining them here
-        // allows the next sequence to reuse peak reference ownership without a static cross-decode pool.
+        // The returned graphs stay in their slots. They hold no live reference state and stay private to this decoder. As a result,
+        // the next sequence reuses them without a static pool that other decodes share.
     }
 
     /// <summary>
@@ -113,8 +113,8 @@ internal sealed class Av1FrameEntropyContexts
             break;
         }
 
-        // Eight slots can own distinct frames while the selected output owns a ninth frame no longer present in
-        // the map. Rent one further graph before commit releases the owner displaced by the completed frame.
+        // Eight slots can own distinct frames while the selected output owns a ninth frame that is no longer in the map. The method
+        // then makes one more graph, before the commit releases the owner that the completed frame replaces.
         snapshot ??= new(this.currentQIndex);
 
         this.Published.SnapshotTo(snapshot);

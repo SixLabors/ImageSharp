@@ -212,7 +212,6 @@ internal static class Av1RateDistortion
     /// <param name="tuning">The tune metric.</param>
     /// <param name="realtime">Whether the encoder runs in real-time usage.</param>
     /// <returns>The rate multiplier.</returns>
-    /// <remarks>Reference: av1_compute_rd_mult_based_on_qindex().</remarks>
     public static int GetRateMultiplier(
         int qIndex,
         Av1BitDepth bitDepth,
@@ -228,13 +227,12 @@ internal static class Av1RateDistortion
             _ => 3.2
         };
 
-        // The squared DC step sets the distortion scale. Reference-producing golden/alternate pictures
-        // use the intermediate weight; overlay and intermediate-alternate roles retain the ordinary weight.
-        // Truncate the weighted product before rounding high-bit-depth distortion into the eight-bit domain.
+        // The squared DC step sets the distortion scale. Golden and alternate frames use the intermediate weight. Overlay and intermediate
+        // alternate frames keep the ordinary weight. Truncate the weighted product before the high bit depth value rounds into the 8-bit domain.
         long multiplier = (long)((quantizer * (long)quantizer) * (baseWeight + (0.0015 * quantizer)));
 
-        // The image and SSIMULACRA 2 tunes scale the multiplier by up to 200/128, falling to unity at the highest
-        // quantizers, which favors larger transforms. Real-time usage uses a quarter instead.
+        // The image and SSIMULACRA 2 tunes scale the multiplier by up to 200/128. The scale decreases to one at the highest quantizers. A larger
+        // multiplier favors larger transforms. Real-time usage scales the multiplier by one quarter instead.
         if (tuning.IsImageTuning())
         {
             int weight = realtime ? 32 : Math.Clamp(((255 - qIndex) * 3) / 4, 0, 72) + 128;
@@ -251,8 +249,7 @@ internal static class Av1RateDistortion
     }
 
     /// <summary>
-    /// Gets a rate-distortion cost whose rate can be negative, rounding the magnitude of a negative weighted rate.
-    /// Reference: av1_calculate_rd_cost() with RDCOST_NEG_R.
+    /// Gets a rate-distortion cost whose rate can be negative. For a negative rate, the method rounds the magnitude of the weighted rate.
     /// </summary>
     /// <param name="rateMultiplier">The rate weight selected by the encoder quality model.</param>
     /// <param name="rate">The syntax rate in 1/512-bit units.</param>
@@ -411,8 +408,8 @@ internal static class Av1RateDistortion
         distortion = (long)(Math.Max(0, (distortionEstimate * normalizedError) * sampleCount) + 0.5);
         long skipDistortion = squaredError << DistortionScaleShift;
 
-        // A modeled coded residual is useful only if it beats leaving the prediction unchanged. Preserve the
-        // reference model's zero-rate rule instead of returning an artificially low distortion for a skipped block.
+        // A modeled residual is useful only if its cost is less than the cost of the unchanged prediction. Otherwise the model returns a zero
+        // rate with the skip distortion, so a skipped block does not get a distortion that is too low.
         if (rate == 0 || GetCost(rateMultiplier, rate, distortion) >= GetCost(rateMultiplier, 0, skipDistortion))
         {
             rate = 0;
@@ -421,8 +418,11 @@ internal static class Av1RateDistortion
     }
 
     /// <summary>
-    /// Evaluates one fitted curve's cubic segment without fusing arithmetic operations.
+    /// Evaluates the cubic segment of one fitted curve without fused arithmetic operations. This order matches the vector path bit for bit.
     /// </summary>
+    /// <param name="points">The four curve samples around the segment.</param>
+    /// <param name="fraction">The position in the segment between the second and the third sample, from zero to one.</param>
+    /// <returns>The interpolated curve value.</returns>
     private static double InterpolateModelCurve(ReadOnlySpan<double> points, double fraction)
     {
         double cubic = (3.0 * (points[1] - points[2])) + points[3] - points[0];

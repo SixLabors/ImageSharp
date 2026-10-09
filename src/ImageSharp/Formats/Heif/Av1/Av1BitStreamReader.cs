@@ -62,9 +62,18 @@ internal ref struct Av1BitStreamReader
     /// Reads the next encoded bit.
     /// </summary>
     /// <returns>Zero or one.</returns>
+    /// <exception cref="InvalidImageContentException">The syntax continues past the end of the encoded data.</exception>
     public uint ReadBit()
     {
         int byteOffset = Av1Math.DivideBy8Floor(this.BitPosition);
+
+        // Every header syntax element reads through this method. A syntax element that runs past its OBU payload is malformed input. Thus the reader reports it
+        // as invalid content, not as a span index failure.
+        if ((uint)byteOffset >= (uint)this.data.Length)
+        {
+            throw new InvalidImageContentException("The AV1 syntax exceeds its payload boundary.");
+        }
+
         byte shift = (byte)(7 - Av1Math.Modulus8(this.BitPosition));
         this.BitPosition++;
         return (uint)((this.data[byteOffset] >> shift) & 0x01);
@@ -73,7 +82,7 @@ internal ref struct Av1BitStreamReader
     /// <summary>
     /// Reads the next encoded bit as a Boolean value.
     /// </summary>
-    /// <returns><see langword="true"/> for one; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> for one, otherwise <see langword="false"/>.</returns>
     public bool ReadBoolean() => this.ReadLiteral(1) > 0;
 
     /// <summary>
@@ -98,8 +107,8 @@ internal ref struct Av1BitStreamReader
             }
         }
 
-        // AV1 limits unsigned LEB128 fields to eight bytes. A continuation bit in the eighth byte does not describe
-        // another value byte; accepting it would move the following OBU header into the declared size field.
+        // AV1 limits unsigned LEB128 fields to eight bytes. A continuation bit in the eighth byte does not describe another value byte. A reader that accepts
+        // it reads the next OBU header as part of the size field.
         throw new InvalidImageContentException("The AV1 LEB128 value is not terminated within eight bytes.");
     }
 
@@ -165,8 +174,7 @@ internal ref struct Av1BitStreamReader
     /// <param name="valueMagnitude">One greater than the maximum absolute value in the signed domain.</param>
     /// <param name="groupBitCount">The bit width of the first subexponential group.</param>
     /// <param name="reference">The signed reference value around which smaller codewords are concentrated.</param>
-    /// <returns>A decoded value in the inclusive range from minus <paramref name="valueMagnitude"/> plus one through
-    /// <paramref name="valueMagnitude"/> minus one.</returns>
+    /// <returns>A decoded value from 1 - <paramref name="valueMagnitude"/> through <paramref name="valueMagnitude"/> - 1, inclusive.</returns>
     public int ReadSignedReferenceSubexponential(int valueMagnitude, int groupBitCount, int reference)
     {
         int shiftedReference = reference + valueMagnitude - 1;
@@ -186,7 +194,7 @@ internal ref struct Av1BitStreamReader
         uint signMask = 1U << (n - 1);
         if ((value & signMask) == signMask)
         {
-            // The subtraction represents sign extension; widening first preserves the n=32 case.
+            // The subtraction is the sign extension. The widening comes first, so the n=32 case stays correct.
             signedValue = (int)((long)value - (signMask << 1));
         }
         else
@@ -253,8 +261,8 @@ internal ref struct Av1BitStreamReader
     {
         int value = this.ReadSubexponential(valueCount, groupBitCount);
 
-        // Recentering enumerates values by increasing distance from the reference. References in the upper half use
-        // the mirrored domain so the shorter side of the finite range always participates in the alternating mapping.
+        // Recentering enumerates values by increasing distance from the reference. References in the upper half use the mirrored domain. Thus the shorter side
+        // of the finite range is always the side that takes part in the alternating mapping.
         if ((reference << 1) <= valueCount)
         {
             return InverseRecenter(reference, value);
@@ -275,8 +283,8 @@ internal ref struct Av1BitStreamReader
         int groupStart = 0;
         while (true)
         {
-            // AV1 keeps the first two groups at width k and then doubles each following group. Once fewer than three
-            // groups remain, the non-symmetric code consumes the exact finite tail without introducing unused values.
+            // The first two groups use groupBitCount bits. Each following group uses one more bit, so its size doubles. When the remaining values fit in three
+            // groups of the current size, the non-symmetric code reads the exact finite tail. This leaves no unused code values.
             int bitCount = groupIndex == 0 ? groupBitCount : groupBitCount + groupIndex - 1;
             int groupSize = 1 << bitCount;
             if (valueCount <= groupStart + (3 * groupSize))
@@ -302,8 +310,8 @@ internal ref struct Av1BitStreamReader
     /// <returns>The inverse-recentered value.</returns>
     private static int InverseRecenter(int reference, int value)
     {
-        // Codes within twice the reference alternate above and below it: even values select the upper side and odd
-        // values select the lower side. Larger codes lie beyond the lower-side range and map directly to the tail.
+        // Codes up to twice the reference alternate above and below it. Even values select the upper side and odd values select the lower side. Larger codes
+        // lie past the range of the lower side and map directly to the tail.
         if (value > (reference << 1))
         {
             return value;

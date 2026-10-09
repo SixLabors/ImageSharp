@@ -170,6 +170,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     private readonly Av1ReferenceFrameStore? referenceFrames;
 
     /// <summary>
+    /// The reference roles whose dimensions are outside the AV1 scaling range of the current frame. Bit zero is the last-frame role.
+    /// </summary>
+    /// <remarks>
+    /// AV1 permits prediction from a reference only when it is at most twice and at least one sixteenth of the coded frame size on each axis.
+    /// The frame header can select other references, so the reader rejects a block only when it predicts from one of these roles.
+    /// </remarks>
+    private readonly int invalidScaleReferenceMask;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1TileReader"/> class for syntax parsing without reconstruction.
     /// </summary>
     /// <param name="configuration">The decoder configuration.</param>
@@ -278,6 +287,29 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 // retained reference state and are copied only for whole-map inheritance.
                 this.primaryReferenceState = referenceFrames.ResolveRequired(primaryReferenceSlot.Value).ReferenceState;
             }
+
+            if (!frameHeader.IsIntra)
+            {
+                // The scaled predictor sizes its intermediate rows and the reference border for at most a 2:1 step. A larger reference would move
+                // the filter taps past both. The header parser has already confirmed that every selected slot holds a frame.
+                Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+                int frameWidth = frameHeader.FrameSize.FrameWidth;
+                int frameHeight = frameHeader.FrameSize.FrameHeight;
+                for (int reference = 0; reference < Av1Constants.ReferencesPerFrame; reference++)
+                {
+                    Av1FrameBuffer<byte> referenceFrameBuffer = referenceFrames.ResolveRequired((int)referenceFrameIndices[reference]).FrameBuffer;
+                    bool isValidScale =
+                        (2 * frameWidth) >= referenceFrameBuffer.Width &&
+                        (2 * frameHeight) >= referenceFrameBuffer.Height &&
+                        frameWidth <= (16 * referenceFrameBuffer.Width) &&
+                        frameHeight <= (16 * referenceFrameBuffer.Height);
+
+                    if (!isValidScale)
+                    {
+                        this.invalidScaleReferenceMask |= 1 << reference;
+                    }
+                }
+            }
         }
 
         // Above contexts span the aligned frame width, while left contexts are reused for each superblock row.
@@ -306,8 +338,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         }
         catch
         {
-            // The second context can fail after both frame state and the above context have acquired owners.
-            // Neither survives failed construction, so unwind both completed owners here.
+            // The second context can fail after the frame state and the above context acquired owners. Neither survives a failed construction, so this block
+            // releases both owners.
             this.aboveNeighborContext.Dispose();
             this.FrameInfo.Dispose();
             throw;
@@ -484,8 +516,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         // constructed.
         this.entropyContexts.Working.CopyFrom(this.entropyContexts.Base);
 
-        // The frame syntax exposes a disable flag, while the range reader follows the reference decoder's positive
-        // allow_update_cdf convention.
+        // The frame header carries `disable_cdf_update`. The range reader takes the inverse flag, so it gets `true` when CDF adaptation is on.
         Av1SymbolDecoder reader = new(
             this.configuration,
             tileData,
@@ -504,9 +535,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         this.ClearLoopFilterDelta();
         int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
 
-        // AV1 fixes restoration reference storage at three planes, two directions or projection coefficients, and
-        // three transmitted Wiener taps. Populate the inline value storage in place so every tile starts from the
-        // normative differential-coding defaults without constructing jagged arrays.
+        // AV1 fixes the restoration reference storage at three planes, two directions or projection coefficients, and three transmitted Wiener taps. The loop
+        // writes the inline storage in place, so every tile starts from the normative defaults of the differential coding.
         Span<int> sgrReferences = this.referenceSgrXqd;
         Span<int> wienerReferences = this.referenceLrWiener;
         for (int plane = 0; plane < planesCount; plane++)
@@ -590,15 +620,14 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             }
         }
 
-        // Range decoding may read implicit zero padding while normalizing its final interval. Validate the logical
-        // stopping position before publishing either pixels or adapted CDF state so a truncated tile cannot commit.
+        // Range decoding can read implicit zero padding when it normalizes its final interval. The reader validates the logical stop position before the tile
+        // commits pixels or adapted CDF state, so a truncated tile cannot commit.
         reader.ValidateTrailingBits();
 
         if (!this.FrameHeader.DisableFrameEndUpdateCdf && tileNum == this.FrameHeader.TilesInfo.ContextUpdateTileId)
         {
-            // the reference decoder publishes only context_update_tile_id after every tile has independently started from the frame
-            // base, then clears its CDF counters. Snapshotting into a third reusable graph preserves the unchanged base
-            // for tiles that follow the selected tile in bitstream order.
+            // Every tile starts from the frame base. Only the tile at `context_update_tile_id` publishes its adapted CDFs. The snapshot goes to a third
+            // reusable graph, so the tiles that follow in bitstream order still start from the unchanged base.
             this.entropyContexts.Working.SnapshotTo(this.entropyContexts.Published);
         }
     }
@@ -898,8 +927,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         ObuColorConfig colorConfig = this.SequenceHeader.ColorConfig;
         if (subSize.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY) == Av1BlockSize.Invalid)
         {
-            // Luma partition syntax can describe a sub-8x8 shape that has no legal representation after chroma
-            // subsampling. Reject it before any block state is published, matching the reference decoder's decode_partition boundary.
+            // Luma partition syntax can describe a sub-8x8 shape that has no legal representation after chroma subsampling. The parser rejects it before it
+            // publishes any block state.
             throw new InvalidImageContentException($"The decoded AV1 block size {subSize} is invalid for the sequence chroma subsampling.");
         }
 
@@ -1512,11 +1541,11 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             this.ResetSkipContext(aboveContextStorage, leftContextStorage, ref partitionInfo, tileInfo);
         }
 
-        // Record compact frame evidence before later frames release this frame's full mode-information graph.
+        // The frame records the compact feature flags now, because later frames release the full mode-information graph of this frame.
         this.FrameInfo.RecordInterPredictionFeatures(partitionInfo.ModeInfo, this.FrameHeader);
 
-        // Mode and transform geometry are complete before residual parsing. Publish the block now so
-        // inter prediction can resolve its own chroma cells and preceding neighbors through the frame map.
+        // Mode and transform geometry are complete before residual parsing. The parser publishes the block now, so inter prediction can resolve its own chroma
+        // cells and earlier neighbors through the frame map.
         ref Av1BlockModeInfo publishedModeInfo = ref this.FrameInfo.UpdateModeInfo(partitionInfo.ModeInfo, superblockInfo);
         partitionInfo.ModeInfo.ModeInfoIndex = publishedModeInfo.ModeInfoIndex;
         this.FrameDecoder?.BeginBlock(ref partitionInfo, decoderWorkspace, frameLuma, frameBlue, frameRed, tileInfo);
@@ -1544,8 +1573,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
         if (this.FrameDecoder is not null)
         {
-            // Full decoding has consumed every palette index by this point. Syntax-only parsing keeps
-            // its inspection views; reconstructed records release the borrowed views before the next block.
+            // Full decoding consumed every palette index at this point. The record releases the borrowed views before the next block. Syntax-only parsing never
+            // stores the views.
             publishedModeInfo.SetPaletteColorIndexMap(Av1PlaneType.Y, default);
             publishedModeInfo.SetPaletteColorIndexMap(Av1PlaneType.Uv, default);
         }
@@ -1619,8 +1648,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Av1TileInfo tileInfo,
         Av1BlockSize blockSize)
     {
-        // Mode syntax has established delta-Q before residual decoding. Keep dequantization at this parsing
-        // boundary so each signed level is published once in the form consumed by inverse reconstruction.
+        // Mode syntax sets delta-Q before residual decoding. The dequantizer updates at this parsing boundary, so each signed level is published once, in the
+        // form that inverse reconstruction uses.
         this.inverseQuantizer.UpdateDequant(superblockInfo);
         int maxBlocksWide = partitionInfo.GetMaxBlockWide(blockSize, false);
         int maxBlocksHigh = partitionInfo.GetMaxBlockHigh(blockSize, false);
@@ -1743,8 +1772,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                         planeCoefficientIndices[plane] += transformInfo.Size.GetWidth() * transformInfo.Size.GetHeight();
                         transformInfo.EndOfBlock = (ushort)endOfBlock;
 
-                        // Intra prediction consumes the previous transform's reconstructed edge. Complete
-                        // prediction, inverse reconstruction, and coefficient clearing before another TU is read.
+                        // Intra prediction uses the reconstructed edge of the previous transform. Thus prediction, inverse reconstruction, and coefficient
+                        // clearing complete before the parser reads another TU.
                         this.FrameDecoder?.DecodeTransform(
                             ref partitionInfo,
                             plane,
@@ -1861,8 +1890,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int superblockRow = partitionInfo.SuperblockInfo.ModeInfoPosition.Y >> (subY ? 1 : 0);
         int leftContextOffset = startY - superblockRow;
 
-        // Above contexts are tile-column relative, while left contexts are reused from the start of each
-        // superblock row. Slicing both arrays here gives the entropy derivation the same pointer bases as the reference decoder.
+        // Above contexts are relative to the tile column. Left contexts restart at each superblock row. The two offsets index the arrays from these bases.
         Av1TransformBlockContext transformBlockContext = this.GetTransformBlockContext(
             aboveContextStorage,
             leftContextStorage,
@@ -2085,7 +2113,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int transformBlockUnitHighCount = transformSize.Get4x4HighCount();
 
         // Chroma skip context depends on whether any entry on each nominal transform edge is nonzero.
-        // Edge padding has already been reset, so it contributes no activity beyond the visible frame.
+        // The decoder resets edge padding before this call, so the padding adds no activity beyond the visible frame.
         for (int i = 0; i < transformBlockUnitWideCount; i++)
         {
             if (above[i] != 0)
@@ -2267,8 +2295,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             return;
         }
 
-        // A skipped inter block derives its maximum transform size without a symbol. Intra blocks still select a
-        // transform size when the frame enables selection because skip_txfm does not suppress their size syntax.
+        // A skipped inter block derives its maximum transform size without a symbol. When the frame enables selection, intra blocks still read a transform
+        // size, because the skip flag does not suppress their size syntax.
         bool allowSelect = !usesInterTransformSyntax || !modeInfo.Skip;
         Av1TransformSize transformSize = this.ReadTransformSize(
             ref reader,
@@ -2324,8 +2352,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int totalTransformUnitCount = 0;
         int regionIndex = 0;
 
-        // Large blocks are visited as independent maximum-transform regions. Keeping the same region order as residual
-        // parsing lets each region retain an exact transform count without a second map or temporary allocation.
+        // The loop visits large blocks as independent maximum-transform regions. It uses the region order of residual parsing, so each region keeps an exact
+        // transform count without a second map or a temporary allocation.
         for (int blockRow = 0; blockRow < maximumBlocksHigh; blockRow += regionHeight)
         {
             for (int blockColumn = 0; blockColumn < maximumBlocksWide; blockColumn += regionWidth)
@@ -2570,8 +2598,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 int planeRow = idy >> (subY ? 1 : 0);
                 int planeColumn = idx >> (subX ? 1 : 0);
 
-                // The 64x64 region cursor is expressed on the luma grid. Chroma transform offsets use the
-                // target plane's 4x4 grid, matching the reference decoder's row/column subsampling before transform traversal.
+                // The 64x64 region cursor is on the luma grid. Chroma transform offsets use the 4x4 grid of the target plane, so the cursor is subsampled
+                // before the transform traversal.
                 for (int blockRow = planeRow; blockRow < unitHeight; blockRow += stepRow)
                 {
                     for (int blockColumn = planeColumn; blockColumn < unitWidth; blockColumn += stepColumn)
@@ -2749,6 +2777,19 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             Av1ReferenceFrameType referenceFrame = modeInfo.ReferenceFrames[0];
             Av1ReferenceFrameType secondaryReferenceFrame = modeInfo.ReferenceFrames[1];
             bool isCompound = secondaryReferenceFrame > Av1ReferenceFrameType.Intra;
+
+            // A block must not predict from a reference outside the AV1 scaling range. Coded references, skip mode, and segment features all
+            // select their roles above, so this one check covers each source. Overlapped prediction reuses the roles of neighbors that passed it.
+            int usedReferenceMask = 1 << ((int)referenceFrame - (int)Av1ReferenceFrameType.Last);
+            if (isCompound)
+            {
+                usedReferenceMask |= 1 << ((int)secondaryReferenceFrame - (int)Av1ReferenceFrameType.Last);
+            }
+
+            if ((this.invalidScaleReferenceMask & usedReferenceMask) != 0)
+            {
+                throw new InvalidImageContentException("An AV1 inter block predicts from a reference with dimensions outside the scaling range.");
+            }
 
             ref Av1ReferenceMotionVectors referenceMotionVectors = ref this.referenceMotionVectors;
             referenceMotionVectors.Build(
@@ -2933,8 +2974,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 modeInfo.BlockSize is >= Av1BlockSize.Block8x8 and <= Av1BlockSize.Block32x32 &&
                 reader.ReadIsInterIntra(modeInfo.BlockSize))
             {
-                // The synthetic INTRA_FRAME second reference is part of the decoded mode state: it suppresses motion
-                // variation syntax and lets reconstruction distinguish inter-intra from a regular single-reference block.
+                // The synthetic INTRA_FRAME second reference is part of the decoded mode state. It suppresses motion variation syntax and lets reconstruction
+                // distinguish inter-intra from a regular single-reference block.
                 modeInfo.ReferenceFrames[1] = Av1ReferenceFrameType.Intra;
                 modeInfo.InterIntraMode = reader.ReadInterIntraMode(modeInfo.BlockSize);
                 modeInfo.SetAngleDelta(Av1PlaneType.Y, 0);
@@ -3444,9 +3485,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             ? blockHeight
             : blockHeight + (partitionInfo.ModeBlockToBottomEdge >> 3);
 
-        // A chroma plane narrower or shorter than four samples belongs to a block that shares its
-        // chroma with the neighbour it pairs with, so its map covers the pair. Reference:
-        // av1_get_block_dimensions().
+        // A chroma plane block narrower or shorter than four samples shares its chroma with the paired neighbor block, so its map covers the pair.
         int planeBlockWidth = blockWidth >> subX;
         int planeBlockHeight = blockHeight >> subY;
         int chromaSub8Width = planeType == Av1PlaneType.Uv && planeBlockWidth < 4 ? 2 : 0;
@@ -3481,7 +3520,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     {
         reader.ReadPaletteColorMap(paletteSize, planeType, rows, columns, colorIndexMap);
 
-        // The map is read once; map row r starts one stride per row after the map origin.
+        // The decoder reads the map once. Row r of the map starts r strides after the map origin.
         Span<byte> mapSamples = colorIndexMap.Samples;
         if (columns < planeWidth)
         {
@@ -3580,7 +3619,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="partitionInfo">The current coding block and its available neighbors.</param>
     /// <param name="beforeSkip">Whether this invocation precedes the block's residual-skip decision.</param>
     /// <remarks>
-    /// Implements <c>read_inter_segment_id</c> from AV1 section 5.11.8.
+    /// Implements the inter-frame segment ID syntax from AV1 section 5.11.8.
     /// </remarks>
     public void ReadInterSegmentId(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo, bool beforeSkip)
     {
@@ -3598,8 +3637,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
         if (segmentationParameters.SegmentationUpdateMap == 0)
         {
-            // The frame map was inherited as one contiguous copy during reader construction. Resolve the same clipped
-            // minimum that the reference decoder obtains from last_frame_seg_map so block state and the already copied map agree.
+            // Reader construction inherited the frame map as one contiguous copy. The block takes the same clipped minimum from the primary map, so the block
+            // state and the copied map agree.
             modeInfo.SegmentId = this.FrameInfo.GetPredictedSegmentId(this.primaryReferenceState, modeInfo.BlockSize, modeInfoPosition);
             return;
         }
@@ -3608,7 +3647,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         {
             if (!segmentationParameters.SegmentIdPrecedesSkip)
             {
-                // The caller invokes this once before skip for every inter block; post-skip segment syntax owns this case.
+                // The caller invokes this method once before skip for every inter block. When the segment ID follows skip, the post-skip call reads it.
                 return;
             }
         }
@@ -3696,8 +3735,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         }
         else
         {
-            // Any unavailable neighbor selects the edge context; otherwise, agreement among two
-            // or three neighbors increases the specificity of the segment-ID distribution.
+            // If any neighbor is unavailable, the edge context applies. Otherwise, agreement among two or three neighbors selects a more specific segment-ID
+            // distribution.
             int ctx = prevUL < 0 ? 0
                 : prevUL == prevU && prevUL == prevL ? 2
                 : prevUL == prevU || prevUL == prevL || prevU == prevL ? 1 : 0;
@@ -3706,8 +3745,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             int segmentId = Av1SymbolContextHelper.NegativeDeinterleave(reader.ReadSegmentId(ctx), predictor, lastActiveSegmentId + 1);
             if (segmentId is < 0 || segmentId > lastActiveSegmentId)
             {
-                // The coded alphabet always contains eight symbols, even when the frame activates fewer segments.
-                // Validate the reconstructed ID at the same corruption boundary as the reference decoder's read_segment_id.
+                // The coded alphabet always contains eight symbols, even when the frame activates fewer segments. Thus the parser validates the reconstructed
+                // ID and rejects corrupt data here.
                 throw new InvalidImageContentException("The decoded AV1 segment identifier exceeds the active segment range.");
             }
 
@@ -3743,8 +3782,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             int lastUnitRow = (rowInSuperblock + blockHeight4 - 1) / cdefSize4;
             int lastUnitColumn = (columnInSuperblock + blockWidth4 - 1) / cdefSize4;
 
-            // A coding block can cover the top-left cell of more than one 64x64 CDEF unit. the reference decoder
-            // stores the index on shared mode information, so the frame-owned unit map must mirror it.
+            // A coding block can cover the top-left cell of more than one 64x64 CDEF unit. The strength index belongs to the whole block, so the loop writes it
+            // to every covered unit.
             for (int coveredUnitRow = unitRow; coveredUnitRow <= lastUnitRow; coveredUnitRow++)
             {
                 for (int coveredUnitColumn = unitColumn; coveredUnitColumn <= lastUnitColumn; coveredUnitColumn++)
@@ -3792,8 +3831,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             }
         }
 
-        // Delta-LF values are predicted across superblocks within a tile, but every block in one superblock observes
-        // the same resulting values. Snapshot the predictors so later filtering does not depend on parse order.
+        // Delta-LF values are predicted across superblocks within a tile, but every block in one superblock observes the same resulting values. The method
+        // copies the predictors to the superblock, so later filtering does not depend on parse order.
         this.currentDeltaLoopFilter[..Av1Constants.FrameLoopFilterCount].CopyTo(partitionInfo.SuperblockInfo.SuperblockDeltaLoopFilter);
     }
 
@@ -3860,8 +3899,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
         if (segmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.ReferenceFrame))
         {
-            // Reference feature values use the same numeric labels as Av1ReferenceFrameType. INTRA_FRAME is zero;
-            // every canonical inter reference begins at LAST_FRAME and therefore has a positive value.
+            // Reference feature values use the same numeric labels as Av1ReferenceFrameType. INTRA_FRAME is zero. Every canonical inter reference starts at
+            // LAST_FRAME and thus has a positive value.
             int referenceFrame = segmentationParameters.GetFeatureData(segmentId, (int)ObuSegmentationLevelFeature.ReferenceFrame);
             return referenceFrame >= (int)Av1ReferenceFrameType.Last;
         }
@@ -4082,7 +4121,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Av1TileInfo tileInfo,
         Av1SuperblockInfo superblockInfo)
     {
-        // The five stored split bits begin at the 8x8 partition point, so normalize the block-size log to that bit index.
+        // The five stored split bits start at the 8x8 partition point. Thus the code subtracts the 8x8 log from the block-size log to get the bit index.
         int aboveCtx = this.aboveNeighborContext.GetPartitionWidths(aboveContextStorage)[location.X - tileInfo.ModeInfoColumnStart];
         int leftCtx = this.leftNeighborContext.GetPartitionHeights(leftContextStorage)[
             (location.Y - superblockInfo.ModeInfoPosition.Y) & Av1PartitionContext.Mask];
@@ -4180,8 +4219,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteColorIndexMaps"/> struct.
         /// </summary>
-        /// <param name="luma">The luma.</param>
-        /// <param name="chroma">The chroma.</param>
+        /// <param name="luma">The shared luma palette map.</param>
+        /// <param name="chroma">The shared chroma palette map.</param>
         public PaletteColorIndexMaps(Av1PlaneRegion<byte> luma, Av1PlaneRegion<byte> chroma)
         {
             this.Luma = luma;

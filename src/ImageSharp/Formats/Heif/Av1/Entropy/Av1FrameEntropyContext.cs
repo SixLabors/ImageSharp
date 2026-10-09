@@ -7,8 +7,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 /// Owns the adaptive AV1 distributions currently implemented by the frame and tile syntax decoders.
 /// </summary>
 /// <remarks>
-/// One frame context supplies the initial state copied into every tile context. Each tile adapts an independent working
-/// copy, and only the tile selected by <c>context_update_tile_id</c> supplies the completed frame snapshot.
+/// One frame context supplies the initial state copied into every tile context. Each tile adapts an independent working copy. Only the tile selected by
+/// <c>context_update_tile_id</c> supplies the completed frame snapshot.
 /// </remarks>
 internal sealed class Av1FrameEntropyContext
 {
@@ -39,8 +39,8 @@ internal sealed class Av1FrameEntropyContext
     ];
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1FrameEntropyContext"/> class from the normative default
-    /// distributions selected by a frame quantizer index.
+    /// Initializes a new instance of the <see cref="Av1FrameEntropyContext"/> class from the normative default distributions selected by a frame quantizer
+    /// index.
     /// </summary>
     /// <param name="qIndex">The frame base quantizer index selecting coefficient distribution defaults.</param>
     public Av1FrameEntropyContext(int qIndex)
@@ -62,12 +62,12 @@ internal sealed class Av1FrameEntropyContext
             _ => ThirdQuantizerBandMaximum + 1
         };
 
-        // Every default-distribution accessor constructs independently mutable state. Retaining those returned
-        // graphs directly confines generated-table construction to the four process-wide quantizer-band prototypes.
+        // Each default-distribution accessor builds new mutable state. This constructor keeps the returned graphs directly, so only the four process-wide
+        // quantizer-band prototypes build the generated tables.
         this.IntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy;
 
-        // Normal motion vectors and intra-block-copy displacement vectors start from identical defaults, but AV1
-        // adapts NMVC and NDVC independently. Distinct object graphs preserve that separation for the prototype too.
+        // Normal motion vectors and intra-block-copy displacement vectors start from identical defaults, but AV1 adapts the two contexts independently.
+        // Separate object graphs keep them apart, also in the prototype.
         this.MotionVector = new();
         this.DisplacementVector = new();
         this.SwitchableRestoration = Av1DefaultDistributions.SwitchableRestoration;
@@ -122,8 +122,8 @@ internal sealed class Av1FrameEntropyContext
         this.IntraExtendedTransform = Av1DefaultDistributions.IntraExtendedTransform;
         this.InterExtendedTransform = Av1DefaultDistributions.InterExtendedTransform;
 
-        // Coefficient defaults use one of four quantizer bands. Their array shapes remain fixed, so later tile resets
-        // copy only thresholds and update counts into this context's already allocated distribution graph.
+        // Coefficient defaults use one of four quantizer bands. The array shapes do not change, so a later tile reset copies only thresholds and update counts
+        // into the distribution graph that this context already allocated.
         this.EndOfBlockFlag = Av1DefaultDistributions.GetEndOfBlockFlag(qIndex);
         this.CoefficientsBase = Av1DefaultDistributions.GetCoefficientsBase(qIndex);
         this.BaseEndOfBlock = Av1DefaultDistributions.GetBaseEndOfBlock(qIndex);
@@ -139,8 +139,8 @@ internal sealed class Av1FrameEntropyContext
     /// <param name="source">The prototype or retained context whose state is copied.</param>
     private Av1FrameEntropyContext(Av1FrameEntropyContext source)
     {
-        // Session and retained-frame contexts need one mutable graph, not four generated quantizer-band graphs whose
-        // unused bands are immediately discarded. Deep-copy the already selected prototype shape exactly once.
+        // Session and retained-frame contexts need one mutable graph. The generated graphs of the other three quantizer bands are not needed, so this
+        // constructor deep-copies only the selected prototype, once.
         this.IntraBlockCopy = source.IntraBlockCopy.CreateCopy();
         this.MotionVector = new();
         this.MotionVector.CopyFrom(source.MotionVector);
@@ -519,8 +519,8 @@ internal sealed class Av1FrameEntropyContext
     {
         int qContext = GetQContext(qIndex);
 
-        // The prototypes are never exposed to a range reader or writer. Copying their state lets each codec session
-        // reuse its mutable object graphs even when successive frames select different coefficient-model bands.
+        // The prototypes never reach a range reader or writer. This method copies their state, so each codec session reuses its mutable object graphs, also
+        // when successive frames select different coefficient-model bands.
         this.CopyFrom(DefaultPrototypes[qContext]);
     }
 
@@ -612,8 +612,8 @@ internal sealed class Av1FrameEntropyContext
     /// </summary>
     /// <param name="destination">The independently owned frame context that receives the snapshot.</param>
     /// <remarks>
-    /// AV1 resets CDF observation counters after publishing the context-update tile. The copied thresholds remain
-    /// adapted, while the next frame starts its update-rate history from zero.
+    /// AV1 resets CDF observation counters after it publishes the context-update tile. The copied thresholds stay adapted, but the next frame starts its
+    /// update-rate history from zero.
     /// </remarks>
     public void SnapshotTo(Av1FrameEntropyContext destination)
     {

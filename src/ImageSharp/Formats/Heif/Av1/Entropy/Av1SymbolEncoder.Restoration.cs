@@ -131,8 +131,8 @@ internal sealed partial class Av1SymbolEncoder
     private int ProcessReferencedSubexponential<TOperation>(ref Span<byte> output, int count, int initialBits, int reference, int value)
         where TOperation : struct, ISymbolOperation
     {
-        // Mirror references in the upper half before interleaving positive and negative deltas.
-        // The resulting nonnegative value keeps the most likely nearby coefficients in short groups.
+        // Mirror a reference value in the upper half of the alphabet. Then interleave the positive and negative deltas into one nonnegative value.
+        // Values near the reference value are the most likely, and this mapping puts them in the short groups.
         if ((reference << 1) > count)
         {
             reference = count - 1 - reference;
@@ -147,6 +147,9 @@ internal sealed partial class Av1SymbolEncoder
         {
             int bits = group == 0 ? initialBits : initialBits + group - 1;
             int groupSize = 1 << bits;
+
+            // When no more than three groups of this size remain, a truncated binary code writes the rest of the alphabet. The first
+            // shortCount values use one bit less than the other values.
             if (count <= consumed + (3 * groupSize))
             {
                 int remaining = count - consumed;

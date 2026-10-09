@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
-/// Provides validity checks for AV1 filter-intra modes.
+/// Maps AV1 filter-intra modes to intra-prediction directions.
 /// </summary>
 internal static class Av1FilterIntraModeExtensions
 {

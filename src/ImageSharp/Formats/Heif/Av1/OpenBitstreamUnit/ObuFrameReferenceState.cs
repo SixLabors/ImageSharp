@@ -7,10 +7,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// Stores the uncompressed-header reference state retained by one AV1 OBU reader session.
 /// </summary>
 /// <remarks>
-/// This state describes the eight reference-map slots but does not own reconstructed sample buffers. Pixel ownership
-/// remains with the decoder's reference-frame store and is committed before this syntax state is completed. CDF,
-/// segmentation, loop-filter, motion, and layer metadata remain on that retained frame owner; the current header's
-/// resolved primary-reference slot selects the shared owner instead of duplicating those values here.
+/// This state describes the eight reference-map slots. It does not own reconstructed sample buffers. The reference-frame store of the decoder
+/// owns the pixels and commits them before this syntax state is complete. The CDF, segmentation, loop-filter, motion and layer data also stay
+/// with that frame owner. The primary reference slot of the current header selects that owner, so this state does not copy those values.
 /// </remarks>
 internal struct ObuFrameReferenceState
 {
@@ -49,8 +48,8 @@ internal struct ObuFrameReferenceState
         ReadOnlySpan<uint> referenceFrameIds = this.referenceFrameIds;
         ReadOnlySpan<uint> referenceOrderHints = this.referenceOrderHints;
 
-        // Only the eight retained-slot tables cross a frame boundary. The seven inter-reference roles are signaled or
-        // derived afresh for each frame, and the primary context source is resolved from that per-frame mapping.
+        // Only the three tables of the eight slots cross a frame boundary. Each frame signals or derives its seven inter references again.
+        // The primary context source comes from that mapping of the frame.
         referenceValidity.CopyTo(frameHeader.GetReferenceValidity());
         referenceFrameIds.CopyTo(frameHeader.GetReferenceFrameIds());
         referenceOrderHints.CopyTo(frameHeader.GetReferenceOrderHints());
@@ -69,8 +68,8 @@ internal struct ObuFrameReferenceState
         Span<uint> referenceFrameIds = frameHeader.GetReferenceFrameIds();
         Span<uint> referenceOrderHints = frameHeader.GetReferenceOrderHints();
 
-        // Refresh is published only at this successful completion boundary. Updating the completed header first keeps
-        // the same object retained by the reconstructed frame owner synchronized with the next parser-session snapshot.
+        // The refresh occurs only when a frame completes successfully. The code updates the completed header first. The reconstructed frame
+        // owner keeps that same header object, so it stays equal to the state that the next frame header copies.
         for (int slot = 0; slot < Av1Constants.ReferenceFrameCount; slot++)
         {
             if ((frameHeader.RefreshFrameFlags & (1U << slot)) != 0)
@@ -87,8 +86,8 @@ internal struct ObuFrameReferenceState
 
         if (frameIdNumbersPresent)
         {
-            // the reference decoder keeps one current_frame_id in decoder-session state. The following header snapshots this value as
-            // its previous identifier before consuming its own current_frame_id syntax.
+            // The reader session keeps one current frame identifier. The next frame header copies this value as its previous identifier before
+            // it reads its own `current_frame_id` syntax element.
             this.CurrentFrameId = frameHeader.CurrentFrameId;
             this.HasCurrentFrameId = true;
         }

@@ -8,7 +8,14 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// </summary>
 internal sealed class ObuTileGroupHeader
 {
+    /// <summary>
+    /// Stores the start column of each tile column, in 4x4 units. The entry after the last tile column holds the frame width in 4x4 units.
+    /// </summary>
     private InlineArray65<int> tileColumnStartModeInfo;
+
+    /// <summary>
+    /// Stores the start row of each tile row, in 4x4 units. The entry after the last tile row holds the frame height in 4x4 units.
+    /// </summary>
     private InlineArray65<int> tileRowStartModeInfo;
 
     /// <summary>
@@ -57,7 +64,7 @@ internal sealed class ObuTileGroupHeader
     public int TileColumnCount { get; set; }
 
     /// <summary>
-    /// Gets the fixed-capacity starting superblock column storage for each tile column.
+    /// Gets the start column of each tile column, in 4x4 units, followed by the frame width in 4x4 units.
     /// </summary>
     public Span<int> TileColumnStartModeInfo => this.tileColumnStartModeInfo;
 
@@ -72,7 +79,7 @@ internal sealed class ObuTileGroupHeader
     public int TileRowCountLog2 { get; set; }
 
     /// <summary>
-    /// Gets the fixed-capacity starting superblock row storage for each tile row.
+    /// Gets the start row of each tile row, in 4x4 units, followed by the frame height in 4x4 units.
     /// </summary>
     public Span<int> TileRowStartModeInfo => this.tileRowStartModeInfo;
 

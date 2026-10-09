@@ -53,8 +53,8 @@ internal sealed class ObuSkipModeParameters
         int nearestForwardReferenceIndex = -1;
         int nearestBackwardReferenceIndex = -1;
 
-        // The seven entries are canonical roles, while each value selects one physical reference-map slot. Compare
-        // the selected slot's order hint so duplicate roles retain the same deterministic ordering as the reference decoder.
+        // The seven entries are reference roles. Each value selects one slot of the reference map. The loop compares the order hint of the
+        // selected slot. When two roles select frames with the same order hint, the role with the lower index wins, as the specification requires.
         for (int referenceIndex = 0; referenceIndex < Av1Constants.ReferencesPerFrame; referenceIndex++)
         {
             uint referenceOrderHint = referenceOrderHints[(int)referenceFrameIndices[referenceIndex]];
@@ -80,7 +80,7 @@ internal sealed class ObuSkipModeParameters
         {
             nearestBackwardOrderHint = -1;
 
-            // A forward-only sequence pairs the nearest past frame with the closest distinct frame preceding it.
+            // If no future reference exists, the code pairs the nearest past frame with the closest past frame before it.
             for (int referenceIndex = 0; referenceIndex < Av1Constants.ReferencesPerFrame; referenceIndex++)
             {
                 uint referenceOrderHint = referenceOrderHints[(int)referenceFrameIndices[referenceIndex]];

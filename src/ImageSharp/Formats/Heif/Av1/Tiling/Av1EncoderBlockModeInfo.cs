@@ -55,8 +55,8 @@ internal struct Av1EncoderBlockModeInfo
     /// <summary>Two bits represent the four compound blend types.</summary>
     private const int CompoundTypeMask = 3;
 
-    // Primary references never use the absent-secondary sentinel. Their three bits share the segment byte;
-    // the secondary identifier retains its own byte so every inter and inter-intra pairing is representable.
+    // A primary reference never uses the sentinel for an absent secondary reference. Its three bits share the segment byte. The
+    // secondary reference keeps its own byte, so the struct can store every inter and inter-intra pair.
     private byte blockSize;
     private byte partitionType;
     private byte flags;
@@ -302,12 +302,15 @@ internal struct Av1EncoderBlockModeInfo
     }
 
     /// <summary>
-    /// Gets the transform-grid entry containing a position measured in luma four-sample units.
+    /// Gets the index of the <see cref="InterTransformSizes"/> entry that contains a position in the block.
     /// </summary>
+    /// <param name="row">The row of the position inside the block, in 4x4 luma units.</param>
+    /// <param name="column">The column of the position inside the block, in 4x4 luma units.</param>
+    /// <returns>The raster index of the storage cell that contains the position.</returns>
     public readonly int GetInterTransformSizeIndex(int row, int column)
     {
-        // One subdivision of the root defines each storage cell. The final subdivision shares
-        // a size across its children, so sixteen entries cover every permitted coding block.
+        // Each storage cell is one subdivision of the maximum transform size. The last subdivision uses one size for all its
+        // children, so sixteen entries cover every coding block that AV1 permits.
         Av1TransformSize cellSize = this.BlockSize.GetMaximumTransformSize().GetSubSize();
         int cellWidth = cellSize.Get4x4WideCount();
         int cellHeight = cellSize.Get4x4HighCount();

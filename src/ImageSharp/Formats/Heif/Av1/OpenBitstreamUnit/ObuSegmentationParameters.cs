@@ -94,7 +94,7 @@ internal sealed class ObuSegmentationParameters
         => this.featureData[segmentId][featureId] = value;
 
     /// <summary>
-    /// Disables every feature of every segment and clears its value. Reference: av1_clearall_segfeatures().
+    /// Disables every feature of every segment and clears its value.
     /// </summary>
     public void ClearFeatures()
     {
@@ -103,8 +103,8 @@ internal sealed class ObuSegmentationParameters
     }
 
     /// <summary>
-    /// Derives the greatest segment with an active feature, and whether the identifier precedes the skip flag, which
-    /// it does when any reference, skip or global motion feature is active. Reference: av1_calculate_segdata().
+    /// Derives the greatest segment with an active feature. It also derives whether the segment identifier comes before the skip flag. This
+    /// occurs when any reference, skip or global motion feature is active.
     /// </summary>
     public void CalculateSegmentData()
     {
@@ -129,8 +129,8 @@ internal sealed class ObuSegmentationParameters
     /// <param name="source">The primary-reference segmentation state.</param>
     public void CopyFeaturesFrom(ObuSegmentationParameters source)
     {
-        // AV1 inherits feature data but not the current frame's enabled or update flags. Both dimensions are fixed by
-        // the bitstream syntax, and copying values into this header prevents retained frames from sharing mutable state.
+        // AV1 inherits the feature data, but not the enabled or update flags of the current frame. The bitstream syntax fixes both table sizes.
+        // The copy into this header prevents retained frames from sharing mutable state.
         for (int segment = 0; segment < Av1Constants.MaxSegmentCount; segment++)
         {
             for (int feature = 0; feature < Av1Constants.SegmentationLevelMax; feature++)

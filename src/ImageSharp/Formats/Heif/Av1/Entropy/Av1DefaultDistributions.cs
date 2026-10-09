@@ -605,8 +605,7 @@ internal static class Av1DefaultDistributions
         ];
 
     /// <summary>
-    /// Gets the end-of-block token distributions for transforms containing at most 16 coefficients, indexed by
-    /// quantizer, plane, and transform-class contexts.
+    /// Gets the end-of-block token distributions for transforms containing at most 16 coefficients, indexed by quantizer, plane, and transform-class contexts.
     /// </summary>
     private static Av1Distribution[][][] EndOfBlockFlagMulti16 { get; } =
         [
@@ -629,8 +628,7 @@ internal static class Av1DefaultDistributions
         ];
 
     /// <summary>
-    /// Gets the end-of-block token distributions for transforms containing at most 32 coefficients, indexed by
-    /// quantizer, plane, and transform-class contexts.
+    /// Gets the end-of-block token distributions for transforms containing at most 32 coefficients, indexed by quantizer, plane, and transform-class contexts.
     /// </summary>
     private static Av1Distribution[][][] EndOfBlockFlagMulti32 { get; } =
         [
@@ -653,8 +651,7 @@ internal static class Av1DefaultDistributions
         ];
 
     /// <summary>
-    /// Gets the end-of-block token distributions for transforms containing at most 64 coefficients, indexed by
-    /// quantizer, plane, and transform-class contexts.
+    /// Gets the end-of-block token distributions for transforms containing at most 64 coefficients, indexed by quantizer, plane, and transform-class contexts.
     /// </summary>
     private static Av1Distribution[][][] EndOfBlockFlagMulti64 { get; } =
         [
@@ -677,8 +674,7 @@ internal static class Av1DefaultDistributions
         ];
 
     /// <summary>
-    /// Gets the end-of-block token distributions for transforms containing at most 128 coefficients, indexed by
-    /// quantizer, plane, and transform-class contexts.
+    /// Gets the end-of-block token distributions for transforms containing at most 128 coefficients, indexed by quantizer, plane, and transform-class contexts.
     /// </summary>
     private static Av1Distribution[][][] EndOfBlockFlagMulti128 { get; } =
         [
@@ -701,8 +697,7 @@ internal static class Av1DefaultDistributions
         ];
 
     /// <summary>
-    /// Gets the end-of-block token distributions for transforms containing at most 256 coefficients, indexed by
-    /// quantizer, plane, and transform-class contexts.
+    /// Gets the end-of-block token distributions for transforms containing at most 256 coefficients, indexed by quantizer, plane, and transform-class contexts.
     /// </summary>
     private static Av1Distribution[][][] EndOfBlockFlagMulti256 { get; } =
         [
@@ -749,8 +744,7 @@ internal static class Av1DefaultDistributions
         ];
 
     /// <summary>
-    /// Gets the end-of-block token distributions for transforms containing at most 512 coefficients, indexed by
-    /// quantizer, plane, and transform-class contexts.
+    /// Gets the end-of-block token distributions for transforms containing at most 512 coefficients, indexed by quantizer, plane, and transform-class contexts.
     /// </summary>
     private static Av1Distribution[][][] EndOfBlockFlagMulti512 { get; } =
         [
@@ -797,8 +791,8 @@ internal static class Av1DefaultDistributions
         ];
 
     /// <summary>
-    /// Gets the end-of-block token distributions for transforms containing at most 1024 coded coefficients, indexed by
-    /// quantizer, plane, and transform-class contexts.
+    /// Gets the end-of-block token distributions for transforms containing at most 1024 coded coefficients, indexed by quantizer, plane, and transform-class
+    /// contexts.
     /// </summary>
     private static Av1Distribution[][][] EndOfBlockFlagMulti1024 { get; } =
         [
@@ -845,8 +839,7 @@ internal static class Av1DefaultDistributions
         ];
 
     /// <summary>
-    /// Gets the coefficient base-range distributions indexed by quantizer, transform-size, plane, and base-range
-    /// contexts.
+    /// Gets the coefficient base-range distributions indexed by quantizer, transform-size, plane, and base-range contexts.
     /// </summary>
     private static Av1Distribution[][][][] CoefficientsBaseRange { get; } =
         [
@@ -1261,8 +1254,7 @@ internal static class Av1DefaultDistributions
         ];
 
     /// <summary>
-    /// Gets the coefficient base-level distributions indexed by quantizer, transform-size, plane, and nonzero-map
-    /// contexts.
+    /// Gets the coefficient base-level distributions indexed by quantizer, transform-size, plane, and nonzero-map contexts.
     /// </summary>
     private static Av1Distribution[][][][] CoefficientsBase { get; } =
         [
@@ -1957,8 +1949,7 @@ internal static class Av1DefaultDistributions
         ];
 
     /// <summary>
-    /// Gets the final-nonzero coefficient base-level distributions indexed by quantizer, transform-size, plane, and
-    /// end-of-block contexts.
+    /// Gets the final-nonzero coefficient base-level distributions indexed by quantizer, transform-size, plane, and end-of-block contexts.
     /// </summary>
     private static Av1Distribution[][][][] BaseEndOfBlock { get; } =
         [
@@ -2171,8 +2162,7 @@ internal static class Av1DefaultDistributions
         ];
 
     /// <summary>
-    /// Gets the end-of-block extra-bit distributions indexed by quantizer, transform-size, plane, and padded token
-    /// contexts.
+    /// Gets the end-of-block extra-bit distributions indexed by quantizer, transform-size, plane, and padded token contexts.
     /// </summary>
     private static Av1Distribution[][][][] EndOfBlockExtra { get; } =
         [
@@ -2770,11 +2760,12 @@ internal static class Av1DefaultDistributions
     /// <summary>
     /// Creates the uniform sixteen-symbol distribution used by block sizes that cannot signal a wedge index.
     /// </summary>
+    /// <returns>A new distribution that gives each of the sixteen symbols the same probability.</returns>
     private static Av1Distribution CreateUniformWedgeIndexDistribution()
         => new(2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624, 28672, 30720);
 
     /// <summary>
-    /// Maps a base quantizer index to one of the four AV1 coefficient-probability initialization bands.
+    /// Maps a base quantizer index to one of the four AV1 coefficient-probability initialization bands. Bands 0 to 2 end at 20, 60, and 120.
     /// </summary>
     /// <param name="q">The base quantizer index.</param>
     /// <returns>The zero-based quantizer context.</returns>

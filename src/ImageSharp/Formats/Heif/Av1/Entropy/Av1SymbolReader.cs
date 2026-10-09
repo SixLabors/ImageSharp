@@ -86,8 +86,8 @@ internal ref struct Av1SymbolReader
             throw new InvalidImageContentException("The AV1 tile entropy stream is truncated.");
         }
 
-        // The final consumed byte must contain one trailing-one bit at the range decoder's exact stopping position,
-        // followed only by zero bits. This is the same bounded-stream check performed after the reference decoder decodes a tile.
+        // The last consumed byte must contain one trailing-one bit at the exact stop position of the range decoder, followed only by
+        // zero bits. AV1 decoders do this check on the bounded stream after they decode a tile.
         int trailingOneBit = 128 >> ((consumedBitCount - 1) & 7);
         int trailingBitMask = (trailingOneBit << 1) - 1;
         if ((this.buffer[consumedByteCount - 1] & trailingBitMask) != trailingOneBit)
@@ -113,7 +113,7 @@ internal ref struct Av1SymbolReader
     {
         int value = this.DecodeIntegerQ15(distribution);
 
-        // disable_cdf_update freezes every tile distribution while leaving range decoding unchanged.
+        // When disable_cdf_update is set, every tile distribution stays fixed. Range decoding does not change.
         if (this.updateCdf)
         {
             distribution.Update(value);
@@ -155,7 +155,7 @@ internal ref struct Av1SymbolReader
     }
 
     /// <summary>
-    /// Decode a single binary value.
+    /// Decodes one binary value with a fixed Q15 probability.
     /// </summary>
     /// <param name="frequency">The probability that the bit is one, scaled by 32768.</param>
     /// <returns>The decoded binary value.</returns>
@@ -171,8 +171,8 @@ internal ref struct Av1SymbolReader
         dif = this.difference;
         range = this.range;
 
-        // Reserve a minimum interval for both outcomes after reducing the Q15 frequency to the range-coder
-        // multiplication precision. This is the same rounding model used by Av1SymbolWriter.
+        // The Q15 frequency drops to the multiplication precision of the range coder. Then both outcomes get a minimum interval.
+        // Av1SymbolWriter uses the same rounding model.
         v = ((range >> 8) * (frequency >> Av1Distribution.ProbabilityShift)) >> (7 - Av1Distribution.ProbabilityShift);
         v += Av1Distribution.ProbabilityMinimum;
         vw = v << (DecoderWindowsSize - 16);
@@ -190,12 +190,12 @@ internal ref struct Av1SymbolReader
     }
 
     /// <summary>
-    /// Decodes a symbol given an inverse cumulative distribution function(CDF) table in Q15.
+    /// Decodes a symbol with an inverse cumulative distribution function (CDF) table in Q15.
     /// </summary>
     /// <param name="distribution">
-    /// CDF_PROB_TOP minus the CDF, such that symbol s falls in the range
-    /// [s > 0 ? (CDF_PROB_TOP - icdf[s - 1]) : 0, CDF_PROB_TOP - icdf[s]).
-    /// The values must be monotonically non - increasing, and icdf[nsyms - 1] must be 0.
+    /// The inverse CDF: <see cref="Av1Distribution.ProbabilityTop"/> minus the CDF. Symbol s covers the range from
+    /// (s &gt; 0 ? ProbabilityTop - icdf[s - 1] : 0) to ProbabilityTop - icdf[s], with the upper bound excluded.
+    /// The values must not increase, and the last value must be 0.
     /// </param>
     /// <returns>The decoded symbol.</returns>
     private int DecodeIntegerQ15(Av1Distribution distribution)
@@ -233,9 +233,8 @@ internal ref struct Av1SymbolReader
     }
 
     /// <summary>
-    /// Takes updated dif and range values, renormalizes them so that
-    /// <paramref name="rng"/> has value between 32768 and 65536 (reading more bytes from the stream into dif if
-    /// necessary), and stores them back in the decoder context.
+    /// Renormalizes updated difference and range values so that <paramref name="rng"/> lies between 32768 and 65536, and stores them
+    /// in the decoder state. When the window runs out of buffered bits, it reads more bytes from the stream.
     /// </summary>
     /// <param name="dif">The updated code-value difference.</param>
     /// <param name="rng">The updated coding interval width.</param>
@@ -274,9 +273,9 @@ internal ref struct Av1SymbolReader
 
         if (position >= end)
         {
-            // AV1 range decoding permits the final interval to consume implicit zero padding. A large count models
-            // that padding without repeatedly attempting to refill it. Preserve the previous count in tellOffset so
-            // the logical position continues past the bounded source and truncated payloads remain detectable.
+            // AV1 range decoding lets the last interval consume implicit zero padding. A large count models that padding, so the
+            // reader does not try to refill again. The tellOffset field keeps the previous count. As a result, the logical position
+            // continues past the bounded source, and the reader can still detect a truncated payload.
             this.tellOffset += LotsOfBits - cnt;
             cnt = LotsOfBits;
         }

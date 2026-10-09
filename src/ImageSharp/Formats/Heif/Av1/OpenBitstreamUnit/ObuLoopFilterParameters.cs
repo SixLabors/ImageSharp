@@ -39,9 +39,8 @@ internal sealed class ObuLoopFilterParameters
     /// Gets the default reference deltas, indexed from Intra through Alternate.
     /// </summary>
     /// <remarks>
-    /// This is <c>av1_set_default_ref_deltas</c>: intra blocks filter one level
-    /// stronger, Golden, Alternate-2 and Alternate one level weaker, and the remaining references unchanged.
-    /// The default mode deltas are zero.
+    /// Intra blocks filter one level stronger. Golden, Alternate-2 and Alternate filter one level weaker. The other references keep the frame
+    /// level. The default mode deltas are zero.
     /// </remarks>
     private static ReadOnlySpan<sbyte> DefaultReferenceDeltas => [1, 0, 0, 0, -1, 0, -1, -1];
 

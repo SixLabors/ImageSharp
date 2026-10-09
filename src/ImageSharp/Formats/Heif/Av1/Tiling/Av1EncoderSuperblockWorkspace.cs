@@ -34,7 +34,7 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
     public const int DecisionStorageByteLength = DecisionStorageLength * Av1EncoderBlockStruct.StorageSize;
 
     /// <summary>
-    /// The complete byte length of the decision and palette-map regions.
+    /// The complete byte length of the decision region, the palette-map region and the low-variance flags.
     /// </summary>
     public const int StorageByteLength = DecisionStorageByteLength + Av1EncoderPaletteMapBuffer.StorageLength + LowVarianceFlagCount;
 
@@ -59,8 +59,8 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
         this.owner = configuration.MemoryAllocator.Allocate<byte>(StorageByteLength);
         Memory<byte> storage = this.owner.Memory[..StorageByteLength];
 
-        // Decisions and palette maps have the same serial superblock lifetime. Keeping both regions in one
-        // owner preserves their distinct layouts while removing a separate palette allocation and cleanup path.
+        // The decisions, palette maps and low-variance flags have the same superblock lifetime. One owner holds all regions, so the
+        // workspace needs only one allocation and one release.
         this.paletteMaps = new Av1EncoderPaletteMapBuffer(
             storage.Slice(DecisionStorageByteLength, Av1EncoderPaletteMapBuffer.StorageLength));
 

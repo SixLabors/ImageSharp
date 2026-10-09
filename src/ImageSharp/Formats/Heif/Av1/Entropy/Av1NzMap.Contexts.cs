@@ -49,8 +49,7 @@ internal static partial class Av1NzMap
     /// <param name="contextBase">The first entry of the row-major context output.</param>
     /// <remarks>
     /// The caller writes the end-of-block context afterwards, as
-    /// <see cref="GetNzMapContextFromStats(int, int, int, Av1TransformSize, Av1TransformClass)"/>
-    /// defines it. Reference: av1_get_nz_map_contexts_sse2().
+    /// <see cref="GetNzMapContextFromStats(int, int, int, Av1TransformSize, Av1TransformClass)"/> defines it.
     /// </remarks>
     public static void GetNzMapContexts(
         ref byte levelBase,
@@ -73,8 +72,7 @@ internal static partial class Av1NzMap
     /// <param name="transformClass">The transform direction class.</param>
     /// <returns>The nonzero-map probability context.</returns>
     /// <remarks>
-    /// The direct-current coefficient of a two-dimensional transform carries no context of its own,
-    /// which is what the combined test of the class and the index decides.
+    /// The DC coefficient of a two-dimensional transform always uses context zero. The combined test of the class and the index finds that case.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetNzMapContextFromStats(
@@ -113,19 +111,15 @@ internal static partial class Av1NzMap
     /// <typeparam name="TOperator">The neighbor reduction.</typeparam>
     /// <remarks>
     /// <para>
-    /// A context is a magnitude band plus a positional offset, and both are per coefficient, so one
-    /// lane is one coefficient throughout. The five neighbors of a coefficient are five fixed
-    /// sample offsets that the transform class chooses, which makes every neighbor one shifted load
-    /// of the level plane.
+    /// A context is a magnitude band plus a positional offset. Both values belong to one coefficient, so one lane is one coefficient
+    /// throughout. The transform class chooses five fixed sample offsets for the neighbors of a coefficient. As a result, every
+    /// neighbor is one shifted load of the level plane.
     /// </para>
     /// <para>
-    /// The level plane is padded, so a coded row is a contiguous run and a whole row of a transform
-    /// sixteen samples wide or wider fills at least one 128-bit vector. Those widths therefore walk
-    /// a row at a time, widest register first. A transform four or eight samples wide cannot fill a
-    /// vector from one row, so those two widths pack four rows or two rows into one 128-bit vector
-    /// instead. They stop there rather than packing eight or sixteen rows, because the whole block
-    /// is at most 256 coefficients and the extra packing would cost more code than the few saved
-    /// iterations are worth.
+    /// A coded row is a contiguous run in the padded level plane. A whole row of a transform sixteen samples wide or wider fills at
+    /// least one 128-bit vector. Those widths walk one row at a time, widest register first. A transform four or eight samples wide
+    /// cannot fill a vector from one row, so these widths pack four rows or two rows into one 128-bit vector. They do not pack eight or
+    /// sixteen rows. The whole block has at most 256 coefficients, and the extra packing costs more code than the saved iterations give.
     /// </para>
     /// </remarks>
     private static class Contexts<TOperator>
@@ -194,8 +188,7 @@ internal static partial class Av1NzMap
                 ApplyScalar(ref levelBase, stride, width, height, table, transformClass, offset0, offset1, offset2, ref contextBase);
             }
 
-            // The direct-current coefficient of a two-dimensional transform carries no context of
-            // its own, and the positional table does not encode that.
+            // The DC coefficient of a two-dimensional transform always uses context zero. The positional table does not encode that case.
             if (transformClass == Av1TransformClass.Class2D)
             {
                 contextBase = 0;

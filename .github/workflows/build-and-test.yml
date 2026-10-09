@@ -127,7 +127,9 @@ jobs:
         if: failure()
         with:
           name: actual_output_${{ matrix.options.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
-          path: tests/Images/ActualOutput/
+          path: |
+            tests/Images/ActualOutput/
+            ~/Library/Logs/DiagnosticReports/
 
   Publish:
     needs: [Build]

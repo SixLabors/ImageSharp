@@ -48,7 +48,7 @@ internal static class Av1InverseTransformerFactory
 
         if (Av1TransformKernels.IsSupported && transformFunctionParameters.TransformSize == Av1TransformSize.Size8x8)
         {
-            // The most frequent block has a register-resident kernel that needs no configuration or workspace.
+            // The 8-by-8, 4-by-4, and 16-by-16 sizes have register-resident kernels that need no flip configuration and no workspace.
             Av1InverseTransformer.Inverse8x8(
                 coefficients,
                 readBuffer,

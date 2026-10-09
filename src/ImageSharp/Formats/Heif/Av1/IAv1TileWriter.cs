@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 /// <summary>
-/// Interface for writing of image tiles.
+/// Gives the encoded tile payloads of one coded frame to the OBU writer.
 /// </summary>
 internal interface IAv1TileWriter
 {

@@ -12,20 +12,19 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// Provides the SIMD data-layout operations shared by AV1 two-dimensional transforms.
 /// </summary>
 /// <remarks>
-/// The one-dimensional operators expect one transform position per vector and one independent axis per lane. These
-/// routines transpose rectangular sample tiles into that structure, then transpose the completed axes back to raster
-/// order. Every shuffle is consequently an index-bit exchange between row and column coordinates; it does not alter
-/// the signed fixed-point sample representation.
+/// The one-dimensional operators expect one transform position per vector and one independent axis per lane. These routines transpose rectangular sample tiles
+/// into that structure, then transpose the completed axes back to raster order. Thus every shuffle is an index-bit exchange between row and column coordinates.
+/// No shuffle changes the signed fixed-point sample representation.
 /// </remarks>
 internal static class Av1Transform2dOperations
 {
     /// <summary>
-    /// Gets the row order produced by the final AVX-512 16-by-16 transpose concatenation.
+    /// The destination row of each result of the final AVX-512 16-by-16 transpose concatenation.
     /// </summary>
     private static readonly byte[] Vector512TransposeStoreOrder = [0, 2, 1, 3, 4, 6, 5, 7, 8, 10, 9, 11, 12, 14, 13, 15];
 
     /// <summary>
-    /// Gets the row order produced by the final sixteen-bit 16-by-16 transpose concatenation.
+    /// The destination row of each result of the final sixteen-bit 16-by-16 transpose concatenation.
     /// </summary>
     private static readonly byte[] Int16TransposeStoreOrder = [0, 4, 2, 6, 1, 5, 3, 7, 8, 12, 10, 14, 9, 13, 11, 15];
 
@@ -142,8 +141,8 @@ internal static class Av1Transform2dOperations
     {
         if (bit > 0)
         {
-            // Conformant low-bit-depth stage ranges leave room for the rounding bias, so this intentionally uses the
-            // wrapping add used by the reference decoder rather than changing the normative result with a saturating instruction.
+            // Conformant low-bit-depth stage ranges leave room for the rounding bias, so the code uses a wrapping add. A saturating add can change the
+            // normative result.
             return (value + Vector256.Create((short)(1 << (bit - 1)))) >> bit;
         }
 
@@ -194,8 +193,8 @@ internal static class Av1Transform2dOperations
         row2 = Finish(row2, roundShift, normalizeRectangle);
         row3 = Finish(row3, roundShift, normalizeRectangle);
 
-        // Only the lower four lanes belong to the tile. Interleaving at Int16 and Int32 granularity exchanges the
-        // two row-index bits with the corresponding column-index bits without touching adjacent padded storage.
+        // Only the lower four lanes belong to the tile. Interleaving at Int16 and Int32 granularity exchanges the two row-index bits with the corresponding
+        // column-index bits without touching adjacent padded storage.
         Vector128<short> pair0 = Vector128_.UnpackLow(row0, row1);
         Vector128<short> pair1 = Vector128_.UnpackLow(row2, row3);
         Vector128<int> columns01 = Vector128_.UnpackLow(pair0.AsInt32(), pair1.AsInt32());
@@ -233,6 +232,7 @@ internal static class Av1Transform2dOperations
         Vector128<short> row6 = Finish(Vector128.LoadUnsafe(ref source, (nuint)(6 * sourceStride)), roundShift, normalizeRectangle);
         Vector128<short> row7 = Finish(Vector128.LoadUnsafe(ref source, (nuint)(7 * sourceStride)), roundShift, normalizeRectangle);
 
+        // Three unpack rounds at Int16, Int32 and Int64 granularity each exchange one row-index bit with one column-index bit.
         Vector128<short> pair0 = Vector128_.UnpackLow(row0, row1);
         Vector128<short> pair1 = Vector128_.UnpackHigh(row0, row1);
         Vector128<short> pair2 = Vector128_.UnpackLow(row2, row3);
@@ -261,13 +261,13 @@ internal static class Av1Transform2dOperations
     }
 
     /// <summary>
-    /// Transposes one 16-by-16 tile of signed sixteen-bit values and applies the configured pipeline shift.
+    /// Transposes one 16-by-16 tile of signed sixteen-bit values and applies the configured pipeline operations.
     /// </summary>
     /// <param name="source">The first value of the source tile.</param>
     /// <param name="sourceStride">The number of signed sixteen-bit values between source rows.</param>
     /// <param name="destination">The first value of the destination tile.</param>
     /// <param name="destinationStride">The number of signed sixteen-bit values between destination rows.</param>
-    /// <param name="scratch">The reusable storage for the widening transpose stages.</param>
+    /// <param name="scratch">The reusable storage for the transpose stages at Int32 and Int64 granularity.</param>
     /// <param name="roundShift">The signed AV1 pipeline shift applied before transposition.</param>
     /// <param name="normalizeRectangle">Whether to apply the AV1 square-root-of-two rectangular normalization.</param>
     public static void Transpose16x16Int16(
@@ -282,8 +282,8 @@ internal static class Av1Transform2dOperations
         ref long scratch64 = ref MemoryMarshal.GetReference(scratch);
         ref int scratch32 = ref Unsafe.As<long, int>(ref scratch64);
 
-        // Pairing adjacent rows widens groups of two Int16 values into Int32 storage. The widening is a bitwise
-        // reinterpretation: it preserves all sixteen source bits while progressively exchanging row and column bits.
+        // The unpack of each pair of adjacent rows stores two Int16 values in each Int32 element. This step is a bitwise reinterpretation, not a sign
+        // extension. It keeps all sixteen source bits and exchanges the lowest row-index bit with a column-index bit.
         for (int row = 0; row < 16; row += 2)
         {
             Vector256<short> even = Vector256.LoadUnsafe(ref source, (nuint)(row * sourceStride));
@@ -308,8 +308,8 @@ internal static class Av1Transform2dOperations
             Vector256_.UnpackHigh(even, odd).AsInt32().StoreUnsafe(ref scratch32, (nuint)((row + 1) * 8));
         }
 
-        // The Int32 and Int64 views exchange the next two index bits without allocating another temporary buffer.
-        // Each group is fully consumed before its destination slots overwrite the same scratch locations.
+        // The next two loops exchange the next two index bits with Int32 and Int64 unpacks in the same buffer, so no other temporary buffer is necessary. Each
+        // pass reads both rows of a pair before it writes them back to the same locations.
         for (int row = 0; row < 16; row += 4)
         {
             for (int offset = 0; offset < 2; offset++)
@@ -332,8 +332,8 @@ internal static class Av1Transform2dOperations
             }
         }
 
-        // Concatenating the matching 128-bit halves restores sixteen Int16 lanes per output row. The staged unpack
-        // order produces a fixed row permutation, so the compile-time table maps each register to its true column.
+        // Concatenating the matching 128-bit halves restores sixteen Int16 lanes per output row. The staged unpack order produces a fixed row permutation, so a
+        // static table maps each result to its destination row.
         for (int row = 0; row < 8; row++)
         {
             Vector256<long> lower = Vector256.LoadUnsafe(ref scratch64, (nuint)(row * 4));
@@ -355,7 +355,7 @@ internal static class Av1Transform2dOperations
     /// <param name="destination">The first value of the destination tile.</param>
     /// <param name="destinationStride">The number of signed thirty-two-bit values between destination rows.</param>
     /// <param name="promotionBuffer">The reusable storage for the promoted source tile.</param>
-    /// <param name="transposeScratch">The reusable storage for the widening transpose stages.</param>
+    /// <param name="transposeScratch">The reusable storage for the transpose stages at Int64 granularity.</param>
     /// <param name="roundShift">The signed AV1 pipeline shift applied after promotion.</param>
     /// <param name="normalizeRectangle">Whether to apply the AV1 square-root-of-two rectangular normalization.</param>
     public static void Transpose16x16Int16ToInt32(
@@ -370,8 +370,8 @@ internal static class Av1Transform2dOperations
     {
         ref int promotionBase = ref MemoryMarshal.GetReference(promotionBuffer);
 
-        // The large low-bit-depth transforms widen at the axis boundary. Applying the pipeline shift after widening
-        // is significant: a left shift that is valid in Int32 is not required to remain representable in Int16.
+        // The large low-bit-depth transforms widen at the axis boundary. The pipeline shift must come after the widening, because a left shift that is valid in
+        // Int32 can overflow Int16.
         for (int row = 0; row < 16; row++)
         {
             Vector256<short> packed = Vector256.LoadUnsafe(ref source, (nuint)(row * sourceStride));
@@ -380,8 +380,8 @@ internal static class Av1Transform2dOperations
             Vector512.Create(lower, upper).StoreUnsafe(ref promotionBase, (nuint)(row * 16));
         }
 
-        // Once promoted, the same bounded transpose used by the high-bit-depth AVX-512 path supplies the exact
-        // the reference decoder staging order and performs the axis-boundary shift in signed thirty-two-bit lanes.
+        // After the promotion, the bounded transpose of the high-bit-depth AVX-512 path gives the exact staging order. It also applies the axis-boundary shift
+        // in signed thirty-two-bit lanes.
         Transpose16x16Avx512(
             ref promotionBase,
             16,
@@ -413,8 +413,8 @@ internal static class Av1Transform2dOperations
     {
         ref int promotionBase = ref MemoryMarshal.GetReference(promotionBuffer);
 
-        // AVX2 processes eight Int32 transform axes at a time. Widening each packed row before the axis shift follows
-        // the reference decoder's Repartition<int32_t> boundary and prevents valid Int32 intermediates from wrapping in Int16.
+        // AVX2 processes eight Int32 transform axes at a time. The code widens each packed row before the axis shift. This puts the change to Int32 at the axis
+        // boundary, and valid Int32 intermediates do not wrap in Int16.
         for (int row = 0; row < 8; row++)
         {
             Vector128<short> packed = Vector128.LoadUnsafe(ref source, (nuint)(row * sourceStride));
@@ -448,8 +448,8 @@ internal static class Av1Transform2dOperations
     {
         ref int promotionBase = ref MemoryMarshal.GetReference(promotionBuffer);
 
-        // The portable vector path retains four independent Int32 axes. Only the lower half is populated because a
-        // four-wide tile must not read the padded values belonging to its neighboring transform tile.
+        // The portable vector path keeps four independent Int32 axes. The code loads only four values per row, because a four-wide tile must not read the
+        // padded values of the neighboring transform tile.
         for (int row = 0; row < 4; row++)
         {
             Vector128<short> packed = Load4Short(ref Unsafe.Add(ref source, row * sourceStride));
@@ -607,7 +607,7 @@ internal static class Av1Transform2dOperations
         Vector256<int> quad6 = Vector256_.UnpackLow(pair5, pair7).AsInt32();
         Vector256<int> quad7 = Vector256_.UnpackHigh(pair5, pair7).AsInt32();
 
-        // Each 128-bit lane now holds a 4x4 transpose; exchanging the lanes completes the 8x8 transpose.
+        // Each 128-bit lane now holds a 4x4 transpose. The exchange of the lanes completes the 8x8 transpose.
         row0 = Vector256.Create(quad0.GetLower(), quad4.GetLower());
         row1 = Vector256.Create(quad1.GetLower(), quad5.GetLower());
         row2 = Vector256.Create(quad2.GetLower(), quad6.GetLower());
@@ -663,7 +663,7 @@ internal static class Av1Transform2dOperations
     /// <param name="destination">The first value in the destination matrix.</param>
     /// <param name="destinationStride">The number of values between destination rows.</param>
     /// <param name="scratch">The caller-owned storage for sixteen vectors of signed sixty-four-bit lanes.</param>
-    /// <param name="roundShift">The right shift applied with AV1 signed rounding before transposition.</param>
+    /// <param name="roundShift">The signed AV1 pipeline shift applied before transposition.</param>
     /// <param name="normalizeRectangle">Whether to apply the AV1 square-root-of-two rectangular normalization.</param>
     public static void Transpose16x16Avx512(
         ref int source,
@@ -676,9 +676,8 @@ internal static class Av1Transform2dOperations
     {
         ref long scratchBase = ref MemoryMarshal.GetReference(scratch);
 
-        // the reference decoder widens the lane grouping after each local interleave rather than retaining all sixteen rows in
-        // registers. The bounded scratch keeps the live register set small and prevents the JIT from spilling a
-        // four-stage, sixteen-register cross-vector permutation network into its own stack frame.
+        // The lane grouping widens after each local interleave, and the sixteen rows do not stay in registers. The bounded buffer keeps the live register set
+        // small. Thus the JIT does not spill a four-stage, sixteen-register cross-vector permutation network into its own stack frame.
         for (int row = 0; row < 16; row += 2)
         {
             Vector512<int> even = Vector512.LoadUnsafe(ref source, (nuint)(row * sourceStride));
@@ -696,8 +695,8 @@ internal static class Av1Transform2dOperations
             Vector512_.UnpackHigh(even, odd).AsInt64().StoreUnsafe(ref scratchBase, (nuint)((row + 1) * 8));
         }
 
-        // The second stage exchanges the next row and column bits with 64-bit unpack operations. Each iteration
-        // reads its complete four-row group before replacing that group in scratch.
+        // The second stage exchanges the next row and column bits with 64-bit unpack operations. Each inner pass reads two rows before it writes them back to
+        // the same locations.
         for (int row = 0; row < 16; row += 4)
         {
             for (int offset = 0; offset < 2; offset++)
@@ -712,8 +711,8 @@ internal static class Av1Transform2dOperations
         Vector512<long> evenBlockIndices = Vector512.Create(0L, 1L, 8L, 9L, 4L, 5L, 12L, 13L);
         Vector512<long> oddBlockIndices = Vector512.Create(2L, 3L, 10L, 11L, 6L, 7L, 14L, 15L);
 
-        // Highway's LocalInterleaveEvenBlocks and LocalInterleaveOddBlocks exchange the third matrix-index bit with
-        // one two-table lookup per result. The index vectors address the lower source as 0-7 and the upper as 8-15.
+        // The even-block and odd-block interleaves exchange the third matrix-index bit with one two-table lookup per result. The index vectors address the
+        // lower source as 0-7 and the upper source as 8-15.
         for (int row = 0; row < 16; row += 8)
         {
             for (int offset = 0; offset < 4; offset++)
@@ -725,8 +724,8 @@ internal static class Av1Transform2dOperations
             }
         }
 
-        // The final 128-bit-block concatenations complete the transpose. The store order is the fixed permutation
-        // produced by the reference decoder's three preceding local-interleave stages.
+        // The final 128-bit-block concatenations complete the transpose. The store order is the fixed permutation that the three preceding local-interleave
+        // stages produce.
         for (int row = 0; row < 8; row++)
         {
             Vector512<long> lower = Vector512.LoadUnsafe(ref scratchBase, (nuint)(row * 8));
@@ -780,9 +779,9 @@ internal static class Av1Transform2dOperations
     {
         if (Vector512.IsHardwareAccelerated)
         {
-            // Each permutation stage exchanges one row-index bit with the matching column-index bit. After four
-            // stages the vector index identifies the source column and the lane index identifies the source row.
-            // This keeps the complete transpose in 512-bit registers instead of decomposing it into 128-bit tiles.
+            // Each permutation stage exchanges one row-index bit with the matching column-index bit. After four stages the vector index identifies the source
+            // column and the lane index identifies the source row. This keeps the complete transpose in 512-bit registers instead of decomposing it into
+            // 128-bit tiles.
             Vector512<int> stage0Lower = Vector512.Create(0, 16, 2, 18, 4, 20, 6, 22, 8, 24, 10, 26, 12, 28, 14, 30);
             Vector512<int> stage0Upper = Vector512.Create(1, 17, 3, 19, 5, 21, 7, 23, 9, 25, 11, 27, 13, 29, 15, 31);
             Vector512<int> lowerSource = row0;
@@ -925,10 +924,9 @@ internal static class Av1Transform2dOperations
             return;
         }
 
-        // A 16x16 transpose consists of four independent 8x8 quadrants. Reusing the established 256-bit transpose
-        // keeps the portable layout path branch-free while the transform arithmetic itself remains in 512-bit lanes.
-        // Preserve the bottom-left quadrant before row8-row15 become upper-column output storage. Emitting those upper
-        // columns first avoids keeping all four quadrants live across the complete operation.
+        // A 16x16 transpose consists of four independent 8x8 quadrants. The reuse of the 256-bit transpose keeps the portable layout path branch-free, while
+        // the transform arithmetic stays in 512-bit lanes. The code saves the bottom-left quadrant before row8 to row15 receive the upper output columns. The
+        // upper columns come first, so the four quadrants are not all live at the same time.
         Vector256<int> lowerBottom0 = row8.GetLower();
         Vector256<int> lowerBottom1 = row9.GetLower();
         Vector256<int> lowerBottom2 = row10.GetLower();
@@ -989,7 +987,7 @@ internal static class Av1Transform2dOperations
     }
 
     /// <summary>
-    /// Applies the terminal operations which the reference decoder performs before transposing a signed sixteen-bit tile.
+    /// Applies the final stage shift and the rectangular normalization before the transpose of a signed sixteen-bit tile.
     /// </summary>
     /// <param name="value">The packed transform values.</param>
     /// <param name="roundShift">The signed AV1 pipeline shift.</param>
@@ -1008,8 +1006,12 @@ internal static class Av1Transform2dOperations
     }
 
     /// <summary>
-    /// Applies the terminal operations which the reference decoder performs before transposing four signed thirty-two-bit lanes.
+    /// Applies the final stage shift and the rectangular normalization before the transpose of four signed thirty-two-bit lanes.
     /// </summary>
+    /// <param name="value">The transform values.</param>
+    /// <param name="roundShift">The signed AV1 pipeline shift.</param>
+    /// <param name="normalizeRectangle">Whether to apply square-root-of-two rectangular normalization.</param>
+    /// <returns>The shifted and normalized values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<int> Finish(Vector128<int> value, int roundShift, bool normalizeRectangle)
     {
@@ -1020,8 +1022,12 @@ internal static class Av1Transform2dOperations
     }
 
     /// <summary>
-    /// Applies the terminal operations which the reference decoder performs before transposing eight signed thirty-two-bit lanes.
+    /// Applies the final stage shift and the rectangular normalization before the transpose of eight signed thirty-two-bit lanes.
     /// </summary>
+    /// <param name="value">The transform values.</param>
+    /// <param name="roundShift">The signed AV1 pipeline shift.</param>
+    /// <param name="normalizeRectangle">Whether to apply square-root-of-two rectangular normalization.</param>
+    /// <returns>The shifted and normalized values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<int> Finish(Vector256<int> value, int roundShift, bool normalizeRectangle)
     {

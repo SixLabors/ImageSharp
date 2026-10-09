@@ -29,22 +29,18 @@ internal static partial class Av1MotionSearchBase
     }
 
     /// <summary>
-    /// Adds the temporal dependency vectors of the 16x16 blocks that a prediction block covers to its starting
-    /// candidates, after the spatial start at index zero. Each vector rounds to full samples, and vectors whose full
-    /// samples round to the same eight-sample cell merge into the first of them, which counts their votes. The
-    /// spatial start weighs as much as every covered block together, so it stays among the tested starts. When every
-    /// covered block has a vector, the candidates are ordered by decreasing weight and the total weight is twice the
-    /// covered block count; at the first block without a vector the collected prefix is kept unordered and the total
-    /// stays zero. Reference: get_mv_candidate_from_tpl().
+    /// Adds the temporal dependency vectors of the 16x16 blocks that a prediction block covers to its starting candidates.
+    /// The spatial start stays at index zero.
+    /// Each vector rounds to full samples. A vector in the same eight-sample cell as an earlier candidate merges into that candidate, which counts the votes.
+    /// The spatial start weighs as much as all covered blocks together, so it stays among the tested starts.
+    /// When every covered block has a vector, the method sorts the candidates by decreasing weight. The total weight is then twice the covered block count.
+    /// At the first block without a vector, the collected prefix stays unsorted and the total stays zero.
     /// </summary>
     /// <param name="superblockVectors">
     /// The temporal dependency vectors of the superblock, seven per 16x16 block, one for each reference LAST to ALTREF.
-    /// Reference: sb_enc->tpl_mv.
     /// </param>
-    /// <param name="superblockBlockCount">
-    /// The number of superblock blocks inside the frame, zero without statistics. Reference: sb_enc->tpl_data_count.
-    /// </param>
-    /// <param name="superblockStride">The number of blocks per superblock row. Reference: sb_enc->tpl_stride.</param>
+    /// <param name="superblockBlockCount">The number of superblock blocks inside the frame, zero without statistics.</param>
+    /// <param name="superblockStride">The number of blocks per superblock row.</param>
     /// <param name="superblockModeInfoSize">The superblock size in mode-information units.</param>
     /// <param name="modeInfoPosition">The prediction block position in mode-information units.</param>
     /// <param name="blockSize">The prediction block size.</param>
@@ -70,8 +66,8 @@ internal static partial class Av1MotionSearchBase
             return count;
         }
 
-        // A 16x16 model block spans four mode-information units. A prediction block narrower or shorter than one
-        // covers no whole model block and adds nothing.
+        // A 16x16 model block spans four mode-information units.
+        // A prediction block that is narrower or shorter than one model block covers no whole model block and adds nothing.
         const int ModelModeInfo = 4;
         int wide = blockSize.Get4x4WideCount() / ModelModeInfo;
         int high = blockSize.Get4x4HighCount() / ModelModeInfo;
@@ -92,13 +88,12 @@ internal static partial class Av1MotionSearchBase
                 Av1MotionVector vector = superblockVectors[((start + (k * superblockStride) + l) * References) + referenceIndex];
                 if (vector.Row == short.MinValue && vector.Column == short.MinValue)
                 {
-                    // An unsearched reference or a block outside the frame ends the collection. Reference: the
-                    // INVALID_MV test that clears valid.
+                    // An unsearched reference or a block outside the frame holds the invalid vector. It ends the collection.
                     return count;
                 }
 
-                // GET_MV_RAWPEL() rounds the eighth-sample vector to full samples, and RIGHT_SHIFT_MV() applies the
-                // same rounding to group full samples into eight-sample cells.
+                // The first rounding changes the eighth-sample vector to full samples.
+                // The second rounding uses the same arithmetic to group full samples into eight-sample cells.
                 Point position = new(RoundToFullSample(vector.Column), RoundToFullSample(vector.Row));
                 int rowCell = RoundToFullSample(position.Y);
                 int columnCell = RoundToFullSample(position.X);
@@ -130,8 +125,7 @@ internal static partial class Av1MotionSearchBase
     }
 
     /// <summary>
-    /// Rounds an eighth-sample value to the nearest full sample, halves away from zero. Reference: GET_MV_RAWPEL()
-    /// and RIGHT_SHIFT_MV().
+    /// Rounds an eighth-sample value to the nearest full sample. Halves round away from zero.
     /// </summary>
     /// <param name="value">The value in eighth samples.</param>
     /// <returns>The value in full samples.</returns>
@@ -139,17 +133,17 @@ internal static partial class Av1MotionSearchBase
 
 #pragma warning disable CA1517 // False positive: https://github.com/dotnet/sdk/issues/53388
     /// <summary>
-    /// Orders starting candidates by decreasing weight with the C library qsort of the x64 reference build, which links
-    /// the Microsoft C runtime; its order of equal weights is the order this reproduces. A range of up to eight entries
-    /// is sorted by moving its first largest entry, in comparator order, to its end. A longer range is partitioned
-    /// around the median of its first, middle and last entries into entries ordered no later than the partition entry,
-    /// entries equal to it, and entries ordered after it; the smaller part is sorted first and the larger is kept on
-    /// an explicit stack. Reference: qsort() with compare_weight().
+    /// Sorts starting candidates by decreasing weight with the quicksort algorithm of the Microsoft C runtime.
+    /// The sort is not stable. This algorithm gives equal weights the same order as x64 Windows builds of other AV1 encoders.
+    /// The method sorts a range of up to eight entries by moving its first largest entry, in comparator order, to its end.
+    /// It partitions a longer range around the median of its first, middle and last entries.
+    /// The parts are the entries ordered no later than the partition entry, the entries equal to it, and the entries ordered after it.
+    /// The method sorts the smaller part first and keeps the larger part on an explicit stack.
     /// </summary>
     /// <param name="candidates">The candidates, sorted in place.</param>
     private static void SortByDecreasingWeight(Span<StartingCandidate> candidates)
     {
-        // The explicit stack holds at most log2 of the length entries; the runtime sizes it for any 64-bit length.
+        // The explicit stack holds at most log2 of the length entries. The size covers any 64-bit length, as in the C runtime.
         const int StackSize = (8 * 8) - 2;
         const int Cutoff = 8;
         Span<int> lowStack = stackalloc int[StackSize];
@@ -162,7 +156,7 @@ internal static partial class Av1MotionSearchBase
             int size = high - low + 1;
             if (size <= Cutoff)
             {
-                // shortsort(): the first entry that compares greatest moves to the end of the shrinking range.
+                // The short sort moves the first entry that compares greatest to the end of the shrinking range.
                 for (int end = high; end > low; end--)
                 {
                     int greatest = low;
@@ -196,8 +190,8 @@ internal static partial class Av1MotionSearchBase
                     (candidates[middle], candidates[high]) = (candidates[high], candidates[middle]);
                 }
 
-                // The two scans exchange entries on the wrong side of the partition entry, which the exchange may
-                // move. Each scan is split in two so that the partition entry is never compared with itself.
+                // The two scans exchange entries on the wrong side of the partition entry. The exchange can move the partition entry.
+                // Each scan has two parts, so the partition entry is never compared with itself.
                 int lowScan = low;
                 int highScan = high;
                 while (true)
@@ -258,6 +252,7 @@ internal static partial class Av1MotionSearchBase
                     while (highScan > low && CompareWeight(candidates[highScan], candidates[middle]) == 0);
                 }
 
+                // The smaller part runs next. The larger part waits on the stack.
                 if (highScan - low >= high - lowScan)
                 {
                     if (low < highScan)
@@ -300,7 +295,7 @@ internal static partial class Av1MotionSearchBase
 #pragma warning restore CA1517
 
     /// <summary>
-    /// Compares two starting candidates so that a heavier candidate orders first. Reference: compare_weight().
+    /// Compares two starting candidates so that a heavier candidate orders first.
     /// </summary>
     /// <param name="left">The first candidate.</param>
     /// <param name="right">The second candidate.</param>
@@ -340,15 +335,54 @@ internal static partial class Av1MotionSearchBase
     /// </summary>
     public struct ReferenceSearchResult
     {
+        /// <summary>
+        /// The differential coding reference in eighth-sample units.
+        /// </summary>
         public Av1MotionVector ReferenceVector;
+
+        /// <summary>
+        /// The full-pixel winner in eighth-sample units.
+        /// </summary>
         public Av1MotionVector FullVector;
+
+        /// <summary>
+        /// The final selected vector in eighth-sample units.
+        /// </summary>
         public Av1MotionVector Vector;
+
+        /// <summary>
+        /// The weighted motion rate of the full-pixel winner.
+        /// </summary>
         public int FullRate;
+
+        /// <summary>
+        /// The variance-plus-rate cost of the full-pixel winner.
+        /// </summary>
         public int FullCost;
+
+        /// <summary>
+        /// The weighted motion rate of the final vector.
+        /// </summary>
         public int Rate;
+
+        /// <summary>
+        /// The syntax rate that selects this differential reference.
+        /// </summary>
         public int DrlRate;
+
+        /// <summary>
+        /// Whether the full-pixel fields hold a result.
+        /// </summary>
         public bool HasFullResult;
+
+        /// <summary>
+        /// Whether the search produced a final vector for this choice.
+        /// </summary>
         public bool IsValid;
+
+        /// <summary>
+        /// Whether an earlier choice with the same final vector makes this choice redundant.
+        /// </summary>
         public bool Skip;
     }
 
@@ -357,9 +391,24 @@ internal static partial class Av1MotionSearchBase
     /// </summary>
     public struct SingleReferenceState
     {
+        /// <summary>
+        /// The full-sample starts that the block searched so far, across its differential-reference choices.
+        /// </summary>
         public InlineArray6<Point> Starts;
+
+        /// <summary>
+        /// The differential-reference index of each recorded start.
+        /// </summary>
         public InlineArray6<byte> StartReferenceIndices;
+
+        /// <summary>
+        /// The result of each differential-reference choice.
+        /// </summary>
         public InlineArray3<ReferenceSearchResult> References;
+
+        /// <summary>
+        /// The number of recorded starts.
+        /// </summary>
         public int StartCount;
     }
 
@@ -372,43 +421,149 @@ internal static partial class Av1MotionSearchBase
         where TSample : unmanaged
         where TOperator : struct, IMotionSearchOperator<TSample>
     {
+        /// <summary>
+        /// The source samples at the prediction-block origin.
+        /// </summary>
         private readonly ReadOnlySpan<TSample> source;
+
+        /// <summary>
+        /// The source row stride.
+        /// </summary>
         private readonly int sourceStride;
+
+        /// <summary>
+        /// The complete bordered reference plane.
+        /// </summary>
         private readonly ReadOnlySpan<TSample> reference;
+
+        /// <summary>
+        /// The reference row stride.
+        /// </summary>
         private readonly int referenceStride;
+
+        /// <summary>
+        /// The reference index of zero displacement.
+        /// </summary>
         private readonly int referenceOrigin;
+
+        /// <summary>
+        /// The prediction block size.
+        /// </summary>
         private readonly Av1BlockSize blockSize;
+
+        /// <summary>
+        /// The luma block origin.
+        /// </summary>
         private readonly Point blockOrigin;
+
+        /// <summary>
+        /// The full-sample frame search limits before differential-vector limits.
+        /// </summary>
         private readonly Rectangle frameBounds;
+
+        /// <summary>
+        /// The visible frame size, which bounds the search at sharpness 3.
+        /// </summary>
         private readonly Size visibleFrameSize;
+
+        /// <summary>
+        /// The worker transform and search-site storage.
+        /// </summary>
         private readonly Av1EncoderBlockWorkspace workspace;
+
+        /// <summary>
+        /// The worker search prediction buffer, also reused for final predictions.
+        /// </summary>
         private readonly Span<TSample> prediction;
 
         /// <summary>
-        /// The frame luma plane that gets each prediction of the winner estimate, as libaom writes pd->dst, or the default value
-        /// when the search writes no frame.
+        /// The frame luma plane that gets each prediction of the winner estimate, or the default value when the search writes no frame.
         /// </summary>
         private readonly Av1PlaneRegion<TSample> frame;
+
+        /// <summary>
+        /// The packed block residual destination.
+        /// </summary>
         private readonly Span<short> residual;
+
+        /// <summary>
+        /// The signed intermediate storage for final prediction.
+        /// </summary>
         private readonly Span<short> convolutionScratch;
+
+        /// <summary>
+        /// The quantized coefficients of one transform.
+        /// </summary>
         private readonly Span<int> quantized;
+
+        /// <summary>
+        /// The current tile probability state.
+        /// </summary>
         private readonly Av1SymbolEncoder writer;
+
+        /// <summary>
+        /// The incoming top coefficient contexts.
+        /// </summary>
         private readonly ReadOnlySpan<byte> aboveContexts;
+
+        /// <summary>
+        /// The incoming left coefficient contexts.
+        /// </summary>
         private readonly ReadOnlySpan<byte> leftContexts;
+
+        /// <summary>
+        /// The coded sample precision.
+        /// </summary>
         private readonly Av1BitDepth bitDepth;
+
+        /// <summary>
+        /// The effective segment quantizer index.
+        /// </summary>
         private readonly int qIndex;
+
+        /// <summary>
+        /// The luma DC quantizer adjustment.
+        /// </summary>
         private readonly int dcDeltaQ;
+
+        /// <summary>
+        /// The encoder sharpness, which sets the quantizer rounding and, at 3, keeps the search near the frame.
+        /// </summary>
         private readonly int sharpness;
+
+        /// <summary>
+        /// Whether the segment is coded losslessly.
+        /// </summary>
         private readonly bool lossless;
+
+        /// <summary>
+        /// The block rate-distortion multiplier.
+        /// </summary>
         private readonly int rateMultiplier;
+
+        /// <summary>
+        /// The transform partition rate used by winner estimation.
+        /// </summary>
         private readonly int transformSizeRate;
+
+        /// <summary>
+        /// The rate of a non-skipped prediction block.
+        /// </summary>
         private readonly int noSkipRate;
+
+        /// <summary>
+        /// The rate of a skipped prediction block.
+        /// </summary>
         private readonly int skipRate;
+
+        /// <summary>
+        /// The retained differential motion-rate table.
+        /// </summary>
         private readonly Av1MotionVectorCosts motionCosts;
 
         /// <summary>
-        /// The reference of another size from which the rate-distortion search predicts its fractional candidates, or
-        /// the default value for a reference of the frame size.
+        /// The reference of another size from which the rate-distortion search predicts its fractional candidates.
+        /// The default value stands for a reference of the frame size.
         /// </summary>
         private readonly ScaledReference<TSample> scaledReference;
 
@@ -427,8 +582,7 @@ internal static partial class Av1MotionSearchBase
         /// <param name="workspace">The worker transform and search-site storage.</param>
         /// <param name="prediction">The worker search prediction buffer, also reused for final predictions.</param>
         /// <param name="frame">
-        /// The frame luma plane that gets each prediction of the winner estimate, as libaom writes pd->dst, or the default value
-        /// when the search writes no frame.
+        /// The frame luma plane that gets each prediction of the winner estimate, or the default value when the search writes no frame.
         /// </param>
         /// <param name="residual">The packed block residual destination.</param>
         /// <param name="convolutionScratch">The signed intermediate storage for final prediction.</param>
@@ -449,8 +603,8 @@ internal static partial class Av1MotionSearchBase
         /// <param name="skipRate">The rate of a skipped prediction block.</param>
         /// <param name="motionCosts">The retained differential motion-rate table.</param>
         /// <param name="scaledReference">
-        /// The reference of another size from which the rate-distortion search predicts its fractional candidates, or
-        /// the default value for a reference of the frame size.
+        /// The reference of another size from which the rate-distortion search predicts its fractional candidates.
+        /// The default value stands for a reference of the frame size.
         /// </param>
         public SingleReferenceSearch(
             ReadOnlySpan<TSample> source,
@@ -515,8 +669,7 @@ internal static partial class Av1MotionSearchBase
         }
 
         /// <summary>
-        /// Returns the full-pixel search range around a reference vector. Reference: av1_set_mv_search_range() and
-        /// the sharpness margins of av1_make_default_fullpel_ms_params().
+        /// Returns the full-pixel search range around a reference vector. At sharpness 3, the range also keeps the block near the visible frame.
         /// </summary>
         /// <param name="referenceVector">The differential coding predictor.</param>
         /// <returns>The range, with exclusive right and bottom edges.</returns>
@@ -529,8 +682,7 @@ internal static partial class Av1MotionSearchBase
         }
 
         /// <summary>
-        /// Returns the eighth-sample search range around a reference vector. Reference:
-        /// av1_set_subpel_mv_search_range() and the sharpness margins of av1_make_default_subpel_ms_params().
+        /// Returns the eighth-sample search range around a reference vector. At sharpness 3, the range also keeps the block near the visible frame.
         /// </summary>
         /// <param name="referenceVector">The differential coding predictor.</param>
         /// <returns>The range, with exclusive right and bottom edges.</returns>
@@ -579,7 +731,7 @@ internal static partial class Av1MotionSearchBase
         {
             Size size = new(this.blockSize.GetWidth(), this.blockSize.GetHeight());
 
-            // combined_motion_search() starts at get_fullmv_from_mv(), which rounds to the nearest full sample.
+            // The search starts at the reference vector, rounded to the nearest full sample.
             Point start = new(
                 (referenceVector.Column + 3 + (referenceVector.Column >= 0 ? 1 : 0)) >> 3,
                 (referenceVector.Row + 3 + (referenceVector.Row >= 0 ? 1 : 0)) >> 3);
@@ -601,8 +753,8 @@ internal static partial class Av1MotionSearchBase
                 [],
                 []);
 
-            // These five costs describe the integer winner and its cardinal neighbors. Fractional
-            // pruning uses the same neighborhood, so retain it across both search stages.
+            // These five costs describe the integer winner and its cardinal neighbors.
+            // Fractional pruning uses the same neighborhood, so the buffer stays in use across both search stages.
             Span<int> costs = stackalloc int[5];
             FullPixelResult integerResult = fullSearch.Search(
                 start,
@@ -616,14 +768,15 @@ internal static partial class Av1MotionSearchBase
                 costs,
                 out _);
 
+            // The reported motion rate is the vector rate scaled by 108/128, with rounding.
             Av1MotionVector vector = new(integerResult.Vector.Y * 8, integerResult.Vector.X * 8);
             motionRate = ((this.motionCosts.GetCost(vector, referenceVector) * 108) + 64) >> 7;
             result = new FractionalResult(vector, integerResult.Variance, integerResult.SquaredError, integerResult.MotionCost);
             if (Av1RateDistortion.GetCost(this.rateMultiplier, motionRate, 0) > bestCost)
             {
-                // combined_motion_search() skips the fractional search here and leaves tmp_mv holding the
-                // full-sample vector, which the union then reads as an eighth-sample vector. The rate stays the
-                // rate of the full-sample vector in eighth samples.
+                // When the rate alone is already too expensive, the fractional search does not run.
+                // The result keeps the full-sample vector values unscaled, so they read as an eighth-sample vector.
+                // This matches the output of other AV1 encoders. The rate stays the rate of the full-sample vector in eighth samples.
                 result = new FractionalResult(
                     new Av1MotionVector(integerResult.Vector.Y, integerResult.Vector.X),
                     integerResult.Variance,
@@ -678,10 +831,9 @@ internal static partial class Av1MotionSearchBase
         }
 
         /// <summary>
-        /// Refines a full-sample projection estimate to fractional precision. Reference: the constant-bitrate
-        /// branch of search_new_mv(), which runs find_fractional_mv_step() from the av1_int_pro_motion_estimation()
-        /// result without start statistics or a cost list, and stops at the precision that subpel_select() gives
-        /// for a zero start.
+        /// Refines a full-sample projection estimate to fractional precision.
+        /// The fractional search runs without start statistics or a cost list.
+        /// It stops at the estimated precision for the projection result.
         /// </summary>
         /// <param name="settings">The resolved frame search policy.</param>
         /// <param name="integerVector">The projection result in full samples.</param>
@@ -766,7 +918,7 @@ internal static partial class Av1MotionSearchBase
         /// <param name="verticalFilter">The vertical interpolation family that the block holds during the search.</param>
         /// <param name="starts">Weighted starting positions in decreasing weight order.</param>
         /// <param name="totalWeight">The total represented weight before selecting the first two starts.</param>
-        /// <param name="state">The block's retained results; initialize once before its first new-motion mode.</param>
+        /// <param name="state">The retained results of the block. The caller initializes it once before the first new-motion mode of the block.</param>
         /// <param name="result">The selected displacement and prediction-error statistics.</param>
         /// <returns>Whether the search produced a valid candidate.</returns>
         public bool Search(
@@ -801,8 +953,8 @@ internal static partial class Av1MotionSearchBase
                 stepParameter = (GetInitialStepParameter(spatialMagnitude) + frameStepParameter) / 2;
             }
 
-            // The frame may supply many temporal starts, but only its first two ranked candidates enter
-            // this search. Record both before searching: the weight cutoff does not undo start history.
+            // The frame can supply many temporal starts, but only the first two ranked candidates enter this search.
+            // The code records both before the search, because the weight cutoff does not remove them from the start history.
             int candidateCount = Math.Min(2, starts.Length);
             Span<bool> rejected = stackalloc bool[2];
             rejected.Clear();
@@ -900,8 +1052,8 @@ internal static partial class Av1MotionSearchBase
                     continue;
                 }
 
-                // Non-realtime motion policy disables neighborhood publication. Fractional pruning therefore
-                // measures its own candidates instead of fitting the optional five-cost integer surface.
+                // This motion policy disables neighborhood publication.
+                // Thus fractional pruning measures its own candidates and does not fit the five-cost integer surface.
                 FullPixelResult candidate = fullSearch.Search(
                     starts[candidateIndex].Vector,
                     stepParameter,
@@ -957,8 +1109,8 @@ internal static partial class Av1MotionSearchBase
                         return false;
                     }
 
-                    // Level three permits a quarter more search error; level four compares the original
-                    // error directly. This only prunes when the earlier reference also has cheaper selection syntax.
+                    // Level three permits a quarter more search error. Level four compares the original error directly.
+                    // This prunes only when the earlier reference also has cheaper selection syntax.
                     int threshold = pruningLevel == 3 ? previous.FullCost + (previous.FullCost >> 2) : previous.FullCost;
                     if (pruningLevel >= 3 && best.Cost > threshold && previous.DrlRate < drlRate)
                     {
@@ -1066,8 +1218,8 @@ internal static partial class Av1MotionSearchBase
                             continue;
                         }
 
-                        // A previously skipped matching mode remains skipped regardless of rate. Otherwise,
-                        // preserve the earlier mode whenever its motion-plus-reference syntax is no more expensive.
+                        // A previously skipped matching mode stays skipped, whatever the rate is.
+                        // Otherwise, the earlier mode wins when its motion and reference syntax costs no more.
                         if (previous.Skip || previous.Rate + previous.DrlRate <= fractionalRate + drlRate)
                         {
                             current.Skip = true;
@@ -1077,8 +1229,8 @@ internal static partial class Av1MotionSearchBase
                 }
             }
 
-            // Weight only the motion-vector syntax. The transform and differential-reference rates retain
-            // their own 1/512-bit units; applying this factor to their sum would change the mode decision.
+            // The weight applies only to the motion-vector syntax. The transform and differential-reference rates keep their own 1/512-bit units.
+            // A factor on their sum gives a different mode decision.
             current.Rate = ((this.motionCosts.GetCost(result.Vector, referenceVector) * 108) + 64) >> 7;
             current.Vector = result.Vector;
             current.IsValid = true;
@@ -1086,7 +1238,7 @@ internal static partial class Av1MotionSearchBase
         }
 
         /// <summary>
-        /// Compares a refined vector using final prediction, transform rate, and differential motion rate.
+        /// Estimates the rate-distortion cost of a refined vector from its final prediction, transform rate, and differential motion rate.
         /// </summary>
         /// <param name="tables">The rate tables of the tile.</param>
         /// <param name="transformCoefficients">The forward transform output of the estimate.</param>
@@ -1111,8 +1263,7 @@ internal static partial class Av1MotionSearchBase
             int height = this.blockSize.GetHeight();
             if (this.scaledReference.IsScaled)
             {
-                // A scaled reference predicts from the reference itself. Reference: the av1_enc_build_inter_predictor()
-                // calls of av1_single_motion_search() after the buffers are swapped back.
+                // A scaled reference predicts from the reference itself, with its scale factors.
                 this.scaledReference.Predict<TOperator>(
                     vector, this.prediction, new Size(width, height), horizontalFilter, verticalFilter, this.bitDepth.GetBitCount());
 
@@ -1120,6 +1271,7 @@ internal static partial class Av1MotionSearchBase
             }
             else
             {
+                // The final predictor takes its phases in sixteenth samples, so the eighth-sample fraction doubles.
                 int origin = this.referenceOrigin + ((vector.Row >> 3) * this.referenceStride) + (vector.Column >> 3);
                 TOperator.PreparePrediction(
                     this.source,
@@ -1139,12 +1291,10 @@ internal static partial class Av1MotionSearchBase
                     this.bitDepth.GetBitCount());
             }
 
-            // The prediction goes into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() before
-            // av1_estimate_txfm_yrd() in av1_single_motion_search().
+            // The prediction also goes into the frame, before the transform estimate.
             Av1TransformBlockEncoder.WriteFrameSamples(this.frame, this.frame.Samples, this.blockOrigin, this.prediction, width, width, height);
 
-            // A block crossing the frame edge is subtracted with the DCT_DCT border padding. Reference: the
-            // av1_subtract_txb() call of av1_estimate_txfm_yrd().
+            // The residual of a block that crosses the frame edge gets the border padding of the DCT_DCT transform type.
             Av1TransformBlockEncoder.PadBorderResidual(
                 this.workspace, Av1Plane.Y, this.blockOrigin, this.residual, width, width, height, Av1TransformType.DctDct);
 

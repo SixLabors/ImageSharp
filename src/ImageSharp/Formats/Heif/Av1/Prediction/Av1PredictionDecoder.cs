@@ -16,10 +16,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// Reconstructs AV1 intra-predicted transform blocks from neighboring samples and decoded mode information.
 /// </summary>
 /// <remarks>
-/// This type implements the intra prediction portion of the AV1 reconstruction process for 8-, 10-, and 12-bit
-/// samples. Intra-edge filtering and upsampling operate on caller-owned padded scratch: adjacent reference samples map
-/// to adjacent SIMD lanes, exact-width stores interleave filtered half samples with the original edge, and scalar
-/// continuations handle only incomplete vectors. The completed edges then feed the closed prediction operators.
+/// This type implements the intra prediction part of the AV1 reconstruction process for 8-bit, 10-bit, and 12-bit samples. Intra-edge filtering and upsampling
+/// use padded scratch storage that the caller owns. Adjacent reference samples map to adjacent SIMD lanes. Stores of exact width interleave the filtered half
+/// samples with the original edge. Scalar code handles only incomplete vectors. The completed edges then feed the closed prediction operators.
 /// </remarks>
 internal sealed class Av1PredictionDecoder
 {
@@ -49,7 +48,7 @@ internal sealed class Av1PredictionDecoder
     private readonly ObuFrameHeader frameHeader;
 
     /// <summary>
-    /// The complete decoder-session palette color-index map state, when supplied by a decoder session.
+    /// The palette color-index maps of the decoder session, or <see langword="null"/> when no decoder session supplies them.
     /// </summary>
     private readonly Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps;
 
@@ -58,7 +57,7 @@ internal sealed class Av1PredictionDecoder
     /// </summary>
     /// <param name="sequenceHeader">The decoded sequence header for the current image.</param>
     /// <param name="frameHeader">The decoded frame header for the current image.</param>
-    /// <param name="paletteColorIndexMaps">The complete decoder-session palette map state.</param>
+    /// <param name="paletteColorIndexMaps">The palette color-index maps of the decoder session. Palette prediction requires them.</param>
     public Av1PredictionDecoder(
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
@@ -215,8 +214,8 @@ internal sealed class Av1PredictionDecoder
         Span<T> topNeighbor = referenceBuffer;
         ReadOnlySpan<T> leftNeighbor = referenceBuffer[(referenceStride - 1)..];
 
-        // The reference decoder predicts one maximum-transform-sized plane block for inter-intra. Destination storage is separate
-        // because the inter predictor must remain intact until the final mask blend consumes both complete blocks.
+        // Inter-intra predicts one plane block of the maximum transform size. The destination storage is separate, because the inter prediction must stay
+        // intact until the final mask blend reads both full blocks.
         this.PredictIntraBlock(
             predictorScratch,
             ref partitionInfo,
@@ -248,7 +247,7 @@ internal sealed class Av1PredictionDecoder
     /// <param name="bitDepth">The bit depth of the reconstructed samples.</param>
     /// <param name="blockModeInfoColumnOffset">The transform block's horizontal offset within the mode-information block.</param>
     /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
-    /// <remarks>Implements the intra prediction portion of section 7.11.2 of the AV1 specification.</remarks>
+    /// <remarks>Implements the intra prediction part of the AV1 reconstruction process.</remarks>
     public void Decode(
         Span<short> predictorScratch,
         Span<short> chromaFromLumaBuffer,
@@ -305,8 +304,8 @@ internal sealed class Av1PredictionDecoder
     {
         int stride = pixelStride;
 
-        // Unlike the encoder's separate destination and reference pointers, this span begins at the
-        // previous row. That layout exposes the top, top-left, and strided left samples without copying.
+        // This span begins at the previous row. The encoder uses separate destination and reference pointers instead. This layout gives the top, top-left, and
+        // strided left samples without a copy.
         Span<T> topNeighbor = pixelBuffer;
         Span<T> leftNeighbor = pixelBuffer[(stride - 1)..];
         Span<T> startOfPixels = pixelBuffer[stride..];
@@ -344,8 +343,8 @@ internal sealed class Av1PredictionDecoder
 
         if (plane != Av1Plane.Y)
         {
-            // Chroma and luma modes are separate bitstream domains. Shared spatial predictors consume the explicit
-            // the reference decoder get_uv_mode() equivalent rather than relying on their matching ordinal values.
+            // Chroma and luma modes are separate bitstream domains. The shared spatial predictors use the explicit mapping to a luma mode. They do not depend
+            // on matching ordinal values.
             mode = partitionInfo.ModeInfo.UvMode.ToLumaMode();
         }
 
@@ -402,8 +401,8 @@ internal sealed class Av1PredictionDecoder
             throw new InvalidOperationException("CFL context should have been defined already.");
         }
 
-        // U computes the shared subsampled-luma parameters first; V reuses them for the
-        // same block because both chroma planes have identical sampling geometry.
+        // The U plane computes the shared parameters from the subsampled luma first. The V plane uses them again for the same block, because both chroma planes
+        // have the same sampling geometry.
         if (!chromaFromLumaContext.AreParametersComputed)
         {
             chromaFromLumaContext.ComputeParameters(chromaFromLumaBuffer, transformSize);
@@ -549,8 +548,7 @@ internal sealed class Av1PredictionDecoder
         int xrOffset = 0;
         int ydOffset = 0;
 
-        // These distances bound edge extension at the coded frame rather than allowing
-        // a transform to read padding that happens to exist beyond the visible image.
+        // These distances stop the edge extension at the edge of the coded frame. Thus a transform does not read padding beyond the image.
         int xr = (partitionInfo.ModeBlockToRightEdge >> (3 + subX)) +
             (partitionInfo.GetWidthInPixels(plane) - (blockModeInfoColumnOffset << Av1Constants.ModeInfoSizeLog2) - transformWidth) -
             xrOffset;
@@ -596,7 +594,7 @@ internal sealed class Av1PredictionDecoder
 
         bool disableEdgeFilter = !this.sequenceHeader.EnableIntraEdgeFilter;
 
-        // Calling all other intra predictors except CFL and palette.
+        // This call runs every intra predictor except palette. Chroma-from-luma uses it for its DC base prediction.
         DecodeBuildIntraPredictors(
             predictorScratch,
             ref partitionInfo,
@@ -619,7 +617,7 @@ internal sealed class Av1PredictionDecoder
     }
 
     /// <summary>
-    /// Prepares normative reference-edge samples and runs the selected intra predictor.
+    /// Prepares the reference edge samples that the AV1 process defines, then runs the selected intra predictor.
     /// </summary>
     /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
     /// <param name="predictorScratch">The predictor scratch of the block decoder workspace, read once by the tile reader.</param>
@@ -663,15 +661,14 @@ internal sealed class Av1PredictionDecoder
     {
         int baseValue = 128 << (bitDepth - 8);
 
-        // The frame-owned allocation is sized in high-bit-depth samples. Reinterpreting it as T gives the byte
-        // path additional capacity while preserving the same sample offsets for the larger short representation.
+        // The workspace allocation has a size in high-bit-depth samples. As T, the byte path gets more capacity, and the sample offsets stay the same as for
+        // short samples.
         Span<T> scratch = MemoryMarshal.Cast<short, T>(predictorScratch);
         Span<T> aboveData = scratch.Slice(Av1DirectionalIntraPredictor.ScratchLength, ReferenceBufferLength);
         Span<T> leftData = scratch.Slice(Av1DirectionalIntraPredictor.ScratchLength + ReferenceBufferLength, ReferenceBufferLength);
         Span<T> edgeScratch = scratch.Slice(Av1DirectionalIntraPredictor.ScratchLength + (2 * ReferenceBufferLength), EdgeScratchLength);
 
-        // Prefix storage is required because AV1 addresses the shared top-left sample at -1
-        // and writes upsampled edge samples as far back as -2.
+        // AV1 reads the shared top-left sample at offset -1 and writes upsampled edge samples back to offset -2. Thus each edge needs prefix storage.
         aboveData.Fill(T.CreateChecked(baseValue - 1));
         leftData.Fill(T.CreateChecked(baseValue + 1));
         Span<T> aboveRow = aboveData[Av1IntraEdgePreparation.ReferencePrefixLength..];
@@ -723,8 +720,8 @@ internal sealed class Av1PredictionDecoder
 
         if ((!needAbove && leftPixelCount == 0) || (!needLeft && topPixelCount == 0))
         {
-            // Pure horizontal or vertical prediction with its sole required edge missing
-            // degenerates to the first perpendicular sample or the normative midpoint offset.
+            // If the predictor needs only one edge and that edge is missing, one value fills the block. The value is the first sample of the other edge. If
+            // that edge is also missing, the value is the midpoint offset that AV1 defines for the missing edge.
             T value;
             if (needLeft)
             {
@@ -743,8 +740,7 @@ internal sealed class Av1PredictionDecoder
             return;
         }
 
-        // Copy the available left and bottom-left samples, then extend the final sample
-        // through any unavailable portion required by the selected predictor.
+        // The code copies the available left and bottom-left samples. Then it repeats the final sample through the rest of the edge that the predictor needs.
         if (needLeft)
         {
             bool needBottom = (need & Av1NeighborNeed.BottomLeft) == Av1NeighborNeed.BottomLeft;
@@ -794,8 +790,7 @@ internal sealed class Av1PredictionDecoder
             }
         }
 
-        // Prepare the top edge by the same copy-and-extend rule. Unlike the left edge,
-        // these samples are contiguous in the reconstructed pixel buffer.
+        // The top edge uses the same rule: copy, then extend. Unlike the left edge, the top samples are contiguous in the pixel buffer.
         if (needAbove)
         {
             bool needRight = (need & Av1NeighborNeed.AboveRight) == Av1NeighborNeed.AboveRight;
@@ -841,8 +836,8 @@ internal sealed class Av1PredictionDecoder
 
         if (needAboveLeft)
         {
-            // AV1 synthesizes the shared corner from the closest available edge when only
-            // one edge exists, and uses the bit-depth midpoint when neither edge exists.
+            // If only one edge exists, AV1 takes the corner from the first sample of that edge. If neither edge exists, AV1 uses the midpoint value for the bit
+            // depth.
             ref T aboveLeft = ref Unsafe.Subtract(ref aboveRow[0], 1);
             if (topPixelCount > 0 && leftPixelCount > 0)
             {
@@ -923,8 +918,8 @@ internal sealed class Av1PredictionDecoder
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
 
-        // DecodeCore is reachable only through byte and short overloads, so this type
-        // dispatch permits shared reference preparation without boxing or allocating.
+        // DecodeCore runs only through the byte and short overloads. Thus this type test lets both paths share the reference preparation without boxing or
+        // allocation.
         if (typeof(T) == typeof(byte))
         {
             Av1DcIntraPredictor.Predict(
@@ -1103,7 +1098,7 @@ internal sealed class Av1PredictionDecoder
     /// </summary>
     /// <param name="partitionInfo">The decoded partition and neighboring mode state.</param>
     /// <param name="plane">The color plane whose neighbors are inspected.</param>
-    /// <returns><see langword="true"/> when either relevant neighbor uses a smooth mode; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when either relevant neighbor uses a smooth mode, otherwise <see langword="false"/>.</returns>
     private static bool GetFilterType(ref Av1PartitionInfo partitionInfo, Av1Plane plane)
     {
         Av1BlockModeInfo? above;
@@ -1129,7 +1124,7 @@ internal sealed class Av1PredictionDecoder
     /// </summary>
     /// <param name="modeInfo">The neighboring block's decoded mode state.</param>
     /// <param name="plane">The luma or chroma plane class whose mode is inspected.</param>
-    /// <returns><see langword="true"/> for smooth, smooth-horizontal, or smooth-vertical prediction; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> for smooth, smooth-horizontal, or smooth-vertical prediction, otherwise <see langword="false"/>.</returns>
     private static bool IsSmooth(Av1BlockModeInfo modeInfo, Av1Plane plane)
     {
         if (plane == Av1Plane.Y)
@@ -1141,7 +1136,7 @@ internal sealed class Av1PredictionDecoder
         }
         else
         {
-            // Chroma modes use their own enum and carry only the intra predictors relevant to this neighbor check.
+            // Chroma modes use their own enum, so the check compares against the chroma smooth values.
             Av1ChromaPredictionMode uvMode = modeInfo.UvMode;
             return uvMode is Av1ChromaPredictionMode.Smooth or
                 Av1ChromaPredictionMode.SmoothVertical or

@@ -12,17 +12,16 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// </summary>
 /// <typeparam name="TVector">The SIMD vector type used for parallel transform lanes.</typeparam>
 /// <remarks>
-/// Field <c>Vn</c> stores transform position <c>n</c> for every independent axis in the vector lanes. A
-/// <see cref="System.Runtime.Intrinsics.Vector128{T}"/> therefore carries four 32-bit axes, while a
-/// <see cref="System.Runtime.Intrinsics.Vector256{T}"/> carries eight. Transform stages operate vertically through
-/// these fields and never mix lanes, so their scalar fixed-point rounding and clamping rules remain unchanged.
+/// Field <c>Vn</c> stores transform position <c>n</c> for every independent axis in the vector lanes. Each lane holds one axis. A
+/// <see cref="System.Runtime.Intrinsics.Vector128{T}"/> of 32-bit values therefore carries four axes, and one of 16-bit values carries eight. Transform stages
+/// operate vertically through these fields and never mix lanes, so each lane follows the scalar fixed-point rounding and clamping rules.
 /// </remarks>
 [StructLayout(LayoutKind.Sequential)]
 internal struct Av1TransformVector<TVector>
     where TVector : struct
 {
-    // Explicit fields make each transform position a constant field offset. An indexed inline-array accessor was not
-    // expanded inside the larger stage networks, which introduced a helper call for every coefficient access.
+    // Fields V0 to V63 hold transform positions 0 to 63. Explicit fields give each position a constant field offset. The JIT does not expand an indexed
+    // inline-array accessor inside the larger stage networks, and that accessor adds a helper call for every coefficient access.
     public TVector V0;
     public TVector V1;
     public TVector V2;
@@ -92,7 +91,7 @@ internal struct Av1TransformVector<TVector>
     /// Gets a reference to the SIMD value at the requested transform position.
     /// </summary>
     /// <param name="index">The zero-based transform position.</param>
-    /// <returns>The SIMD value at the requested position.</returns>
+    /// <returns>A reference to the SIMD value at the requested position.</returns>
     [UnscopedRef]
     public ref TVector this[int index]
     {

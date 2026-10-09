@@ -9,47 +9,48 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// Reconstructs non-directional AV1 intra-prediction blocks from prepared neighboring samples.
 /// </summary>
 /// <remarks>
-/// The implementation covers the non-directional prediction processes in section 7.11.2 of the AV1 specification.
+/// The predictors cover the Paeth and smooth intra prediction processes of the AV1 specification. They also cover vertical and horizontal prediction, which
+/// copy the top or left reference samples.
 /// </remarks>
 internal abstract partial class Av1NonDirectionalIntraPredictorBase
 {
     /// <summary>
-    /// The horizontal prediction operator.
+    /// The predictor for horizontal prediction.
     /// </summary>
     private static readonly Av1NonDirectionalIntraPredictor<HorizontalOperator> HorizontalPredictor = new();
 
     /// <summary>
-    /// The vertical prediction operator.
+    /// The predictor for vertical prediction.
     /// </summary>
     private static readonly Av1NonDirectionalIntraPredictor<VerticalOperator> VerticalPredictor = new();
 
     /// <summary>
-    /// The Paeth prediction operator.
+    /// The predictor for Paeth prediction.
     /// </summary>
     private static readonly Av1NonDirectionalIntraPredictor<PaethOperator> PaethPredictor = new();
 
     /// <summary>
-    /// The two-dimensional smooth prediction operator.
+    /// The predictor for two-dimensional smooth prediction.
     /// </summary>
     private static readonly Av1NonDirectionalIntraPredictor<SmoothOperator> SmoothPredictor = new();
 
     /// <summary>
-    /// The horizontal smooth prediction operator.
+    /// The predictor for horizontal smooth prediction.
     /// </summary>
     private static readonly Av1NonDirectionalIntraPredictor<SmoothHorizontalOperator> SmoothHorizontalPredictor = new();
 
     /// <summary>
-    /// The vertical smooth prediction operator.
+    /// The predictor for vertical smooth prediction.
     /// </summary>
     private static readonly Av1NonDirectionalIntraPredictor<SmoothVerticalOperator> SmoothVerticalPredictor = new();
 
     /// <summary>
-    /// Gets the Q8 smooth weights for every supported block dimension.
+    /// Gets the Q8 smooth weights for every supported block dimension. The weights for dimension n start at offset n.
     /// </summary>
     private static ReadOnlySpan<int> SmoothWeights =>
     [
 
-        // The first two entries are unused because the smallest AV1 prediction dimension is four samples.
+        // The first two entries are padding. The smallest AV1 prediction dimension is four samples, so the two entries for dimension two are also unused.
         0, 0,
         255, 128,
         255, 149, 85, 64,

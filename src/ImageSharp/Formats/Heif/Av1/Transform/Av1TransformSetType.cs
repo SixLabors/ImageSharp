@@ -14,29 +14,29 @@ internal enum Av1TransformSetType
     DctOnly,
 
     /// <summary>
-    /// Allowed transforms: DCT + Identity only
+    /// Allowed transforms: DCT and identity only.
     /// </summary>
     InterSet3,
 
     /// <summary>
-    /// Allowed transforms: Discrete Trig transforms w/o flip (4) + Identity (1)
+    /// Allowed transforms: the four DCT and ADST combinations without flip, and identity.
     /// </summary>
-    /// <remarks>Referenced in spec as TX_SET_INTRA_2.</remarks>
+    /// <remarks>The AV1 specification calls this set TX_SET_INTRA_2.</remarks>
     IntraSet2,
 
     /// <summary>
-    /// Allowed transforms: Discrete Trig transforms w/o flip (4) + Identity (1) + 1D Hor/vert DCT (2)
+    /// Allowed transforms: the four DCT and ADST combinations without flip, identity, and the horizontal and vertical one-dimensional DCT.
     /// </summary>
-    /// <remarks>Referenced in spec as TX_SET_INTRA_1.</remarks>
+    /// <remarks>The AV1 specification calls this set TX_SET_INTRA_1.</remarks>
     IntraSet1,
 
     /// <summary>
-    /// Allowed transforms: Discrete Trig transforms w/ flip (9) + Identity (1) + 1D Hor/Ver DCT (2)
+    /// Allowed transforms: the nine DCT and ADST combinations with flip, identity, and the horizontal and vertical one-dimensional DCT.
     /// </summary>
     InterSet2,
 
     /// <summary>
-    /// Allowed transforms: Discrete Trig transforms w/ flip (9) + Identity (1) + 1D Hor/Ver (6)
+    /// Allowed transforms: the nine DCT and ADST combinations with flip, identity, and all six horizontal and vertical one-dimensional transforms.
     /// </summary>
     InterSet1,
 

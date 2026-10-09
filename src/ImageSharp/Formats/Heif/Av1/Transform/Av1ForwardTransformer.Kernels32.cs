@@ -8,14 +8,13 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 /// <content>
-/// Vector forward transform kernels for the eight-bit block shapes with a thirty-two-sample side and no side over
-/// thirty-two: thirty-two by thirty-two, sixteen by thirty-two and thirty-two by sixteen.
+/// Vector forward transform kernels for the eight-bit block shapes that have a thirty-two-sample side and no longer side.
+/// These shapes are thirty-two by thirty-two, sixteen by thirty-two and thirty-two by sixteen.
 /// </content>
 /// <remarks>
-/// A thirty-two-sample axis allows only the DCT and the identity transform, so none of these shapes has a flip. Each
-/// shape follows its <c>lowbd_fwd_txfm2d_*_avx2</c> function: the stages work on buffers of sixteen-lane vectors, and
-/// a last transpose turns the reference output, one horizontal frequency per vector, into the row-major coefficient
-/// order of this port.
+/// A thirty-two-sample axis allows only the DCT and the identity transform, so none of these shapes has a flip.
+/// The stages work on buffers of sixteen-lane vectors. The stage output has one horizontal frequency per vector.
+/// A last transpose turns this output into the row-major coefficient order.
 /// </remarks>
 internal static partial class Av1ForwardTransformer
 {
@@ -23,8 +22,7 @@ internal static partial class Av1ForwardTransformer
     /// Applies a thirty-two-by-thirty-two eight-bit transform.
     /// </summary>
     /// <remarks>
-    /// This follows <c>lowbd_fwd_txfm2d_32x32_avx2</c>. The shifts are <c>av1_fwd_txfm_shift_ls[TX_32X32]</c> (2, -4, 0)
-    /// and both cosine bit counts are 12.
+    /// The stage shifts are 2, -4 and 0, and both cosine bit counts are 12.
     /// </remarks>
     /// <param name="input">The spatial residual samples.</param>
     /// <param name="stride">The number of input samples between rows.</param>
@@ -53,9 +51,9 @@ internal static partial class Av1ForwardTransformer
         where TColumn : struct, IAv1Kernel32
         where TRow : struct, IAv1Kernel32
     {
-        // The column buffer holds the thirty-two rows of one sixteen-column half. After the column pass, each vector of
-        // the low buffer holds one column with vertical frequencies 0 to 15 in its lanes, and each vector of the high
-        // buffer holds the same column with vertical frequencies 16 to 31. These are the two halves of buf1.
+        // The column buffer holds the thirty-two rows of one sixteen-column half.
+        // After the column pass, each vector of the low buffer holds one column with vertical frequencies 0 to 15 in its lanes.
+        // Each vector of the high buffer holds the same column with vertical frequencies 16 to 31.
         InlineArray32<Vector256<short>> columnStorage = default;
         InlineArray32<Vector256<short>> lowStorage = default;
         InlineArray32<Vector256<short>> highStorage = default;
@@ -66,7 +64,7 @@ internal static partial class Av1ForwardTransformer
 
         for (nuint half = 0; half < 2; half++)
         {
-            // Load each row of this sixteen-column half and scale it by the first shift (2).
+            // Load each row of this sixteen-column half and apply the first stage shift of 2.
             for (nuint row = 0; row < 32; row++)
             {
                 Unsafe.Add(ref columns, row) = Vector256.LoadUnsafe(ref source, (row * stride) + (16 * half)) << 2;
@@ -75,7 +73,7 @@ internal static partial class Av1ForwardTransformer
             TColumn.Transform(ref columns, 12);
             RoundShift4(ref columns, 32);
 
-            // The two transpose_16bit_16x16_avx2 calls place the half's sixteen columns at their column positions.
+            // The two 16x16 transposes place the sixteen columns of the half at their column positions.
             Av1TransformKernels.Transpose16x16(ref columns, ref Unsafe.Add(ref low, 16 * half));
             Av1TransformKernels.Transpose16x16(ref Unsafe.Add(ref columns, (nuint)16), ref Unsafe.Add(ref high, 16 * half));
         }
@@ -92,8 +90,7 @@ internal static partial class Av1ForwardTransformer
     /// Applies a sixteen-wide, thirty-two-high eight-bit transform.
     /// </summary>
     /// <remarks>
-    /// This follows <c>lowbd_fwd_txfm2d_16x32_avx2</c>. The shifts are <c>av1_fwd_txfm_shift_ls[TX_16X32]</c> (2, -4, 0),
-    /// the column cosine bit count is 12 and the row cosine bit count is 13.
+    /// The stage shifts are 2, -4 and 0. The column cosine bit count is 12, and the row cosine bit count is 13.
     /// </remarks>
     /// <param name="input">The spatial residual samples.</param>
     /// <param name="stride">The number of input samples between rows.</param>
@@ -111,8 +108,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Applies one thirty-two-point column kernel and one sixteen-point row kernel to a sixteen-wide, thirty-two-high
-    /// block.
+    /// Applies one thirty-two-point column kernel and one sixteen-point row kernel to a sixteen-wide, thirty-two-high block.
     /// </summary>
     /// <typeparam name="TColumn">The vertical transform kernel.</typeparam>
     /// <typeparam name="TRow">The horizontal transform kernel.</typeparam>
@@ -123,8 +119,8 @@ internal static partial class Av1ForwardTransformer
         where TColumn : struct, IAv1Kernel32
         where TRow : struct, IAv1Kernel16
     {
-        // After the column pass, vectors 0 to 15 of the frequency buffer hold the sixteen columns with vertical
-        // frequencies 0 to 15 in their lanes, and vectors 16 to 31 hold them with vertical frequencies 16 to 31.
+        // After the column pass, vectors 0 to 15 of the frequency buffer hold the sixteen columns with vertical frequencies 0 to 15 in their lanes.
+        // Vectors 16 to 31 hold the same columns with vertical frequencies 16 to 31.
         InlineArray32<Vector256<short>> columnStorage = default;
         InlineArray32<Vector256<short>> frequencyStorage = default;
         ref Vector256<short> columns = ref columnStorage[0];
@@ -141,8 +137,8 @@ internal static partial class Av1ForwardTransformer
         Av1TransformKernels.Transpose16x16(ref columns, ref frequencies);
         Av1TransformKernels.Transpose16x16(ref Unsafe.Add(ref columns, (nuint)16), ref Unsafe.Add(ref frequencies, (nuint)16));
 
-        // The row kernel runs once per group of sixteen vertical frequencies. The third shift is zero, and the 2:1
-        // shape scales each coefficient by the square root of two while it widens.
+        // The row kernel runs once per group of sixteen vertical frequencies. The third shift is zero.
+        // The 2:1 shape scales each coefficient by the square root of two when the store widens it.
         ref int destination = ref MemoryMarshal.GetReference(coefficients);
         Transform16<TRow>(ref frequencies, 13);
         Av1TransformKernels.Transpose16x16(ref frequencies, ref frequencies);
@@ -158,8 +154,7 @@ internal static partial class Av1ForwardTransformer
     /// Applies a thirty-two-wide, sixteen-high eight-bit transform.
     /// </summary>
     /// <remarks>
-    /// This follows <c>lowbd_fwd_txfm2d_32x16_avx2</c>. The shifts are <c>av1_fwd_txfm_shift_ls[TX_32X16]</c> (2, -4, 0)
-    /// and both cosine bit counts are 13.
+    /// The stage shifts are 2, -4 and 0, and both cosine bit counts are 13.
     /// </remarks>
     /// <param name="input">The spatial residual samples.</param>
     /// <param name="stride">The number of input samples between rows.</param>
@@ -189,8 +184,8 @@ internal static partial class Av1ForwardTransformer
         where TColumn : struct, IAv1Kernel16
         where TRow : struct, IAv1Kernel32
     {
-        // The column buffer holds the sixteen rows of one sixteen-column half. After the column pass, each vector of
-        // the frequency buffer holds one of the thirty-two columns with the sixteen vertical frequencies in its lanes.
+        // The column buffer holds the sixteen rows of one sixteen-column half.
+        // After the column pass, each vector of the frequency buffer holds one of the thirty-two columns with the sixteen vertical frequencies in its lanes.
         InlineArray16<Vector256<short>> columnStorage = default;
         InlineArray32<Vector256<short>> frequencyStorage = default;
         ref Vector256<short> columns = ref columnStorage[0];
@@ -209,7 +204,7 @@ internal static partial class Av1ForwardTransformer
             Av1TransformKernels.Transpose16x16(ref columns, ref Unsafe.Add(ref frequencies, 16 * half));
         }
 
-        // The third shift is zero, and the 2:1 shape scales each coefficient by the square root of two while it widens.
+        // The third shift is zero. The 2:1 shape scales each coefficient by the square root of two when the store widens it.
         ref int destination = ref MemoryMarshal.GetReference(coefficients);
         TRow.Transform(ref frequencies, 13);
         StoreRows32(ref frequencies, ref destination, 0, true);
@@ -244,8 +239,7 @@ internal static partial class Av1ForwardTransformer
             cosBit);
 
     /// <summary>
-    /// Applies <c>round_shift_16bit_w16_avx2</c> with shift -4 to consecutive vectors: each lane adds one half with
-    /// saturation and shifts right by four.
+    /// Applies the stage shift of -4 to consecutive vectors. Each lane adds 8, half of the divisor 16, with saturation and then shifts right by 4.
     /// </summary>
     /// <param name="data">The first vector.</param>
     /// <param name="count">The number of vectors.</param>
@@ -263,8 +257,8 @@ internal static partial class Av1ForwardTransformer
     /// Stores sixteen rows of thirty-two coefficients from thirty-two vectors that each hold one horizontal frequency.
     /// </summary>
     /// <remarks>
-    /// Vector <c>h</c> holds horizontal frequency <c>h</c> for sixteen vertical frequencies. A transpose of vectors 0 to
-    /// 15 gives the left halves of the sixteen rows and a transpose of vectors 16 to 31 gives the right halves.
+    /// Vector <c>h</c> holds horizontal frequency <c>h</c> for sixteen vertical frequencies.
+    /// A transpose of vectors 0 to 15 gives the left halves of the sixteen rows. A transpose of vectors 16 to 31 gives the right halves.
     /// </remarks>
     /// <param name="frequencies">The first of the thirty-two vectors. The vectors are transposed in place.</param>
     /// <param name="destination">The first coefficient of the block.</param>
@@ -294,8 +288,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Scales sixteen lanes by the square root of two with rounding, widens them to thirty-two bits and stores them, as
-    /// <c>store_rect_16bit_to_32bit_avx2</c> does.
+    /// Scales sixteen lanes by the square root of two with rounding, widens them to thirty-two bits and stores them.
     /// </summary>
     /// <param name="values">The sixteen-bit coefficients.</param>
     /// <param name="destination">The first coefficient of the destination.</param>
@@ -308,7 +301,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// The thirty-two-point DCT of <c>fdct16x32_avx2</c>.
+    /// The thirty-two-point forward DCT on sixteen lanes.
     /// </summary>
     private readonly struct Dct32Kernel : IAv1Kernel32
     {
@@ -566,7 +559,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// The thirty-two-point identity transform of <c>fidentity16x32_avx2</c>, which scales by four.
+    /// The thirty-two-point forward identity transform on sixteen lanes, which scales by four.
     /// </summary>
     private readonly struct Identity32Kernel : IAv1Kernel32
     {
@@ -574,7 +567,7 @@ internal static partial class Av1ForwardTransformer
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Transform(ref Vector256<short> data, int cosBit)
         {
-            // The shift wraps like _mm256_slli_epi16.
+            // The left shift wraps at sixteen bits. It does not saturate.
             for (nuint i = 0; i < 32; i++)
             {
                 Unsafe.Add(ref data, i) <<= 2;

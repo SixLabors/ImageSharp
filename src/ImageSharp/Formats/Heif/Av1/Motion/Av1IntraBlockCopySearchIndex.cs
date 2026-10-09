@@ -17,29 +17,63 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 /// </summary>
 internal readonly struct Av1IntraBlockCopySearchIndex
 {
+    /// <summary>
+    /// The side of the square block whose origins <see cref="OriginWidth"/> and <see cref="OriginHeight"/> count.
+    /// </summary>
     private const int BlockSize = 8;
+
+    /// <summary>
+    /// The number of hash buckets. The low sixteen bits of a hash select the bucket.
+    /// </summary>
     private const int MaximumBucketCount = 1 << 16;
+
+    /// <summary>
+    /// The largest number of origins that one bucket keeps.
+    /// </summary>
     private const int MaximumCandidatesPerBucket = 256;
+
+    /// <summary>
+    /// The largest distance, in whole samples, that the search window reaches from the start vector in each direction.
+    /// </summary>
     private const int MaximumFullPixelSearchOffset = (1 << 10) - 1;
+
+    /// <summary>
+    /// The smallest displacement component, in whole samples, that the search allows.
+    /// </summary>
     private const int MinimumFullPixelMotionVector = -(1 << 11) + 1;
+
+    /// <summary>
+    /// The largest displacement component, in whole samples, that the search allows.
+    /// </summary>
     private const int MaximumFullPixelMotionVector = (1 << 11) - 1;
+
+    /// <summary>
+    /// The largest square block size that the index can store.
+    /// </summary>
     private readonly int maximumHashBlockSize;
 
     /// <summary>
-    /// The storage of each square block size, from 4x4 at index 0 up to 128x128 at index 5. Each size has its own
-    /// buffer, so no single buffer grows past the pool block size until the picture is large.
+    /// The storage of each square block size, from 4x4 at index 0 up to 128x128 at index 5. Each size has its own buffer, so no single buffer grows
+    /// past the pool block size until the picture is large.
     /// </summary>
     private readonly InlineArray6<Memory<byte>> levels;
 
+    /// <summary>
+    /// The visible luma width.
+    /// </summary>
     private readonly int width;
+
+    /// <summary>
+    /// The visible luma height.
+    /// </summary>
     private readonly int height;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1IntraBlockCopySearchIndex"/> struct over picture-lifetime storage.
     /// </summary>
     /// <param name="levels">
-    /// The hashes, links, and bucket storage of each square block size, from 4x4 at index 0. Each buffer has the
-    /// length that <see cref="GetLevelStorageLength"/> returns for its size.
+    /// The hashes, links, and bucket storage of each square block size, from 4x4 at index 0. Each buffer has the length that
+    /// <see cref="GetLevelStorageLength"/> returns for its size.
     /// </param>
     /// <param name="width">The visible luma width.</param>
     /// <param name="height">The visible luma height.</param>
@@ -106,8 +140,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         public static abstract bool BlocksEqual(ReadOnlySpan<TSample> first, int firstStride, ReadOnlySpan<TSample> second, int secondStride);
 
         /// <summary>
-        /// Returns whether every row of an 8x8 block repeats its first sample. Reference:
-        /// av1_hash_is_horizontal_perfect().
+        /// Returns whether every row of an 8x8 block repeats its first sample.
         /// </summary>
         /// <param name="block">The block, from its top-left sample.</param>
         /// <param name="stride">The number of samples between rows of <paramref name="block"/>.</param>
@@ -115,8 +148,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         public static abstract bool IsHorizontalPerfect(ReadOnlySpan<TSample> block, int stride);
 
         /// <summary>
-        /// Returns whether every column of an 8x8 block repeats its first sample. Reference:
-        /// av1_hash_is_vertical_perfect().
+        /// Returns whether every column of an 8x8 block repeats its first sample.
         /// </summary>
         /// <param name="block">The block, from its top-left sample.</param>
         /// <param name="stride">The number of samples between rows of <paramref name="block"/>.</param>
@@ -157,8 +189,8 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         int origins = checked((width - size + 1) * (height - size + 1));
         int length = checked((2 * origins * sizeof(uint)) + (MaximumBucketCount * ((2 * sizeof(int)) + sizeof(ushort))));
 
-        // The first reduction writes the 4x4 hashes over the 2x2 seeds in the 4x4 storage. Very narrow pictures can
-        // need more seed storage than 4x4 entries, so the 4x4 storage reserves the larger extent.
+        // The first reduction writes the 4x4 hashes over the 2x2 seeds in the 4x4 storage. A very narrow picture can need more seed storage than
+        // 4x4 entries, so the 4x4 storage reserves the larger extent.
         return size == 4 ? Math.Max(length, checked((width - 1) * (height - 1) * sizeof(uint))) : length;
     }
 
@@ -216,8 +248,8 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                 }
             }
 
-            // During the first reduction, compacted writes stay behind every unread seed. The
-            // seed suffix can now become bucket storage; later levels read retained parent hashes.
+            // During the first reduction, each compacted write stays behind every unread seed. Thus the seeds after the hashes can now become
+            // bucket storage. Later levels read the kept hashes of the parent level.
             links.Clear();
             heads.Clear();
             tails.Clear();
@@ -238,8 +270,8 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                             continue;
                         }
 
-                        // Preserve coarse-to-fine insertion order. Capping the bucket before later
-                        // offsets keeps the retained candidates spread across the complete picture.
+                        // The insertion order is coarse to fine. The cap applies before the finer offsets, so the kept candidates spread across the
+                        // full picture.
                         int encodedPosition = position + 1;
                         int tail = tails[bucket];
                         if (tail == 0)
@@ -346,8 +378,8 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         int directionCount = settings.UseFastIntraBlockCopySearch ? 1 : 2;
         for (int direction = 0; direction < directionCount; direction++)
         {
-            // Above excludes this superblock row. Left excludes this superblock column and can
-            // extend to the bottom of its row; both windows are then intersected with the DV range.
+            // The above window excludes this superblock row. The left window excludes this superblock column and can extend to the bottom of its row.
+            // The code then intersects both windows with the displacement vector range.
             int maximumColumn = direction == 0 ? tileRight : Math.Min(superblockLeft - width, tileRight);
             int maximumRow = direction == 0
                 ? Math.Min(superblockTop - height, tileBottom)
@@ -407,8 +439,8 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                     out bestVector,
                     out bestCost);
 
-            // Hash and pixel candidates share the same reconstructed-plane variance and DV rate.
-            // Only the fast policy can accept a successful hash search without the pixel search.
+            // Hash and pixel candidates use the same variance on the reconstructed plane and the same displacement vector rate. Only the fast
+            // policy accepts a successful hash search without the pixel search.
             if (!found || !settings.UseFastIntraBlockCopySearch)
             {
                 Av1MotionSearchBase.FullPixelResult result = search.Search(
@@ -443,21 +475,25 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     /// <summary>
     /// Combines four child hashes in top-left, top-right, bottom-left, bottom-right order.
     /// </summary>
+    /// <param name="topLeft">The hash of the top-left child.</param>
+    /// <param name="topRight">The hash of the top-right child.</param>
+    /// <param name="bottomLeft">The hash of the bottom-left child.</param>
+    /// <param name="bottomRight">The hash of the bottom-right child.</param>
+    /// <returns>The CRC-32C hash of the four child hashes.</returns>
     private static uint CombineHashes(uint topLeft, uint topRight, uint bottomLeft, uint bottomRight)
     {
-        // Feed each 32-bit word least-significant byte first. The runtime selects the hardware
-        // CRC32C instruction where available and preserves the same arithmetic in its fallback.
+        // Each 32-bit word goes into the CRC least-significant byte first. The runtime uses the hardware CRC32C instruction where available. Its
+        // fallback gives the same result.
         uint crc = BitOperations.Crc32C(uint.MaxValue, topLeft | ((ulong)topRight << 32));
         return ~BitOperations.Crc32C(crc, bottomLeft | ((ulong)bottomRight << 32));
     }
 
     /// <summary>
-    /// Packs the 2x2 hash seed of every origin in one row pair, as the first level of
-    /// <c>av1_generate_block_2x2_hash_value</c> does.
+    /// Packs the 2x2 hash seed of every origin in one row pair.
     /// </summary>
     /// <remarks>
-    /// Each sample's upper byte is folded into its lower byte before the four positions are packed, so every source
-    /// bit contributes, including ten- and twelve-bit samples.
+    /// The method folds the upper byte of each sample into its lower byte before it packs the four positions. Thus every source bit contributes,
+    /// also for ten-bit and twelve-bit samples.
     /// </remarks>
     /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperation">The closed sample operation.</typeparam>
@@ -529,9 +565,13 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     }
 
     /// <summary>
-    /// Packs the hash bytes of 2x2 blocks in top-left, top-right, bottom-left, bottom-right order, from the most
-    /// significant byte down.
+    /// Packs the hash bytes of 2x2 blocks in top-left, top-right, bottom-left, bottom-right order, from the most significant byte down.
     /// </summary>
+    /// <param name="topLeft">The top-left hash byte of each block, one per lane.</param>
+    /// <param name="topRight">The top-right hash byte of each block, one per lane.</param>
+    /// <param name="bottomLeft">The bottom-left hash byte of each block, one per lane.</param>
+    /// <param name="bottomRight">The bottom-right hash byte of each block, one per lane.</param>
+    /// <returns>The packed seed of each block, one per lane.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<uint> PackSeeds(Vector128<uint> topLeft, Vector128<uint> topRight, Vector128<uint> bottomLeft, Vector128<uint> bottomRight)
         => (topLeft << 24) | (topRight << 16) | (bottomLeft << 8) | bottomRight;
@@ -549,14 +589,19 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     /// <summary>
     /// Computes a query hash when the source block extends into coded-frame padding.
     /// </summary>
+    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+    /// <typeparam name="TOperation">The closed sample operation.</typeparam>
+    /// <param name="source">The coded source luma plane.</param>
+    /// <param name="origin">The top-left sample of the block.</param>
+    /// <param name="size">The square block size, a power of two from 2.</param>
+    /// <returns>The hash of the block.</returns>
     private static uint GetBlockHash<TSample, TOperation>(Av1PlaneRegion<TSample> source, Point origin, int size)
         where TSample : unmanaged
         where TOperation : struct, ISearchOperation<TSample>
     {
         if (size == 2)
         {
-            // The reference hashes its border-extended source, so samples past the plane repeat its last row
-            // and column. Clamping the coordinates reads the same values.
+            // Samples past the plane repeat its last row and column, as in a border-extended source. The clamped coordinates read these values.
             int lastRow = source.Height - 1;
             int lastColumn = source.Width - 1;
             ReadOnlySpan<TSample> top = source.GetRowSpan(Math.Min(origin.Y, lastRow));
@@ -584,6 +629,19 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     /// <summary>
     /// Selects a legal displacement from the ordered, size-specific CRC bucket.
     /// </summary>
+    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+    /// <typeparam name="TOperation">The closed sample operation.</typeparam>
+    /// <param name="source">The coded source luma plane.</param>
+    /// <param name="blockOrigin">The current coding-block origin.</param>
+    /// <param name="blockSize">The coding-block dimensions. The block is square.</param>
+    /// <param name="tile">The active tile boundaries.</param>
+    /// <param name="sequenceHeader">The sequence geometry and sample precision.</param>
+    /// <param name="search">The full-pixel search that measures the cost of a candidate.</param>
+    /// <param name="bounds">The permitted displacements.</param>
+    /// <param name="pruneCandidates">Whether to read at most 64 entries of the bucket.</param>
+    /// <param name="bestVector">Receives the displacement with the lowest cost.</param>
+    /// <param name="bestCost">Receives the cost of <paramref name="bestVector"/>.</param>
+    /// <returns><see langword="true"/> when a legal candidate with a matching hash exists.</returns>
     private bool TryFindCandidate<TSample, TOperation>(
         Av1PlaneRegion<TSample> source,
         Point blockOrigin,
@@ -657,6 +715,12 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     /// <summary>
     /// Borrows the retained hashes and ordered bucket lists for one square block size.
     /// </summary>
+    /// <param name="size">The square block size, a power of two from 4 to 128.</param>
+    /// <param name="hashes">Receives the hash of each origin.</param>
+    /// <param name="links">Receives the next origin of each bucket list entry, plus one. Zero ends a list.</param>
+    /// <param name="heads">Receives the first origin of each bucket, plus one.</param>
+    /// <param name="tails">Receives the last origin of each bucket, plus one.</param>
+    /// <param name="counts">Receives the number of origins in each bucket.</param>
     private void GetLevel(
         int size,
         out Span<uint> hashes,

@@ -8,12 +8,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 internal static partial class Av1Inverse2dTransformer
 {
     /// <summary>
-    /// Applies the 8-point inverse ADST with at most 1 low-frequency input coefficients.
+    /// Applies the 8-point inverse ADST with at most 1 low-frequency input coefficient.
     /// </summary>
     /// <remarks>
-    /// The selected scan bound guarantees all later inputs are zero. Rotations with one surviving input retain
-    /// their original rounding boundary, and all nonzero butterfly outputs retain their stage clamps.
-    /// Vector fields identify transform positions; lanes remain independent rows or columns throughout.
+    /// The selected scan bound guarantees that all later inputs are zero. Rotations with one surviving input retain their original rounding boundary. All
+    /// nonzero butterfly outputs retain their stage clamps. Vector fields identify transform positions. Lanes stay independent rows or columns throughout.
     /// </remarks>
     internal readonly struct Adst8Low1Operator : IAv1Transform1dOperator
     {

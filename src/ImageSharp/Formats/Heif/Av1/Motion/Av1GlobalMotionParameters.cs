@@ -189,7 +189,7 @@ internal struct Av1GlobalMotionParameters
     /// Gets the translational motion vector represented by this model at the center of a coding block.
     /// </summary>
     /// <param name="allowHighPrecisionMotionVector">
-    /// A value indicating whether motion vectors may retain one-eighth-sample precision.
+    /// A value indicating whether motion vectors can keep one-eighth-sample precision.
     /// </param>
     /// <param name="blockSize">The coding block size.</param>
     /// <param name="modeInfoPosition">The block origin in 4x4 mode-information units.</param>
@@ -212,8 +212,8 @@ internal struct Av1GlobalMotionParameters
         int column;
         if (this.Type == Av1GlobalMotionType.Translation)
         {
-            // AV1 accidentally assigns the horizontal translation parameter to the row component and the vertical
-            // parameter to the column component. Decoders preserve that published bitstream behavior for conformance.
+            // For a translation model, AV1 assigns the horizontal translation parameter to the row component and the vertical parameter to the
+            // column component. Decoders keep this published bitstream behavior for conformance.
             row = this.matrix[0] >> (ModelPrecisionBits - 3);
             column = this.matrix[1] >> (ModelPrecisionBits - 3);
         }
@@ -295,8 +295,7 @@ internal struct Av1GlobalMotionParameters
             int motionVectorDifference = Math.Abs(referencePoints[index].X - sourcePoints[index].X - motionVector.Column) +
                 Math.Abs(referencePoints[index].Y - sourcePoints[index].Y - motionVector.Row);
 
-            // av1_selectSamples retains the original first sample when every candidate exceeds the threshold. Keeping
-            // that rule here is important because the selected Warped syntax still requires a deterministic model.
+            // When every candidate exceeds the threshold, the first sample stays. Warped motion still needs a deterministic model in that case.
             if (sourcePoints.Length > 1 && motionVectorDifference > sampleThreshold && (hasSelectedSample || index != 0))
             {
                 continue;
@@ -312,8 +311,8 @@ internal struct Av1GlobalMotionParameters
                 continue;
             }
 
-            // These biased products are the normative reduced-precision P'P, P'q, and P'r matrices. Computing them
-            // directly preserves the reference decoder's integer least-squares rounding instead of introducing floating-point drift.
+            // These biased products are the normative reduced-precision P'P, P'q, and P'r matrices. Integer arithmetic keeps the normative rounding
+            // of the least-squares fit and adds no floating-point drift.
             a00 += LeastSquaresSquare(sourceX);
             a01 += LeastSquaresProduct1(sourceX, sourceY);
             a11 += LeastSquaresSquare(sourceY);
@@ -336,8 +335,7 @@ internal struct Av1GlobalMotionParameters
         determinantShift -= ModelPrecisionBits;
         if (determinantShift < 0)
         {
-            // The reference holds the inverse in a 16-bit integer, so a shifted inverse wraps.
-            // Reference: the int16_t iDet of find_affine_int().
+            // The inverse is held in a 16-bit integer, so a shifted inverse wraps. This matches the decoder process of the AV1 specification.
             inverseDeterminant = (short)(inverseDeterminant << -determinantShift);
             determinantShift = 0;
         }
@@ -411,8 +409,8 @@ internal struct Av1GlobalMotionParameters
         this.Alpha = (short)Math.Clamp(values[2] - ModelScale, short.MinValue, short.MaxValue);
         this.Beta = (short)Math.Clamp(values[3], short.MinValue, short.MaxValue);
 
-        // AV1 derives gamma and delta by multiplying with a fixed-precision reciprocal of the horizontal scale.
-        // The reciprocal lookup is normative; integer division would produce different warped sample positions.
+        // AV1 derives gamma and delta by a multiply with a fixed-precision reciprocal of the horizontal scale. The reciprocal lookup is normative.
+        // An integer division gives different warped sample positions.
         int reciprocal = ResolveDivisor((uint)values[2], out int reciprocalShift);
         long scaledVerticalCoefficient = (long)values[4] * ModelScale * reciprocal;
         this.Gamma = (short)Math.Clamp(RoundPowerOf2Signed(scaledVerticalCoefficient, reciprocalShift), short.MinValue, short.MaxValue);
@@ -421,15 +419,15 @@ internal struct Av1GlobalMotionParameters
         long verticalScaleDelta = values[5] - RoundPowerOf2Signed(scaledCrossCoefficient, reciprocalShift) - ModelScale;
         this.Delta = (short)Math.Clamp(verticalScaleDelta, short.MinValue, short.MaxValue);
 
-        // Warped filtering addresses a coarser parameter grid than the stored affine matrix. Symmetric rounding is
-        // required here so negative shear values are quantized identically to their positive counterparts.
+        // Warped filtering uses a coarser parameter grid than the stored affine matrix. The rounding is symmetric, so a negative shear value
+        // quantizes to the negative of its positive counterpart.
         this.Alpha = ReduceShearParameter(this.Alpha);
         this.Beta = ReduceShearParameter(this.Beta);
         this.Gamma = ReduceShearParameter(this.Gamma);
         this.Delta = ReduceShearParameter(this.Delta);
 
-        // These weighted L1 bounds are the AV1 validity test for the two shear axes. Equality is invalid because the
-        // warped-filter footprint would no longer remain inside the permitted affine sampling envelope.
+        // These weighted L1 bounds are the AV1 validity test for the two shear axes. Equality is invalid, because at that bound the warped-filter
+        // footprint is outside the permitted affine sampling envelope.
         this.IsInvalid =
             ((4 * Math.Abs((int)this.Alpha)) + (7 * Math.Abs((int)this.Beta)) >= ModelScale) ||
             ((4 * Math.Abs((int)this.Gamma)) + (4 * Math.Abs((int)this.Delta)) >= ModelScale);
@@ -451,9 +449,8 @@ internal struct Av1GlobalMotionParameters
     /// <returns>The fixed-point reciprocal multiplier.</returns>
     private static int ResolveDivisor(uint divisor, out int shift)
     {
-        // Normalize the divisor around its highest set bit, then quantize the remaining fraction to the normative
-        // eight-bit table index. Adding the table's fourteen fractional bits yields the scale used by the caller's
-        // rounded multiply instead of a platform-dependent integer division.
+        // The code normalizes the divisor around its highest set bit. Then it quantizes the remaining fraction to the normative eight-bit table index.
+        // The fourteen fractional bits of the table add to the shift. The caller uses this shift in a rounded multiply, not in an integer division.
         shift = BitOperations.Log2(divisor);
         int remainder = (int)(divisor - (1U << shift));
         int reciprocalIndex = shift > ReciprocalIndexBits
@@ -485,6 +482,12 @@ internal struct Av1GlobalMotionParameters
     /// <summary>
     /// Resolves one adjugate numerator into a clamped affine matrix coefficient.
     /// </summary>
+    /// <param name="numerator">The adjugate numerator.</param>
+    /// <param name="inverseDeterminant">The fixed-point reciprocal of the determinant, with its sign.</param>
+    /// <param name="shift">The rounding right shift of the product. A negative value is a left shift.</param>
+    /// <param name="minimum">The smallest permitted coefficient.</param>
+    /// <param name="maximum">The largest permitted coefficient.</param>
+    /// <returns>The clamped coefficient.</returns>
     private static int ResolveProjectionCoefficient(long numerator, int inverseDeterminant, int shift, int minimum, int maximum)
     {
         long product = numerator * inverseDeterminant;
@@ -495,18 +498,26 @@ internal struct Av1GlobalMotionParameters
     /// <summary>
     /// Computes one reduced-precision diagonal element of the local projection matrix.
     /// </summary>
+    /// <param name="value">The centered source coordinate.</param>
+    /// <returns>The biased square of the coordinate.</returns>
     private static int LeastSquaresSquare(int value)
         => ((value * value * 4) + (value * 32) + 128) >> 4;
 
     /// <summary>
     /// Computes one reduced-precision off-diagonal product of the local projection matrix.
     /// </summary>
+    /// <param name="first">The first centered coordinate.</param>
+    /// <param name="second">The second centered coordinate.</param>
+    /// <returns>The biased product of the two coordinates.</returns>
     private static int LeastSquaresProduct1(int first, int second)
         => ((first * second * 4) + ((first + second) * 16) + 64) >> 4;
 
     /// <summary>
     /// Computes one reduced-precision source-to-reference product of the local projection matrix.
     /// </summary>
+    /// <param name="first">The centered source coordinate.</param>
+    /// <param name="second">The centered reference coordinate on the same axis.</param>
+    /// <returns>The biased product of the two coordinates.</returns>
     private static int LeastSquaresProduct2(int first, int second)
         => ((first * second * 4) + ((first + second) * 16) + 128) >> 4;
 

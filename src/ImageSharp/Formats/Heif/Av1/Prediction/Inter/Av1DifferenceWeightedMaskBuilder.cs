@@ -18,6 +18,15 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
     /// <summary>
     /// Fills an 8-bit difference-weighted compound mask.
     /// </summary>
+    /// <param name="mask">The mask destination.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="first">The first predictor samples.</param>
+    /// <param name="firstStride">The distance between first predictor rows.</param>
+    /// <param name="second">The second predictor samples.</param>
+    /// <param name="secondStride">The distance between second predictor rows.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
+    /// <param name="maskType">The mask type that selects the direct or the inverse mask.</param>
     public static void FillDifferenceWeightedMask(
         Span<byte> mask,
         int maskStride,
@@ -43,6 +52,15 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
     /// Executes one closed 8-bit difference-weighted mask operator.
     /// </summary>
     /// <typeparam name="TOperator">The difference-weighted mask operator.</typeparam>
+    /// <param name="mask">The mask destination.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="first">The first predictor samples.</param>
+    /// <param name="firstStride">The distance between first predictor rows.</param>
+    /// <param name="second">The second predictor samples.</param>
+    /// <param name="secondStride">The distance between second predictor rows.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
+    /// <param name="maskType">The mask type that selects the direct or the inverse mask.</param>
     private static void FillDifferenceWeightedMask<TOperator>(
         Span<byte> mask,
         int maskStride,
@@ -55,6 +73,7 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
         Av1DifferenceWeightedMaskType maskType)
         where TOperator : struct, IAv1DifferenceWeightedMaskOperator
     {
+        // Each mask value is min(64, 38 + (|first - second| >> 4)). The 8-bit shift of 4 divides the difference by 16.
         bool invert = maskType == Av1DifferenceWeightedMaskType.Type38Inverse;
         for (int row = 0; row < height; row++)
         {
@@ -109,6 +128,16 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
     /// <summary>
     /// Fills a high-bit-depth difference-weighted compound mask.
     /// </summary>
+    /// <param name="mask">The mask destination.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="first">The first predictor samples.</param>
+    /// <param name="firstStride">The distance between first predictor rows.</param>
+    /// <param name="second">The second predictor samples.</param>
+    /// <param name="secondStride">The distance between second predictor rows.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="maskType">The mask type that selects the direct or the inverse mask.</param>
     public static void FillDifferenceWeightedMask(
         Span<byte> mask,
         int maskStride,
@@ -136,6 +165,16 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
     /// Executes one closed high-bit-depth difference-weighted mask operator.
     /// </summary>
     /// <typeparam name="TOperator">The difference-weighted mask operator.</typeparam>
+    /// <param name="mask">The mask destination.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="first">The first predictor samples.</param>
+    /// <param name="firstStride">The distance between first predictor rows.</param>
+    /// <param name="second">The second predictor samples.</param>
+    /// <param name="secondStride">The distance between second predictor rows.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="maskType">The mask type that selects the direct or the inverse mask.</param>
     private static void FillDifferenceWeightedMask<TOperator>(
         Span<byte> mask,
         int maskStride,
@@ -149,6 +188,7 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
         Av1DifferenceWeightedMaskType maskType)
         where TOperator : struct, IAv1DifferenceWeightedMaskOperator
     {
+        // The shift first scales the difference down to the 8-bit range, then divides it by 16 as in the 8-bit mask.
         bool invert = maskType == Av1DifferenceWeightedMaskType.Type38Inverse;
         int differenceShift = bitDepth - 8 + 4;
         for (int row = 0; row < height; row++)
@@ -161,8 +201,8 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
             ref ushort secondReference = ref MemoryMarshal.GetReference(secondRow);
             int column = 0;
 
-            // Two input vectors narrow to one packed byte mask. This keeps mask construction contiguous and avoids
-            // temporary buffers before the following vector blend consumes the complete plane block.
+            // Each step loads two vectors of 16-bit samples from each predictor and narrows the results to one vector of mask bytes.
+            // The mask goes straight to its destination row, without a temporary buffer.
             if (Vector512.IsHardwareAccelerated)
             {
                 nuint vectorCount = Numerics.Vector512Count<byte>(width - column);

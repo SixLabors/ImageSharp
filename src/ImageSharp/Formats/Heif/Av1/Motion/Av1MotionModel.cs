@@ -7,18 +7,19 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 /// Holds one fitted warp model and the points that agree with it.
 /// </summary>
 /// <remarks>
-/// The parameters are held as real numbers here, which is what the fit produces. The encoder rounds
-/// them to the precision the bitstream codes only once, when it decides to use the model.
-/// Reference: MotionModel.
+/// The parameters are real numbers, because the fit produces real numbers.
+/// The encoder rounds them to the coded precision only once, when it decides to use the model.
 /// </remarks>
 internal sealed class Av1MotionModel
 {
     /// <summary>
-    /// The parameters that every warp model carries.
+    /// The number of parameters in every warp model.
     /// </summary>
-    /// <remarks>Reference: MAX_PARAMDIM.</remarks>
     public const int ParameterCount = 6;
 
+    /// <summary>
+    /// The column and row of each agreeing point, interleaved. The array grows on demand and is reused between fits.
+    /// </summary>
     private int[] inliers = [];
 
     /// <summary>
@@ -32,14 +33,13 @@ internal sealed class Av1MotionModel
     public ReadOnlySpan<int> Inliers => this.inliers.AsSpan(0, this.InlierCount * 2);
 
     /// <summary>
-    /// Gets the points that agree with this model.
+    /// Gets the number of points that agree with this model.
     /// </summary>
     public int InlierCount { get; private set; }
 
     /// <summary>
     /// Returns this model to the one that moves nothing.
     /// </summary>
-    /// <remarks>Reference: kIdentityParams.</remarks>
     public void Reset()
     {
         this.Parameters[0] = 0.0;
@@ -67,6 +67,7 @@ internal sealed class Av1MotionModel
 
         for (int i = 0; i < inlierIndices.Length; i++)
         {
+            // The fit works on real positions. Round each agreeing point to the nearest sample, with ties to even.
             Av1Correspondence point = points[inlierIndices[i]];
             this.inliers[(2 * i) + 0] = (int)Math.Round(point.X, MidpointRounding.ToEven);
             this.inliers[(2 * i) + 1] = (int)Math.Round(point.Y, MidpointRounding.ToEven);

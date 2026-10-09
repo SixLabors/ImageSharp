@@ -9,10 +9,10 @@ using SixLabors.ImageSharp.Common.Helpers;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
 /// <content>
-/// Provides SIMD block transposition for zone 3 directional prediction. AV1 block dimensions are multiples of four,
-/// allowing the traversal to use complete eight-by-eight tiles where possible and complete four-by-four tiles for the
-/// remaining small blocks. Unpack stages exchange coordinate bits inside registers; exact-width loads and stores keep
-/// every access within the logical block even when the destination has no writable row padding.
+/// Provides SIMD block transposition for zone 3 directional prediction. AV1 block dimensions are multiples of four.
+/// Thus the traversal uses full eight-by-eight tiles where possible, and full four-by-four tiles for the remaining small blocks.
+/// Unpack stages exchange coordinate bits inside registers.
+/// Exact-width loads and stores keep every access inside the logical block, also when the destination has no writable row padding.
 /// </content>
 internal static partial class Av1DirectionalIntraPredictor
 {
@@ -34,8 +34,8 @@ internal static partial class Av1DirectionalIntraPredictor
         {
             if (Vector128.IsHardwareAccelerated)
             {
-                // Selecting one tile size for the complete block keeps both loop increments aligned with the AV1 block
-                // dimensions. No partial SIMD tile reaches a neighboring prediction block.
+                // One tile size serves the complete block, so both loop increments stay aligned with the AV1 block dimensions.
+                // Thus no partial SIMD tile reaches a neighboring prediction block.
                 int tileSize = sourceWidth >= 8 && sourceHeight >= 8 ? 8 : 4;
                 for (int y = 0; y < sourceHeight; y += tileSize)
                 {
@@ -76,7 +76,7 @@ internal static partial class Av1DirectionalIntraPredictor
         {
             if (Vector128.IsHardwareAccelerated)
             {
-                // The same tiling invariant applies to two-byte samples; only the register unpack granularity differs.
+                // The same tiling invariant applies to two-byte samples. Only the unpack granularity of the registers differs.
                 int tileSize = sourceWidth >= 8 && sourceHeight >= 8 ? 8 : 4;
                 for (int y = 0; y < sourceHeight; y += tileSize)
                 {
@@ -127,8 +127,8 @@ internal static partial class Av1DirectionalIntraPredictor
             Vector128<byte> row6 = LoadEightBytes(ref sourceBase, ((y + 6) * sourceStride) + x);
             Vector128<byte> row7 = LoadEightBytes(ref sourceBase, ((y + 7) * sourceStride) + x);
 
-            // Three unpack stages exchange one, two, then four byte coordinates. Each final vector contains two
-            // complete source columns, which are written as two contiguous eight-byte destination rows.
+            // Three unpack stages interleave 1-byte, 2-byte, then 4-byte groups. Each final vector holds two complete source columns.
+            // Each column becomes one contiguous eight-byte destination row.
             Vector128<byte> pair0 = Vector128_.UnpackLow(row0, row1);
             Vector128<byte> pair2 = Vector128_.UnpackLow(row2, row3);
             Vector128<byte> pair4 = Vector128_.UnpackLow(row4, row5);
@@ -169,6 +169,8 @@ internal static partial class Av1DirectionalIntraPredictor
             Vector128<byte> row1 = LoadFourBytes(ref sourceBase, ((y + 1) * sourceStride) + x);
             Vector128<byte> row2 = LoadFourBytes(ref sourceBase, ((y + 2) * sourceStride) + x);
             Vector128<byte> row3 = LoadFourBytes(ref sourceBase, ((y + 3) * sourceStride) + x);
+
+            // Two unpack stages interleave 1-byte, then 2-byte groups. Each 32-bit lane then holds one complete source column.
             Vector128<byte> pair0 = Vector128_.UnpackLow(row0, row1);
             Vector128<byte> pair1 = Vector128_.UnpackLow(row2, row3);
             Vector128<short> columns = Vector128_.UnpackLow(pair0.AsInt16(), pair1.AsInt16());
@@ -201,6 +203,8 @@ internal static partial class Av1DirectionalIntraPredictor
             Vector128<short> row5 = Vector128.LoadUnsafe(ref sourceBase, (nuint)(((y + 5) * sourceStride) + x));
             Vector128<short> row6 = Vector128.LoadUnsafe(ref sourceBase, (nuint)(((y + 6) * sourceStride) + x));
             Vector128<short> row7 = Vector128.LoadUnsafe(ref sourceBase, (nuint)(((y + 7) * sourceStride) + x));
+
+            // Three unpack stages interleave 2-byte, 4-byte, then 8-byte groups. Each final vector holds one complete source column.
             Vector128<short> pair0 = Vector128_.UnpackLow(row0, row1);
             Vector128<short> pair1 = Vector128_.UnpackHigh(row0, row1);
             Vector128<short> pair2 = Vector128_.UnpackLow(row2, row3);
@@ -252,6 +256,8 @@ internal static partial class Av1DirectionalIntraPredictor
             Vector128<short> row1 = LoadFourShorts(ref sourceBase, ((y + 1) * sourceStride) + x);
             Vector128<short> row2 = LoadFourShorts(ref sourceBase, ((y + 2) * sourceStride) + x);
             Vector128<short> row3 = LoadFourShorts(ref sourceBase, ((y + 3) * sourceStride) + x);
+
+            // Two unpack stages interleave 2-byte, then 4-byte groups. Each 64-bit lane then holds one complete source column.
             Vector128<short> pair0 = Vector128_.UnpackLow(row0, row1);
             Vector128<short> pair1 = Vector128_.UnpackLow(row2, row3);
             Vector128<int> columns01 = Vector128_.UnpackLow(pair0.AsInt32(), pair1.AsInt32());
@@ -294,7 +300,7 @@ internal static partial class Av1DirectionalIntraPredictor
             => Vector128.Create(Unsafe.As<short, ulong>(ref Unsafe.Add(ref source, offset)), 0UL).AsInt16();
 
         /// <summary>
-        /// Stores the lower eight bytes of a vector.
+        /// Stores eight bytes packed in one 64-bit value.
         /// </summary>
         /// <param name="source">The packed bytes.</param>
         /// <param name="destination">The destination buffer origin.</param>
@@ -304,7 +310,7 @@ internal static partial class Av1DirectionalIntraPredictor
             => Unsafe.As<byte, ulong>(ref Unsafe.Add(ref destination, offset)) = source;
 
         /// <summary>
-        /// Stores four bytes from the low vector lanes.
+        /// Stores four bytes packed in one 32-bit value.
         /// </summary>
         /// <param name="source">The packed bytes.</param>
         /// <param name="destination">The destination buffer origin.</param>
@@ -314,7 +320,7 @@ internal static partial class Av1DirectionalIntraPredictor
             => Unsafe.As<byte, uint>(ref Unsafe.Add(ref destination, offset)) = source;
 
         /// <summary>
-        /// Stores four high-bit-depth samples from the low vector lanes.
+        /// Stores four high-bit-depth samples packed in one 64-bit value.
         /// </summary>
         /// <param name="source">The packed samples.</param>
         /// <param name="destination">The destination buffer origin.</param>

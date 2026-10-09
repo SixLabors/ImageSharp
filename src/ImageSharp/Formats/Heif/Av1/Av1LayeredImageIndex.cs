@@ -74,8 +74,8 @@ internal readonly struct Av1LayeredImageIndex
 
             if (layerSize >= remainingSize)
             {
-                // Every explicit layer must leave at least one byte for the final implicit layer. A zero entry instead
-                // identifies the current layer as final and consumes the complete remainder.
+                // Every explicit layer must leave at least one byte for the final implicit layer. A zero entry instead identifies the current layer as final
+                // and consumes the complete remainder.
                 throw new InvalidImageContentException($"AV1 layered-image layer {layer} does not fit within the item payload.");
             }
 

@@ -28,7 +28,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<int>.CreateRounding(cosBit);
 
-            // Stage 1 consumes the source block completely before any final coefficient is stored back into it.
+            // Stage 1 adds and subtracts the mirrored input pairs. It reads the whole source block before any output overwrites it.
             for (int i = 0; i < 16; i++)
             {
                 Av1ForwardTransformArithmetic<int>.AddSubtract(
@@ -38,7 +38,7 @@ internal static partial class Av1ForwardTransformer
                     out buffer1[31 - i]);
             }
 
-            // Stage 2 starts the recursive radix-2 factorization and rotates the central odd-frequency pairs.
+            // Stage 2 adds and subtracts the mirrored pairs of the even half and rotates the central odd pairs by pi/4.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<int>.AddSubtract(buffer1[i], buffer1[15 - i], out buffer0[i], out buffer0[15 - i]);
@@ -57,7 +57,7 @@ internal static partial class Av1ForwardTransformer
                     in rounding);
             }
 
-            // Stage 3 reduces the even half and folds the next odd-frequency groups into paired sums and differences.
+            // Stage 3 adds and subtracts the first eight even terms, rotates the central terms 10 to 13 by pi/4, and combines the odd terms.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<int>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
@@ -89,7 +89,7 @@ internal static partial class Av1ForwardTransformer
                 Av1ForwardTransformArithmetic<int>.AddSubtract(buffer1[31 - i], buffer0[24 + i], out buffer1[31 - i], out buffer1[24 + i]);
             }
 
-            // Stage 4 continues the factorization as independent eight-value groups.
+            // Stage 4 continues the even terms and rotates the odd terms 18 to 21 and 26 to 29 by pi/8.
             for (int i = 0; i < 2; i++)
             {
                 Av1ForwardTransformArithmetic<int>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
@@ -151,8 +151,8 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 5 completes the low-frequency DCT and rotates the first separated odd groups. Final coefficients are
-            // retired directly to the block instead of being copied through a third workspace.
+            // Stage 5 stores outputs 0, 8, 16 and 24 and continues the remaining terms. ButterflyStore writes each final output straight to the block.
+            // Thus the transform needs no third buffer.
             ButterflyStore(cospi[32], cospi[32], buffer0[0], buffer0[1], ref values, outputStride, 0, 16, cosBit, in rounding);
             ButterflyStore(cospi[16], cospi[48], buffer0[3], buffer0[2], ref values, outputStride, 8, 24, cosBit, in rounding);
             Av1ForwardTransformArithmetic<int>.AddSubtract(buffer1[4], buffer0[5], out buffer1[4], out buffer1[5]);
@@ -186,7 +186,7 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<int>.AddSubtract(buffer1[31], buffer0[28], out buffer1[31], out buffer1[28]);
             Av1ForwardTransformArithmetic<int>.AddSubtract(buffer1[30], buffer0[29], out buffer1[30], out buffer1[29]);
 
-            // Stage 6 merges adjacent odd-frequency terms with the sign pattern required by the next rotations.
+            // Stage 6 stores outputs 4, 12, 20 and 28, combines the terms 8 to 15, and rotates four odd pairs by multiples of pi/16.
             ButterflyStore(cospi[8], cospi[56], buffer1[7], buffer1[4], ref values, outputStride, 4, 28, cosBit, in rounding);
             ButterflyStore(cospi[40], cospi[24], buffer1[6], buffer1[5], ref values, outputStride, 20, 12, cosBit, in rounding);
             Av1ForwardTransformArithmetic<int>.AddSubtract(buffer0[8], buffer1[9], out buffer0[8], out buffer0[9]);
@@ -233,7 +233,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 7 applies the pi/32 rotations to the next odd-frequency level.
+            // Stage 7 stores the outputs 2 + 4k with rotations in multiples of pi/32 and combines the odd terms 16 to 31.
             ButterflyStore(cospi[4], cospi[60], buffer0[15], buffer0[8], ref values, outputStride, 2, 30, cosBit, in rounding);
             ButterflyStore(cospi[36], cospi[28], buffer0[14], buffer0[9], ref values, outputStride, 18, 14, cosBit, in rounding);
             ButterflyStore(cospi[20], cospi[44], buffer0[13], buffer0[10], ref values, outputStride, 10, 22, cosBit, in rounding);
@@ -247,8 +247,8 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<int>.AddSubtract(buffer1[28], buffer0[29], out buffer1[28], out buffer1[29]);
             Av1ForwardTransformArithmetic<int>.AddSubtract(buffer1[31], buffer0[30], out buffer1[31], out buffer1[30]);
 
-            // Stages 8 and 9 fuse the terminal pi/64 rotations with the output permutation because none of their results
-            // are consumed by another arithmetic stage.
+            // Stages 8 and 9 fuse the final rotations in multiples of pi/64 with the output permutation.
+            // No later stage reads these results, so ButterflyStore writes them straight to the odd outputs.
             ButterflyStore(cospi[2], cospi[62], buffer1[31], buffer1[16], ref values, outputStride, 1, 31, cosBit, in rounding);
             ButterflyStore(cospi[34], cospi[30], buffer1[30], buffer1[17], ref values, outputStride, 17, 15, cosBit, in rounding);
             ButterflyStore(cospi[18], cospi[46], buffer1[29], buffer1[18], ref values, outputStride, 9, 23, cosBit, in rounding);
@@ -271,7 +271,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<short>.CreateRounding(cosBit);
 
-            // Stage 1 consumes the source block completely before any final coefficient is stored back into it.
+            // Stage 1 adds and subtracts the mirrored input pairs. It reads the whole source block before any output overwrites it.
             for (int i = 0; i < 16; i++)
             {
                 Av1ForwardTransformArithmetic<short>.AddSubtract(
@@ -281,7 +281,7 @@ internal static partial class Av1ForwardTransformer
                     out buffer1[31 - i]);
             }
 
-            // Stage 2 starts the recursive radix-2 factorization and rotates the central odd-frequency pairs.
+            // Stage 2 adds and subtracts the mirrored pairs of the even half and rotates the central odd pairs by pi/4.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<short>.AddSubtract(buffer1[i], buffer1[15 - i], out buffer0[i], out buffer0[15 - i]);
@@ -300,7 +300,7 @@ internal static partial class Av1ForwardTransformer
                     in rounding);
             }
 
-            // Stage 3 reduces the even half and folds the next odd-frequency groups into paired sums and differences.
+            // Stage 3 adds and subtracts the first eight even terms, rotates the central terms 10 to 13 by pi/4, and combines the odd terms.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<short>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
@@ -332,7 +332,7 @@ internal static partial class Av1ForwardTransformer
                 Av1ForwardTransformArithmetic<short>.AddSubtract(buffer1[31 - i], buffer0[24 + i], out buffer1[31 - i], out buffer1[24 + i]);
             }
 
-            // Stage 4 continues the factorization as independent eight-value groups.
+            // Stage 4 continues the even terms and rotates the odd terms 18 to 21 and 26 to 29 by pi/8.
             for (int i = 0; i < 2; i++)
             {
                 Av1ForwardTransformArithmetic<short>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
@@ -394,8 +394,8 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 5 completes the low-frequency DCT and rotates the first separated odd groups. Final coefficients are
-            // retired directly to the block instead of being copied through a third workspace.
+            // Stage 5 stores outputs 0, 8, 16 and 24 and continues the remaining terms. ButterflyStore writes each final output straight to the block.
+            // Thus the transform needs no third buffer.
             ButterflyStore(cospi[32], cospi[32], buffer0[0], buffer0[1], ref values, outputStride, 0, 16, cosBit, in rounding);
             ButterflyStore(cospi[16], cospi[48], buffer0[3], buffer0[2], ref values, outputStride, 8, 24, cosBit, in rounding);
             Av1ForwardTransformArithmetic<short>.AddSubtract(buffer1[4], buffer0[5], out buffer1[4], out buffer1[5]);
@@ -429,7 +429,7 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<short>.AddSubtract(buffer1[31], buffer0[28], out buffer1[31], out buffer1[28]);
             Av1ForwardTransformArithmetic<short>.AddSubtract(buffer1[30], buffer0[29], out buffer1[30], out buffer1[29]);
 
-            // Stage 6 merges adjacent odd-frequency terms with the sign pattern required by the next rotations.
+            // Stage 6 stores outputs 4, 12, 20 and 28, combines the terms 8 to 15, and rotates four odd pairs by multiples of pi/16.
             ButterflyStore(cospi[8], cospi[56], buffer1[7], buffer1[4], ref values, outputStride, 4, 28, cosBit, in rounding);
             ButterflyStore(cospi[40], cospi[24], buffer1[6], buffer1[5], ref values, outputStride, 20, 12, cosBit, in rounding);
             Av1ForwardTransformArithmetic<short>.AddSubtract(buffer0[8], buffer1[9], out buffer0[8], out buffer0[9]);
@@ -476,7 +476,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 7 applies the pi/32 rotations to the next odd-frequency level.
+            // Stage 7 stores the outputs 2 + 4k with rotations in multiples of pi/32 and combines the odd terms 16 to 31.
             ButterflyStore(cospi[4], cospi[60], buffer0[15], buffer0[8], ref values, outputStride, 2, 30, cosBit, in rounding);
             ButterflyStore(cospi[36], cospi[28], buffer0[14], buffer0[9], ref values, outputStride, 18, 14, cosBit, in rounding);
             ButterflyStore(cospi[20], cospi[44], buffer0[13], buffer0[10], ref values, outputStride, 10, 22, cosBit, in rounding);
@@ -490,8 +490,8 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<short>.AddSubtract(buffer1[28], buffer0[29], out buffer1[28], out buffer1[29]);
             Av1ForwardTransformArithmetic<short>.AddSubtract(buffer1[31], buffer0[30], out buffer1[31], out buffer1[30]);
 
-            // Stages 8 and 9 fuse the terminal pi/64 rotations with the output permutation because none of their results
-            // are consumed by another arithmetic stage.
+            // Stages 8 and 9 fuse the final rotations in multiples of pi/64 with the output permutation.
+            // No later stage reads these results, so ButterflyStore writes them straight to the odd outputs.
             ButterflyStore(cospi[2], cospi[62], buffer1[31], buffer1[16], ref values, outputStride, 1, 31, cosBit, in rounding);
             ButterflyStore(cospi[34], cospi[30], buffer1[30], buffer1[17], ref values, outputStride, 17, 15, cosBit, in rounding);
             ButterflyStore(cospi[18], cospi[46], buffer1[29], buffer1[18], ref values, outputStride, 9, 23, cosBit, in rounding);
@@ -514,7 +514,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector128<short>>.CreateRounding(cosBit);
 
-            // Stage 1 consumes the source block completely before any final coefficient is stored back into it.
+            // Stage 1 adds and subtracts the mirrored input pairs. It reads the whole source block before any output overwrites it.
             for (int i = 0; i < 16; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(
@@ -524,7 +524,7 @@ internal static partial class Av1ForwardTransformer
                     out buffer1[31 - i]);
             }
 
-            // Stage 2 starts the recursive radix-2 factorization and rotates the central odd-frequency pairs.
+            // Stage 2 adds and subtracts the mirrored pairs of the even half and rotates the central odd pairs by pi/4.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer1[i], buffer1[15 - i], out buffer0[i], out buffer0[15 - i]);
@@ -543,7 +543,7 @@ internal static partial class Av1ForwardTransformer
                     in rounding);
             }
 
-            // Stage 3 reduces the even half and folds the next odd-frequency groups into paired sums and differences.
+            // Stage 3 adds and subtracts the first eight even terms, rotates the central terms 10 to 13 by pi/4, and combines the odd terms.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
@@ -575,7 +575,7 @@ internal static partial class Av1ForwardTransformer
                 Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer1[31 - i], buffer0[24 + i], out buffer1[31 - i], out buffer1[24 + i]);
             }
 
-            // Stage 4 continues the factorization as independent eight-value groups.
+            // Stage 4 continues the even terms and rotates the odd terms 18 to 21 and 26 to 29 by pi/8.
             for (int i = 0; i < 2; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
@@ -637,8 +637,8 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 5 completes the low-frequency DCT and rotates the first separated odd groups. Final coefficients are
-            // retired directly to the block instead of being copied through a third workspace.
+            // Stage 5 stores outputs 0, 8, 16 and 24 and continues the remaining terms. ButterflyStore writes each final output straight to the block.
+            // Thus the transform needs no third buffer.
             ButterflyStore(cospi[32], cospi[32], buffer0[0], buffer0[1], ref values, outputStride, 0, 16, cosBit, in rounding);
             ButterflyStore(cospi[16], cospi[48], buffer0[3], buffer0[2], ref values, outputStride, 8, 24, cosBit, in rounding);
             Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer1[4], buffer0[5], out buffer1[4], out buffer1[5]);
@@ -672,7 +672,7 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer1[31], buffer0[28], out buffer1[31], out buffer1[28]);
             Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer1[30], buffer0[29], out buffer1[30], out buffer1[29]);
 
-            // Stage 6 merges adjacent odd-frequency terms with the sign pattern required by the next rotations.
+            // Stage 6 stores outputs 4, 12, 20 and 28, combines the terms 8 to 15, and rotates four odd pairs by multiples of pi/16.
             ButterflyStore(cospi[8], cospi[56], buffer1[7], buffer1[4], ref values, outputStride, 4, 28, cosBit, in rounding);
             ButterflyStore(cospi[40], cospi[24], buffer1[6], buffer1[5], ref values, outputStride, 20, 12, cosBit, in rounding);
             Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer0[8], buffer1[9], out buffer0[8], out buffer0[9]);
@@ -719,7 +719,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 7 applies the pi/32 rotations to the next odd-frequency level.
+            // Stage 7 stores the outputs 2 + 4k with rotations in multiples of pi/32 and combines the odd terms 16 to 31.
             ButterflyStore(cospi[4], cospi[60], buffer0[15], buffer0[8], ref values, outputStride, 2, 30, cosBit, in rounding);
             ButterflyStore(cospi[36], cospi[28], buffer0[14], buffer0[9], ref values, outputStride, 18, 14, cosBit, in rounding);
             ButterflyStore(cospi[20], cospi[44], buffer0[13], buffer0[10], ref values, outputStride, 10, 22, cosBit, in rounding);
@@ -733,8 +733,8 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer1[28], buffer0[29], out buffer1[28], out buffer1[29]);
             Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer1[31], buffer0[30], out buffer1[31], out buffer1[30]);
 
-            // Stages 8 and 9 fuse the terminal pi/64 rotations with the output permutation because none of their results
-            // are consumed by another arithmetic stage.
+            // Stages 8 and 9 fuse the final rotations in multiples of pi/64 with the output permutation.
+            // No later stage reads these results, so ButterflyStore writes them straight to the odd outputs.
             ButterflyStore(cospi[2], cospi[62], buffer1[31], buffer1[16], ref values, outputStride, 1, 31, cosBit, in rounding);
             ButterflyStore(cospi[34], cospi[30], buffer1[30], buffer1[17], ref values, outputStride, 17, 15, cosBit, in rounding);
             ButterflyStore(cospi[18], cospi[46], buffer1[29], buffer1[18], ref values, outputStride, 9, 23, cosBit, in rounding);
@@ -757,7 +757,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector256<short>>.CreateRounding(cosBit);
 
-            // Stage 1 consumes the source block completely before any final coefficient is stored back into it.
+            // Stage 1 adds and subtracts the mirrored input pairs. It reads the whole source block before any output overwrites it.
             for (int i = 0; i < 16; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(
@@ -767,7 +767,7 @@ internal static partial class Av1ForwardTransformer
                     out buffer1[31 - i]);
             }
 
-            // Stage 2 starts the recursive radix-2 factorization and rotates the central odd-frequency pairs.
+            // Stage 2 adds and subtracts the mirrored pairs of the even half and rotates the central odd pairs by pi/4.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer1[i], buffer1[15 - i], out buffer0[i], out buffer0[15 - i]);
@@ -786,7 +786,7 @@ internal static partial class Av1ForwardTransformer
                     in rounding);
             }
 
-            // Stage 3 reduces the even half and folds the next odd-frequency groups into paired sums and differences.
+            // Stage 3 adds and subtracts the first eight even terms, rotates the central terms 10 to 13 by pi/4, and combines the odd terms.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
@@ -818,7 +818,7 @@ internal static partial class Av1ForwardTransformer
                 Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer1[31 - i], buffer0[24 + i], out buffer1[31 - i], out buffer1[24 + i]);
             }
 
-            // Stage 4 continues the factorization as independent eight-value groups.
+            // Stage 4 continues the even terms and rotates the odd terms 18 to 21 and 26 to 29 by pi/8.
             for (int i = 0; i < 2; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
@@ -880,8 +880,8 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 5 completes the low-frequency DCT and rotates the first separated odd groups. Final coefficients are
-            // retired directly to the block instead of being copied through a third workspace.
+            // Stage 5 stores outputs 0, 8, 16 and 24 and continues the remaining terms. ButterflyStore writes each final output straight to the block.
+            // Thus the transform needs no third buffer.
             ButterflyStore(cospi[32], cospi[32], buffer0[0], buffer0[1], ref values, outputStride, 0, 16, cosBit, in rounding);
             ButterflyStore(cospi[16], cospi[48], buffer0[3], buffer0[2], ref values, outputStride, 8, 24, cosBit, in rounding);
             Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer1[4], buffer0[5], out buffer1[4], out buffer1[5]);
@@ -915,7 +915,7 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer1[31], buffer0[28], out buffer1[31], out buffer1[28]);
             Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer1[30], buffer0[29], out buffer1[30], out buffer1[29]);
 
-            // Stage 6 merges adjacent odd-frequency terms with the sign pattern required by the next rotations.
+            // Stage 6 stores outputs 4, 12, 20 and 28, combines the terms 8 to 15, and rotates four odd pairs by multiples of pi/16.
             ButterflyStore(cospi[8], cospi[56], buffer1[7], buffer1[4], ref values, outputStride, 4, 28, cosBit, in rounding);
             ButterflyStore(cospi[40], cospi[24], buffer1[6], buffer1[5], ref values, outputStride, 20, 12, cosBit, in rounding);
             Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer0[8], buffer1[9], out buffer0[8], out buffer0[9]);
@@ -962,7 +962,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 7 applies the pi/32 rotations to the next odd-frequency level.
+            // Stage 7 stores the outputs 2 + 4k with rotations in multiples of pi/32 and combines the odd terms 16 to 31.
             ButterflyStore(cospi[4], cospi[60], buffer0[15], buffer0[8], ref values, outputStride, 2, 30, cosBit, in rounding);
             ButterflyStore(cospi[36], cospi[28], buffer0[14], buffer0[9], ref values, outputStride, 18, 14, cosBit, in rounding);
             ButterflyStore(cospi[20], cospi[44], buffer0[13], buffer0[10], ref values, outputStride, 10, 22, cosBit, in rounding);
@@ -976,8 +976,8 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer1[28], buffer0[29], out buffer1[28], out buffer1[29]);
             Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer1[31], buffer0[30], out buffer1[31], out buffer1[30]);
 
-            // Stages 8 and 9 fuse the terminal pi/64 rotations with the output permutation because none of their results
-            // are consumed by another arithmetic stage.
+            // Stages 8 and 9 fuse the final rotations in multiples of pi/64 with the output permutation.
+            // No later stage reads these results, so ButterflyStore writes them straight to the odd outputs.
             ButterflyStore(cospi[2], cospi[62], buffer1[31], buffer1[16], ref values, outputStride, 1, 31, cosBit, in rounding);
             ButterflyStore(cospi[34], cospi[30], buffer1[30], buffer1[17], ref values, outputStride, 17, 15, cosBit, in rounding);
             ButterflyStore(cospi[18], cospi[46], buffer1[29], buffer1[18], ref values, outputStride, 9, 23, cosBit, in rounding);
@@ -1000,7 +1000,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector512<short>>.CreateRounding(cosBit);
 
-            // Stage 1 consumes the source block completely before any final coefficient is stored back into it.
+            // Stage 1 adds and subtracts the mirrored input pairs. It reads the whole source block before any output overwrites it.
             for (int i = 0; i < 16; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(
@@ -1010,7 +1010,7 @@ internal static partial class Av1ForwardTransformer
                     out buffer1[31 - i]);
             }
 
-            // Stage 2 starts the recursive radix-2 factorization and rotates the central odd-frequency pairs.
+            // Stage 2 adds and subtracts the mirrored pairs of the even half and rotates the central odd pairs by pi/4.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer1[i], buffer1[15 - i], out buffer0[i], out buffer0[15 - i]);
@@ -1029,7 +1029,7 @@ internal static partial class Av1ForwardTransformer
                     in rounding);
             }
 
-            // Stage 3 reduces the even half and folds the next odd-frequency groups into paired sums and differences.
+            // Stage 3 adds and subtracts the first eight even terms, rotates the central terms 10 to 13 by pi/4, and combines the odd terms.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
@@ -1061,7 +1061,7 @@ internal static partial class Av1ForwardTransformer
                 Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer1[31 - i], buffer0[24 + i], out buffer1[31 - i], out buffer1[24 + i]);
             }
 
-            // Stage 4 continues the factorization as independent eight-value groups.
+            // Stage 4 continues the even terms and rotates the odd terms 18 to 21 and 26 to 29 by pi/8.
             for (int i = 0; i < 2; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
@@ -1123,8 +1123,8 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 5 completes the low-frequency DCT and rotates the first separated odd groups. Final coefficients are
-            // retired directly to the block instead of being copied through a third workspace.
+            // Stage 5 stores outputs 0, 8, 16 and 24 and continues the remaining terms. ButterflyStore writes each final output straight to the block.
+            // Thus the transform needs no third buffer.
             ButterflyStore(cospi[32], cospi[32], buffer0[0], buffer0[1], ref values, outputStride, 0, 16, cosBit, in rounding);
             ButterflyStore(cospi[16], cospi[48], buffer0[3], buffer0[2], ref values, outputStride, 8, 24, cosBit, in rounding);
             Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer1[4], buffer0[5], out buffer1[4], out buffer1[5]);
@@ -1158,7 +1158,7 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer1[31], buffer0[28], out buffer1[31], out buffer1[28]);
             Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer1[30], buffer0[29], out buffer1[30], out buffer1[29]);
 
-            // Stage 6 merges adjacent odd-frequency terms with the sign pattern required by the next rotations.
+            // Stage 6 stores outputs 4, 12, 20 and 28, combines the terms 8 to 15, and rotates four odd pairs by multiples of pi/16.
             ButterflyStore(cospi[8], cospi[56], buffer1[7], buffer1[4], ref values, outputStride, 4, 28, cosBit, in rounding);
             ButterflyStore(cospi[40], cospi[24], buffer1[6], buffer1[5], ref values, outputStride, 20, 12, cosBit, in rounding);
             Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer0[8], buffer1[9], out buffer0[8], out buffer0[9]);
@@ -1205,7 +1205,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 7 applies the pi/32 rotations to the next odd-frequency level.
+            // Stage 7 stores the outputs 2 + 4k with rotations in multiples of pi/32 and combines the odd terms 16 to 31.
             ButterflyStore(cospi[4], cospi[60], buffer0[15], buffer0[8], ref values, outputStride, 2, 30, cosBit, in rounding);
             ButterflyStore(cospi[36], cospi[28], buffer0[14], buffer0[9], ref values, outputStride, 18, 14, cosBit, in rounding);
             ButterflyStore(cospi[20], cospi[44], buffer0[13], buffer0[10], ref values, outputStride, 10, 22, cosBit, in rounding);
@@ -1219,8 +1219,8 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer1[28], buffer0[29], out buffer1[28], out buffer1[29]);
             Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer1[31], buffer0[30], out buffer1[31], out buffer1[30]);
 
-            // Stages 8 and 9 fuse the terminal pi/64 rotations with the output permutation because none of their results
-            // are consumed by another arithmetic stage.
+            // Stages 8 and 9 fuse the final rotations in multiples of pi/64 with the output permutation.
+            // No later stage reads these results, so ButterflyStore writes them straight to the odd outputs.
             ButterflyStore(cospi[2], cospi[62], buffer1[31], buffer1[16], ref values, outputStride, 1, 31, cosBit, in rounding);
             ButterflyStore(cospi[34], cospi[30], buffer1[30], buffer1[17], ref values, outputStride, 17, 15, cosBit, in rounding);
             ButterflyStore(cospi[18], cospi[46], buffer1[29], buffer1[18], ref values, outputStride, 9, 23, cosBit, in rounding);
@@ -1243,7 +1243,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector128<int>>.CreateRounding(cosBit);
 
-            // Stage 1 consumes the source block completely before any final coefficient is stored back into it.
+            // Stage 1 adds and subtracts the mirrored input pairs. It reads the whole source block before any output overwrites it.
             for (int i = 0; i < 16; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(
@@ -1253,7 +1253,7 @@ internal static partial class Av1ForwardTransformer
                     out buffer1[31 - i]);
             }
 
-            // Stage 2 starts the recursive radix-2 factorization and rotates the central odd-frequency pairs.
+            // Stage 2 adds and subtracts the mirrored pairs of the even half and rotates the central odd pairs by pi/4.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer1[i], buffer1[15 - i], out buffer0[i], out buffer0[15 - i]);
@@ -1272,7 +1272,7 @@ internal static partial class Av1ForwardTransformer
                     in rounding);
             }
 
-            // Stage 3 reduces the even half and folds the next odd-frequency groups into paired sums and differences.
+            // Stage 3 adds and subtracts the first eight even terms, rotates the central terms 10 to 13 by pi/4, and combines the odd terms.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
@@ -1304,7 +1304,7 @@ internal static partial class Av1ForwardTransformer
                 Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer1[31 - i], buffer0[24 + i], out buffer1[31 - i], out buffer1[24 + i]);
             }
 
-            // Stage 4 continues the factorization as independent eight-value groups.
+            // Stage 4 continues the even terms and rotates the odd terms 18 to 21 and 26 to 29 by pi/8.
             for (int i = 0; i < 2; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
@@ -1366,8 +1366,8 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 5 completes the low-frequency DCT and rotates the first separated odd groups. Final coefficients are
-            // retired directly to the block instead of being copied through a third workspace.
+            // Stage 5 stores outputs 0, 8, 16 and 24 and continues the remaining terms. ButterflyStore writes each final output straight to the block.
+            // Thus the transform needs no third buffer.
             ButterflyStore(cospi[32], cospi[32], buffer0[0], buffer0[1], ref values, outputStride, 0, 16, cosBit, in rounding);
             ButterflyStore(cospi[16], cospi[48], buffer0[3], buffer0[2], ref values, outputStride, 8, 24, cosBit, in rounding);
             Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer1[4], buffer0[5], out buffer1[4], out buffer1[5]);
@@ -1401,7 +1401,7 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer1[31], buffer0[28], out buffer1[31], out buffer1[28]);
             Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer1[30], buffer0[29], out buffer1[30], out buffer1[29]);
 
-            // Stage 6 merges adjacent odd-frequency terms with the sign pattern required by the next rotations.
+            // Stage 6 stores outputs 4, 12, 20 and 28, combines the terms 8 to 15, and rotates four odd pairs by multiples of pi/16.
             ButterflyStore(cospi[8], cospi[56], buffer1[7], buffer1[4], ref values, outputStride, 4, 28, cosBit, in rounding);
             ButterflyStore(cospi[40], cospi[24], buffer1[6], buffer1[5], ref values, outputStride, 20, 12, cosBit, in rounding);
             Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer0[8], buffer1[9], out buffer0[8], out buffer0[9]);
@@ -1448,7 +1448,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 7 applies the pi/32 rotations to the next odd-frequency level.
+            // Stage 7 stores the outputs 2 + 4k with rotations in multiples of pi/32 and combines the odd terms 16 to 31.
             ButterflyStore(cospi[4], cospi[60], buffer0[15], buffer0[8], ref values, outputStride, 2, 30, cosBit, in rounding);
             ButterflyStore(cospi[36], cospi[28], buffer0[14], buffer0[9], ref values, outputStride, 18, 14, cosBit, in rounding);
             ButterflyStore(cospi[20], cospi[44], buffer0[13], buffer0[10], ref values, outputStride, 10, 22, cosBit, in rounding);
@@ -1462,8 +1462,8 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer1[28], buffer0[29], out buffer1[28], out buffer1[29]);
             Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer1[31], buffer0[30], out buffer1[31], out buffer1[30]);
 
-            // Stages 8 and 9 fuse the terminal pi/64 rotations with the output permutation because none of their results
-            // are consumed by another arithmetic stage.
+            // Stages 8 and 9 fuse the final rotations in multiples of pi/64 with the output permutation.
+            // No later stage reads these results, so ButterflyStore writes them straight to the odd outputs.
             ButterflyStore(cospi[2], cospi[62], buffer1[31], buffer1[16], ref values, outputStride, 1, 31, cosBit, in rounding);
             ButterflyStore(cospi[34], cospi[30], buffer1[30], buffer1[17], ref values, outputStride, 17, 15, cosBit, in rounding);
             ButterflyStore(cospi[18], cospi[46], buffer1[29], buffer1[18], ref values, outputStride, 9, 23, cosBit, in rounding);
@@ -1486,7 +1486,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector256<int>>.CreateRounding(cosBit);
 
-            // Stage 1 consumes the source block completely before any final coefficient is stored back into it.
+            // Stage 1 adds and subtracts the mirrored input pairs. It reads the whole source block before any output overwrites it.
             for (int i = 0; i < 16; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(
@@ -1496,7 +1496,7 @@ internal static partial class Av1ForwardTransformer
                     out buffer1[31 - i]);
             }
 
-            // Stage 2 starts the recursive radix-2 factorization and rotates the central odd-frequency pairs.
+            // Stage 2 adds and subtracts the mirrored pairs of the even half and rotates the central odd pairs by pi/4.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer1[i], buffer1[15 - i], out buffer0[i], out buffer0[15 - i]);
@@ -1515,7 +1515,7 @@ internal static partial class Av1ForwardTransformer
                     in rounding);
             }
 
-            // Stage 3 reduces the even half and folds the next odd-frequency groups into paired sums and differences.
+            // Stage 3 adds and subtracts the first eight even terms, rotates the central terms 10 to 13 by pi/4, and combines the odd terms.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
@@ -1547,7 +1547,7 @@ internal static partial class Av1ForwardTransformer
                 Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer1[31 - i], buffer0[24 + i], out buffer1[31 - i], out buffer1[24 + i]);
             }
 
-            // Stage 4 continues the factorization as independent eight-value groups.
+            // Stage 4 continues the even terms and rotates the odd terms 18 to 21 and 26 to 29 by pi/8.
             for (int i = 0; i < 2; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
@@ -1609,8 +1609,8 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 5 completes the low-frequency DCT and rotates the first separated odd groups. Final coefficients are
-            // retired directly to the block instead of being copied through a third workspace.
+            // Stage 5 stores outputs 0, 8, 16 and 24 and continues the remaining terms. ButterflyStore writes each final output straight to the block.
+            // Thus the transform needs no third buffer.
             ButterflyStore(cospi[32], cospi[32], buffer0[0], buffer0[1], ref values, outputStride, 0, 16, cosBit, in rounding);
             ButterflyStore(cospi[16], cospi[48], buffer0[3], buffer0[2], ref values, outputStride, 8, 24, cosBit, in rounding);
             Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer1[4], buffer0[5], out buffer1[4], out buffer1[5]);
@@ -1644,7 +1644,7 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer1[31], buffer0[28], out buffer1[31], out buffer1[28]);
             Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer1[30], buffer0[29], out buffer1[30], out buffer1[29]);
 
-            // Stage 6 merges adjacent odd-frequency terms with the sign pattern required by the next rotations.
+            // Stage 6 stores outputs 4, 12, 20 and 28, combines the terms 8 to 15, and rotates four odd pairs by multiples of pi/16.
             ButterflyStore(cospi[8], cospi[56], buffer1[7], buffer1[4], ref values, outputStride, 4, 28, cosBit, in rounding);
             ButterflyStore(cospi[40], cospi[24], buffer1[6], buffer1[5], ref values, outputStride, 20, 12, cosBit, in rounding);
             Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer0[8], buffer1[9], out buffer0[8], out buffer0[9]);
@@ -1691,7 +1691,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 7 applies the pi/32 rotations to the next odd-frequency level.
+            // Stage 7 stores the outputs 2 + 4k with rotations in multiples of pi/32 and combines the odd terms 16 to 31.
             ButterflyStore(cospi[4], cospi[60], buffer0[15], buffer0[8], ref values, outputStride, 2, 30, cosBit, in rounding);
             ButterflyStore(cospi[36], cospi[28], buffer0[14], buffer0[9], ref values, outputStride, 18, 14, cosBit, in rounding);
             ButterflyStore(cospi[20], cospi[44], buffer0[13], buffer0[10], ref values, outputStride, 10, 22, cosBit, in rounding);
@@ -1705,8 +1705,8 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer1[28], buffer0[29], out buffer1[28], out buffer1[29]);
             Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer1[31], buffer0[30], out buffer1[31], out buffer1[30]);
 
-            // Stages 8 and 9 fuse the terminal pi/64 rotations with the output permutation because none of their results
-            // are consumed by another arithmetic stage.
+            // Stages 8 and 9 fuse the final rotations in multiples of pi/64 with the output permutation.
+            // No later stage reads these results, so ButterflyStore writes them straight to the odd outputs.
             ButterflyStore(cospi[2], cospi[62], buffer1[31], buffer1[16], ref values, outputStride, 1, 31, cosBit, in rounding);
             ButterflyStore(cospi[34], cospi[30], buffer1[30], buffer1[17], ref values, outputStride, 17, 15, cosBit, in rounding);
             ButterflyStore(cospi[18], cospi[46], buffer1[29], buffer1[18], ref values, outputStride, 9, 23, cosBit, in rounding);
@@ -1729,7 +1729,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector512<int>>.CreateRounding(cosBit);
 
-            // Stage 1 consumes the source block completely before any final coefficient is stored back into it.
+            // Stage 1 adds and subtracts the mirrored input pairs. It reads the whole source block before any output overwrites it.
             for (int i = 0; i < 16; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(
@@ -1739,7 +1739,7 @@ internal static partial class Av1ForwardTransformer
                     out buffer1[31 - i]);
             }
 
-            // Stage 2 starts the recursive radix-2 factorization and rotates the central odd-frequency pairs.
+            // Stage 2 adds and subtracts the mirrored pairs of the even half and rotates the central odd pairs by pi/4.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer1[i], buffer1[15 - i], out buffer0[i], out buffer0[15 - i]);
@@ -1758,7 +1758,7 @@ internal static partial class Av1ForwardTransformer
                     in rounding);
             }
 
-            // Stage 3 reduces the even half and folds the next odd-frequency groups into paired sums and differences.
+            // Stage 3 adds and subtracts the first eight even terms, rotates the central terms 10 to 13 by pi/4, and combines the odd terms.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
@@ -1790,7 +1790,7 @@ internal static partial class Av1ForwardTransformer
                 Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer1[31 - i], buffer0[24 + i], out buffer1[31 - i], out buffer1[24 + i]);
             }
 
-            // Stage 4 continues the factorization as independent eight-value groups.
+            // Stage 4 continues the even terms and rotates the odd terms 18 to 21 and 26 to 29 by pi/8.
             for (int i = 0; i < 2; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
@@ -1852,8 +1852,8 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 5 completes the low-frequency DCT and rotates the first separated odd groups. Final coefficients are
-            // retired directly to the block instead of being copied through a third workspace.
+            // Stage 5 stores outputs 0, 8, 16 and 24 and continues the remaining terms. ButterflyStore writes each final output straight to the block.
+            // Thus the transform needs no third buffer.
             ButterflyStore(cospi[32], cospi[32], buffer0[0], buffer0[1], ref values, outputStride, 0, 16, cosBit, in rounding);
             ButterflyStore(cospi[16], cospi[48], buffer0[3], buffer0[2], ref values, outputStride, 8, 24, cosBit, in rounding);
             Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer1[4], buffer0[5], out buffer1[4], out buffer1[5]);
@@ -1887,7 +1887,7 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer1[31], buffer0[28], out buffer1[31], out buffer1[28]);
             Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer1[30], buffer0[29], out buffer1[30], out buffer1[29]);
 
-            // Stage 6 merges adjacent odd-frequency terms with the sign pattern required by the next rotations.
+            // Stage 6 stores outputs 4, 12, 20 and 28, combines the terms 8 to 15, and rotates four odd pairs by multiples of pi/16.
             ButterflyStore(cospi[8], cospi[56], buffer1[7], buffer1[4], ref values, outputStride, 4, 28, cosBit, in rounding);
             ButterflyStore(cospi[40], cospi[24], buffer1[6], buffer1[5], ref values, outputStride, 20, 12, cosBit, in rounding);
             Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer0[8], buffer1[9], out buffer0[8], out buffer0[9]);
@@ -1934,7 +1934,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 7 applies the pi/32 rotations to the next odd-frequency level.
+            // Stage 7 stores the outputs 2 + 4k with rotations in multiples of pi/32 and combines the odd terms 16 to 31.
             ButterflyStore(cospi[4], cospi[60], buffer0[15], buffer0[8], ref values, outputStride, 2, 30, cosBit, in rounding);
             ButterflyStore(cospi[36], cospi[28], buffer0[14], buffer0[9], ref values, outputStride, 18, 14, cosBit, in rounding);
             ButterflyStore(cospi[20], cospi[44], buffer0[13], buffer0[10], ref values, outputStride, 10, 22, cosBit, in rounding);
@@ -1948,8 +1948,8 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer1[28], buffer0[29], out buffer1[28], out buffer1[29]);
             Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer1[31], buffer0[30], out buffer1[31], out buffer1[30]);
 
-            // Stages 8 and 9 fuse the terminal pi/64 rotations with the output permutation because none of their results
-            // are consumed by another arithmetic stage.
+            // Stages 8 and 9 fuse the final rotations in multiples of pi/64 with the output permutation.
+            // No later stage reads these results, so ButterflyStore writes them straight to the odd outputs.
             ButterflyStore(cospi[2], cospi[62], buffer1[31], buffer1[16], ref values, outputStride, 1, 31, cosBit, in rounding);
             ButterflyStore(cospi[34], cospi[30], buffer1[30], buffer1[17], ref values, outputStride, 17, 15, cosBit, in rounding);
             ButterflyStore(cospi[18], cospi[46], buffer1[29], buffer1[18], ref values, outputStride, 9, 23, cosBit, in rounding);

@@ -24,8 +24,8 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
         /// </summary>
         /// <param name="first">The first predictor sample.</param>
         /// <param name="second">The second predictor sample.</param>
-        /// <param name="shift">The difference scaling shift.</param>
-        /// <param name="invert">Whether to invert the selected predictor.</param>
+        /// <param name="shift">The right shift that scales the absolute difference.</param>
+        /// <param name="invert">Whether to return 64 minus the mask value, which swaps the weights of the two predictors.</param>
         /// <returns>The AV1 mask value.</returns>
         public static abstract byte Create(byte first, byte second, int shift, bool invert);
 
@@ -34,8 +34,8 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
         /// </summary>
         /// <param name="first">The first predictor sample.</param>
         /// <param name="second">The second predictor sample.</param>
-        /// <param name="shift">The difference scaling shift.</param>
-        /// <param name="invert">Whether to invert the selected predictor.</param>
+        /// <param name="shift">The right shift that scales the absolute difference.</param>
+        /// <param name="invert">Whether to return 64 minus the mask value, which swaps the weights of the two predictors.</param>
         /// <returns>The AV1 mask value.</returns>
         public static abstract byte Create(ushort first, ushort second, int shift, bool invert);
 
@@ -44,8 +44,8 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
         /// </summary>
         /// <param name="first">The first predictor samples.</param>
         /// <param name="second">The second predictor samples.</param>
-        /// <param name="shift">The difference scaling shift.</param>
-        /// <param name="invert">Whether to invert the selected predictor.</param>
+        /// <param name="shift">The right shift that scales the absolute difference.</param>
+        /// <param name="invert">Whether to return 64 minus the mask value, which swaps the weights of the two predictors.</param>
         /// <returns>The AV1 mask values.</returns>
         public static abstract Vector128<byte> Create(Vector128<byte> first, Vector128<byte> second, int shift, bool invert);
 
@@ -54,8 +54,8 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
         /// </summary>
         /// <param name="first">The first predictor samples.</param>
         /// <param name="second">The second predictor samples.</param>
-        /// <param name="shift">The difference scaling shift.</param>
-        /// <param name="invert">Whether to invert the selected predictor.</param>
+        /// <param name="shift">The right shift that scales the absolute difference.</param>
+        /// <param name="invert">Whether to return 64 minus the mask value, which swaps the weights of the two predictors.</param>
         /// <returns>The AV1 mask values.</returns>
         public static abstract Vector256<byte> Create(Vector256<byte> first, Vector256<byte> second, int shift, bool invert);
 
@@ -64,8 +64,8 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
         /// </summary>
         /// <param name="first">The first predictor samples.</param>
         /// <param name="second">The second predictor samples.</param>
-        /// <param name="shift">The difference scaling shift.</param>
-        /// <param name="invert">Whether to invert the selected predictor.</param>
+        /// <param name="shift">The right shift that scales the absolute difference.</param>
+        /// <param name="invert">Whether to return 64 minus the mask value, which swaps the weights of the two predictors.</param>
         /// <returns>The AV1 mask values.</returns>
         public static abstract Vector512<byte> Create(Vector512<byte> first, Vector512<byte> second, int shift, bool invert);
 
@@ -76,8 +76,8 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
         /// <param name="first1">The upper first-predictor samples.</param>
         /// <param name="second0">The lower second-predictor samples.</param>
         /// <param name="second1">The upper second-predictor samples.</param>
-        /// <param name="shift">The difference scaling shift.</param>
-        /// <param name="invert">Whether to invert the selected predictor.</param>
+        /// <param name="shift">The right shift that scales the absolute difference.</param>
+        /// <param name="invert">Whether to return 64 minus the mask value, which swaps the weights of the two predictors.</param>
         /// <returns>The packed AV1 mask values.</returns>
         public static abstract Vector128<byte> Create(
             Vector128<ushort> first0,
@@ -94,8 +94,8 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
         /// <param name="first1">The upper first-predictor samples.</param>
         /// <param name="second0">The lower second-predictor samples.</param>
         /// <param name="second1">The upper second-predictor samples.</param>
-        /// <param name="shift">The difference scaling shift.</param>
-        /// <param name="invert">Whether to invert the selected predictor.</param>
+        /// <param name="shift">The right shift that scales the absolute difference.</param>
+        /// <param name="invert">Whether to return 64 minus the mask value, which swaps the weights of the two predictors.</param>
         /// <returns>The packed AV1 mask values.</returns>
         public static abstract Vector256<byte> Create(
             Vector256<ushort> first0,
@@ -112,8 +112,8 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
         /// <param name="first1">The upper first-predictor samples.</param>
         /// <param name="second0">The lower second-predictor samples.</param>
         /// <param name="second1">The upper second-predictor samples.</param>
-        /// <param name="shift">The difference scaling shift.</param>
-        /// <param name="invert">Whether to invert the selected predictor.</param>
+        /// <param name="shift">The right shift that scales the absolute difference.</param>
+        /// <param name="invert">Whether to return 64 minus the mask value, which swaps the weights of the two predictors.</param>
         /// <returns>The packed AV1 mask values.</returns>
         public static abstract Vector512<byte> Create(
             Vector512<ushort> first0,
@@ -143,6 +143,8 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<byte> Create(Vector128<byte> first, Vector128<byte> second, int shift, bool invert)
         {
+            // The maximum minus the minimum is the absolute difference without unsigned wraparound.
+            // Each half widens to 16-bit lanes for the alpha arithmetic. All alpha values are at most 64, so the narrowing is exact.
             Vector128<byte> difference = Vector128.Max(first, second) - Vector128.Min(first, second);
             Vector128<ushort> lower = CreateAlpha(Vector128.WidenLower(difference), shift, invert);
             Vector128<ushort> upper = CreateAlpha(Vector128.WidenUpper(difference), shift, invert);
@@ -170,6 +172,10 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
         }
 
         /// <inheritdoc/>
+        /// <remarks>
+        /// The maximum minus the minimum gives the absolute difference of each lane pair.
+        /// All alpha values are at most 64, so the narrowing of the two 16-bit halves to bytes is exact.
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<byte> Create(
             Vector128<ushort> first0,
@@ -211,6 +217,10 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
         /// <summary>
         /// Creates one mask value from an absolute predictor difference.
         /// </summary>
+        /// <param name="difference">The absolute difference of the two predictor samples.</param>
+        /// <param name="shift">The right shift that scales the absolute difference.</param>
+        /// <param name="invert">Whether to return 64 minus the mask value, which swaps the weights of the two predictors.</param>
+        /// <returns>The mask value, min(64, 38 + (difference &gt;&gt; shift)), or its complement.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static byte Create(ushort difference, int shift, bool invert)
         {
@@ -221,6 +231,10 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
         /// <summary>
         /// Creates 128-bit vectors of unpacked mask values from absolute predictor differences.
         /// </summary>
+        /// <param name="difference">The absolute differences of the predictor samples.</param>
+        /// <param name="shift">The right shift that scales the absolute differences.</param>
+        /// <param name="invert">Whether to return 64 minus each mask value, which swaps the weights of the two predictors.</param>
+        /// <returns>The 16-bit mask values.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<ushort> CreateAlpha(Vector128<ushort> difference, int shift, bool invert)
         {
@@ -232,6 +246,10 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
         /// <summary>
         /// Creates 256-bit vectors of unpacked mask values from absolute predictor differences.
         /// </summary>
+        /// <param name="difference">The absolute differences of the predictor samples.</param>
+        /// <param name="shift">The right shift that scales the absolute differences.</param>
+        /// <param name="invert">Whether to return 64 minus each mask value, which swaps the weights of the two predictors.</param>
+        /// <returns>The 16-bit mask values.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector256<ushort> CreateAlpha(Vector256<ushort> difference, int shift, bool invert)
         {
@@ -243,6 +261,10 @@ internal static partial class Av1DifferenceWeightedMaskBuilder
         /// <summary>
         /// Creates 512-bit vectors of unpacked mask values from absolute predictor differences.
         /// </summary>
+        /// <param name="difference">The absolute differences of the predictor samples.</param>
+        /// <param name="shift">The right shift that scales the absolute differences.</param>
+        /// <param name="invert">Whether to return 64 minus each mask value, which swaps the weights of the two predictors.</param>
+        /// <returns>The 16-bit mask values.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector512<ushort> CreateAlpha(Vector512<ushort> difference, int shift, bool invert)
         {

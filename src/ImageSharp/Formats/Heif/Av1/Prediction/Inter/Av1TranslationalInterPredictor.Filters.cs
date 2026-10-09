@@ -10,6 +10,8 @@ internal static partial class Av1TranslationalInterPredictor
 {
     /// <summary>
     /// The number of stored coefficient positions in every decoder interpolation kernel.
+    /// Tap 3 multiplies the integer-position sample, so a kernel reads three samples before it and four samples after it.
+    /// Each kernel sums to 128, which is one in Q7.
     /// </summary>
     internal const int FilterCoefficientCount = 8;
 

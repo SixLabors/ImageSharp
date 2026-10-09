@@ -21,7 +21,7 @@ internal static class Av1InverseTransformMath
     public const int NewSqrt2BitCount = 12;
 
     /// <summary>
-    /// Gets the normative AC dequantizer value indexed by bit-depth category and quantizer index.
+    /// Contains the normative AC dequantizer values indexed by bit-depth category and quantizer index.
     /// </summary>
     public static readonly int[,] AcQLookup = new int[3, 256]
     {
@@ -163,21 +163,23 @@ internal static class Av1InverseTransformMath
     {
         int quant = GetDcQuantization(q, 0, bitDepth);
 
-        // Scaling the eight-bit threshold by four for every two added sample bits preserves the quantizer decision
-        // at equal normalized signal levels: 148 for 8-bit, 592 for 10-bit, and 2368 for 12-bit.
+        // The eight-bit threshold scales by four for every two added sample bits: 148 for 8-bit, 592 for 10-bit, and 2368 for 12-bit. As a result, the
+        // quantizer decision stays the same at equal normalized signal levels.
         int shift = (int)bitDepth << 1;
         int threshold = (1 << shift) * 148;
         return q == 0 ? 64 : (quant < threshold ? 84 : 80);
     }
 
     /// <summary>
-    /// Computes the fixed-point multiplier and shift used to replace division by a quantizer.
+    /// Computes the fixed-point multipliers used to replace division by a quantizer.
     /// </summary>
-    /// <param name="quantization">Receives the reciprocal multiplier without its implicit leading bit.</param>
-    /// <param name="shift">Receives the reciprocal scaling shift.</param>
+    /// <param name="quantization">Receives the reciprocal multiplier minus <c>1 &lt;&lt; 16</c>. The value can be negative.</param>
+    /// <param name="shift">Receives the scale factor <c>1 &lt;&lt; (16 - floor(log2(d)))</c>. The value is a multiplier, not a shift count.</param>
     /// <param name="d">The positive quantizer divisor.</param>
     public static void InvertQuantization(out int quantization, out int shift, int d)
     {
+        // l is floor(log2(d)). Then m = 1 + 2^(16 + l) / d is a reciprocal of d with 16 + l fractional bits, and m is at most 2^16 + 1. The quantizer computes
+        // ((x * quantization) >> 16) + x, which adds the subtracted 2^16 term back. A multiply by 2^(16 - l) then gives about 2^32 / d for every divisor.
         uint t;
         int l, m;
         t = (uint)d;
@@ -269,11 +271,8 @@ internal static class Av1InverseTransformMath
     /// <returns>The range-limited residual.</returns>
     private static long CheckRange(long input, int bd)
     {
-        // AV1 TX case
-        // - 8 bit: signed 16 bit integer
-        // - 10 bit: signed 18 bit integer
-        // - 12 bit: signed 20 bit integer
-        // - max quantization error = 1828 << (bd - 8)
+        // The base range is a signed (bd + 8)-bit integer: 16 bits for 8-bit, 18 bits for 10-bit, and 20 bits for 12-bit samples. The bound adds the maximum
+        // quantization error 1828 << (bd - 8), written here as 914 << (bd - 7).
         int maximum = (1 << (7 + bd)) - 1 + (914 << (bd - 7));
         int minimum = -maximum - 1;
         return Av1Math.Clamp(input, minimum, maximum);
@@ -286,6 +285,7 @@ internal static class Av1InverseTransformMath
     /// <returns>The maximum coefficient end position represented by AV1 syntax.</returns>
     public static int GetMaxEndOfBuffer(Av1TransformSize transformSize)
     {
+        // A 64-point axis codes only its first 32 coefficients, so these sizes carry at most a 32-by-32 or 16-by-32 coefficient block.
         if (transformSize is Av1TransformSize.Size64x64 or Av1TransformSize.Size64x32 or Av1TransformSize.Size32x64)
         {
             return 1024;

@@ -16,7 +16,7 @@ internal interface IAv1TileReader
     void ReadTile(Span<byte> tileData, int tileNum);
 
     /// <summary>
-    /// Completes the current coded frame after all tile payloads have been read and releases frame-scoped resources.
+    /// Completes the current coded frame and releases frame-scoped resources. The caller calls this method after it reads all tile payloads.
     /// </summary>
     void CompleteFrame();
 }

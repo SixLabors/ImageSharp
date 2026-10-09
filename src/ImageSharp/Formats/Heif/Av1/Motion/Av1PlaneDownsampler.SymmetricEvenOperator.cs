@@ -16,18 +16,14 @@ internal static partial class Av1PlaneDownsampler
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The reference states the kernel as the four taps <c>{56, 12, -3, -1}</c> and mirrors them, so an output is the
-    /// weighted sum of the four samples on each side of the sampling position. The taps total 64, which is half of
-    /// the Q7 unit, because each tap weights two samples.
+    /// The kernel is the four half taps <c>{56, 12, -3, -1}</c>, mirrored.
+    /// Thus an output is the weighted sum of the four samples on each side of the sampling position.
+    /// The half taps total 64, which is half of the Q7 unit, because each tap weights two samples.
     /// </para>
     /// <para>
-    /// The weighted sum reaches 34680, which a signed sixteen-bit lane cannot hold, so the two signs are accumulated
-    /// apart. The positive terms reach 34680 and the negative terms reach 2040, and both fit an unsigned sixteen-bit
-    /// lane. The lanes therefore stay sixteen bits wide, which is twice the throughput of an accumulation widened to
-    /// thirty-two bits.
-    /// </para>
-    /// <para>
-    /// Reference: down2_symeven and av1_down2_symeven_half_filter and av1/common/resize.h.
+    /// The weighted sum reaches 34680, which a signed sixteen-bit lane cannot hold. Thus the two signs accumulate separately.
+    /// The positive terms reach 34680 and the negative terms reach 2040, and both fit in an unsigned sixteen-bit lane.
+    /// The lanes thus stay sixteen bits wide, so each register holds twice as many outputs as an accumulation widened to thirty-two bits.
     /// </para>
     /// </remarks>
     private readonly struct SymmetricEvenOperator : IAv1HalfFilterOperator
@@ -66,9 +62,8 @@ internal static partial class Av1PlaneDownsampler
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte Filter(int s0, int s1, int s2, int s3, int s4, int s5, int s6, int s7)
         {
-            // The two inner tap pairs carry the positive weights and the two outer pairs carry the
-            // negative weights. Splitting them here keeps the scalar form identical to the vector
-            // form, which must split them to stay inside an unsigned sixteen-bit lane.
+            // The two inner tap pairs carry the positive weights, and the two outer pairs carry the negative weights.
+            // The split keeps the scalar form the same as the vector form, which must split them to stay inside an unsigned sixteen-bit lane.
             int positive = (Tap0 * (s3 + s4)) + (Tap1 * (s2 + s5));
             int negative = (Tap2 * (s1 + s6)) + (Tap3 * (s0 + s7));
 
@@ -87,20 +82,20 @@ internal static partial class Av1PlaneDownsampler
             Vector128<ushort> s6,
             Vector128<ushort> s7)
         {
-            // Each lane is one independent output. A tap pair is summed before it is weighted, which
-            // halves the multiplications and is exact because a pair reaches only 510.
+            // Each lane is one independent output. The code sums a tap pair before it applies the weight.
+            // This halves the multiplications and is exact, because a pair reaches only 510.
             Vector128<ushort> positive = ((s3 + s4) * Vector128.Create((ushort)Tap0)) +
                 ((s2 + s5) * Vector128.Create((ushort)Tap1));
 
+            // The outermost tap is 1, so its pair needs no multiplication.
             Vector128<ushort> negative = ((s1 + s6) * Vector128.Create((ushort)Tap2)) + (s0 + s7);
 
-            // The rounding term joins the positive side so that the comparison below decides the sign
-            // of the complete expression rather than the sign of the weighted sum alone.
+            // The rounding term joins the positive side.
+            // Thus the comparison below decides the sign of the full expression, not the sign of the weighted sum alone.
             Vector128<ushort> biased = positive + Vector128.Create((ushort)Rounding);
 
-            // An unsigned lane cannot represent a negative difference, so the lanes that would go
-            // negative are masked to zero. That is the same result as the scalar clamp, because a
-            // negative sum always clamps to zero after the arithmetic shift.
+            // An unsigned lane cannot represent a negative difference, so the mask sets the negative lanes to zero.
+            // This gives the same result as the scalar clamp, because a negative sum always clamps to zero after the arithmetic shift.
             Vector128<ushort> mask = Vector128.GreaterThanOrEqual(biased, negative);
             Vector128<ushort> difference = (biased - negative) & mask;
 
@@ -119,9 +114,8 @@ internal static partial class Av1PlaneDownsampler
             Vector256<ushort> s6,
             Vector256<ushort> s7)
         {
-            // Sixteen independent outputs, with the lane layout and the arithmetic of the 128-bit
-            // overload. The explicit overload lets the JIT emit native YMM operations without a
-            // width test or a split of the vector into halves.
+            // This overload computes sixteen independent outputs with the lane layout and the arithmetic of the 128-bit overload.
+            // The explicit overload lets the JIT emit native YMM operations without a width test or a split of the vector into halves.
             Vector256<ushort> positive = ((s3 + s4) * Vector256.Create((ushort)Tap0)) +
                 ((s2 + s5) * Vector256.Create((ushort)Tap1));
 
@@ -145,9 +139,8 @@ internal static partial class Av1PlaneDownsampler
             Vector512<ushort> s6,
             Vector512<ushort> s7)
         {
-            // Thirty-two independent outputs. The comparison produces an all-ones or all-zero lane
-            // mask on every supported path, including AVX-512, where the JIT lowers the mask register
-            // back to a vector for the following AND.
+            // This overload computes thirty-two independent outputs. The comparison produces an all-ones or all-zero lane mask on every supported path.
+            // On AVX-512, the JIT changes the mask register back to a vector for the following AND.
             Vector512<ushort> positive = ((s3 + s4) * Vector512.Create((ushort)Tap0)) +
                 ((s2 + s5) * Vector512.Create((ushort)Tap1));
 

@@ -332,7 +332,7 @@ internal static class Av1Constants
     public const int MaxVarTransform = 2;
 
     /// <summary>
-    /// Number of items in the <see cref="Av1PlaneType"/> enumeration.
+    /// The number of items in the <see cref="Av1PlaneType"/> enumeration.
     /// </summary>
     public const int PlaneTypeCount = 2;
 

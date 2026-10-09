@@ -66,7 +66,7 @@ internal readonly struct Av1ScanOrder
     /// Derives the coded position of each raster-order coefficient from the scan.
     /// </summary>
     /// <param name="scan">The coefficient positions in coded traversal order.</param>
-    /// <returns>The inverse mapping, equal to libaom's <c>iscan</c> tables.</returns>
+    /// <returns>The inverse mapping. Entry <c>i</c> is the scan position of raster coefficient <c>i</c>.</returns>
     private static short[] Invert(short[] scan)
     {
         short[] inverse = new short[scan.Length];

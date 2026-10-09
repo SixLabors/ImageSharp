@@ -38,8 +38,7 @@ internal sealed class Av1CodecConfiguration
     private readonly HeifMasteringDisplayColorVolume? configMasteringDisplayColorVolume;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1CodecConfiguration"/> class from an AV1 codec-configuration
-    /// item-property payload.
+    /// Initializes a new instance of the <see cref="Av1CodecConfiguration"/> class from an AV1 codec-configuration item-property payload.
     /// </summary>
     /// <param name="boxBuffer">The configuration payload beginning with the marker and version fields.</param>
     /// <param name="options">The general options governing metadata validation.</param>
@@ -86,8 +85,8 @@ internal sealed class Av1CodecConfiguration
             throw new InvalidImageContentException("The AV1 codec configuration has a nonzero reserved delay field.");
         }
 
-        // The delay syntax is consumed to validate the fixed record, but it describes sample presentation and has
-        // no meaning for the independently presented image item supported by this bounded container implementation.
+        // The constructor reads the delay field only to validate the fixed record. The field describes sample presentation. It has no meaning for an image
+        // item, which the decoder presents on its own.
         ReadOnlySpan<byte> configObus = boxBuffer[FixedHeaderSize..];
         int sequenceHeaderCount = ScanObus(
             configObus,
@@ -112,8 +111,8 @@ internal sealed class Av1CodecConfiguration
         }
         else
         {
-            // The property-reader span is pooled and reused. Retain only the sequence-header bytes required for
-            // item/sample equivalence instead of materializing every optional configuration OBU.
+            // The span from the property reader is pooled and reused. The constructor copies only the sequence-header bytes that the equivalence test against
+            // the item or sample needs. It does not copy the other optional configuration OBUs.
             this.configSequenceHeader = new byte[configSequenceHeaderLength];
             configObus.Slice(configSequenceHeaderOffset, configSequenceHeaderLength).CopyTo(this.configSequenceHeader);
         }
@@ -210,8 +209,8 @@ internal sealed class Av1CodecConfiguration
     /// <param name="destination">The destination receiving the four-byte record.</param>
     public void WriteFixedHeader(Span<byte> destination)
     {
-        // The image item payload already begins with its required sequence header. Keeping configOBUs empty avoids
-        // retaining or copying the same OBU into the configuration property.
+        // The image item payload already begins with its required sequence header. An empty configOBUs field prevents a second copy of the same OBU in the
+        // configuration property.
         destination[0] = 0x81;
         destination[1] = (byte)((this.SequenceProfile << 5) | this.SequenceLevelIndex);
         destination[2] = (byte)(
@@ -341,9 +340,8 @@ internal sealed class Av1CodecConfiguration
                 dataSequenceHeaderOffset,
                 dataSequenceHeaderLength);
 
-            // Compare the extension and payload rather than the encoded OBU size. Configuration OBUs must carry a
-            // size field while a payload's final OBU may omit one, and different legal LEB128 widths do not alter
-            // the Sequence Header OBU being repeated.
+            // The code compares the extension and the payload, not the encoded OBU size. Configuration OBUs must carry a size field. The final OBU of a payload
+            // can omit it. Different legal LEB128 widths do not change the repeated Sequence Header OBU.
             if (this.configSequenceHeaderExtension != dataSequenceHeaderExtension
                 || !this.configSequenceHeader.AsSpan().SequenceEqual(dataSequenceHeader))
             {
@@ -389,8 +387,8 @@ internal sealed class Av1CodecConfiguration
                     $"The AV1 codec configuration and {sourceName} contain conflicting mastering-display metadata.");
             }
 
-            // Configuration OBUs precede the payload OBUs, so a payload OBU supplies the effective value when both
-            // sequences repeat the same metadata type.
+            // Configuration OBUs precede the payload OBUs. Thus, when both sequences repeat the same metadata type, the payload OBU supplies the effective
+            // value.
             contentLightLevel = dataObuContentLightLevel ?? this.configContentLightLevel;
             masteringDisplayColorVolume = dataObuMasteringDisplayColorVolume ?? this.configMasteringDisplayColorVolume;
         }
@@ -427,8 +425,8 @@ internal sealed class Av1CodecConfiguration
         bool highBitDepth = colorConfig.BitDepth is Av1BitDepth.TenBit or Av1BitDepth.TwelveBit;
         bool twelveBit = colorConfig.BitDepth == Av1BitDepth.TwelveBit;
 
-        // Chroma sample position is signaled only for 4:2:0. Other layouts have no corresponding
-        // sequence-header field, so their container value cannot be compared with the parser default.
+        // The sequence header signals the chroma sample position only for 4:2:0. Other layouts have no such field, so the method does not compare their
+        // container value with the parser default.
         bool hasChromaSamplePosition = !colorConfig.IsMonochrome && colorConfig.SubSamplingX && colorConfig.SubSamplingY;
 
         if (this.SequenceProfile != (byte)sequenceHeader.SequenceProfile
@@ -493,8 +491,8 @@ internal sealed class Av1CodecConfiguration
                 throw new InvalidImageContentException($"The {sourceName} contains an OBU with a set forbidden header bit.");
             }
 
-            // The reference decoder deliberately ignores obu_reserved_1bit. The bit does not alter the OBU boundary or
-            // decoded syntax, so the bounded container scan must not reject data that the production parser accepts.
+            // The scan ignores obu_reserved_1bit, as AV1 decoders do. The bit does not change the OBU boundary or the decoded syntax. Thus the bounded
+            // container scan must not reject data that the production parser accepts.
             ObuType type = (ObuType)((header >> 3) & 0x0F);
             bool hasExtension = (header & 0x04) != 0;
             bool hasSizeField = (header & 0x02) != 0;
@@ -506,7 +504,7 @@ internal sealed class Av1CodecConfiguration
                     throw new InvalidImageContentException($"The {sourceName} contains a truncated OBU extension header.");
                 }
 
-                // extension_header_reserved_3bits is also consumed but ignored by the reference decoder.
+                // The scan reads extension_header_reserved_3bits with the extension byte and ignores it.
                 extension = data[offset++];
             }
 
@@ -522,8 +520,8 @@ internal sealed class Av1CodecConfiguration
             }
             else
             {
-                // Low-overhead image item syntax permits only the final OBU to omit its size, in which case the
-                // remaining item bytes are that OBU's payload and cannot contain another independently parsed OBU.
+                // Low-overhead image item syntax lets only the final OBU omit its size. The remaining item bytes are then the payload of that OBU. They cannot
+                // contain another OBU.
                 payloadLength = data.Length - offset;
             }
 
@@ -581,7 +579,7 @@ internal sealed class Av1CodecConfiguration
                 }
                 catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(options, ex))
                 {
-                    // The OBU payload remains bounded by the image-data scan; only its invalid optional metadata is discarded.
+                    // The image-data scan still bounds the OBU payload. Only its invalid optional metadata is discarded.
                 }
             }
 
@@ -655,8 +653,8 @@ internal sealed class Av1CodecConfiguration
         const double maximumLuminanceScale = 1D / 256D;
         const double minimumLuminanceScale = 1D / 16384D;
 
-        // AV1 stores the primaries in R, G, B order and uses codec-specific fixed-point units that differ from the
-        // ISOBMFF mdcv property. Decode both representations to the same observable ImageSharp color coordinates.
+        // AV1 stores the primaries in R, G, B order. Its fixed-point units differ from the units of the ISOBMFF mdcv property. The scales below convert the AV1
+        // values to the same ImageSharp color coordinates that the mdcv property gives.
         CieXyChromaticityCoordinates redPrimary = new(
             BinaryPrimitives.ReadUInt16BigEndian(metadataData) * chromaticityScale,
             BinaryPrimitives.ReadUInt16BigEndian(metadataData[2..]) * chromaticityScale);
@@ -695,8 +693,8 @@ internal sealed class Av1CodecConfiguration
             }
         }
 
-        // Both fixed HDR structures end on a byte boundary. Zero padding after the required 0x80 byte is accepted,
-        // so locate the last nonzero byte rather than assuming the OBU payload ends immediately after trailing_bits().
+        // Both fixed HDR structures end on a byte boundary. Zero padding after the required 0x80 byte is accepted. Thus the code finds the last nonzero byte.
+        // It does not assume that the OBU payload ends directly after trailing_bits().
         if (lastNonzeroByte != 0x80)
         {
             throw new InvalidImageContentException($"The {sourceName} HDR metadata has invalid trailing bits.");
@@ -801,6 +799,8 @@ internal sealed class Av1CodecConfiguration
         HeifMasteringDisplayColorVolume obuColorVolume,
         HeifMasteringDisplayColorVolume itemColorVolume)
     {
+        // Each tolerance is half the sum of the two quantization steps. The AV1 steps are 1/65536, 1/256 and 1/16384. The mdcv steps are 1/50000 for
+        // chromaticity and 1/10000 for luminance.
         const float chromaticityTolerance = ((1F / 65536F) + (1F / 50000F)) / 2F;
         const double maximumLuminanceTolerance = ((1D / 256D) + (1D / 10000D)) / 2D;
         const double minimumLuminanceTolerance = ((1D / 16384D) + (1D / 10000D)) / 2D;

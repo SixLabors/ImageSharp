@@ -8,12 +8,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 internal static partial class Av1Inverse2dTransformer
 {
     /// <summary>
-    /// Applies the 16-point inverse ADST with at most 1 low-frequency input coefficients.
+    /// Applies the 16-point inverse ADST with at most 1 low-frequency input coefficient.
     /// </summary>
     /// <remarks>
-    /// The selected scan bound guarantees all later inputs are zero. Rotations with one surviving input retain
-    /// their original rounding boundary, and all nonzero butterfly outputs retain their stage clamps.
-    /// Vector fields identify transform positions; lanes remain independent rows or columns throughout.
+    /// The selected scan bound guarantees that all later inputs are zero. Rotations with one surviving input retain their original rounding boundary. All
+    /// nonzero butterfly outputs retain their stage clamps. Vector fields identify transform positions. Lanes stay independent rows or columns throughout.
     /// </remarks>
     internal readonly struct Adst16Low1Operator : IAv1Transform1dOperator
     {
@@ -38,7 +37,7 @@ internal static partial class Av1Inverse2dTransformer
             output[8] = Av1Transform1dMath.Clamp(step[0], stageRange[3]);
             output[9] = Av1Transform1dMath.Clamp(step[1], stageRange[3]);
 
-            // Stage 4 reverses the pi/16 rotations in the upper half.
+            // Stage 4 reverses the rotations by odd multiples of pi/16 in the upper half.
             step[0] = output[0];
             step[1] = output[1];
             step[8] = Av1Transform1dMath.HalfButterfly(cospi[8], output[8], cospi[56], output[9], cosBit);
@@ -142,7 +141,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V8 = Av1Transform1dMath.Clamp(step.V0, stageRange[3]);
             output.V9 = Av1Transform1dMath.Clamp(step.V1, stageRange[3]);
 
-            // Stage 4 reverses the pi/16 rotations in the upper half.
+            // Stage 4 reverses the rotations by odd multiples of pi/16 in the upper half.
             step.V0 = output.V0;
             step.V1 = output.V1;
             step.V8 = Av1Transform1dMath.HalfButterfly(cospi[8], output.V8, cospi[56], output.V9, cosBit);
@@ -246,7 +245,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V8 = Av1Transform1dMath.Clamp(step.V0, stageRange[3]);
             output.V9 = Av1Transform1dMath.Clamp(step.V1, stageRange[3]);
 
-            // Stage 4 reverses the pi/16 rotations in the upper half.
+            // Stage 4 reverses the rotations by odd multiples of pi/16 in the upper half.
             step.V0 = output.V0;
             step.V1 = output.V1;
             step.V8 = Av1Transform1dMath.HalfButterfly(cospi[8], output.V8, cospi[56], output.V9, cosBit);

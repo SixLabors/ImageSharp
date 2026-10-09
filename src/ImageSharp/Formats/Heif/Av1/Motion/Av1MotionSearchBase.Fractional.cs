@@ -63,24 +63,78 @@ internal static partial class Av1MotionSearchBase
         where TSample : unmanaged
         where TOperator : struct, IMotionSearchOperator<TSample>
     {
+        /// <summary>
+        /// The source samples at the block origin.
+        /// </summary>
         private readonly ReadOnlySpan<TSample> source;
+
+        /// <summary>
+        /// The fixed packed predictor, or empty for a single-reference search.
+        /// </summary>
         private readonly ReadOnlySpan<TSample> secondPrediction;
+
+        /// <summary>
+        /// The packed six-bit blend mask, or empty for equal weights or a single-reference search.
+        /// </summary>
         private readonly ReadOnlySpan<byte> mask;
+
+        /// <summary>
+        /// The complete bordered reference plane.
+        /// </summary>
         private readonly ReadOnlySpan<TSample> reference;
+
+        /// <summary>
+        /// The reusable fractional prediction buffer of the worker.
+        /// </summary>
         private readonly Span<TSample> prediction;
+
+        /// <summary>
+        /// The source row stride in samples.
+        /// </summary>
         private readonly int sourceStride;
+
+        /// <summary>
+        /// The reference row stride in samples.
+        /// </summary>
         private readonly int referenceStride;
+
+        /// <summary>
+        /// The reference index of the current block origin.
+        /// </summary>
         private readonly int referenceOrigin;
+
+        /// <summary>
+        /// The prediction dimensions.
+        /// </summary>
         private readonly Size blockSize;
+
+        /// <summary>
+        /// The permitted eighth-sample displacements, with exclusive upper edges.
+        /// </summary>
         private readonly Rectangle bounds;
+
+        /// <summary>
+        /// The spatial entropy reference in eighth-sample units.
+        /// </summary>
         private readonly Av1MotionVector referenceVector;
+
+        /// <summary>
+        /// The retained motion-rate tables.
+        /// </summary>
         private readonly Av1MotionVectorCosts costs;
+
+        /// <summary>
+        /// The coded component precision in bits.
+        /// </summary>
         private readonly int bitDepth;
+
+        /// <summary>
+        /// The block rate multiplier.
+        /// </summary>
         private readonly int rateMultiplier;
 
         /// <summary>
-        /// The reference of another size from which the candidates are predicted, or the default value for a reference
-        /// of the frame size.
+        /// The reference of another size from which the search predicts the candidates, or the default value for a reference of the frame size.
         /// </summary>
         private readonly ScaledReference<TSample> scaledReference;
 
@@ -100,10 +154,9 @@ internal static partial class Av1MotionSearchBase
         /// <param name="bitDepth">The coded component precision.</param>
         /// <param name="rateMultiplier">The block rate multiplier.</param>
         /// <param name="secondPrediction">The fixed packed predictor, or empty for a single-reference search.</param>
-        /// <param name="mask">The packed six-bit blend mask, or empty for a single-reference search.</param>
+        /// <param name="mask">The packed six-bit blend mask, or empty for equal weights or a single-reference search.</param>
         /// <param name="scaledReference">
-        /// The reference of another size from which the candidates are predicted, or the default value for a reference
-        /// of the frame size.
+        /// The reference of another size from which the search predicts the candidates, or the default value for a reference of the frame size.
         /// </param>
         public FractionalSearch(
             ReadOnlySpan<TSample> source,
@@ -165,10 +218,9 @@ internal static partial class Av1MotionSearchBase
             Span<Av1MotionVector> previousCenters,
             out FractionalResult result)
         {
-            // Integer search has already paid for these moments. Retain that exact error domain, including
-            // its signed high-depth rounding, until a fractional candidate strictly improves the total cost. The
-            // integer search of a scaled reference read its resized copy, so the center is measured again.
-            // Reference: the !is_scaled test on start_mv_stats in the subpel trees.
+            // The integer search already measured these moments. The result keeps that error domain and its signed high-depth rounding.
+            // A fractional candidate replaces the result only when it strictly improves the total cost.
+            // The integer search of a scaled reference read its resized copy, so the code measures the center again.
             if (startStatistics.HasValue && !this.scaledReference.IsScaled)
             {
                 FullPixelResult statistics = startStatistics.Value;
@@ -185,8 +237,8 @@ internal static partial class Av1MotionSearchBase
                 Av1MotionVector center = result.Vector;
                 if (!previousCenters.IsEmpty)
                 {
-                    // Each slot belongs to one precision. Another starting candidate reaching the same
-                    // center has the same remaining tree, so the caller can discard this duplicate path.
+                    // Each slot belongs to one precision. Another starting candidate that reaches the same center has the same remaining tree.
+                    // Thus the caller can discard this duplicate path.
                     if (previousCenters[iteration] == center)
                     {
                         return int.MaxValue;
@@ -204,8 +256,8 @@ internal static partial class Av1MotionSearchBase
 
                 if (iteration == 0 && method == FractionalSearchMethod.PrunedTree && finiteNeighborhood)
                 {
-                    // Half-sample pruning chooses one quadrant from the integer cost surface. Ties select
-                    // right and up here; the measured-cardinal tree below instead breaks ties left and up.
+                    // Half-sample pruning chooses one quadrant from the integer cost surface. Here, ties select right and up.
+                    // The measured-cardinal tree below breaks ties left and up.
                     int column = costList[1] < costList[3] ? -step : step;
                     int row = costList[2] < costList[4] ? step : -step;
                     this.Check(new Av1MotionVector(center.Row, center.Column + column), 2, ref result);
@@ -218,10 +270,10 @@ internal static partial class Av1MotionSearchBase
                     && costList[0] < costList[1] && costList[0] < costList[2]
                     && costList[0] < costList[3] && costList[0] < costList[4])
                 {
-                    // A strictly lower center gives positive curvature on both axes. The minimum of each
-                    // fitted parabola is (negative-side cost - positive-side cost) / (2 * curvature).
-                    // Multiplying that location by two gives half-sample units; signed division rounds
-                    // the displacement to the nearest such unit before converting it to eighth samples.
+                    // A strictly lower center gives positive curvature on both axes.
+                    // The minimum of each fitted parabola is (negative-side cost - positive-side cost) / (2 * curvature).
+                    // That location times two is in half-sample units. The signed division rounds the displacement to the nearest half sample.
+                    // The multiply by step then changes it to eighth samples.
                     int columnNumerator = costList[1] - costList[3];
                     int columnDenominator = costList[1] - (2 * costList[0]) + costList[3];
                     int rowNumerator = costList[4] - costList[2];
@@ -250,8 +302,8 @@ internal static partial class Av1MotionSearchBase
 
                 if (iterationsPerStep > 1 && result.Vector != center)
                 {
-                    // All second-level sites are anchored to the first-level winner. Updating that winner
-                    // while measuring these sites must not move the remaining sites of the same level.
+                    // All second-level sites use the first-level winner as the anchor.
+                    // The local copy keeps that anchor, so a new winner during this level does not move the remaining sites.
                     Av1MotionVector winner = result.Vector;
                     if (method == FractionalSearchMethod.TwoLevelTree)
                     {
@@ -268,7 +320,7 @@ internal static partial class Av1MotionSearchBase
                         this.Check(new Av1MotionVector(winner.Row + diagonalRow, winner.Column), selectedTaps, ref result);
                         this.Check(new Av1MotionVector(winner.Row, winner.Column + diagonalColumn), selectedTaps, ref result);
 
-                        // Extend to the outward diagonal only when an outward cardinal site improved.
+                        // The search tests the outward diagonal only when an outward cardinal site improved the cost.
                         if (result.Cost < previousCost)
                         {
                             this.Check(new Av1MotionVector(winner.Row + diagonalRow, winner.Column + diagonalColumn), selectedTaps, ref result);
@@ -300,6 +352,10 @@ internal static partial class Av1MotionSearchBase
         /// <summary>
         /// Measures an in-range candidate and replaces the retained winner only for a strictly smaller cost.
         /// </summary>
+        /// <param name="vector">The candidate displacement in eighth-sample units.</param>
+        /// <param name="taps">The interpolation tap count.</param>
+        /// <param name="best">The retained winner, replaced when the candidate costs less.</param>
+        /// <returns>The candidate cost, or <see cref="int.MaxValue"/> when the candidate is out of range.</returns>
         private int Check(Av1MotionVector vector, int taps, ref FractionalResult best)
         {
             if (!this.bounds.Contains(vector.Column, vector.Row))
@@ -319,12 +375,14 @@ internal static partial class Av1MotionSearchBase
         /// <summary>
         /// Filters the borrowed reference and measures prediction-minus-source moments in the search error domain.
         /// </summary>
+        /// <param name="vector">The candidate displacement in eighth-sample units.</param>
+        /// <param name="taps">The interpolation tap count.</param>
+        /// <returns>The candidate with its variance, squared error, and motion cost.</returns>
         private FractionalResult Measure(Av1MotionVector vector, int taps)
         {
             if (this.scaledReference.IsScaled)
             {
-                // Every candidate of a scaled reference is predicted with the scale factors, whatever the tap count of
-                // the tree. Reference: the is_scaled branch of check_better_fast() and aom_upsampled_pred_scaled().
+                // The search predicts every candidate of a scaled reference with the scale factors, whatever the tap count of the tree.
                 this.scaledReference.Predict<TOperator>(vector, this.prediction, this.blockSize, this.bitDepth);
             }
             else
@@ -371,14 +429,15 @@ internal static partial class Av1MotionSearchBase
                     out sum,
                     out squares);
 
+                // The compound moments are source minus blend. The negation gives prediction minus source, as in the single-reference path.
                 sum = -sum;
             }
 
             int precisionShift = this.bitDepth - 8;
             if (precisionShift != 0)
             {
-                // Prediction is the first operand: signed rounding is asymmetric for negative residual
-                // sums. Normalize that sum and its squares independently before subtracting the mean.
+                // The prediction is the first operand. Signed rounding is asymmetric for negative residual sums.
+                // The code normalizes the sum and the squares separately before it subtracts the mean.
                 sum = (sum + (1 << (precisionShift - 1))) >> precisionShift;
                 int squaredShift = precisionShift * 2;
                 squares = (squares + (1L << (squaredShift - 1))) >> squaredShift;

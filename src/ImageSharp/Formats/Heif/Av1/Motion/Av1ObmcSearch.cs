@@ -8,20 +8,17 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 
 /// <summary>
-/// Measures OBMC motion search candidates and builds the OBMC search target with the arithmetic of an
-/// <see cref="IObmcOperator{TSample}"/>.
+/// Measures OBMC motion search candidates and builds the OBMC search target with the arithmetic of an <see cref="IObmcOperator{TSample}"/>.
 /// </summary>
 /// <remarks>
-/// The weighted source and the mask are packed at the block width, one thirty-two-bit value per luma
-/// sample. Each row walks the widest available register first and finishes in the scalar overload.
-/// OBMC blocks are at least eight samples wide and every overlap is at least four, so the scalar
-/// overload runs only on hardware without vector support.
+/// The weighted source and the mask are packed at the block width, one thirty-two-bit value per luma sample.
+/// Each row walks the widest available register first and finishes in the scalar overload.
+/// OBMC blocks are at least eight samples wide, and every overlap is at least four. Thus the scalar overload runs only on hardware without vector support.
 /// </remarks>
 internal static partial class Av1ObmcSearch
 {
     /// <summary>
-    /// Returns the OBMC sum of absolute differences of a prediction. Reference: aom_obmc_sad and
-    /// aom_highbd_obmc_sad, with the traversal of obmc_sad_w8n().
+    /// Returns the OBMC sum of absolute differences of a prediction.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
@@ -47,8 +44,8 @@ internal static partial class Av1ObmcSearch
         ref int sourceBase = ref MemoryMarshal.GetReference(weightedSource[..(width * height)]);
         ref int maskBase = ref MemoryMarshal.GetReference(mask[..(width * height)]);
 
-        // A rounded difference is below 2^12 and a block has at most 2^14 samples, so no lane of any
-        // total can overflow before the single reduction at the end.
+        // A rounded difference is below 2^12, and a block has at most 2^14 samples.
+        // Thus no lane of any total can overflow before the single reduction at the end.
         Vector512<uint> total512 = Vector512<uint>.Zero;
         Vector256<uint> total256 = Vector256<uint>.Zero;
         Vector128<uint> total128 = Vector128<uint>.Zero;
@@ -113,7 +110,6 @@ internal static partial class Av1ObmcSearch
 
     /// <summary>
     /// Returns the signed sum and the squared sum of the rounded OBMC differences of a prediction.
-    /// Reference: obmc_variance_w8n() and hbd_obmc_variance_w8n().
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
@@ -137,15 +133,14 @@ internal static partial class Av1ObmcSearch
         where TSample : unmanaged
         where TOperator : struct, IObmcOperator<TSample>
     {
+        // The slices check every bound once, so the walk below can read by reference.
         ref TSample predictionBase = ref MemoryMarshal.GetReference(prediction[..(((height - 1) * predictionStride) + width)]);
         ref int sourceBase = ref MemoryMarshal.GetReference(weightedSource[..(width * height)]);
         ref int maskBase = ref MemoryMarshal.GetReference(mask[..(width * height)]);
 
-        // A rounded difference is below 2^12 in magnitude, so the signed total of a block of at most
-        // 2^14 samples fits every lane. A square is below 2^24, and a row of at most 128 samples puts
-        // at most 32 squares in a lane of the narrowest register, which stays below 2^29. The squares
-        // of each row therefore collect in thirty-two-bit lanes and fold into sixty-four-bit lanes at
-        // the end of the row. libaom bounds its thirty-two-bit lanes the same way, with row groups.
+        // A rounded difference is below 2^12 in magnitude, so the signed total of a block of at most 2^14 samples fits every lane.
+        // A square is below 2^24. A row of at most 128 samples puts at most 32 squares in one lane of the narrowest register. Their total stays below 2^29.
+        // Thus the squares of each row collect in thirty-two-bit lanes and fold into sixty-four-bit lanes at the end of the row.
         Vector512<int> sum512 = Vector512<int>.Zero;
         Vector256<int> sum256 = Vector256<int>.Zero;
         Vector128<int> sum128 = Vector128<int>.Zero;
@@ -226,8 +221,7 @@ internal static partial class Av1ObmcSearch
     }
 
     /// <summary>
-    /// Writes one row of the above-neighbor term of the OBMC search target. Reference: the row loop of
-    /// calc_target_weighted_pred_above().
+    /// Writes one row of the above-neighbor term of the OBMC search target.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
@@ -283,8 +277,7 @@ internal static partial class Av1ObmcSearch
     }
 
     /// <summary>
-    /// Blends one row of the left-neighbor term into the OBMC search target. Reference: the column
-    /// loop of calc_target_weighted_pred_left().
+    /// Blends one row of the left-neighbor term into the OBMC search target.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
@@ -352,8 +345,7 @@ internal static partial class Av1ObmcSearch
     }
 
     /// <summary>
-    /// Scales the whole OBMC search target by the maximum blend weight between the above and the left
-    /// neighbor passes. Reference: the scale loop of calc_target_weighted_pred().
+    /// Scales the whole OBMC search target by the maximum blend weight between the above and the left neighbor passes.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
@@ -398,8 +390,7 @@ internal static partial class Av1ObmcSearch
     }
 
     /// <summary>
-    /// Replaces one row of neighbor terms with the source scaled by 64 * 64 minus the term. Reference:
-    /// the source loop of calc_target_weighted_pred().
+    /// Replaces one row of neighbor terms with the source scaled by 64 * 64 minus the term.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>

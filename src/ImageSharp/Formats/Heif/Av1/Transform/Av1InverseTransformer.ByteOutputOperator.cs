@@ -30,8 +30,8 @@ internal static partial class Av1InverseTransformer
         {
             _ = bitDepth;
 
-            // Read and write exactly four bytes. The unused upper lanes only participate in narrowing and never reach
-            // memory, which keeps reconstruction valid at a tightly packed row boundary.
+            // Read and write exactly four bytes. The unused upper lanes take part only in narrowing and never reach memory. As a result, reconstruction stays
+            // valid at a tightly packed row boundary.
             uint packed = Unsafe.ReadUnaligned<uint>(ref prediction);
             Vector128<ushort> predicted16 = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsByte());
             Vector128<int> predicted32 = Vector128.WidenLower(predicted16).AsInt32();
@@ -47,8 +47,8 @@ internal static partial class Av1InverseTransformer
         {
             _ = bitDepth;
 
-            // Eight byte predictions widen through UInt16 into the eight Int32 residual lanes. The final 64-bit store
-            // covers only those reconstructed samples and does not require destination padding.
+            // Eight byte predictions widen through UInt16 into the eight Int32 residual lanes. The final 64-bit store covers only those reconstructed samples
+            // and does not require destination padding.
             ulong packed = Unsafe.ReadUnaligned<ulong>(ref prediction);
             Vector128<ushort> predicted16 = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsByte());
             Vector256<int> predicted32 = Vector256.Create(Vector128.WidenLower(predicted16), Vector128.WidenUpper(predicted16)).AsInt32();
@@ -64,8 +64,8 @@ internal static partial class Av1InverseTransformer
         {
             _ = bitDepth;
 
-            // Sixteen packed bytes widen to sixteen Int32 lanes without a lane permutation. Narrow each half in
-            // order after clipping, then store exactly the original sixteen samples rather than a padded vector.
+            // Sixteen packed bytes widen to sixteen Int32 lanes without a lane permutation. Each half narrows in order after clipping. The store then writes
+            // exactly the original sixteen samples, not a padded vector.
             Vector128<byte> packed = Vector128.LoadUnsafe(ref prediction);
             Vector256<ushort> predicted16 = Vector256.Create(Vector128.WidenLower(packed), Vector128.WidenUpper(packed));
             Vector512<int> predicted32 = Vector512.Create(Vector256.WidenLower(predicted16), Vector256.WidenUpper(predicted16)).AsInt32();

@@ -14,6 +14,16 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Convolves sixteen adjacent 8-bit samples into four signed 32-bit accumulator vectors.
     /// </summary>
+    /// <param name="source">The sample that the first tap reads in the first column.</param>
+    /// <param name="tapStride">The distance between consecutive tap samples: one for a horizontal filter, or the row stride for a vertical filter.</param>
+    /// <param name="column">The offset of the first output column from <paramref name="source"/>.</param>
+    /// <param name="coefficients">The first filter coefficient.</param>
+    /// <param name="tapCount">The number of filter taps.</param>
+    /// <param name="initial">The start value of each accumulator lane.</param>
+    /// <param name="result0">Receives the sums of the first four columns.</param>
+    /// <param name="result1">Receives the sums of the second four columns.</param>
+    /// <param name="result2">Receives the sums of the third four columns.</param>
+    /// <param name="result3">Receives the sums of the fourth four columns.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Convolve(
         ref byte source,
@@ -38,8 +48,8 @@ internal static partial class Av1TranslationalInterPredictor
             Av1NonDirectionalIntraPredictorBase.Widen(samples, out Vector128<int> samples0, out Vector128<int> samples1, out Vector128<int> samples2, out Vector128<int> samples3);
             Vector128<int> coefficient = Vector128.Create((int)Unsafe.Add(ref coefficients, tap));
 
-            // Each widened vector retains four consecutive source columns. Applying the same tap coefficient to all
-            // lanes evaluates sixteen independent finite-impulse-response filters without a horizontal reduction.
+            // Each widened vector holds four consecutive source columns. One tap coefficient multiplies all lanes.
+            // Thus the loop evaluates sixteen independent filters without a horizontal sum.
             result0 += samples0 * coefficient;
             result1 += samples1 * coefficient;
             result2 += samples2 * coefficient;
@@ -50,6 +60,16 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Convolves thirty-two adjacent 8-bit samples into four signed 32-bit accumulator vectors.
     /// </summary>
+    /// <param name="source">The sample that the first tap reads in the first column.</param>
+    /// <param name="tapStride">The distance between consecutive tap samples: one for a horizontal filter, or the row stride for a vertical filter.</param>
+    /// <param name="column">The offset of the first output column from <paramref name="source"/>.</param>
+    /// <param name="coefficients">The first filter coefficient.</param>
+    /// <param name="tapCount">The number of filter taps.</param>
+    /// <param name="initial">The start value of each accumulator lane.</param>
+    /// <param name="result0">Receives the sums of the first eight columns.</param>
+    /// <param name="result1">Receives the sums of the second eight columns.</param>
+    /// <param name="result2">Receives the sums of the third eight columns.</param>
+    /// <param name="result3">Receives the sums of the fourth eight columns.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Convolve(
         ref byte source,
@@ -84,6 +104,16 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Convolves sixty-four adjacent 8-bit samples into four signed 32-bit accumulator vectors.
     /// </summary>
+    /// <param name="source">The sample that the first tap reads in the first column.</param>
+    /// <param name="tapStride">The distance between consecutive tap samples: one for a horizontal filter, or the row stride for a vertical filter.</param>
+    /// <param name="column">The offset of the first output column from <paramref name="source"/>.</param>
+    /// <param name="coefficients">The first filter coefficient.</param>
+    /// <param name="tapCount">The number of filter taps.</param>
+    /// <param name="initial">The start value of each accumulator lane.</param>
+    /// <param name="result0">Receives the sums of the first sixteen columns.</param>
+    /// <param name="result1">Receives the sums of the second sixteen columns.</param>
+    /// <param name="result2">Receives the sums of the third sixteen columns.</param>
+    /// <param name="result3">Receives the sums of the fourth sixteen columns.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Convolve(
         ref byte source,
@@ -118,6 +148,14 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Convolves eight adjacent nonnegative 16-bit samples into two signed 32-bit accumulator vectors.
     /// </summary>
+    /// <param name="source">The sample that the first tap reads in the first column.</param>
+    /// <param name="tapStride">The distance between consecutive tap samples: one for a horizontal filter, or the row stride for a vertical filter.</param>
+    /// <param name="column">The offset of the first output column from <paramref name="source"/>.</param>
+    /// <param name="coefficients">The first filter coefficient.</param>
+    /// <param name="tapCount">The number of filter taps.</param>
+    /// <param name="initial">The start value of each accumulator lane.</param>
+    /// <param name="result0">Receives the sums of the first four columns.</param>
+    /// <param name="result1">Receives the sums of the second four columns.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Convolve(
         ref short source,
@@ -138,8 +176,8 @@ internal static partial class Av1TranslationalInterPredictor
             Av1NonDirectionalIntraPredictorBase.Widen(samples, out Vector128<int> samples0, out Vector128<int> samples1);
             Vector128<int> coefficient = Vector128.Create((int)Unsafe.Add(ref coefficients, tap));
 
-            // Reconstructed 10- and 12-bit samples and biased 2D intermediates are below short.MaxValue, so signed
-            // widening preserves their values while allowing negative interpolation coefficients.
+            // Reconstructed 10-bit and 12-bit samples and the biased 2D intermediate values are less than short.MaxValue.
+            // Thus signed widening keeps their values, and the signed multiply accepts negative coefficients.
             result0 += samples0 * coefficient;
             result1 += samples1 * coefficient;
         }
@@ -148,6 +186,14 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Convolves sixteen adjacent nonnegative 16-bit samples into two signed 32-bit accumulator vectors.
     /// </summary>
+    /// <param name="source">The sample that the first tap reads in the first column.</param>
+    /// <param name="tapStride">The distance between consecutive tap samples: one for a horizontal filter, or the row stride for a vertical filter.</param>
+    /// <param name="column">The offset of the first output column from <paramref name="source"/>.</param>
+    /// <param name="coefficients">The first filter coefficient.</param>
+    /// <param name="tapCount">The number of filter taps.</param>
+    /// <param name="initial">The start value of each accumulator lane.</param>
+    /// <param name="result0">Receives the sums of the first eight columns.</param>
+    /// <param name="result1">Receives the sums of the second eight columns.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Convolve(
         ref short source,
@@ -175,6 +221,14 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Convolves thirty-two adjacent nonnegative 16-bit samples into two signed 32-bit accumulator vectors.
     /// </summary>
+    /// <param name="source">The sample that the first tap reads in the first column.</param>
+    /// <param name="tapStride">The distance between consecutive tap samples: one for a horizontal filter, or the row stride for a vertical filter.</param>
+    /// <param name="column">The offset of the first output column from <paramref name="source"/>.</param>
+    /// <param name="coefficients">The first filter coefficient.</param>
+    /// <param name="tapCount">The number of filter taps.</param>
+    /// <param name="initial">The start value of each accumulator lane.</param>
+    /// <param name="result0">Receives the sums of the first sixteen columns.</param>
+    /// <param name="result1">Receives the sums of the second sixteen columns.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Convolve(
         ref short source,
@@ -202,6 +256,9 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Applies AV1 power-of-two rounding to four-lane signed accumulators.
     /// </summary>
+    /// <param name="value">The accumulators.</param>
+    /// <param name="bits">The shift. Zero returns the accumulators unchanged.</param>
+    /// <returns>The accumulators plus half of 2^bits, shifted right by <paramref name="bits"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<int> RoundPowerOfTwo(Vector128<int> value, int bits)
         => bits == 0 ? value : (value + Vector128.Create(1 << (bits - 1))) >> bits;
@@ -209,6 +266,9 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Applies AV1 power-of-two rounding to eight-lane signed accumulators.
     /// </summary>
+    /// <param name="value">The accumulators.</param>
+    /// <param name="bits">The shift. Zero returns the accumulators unchanged.</param>
+    /// <returns>The accumulators plus half of 2^bits, shifted right by <paramref name="bits"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<int> RoundPowerOfTwo(Vector256<int> value, int bits)
         => bits == 0 ? value : (value + Vector256.Create(1 << (bits - 1))) >> bits;
@@ -216,6 +276,9 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Applies AV1 power-of-two rounding to sixteen-lane signed accumulators.
     /// </summary>
+    /// <param name="value">The accumulators.</param>
+    /// <param name="bits">The shift. Zero returns the accumulators unchanged.</param>
+    /// <returns>The accumulators plus half of 2^bits, shifted right by <paramref name="bits"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<int> RoundPowerOfTwo(Vector512<int> value, int bits)
         => bits == 0 ? value : (value + Vector512.Create(1 << (bits - 1))) >> bits;
@@ -223,6 +286,11 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Clips and packs sixteen signed accumulators into 8-bit samples.
     /// </summary>
+    /// <param name="result0">The first four accumulators.</param>
+    /// <param name="result1">The second four accumulators.</param>
+    /// <param name="result2">The third four accumulators.</param>
+    /// <param name="result3">The fourth four accumulators.</param>
+    /// <returns>The accumulators clamped to [0, 255], in column order.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<byte> PackBytes(Vector128<int> result0, Vector128<int> result1, Vector128<int> result2, Vector128<int> result3)
     {
@@ -237,6 +305,11 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Clips and packs thirty-two signed accumulators into 8-bit samples.
     /// </summary>
+    /// <param name="result0">The first eight accumulators.</param>
+    /// <param name="result1">The second eight accumulators.</param>
+    /// <param name="result2">The third eight accumulators.</param>
+    /// <param name="result3">The fourth eight accumulators.</param>
+    /// <returns>The accumulators clamped to [0, 255], in column order.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<byte> PackBytes(Vector256<int> result0, Vector256<int> result1, Vector256<int> result2, Vector256<int> result3)
     {
@@ -251,6 +324,11 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Clips and packs sixty-four signed accumulators into 8-bit samples.
     /// </summary>
+    /// <param name="result0">The first sixteen accumulators.</param>
+    /// <param name="result1">The second sixteen accumulators.</param>
+    /// <param name="result2">The third sixteen accumulators.</param>
+    /// <param name="result3">The fourth sixteen accumulators.</param>
+    /// <returns>The accumulators clamped to [0, 255], in column order.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<byte> PackBytes(Vector512<int> result0, Vector512<int> result1, Vector512<int> result2, Vector512<int> result3)
     {
@@ -265,6 +343,10 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Clips and packs eight signed accumulators into high-bit-depth samples.
     /// </summary>
+    /// <param name="result0">The first four accumulators.</param>
+    /// <param name="result1">The second four accumulators.</param>
+    /// <param name="maximumValue">The largest sample value of the bit depth.</param>
+    /// <returns>The accumulators clamped to [0, <paramref name="maximumValue"/>], in column order.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<ushort> PackHighBitDepth(Vector128<int> result0, Vector128<int> result1, int maximumValue)
     {
@@ -277,6 +359,10 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Clips and packs sixteen signed accumulators into high-bit-depth samples.
     /// </summary>
+    /// <param name="result0">The first eight accumulators.</param>
+    /// <param name="result1">The second eight accumulators.</param>
+    /// <param name="maximumValue">The largest sample value of the bit depth.</param>
+    /// <returns>The accumulators clamped to [0, <paramref name="maximumValue"/>], in column order.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<ushort> PackHighBitDepth(Vector256<int> result0, Vector256<int> result1, int maximumValue)
     {
@@ -289,6 +375,10 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Clips and packs thirty-two signed accumulators into high-bit-depth samples.
     /// </summary>
+    /// <param name="result0">The first sixteen accumulators.</param>
+    /// <param name="result1">The second sixteen accumulators.</param>
+    /// <param name="maximumValue">The largest sample value of the bit depth.</param>
+    /// <returns>The accumulators clamped to [0, <paramref name="maximumValue"/>], in column order.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<ushort> PackHighBitDepth(Vector512<int> result0, Vector512<int> result1, int maximumValue)
     {
@@ -301,6 +391,11 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Computes one signed Q7 convolution sum from 8-bit samples.
     /// </summary>
+    /// <param name="source">The sample that the first tap reads.</param>
+    /// <param name="sourceStride">The distance between the samples of consecutive taps.</param>
+    /// <param name="coefficients">The first filter coefficient.</param>
+    /// <param name="tapCount">The number of filter taps.</param>
+    /// <returns>The sum of the products of the samples and the coefficients.</returns>
     public static int ConvolveScalar(ref byte source, int sourceStride, ref short coefficients, int tapCount)
     {
         int sum = 0;
@@ -315,6 +410,11 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Computes one signed Q7 convolution sum from high-bit-depth samples.
     /// </summary>
+    /// <param name="source">The sample that the first tap reads.</param>
+    /// <param name="sourceStride">The distance between the samples of consecutive taps.</param>
+    /// <param name="coefficients">The first filter coefficient.</param>
+    /// <param name="tapCount">The number of filter taps.</param>
+    /// <returns>The sum of the products of the samples and the coefficients.</returns>
     public static int ConvolveScalar(ref ushort source, int sourceStride, ref short coefficients, int tapCount)
     {
         int sum = 0;
@@ -329,6 +429,11 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Computes one signed Q7 convolution sum from biased intermediate samples.
     /// </summary>
+    /// <param name="source">The sample that the first tap reads.</param>
+    /// <param name="sourceStride">The distance between the samples of consecutive taps.</param>
+    /// <param name="coefficients">The first filter coefficient.</param>
+    /// <param name="tapCount">The number of filter taps.</param>
+    /// <returns>The sum of the products of the samples and the coefficients.</returns>
     public static int ConvolveScalar(ref short source, int sourceStride, ref short coefficients, int tapCount)
     {
         int sum = 0;
@@ -341,7 +446,10 @@ internal static partial class Av1TranslationalInterPredictor
     }
 
     /// <summary>
-    /// Rounds an integer after division by a power of two using AV1's unsigned-bias rule.
+    /// Divides an integer by a power of two with AV1 rounding: the value gets half the divisor added before the arithmetic shift.
     /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="bits">The shift. Zero returns the value unchanged.</param>
+    /// <returns>The value plus half of 2^bits, shifted right by <paramref name="bits"/>.</returns>
     public static int RoundPowerOfTwo(int value, int bits) => bits == 0 ? value : (value + (1 << (bits - 1))) >> bits;
 }

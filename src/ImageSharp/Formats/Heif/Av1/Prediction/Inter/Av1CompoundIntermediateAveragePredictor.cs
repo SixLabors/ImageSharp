@@ -18,6 +18,15 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
     /// <summary>
     /// Combines two compound intermediates by equal averaging.
     /// </summary>
+    /// <param name="destination">The reconstructed 8-bit samples.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="first">The first compound intermediate.</param>
+    /// <param name="firstStride">The distance between first-intermediate rows in samples.</param>
+    /// <param name="second">The second compound intermediate.</param>
+    /// <param name="secondStride">The distance between second-intermediate rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="bitDepth">The decoded sample precision that produced the intermediates.</param>
     public static void AverageIntermediate(
         Span<byte> destination,
         int destinationStride,
@@ -43,6 +52,15 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
     /// Executes one closed equal-average compound-intermediate operator.
     /// </summary>
     /// <typeparam name="TOperator">The compound-intermediate operator.</typeparam>
+    /// <param name="destination">The reconstructed 8-bit samples.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="first">The first compound intermediate.</param>
+    /// <param name="firstStride">The distance between first-intermediate rows in samples.</param>
+    /// <param name="second">The second compound intermediate.</param>
+    /// <param name="secondStride">The distance between second-intermediate rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="bitDepth">The decoded sample precision that produced the intermediates.</param>
     private static void AverageIntermediate<TOperator>(
         Span<byte> destination,
         int destinationStride,
@@ -66,6 +84,8 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
             ref ushort secondReference = ref MemoryMarshal.GetReference(secondRow);
             int column = 0;
 
+            // Each step loads two 16-bit vectors from each intermediate and stores one byte vector that covers the same columns.
+            // The widest supported vectors take the row first. Each narrower width takes the columns that remain, and the scalar loop finishes the tail.
             if (Vector512.IsHardwareAccelerated)
             {
                 nuint vectorCount = Numerics.Vector512Count<byte>(width - column);
@@ -125,6 +145,15 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
     /// <summary>
     /// Combines two high-bit-depth compound intermediates by equal averaging.
     /// </summary>
+    /// <param name="destination">The reconstructed high-bit-depth samples.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="first">The first compound intermediate.</param>
+    /// <param name="firstStride">The distance between first-intermediate rows in samples.</param>
+    /// <param name="second">The second compound intermediate.</param>
+    /// <param name="secondStride">The distance between second-intermediate rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="bitDepth">The decoded sample precision.</param>
     public static void AverageIntermediate(
         Span<ushort> destination,
         int destinationStride,
@@ -150,6 +179,15 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
     /// Executes one closed high-bit-depth equal-average compound-intermediate operator.
     /// </summary>
     /// <typeparam name="TOperator">The compound-intermediate operator.</typeparam>
+    /// <param name="destination">The reconstructed high-bit-depth samples.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="first">The first compound intermediate.</param>
+    /// <param name="firstStride">The distance between first-intermediate rows in samples.</param>
+    /// <param name="second">The second compound intermediate.</param>
+    /// <param name="secondStride">The distance between second-intermediate rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="bitDepth">The decoded sample precision.</param>
     private static void AverageIntermediate<TOperator>(
         Span<ushort> destination,
         int destinationStride,
@@ -175,6 +213,7 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
             ref ushort secondReference = ref MemoryMarshal.GetReference(secondRow);
             int column = 0;
 
+            // The widest supported vectors take the row first. Each narrower width takes the columns that remain, and the scalar loop finishes the tail.
             if (Vector512.IsHardwareAccelerated)
             {
                 nuint vectorCount = Numerics.Vector512Count<ushort>(width - column);

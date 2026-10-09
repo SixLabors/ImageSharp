@@ -7,11 +7,10 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.IntraBlockCopy;
 /// Reconstructs AV1 intra-block-copy predictions from an earlier region of the current frame.
 /// </summary>
 /// <remarks>
-/// Whole-sample luma displacements can map to half-sample chroma positions. The predictor therefore selects direct
-/// copy, horizontal two-tap, vertical two-tap, or separable two-dimensional bilinear reconstruction per plane.
-/// Filtered paths use the widest preferred SIMD width and retain an explicit scalar fallback for feature-disabled
-/// execution. Narrow rows read from the frame buffer's prediction padding but use exact-width stores, so vectorization
-/// never depends on writable destination padding.
+/// Whole-sample luma displacements can map to half-sample chroma positions. The predictor therefore selects direct copy, horizontal two-tap, vertical two-tap,
+/// or separable two-dimensional bilinear reconstruction per plane. Filtered paths use the widest preferred SIMD width and keep an explicit scalar fallback for
+/// feature-disabled execution. Narrow rows read from the frame buffer's prediction padding but use exact-width stores, so vectorization never depends on
+/// writable destination padding.
 /// </remarks>
 internal static partial class Av1IntraBlockCopyPredictor
 {
@@ -174,10 +173,16 @@ internal static partial class Av1IntraBlockCopyPredictor
     /// <summary>
     /// Copies an 8-bit whole-sample source block to its destination.
     /// </summary>
+    /// <param name="source">The source block origin.</param>
+    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
     private static void Copy(ReadOnlySpan<byte> source, int sourceStride, Span<byte> destination, int destinationStride, int width, int height)
     {
-        // Span copying delegates each complete row to the runtime's overlap-safe native-width implementation. The
-        // displacement validity rules keep source and destination blocks separate, so no intermediate buffer is needed.
+        // Span copying gives each complete row to the overlap-safe native-width copy of the runtime. The displacement validity rules keep source and
+        // destination blocks separate, so no intermediate buffer is necessary.
         for (int row = 0; row < height; row++)
         {
             source.Slice(row * sourceStride, width).CopyTo(destination.Slice(row * destinationStride, width));
@@ -187,6 +192,12 @@ internal static partial class Av1IntraBlockCopyPredictor
     /// <summary>
     /// Copies a high-bit-depth whole-sample source block to its destination.
     /// </summary>
+    /// <param name="source">The source block origin.</param>
+    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
     private static void Copy(ReadOnlySpan<short> source, int sourceStride, Span<short> destination, int destinationStride, int width, int height)
     {
         for (int row = 0; row < height; row++)
@@ -198,6 +209,12 @@ internal static partial class Av1IntraBlockCopyPredictor
     /// <summary>
     /// Copies an 8-bit whole-sample source block with scalar sample assignments.
     /// </summary>
+    /// <param name="source">The source block origin.</param>
+    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
     private static void CopyScalar(ReadOnlySpan<byte> source, int sourceStride, Span<byte> destination, int destinationStride, int width, int height)
     {
         for (int row = 0; row < height; row++)
@@ -212,6 +229,12 @@ internal static partial class Av1IntraBlockCopyPredictor
     /// <summary>
     /// Copies a high-bit-depth whole-sample source block with scalar sample assignments.
     /// </summary>
+    /// <param name="source">The source block origin.</param>
+    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
     private static void CopyScalar(
         ReadOnlySpan<short> source,
         int sourceStride,

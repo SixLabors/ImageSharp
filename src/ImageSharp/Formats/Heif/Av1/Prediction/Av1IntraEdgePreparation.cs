@@ -60,8 +60,8 @@ internal static class Av1IntraEdgePreparation
         upsampleAbove = false;
         upsampleLeft = false;
 
-        // A missing sole edge produces a constant block from the perpendicular sample or midpoint offset.
-        // Its prepared edge already repeats that value. Upsampling its distinct corner would change it.
+        // If the only needed edge is missing, the block is constant. Its prepared edge already repeats the perpendicular sample or the midpoint offset.
+        // A filter or an upsample of its distinct corner changes the block. Thus the method returns before these stages.
         if ((!needAbove && leftCount == 0) || (!needLeft && topCount == 0))
         {
             return;
@@ -71,8 +71,8 @@ internal static class Av1IntraEdgePreparation
         {
             if (needAbove && needLeft && width + height >= 24)
             {
-                // The corner is one logical sample represented in both edge prefixes. Filter it first,
-                // then let both edge convolutions read the same rounded [5, 6, 5] corner value.
+                // The corner is one logical sample that both edge prefixes hold. The rounded [5, 6, 5] kernel filters it first.
+                // Then both edge convolutions read the same corner value.
                 ref T corner = ref Unsafe.Subtract(ref above[0], 1);
                 int value = (5 * int.CreateChecked(left[0]))
                     + (6 * int.CreateChecked(corner))
@@ -82,6 +82,7 @@ internal static class Av1IntraEdgePreparation
                 Unsafe.Subtract(ref left[0], 1) = corner;
             }
 
+            // Each filtered run starts at the corner. It includes the extension past the block only when the angle reads that extension.
             if (needAbove && topCount > 0)
             {
                 int strength = IntraEdgeFilterStrength(width, height, angle - 90, filterType);
@@ -174,6 +175,7 @@ internal static class Av1IntraEdgePreparation
     /// <returns>The filter strength from zero for no filtering through three for the strongest kernel.</returns>
     private static int IntraEdgeFilterStrength(int width, int height, int delta, bool filterType)
     {
+        // The thresholds are the AV1 intra edge filter strength table. Larger blocks and larger angle deltas select stronger kernels.
         int d = Math.Abs(delta);
         int strength = 0;
         int widthHeight = width + height;

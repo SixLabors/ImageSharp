@@ -24,8 +24,8 @@ internal static partial class Av1CompoundIntermediateDifferenceWeightedMaskBuild
         /// </summary>
         /// <param name="first">The first compound intermediate.</param>
         /// <param name="second">The second compound intermediate.</param>
-        /// <param name="differenceRound">The difference scaling shift.</param>
-        /// <param name="invert">Whether to invert the selected predictor.</param>
+        /// <param name="differenceRound">The rounding right shift that scales the difference to 8-bit sample units.</param>
+        /// <param name="invert"><see langword="true"/> to return 64 minus the mask value, which swaps the weights of the two predictors.</param>
         /// <returns>The AV1 mask value.</returns>
         public static abstract byte CreateMask(ushort first, ushort second, int differenceRound, bool invert);
 
@@ -36,8 +36,8 @@ internal static partial class Av1CompoundIntermediateDifferenceWeightedMaskBuild
         /// <param name="first1">The upper first-predictor intermediates.</param>
         /// <param name="second0">The lower second-predictor intermediates.</param>
         /// <param name="second1">The upper second-predictor intermediates.</param>
-        /// <param name="differenceRound">The difference scaling shift.</param>
-        /// <param name="invert">Whether to invert the selected predictor.</param>
+        /// <param name="differenceRound">The rounding right shift that scales the difference to 8-bit sample units.</param>
+        /// <param name="invert"><see langword="true"/> to return 64 minus the mask value, which swaps the weights of the two predictors.</param>
         /// <returns>The packed AV1 mask values.</returns>
         public static abstract Vector128<byte> CreateMask(
             Vector128<ushort> first0,
@@ -54,8 +54,8 @@ internal static partial class Av1CompoundIntermediateDifferenceWeightedMaskBuild
         /// <param name="first1">The upper first-predictor intermediates.</param>
         /// <param name="second0">The lower second-predictor intermediates.</param>
         /// <param name="second1">The upper second-predictor intermediates.</param>
-        /// <param name="differenceRound">The difference scaling shift.</param>
-        /// <param name="invert">Whether to invert the selected predictor.</param>
+        /// <param name="differenceRound">The rounding right shift that scales the difference to 8-bit sample units.</param>
+        /// <param name="invert"><see langword="true"/> to return 64 minus the mask value, which swaps the weights of the two predictors.</param>
         /// <returns>The packed AV1 mask values.</returns>
         public static abstract Vector256<byte> CreateMask(
             Vector256<ushort> first0,
@@ -72,8 +72,8 @@ internal static partial class Av1CompoundIntermediateDifferenceWeightedMaskBuild
         /// <param name="first1">The upper first-predictor intermediates.</param>
         /// <param name="second0">The lower second-predictor intermediates.</param>
         /// <param name="second1">The upper second-predictor intermediates.</param>
-        /// <param name="differenceRound">The difference scaling shift.</param>
-        /// <param name="invert">Whether to invert the selected predictor.</param>
+        /// <param name="differenceRound">The rounding right shift that scales the difference to 8-bit sample units.</param>
+        /// <param name="invert"><see langword="true"/> to return 64 minus the mask value, which swaps the weights of the two predictors.</param>
         /// <returns>The packed AV1 mask values.</returns>
         public static abstract Vector512<byte> CreateMask(
             Vector512<ushort> first0,
@@ -86,6 +86,7 @@ internal static partial class Av1CompoundIntermediateDifferenceWeightedMaskBuild
 
     /// <summary>
     /// Implements difference-weighted mask generation for scalar and SIMD lane groups.
+    /// Each mask value is 38 plus one sixteenth of the scaled absolute difference, capped at <see cref="Av1CompoundInterPredictor.MaximumMaskAlpha"/>.
     /// </summary>
     private readonly struct CompoundIntermediateDifferenceWeightedMaskOperator : IAv1CompoundIntermediateDifferenceWeightedMaskOperator
     {
@@ -138,10 +139,16 @@ internal static partial class Av1CompoundIntermediateDifferenceWeightedMaskBuild
                 CreateMask(first1, second1, differenceRound, invert));
 
         /// <summary>
-        /// Creates 128-bit unpacked mask values without losing the required pre-alpha rounding.
+        /// Creates 128-bit mask values in 16-bit lanes. The difference widens to 32 bits before rounding, so the rounding bias cannot overflow a lane.
         /// </summary>
+        /// <param name="first">The first compound intermediates.</param>
+        /// <param name="second">The second compound intermediates.</param>
+        /// <param name="differenceRound">The rounding right shift that scales the difference to 8-bit sample units.</param>
+        /// <param name="invert"><see langword="true"/> to return 64 minus each mask value.</param>
+        /// <returns>The mask values in 16-bit lanes.</returns>
         private static Vector128<ushort> CreateMask(Vector128<ushort> first, Vector128<ushort> second, int differenceRound, bool invert)
         {
+            // Max minus min gives the absolute difference of unsigned lanes without a signed intermediate.
             Vector128<ushort> difference = Vector128.Max(first, second) - Vector128.Min(first, second);
             Vector128<int> lower = CreateMaskAlpha(Vector128.WidenLower(difference).AsInt32(), differenceRound, invert);
             Vector128<int> upper = CreateMaskAlpha(Vector128.WidenUpper(difference).AsInt32(), differenceRound, invert);
@@ -149,10 +156,16 @@ internal static partial class Av1CompoundIntermediateDifferenceWeightedMaskBuild
         }
 
         /// <summary>
-        /// Creates 256-bit unpacked mask values without losing the required pre-alpha rounding.
+        /// Creates 256-bit mask values in 16-bit lanes. The difference widens to 32 bits before rounding, so the rounding bias cannot overflow a lane.
         /// </summary>
+        /// <param name="first">The first compound intermediates.</param>
+        /// <param name="second">The second compound intermediates.</param>
+        /// <param name="differenceRound">The rounding right shift that scales the difference to 8-bit sample units.</param>
+        /// <param name="invert"><see langword="true"/> to return 64 minus each mask value.</param>
+        /// <returns>The mask values in 16-bit lanes.</returns>
         private static Vector256<ushort> CreateMask(Vector256<ushort> first, Vector256<ushort> second, int differenceRound, bool invert)
         {
+            // Max minus min gives the absolute difference of unsigned lanes without a signed intermediate.
             Vector256<ushort> difference = Vector256.Max(first, second) - Vector256.Min(first, second);
             Vector256<int> lower = CreateMaskAlpha(Vector256.WidenLower(difference).AsInt32(), differenceRound, invert);
             Vector256<int> upper = CreateMaskAlpha(Vector256.WidenUpper(difference).AsInt32(), differenceRound, invert);
@@ -160,10 +173,16 @@ internal static partial class Av1CompoundIntermediateDifferenceWeightedMaskBuild
         }
 
         /// <summary>
-        /// Creates 512-bit unpacked mask values without losing the required pre-alpha rounding.
+        /// Creates 512-bit mask values in 16-bit lanes. The difference widens to 32 bits before rounding, so the rounding bias cannot overflow a lane.
         /// </summary>
+        /// <param name="first">The first compound intermediates.</param>
+        /// <param name="second">The second compound intermediates.</param>
+        /// <param name="differenceRound">The rounding right shift that scales the difference to 8-bit sample units.</param>
+        /// <param name="invert"><see langword="true"/> to return 64 minus each mask value.</param>
+        /// <returns>The mask values in 16-bit lanes.</returns>
         private static Vector512<ushort> CreateMask(Vector512<ushort> first, Vector512<ushort> second, int differenceRound, bool invert)
         {
+            // Max minus min gives the absolute difference of unsigned lanes without a signed intermediate.
             Vector512<ushort> difference = Vector512.Max(first, second) - Vector512.Min(first, second);
             Vector512<int> lower = CreateMaskAlpha(Vector512.WidenLower(difference).AsInt32(), differenceRound, invert);
             Vector512<int> upper = CreateMaskAlpha(Vector512.WidenUpper(difference).AsInt32(), differenceRound, invert);
@@ -173,6 +192,10 @@ internal static partial class Av1CompoundIntermediateDifferenceWeightedMaskBuild
         /// <summary>
         /// Converts 128-bit intermediate differences to the decoded type-38 mask range.
         /// </summary>
+        /// <param name="difference">The absolute intermediate differences.</param>
+        /// <param name="differenceRound">The rounding right shift that scales the difference to 8-bit sample units.</param>
+        /// <param name="invert"><see langword="true"/> to return 64 minus each mask value.</param>
+        /// <returns>The mask values, 38 through 64, or 0 through 26 when inverted.</returns>
         private static Vector128<int> CreateMaskAlpha(Vector128<int> difference, int differenceRound, bool invert)
         {
             if (differenceRound != 0)
@@ -188,6 +211,10 @@ internal static partial class Av1CompoundIntermediateDifferenceWeightedMaskBuild
         /// <summary>
         /// Converts 256-bit intermediate differences to the decoded type-38 mask range.
         /// </summary>
+        /// <param name="difference">The absolute intermediate differences.</param>
+        /// <param name="differenceRound">The rounding right shift that scales the difference to 8-bit sample units.</param>
+        /// <param name="invert"><see langword="true"/> to return 64 minus each mask value.</param>
+        /// <returns>The mask values, 38 through 64, or 0 through 26 when inverted.</returns>
         private static Vector256<int> CreateMaskAlpha(Vector256<int> difference, int differenceRound, bool invert)
         {
             if (differenceRound != 0)
@@ -203,6 +230,10 @@ internal static partial class Av1CompoundIntermediateDifferenceWeightedMaskBuild
         /// <summary>
         /// Converts 512-bit intermediate differences to the decoded type-38 mask range.
         /// </summary>
+        /// <param name="difference">The absolute intermediate differences.</param>
+        /// <param name="differenceRound">The rounding right shift that scales the difference to 8-bit sample units.</param>
+        /// <param name="invert"><see langword="true"/> to return 64 minus each mask value.</param>
+        /// <returns>The mask values, 38 through 64, or 0 through 26 when inverted.</returns>
         private static Vector512<int> CreateMaskAlpha(Vector512<int> difference, int differenceRound, bool invert)
         {
             if (differenceRound != 0)

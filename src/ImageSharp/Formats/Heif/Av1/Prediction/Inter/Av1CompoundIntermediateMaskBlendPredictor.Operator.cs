@@ -25,7 +25,7 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
         /// <param name="first">The first compound intermediate.</param>
         /// <param name="second">The second compound intermediate.</param>
         /// <param name="alpha">The first-predictor weight in the AV1 mask range.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The reconstructed sample.</returns>
         public static abstract byte Blend(ushort first, ushort second, byte alpha, int roundBits, int roundOffset);
@@ -38,7 +38,7 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
         /// <param name="second0">The lower second-predictor intermediates.</param>
         /// <param name="second1">The upper second-predictor intermediates.</param>
         /// <param name="alpha">The first-predictor weights in the AV1 mask range.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The reconstructed samples.</returns>
         public static abstract Vector128<byte> Blend(
@@ -58,7 +58,7 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
         /// <param name="second0">The lower second-predictor intermediates.</param>
         /// <param name="second1">The upper second-predictor intermediates.</param>
         /// <param name="alpha">The first-predictor weights in the AV1 mask range.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The reconstructed samples.</returns>
         public static abstract Vector256<byte> Blend(
@@ -78,7 +78,7 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
         /// <param name="second0">The lower second-predictor intermediates.</param>
         /// <param name="second1">The upper second-predictor intermediates.</param>
         /// <param name="alpha">The first-predictor weights in the AV1 mask range.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The reconstructed samples.</returns>
         public static abstract Vector512<byte> Blend(
@@ -96,7 +96,7 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
         /// <param name="first">The first compound intermediate.</param>
         /// <param name="second">The second compound intermediate.</param>
         /// <param name="alpha">The first-predictor weight in the AV1 mask range.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <param name="maximum">The maximum reconstructed sample value.</param>
         /// <returns>The reconstructed sample.</returns>
@@ -116,7 +116,7 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
         /// <param name="second0">The lower second-predictor intermediates.</param>
         /// <param name="second1">The upper second-predictor intermediates.</param>
         /// <param name="alpha">The first-predictor weights in the AV1 mask range.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <param name="maximum">The maximum reconstructed sample value.</param>
         /// <param name="result0">The lower reconstructed samples.</param>
@@ -141,7 +141,7 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
         /// <param name="second0">The lower second-predictor intermediates.</param>
         /// <param name="second1">The upper second-predictor intermediates.</param>
         /// <param name="alpha">The first-predictor weights in the AV1 mask range.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <param name="maximum">The maximum reconstructed sample value.</param>
         /// <param name="result0">The lower reconstructed samples.</param>
@@ -166,7 +166,7 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
         /// <param name="second0">The lower second-predictor intermediates.</param>
         /// <param name="second1">The upper second-predictor intermediates.</param>
         /// <param name="alpha">The first-predictor weights in the AV1 mask range.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <param name="maximum">The maximum reconstructed sample value.</param>
         /// <param name="result0">The lower reconstructed samples.</param>
@@ -186,6 +186,8 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
 
     /// <summary>
     /// Implements masked compound-intermediate finalization for scalar and SIMD lane groups.
+    /// The vector forms widen the mask bytes to the 16-bit intermediate lanes, then widen both to 32-bit lanes for the products.
+    /// The two weights add up to 64, so the shifted blend is never larger than the larger intermediate.
     /// </summary>
     private readonly struct CompoundIntermediateMaskBlendOperator : IAv1CompoundIntermediateMaskBlendOperator
     {
@@ -193,7 +195,7 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte Blend(ushort first, ushort second, byte alpha, int roundBits, int roundOffset)
         {
-            // The Q6 blend truncates because final pixel rounding is still pending after bias removal.
+            // The Q6 blend truncates. The final shift after the bias removal does the only rounding.
             int result = ((alpha * first) + ((MaximumMaskAlpha - alpha) * second)) >> MaskWeightBits;
             result -= roundOffset;
             return (byte)Math.Clamp(RoundPowerOfTwo(result, roundBits), 0, byte.MaxValue);
@@ -350,8 +352,14 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
         }
 
         /// <summary>
-        /// Alpha-blends 128-bit lanes after widening every product to signed 32-bit precision.
+        /// Alpha-blends and finalizes 128-bit lanes of 8-bit intermediates. Every product uses signed 32-bit lanes.
         /// </summary>
+        /// <param name="first">The first compound intermediates.</param>
+        /// <param name="second">The second compound intermediates.</param>
+        /// <param name="alpha">The first-predictor weights in 16-bit lanes.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
+        /// <param name="roundOffset">The compound intermediate bias.</param>
+        /// <returns>The 8-bit samples, clamped to 0 through 255, in 16-bit lanes.</returns>
         private static Vector128<ushort> Blend(
             Vector128<ushort> first,
             Vector128<ushort> second,
@@ -372,8 +380,14 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
         }
 
         /// <summary>
-        /// Alpha-blends 256-bit lanes after widening every product to signed 32-bit precision.
+        /// Alpha-blends and finalizes 256-bit lanes of 8-bit intermediates. Every product uses signed 32-bit lanes.
         /// </summary>
+        /// <param name="first">The first compound intermediates.</param>
+        /// <param name="second">The second compound intermediates.</param>
+        /// <param name="alpha">The first-predictor weights in 16-bit lanes.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
+        /// <param name="roundOffset">The compound intermediate bias.</param>
+        /// <returns>The 8-bit samples, clamped to 0 through 255, in 16-bit lanes.</returns>
         private static Vector256<ushort> Blend(
             Vector256<ushort> first,
             Vector256<ushort> second,
@@ -394,8 +408,14 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
         }
 
         /// <summary>
-        /// Alpha-blends 512-bit lanes after widening every product to signed 32-bit precision.
+        /// Alpha-blends and finalizes 512-bit lanes of 8-bit intermediates. Every product uses signed 32-bit lanes.
         /// </summary>
+        /// <param name="first">The first compound intermediates.</param>
+        /// <param name="second">The second compound intermediates.</param>
+        /// <param name="alpha">The first-predictor weights in 16-bit lanes.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
+        /// <param name="roundOffset">The compound intermediate bias.</param>
+        /// <returns>The 8-bit samples, clamped to 0 through 255, in 16-bit lanes.</returns>
         private static Vector512<ushort> Blend(
             Vector512<ushort> first,
             Vector512<ushort> second,
@@ -416,8 +436,16 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
         }
 
         /// <summary>
-        /// Alpha-blends 128-bit high-bit-depth lanes without narrowing the unsigned intermediate range.
+        /// Alpha-blends and finalizes 128-bit lanes of high-bit-depth intermediates.
+        /// The products use unsigned 32-bit lanes. After the shift every value fits in 16 bits again, so the narrowing keeps every value.
         /// </summary>
+        /// <param name="first">The first compound intermediates.</param>
+        /// <param name="second">The second compound intermediates.</param>
+        /// <param name="alpha">The first-predictor weights in 16-bit lanes.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
+        /// <param name="roundOffset">The compound intermediate bias.</param>
+        /// <param name="maximum">The maximum reconstructed sample value.</param>
+        /// <returns>The reconstructed samples.</returns>
         private static Vector128<ushort> BlendHighBitDepth(
             Vector128<ushort> first,
             Vector128<ushort> second,
@@ -447,8 +475,16 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
         }
 
         /// <summary>
-        /// Alpha-blends 256-bit high-bit-depth lanes without narrowing the unsigned intermediate range.
+        /// Alpha-blends and finalizes 256-bit lanes of high-bit-depth intermediates.
+        /// The products use unsigned 32-bit lanes. After the shift every value fits in 16 bits again, so the narrowing keeps every value.
         /// </summary>
+        /// <param name="first">The first compound intermediates.</param>
+        /// <param name="second">The second compound intermediates.</param>
+        /// <param name="alpha">The first-predictor weights in 16-bit lanes.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
+        /// <param name="roundOffset">The compound intermediate bias.</param>
+        /// <param name="maximum">The maximum reconstructed sample value.</param>
+        /// <returns>The reconstructed samples.</returns>
         private static Vector256<ushort> BlendHighBitDepth(
             Vector256<ushort> first,
             Vector256<ushort> second,
@@ -478,8 +514,16 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
         }
 
         /// <summary>
-        /// Alpha-blends 512-bit high-bit-depth lanes without narrowing the unsigned intermediate range.
+        /// Alpha-blends and finalizes 512-bit lanes of high-bit-depth intermediates.
+        /// The products use unsigned 32-bit lanes. After the shift every value fits in 16 bits again, so the narrowing keeps every value.
         /// </summary>
+        /// <param name="first">The first compound intermediates.</param>
+        /// <param name="second">The second compound intermediates.</param>
+        /// <param name="alpha">The first-predictor weights in 16-bit lanes.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
+        /// <param name="roundOffset">The compound intermediate bias.</param>
+        /// <param name="maximum">The maximum reconstructed sample value.</param>
+        /// <returns>The reconstructed samples.</returns>
         private static Vector512<ushort> BlendHighBitDepth(
             Vector512<ushort> first,
             Vector512<ushort> second,

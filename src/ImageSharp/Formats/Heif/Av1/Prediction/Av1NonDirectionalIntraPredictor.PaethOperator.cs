@@ -89,12 +89,17 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<byte> PredictPaeth(Vector128<byte> top, Vector128<byte> left, Vector128<byte> topLeft)
         {
-            // The Paeth distances to left and top simplify to |top - topLeft| and |left - topLeft|. The established
-            // PNG predictor uses the same byte-lane identity, avoiding four widening stages for every sixteen samples.
+            // The Paeth distances to left and top simplify to |top - topLeft| and |left - topLeft|. The PNG predictor uses the same identity in byte lanes.
+            // This identity removes four widening stages for every sixteen samples. Two saturating subtractions in opposite order give one zero lane and one
+            // difference lane, so their OR is the absolute difference.
             Vector128<byte> topMinusTopLeft = Vector128.SubtractSaturate(top, topLeft);
             Vector128<byte> leftMinusTopLeft = Vector128.SubtractSaturate(left, topLeft);
             Vector128<byte> distanceLeft = Vector128.SubtractSaturate(topLeft, top) | topMinusTopLeft;
             Vector128<byte> distanceTop = Vector128.SubtractSaturate(topLeft, left) | leftMinusTopLeft;
+
+            // The top-left distance is |(top - topLeft) + (left - topLeft)|. If top and left are on the same side of topLeft, this sum is at least each other
+            // distance, so topLeft cannot win. The mask then sets the distance to 255. Otherwise the distance is the absolute difference of the other two
+            // distances. The selects keep the tie order left, top, top-left.
             Vector128<byte> sameDirection = Vector128.Equals(Vector128.Equals(topMinusTopLeft, Vector128<byte>.Zero), Vector128.Equals(leftMinusTopLeft, Vector128<byte>.Zero));
             Vector128<byte> distanceTopLeft = sameDirection | Vector128.SubtractSaturate(distanceTop, distanceLeft) | Vector128.SubtractSaturate(distanceLeft, distanceTop);
             Vector128<byte> minimumTopTopLeft = Vector128.Min(distanceTopLeft, distanceTop);
@@ -154,8 +159,8 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<short> PredictPaeth(Vector128<short> top, Vector128<short> left, Vector128<short> topLeft)
         {
-            // AV1 samples are at most twelve bits. Both signed differences and their sum are therefore bounded by
-            // 8190, allowing the exact Paeth distances to stay in signed 16-bit lanes without widening.
+            // AV1 samples have at most twelve bits. Thus the magnitudes of both signed differences and of their sum are at most 8190. The exact Paeth distances
+            // stay in signed 16-bit lanes without widening.
             Vector128<short> topDelta = top - topLeft;
             Vector128<short> leftDelta = left - topLeft;
             Vector128<short> distanceLeft = Vector128.Abs(topDelta);

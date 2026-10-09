@@ -94,7 +94,7 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
     /// </summary>
     /// <param name="left">The first vector.</param>
     /// <param name="right">The second vector.</param>
-    /// <returns><see langword="true"/> when both components are equal; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when both components are equal, otherwise <see langword="false"/>.</returns>
     public static bool operator ==(Av1MotionVector left, Av1MotionVector right) => left.Equals(right);
 
     /// <summary>
@@ -102,7 +102,7 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
     /// </summary>
     /// <param name="left">The first vector.</param>
     /// <param name="right">The second vector.</param>
-    /// <returns><see langword="true"/> when either component differs; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when either component differs, otherwise <see langword="false"/>.</returns>
     public static bool operator !=(Av1MotionVector left, Av1MotionVector right) => !left.Equals(right);
 
     /// <summary>
@@ -114,9 +114,9 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
     /// <returns>The displacement region with exclusive right and bottom edges.</returns>
     public static Rectangle GetFrameSearchBounds(Rectangle block, Size frameSize, int border)
     {
-        // Reserve eight samples for interpolation support and restrict candidates beyond a replicated edge
-        // once moving farther cannot change the prediction. Bounds describe displacement from this block,
-        // so interior blocks can move across the frame rather than being restricted to the border width.
+        // The bounds reserve eight samples for interpolation support.
+        // They stop candidates beyond a replicated edge, where a farther move cannot change the prediction.
+        // The bounds describe displacement from this block. Interior blocks can thus move across the frame and are not limited to the border width.
         int minimumColumn = Math.Max(-(block.X + border - 8), -(block.Right + 8));
         int minimumRow = Math.Max(-(block.Y + border - 8), -(block.Bottom + 8));
         int maximumColumn = Math.Min(frameSize.Width - block.Right + border - 8, frameSize.Width - block.X + 8);
@@ -125,22 +125,19 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
     }
 
     /// <summary>
-    /// Restricts a search range so the block stays within eight samples of the visible frame, as a sharpness of
-    /// three requires. Reference: the sharpness == 3 margins of av1_make_default_fullpel_ms_params() and
-    /// av1_make_default_subpel_ms_params().
+    /// Restricts a search range so the block stays within eight samples of the visible frame, as a sharpness of three requires.
     /// </summary>
     /// <param name="bounds">The range to restrict, with exclusive right and bottom edges.</param>
-    /// <param name="blockOrigin">The luma origin of the block, which is xd->mi_row and xd->mi_col in samples.</param>
+    /// <param name="blockOrigin">The luma origin of the block, in samples.</param>
     /// <param name="blockSize">The luma size of the searched block.</param>
-    /// <param name="visibleFrameSize">The visible frame size. Reference: cm->width and cm->height.</param>
+    /// <param name="visibleFrameSize">The visible frame size.</param>
     /// <param name="scale">One for full-pixel ranges, eight for eighth-sample ranges.</param>
     /// <returns>The restricted range.</returns>
     public static Rectangle ClampToSharpnessMargins(Rectangle bounds, Point blockOrigin, Size blockSize, Size visibleFrameSize, int scale)
     {
-        // Both functions allow eight samples beyond the visible frame on each side; the full-pixel form writes the
-        // far margin as height - block height - top margin + 16, which is the same value. Like libaom, the clamp
-        // does not repair an empty range. It cannot arise: the reference vector stays within 16 samples of the
-        // block, and the frame limits lie at least the border less 12 samples beyond the margins.
+        // The range allows eight samples beyond the visible frame on each side, at full-pixel and at eighth-sample scale.
+        // The clamp does not repair an empty range. An empty range cannot occur, because the reference vector stays within 16 samples of the block.
+        // Also, the frame limits are at least the border less 12 samples beyond the margins.
         int topMargin = (blockOrigin.Y + 8) * scale;
         int leftMargin = (blockOrigin.X + 8) * scale;
         int bottomMargin = Math.Max((visibleFrameSize.Height - blockSize.Height - blockOrigin.Y + 8) * scale, -topMargin);
@@ -153,9 +150,8 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
     }
 
     /// <summary>
-    /// Returns whether the vector, rounded to full samples, lies in the frame displacement region. A mode whose
-    /// vector does not is not searched. The margin clamp that precedes the test never moves an out-of-region
-    /// vector into it. Reference: clamp_and_check_mv() with GET_MV_RAWPEL() and av1_is_fullmv_in_range().
+    /// Returns whether the vector, rounded to full samples, lies in the frame displacement region.
+    /// The search skips a mode whose vector is outside the region. The margin clamp before the test never moves an outside vector into the region.
     /// </summary>
     /// <param name="frameBounds">The full-pixel region from <see cref="GetFrameSearchBounds"/>.</param>
     /// <returns><see langword="true"/> when the rounded vector is inside the region.</returns>
@@ -175,9 +171,9 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
     {
         const int MaximumDisplacement = 1023;
 
-        // Both endpoints must fit inside a 1023-pixel displacement from the fractional reference. Round the
-        // lower endpoint toward positive infinity and the upper toward negative infinity, including for
-        // negative references. Keep the reserved vector-domain endpoints out of the search as well.
+        // Both endpoints must fit inside a 1023-pixel displacement from the fractional reference.
+        // The lower endpoint rounds toward positive infinity and the upper endpoint toward negative infinity, also for negative references.
+        // The reserved endpoints of the vector domain also stay out of the search.
         int minimumColumn = Math.Max(frameBounds.Left, Math.Max(((this.Column + 7) >> 3) - MaximumDisplacement, (LowerBound >> 3) + 1));
         int minimumRow = Math.Max(frameBounds.Top, Math.Max(((this.Row + 7) >> 3) - MaximumDisplacement, (LowerBound >> 3) + 1));
         int maximumColumn = Math.Min(frameBounds.Right - 1, Math.Min((this.Column >> 3) + MaximumDisplacement, (UpperBound >> 3) - 1));
@@ -196,8 +192,8 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
     {
         const int MaximumDisplacement = 1023 * SubpixelScale;
 
-        // Refine against the original frame region, not the rounded full-pixel intersection. Otherwise the
-        // fractional portion between an integer endpoint and the reference-centered limit would be lost.
+        // The refinement uses the original frame region, not the rounded full-pixel intersection.
+        // The rounded intersection loses the fractional part between an integer endpoint and the reference-centered limit.
         int minimumColumn = Math.Max(frameBounds.Left * SubpixelScale, this.Column - MaximumDisplacement);
         int minimumRow = Math.Max(frameBounds.Top * SubpixelScale, this.Row - MaximumDisplacement);
         int maximumColumn = Math.Min((frameBounds.Right - 1) * SubpixelScale, this.Column + MaximumDisplacement);
@@ -212,12 +208,8 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
     /// <summary>
     /// Reduces this vector to the motion-vector precision selected by the current frame.
     /// </summary>
-    /// <param name="allowHighPrecision">
-    /// A value indicating whether one-eighth-sample precision may be retained.
-    /// </param>
-    /// <param name="forceInteger">
-    /// A value indicating whether both components must be rounded to integer-sample precision.
-    /// </param>
+    /// <param name="allowHighPrecision">A value indicating whether one-eighth-sample precision can stay.</param>
+    /// <param name="forceInteger">A value indicating whether both components round to integer-sample precision.</param>
     /// <returns>The precision-reduced vector.</returns>
     public Av1MotionVector LowerPrecision(bool allowHighPrecision, bool forceInteger)
     {
@@ -231,8 +223,8 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
             return this;
         }
 
-        // Low precision removes the one-eighth-sample bit. Odd components move toward zero rather than rounding to
-        // the nearest even value, which is the normative lower_mv_precision behavior used by spatial and temporal MVs.
+        // Low precision removes the one-eighth-sample bit. An odd component moves one unit toward zero, so it always lands on the even value nearer zero.
+        // The AV1 specification applies this rule to spatial and temporal candidate vectors.
         int row = (this.Row & 1) != 0 ? this.Row + (this.Row > 0 ? -1 : 1) : this.Row;
         int column = (this.Column & 1) != 0 ? this.Column + (this.Column > 0 ? -1 : 1) : this.Column;
         return new(row, column);
@@ -259,8 +251,8 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
         int blockWidthSubpixel = blockWidth << 3;
         int blockHeightSubpixel = blockHeight << 3;
 
-        // Candidate derivation permits the complete block extent plus sixteen further luma samples beyond each
-        // visible frame edge. These are stack limits, not the tighter UMV limits applied later while sampling pixels.
+        // Candidate derivation allows the full block size plus sixteen luma samples beyond each visible frame edge.
+        // These limits apply only to the candidate list. The prediction applies tighter limits later, when it reads samples.
         int minimumColumn = blockToLeftEdge - blockWidthSubpixel - ReferenceBorder;
         int maximumColumn = blockToRightEdge + blockWidthSubpixel + ReferenceBorder;
         int minimumRow = blockToTopEdge - blockHeightSubpixel - ReferenceBorder;
@@ -281,9 +273,9 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
         denominator = Math.Min(denominator, MaximumTemporalDistance);
         numerator = Av1Math.Clip3(-MaximumTemporalDistance, MaximumTemporalDistance, numerator);
 
-        // The reciprocal table represents 1 / denominator in Q14. Signed power-of-two rounding preserves symmetry
-        // for negative components, and AV1 excludes the two reserved endpoints from projected motion vectors.
-        // Motion-field retention limits each source component to 4095, keeping the complete Q14 product inside Int32.
+        // The reciprocal table holds 1 / denominator in Q14. Signed power-of-two rounding keeps negative components symmetric with positive ones.
+        // AV1 excludes the two reserved endpoints from projected motion vectors.
+        // The motion field keeps only source components up to 4095, so the full Q14 product fits in Int32.
         int row = Av1Math.RoundPowerOf2Signed(this.Row * numerator * ProjectionDivisors[denominator], 14);
         int column = Av1Math.RoundPowerOf2Signed(this.Column * numerator * ProjectionDivisors[denominator], 14);
         row = Av1Math.Clip3(LowerBound + 1, UpperBound - 1, row);
@@ -295,7 +287,7 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
     /// Determines whether this vector has the same components as another vector.
     /// </summary>
     /// <param name="other">The vector to compare.</param>
-    /// <returns><see langword="true"/> when both components are equal; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when both components are equal, otherwise <see langword="false"/>.</returns>
     public bool Equals(Av1MotionVector other) => this.Row == other.Row && this.Column == other.Column;
 
     /// <inheritdoc/>
@@ -314,8 +306,8 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
         int remainder = value % 8;
         value -= remainder;
 
-        // Exactly half an integer sample has magnitude four. AV1 leaves that truncated base unchanged, so both
-        // positive and negative half ties move toward zero; only larger remainders advance to the adjacent sample.
+        // Exactly half an integer sample has magnitude four. AV1 keeps the truncated base for that case.
+        // Thus positive and negative half ties move toward zero. Only larger remainders move to the adjacent sample.
         if (Math.Abs(remainder) > 4)
         {
             value += remainder > 0 ? 8 : -8;

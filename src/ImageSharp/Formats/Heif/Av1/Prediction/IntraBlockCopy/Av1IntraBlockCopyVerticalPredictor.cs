@@ -15,6 +15,12 @@ internal static partial class Av1IntraBlockCopyVerticalPredictor
     /// <summary>
     /// Reconstructs an 8-bit filtered intra-block-copy prediction.
     /// </summary>
+    /// <param name="source">The source region that starts at the integer sample above the first half-sample position.</param>
+    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
     public static void Predict(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -27,6 +33,12 @@ internal static partial class Av1IntraBlockCopyVerticalPredictor
     /// <summary>
     /// Reconstructs a high-bit-depth filtered intra-block-copy prediction.
     /// </summary>
+    /// <param name="source">The source region that starts at the integer sample above the first half-sample position.</param>
+    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
     public static void Predict(
         ReadOnlySpan<short> source,
         int sourceStride,
@@ -39,6 +51,12 @@ internal static partial class Av1IntraBlockCopyVerticalPredictor
     /// <summary>
     /// Reconstructs an 8-bit filtered intra-block-copy prediction without explicit hardware intrinsics.
     /// </summary>
+    /// <param name="source">The source region that starts at the integer sample above the first half-sample position.</param>
+    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
     public static void PredictScalar(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -51,6 +69,12 @@ internal static partial class Av1IntraBlockCopyVerticalPredictor
     /// <summary>
     /// Reconstructs a high-bit-depth filtered intra-block-copy prediction without explicit hardware intrinsics.
     /// </summary>
+    /// <param name="source">The source region that starts at the integer sample above the first half-sample position.</param>
+    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
     public static void PredictScalar(
         ReadOnlySpan<short> source,
         int sourceStride,
@@ -64,6 +88,12 @@ internal static partial class Av1IntraBlockCopyVerticalPredictor
     /// Applies one closed interpolation operator to an 8-bit source block.
     /// </summary>
     /// <typeparam name="TOperator">The source-phase-specific interpolation arithmetic.</typeparam>
+    /// <param name="source">The source region that starts at the integer sample above the first half-sample position.</param>
+    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
     private static void Predict<TOperator>(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -78,9 +108,8 @@ internal static partial class Av1IntraBlockCopyVerticalPredictor
 
         if (Vector128.IsHardwareAccelerated && width is 4 or 8)
         {
-            // AV1 permits 4- and 8-sample transform widths, both smaller than a byte Vector128. The frame allocation's
-            // 72-sample prediction border makes each full source load readable; exact-width stores avoid touching
-            // destination padding.
+            // AV1 permits 4- and 8-sample transform widths, both smaller than a byte Vector128. The prediction border of the frame allocation makes each full
+            // source load readable. Exact-width stores do not write the destination padding.
             for (int row = 0; row < height; row++)
             {
                 ref byte sourceRow = ref Unsafe.Add(ref sourceBase, row * sourceStride);
@@ -104,8 +133,8 @@ internal static partial class Av1IntraBlockCopyVerticalPredictor
 
         int processedColumns = 0;
 
-        // AV1 transform widths are powers of two. The widest supported tier normally consumes the complete row; the
-        // cumulative narrower tiers preserve the same contract for future legal widths without over-reading a tail.
+        // AV1 transform widths are powers of two. The widest supported tier usually covers the full row. The narrower tiers keep the same contract for other
+        // legal widths and never read past the tail.
         if (Vector512.IsHardwareAccelerated)
         {
             int vectorizedColumns = (int)(Numerics.Vector512Count<byte>(width) * (nuint)Vector512<byte>.Count);
@@ -175,8 +204,8 @@ internal static partial class Av1IntraBlockCopyVerticalPredictor
             processedColumns = endColumn;
         }
 
-        // FeatureTestRunner can disable every intrinsic tier. Keeping the scalar continuation in the same traversal
-        // proves the fallback without changing source addressing or the normative rounding performed by the operator.
+        // FeatureTestRunner can disable every intrinsic tier. The scalar continuation stays in the same traversal. Tests of the fallback therefore use the same
+        // source addressing and the same normative rounding of the operator.
         for (int row = 0; row < height; row++)
         {
             ref byte sourceRow = ref Unsafe.Add(ref sourceBase, row * sourceStride);
@@ -196,6 +225,12 @@ internal static partial class Av1IntraBlockCopyVerticalPredictor
     /// Applies one closed interpolation operator to a high-bit-depth source block.
     /// </summary>
     /// <typeparam name="TOperator">The source-phase-specific interpolation arithmetic.</typeparam>
+    /// <param name="source">The source region that starts at the integer sample above the first half-sample position.</param>
+    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
     private static void Predict<TOperator>(
         ReadOnlySpan<short> source,
         int sourceStride,
@@ -210,9 +245,8 @@ internal static partial class Av1IntraBlockCopyVerticalPredictor
 
         if (Vector128.IsHardwareAccelerated && width == 4)
         {
-            // Four high-bit-depth samples occupy the lower half of a Vector128. The frame allocation's prediction
-            // border makes the full source load readable; storing only the lower four lanes avoids relying on writable
-            // samples beyond the transform boundary.
+            // Four high-bit-depth samples fill the lower half of a Vector128. The prediction border of the frame allocation makes the full source load
+            // readable. The code stores only the lower four lanes, so it does not depend on writable samples past the transform boundary.
             for (int row = 0; row < height; row++)
             {
                 ref short sourceRow = ref Unsafe.Add(ref sourceBase, row * sourceStride);
@@ -228,8 +262,7 @@ internal static partial class Av1IntraBlockCopyVerticalPredictor
 
         int processedColumns = 0;
 
-        // High-bit-depth lanes hold half as many samples, but retain the same descending-width traversal and one scalar
-        // continuation as the byte path.
+        // High-bit-depth vectors hold half as many samples, but keep the same descending-width traversal and one scalar continuation as the byte path.
         if (Vector512.IsHardwareAccelerated)
         {
             int vectorizedColumns = (int)(Numerics.Vector512Count<short>(width) * (nuint)Vector512<short>.Count);
@@ -318,6 +351,12 @@ internal static partial class Av1IntraBlockCopyVerticalPredictor
     /// Applies one closed interpolation operator to an 8-bit source block without explicit hardware intrinsics.
     /// </summary>
     /// <typeparam name="TOperator">The source-phase-specific interpolation arithmetic.</typeparam>
+    /// <param name="source">The source region that starts at the integer sample above the first half-sample position.</param>
+    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
     private static void PredictScalar<TOperator>(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -345,6 +384,12 @@ internal static partial class Av1IntraBlockCopyVerticalPredictor
     /// Applies one closed interpolation operator to a high-bit-depth source block without explicit hardware intrinsics.
     /// </summary>
     /// <typeparam name="TOperator">The source-phase-specific interpolation arithmetic.</typeparam>
+    /// <param name="source">The source region that starts at the integer sample above the first half-sample position.</param>
+    /// <param name="sourceStride">The distance, in samples, between source rows.</param>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
     private static void PredictScalar<TOperator>(
         ReadOnlySpan<short> source,
         int sourceStride,

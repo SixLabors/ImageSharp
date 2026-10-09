@@ -89,12 +89,12 @@ internal enum Av1TransformType : byte
     HorizontalFlipAdst,
 
     /// <summary>
-    /// Number of Transform types.
+    /// The number of defined transform types.
     /// </summary>
     AllTransformTypes,
 
     /// <summary>
-    /// Invalid value.
+    /// No valid transform type.
     /// </summary>
     Invalid,
 }

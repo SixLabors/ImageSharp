@@ -20,10 +20,10 @@ internal static class Av1PreditionModeExtensions
         Av1TransformType.DctAdst, // H
         Av1TransformType.DctDct, // D45
         Av1TransformType.AdstAdst, // D135
-        Av1TransformType.AdstDct, // D117
-        Av1TransformType.DctAdst, // D153
-        Av1TransformType.DctAdst, // D207
-        Av1TransformType.AdstDct, // D63
+        Av1TransformType.AdstDct, // D113
+        Av1TransformType.DctAdst, // D157
+        Av1TransformType.DctAdst, // D203
+        Av1TransformType.AdstDct, // D67
         Av1TransformType.AdstAdst, // SMOOTH
         Av1TransformType.AdstDct, // SMOOTH_V
         Av1TransformType.DctAdst, // SMOOTH_H
@@ -79,7 +79,7 @@ internal static class Av1PreditionModeExtensions
     /// Determines whether an intra-prediction mode projects samples along a coded angle.
     /// </summary>
     /// <param name="mode">The luma intra-prediction mode.</param>
-    /// <returns><see langword="true"/> for a directional mode; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> for a directional mode, otherwise <see langword="false"/>.</returns>
     public static bool IsDirectional(this Av1PredictionMode mode)
         => mode is >= Av1PredictionMode.Vertical and <= Av1PredictionMode.Directional67Degrees;
 
@@ -98,7 +98,7 @@ internal static class Av1PreditionModeExtensions
     public static int ToAngle(this Av1PredictionMode mode) => AngleMap[(int)mode];
 
     /// <summary>
-    /// Gets the single-reference mode of the first reference of a compound mode. Reference: compound_ref0_mode().
+    /// Gets the single-reference mode of the first reference of a compound mode.
     /// </summary>
     /// <param name="mode">The compound inter-prediction mode.</param>
     /// <returns>The single-reference mode that predicts from the first reference.</returns>
@@ -116,7 +116,7 @@ internal static class Av1PreditionModeExtensions
         };
 
     /// <summary>
-    /// Gets the single-reference mode of the second reference of a compound mode. Reference: compound_ref1_mode().
+    /// Gets the single-reference mode of the second reference of a compound mode.
     /// </summary>
     /// <param name="mode">The compound inter-prediction mode.</param>
     /// <returns>The single-reference mode that predicts from the second reference.</returns>

@@ -18,6 +18,14 @@ internal static partial class Av1CompoundMaskBlendPredictor
     /// <summary>
     /// Blends two 8-bit predictors through a contiguous AV1 alpha mask.
     /// </summary>
+    /// <param name="destination">The first predictor and combined output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="second">The second predictor.</param>
+    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
+    /// <param name="mask">The weights of the first predictor, 0 through 64.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
     public static void Blend(
         Span<byte> destination,
         int destinationStride,
@@ -41,6 +49,14 @@ internal static partial class Av1CompoundMaskBlendPredictor
     /// Executes one closed 8-bit masked compound operator.
     /// </summary>
     /// <typeparam name="TOperator">The compound arithmetic operator.</typeparam>
+    /// <param name="destination">The first predictor and combined output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="second">The second predictor.</param>
+    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
+    /// <param name="mask">The weights of the first predictor, 0 through 64.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
     private static void Blend<TOperator>(
         Span<byte> destination,
         int destinationStride,
@@ -62,6 +78,7 @@ internal static partial class Av1CompoundMaskBlendPredictor
             ref byte maskReference = ref MemoryMarshal.GetReference(maskRow);
             int column = 0;
 
+            // The widest supported vectors take the row first. Each narrower width takes the columns that remain, and the scalar loop finishes the tail.
             if (Vector512.IsHardwareAccelerated)
             {
                 nuint vectorCount = Numerics.Vector512Count<byte>(width - column);
@@ -108,6 +125,14 @@ internal static partial class Av1CompoundMaskBlendPredictor
     /// <summary>
     /// Blends two high-bit-depth predictors through a contiguous AV1 alpha mask.
     /// </summary>
+    /// <param name="destination">The first predictor and combined output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="second">The second predictor.</param>
+    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
+    /// <param name="mask">The weights of the first predictor, 0 through 64.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
     public static void Blend(
         Span<ushort> destination,
         int destinationStride,
@@ -131,6 +156,14 @@ internal static partial class Av1CompoundMaskBlendPredictor
     /// Executes one closed high-bit-depth masked compound operator.
     /// </summary>
     /// <typeparam name="TOperator">The compound arithmetic operator.</typeparam>
+    /// <param name="destination">The first predictor and combined output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="second">The second predictor.</param>
+    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
+    /// <param name="mask">The weights of the first predictor, 0 through 64.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
     private static void Blend<TOperator>(
         Span<ushort> destination,
         int destinationStride,
@@ -152,6 +185,8 @@ internal static partial class Av1CompoundMaskBlendPredictor
             ref byte maskReference = ref MemoryMarshal.GetReference(maskRow);
             int column = 0;
 
+            // The mask stays in bytes. Each step widens the mask bytes of its columns to match the 16-bit sample lanes.
+            // The widest supported vectors take the row first. Each narrower width takes the columns that remain, and the scalar loop finishes the tail.
             if (Vector512.IsHardwareAccelerated)
             {
                 nuint vectorCount = Numerics.Vector512Count<ushort>(width - column);
@@ -198,6 +233,14 @@ internal static partial class Av1CompoundMaskBlendPredictor
     /// <summary>
     /// Blends two 8-bit predictors through an alpha mask without explicit hardware intrinsics.
     /// </summary>
+    /// <param name="destination">The first predictor and combined output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="second">The second predictor.</param>
+    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
+    /// <param name="mask">The weights of the first predictor, 0 through 64.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
     public static void BlendScalar(
         Span<byte> destination,
         int destinationStride,
@@ -221,6 +264,14 @@ internal static partial class Av1CompoundMaskBlendPredictor
     /// Executes one closed 8-bit masked compound operator without explicit hardware intrinsics.
     /// </summary>
     /// <typeparam name="TOperator">The compound arithmetic operator.</typeparam>
+    /// <param name="destination">The first predictor and combined output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="second">The second predictor.</param>
+    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
+    /// <param name="mask">The weights of the first predictor, 0 through 64.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
     private static void BlendScalar<TOperator>(
         Span<byte> destination,
         int destinationStride,
@@ -244,6 +295,12 @@ internal static partial class Av1CompoundMaskBlendPredictor
         }
     }
 
+    /// <summary>
+    /// Loads eight mask bytes and zero-extends them to 16-bit lanes.
+    /// </summary>
+    /// <param name="source">The first byte of the mask row.</param>
+    /// <param name="offset">The column of the first mask byte to load.</param>
+    /// <returns>The eight mask values in 16-bit lanes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<ushort> LoadMask128(ref byte source, int offset)
     {
@@ -251,6 +308,12 @@ internal static partial class Av1CompoundMaskBlendPredictor
         return Vector128.WidenLower(Vector128.Create(packed, Vector64<byte>.Zero));
     }
 
+    /// <summary>
+    /// Loads sixteen mask bytes and zero-extends them to 16-bit lanes.
+    /// </summary>
+    /// <param name="source">The first byte of the mask row.</param>
+    /// <param name="offset">The column of the first mask byte to load.</param>
+    /// <returns>The sixteen mask values in 16-bit lanes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<ushort> LoadMask256(ref byte source, int offset)
     {
@@ -258,6 +321,12 @@ internal static partial class Av1CompoundMaskBlendPredictor
         return Vector256.WidenLower(Vector256.Create(packed, Vector128<byte>.Zero));
     }
 
+    /// <summary>
+    /// Loads thirty-two mask bytes and zero-extends them to 16-bit lanes.
+    /// </summary>
+    /// <param name="source">The first byte of the mask row.</param>
+    /// <param name="offset">The column of the first mask byte to load.</param>
+    /// <returns>The thirty-two mask values in 16-bit lanes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector512<ushort> LoadMask512(ref byte source, int offset)
     {

@@ -6,9 +6,8 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 /// <summary>
-/// A rectangle of one AV1 component plane. The plane is a single contiguous allocation whose rows are one stride
-/// apart, so a kernel addresses any plane sample, borders included, from <see cref="Samples"/> and <see cref="Stride"/>.
-/// Reference: the buffer, stride and crop dimensions of one YV12_BUFFER_CONFIG plane.
+/// A rectangle of one AV1 component plane. The plane is a single contiguous allocation whose rows are one stride apart. Thus a kernel addresses any plane
+/// sample, borders included, from <see cref="Samples"/> and <see cref="Stride"/>.
 /// </summary>
 /// <typeparam name="TSample">The sample storage type.</typeparam>
 internal readonly struct Av1PlaneRegion<TSample>
@@ -149,7 +148,7 @@ internal readonly struct Av1PlaneRegion<TSample>
     /// <param name="destination">The packed rows, at least <see cref="Width"/> times <see cref="Height"/> samples.</param>
     public void CopyTo(Span<TSample> destination)
     {
-        // The plane is resolved once; each row is a slice of it.
+        // The plane is resolved once. Each row is a slice of it.
         ReadOnlySpan<TSample> samples = this.plane.Span;
         int offset = this.Origin;
         int width = this.Bounds.Width;
@@ -165,7 +164,7 @@ internal readonly struct Av1PlaneRegion<TSample>
     /// <param name="source">The packed rows, at least <see cref="Width"/> times <see cref="Height"/> samples.</param>
     public void CopyFrom(ReadOnlySpan<TSample> source)
     {
-        // The plane is resolved once; each row is a slice of it.
+        // The plane is resolved once. Each row is a slice of it.
         Span<TSample> samples = this.plane.Span;
         int offset = this.Origin;
         int width = this.Bounds.Width;
@@ -180,7 +179,7 @@ internal readonly struct Av1PlaneRegion<TSample>
     /// </summary>
     public void Clear()
     {
-        // The plane is resolved once; each row is a slice of it.
+        // The plane is resolved once. Each row is a slice of it.
         Span<TSample> samples = this.plane.Span;
         int offset = this.Origin;
         int width = this.Bounds.Width;
@@ -196,7 +195,7 @@ internal readonly struct Av1PlaneRegion<TSample>
     /// <param name="value">The sample value.</param>
     public void Fill(TSample value)
     {
-        // The plane is resolved once; each row is a slice of it.
+        // The plane is resolved once. Each row is a slice of it.
         Span<TSample> samples = this.plane.Span;
         int offset = this.Origin;
         int width = this.Bounds.Width;

@@ -15,8 +15,9 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
     /// Implements vertical AV1 smooth intra prediction for scalar and SIMD lanes.
     /// </summary>
     /// <remarks>
-    /// The row's Q8 weight is common to every lane, while top references vary by column. Rewriting the complementary
-    /// weight around 256 leaves one product per lane plus a broadcast bottom-left endpoint and rounding bias.
+    /// The Q8 weight of the row is the same in every lane. The top references vary by column. The identity
+    /// top * w + bottomLeft * (256 - w) = (top - bottomLeft) * w + bottomLeft * 256 leaves one product per lane. The second term and the rounding bias are
+    /// broadcast to all lanes.
     /// </remarks>
     internal readonly struct SmoothVerticalOperator : IAv1IntraPredictionOperator
     {

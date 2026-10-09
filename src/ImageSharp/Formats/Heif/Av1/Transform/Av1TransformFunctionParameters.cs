@@ -19,7 +19,7 @@ internal struct Av1TransformFunctionParameters
     public Av1TransformSize TransformSize { get; set; }
 
     /// <summary>
-    /// Gets or sets the number of coefficient positions represented by the decoded coefficient buffer.
+    /// Gets or sets the end-of-block position: the number of scan positions through the last coded coefficient.
     /// </summary>
     public int EndOfBuffer { get; set; }
 

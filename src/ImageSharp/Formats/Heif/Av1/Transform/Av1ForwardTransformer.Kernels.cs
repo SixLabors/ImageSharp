@@ -21,10 +21,9 @@ internal static partial class Av1ForwardTransformer
     /// Applies an eight-by-eight eight-bit transform with every stage in registers.
     /// </summary>
     /// <remarks>
-    /// This follows <c>av1_lowbd_fwd_txfm2d_8x8_sse2</c>: the rows load into eight vectors whose lanes are
-    /// columns, the column transform combines those vectors, one transpose turns columns into lanes for the
-    /// row transform, and a second transpose restores the row-major coefficient order of this port. The shifts
-    /// are <c>av1_fwd_txfm_shift_ls[TX_8X8]</c> (2, -1, 0) and both cosine bit counts are 13.
+    /// The rows load into eight vectors whose lanes are columns, and the column transform combines those vectors.
+    /// One transpose turns columns into lanes for the row transform. A second transpose restores the row-major coefficient order.
+    /// The stage shifts are 2, -1 and 0, and both cosine bit counts are 13.
     /// </remarks>
     /// <param name="input">The spatial residual samples.</param>
     /// <param name="stride">The number of input samples between rows.</param>
@@ -138,7 +137,7 @@ internal static partial class Av1ForwardTransformer
 
         TColumn.Transform(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, 13);
 
-        // round_shift_16bit with shift -1: add one half and shift, with saturation on the addition.
+        // The second stage shift of -1 adds 1, half of the divisor 2, and then shifts right by 1. The addition saturates.
         Vector128<short> half = Vector128.Create((short)1);
         r0 = Vector128.AddSaturate(r0, half) >> 1;
         r1 = Vector128.AddSaturate(r1, half) >> 1;
@@ -152,7 +151,7 @@ internal static partial class Av1ForwardTransformer
         Av1TransformKernels.Transpose8x8(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7);
         if (flipLeftToRight)
         {
-            // After the transpose each vector is one column; reversing their order mirrors the block horizontally.
+            // After the transpose, each vector is one column. The reversed order mirrors the block horizontally.
             TRow.Transform(ref r7, ref r6, ref r5, ref r4, ref r3, ref r2, ref r1, ref r0, 13);
             Av1TransformKernels.Transpose8x8(ref r7, ref r6, ref r5, ref r4, ref r3, ref r2, ref r1, ref r0);
             Store8x8(r7, r6, r5, r4, r3, r2, r1, r0, coefficients);
@@ -165,8 +164,17 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Stores eight coefficient rows in row-major order.
+    /// Widens eight sixteen-bit coefficient rows to thirty-two bits and stores them in row-major order.
     /// </summary>
+    /// <param name="r0">Coefficient row 0.</param>
+    /// <param name="r1">Coefficient row 1.</param>
+    /// <param name="r2">Coefficient row 2.</param>
+    /// <param name="r3">Coefficient row 3.</param>
+    /// <param name="r4">Coefficient row 4.</param>
+    /// <param name="r5">Coefficient row 5.</param>
+    /// <param name="r6">Coefficient row 6.</param>
+    /// <param name="r7">Coefficient row 7.</param>
+    /// <param name="coefficients">The destination for the 64 coefficients.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Store8x8(
         Vector128<short> r0,
@@ -191,7 +199,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// The eight-point DCT of <c>fdct8x8_new_sse2</c>.
+    /// The eight-point forward DCT on eight lanes.
     /// </summary>
     private readonly struct Dct8Kernel : IAv1Kernel8
     {
@@ -254,7 +262,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// The eight-point ADST of <c>fadst8x8_new_sse2</c>.
+    /// The eight-point forward ADST on eight lanes.
     /// </summary>
     private readonly struct Adst8Kernel : IAv1Kernel8
     {
@@ -332,7 +340,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// The eight-point identity transform of <c>fidentity8x8_new_sse2</c>, which doubles with saturation.
+    /// The eight-point forward identity transform on eight lanes, which doubles with saturation.
     /// </summary>
     private readonly struct Identity8Kernel : IAv1Kernel8
     {

@@ -7,9 +7,9 @@ using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
-/// <content>
+/// <summary>
 /// Defines reference reduction and rounded mean arithmetic for AV1 DC intra prediction.
-/// </content>
+/// </summary>
 internal static class Av1DcIntraPredictor
 {
     /// <summary>
@@ -74,7 +74,8 @@ internal static class Av1DcIntraPredictor
         public static abstract int Sum(Vector512<short> samples);
 
         /// <summary>
-        /// Calculates the 8-bit DC prediction.
+        /// Calculates the 8-bit DC prediction as the mean of the reference samples, rounded to the nearest value.
+        /// When no reference sample is available, the prediction is the middle value 128.
         /// </summary>
         /// <param name="sum">The sum of available reference samples.</param>
         /// <param name="count">The number of available reference samples.</param>
@@ -82,7 +83,8 @@ internal static class Av1DcIntraPredictor
         public static abstract byte Predict(int sum, int count);
 
         /// <summary>
-        /// Calculates the high-bit-depth DC prediction.
+        /// Calculates the high-bit-depth DC prediction as the mean of the reference samples, rounded to the nearest value.
+        /// When no reference sample is available, the prediction is the middle value of the bit depth.
         /// </summary>
         /// <param name="sum">The sum of available reference samples.</param>
         /// <param name="count">The number of available reference samples.</param>
@@ -94,24 +96,58 @@ internal static class Av1DcIntraPredictor
     /// <summary>
     /// Predicts an 8-bit DC block.
     /// </summary>
+    /// <param name="hasLeft">Whether the left reference is available.</param>
+    /// <param name="hasAbove">Whether the top reference is available.</param>
+    /// <param name="destination">The destination block.</param>
+    /// <param name="destinationStride">The distance between destination rows.</param>
+    /// <param name="above">The top reference.</param>
+    /// <param name="left">The left reference.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
     public static void Predict(bool hasLeft, bool hasAbove, Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int width, int height)
         => Predictor<DcOperator>.Predict(hasLeft, hasAbove, destination, destinationStride, above, left, width, height);
 
     /// <summary>
     /// Predicts a high-bit-depth DC block.
     /// </summary>
+    /// <param name="hasLeft">Whether the left reference is available.</param>
+    /// <param name="hasAbove">Whether the top reference is available.</param>
+    /// <param name="destination">The destination block.</param>
+    /// <param name="destinationStride">The distance between destination rows.</param>
+    /// <param name="above">The top reference.</param>
+    /// <param name="left">The left reference.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
+    /// <param name="bitDepth">The reconstructed sample precision.</param>
     public static void Predict(bool hasLeft, bool hasAbove, Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, int width, int height, int bitDepth)
         => Predictor<DcOperator>.Predict(hasLeft, hasAbove, destination, destinationStride, above, left, width, height, bitDepth);
 
     /// <summary>
     /// Predicts an 8-bit DC block without hardware intrinsics.
     /// </summary>
+    /// <param name="hasLeft">Whether the left reference is available.</param>
+    /// <param name="hasAbove">Whether the top reference is available.</param>
+    /// <param name="destination">The destination block.</param>
+    /// <param name="destinationStride">The distance between destination rows.</param>
+    /// <param name="above">The top reference.</param>
+    /// <param name="left">The left reference.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
     public static void PredictScalar(bool hasLeft, bool hasAbove, Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int width, int height)
         => Predictor<DcOperator>.PredictScalar(hasLeft, hasAbove, destination, destinationStride, above, left, width, height);
 
     /// <summary>
     /// Predicts a high-bit-depth DC block without hardware intrinsics.
     /// </summary>
+    /// <param name="hasLeft">Whether the left reference is available.</param>
+    /// <param name="hasAbove">Whether the top reference is available.</param>
+    /// <param name="destination">The destination block.</param>
+    /// <param name="destinationStride">The distance between destination rows.</param>
+    /// <param name="above">The top reference.</param>
+    /// <param name="left">The left reference.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
+    /// <param name="bitDepth">The reconstructed sample precision.</param>
     public static void PredictScalar(bool hasLeft, bool hasAbove, Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, int width, int height, int bitDepth)
         => Predictor<DcOperator>.PredictScalar(hasLeft, hasAbove, destination, destinationStride, above, left, width, height, bitDepth);
 
@@ -128,6 +164,7 @@ internal static class Av1DcIntraPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Sum(Vector128<byte> samples)
         {
+            // Widen the bytes to 16-bit lanes before the horizontal sum. Each half holds at most 32 samples of 255, so its 16-bit total is exact.
             (Vector128<ushort> lower, Vector128<ushort> upper) = Vector128.Widen(samples);
 
             return Vector128.Sum(lower) + Vector128.Sum(upper);
@@ -159,6 +196,7 @@ internal static class Av1DcIntraPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Sum(Vector128<short> samples)
         {
+            // Widen to 32-bit lanes before the horizontal sum. A 16-bit total of high-bit-depth samples can overflow.
             (Vector128<int> lower, Vector128<int> upper) = Vector128.Widen(samples);
 
             return Vector128.Sum(lower) + Vector128.Sum(upper);
@@ -312,8 +350,8 @@ internal static class Av1DcIntraPredictor
             int sum = 0;
             int index = 0;
 
-            // The shared index deliberately continues through narrower widths. This handles every legal AV1 edge
-            // length without a separate dispatch tree and leaves only an incomplete final vector to scalar code.
+            // The shared index continues through the narrower widths. Thus every legal AV1 edge length uses one path without a separate dispatch tree.
+            // Only an incomplete final vector goes to the scalar loop.
             if (Vector512.IsHardwareAccelerated)
             {
                 nuint vectorCount = Numerics.Vector512Count<byte>(samples.Length - index);
@@ -360,6 +398,7 @@ internal static class Av1DcIntraPredictor
             int sum = 0;
             int index = 0;
 
+            // As in the 8-bit overload, the shared index continues through the narrower widths. Only an incomplete final vector goes to the scalar loop.
             if (Vector512.IsHardwareAccelerated)
             {
                 nuint vectorCount = Numerics.Vector512Count<short>(samples.Length - index);

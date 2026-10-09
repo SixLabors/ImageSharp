@@ -16,6 +16,18 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Selects an 8-bit horizontal interpolation operator.
     /// </summary>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     private static void Dispatch(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -102,6 +114,19 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Selects a high-bit-depth horizontal interpolation operator.
     /// </summary>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     private static void Dispatch(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -193,6 +218,18 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Selects a closed 8-bit horizontal interpolation operator for explicit scalar execution.
     /// </summary>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     private static void DispatchScalar(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -207,8 +244,8 @@ internal static partial class Av1TranslationalInterPredictor
         int verticalPhase,
         Span<short> scratch)
     {
-        // The benchmark/test entry point closes the same production operators explicitly, but terminates in the
-        // scalar kernels without carrying a runtime mode flag through the SIMD-first decoder path.
+        // This benchmark and test entry point closes the same production operators, but ends in the scalar kernels.
+        // Thus the SIMD-first decoder path carries no runtime mode flag.
         switch (horizontalFilter)
         {
             case Av1InterpolationFilter.Regular:
@@ -277,6 +314,19 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Selects a closed high-bit-depth horizontal interpolation operator for explicit scalar execution.
     /// </summary>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     private static void DispatchScalar(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -292,7 +342,7 @@ internal static partial class Av1TranslationalInterPredictor
         int bitDepth,
         Span<short> scratch)
     {
-        // Closing the production table operators here keeps scalar parity coverage on the same normative Q7 data.
+        // The scalar path closes the production table operators, so that it uses the same normative Q7 coefficients.
         switch (horizontalFilter)
         {
             case Av1InterpolationFilter.Regular:
@@ -363,8 +413,15 @@ internal static partial class Av1TranslationalInterPredictor
     }
 
     /// <summary>
-    /// Copies an 8-bit integer-position block using the widest vector that fits a complete row prefix.
+    /// Copies an 8-bit integer-position block with the widest vector that fits a complete row prefix.
     /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The distance between source rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the first source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
     private static void Copy(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -456,8 +513,15 @@ internal static partial class Av1TranslationalInterPredictor
     }
 
     /// <summary>
-    /// Copies a high-bit-depth integer-position block using the widest vector that fits a complete row prefix.
+    /// Copies a high-bit-depth integer-position block with the widest vector that fits a complete row prefix.
     /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The distance between source rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the first source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
     private static void Copy(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -525,8 +589,8 @@ internal static partial class Av1TranslationalInterPredictor
 
                 if (width < Vector128<ushort>.Count)
                 {
-                    // Subsampled sub-8x8 chroma can be two samples wide, so retain the vector load while limiting
-                    // the store to the logical row width.
+                    // Subsampled chroma of a block smaller than 8x8 can be two samples wide.
+                    // The full vector load stays, and the store writes only the row width.
                     StorePartial(Vector128.LoadUnsafe(ref sourceRow), ref destinationRow, width);
                     continue;
                 }
@@ -551,8 +615,21 @@ internal static partial class Av1TranslationalInterPredictor
     }
 
     /// <summary>
-    /// Applies a one-dimensional 8-bit filter using one SIMD width for the complete block.
+    /// Applies a one-dimensional 8-bit filter with one SIMD width for the complete block.
     /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The distance between source rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
+    /// <param name="coefficients">The filter coefficients, starting at the first applied tap.</param>
+    /// <param name="tapCount">The number of applied filter taps.</param>
+    /// <param name="sourceOffset">The offset from the integer-position sample to the sample of the first applied tap.</param>
+    /// <param name="tapStride">The distance between consecutive tap samples: one for a horizontal filter, or the row stride for a vertical filter.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
     private static void FilterDirect(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -648,8 +725,22 @@ internal static partial class Av1TranslationalInterPredictor
     }
 
     /// <summary>
-    /// Applies a one-dimensional high-bit-depth filter using one SIMD width for the complete block.
+    /// Applies a one-dimensional high-bit-depth filter with one SIMD width for the complete block.
     /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The distance between source rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
+    /// <param name="coefficients">The filter coefficients, starting at the first applied tap.</param>
+    /// <param name="tapCount">The number of applied filter taps.</param>
+    /// <param name="sourceOffset">The offset from the integer-position sample to the sample of the first applied tap.</param>
+    /// <param name="tapStride">The distance between consecutive tap samples: one for a horizontal filter, or the row stride for a vertical filter.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
     private static void FilterDirect(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -750,8 +841,23 @@ internal static partial class Av1TranslationalInterPredictor
     }
 
     /// <summary>
-    /// Applies separable two-dimensional filtering to an 8-bit block using one SIMD width.
+    /// Applies separable two-dimensional filtering to an 8-bit block with one SIMD width.
     /// </summary>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="horizontalCoefficients">The horizontal filter coefficients, starting at the first applied tap.</param>
+    /// <param name="horizontalTapCount">The number of applied horizontal taps.</param>
+    /// <param name="horizontalSourceOffset">The column offset from the integer-position sample to the first applied horizontal tap.</param>
+    /// <param name="verticalCoefficients">The vertical filter coefficients, starting at the first applied tap.</param>
+    /// <param name="verticalTapCount">The number of applied vertical taps.</param>
+    /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
     private static void Filter2D(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -861,8 +967,24 @@ internal static partial class Av1TranslationalInterPredictor
     }
 
     /// <summary>
-    /// Applies separable two-dimensional filtering to a high-bit-depth block using one SIMD width.
+    /// Applies separable two-dimensional filtering to a high-bit-depth block with one SIMD width.
     /// </summary>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="horizontalCoefficients">The horizontal filter coefficients, starting at the first applied tap.</param>
+    /// <param name="horizontalTapCount">The number of applied horizontal taps.</param>
+    /// <param name="horizontalSourceOffset">The column offset from the integer-position sample to the first applied horizontal tap.</param>
+    /// <param name="verticalCoefficients">The vertical filter coefficients, starting at the first applied tap.</param>
+    /// <param name="verticalTapCount">The number of applied vertical taps.</param>
+    /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
+    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
     private static void Filter2D(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -975,6 +1097,13 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Copies an 8-bit integer-position prediction without explicit hardware intrinsics.
     /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The distance between source rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the first source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
     private static void CopyScalar(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -1002,6 +1131,13 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Copies a high-bit-depth integer-position prediction without explicit hardware intrinsics.
     /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The distance between source rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the first source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
     private static void CopyScalar(
         ReadOnlySpan<ushort> source,
         int sourceStride,

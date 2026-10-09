@@ -83,8 +83,8 @@ internal readonly struct Av1PlanarSampleBuffer<TSample> : IHeifPlanarSampleBuffe
                 return 0;
             }
 
-            // AV1 4:2:2 chroma is centered horizontally. For 4:2:0, CSP_UNKNOWN is centered while the two
-            // explicitly positioned layouts are co-sited with the left luma sample.
+            // AV1 4:2:2 chroma is centered horizontally. For 4:2:0, the unknown sample position is centered, and the two explicitly positioned layouts are
+            // co-sited with the left luma sample.
             bool isCentered = this.ChromaSubsamplingY == 0
                 || this.frameBuffer.ColorConfig.ChromaSamplePosition == ObuChromoSamplePosition.Unknown;
 

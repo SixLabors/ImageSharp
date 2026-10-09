@@ -35,7 +35,7 @@ internal struct Av1ReferenceMotionVectors
     private const int MaximumSearchBlockSize = 16;
 
     /// <summary>
-    /// The packed mode-context bit containing temporal availability relative to global motion.
+    /// The packed mode-context bit that marks a missing first temporal sample, or a first temporal sample far from global motion.
     /// </summary>
     private const int GlobalMotionContextBit = 1 << 3;
 
@@ -183,6 +183,15 @@ internal struct Av1ReferenceMotionVectors
             secondaryReferenceFrame);
     }
 
+    /// <summary>
+    /// Derives the candidates, the mode context and the nearest and near references from one decoder or encoder view of the neighbors.
+    /// </summary>
+    /// <param name="context">The current block geometry and the mode-information view of the frame.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    /// <param name="sequenceHeader">The sequence-level superblock and order-hint configuration.</param>
+    /// <param name="frameHeader">The frame-level global-motion and motion-vector precision configuration.</param>
+    /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
+    /// <param name="secondaryReferenceFrame">The secondary compound reference, or <see cref="Av1ReferenceFrameType.None"/>.</param>
     private void Build(
         in ReferenceContext context,
         Av1TileInfo tileInfo,
@@ -241,8 +250,8 @@ internal struct Av1ReferenceMotionVectors
         int columnMatchCount = 0;
         int newMotionVectorCount = 0;
 
-        // Immediate above and left scans form a distinct high-priority region. Their direction-level match counts,
-        // rather than their number of unique vectors, drive the packed inter-mode entropy context.
+        // The immediate above row, the immediate left column and the top-right block form a distinct high-priority region.
+        // Their match counts per direction, not their number of unique vectors, drive the packed entropy context of the inter mode.
         if (Math.Abs(maximumRowOffset) >= 1)
         {
             this.ScanRow(
@@ -317,8 +326,8 @@ internal struct Av1ReferenceMotionVectors
 
         int ignoredNewMotionVectorCount = 0;
 
-        // The top-left block begins the lower-priority outer region. Candidate deduplication still spans both
-        // regions, while the two independent stable sorts below preserve the normative nearest-before-outer order.
+        // The top-left block begins the lower-priority outer region. Candidate deduplication still spans both regions.
+        // The two independent stable sorts below keep the normative order: every nearest candidate comes before every temporal or outer candidate.
         this.AddSpatialBlock(
             in context,
             tileInfo,
@@ -410,8 +419,8 @@ internal struct Av1ReferenceMotionVectors
         }
         else
         {
-            // This fallback supplies only the nearest and near pair when direct and projected scans leave gaps.
-            // Differing reference sign biases are reversed before either candidate enters that pair.
+            // When the spatial and temporal scans find fewer than two candidates, this fallback fills the nearest and near pair.
+            // A neighbor vector whose reference has a different sign bias is negated before it enters that pair.
             for (int index = 0; Math.Abs(maximumRowOffset) >= 1 && index < extensionLength && this.Count < 2;)
             {
                 ReferenceBlock candidate = context.GetModeInfoAt(new Point(column + index, row - 1));
@@ -451,8 +460,8 @@ internal struct Av1ReferenceMotionVectors
             }
         }
 
-        // The two-element reference list is separate from the full DRL stack. Missing entries use global motion,
-        // and both entries undergo the same precision reduction as the reference decoder's av1_find_best_ref_mvs output.
+        // The two-element reference list is separate from the full DRL stack. Missing entries use global motion.
+        // Both entries get the precision reduction of the frame, as the AV1 specification requires for the nearest and near vectors.
         this.references[0] = (this.Count > 0 ? this.candidates[0] : globalMotionVector).LowerPrecision(
             frameHeader.AllowHighPrecisionMotionVector,
             frameHeader.ForceIntegerMotionVector);
@@ -491,7 +500,6 @@ internal struct Av1ReferenceMotionVectors
 
     /// <summary>
     /// Gets a single-reference stack entry, or the global motion vector past the last entry.
-    /// Reference: av1_get_ref_mv_from_stack().
     /// </summary>
     /// <param name="index">The stack index.</param>
     /// <param name="globalMotionVector">The global motion vector of the reference.</param>
@@ -576,8 +584,9 @@ internal struct Av1ReferenceMotionVectors
             }
         }
 
-        // The scan advances by at least one 16x16 mode-info region only when the current block reaches 64 pixels
-        // on this axis. Smaller blocks must visit narrow neighbors individually so none of their candidates vanish.
+        // The scan steps by at least four mode-information units (16 pixels) only when the current block is at least 64 pixels wide.
+        // A narrower block steps by the narrower of the block and the neighbor, with a minimum of two units on the outer rows.
+        // Thus it visits narrow neighbors one by one, and none of their candidates is lost.
         bool useFourUnitStep = width >= MaximumSearchBlockSize;
         for (int index = 0; index < end;)
         {
@@ -660,8 +669,9 @@ internal struct Av1ReferenceMotionVectors
             }
         }
 
-        // The scan advances by at least one 16x16 mode-info region only when the current block reaches 64 pixels
-        // on this axis. Smaller blocks must visit narrow neighbors individually so none of their candidates vanish.
+        // The scan steps by at least four mode-information units (16 pixels) only when the current block is at least 64 pixels high.
+        // A shorter block steps by the shorter of the block and the neighbor, with a minimum of two units on the outer columns.
+        // Thus it visits short neighbors one by one, and none of their candidates is lost.
         bool useFourUnitStep = height >= MaximumSearchBlockSize;
         for (int index = 0; index < end;)
         {
@@ -827,9 +837,9 @@ internal struct Av1ReferenceMotionVectors
                 continue;
             }
 
-            // A non-translational global block has no independent translational candidate at the neighbor. AV1
-            // therefore evaluates the selected reference's global model at the current block and contributes that
-            // vector, but only for blocks large enough to use affine global prediction.
+            // A neighbor coded with non-translational global motion has no translational vector of its own.
+            // Thus the search evaluates the global model of the selected reference at the current block and adds that vector.
+            // This applies only when the neighbor is at least 8 samples on each side, which is large enough for affine global prediction.
             bool useGlobalMotion =
                 (candidate.YMode is Av1PredictionMode.GlobalMotionVector or Av1PredictionMode.GlobalGlobalMotionVector) &&
                 globalMotion.Type > Av1GlobalMotionType.Translation &&
@@ -841,8 +851,8 @@ internal struct Av1ReferenceMotionVectors
 
             this.AddUnique(motionVector, weight);
 
-            // Every matching reference in a neighbor carrying a NEW component contributes to the adjacent NEWMV
-            // context even when its vector deduplicates against an earlier stack entry.
+            // Every matching reference of a neighbor with a NEW component counts toward the NEWMV context of the adjacent region.
+            // The count includes a vector that matches an earlier stack entry.
             if (UsesNewMotionVector(candidate.YMode))
             {
                 newMotionVectorCount++;
@@ -917,8 +927,8 @@ internal struct Av1ReferenceMotionVectors
             return;
         }
 
-        // These three positions extend the temporal search below-left, below-right, and above-right. The 64x64
-        // boundary test is normative even when the sequence uses 128x128 superblocks.
+        // These three positions extend the temporal search below-left, below-right, and to the right of the lowest rows of the block.
+        // The 64x64 boundary test is normative even when the sequence uses 128x128 superblocks.
         this.AddTemporalExtension(
             in context,
             tileInfo,
@@ -1071,8 +1081,8 @@ internal struct Av1ReferenceMotionVectors
               (Math.Abs(secondaryMotionVector.Row - secondaryGlobalMotionVector.Row) >= 16 ||
                Math.Abs(secondaryMotionVector.Column - secondaryGlobalMotionVector.Column) >= 16))))
         {
-            // The packed global-motion context records whether the first temporal sample is absent or differs from
-            // global motion by at least two full samples in either one-eighth-sample component.
+            // The packed global-motion context bit marks a first temporal sample that is absent or far from global motion.
+            // Far means a difference of at least two full samples (16 one-eighth-sample units) in either component.
             this.ModeContext |= GlobalMotionContextBit;
         }
 
@@ -1127,8 +1137,8 @@ internal struct Av1ReferenceMotionVectors
 
             if (candidateIndex == this.Count && this.Count < CandidateCapacity)
             {
-                // AV1's outer spatial extension only initializes a new stack entry. Unlike the weighted nearest and
-                // temporal scans, finding an existing vector here must not change its previously accumulated rank.
+                // This fallback extension only adds new stack entries.
+                // Unlike the weighted nearest and temporal scans, it does not change the weight of a vector that is already in the stack.
                 candidates[this.Count] = motionVector;
                 weights[this.Count] = 2;
                 this.Count++;
@@ -1139,6 +1149,14 @@ internal struct Av1ReferenceMotionVectors
     /// <summary>
     /// Extends a short compound stack from the immediate above and left blocks.
     /// </summary>
+    /// <param name="context">The current block geometry and decoder reference classification.</param>
+    /// <param name="referenceFrame">The primary compound reference selected for the current block.</param>
+    /// <param name="secondaryReferenceFrame">The secondary compound reference selected for the current block.</param>
+    /// <param name="globalMotionVector">The global-motion vector of the primary reference at the current block.</param>
+    /// <param name="secondaryGlobalMotionVector">The global-motion vector of the secondary reference at the current block.</param>
+    /// <param name="hasAbove">Whether the scan reads the row above the block.</param>
+    /// <param name="hasLeft">Whether the scan reads the column to the left of the block.</param>
+    /// <param name="extensionLength">The number of 4x4 units to scan along each edge.</param>
     private void ExtendCompoundStack(
         in ReferenceContext context,
         Av1ReferenceFrameType referenceFrame,
@@ -1216,6 +1234,7 @@ internal struct Av1ReferenceMotionVectors
 
         if (this.Count == 1)
         {
+            // The first fallback pair fills the second slot, unless it repeats the existing entry. In that case, the second fallback pair fills it.
             int listIndex = primaryList[0] == this.candidates[0] && secondaryList[0] == this.compoundCandidates[0] ? 1 : 0;
             this.candidates[1] = primaryList[listIndex];
             this.compoundCandidates[1] = secondaryList[listIndex];
@@ -1224,8 +1243,8 @@ internal struct Av1ReferenceMotionVectors
             return;
         }
 
-        // The fallback list is positional rather than a weighted candidate scan. Preserve both entries even when
-        // they are equal so the derived DRL indices retain the same meaning.
+        // The fallback list is positional, not a weighted candidate scan.
+        // Both entries stay even when they are equal, so the derived DRL indices keep the same meaning.
         Span<Av1MotionVector> candidates = this.candidates;
         Span<Av1MotionVector> compoundCandidates = this.compoundCandidates;
         Span<ushort> weights = this.weights;
@@ -1244,6 +1263,22 @@ internal struct Av1ReferenceMotionVectors
     /// <summary>
     /// Collects exact-reference and temporal-direction-corrected fallback vectors from one neighboring block.
     /// </summary>
+    /// <param name="candidate">The decoded neighboring block.</param>
+    /// <param name="context">The current block geometry and decoder reference classification.</param>
+    /// <param name="referenceFrame">The primary compound reference selected for the current block.</param>
+    /// <param name="secondaryReferenceFrame">The secondary compound reference selected for the current block.</param>
+    /// <param name="primaryExact">The vectors of the neighbor that use the primary reference.</param>
+    /// <param name="primaryExactCount">The number of entries in <paramref name="primaryExact"/>.</param>
+    /// <param name="secondaryExact">The vectors of the neighbor that use the secondary reference.</param>
+    /// <param name="secondaryExactCount">The number of entries in <paramref name="secondaryExact"/>.</param>
+    /// <param name="primaryDifferent">The other inter vectors of the neighbor, with their sign corrected for the primary reference.</param>
+    /// <param name="primaryDifferentCount">The number of entries in <paramref name="primaryDifferent"/>.</param>
+    /// <param name="secondaryDifferent">The other inter vectors of the neighbor, with their sign corrected for the secondary reference.</param>
+    /// <param name="secondaryDifferentCount">The number of entries in <paramref name="secondaryDifferent"/>.</param>
+    /// <remarks>
+    /// A vector that uses the target reference goes to the exact list while that list has room. Otherwise, any inter vector goes to the different list.
+    /// When the sign bias of its reference differs from the sign bias of the target reference, the method negates the vector first.
+    /// </remarks>
     private static void CollectCompoundExtensionCandidate(
         ReferenceBlock candidate,
         in ReferenceContext context,
@@ -1323,6 +1358,12 @@ internal struct Av1ReferenceMotionVectors
     /// <summary>
     /// Builds the two positional fallback entries for one member of a compound reference pair.
     /// </summary>
+    /// <param name="exact">The vectors that use the target reference.</param>
+    /// <param name="exactCount">The number of entries in <paramref name="exact"/>.</param>
+    /// <param name="different">The sign-corrected vectors that use other references.</param>
+    /// <param name="differentCount">The number of entries in <paramref name="different"/>.</param>
+    /// <param name="globalMotionVector">The global-motion vector of the target reference, which fills the remaining entries.</param>
+    /// <returns>The exact vectors first, then the different vectors, then the global-motion vector.</returns>
     private static InlineArray2<Av1MotionVector> BuildCompoundExtensionList(
         InlineArray2<Av1MotionVector> exact,
         int exactCount,
@@ -1383,6 +1424,9 @@ internal struct Av1ReferenceMotionVectors
     /// <summary>
     /// Adds a unique compound candidate or accumulates the weight of an existing vector pair.
     /// </summary>
+    /// <param name="motionVector">The primary vector in one-eighth-sample units.</param>
+    /// <param name="compoundMotionVector">The secondary vector in one-eighth-sample units.</param>
+    /// <param name="weight">The spatial or temporal weight contributed by this occurrence.</param>
     private void AddUnique(Av1MotionVector motionVector, Av1MotionVector compoundMotionVector, int weight)
     {
         Span<Av1MotionVector> candidates = this.candidates;
@@ -1446,6 +1490,8 @@ internal struct Av1ReferenceMotionVectors
     /// <summary>
     /// Determines whether an inter mode decodes at least one new motion-vector component.
     /// </summary>
+    /// <param name="mode">The inter prediction mode.</param>
+    /// <returns>Whether the mode codes a new vector for at least one reference.</returns>
     private static bool UsesNewMotionVector(Av1PredictionMode mode)
         => mode is Av1PredictionMode.NewMotionVector or
             Av1PredictionMode.NewNewMotionVector or
@@ -1459,8 +1505,19 @@ internal struct Av1ReferenceMotionVectors
     /// </summary>
     private readonly ref struct ReferenceContext
     {
+        /// <summary>
+        /// The decoder superblock, which reads mode information at any frame position, or the default value for the encoder view.
+        /// </summary>
         private readonly Av1SuperblockInfo decodedSuperblock;
+
+        /// <summary>
+        /// The encoder picture state, or <see langword="null"/> for the decoder view.
+        /// </summary>
         private readonly Av1PictureControlSet? encodedPicture;
+
+        /// <summary>
+        /// The decoder frame state that holds the projected motion field, or <see langword="null"/> for the encoder view.
+        /// </summary>
         private readonly Av1FrameInfo? decodedFrame;
 
         /// <summary>
@@ -1488,6 +1545,12 @@ internal struct Av1ReferenceMotionVectors
         /// </summary>
         private readonly int encodedStride;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReferenceContext"/> struct over the decoder state.
+        /// </summary>
+        /// <param name="partitionInfo">The current block geometry and decoded spatial neighbors.</param>
+        /// <param name="superblockModeInfoSize">The superblock size in 4x4 mode-information units.</param>
+        /// <param name="frameInfo">The frame-wide spatial map and projected temporal motion field.</param>
         public ReferenceContext(ref Av1PartitionInfo partitionInfo, int superblockModeInfoSize, Av1FrameInfo frameInfo)
         {
             this.decodedSuperblock = partitionInfo.SuperblockInfo;
@@ -1506,8 +1569,7 @@ internal struct Av1ReferenceMotionVectors
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReferenceContext"/> struct over the encoder picture state,
-        /// which the caller read once.
+        /// Initializes a new instance of the <see cref="ReferenceContext"/> struct over the encoder picture state, which the caller read once.
         /// </summary>
         /// <param name="picture">The encoder picture state containing previously coded neighbors.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
@@ -1556,28 +1618,63 @@ internal struct Av1ReferenceMotionVectors
                 superblockModeInfoSize);
         }
 
+        /// <summary>
+        /// Gets the size of the current block.
+        /// </summary>
         public Av1BlockSize BlockSize { get; }
 
+        /// <summary>
+        /// Gets the frame row of the current block in 4x4 mode-information units.
+        /// </summary>
         public int RowIndex { get; }
 
+        /// <summary>
+        /// Gets the frame column of the current block in 4x4 mode-information units.
+        /// </summary>
         public int ColumnIndex { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the row above the current block is available.
+        /// </summary>
         public bool AvailableAbove { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the column to the left of the current block is available.
+        /// </summary>
         public bool AvailableLeft { get; }
 
+        /// <summary>
+        /// Gets the signed distance from the block to the left frame edge in one-eighth-sample units.
+        /// </summary>
         public int ModeBlockToLeftEdge { get; }
 
+        /// <summary>
+        /// Gets the signed distance from the block to the right frame edge in one-eighth-sample units.
+        /// </summary>
         public int ModeBlockToRightEdge { get; }
 
+        /// <summary>
+        /// Gets the signed distance from the block to the top frame edge in one-eighth-sample units.
+        /// </summary>
         public int ModeBlockToTopEdge { get; }
 
+        /// <summary>
+        /// Gets the signed distance from the block to the bottom frame edge in one-eighth-sample units.
+        /// </summary>
         public int ModeBlockToBottomEdge { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the top-right neighbor is already coded and available as a candidate.
+        /// </summary>
         public bool HasTopRight { get; }
 
+        /// <summary>
+        /// Gets the width of the current block inside the frame.
+        /// </summary>
+        /// <returns>The number of 4x4 mode-information columns of the block that lie inside the frame.</returns>
         public int GetMaxBlockWide()
         {
+            // A negative edge distance is the overhang past the right frame edge, in one-eighth-sample units. The shift by 3 converts it to samples.
             int width = this.BlockSize.GetWidth();
             if (this.ModeBlockToRightEdge < 0)
             {
@@ -1587,6 +1684,10 @@ internal struct Av1ReferenceMotionVectors
             return width >> Av1Constants.ModeInfoSizeLog2;
         }
 
+        /// <summary>
+        /// Gets the height of the current block inside the frame.
+        /// </summary>
+        /// <returns>The number of 4x4 mode-information rows of the block that lie inside the frame.</returns>
         public int GetMaxBlockHigh()
         {
             int height = this.BlockSize.GetHeight();
@@ -1598,8 +1699,14 @@ internal struct Av1ReferenceMotionVectors
             return height >> Av1Constants.ModeInfoSizeLog2;
         }
 
+        /// <summary>
+        /// Reads the mode fields of the block that covers one frame position.
+        /// </summary>
+        /// <param name="position">The frame position in 4x4 mode-information units.</param>
+        /// <returns>The size, mode, references and motion vectors of the covering block.</returns>
         public ReferenceBlock GetModeInfoAt(Point position)
         {
+            // The encoder grid maps each 4x4 cell to the allocation entry of its block. A single-reference block has no secondary vector entry.
             if (this.encodedPicture is not null)
             {
                 int index = this.encodedGrid[(position.Y * this.encodedStride) + position.X];
@@ -1628,6 +1735,11 @@ internal struct Av1ReferenceMotionVectors
                 decodedModeInfo.MotionVectors[1]);
         }
 
+        /// <summary>
+        /// Gets whether a reference frame lies after the current frame in display order.
+        /// </summary>
+        /// <param name="referenceFrame">The reference frame to test.</param>
+        /// <returns><see langword="true"/> for a future reference. Without a frame state, the result is <see langword="false"/>.</returns>
         public bool IsReferenceSignBiased(Av1ReferenceFrameType referenceFrame)
         {
             Av1EncoderMotionField? encodedMotionField = this.encodedPicture?.Parent.MotionField;
@@ -1640,6 +1752,17 @@ internal struct Av1ReferenceMotionVectors
             return frameInfo is not null && frameInfo.IsReferenceSignBiased(referenceFrame);
         }
 
+        /// <summary>
+        /// Projects the temporal motion field sample at one position onto a reference frame.
+        /// </summary>
+        /// <param name="row">The frame row in 4x4 mode-information units.</param>
+        /// <param name="column">The frame column in 4x4 mode-information units.</param>
+        /// <param name="referenceFrame">The reference frame to project onto.</param>
+        /// <param name="orderHintInfo">The sequence modulo order-hint configuration.</param>
+        /// <param name="allowHighPrecisionMotionVector">Whether the frame allows one-eighth-sample precision.</param>
+        /// <param name="forceIntegerMotionVector">Whether the frame forces whole-sample vectors.</param>
+        /// <param name="motionVector">Receives the projected and precision-reduced vector.</param>
+        /// <returns>Whether a temporal motion field sample covers the position.</returns>
         public bool TryGetProjectedTemporalMotionVector(
             int row,
             int column,
@@ -1685,11 +1808,35 @@ internal struct Av1ReferenceMotionVectors
     /// </summary>
     private readonly struct ReferenceBlock
     {
+        /// <summary>
+        /// The first reference frame of the block.
+        /// </summary>
         private readonly Av1ReferenceFrameType primaryReferenceFrame;
+
+        /// <summary>
+        /// The second reference frame of the block, or a value at or below <see cref="Av1ReferenceFrameType.Intra"/> for a single reference.
+        /// </summary>
         private readonly Av1ReferenceFrameType secondaryReferenceFrame;
+
+        /// <summary>
+        /// The motion vector for the first reference frame.
+        /// </summary>
         private readonly Av1MotionVector primaryMotionVector;
+
+        /// <summary>
+        /// The motion vector for the second reference frame.
+        /// </summary>
         private readonly Av1MotionVector secondaryMotionVector;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReferenceBlock"/> struct.
+        /// </summary>
+        /// <param name="blockSize">The size of the block.</param>
+        /// <param name="mode">The luma prediction mode of the block.</param>
+        /// <param name="primaryReferenceFrame">The first reference frame of the block.</param>
+        /// <param name="secondaryReferenceFrame">The second reference frame of the block.</param>
+        /// <param name="primaryMotionVector">The motion vector for the first reference frame.</param>
+        /// <param name="secondaryMotionVector">The motion vector for the second reference frame.</param>
         public ReferenceBlock(
             Av1BlockSize blockSize,
             Av1PredictionMode mode,
@@ -1706,13 +1853,29 @@ internal struct Av1ReferenceMotionVectors
             this.secondaryMotionVector = secondaryMotionVector;
         }
 
+        /// <summary>
+        /// Gets the size of the block.
+        /// </summary>
         public Av1BlockSize BlockSize { get; }
 
+        /// <summary>
+        /// Gets the luma prediction mode of the block.
+        /// </summary>
         public Av1PredictionMode YMode { get; }
 
+        /// <summary>
+        /// Gets one reference frame of the block.
+        /// </summary>
+        /// <param name="index">Zero for the first reference frame, or one for the second.</param>
+        /// <returns>The reference frame.</returns>
         public Av1ReferenceFrameType GetReferenceFrame(int index)
             => index == 0 ? this.primaryReferenceFrame : this.secondaryReferenceFrame;
 
+        /// <summary>
+        /// Gets the motion vector of the block for one reference frame.
+        /// </summary>
+        /// <param name="index">Zero for the first reference frame, or one for the second.</param>
+        /// <returns>The motion vector in one-eighth-sample units.</returns>
         public Av1MotionVector GetMotionVector(int index)
             => index == 0 ? this.primaryMotionVector : this.secondaryMotionVector;
     }

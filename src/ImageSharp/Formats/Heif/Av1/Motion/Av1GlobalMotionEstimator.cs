@@ -11,21 +11,19 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The estimate is built in four steps. A pyramid of each frame is built, so that a large movement
-/// is found at a coarse level and then refined. A dense flow field is solved from the coarsest level
-/// down to the second-finest. The corners of the source frame are then looked up in that field,
-/// which gives a list of points and where each one moved to. A model is finally fitted to that list,
-/// ignoring the points that disagree with the rest.
+/// The estimate has four steps. First, the estimator builds a pyramid of each frame, so it finds a large movement at a coarse level and then
+/// refines it. Then it solves a dense flow field from the coarsest level down to the second-finest level. Then it looks up the corners of the
+/// source frame in that field. This gives a list of points and where each one moved to. Last, it fits a model to that list and ignores the points
+/// that disagree with the rest.
 /// </para>
-/// <para>Reference: aom_compute_global_motion() and av1_compute_global_motion_disflow().</para>
 /// </remarks>
 internal static class Av1GlobalMotionEstimator
 {
     /// <summary>
-    /// The levels of the pyramid that the flow search asks for.
+    /// The number of pyramid levels that the flow search asks for.
     /// </summary>
     /// <remarks>
-    /// The frame size decides how many are actually built. Reference: DISFLOW_PYRAMID_LEVELS.
+    /// The frame size sets how many levels the pyramid actually builds.
     /// </remarks>
     public const int PyramidLevels = 12;
 
@@ -34,8 +32,7 @@ internal static class Av1GlobalMotionEstimator
     /// </summary>
     /// <typeparam name="TSample">The component sample type.</typeparam>
     /// <remarks>
-    /// A pyramid is always eight bits deep, so a frame of greater depth loses its low bits as it is
-    /// copied into the first level. Reference: fill_pyramid().
+    /// A pyramid is always eight bits deep. Thus a frame of greater depth loses its low bits when the fill copies it into the first level.
     /// </remarks>
     internal interface IAv1PyramidFillOperator<TSample>
         where TSample : unmanaged
@@ -47,13 +44,13 @@ internal static class Av1GlobalMotionEstimator
         /// <param name="source">The frame samples, beginning at the first coded sample.</param>
         /// <param name="stride">The frame row stride.</param>
         /// <param name="bitDepth">The coded sample depth.</param>
-        /// <param name="levels">The levels to fill.</param>
-        /// <returns>The levels filled.</returns>
+        /// <param name="levels">The number of levels to fill.</param>
+        /// <returns>The number of levels filled.</returns>
         public static abstract int Fill(Av1ImagePyramid pyramid, ReadOnlySpan<TSample> source, int stride, int bitDepth, int levels);
     }
 
     /// <summary>
-    /// Estimates the models that the most parts of a frame agree with.
+    /// Estimates the models that most parts of a frame agree with.
     /// </summary>
     /// <typeparam name="TSample">The component sample type.</typeparam>
     /// <typeparam name="TFill">The way a frame of that depth fills a pyramid.</typeparam>
@@ -69,7 +66,6 @@ internal static class Av1GlobalMotionEstimator
     /// <param name="downsampleLevel">The pyramid level on which the corners are found.</param>
     /// <param name="models">The models to fill, best first.</param>
     /// <returns>Whether any model was fitted.</returns>
-    /// <remarks>Reference: av1_compute_global_motion_disflow().</remarks>
     public static bool Compute<TSample, TFill, TModel>(
         MemoryAllocator allocator,
         ReadOnlySpan<TSample> source,
@@ -100,8 +96,7 @@ internal static class Av1GlobalMotionEstimator
             return false;
         }
 
-        // The corners come from the downsampled level, clamped to the levels the frame has, and are scaled back
-        // to full resolution. Reference: compute_corner_list().
+        // The corners come from the downsampled level, clamped to the levels that the frame has. The loop below scales them back to full resolution.
         using IMemoryOwner<int> cornerOwner = allocator.Allocate<int>(2 * Av1CornerDetector.MaximumCorners);
         Span<int> corners = cornerOwner.Memory.Span;
         int cornerLevel = Math.Min(downsampleLevel, sourceLevels - 1);
@@ -146,8 +141,7 @@ internal static class Av1GlobalMotionEstimator
     /// <param name="corners">The column and row of each corner, interleaved.</param>
     /// <param name="flow">The solved flow field.</param>
     /// <param name="points">Receives one correspondence per usable corner.</param>
-    /// <returns>The correspondences written.</returns>
-    /// <remarks>Reference: determine_disflow_correspondence().</remarks>
+    /// <returns>The number of correspondences written.</returns>
     private static int DetermineCorrespondences(
         Av1ImagePyramid source,
         Av1ImagePyramid reference,
@@ -169,9 +163,9 @@ internal static class Av1GlobalMotionEstimator
             int cornerX = corners[2 * corner];
             int cornerY = corners[(2 * corner) + 1];
 
-            // A field entry stands for the sample at the center of its block, not for the first
-            // sample of it. Removing that offset before the position is split makes the whole part
-            // name the entry at or before the corner and the fractional part the distance from it.
+            // A field entry stands for the sample at the center of its block, not for its first sample. The code removes that offset before it
+            // splits the position. Then the whole part names the entry at or before the corner, and the fractional part is the distance from that
+            // entry.
             int x = cornerX - Av1FlowField.UpsampleCenterOffset;
             int y = cornerY - Av1FlowField.UpsampleCenterOffset;
             int entryX = x >> Av1FlowField.DownsampleShift;
@@ -179,8 +173,8 @@ internal static class Av1GlobalMotionEstimator
             double fractionX = (x & (Av1FlowField.DownsampleFactor - 1)) / (double)Av1FlowField.DownsampleFactor;
             double fractionY = (y & (Av1FlowField.DownsampleFactor - 1)) / (double)Av1FlowField.DownsampleFactor;
 
-            // A corner whose interpolation would reach the edge of the field is dropped. The edge
-            // entries are copies rather than solved values, so they would weaken the fit.
+            // The code drops a corner whose interpolation reaches the edge of the field. The edge entries are copies, not solved values, so they
+            // make the fit worse.
             if (entryX < 1 || entryX + 2 >= flow.Width || entryY < 1 || entryY + 2 >= flow.Height)
             {
                 continue;
@@ -192,9 +186,8 @@ internal static class Av1GlobalMotionEstimator
             double flowX = Av1FlowField.Interpolate(horizontal, entry, flow.Stride, horizontalKernel, verticalKernel);
             double flowY = Av1FlowField.Interpolate(vertical, entry, flow.Stride, horizontalKernel, verticalKernel);
 
-            // The interpolated vector is refined against the finest level, which is why that level
-            // was never solved as a field: refining the few corners costs far less than refining
-            // every entry, and it starts from a better guess.
+            // The solver refines the interpolated vector against the finest level. For this reason, the field does not solve the finest level.
+            // A refinement of the few corners costs far less than a refinement of every entry, and it starts from a better estimate.
             Av1DenseFlowSolver.Solve(
                 sourceSamples,
                 referenceSamples,

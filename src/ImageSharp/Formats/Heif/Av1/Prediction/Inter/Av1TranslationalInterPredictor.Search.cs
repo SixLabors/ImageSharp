@@ -3,6 +3,9 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 
+/// <content>
+/// Provides the interpolated predictions of the subpixel motion search.
+/// </content>
 internal static partial class Av1TranslationalInterPredictor
 {
     /// <summary>
@@ -11,12 +14,12 @@ internal static partial class Av1TranslationalInterPredictor
     public const int SearchPredictionBufferLength = 136 * 128;
 
     /// <summary>
-    /// Produces a search prediction, rounding and clipping each separable pass to the component precision.
+    /// Produces a search prediction. Each separable pass rounds and clips to the component precision.
     /// </summary>
     /// <param name="source">The bordered reference plane.</param>
     /// <param name="sourceStride">The reference row stride in samples.</param>
     /// <param name="sourceOrigin">The integer prediction origin.</param>
-    /// <param name="buffer">The borrowed search buffer; the packed result occupies its first width times height samples.</param>
+    /// <param name="buffer">The borrowed search buffer. The packed result fills its first width times height samples.</param>
     /// <param name="width">The prediction width.</param>
     /// <param name="height">The prediction height.</param>
     /// <param name="horizontalPhase">The horizontal fraction in eighth-sample units.</param>
@@ -45,8 +48,8 @@ internal static partial class Av1TranslationalInterPredictor
         GetEffectiveKernel(horizontal, out int horizontalFirst, out int horizontalCount);
         GetEffectiveKernel(vertical, out int verticalFirst, out int verticalCount);
 
-        // Search interpolation applies a single Q7 rounding and clips after each pass. Keeping both
-        // passes in sample storage preserves those clipped values when they feed the vertical filter.
+        // Each pass of the search filter rounds once by the Q7 shift and clips to the sample range.
+        // The horizontal pass writes samples, so the vertical pass reads the clipped values.
         if (verticalPhase == 0)
         {
             FilterDirect(
@@ -87,9 +90,9 @@ internal static partial class Av1TranslationalInterPredictor
             return;
         }
 
-        // The vertical support occupies seven additional rows at a fixed 128-sample stride. The final
-        // top-to-bottom pass packs its output over consumed rows of the same buffer: width never exceeds
-        // that stride, and a written column cannot affect another column's vertical convolution.
+        // The horizontal pass writes height + 7 rows at a fixed stride of 128 samples. The 7 extra rows hold the vertical support.
+        // The vertical pass runs from top to bottom and packs its output over rows of the same buffer that it already read.
+        // The width is at most the stride, and a written column does not change the vertical convolution of another column.
         FilterDirect(
             source,
             sourceStride,
@@ -122,12 +125,12 @@ internal static partial class Av1TranslationalInterPredictor
     }
 
     /// <summary>
-    /// Produces a search prediction, rounding and clipping each separable pass to the component precision.
+    /// Produces a search prediction. Each separable pass rounds and clips to the component precision.
     /// </summary>
     /// <param name="source">The bordered reference plane.</param>
     /// <param name="sourceStride">The reference row stride in samples.</param>
     /// <param name="sourceOrigin">The integer prediction origin.</param>
-    /// <param name="buffer">The borrowed search buffer; the packed result occupies its first width times height samples.</param>
+    /// <param name="buffer">The borrowed search buffer. The packed result fills its first width times height samples.</param>
     /// <param name="width">The prediction width.</param>
     /// <param name="height">The prediction height.</param>
     /// <param name="horizontalPhase">The horizontal fraction in eighth-sample units.</param>
@@ -158,8 +161,8 @@ internal static partial class Av1TranslationalInterPredictor
         GetEffectiveKernel(horizontal, out int horizontalFirst, out int horizontalCount);
         GetEffectiveKernel(vertical, out int verticalFirst, out int verticalCount);
 
-        // Search interpolation applies a single Q7 rounding and clips after each pass. Keeping both
-        // passes in sample storage preserves those clipped values when they feed the vertical filter.
+        // Each pass of the search filter rounds once by the Q7 shift and clips to the sample range.
+        // The horizontal pass writes samples, so the vertical pass reads the clipped values.
         if (verticalPhase == 0)
         {
             FilterDirect(
@@ -202,9 +205,9 @@ internal static partial class Av1TranslationalInterPredictor
             return;
         }
 
-        // The vertical support occupies seven additional rows at a fixed 128-sample stride. The final
-        // top-to-bottom pass packs its output over consumed rows of the same buffer: width never exceeds
-        // that stride, and a written column cannot affect another column's vertical convolution.
+        // The horizontal pass writes height + 7 rows at a fixed stride of 128 samples. The 7 extra rows hold the vertical support.
+        // The vertical pass runs from top to bottom and packs its output over rows of the same buffer that it already read.
+        // The width is at most the stride, and a written column does not change the vertical convolution of another column.
         FilterDirect(
             source,
             sourceStride,

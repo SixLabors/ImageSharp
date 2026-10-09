@@ -16,10 +16,9 @@ internal static partial class Av1DenseFlowSolver
     /// Applies the two three-tap passes of one separable gradient filter.
     /// </summary>
     /// <remarks>
-    /// The filter is a derivative on one axis and a smoothing on the other. Which pass carries which
-    /// kernel is the only difference between the horizontal gradient and the vertical gradient, so the
-    /// two directions are two operators over one traversal. The derivative kernel is
-    /// <c>{1, 0, -1}</c> and the smoothing kernel is <c>{1, 2, 1}</c>.
+    /// The filter is a derivative on one axis and a smoothing on the other. The horizontal and the vertical gradients differ only in which pass
+    /// carries which kernel. Thus the two directions are two operators over one traversal. The derivative kernel is <c>{1, 0, -1}</c>, and the
+    /// smoothing kernel is <c>{1, 2, 1}</c>.
     /// </remarks>
     internal interface IAv1SobelOperator
     {
@@ -64,9 +63,8 @@ internal static partial class Av1DenseFlowSolver
     /// Applies one four-tap cubic interpolation with a rounded right shift.
     /// </summary>
     /// <remarks>
-    /// The taps are computed for each patch from the fractional part of the current flow vector, so
-    /// they arrive as arguments rather than as constants. Both interpolation passes of the warp use
-    /// this one operator, and they differ only in the shift they ask for.
+    /// Each patch computes the taps from the fractional part of the current flow vector, so the taps are arguments, not constants. Both interpolation
+    /// passes of the warp use this operator. They differ only in the shift.
     /// </remarks>
     internal interface IAv1CubicOperator
     {
@@ -117,9 +115,8 @@ internal static partial class Av1DenseFlowSolver
     /// <param name="offset">The sample offset, which is never negative.</param>
     /// <returns>The widened samples.</returns>
     /// <remarks>
-    /// Exactly eight bytes are read, so the load never reaches past the samples the patch is
-    /// entitled to. The samples are unsigned and below 256, so reinterpreting the widened lanes as
-    /// signed is exact.
+    /// The method reads exactly eight bytes, so a load never reads past the samples that the filter taps need. The samples are unsigned and less
+    /// than 256, so the signed view of the widened lanes is exact.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<short> WidenSamples(ref byte plane, nuint offset)
@@ -130,11 +127,9 @@ internal static partial class Av1DenseFlowSolver
     /// </summary>
     /// <typeparam name="TOperator">The gradient direction.</typeparam>
     /// <remarks>
-    /// A patch row is eight samples, which is exactly one 128-bit vector of sixteen-bit lanes. No
-    /// wider path exists because a wider vector would span two patch rows, and both passes read a row
-    /// on each side of the row they produce, so packed rows would need cross-row shifts that cost
-    /// more than they save. The intermediate stays sixteen bits wide, as the reference keeps it, so
-    /// it wraps where the reference wraps.
+    /// A patch row is eight samples, which is exactly one 128-bit vector of sixteen-bit lanes. A wider vector spans two patch rows. Both passes
+    /// read a row on each side of the row that they produce. Thus packed rows need cross-row shifts that cost more than they save, so no wider path
+    /// exists. The intermediate stays sixteen bits wide and wraps at sixteen bits. This keeps the gradients bit-exact with other AV1 encoders.
     /// </remarks>
     private static class Sobel<TOperator>
         where TOperator : struct, IAv1SobelOperator
@@ -153,9 +148,8 @@ internal static partial class Av1DenseFlowSolver
         /// <param name="destination">Receives the gradients, eight per row.</param>
         public static void Apply(ReadOnlySpan<byte> plane, int patch, int stride, Span<short> destination)
         {
-            // The first pass covers ten rows, one above and one below the patch, because the second
-            // pass reads a row on each side of every row it writes. Index zero therefore holds the
-            // row above the patch, which is why every later read is offset by one row.
+            // The first pass covers ten rows, one above and one below the patch. The second pass reads a row on each side of every row that it
+            // writes. Index zero holds the row above the patch, so every later read is offset by one row.
             Span<short> intermediate = stackalloc short[PatchSize * IntermediateRows];
 
             if (Vector128.IsHardwareAccelerated)
@@ -188,8 +182,8 @@ internal static partial class Av1DenseFlowSolver
 
             for (int row = -1; row < PatchSize + 1; row++)
             {
-                // The three taps are the samples one column before, at, and one column after each
-                // output, so they are three overlapping loads of the same row and need no shuffle.
+                // The three taps are the samples one column before, at, and one column after each output. Thus they are three overlapping loads
+                // of the same row and need no shuffle.
                 nuint rowOffset = (nuint)(patch + (row * stride));
                 Vector128<short> left = WidenSamples(ref planeBase, rowOffset - 1);
                 Vector128<short> centre = WidenSamples(ref planeBase, rowOffset);
@@ -201,8 +195,8 @@ internal static partial class Av1DenseFlowSolver
 
             for (int row = 0; row < PatchSize; row++)
             {
-                // Output row r reads intermediate rows r-1, r and r+1, which are stored at r, r+1
-                // and r+2 because the intermediate begins one row above the patch.
+                // Output row r reads intermediate rows r-1, r and r+1. The intermediate begins one row above the patch, so these rows are stored at
+                // r, r+1 and r+2.
                 Vector128<short> above = Vector128.LoadUnsafe(ref intermediateBase, (nuint)(row * PatchSize));
                 Vector128<short> centre = Vector128.LoadUnsafe(ref intermediateBase, (nuint)((row + 1) * PatchSize));
                 Vector128<short> below = Vector128.LoadUnsafe(ref intermediateBase, (nuint)((row + 2) * PatchSize));
@@ -221,8 +215,7 @@ internal static partial class Av1DenseFlowSolver
         /// <param name="destination">Receives the gradients, eight per row.</param>
         /// <param name="intermediate">The ten rows written by the first pass.</param>
         /// <remarks>
-        /// The intermediate remains sixteen bits wide here as well, so an unaccelerated runtime wraps
-        /// exactly where the vector path and the reference wrap.
+        /// The intermediate is sixteen bits wide here too. Thus a runtime without acceleration wraps at the same points as the vector path.
         /// </remarks>
         private static void ApplyScalar(
             ReadOnlySpan<byte> plane,

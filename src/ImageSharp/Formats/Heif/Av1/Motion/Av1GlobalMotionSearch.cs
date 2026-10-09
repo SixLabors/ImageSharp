@@ -13,56 +13,44 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The fit produces real numbers. The bitstream codes each parameter at a fixed precision, so the
-/// model has to be rounded before it can be used, and the rounded model is not always the best one
-/// at that precision. Each parameter is therefore stepped up and down, and the step that lowers the
-/// prediction error is kept.
-/// </para>
-/// <para>
-/// Reference: av1_convert_model_to_params(), av1_refine_integerized_param(), get_warp_error(),
-/// av1_segmented_frame_error(), av1_compute_feature_segmentation_map() and
-/// av1_is_enough_erroradvantage().
+/// The fit produces real numbers. The bitstream codes each parameter at a fixed precision, so the encoder rounds the model before use. The rounded
+/// model is not always the best model at that precision. Thus the search steps each parameter up and down and keeps the step that lowers the
+/// prediction error.
 /// </para>
 /// </remarks>
 internal static partial class Av1GlobalMotionSearch
 {
     /// <summary>
-    /// The bits by which the error map is smaller than the frame in each direction.
+    /// The base-two logarithm of the side of one error block. The error map is smaller than the frame by this many bits in each direction.
     /// </summary>
-    /// <remarks>Reference: WARP_ERROR_BLOCK_LOG.</remarks>
     public const int ErrorBlockLog = 5;
 
     /// <summary>
-    /// The side of the square over which the error is measured, in samples.
+    /// The side of the square over which the search measures the error, in samples.
     /// </summary>
-    /// <remarks>Reference: WARP_ERROR_BLOCK.</remarks>
     public const int ErrorBlock = 1 << ErrorBlockLog;
 
     /// <summary>
-    /// The agreeing points one error block needs before the block is measured.
+    /// The number of agreeing points that one error block needs before the search measures it.
     /// </summary>
-    /// <remarks>Reference: FEAT_COUNT_TR.</remarks>
     private const int FeatureCountThreshold = 3;
 
     /// <summary>
-    /// The error blocks a model needs before the error is measured over those blocks alone.
+    /// The number of marked error blocks that a model needs before the search measures the error over those blocks alone.
     /// </summary>
-    /// <remarks>Reference: SEG_COUNT_TR.</remarks>
     private const int SegmentCountThreshold = 48;
 
     /// <summary>
     /// The largest product of the error share and the coding cost that is still worth coding.
     /// </summary>
-    /// <remarks>Reference: erroradv_prod_tr.</remarks>
     private const double ErrorAdvantageProductThreshold = 20000;
 
     /// <summary>
-    /// The share of the unwarped error above which refinement gives up at once.
+    /// The share of the unwarped error above which refinement stops at once.
     /// </summary>
     /// <remarks>
-    /// This is looser than the threshold a model must finally meet, because refinement can still
-    /// bring a model that starts slightly above it under the final threshold.
-    /// Reference: erroradv_early_tr.
+    /// This threshold is looser than the final threshold of a model. Refinement can still bring a model that starts slightly above the final
+    /// threshold below it.
     /// </remarks>
     private const double EarlyErrorAdvantageThreshold = 0.70;
 
@@ -83,8 +71,8 @@ internal static partial class Av1GlobalMotionSearch
         /// <param name="destination">The square that receives the warped samples.</param>
         /// <param name="destinationStride">The row stride of the destination.</param>
         /// <param name="position">The position of the square in the frame.</param>
-        /// <param name="width">The columns to write.</param>
-        /// <param name="height">The rows to write.</param>
+        /// <param name="width">The number of columns to write.</param>
+        /// <param name="height">The number of rows to write.</param>
         /// <param name="bitDepth">The coded sample depth, which only the high-bit-depth filter reads.</param>
         /// <param name="parameters">The warp model.</param>
         /// <param name="scratch">The intermediate storage of the two filter passes.</param>
@@ -109,8 +97,8 @@ internal static partial class Av1GlobalMotionSearch
         /// <param name="sourceStride">The row stride of the source region.</param>
         /// <param name="prediction">The first sample of the prediction region.</param>
         /// <param name="predictionStride">The row stride of the prediction region.</param>
-        /// <param name="width">The columns compared in each row.</param>
-        /// <param name="height">The rows compared.</param>
+        /// <param name="width">The number of columns compared in each row.</param>
+        /// <param name="height">The number of rows compared.</param>
         /// <returns>The sum of absolute sample differences.</returns>
         public static abstract int SumAbsoluteDifferences(
             ReadOnlySpan<TSample> source,
@@ -122,9 +110,8 @@ internal static partial class Av1GlobalMotionSearch
     }
 
     /// <summary>
-    /// Gets the parameters that each model family leaves free, in family order.
+    /// Gets the number of parameters that each model family leaves free, in family order.
     /// </summary>
-    /// <remarks>Reference: max_trans_model_params.</remarks>
     private static ReadOnlySpan<int> ParameterCounts => [0, 2, 4, 6];
 
     /// <summary>
@@ -133,10 +120,9 @@ internal static partial class Av1GlobalMotionSearch
     /// <param name="model">The six fitted parameters.</param>
     /// <returns>The rounded model, with its type derived from the rounded values.</returns>
     /// <remarks>
-    /// Each parameter is rounded at its own coded precision, clamped to the range the syntax allows,
-    /// and then scaled back up to the precision the warp filter works at. The two diagonal entries
-    /// are centered on one before they are clamped, because the syntax codes their distance from
-    /// one rather than the value itself. Reference: convert_to_params().
+    /// The method rounds each parameter at its own coded precision and clamps it to the range that the syntax allows. Then it scales the parameter
+    /// back up to the precision of the warp filter. The method centers the two diagonal entries on one before the clamp, because the syntax codes
+    /// their distance from one, not the value itself.
     /// </remarks>
     public static Av1GlobalMotionParameters ConvertModelToParameters(ReadOnlySpan<double> model)
     {
@@ -172,7 +158,6 @@ internal static partial class Av1GlobalMotionSearch
     /// </summary>
     /// <param name="parameters">The model to classify.</param>
     /// <returns>The family.</returns>
-    /// <remarks>Reference: get_wmtype().</remarks>
     public static Av1GlobalMotionType GetModelType(Av1GlobalMotionParameters parameters)
     {
         if (parameters[5] == Av1GlobalMotionParameters.ModelScale && parameters[4] == 0 &&
@@ -194,8 +179,7 @@ internal static partial class Av1GlobalMotionSearch
     /// <param name="parameters">The model to constrain.</param>
     /// <param name="type">The family to constrain it to.</param>
     /// <remarks>
-    /// A rotation with a zoom has only two free matrix parameters, so the other two are derived from
-    /// them after every change. Reference: force_wmtype().
+    /// A rotation with a zoom has only two free matrix parameters. Thus the method derives the other two from them after every change.
     /// </remarks>
     public static void ForceModelType(ref Av1GlobalMotionParameters parameters, Av1GlobalMotionType type)
     {
@@ -224,14 +208,12 @@ internal static partial class Av1GlobalMotionSearch
     /// Marks the error blocks that hold enough agreeing points to be worth measuring.
     /// </summary>
     /// <param name="map">The one byte per error block that receives the marks.</param>
-    /// <param name="width">The error blocks across the frame.</param>
-    /// <param name="height">The error blocks down the frame.</param>
+    /// <param name="width">The number of error blocks across the frame.</param>
+    /// <param name="height">The number of error blocks down the frame.</param>
     /// <param name="inliers">The column and row of each agreeing point, interleaved.</param>
     /// <remarks>
-    /// Measuring only where the model was fitted keeps parts of the frame that move on their own out
-    /// of the comparison. When too little of the frame is marked, the whole frame is measured
-    /// instead, because a mark that small says nothing about the frame.
-    /// Reference: av1_compute_feature_segmentation_map().
+    /// The measure covers only the area where the model was fitted. Thus parts of the frame that move on their own stay out of the comparison.
+    /// When the marked area is too small, the method marks the whole frame, because a small marked area tells nothing about the frame.
     /// </remarks>
     public static void ComputeFeatureSegmentationMap(Span<byte> map, int width, int height, ReadOnlySpan<int> inliers)
     {
@@ -257,9 +239,9 @@ internal static partial class Av1GlobalMotionSearch
     }
 
     /// <summary>
-    /// Gets the largest share of the unwarped error that a model may leave. Reference: erroradv_tr.
+    /// Gets the largest share of the unwarped error that a model can leave.
     /// </summary>
-    /// <param name="level">The threshold level of the speed settings. Reference: gm_erroradv_tr_level.</param>
+    /// <param name="level">The threshold level of the speed settings.</param>
     /// <returns>The threshold.</returns>
     public static double GetErrorAdvantageThreshold(int level) => level switch
     {
@@ -273,9 +255,8 @@ internal static partial class Av1GlobalMotionSearch
     /// </summary>
     /// <param name="errorAdvantage">The warped error as a share of the unwarped error.</param>
     /// <param name="parametersCost">The cost of coding the model.</param>
-    /// <param name="threshold">The largest share of the unwarped error that a model may leave.</param>
+    /// <param name="threshold">The largest share of the unwarped error that a model can leave.</param>
     /// <returns>Whether the model is worth coding.</returns>
-    /// <remarks>Reference: av1_is_enough_erroradvantage().</remarks>
     public static bool IsEnoughErrorAdvantage(double errorAdvantage, int parametersCost, double threshold)
         => errorAdvantage < threshold &&
            errorAdvantage * parametersCost < ErrorAdvantageProductThreshold;
@@ -292,9 +273,8 @@ internal static partial class Av1GlobalMotionSearch
     /// <param name="width">The coded width of both planes.</param>
     /// <param name="height">The coded height of both planes.</param>
     /// <param name="map">The marked error blocks.</param>
-    /// <param name="mapStride">The error blocks across the frame.</param>
+    /// <param name="mapStride">The number of error blocks across the frame.</param>
     /// <returns>The sum of absolute sample differences over the marked blocks.</returns>
-    /// <remarks>Reference: segmented_frame_error().</remarks>
     public static long GetSegmentedFrameError<TSample, TOperator>(
         ReadOnlySpan<TSample> reference,
         int referenceStride,
@@ -317,8 +297,7 @@ internal static partial class Av1GlobalMotionSearch
                     continue;
                 }
 
-                // A block at the right or bottom edge is measured only as far as the coded frame
-                // reaches, so no padding enters the total.
+                // The code measures a block at the right or bottom edge only up to the edge of the coded frame. Thus no padding gets into the total.
                 int blockWidth = Math.Min(ErrorBlock, width - column);
                 int blockHeight = Math.Min(ErrorBlock, height - row);
                 total += TOperator.SumAbsoluteDifferences(
@@ -339,7 +318,7 @@ internal static partial class Av1GlobalMotionSearch
     /// </summary>
     /// <typeparam name="TSample">The component sample type.</typeparam>
     /// <typeparam name="TOperator">The sample-specific measures.</typeparam>
-    /// <param name="parameters">The warp model, whose shear parameters this updates.</param>
+    /// <param name="parameters">The warp model, whose shear parameters this method updates.</param>
     /// <param name="reference">The whole reference plane.</param>
     /// <param name="referenceStride">The row stride of the reference plane.</param>
     /// <param name="source">The source plane.</param>
@@ -347,16 +326,14 @@ internal static partial class Av1GlobalMotionSearch
     /// <param name="width">The coded width of both planes.</param>
     /// <param name="height">The coded height of both planes.</param>
     /// <param name="map">The marked error blocks.</param>
-    /// <param name="mapStride">The error blocks across the frame.</param>
+    /// <param name="mapStride">The number of error blocks across the frame.</param>
     /// <param name="bestError">The total above which measuring stops.</param>
     /// <param name="bitDepth">The coded sample depth.</param>
-    /// <param name="warped">The scratch that holds one warped block.</param>
+    /// <param name="warped">The buffer that holds one warped block.</param>
     /// <param name="scratch">The intermediate storage of the warp filter.</param>
     /// <returns>The error, or <see cref="long.MaxValue"/> when the model cannot be used or is worse.</returns>
     /// <remarks>
-    /// Measuring stops as soon as the total passes the best total so far, because a model that is
-    /// already worse cannot become better over the blocks that remain.
-    /// Reference: get_warp_error() and warp_error().
+    /// The measure stops when the total passes <paramref name="bestError"/>. A model that is already worse cannot become better over the remaining blocks.
     /// </remarks>
     public static long GetWarpError<TSample, TOperator>(
         ref Av1GlobalMotionParameters parameters,
@@ -430,7 +407,7 @@ internal static partial class Av1GlobalMotionSearch
     /// </summary>
     /// <typeparam name="TSample">The component sample type.</typeparam>
     /// <typeparam name="TOperator">The sample-specific measures.</typeparam>
-    /// <param name="allocator">The allocator of the warp scratch.</param>
+    /// <param name="allocator">The allocator of the warp buffers.</param>
     /// <param name="parameters">The model to refine, in place.</param>
     /// <param name="type">The family that the model must keep.</param>
     /// <param name="reference">The whole reference plane.</param>
@@ -439,14 +416,13 @@ internal static partial class Av1GlobalMotionSearch
     /// <param name="sourceStride">The row stride of the source plane.</param>
     /// <param name="width">The coded width of both planes.</param>
     /// <param name="height">The coded height of both planes.</param>
-    /// <param name="refinementCount">The step sizes tried, each half of the one before.</param>
+    /// <param name="refinementCount">The number of step sizes to try. Each step size is half of the one before.</param>
     /// <param name="bitDepth">The coded sample depth.</param>
     /// <param name="referenceError">The error the unwarped frames already have.</param>
     /// <param name="map">The marked error blocks.</param>
-    /// <param name="mapStride">The error blocks across the frame.</param>
-    /// <param name="errorAdvantageThreshold">The largest share of the unwarped error that a model may leave.</param>
+    /// <param name="mapStride">The number of error blocks across the frame.</param>
+    /// <param name="errorAdvantageThreshold">The largest share of the unwarped error that a model can leave.</param>
     /// <returns>The error of the refined model, or <see cref="long.MaxValue"/> when it is not usable.</returns>
-    /// <remarks>Reference: av1_refine_integerized_param().</remarks>
     public static long RefineIntegerizedParameters<TSample, TOperator>(
         MemoryAllocator allocator,
         ref Av1GlobalMotionParameters parameters,
@@ -477,8 +453,8 @@ internal static partial class Av1GlobalMotionSearch
 
         if (refinementCount == 0)
         {
-            // The error of the model itself, measured only as far as the final threshold needs, so that the
-            // measure can stop once it proves that the model is not taken.
+            // Without refinement, the method measures the error of the model itself. The final threshold is the limit, so the measure stops when
+            // it proves that the model fails.
             long selectionThreshold = (long)Math.Round(referenceError * errorAdvantageThreshold, MidpointRounding.ToEven);
             return GetWarpError<TSample, TOperator>(
                 ref parameters, reference, referenceStride, source, sourceStride, width, height, map, mapStride, selectionThreshold, bitDepth, warped, scratch);
@@ -502,8 +478,7 @@ internal static partial class Av1GlobalMotionSearch
                 int current = parameters[index];
                 int best = current;
 
-                // Both directions are tried from the value the parameter came in with, so the search
-                // cannot be trapped by the first direction it tries.
+                // Both directions start from the input value of the parameter. Thus the first direction cannot trap the search.
                 for (int trial = -1; trial <= 1; trial += 2)
                 {
                     parameters[index] = AddParameterOffset(index, current, step * trial);
@@ -519,7 +494,7 @@ internal static partial class Av1GlobalMotionSearch
                     }
                 }
 
-                // A direction that helped once usually helps again, so it is followed until it stops.
+                // A direction that helped once usually helps again, so the search continues in it until the error stops falling.
                 while (direction != 0)
                 {
                     parameters[index] = AddParameterOffset(index, best, step * direction);
@@ -548,15 +523,13 @@ internal static partial class Av1GlobalMotionSearch
     /// <summary>
     /// Moves one model parameter by a step taken at its own coded precision.
     /// </summary>
-    /// <param name="index">The parameter to move.</param>
+    /// <param name="index">The index of the parameter to move.</param>
     /// <param name="value">The current value, at warp precision.</param>
     /// <param name="offset">The step, at coded precision.</param>
     /// <returns>The moved value, at warp precision.</returns>
     /// <remarks>
-    /// The value is first brought down to the precision the syntax codes and, for the two diagonal
-    /// entries, centered on zero, because the syntax codes their distance from one. The step is then
-    /// added, the result clamped to the range the syntax allows, and the value returned to warp
-    /// precision. Reference: add_param_offset().
+    /// The method first reduces the value to the coded precision. It centers the two diagonal entries on zero, because the syntax codes their
+    /// distance from one. Then it adds the step, clamps the result to the range that the syntax allows, and returns the value to warp precision.
     /// </remarks>
     public static int AddParameterOffset(int index, int value, int offset)
     {

@@ -120,7 +120,7 @@ internal static class Av1IntraReferenceAvailability
     /// <param name="blockModeInfoColumnOffset">The transform column offset within the containing block.</param>
     /// <param name="subX">The horizontal chroma subsampling shift.</param>
     /// <param name="subY">The vertical chroma subsampling shift.</param>
-    /// <returns><see langword="true"/> when the bottom-left reference extension is available; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when the bottom-left reference extension is available, otherwise <see langword="false"/>.</returns>
     public static bool HasBottomLeft(Av1BlockSize superblockSize, Av1BlockSize blockSize, int modeInfoRow, int modeInfoColumn, bool bottomAvailable, bool haveLeft, Av1PartitionType partition, Av1TransformSize transformSize, int blockModeInfoRowOffset, int blockModeInfoColumnOffset, int subX, int subY)
     {
         if (!bottomAvailable || !haveLeft)
@@ -128,8 +128,8 @@ internal static class Av1IntraReferenceAvailability
             return false;
         }
 
-        // A 128-wide block is reconstructed as two 64-wide regions in raster order,
-        // so the right half can consume references that already belong to the left half.
+        // The decoder reconstructs a 128-wide block as two 64-wide regions in raster order.
+        // Thus the right half can use references that already belong to the left half.
         if (blockSize.GetWidth() > 64 && blockModeInfoColumnOffset > 0)
         {
             int block64WidthInUnits = Av1BlockSize.Block64x64.Get4x4WideCount();
@@ -137,14 +137,13 @@ internal static class Av1IntraReferenceAvailability
             int columnOffset64 = blockModeInfoColumnOffset % planeBlockWidthInUnits64;
             if (columnOffset64 == 0)
             {
-                // We are at the left edge of top-right or bottom-right 64x* block.
+                // The transform is at the left edge of the top-right or bottom-right 64-wide region.
                 int block64HeightInUnits = Av1BlockSize.Block64x64.Get4x4HighCount();
                 int planeBlockHeightInUnits64 = block64HeightInUnits >> subY;
                 int rowOffset64 = blockModeInfoRowOffset % planeBlockHeightInUnits64;
                 int planeBlockHeightInUnits = Math.Min(blockSize.Get4x4HighCount() >> subY, planeBlockHeightInUnits64);
 
-                // Check if all bottom-left pixels are in the left 64x* block (which is
-                // already coded).
+                // The extension is available only when all bottom-left pixels are in the left 64-wide region, which is already reconstructed.
                 return rowOffset64 + transformSize.Get4x4HighCount() < planeBlockHeightInUnits;
             }
         }
@@ -172,9 +171,8 @@ internal static class Av1IntraReferenceAvailability
             int blockRowInSuperblock = (modeInfoRow & (superblockModeInfoSize - 1)) >> blockHeightInModeInfoLog2;
             int blockColumnInSuperblock = (modeInfoColumn & (superblockModeInfoSize - 1)) >> blockWidthInModeInfoLog2;
 
-            // Leftmost column of superblock: so bottom-left pixels maybe in the left
-            // and/or bottom-left superblocks. But only the left superblock is
-            // available, so check if all required pixels fall in that superblock.
+            // In the leftmost column of the superblock, the bottom-left pixels can be in the left superblock, the bottom-left superblock, or both.
+            // Only the left superblock is available. Thus all required pixels must fall in that superblock.
             if (blockColumnInSuperblock == 0)
             {
                 int blockStartRowOffset = blockRowInSuperblock << (blockHeightInModeInfoLog2 + Av1Constants.ModeInfoSizeLog2 - Av1TransformSize.Size4x4.GetBlockWidthLog2()) >> subY;
@@ -183,15 +181,14 @@ internal static class Av1IntraReferenceAvailability
                 return rowOffsetInSuperblock + bottomLeftUnitCount < superblockHeightInUnits;
             }
 
-            // Bottom row of superblock (and not the leftmost column): so bottom-left
-            // pixels fall in the bottom superblock, which is not available yet.
+            // In the bottom row of the superblock, but not the leftmost column, the bottom-left pixels fall in the bottom superblock.
+            // That superblock is not available yet.
             if (((blockRowInSuperblock + 1) << blockHeightInModeInfoLog2) >= superblockModeInfoSize)
             {
                 return false;
             }
 
-            // General case (neither leftmost column nor bottom row): check if the
-            // bottom-left block is coded before the current block.
+            // In the general case, the packed table tells whether the decoder reconstructs the bottom-left block before the current block.
             int thisBlockIndex = ((blockRowInSuperblock + 0) << (Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2 - blockWidthInModeInfoLog2)) + blockColumnInSuperblock + 0;
             return Av1BottomRightTopLeftConstants.HasBottomLeft(partition, blockSize, thisBlockIndex);
         }
@@ -212,7 +209,7 @@ internal static class Av1IntraReferenceAvailability
     /// <param name="blockModeInfoColumnOffset">The transform column offset within the containing block.</param>
     /// <param name="subX">The horizontal chroma subsampling shift.</param>
     /// <param name="subY">The vertical chroma subsampling shift.</param>
-    /// <returns><see langword="true"/> when the top-right reference extension is available; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when the top-right reference extension is available, otherwise <see langword="false"/>.</returns>
     public static bool HasTopRight(Av1BlockSize superblockSize, Av1BlockSize blockSize, int modeInfoRow, int modeInfoColumn, bool haveTop, bool rightAvailable, Av1PartitionType partition, Av1TransformSize transformSize, int blockModeInfoRowOffset, int blockModeInfoColumnOffset, int subX, int subY)
     {
         if (!haveTop || !rightAvailable)
@@ -226,13 +223,12 @@ internal static class Av1IntraReferenceAvailability
 
         if (blockModeInfoRowOffset > 0)
         {
-            // Transforms below the first row obtain their top edge from the containing block,
-            // so only the reconstructed width to their right constrains availability.
+            // Transforms below the first row get their top edge from the containing block.
+            // Thus only the reconstructed width to their right limits availability.
             if (blockSize.GetWidth() > 64)
             {
-                // Special case: For 128x128 blocks, the transform unit whose
-                // top-right corner is at the center of the block does in fact have
-                // pixels available at its top-right corner.
+                // In a 128x128 block, the transform whose top-right corner is at the block center has available top-right pixels.
+                // Any other transform must keep its extension inside its own 64-wide region.
                 int block64WidthInUnits = Av1BlockSize.Block64x64.Get4x4WideCount();
                 int block64HeightInUnits = Av1BlockSize.Block64x64.Get4x4HighCount();
                 if (blockModeInfoRowOffset == block64HeightInUnits >> subY &&
@@ -262,22 +258,21 @@ internal static class Av1IntraReferenceAvailability
             int blockRowInSuperblock = (modeInfoRow & (superBlockModeInfoSize - 1)) >> blockHeightInModeInfeLog2;
             int blockColumnInSuperBlock = (modeInfoColumn & (superBlockModeInfoSize - 1)) >> blockWidthInModeInfoLog2;
 
-            // Top row of superblock: so top-right pixels are in the top and/or
-            // top-right superblocks, both of which are already available.
+            // In the top row of the superblock, the top-right pixels are in the top superblock, the top-right superblock, or both.
+            // Both superblocks are already available.
             if (blockRowInSuperblock == 0)
             {
                 return true;
             }
 
-            // Rightmost column of superblock (and not the top row): so top-right pixels
-            // fall in the right superblock, which is not available yet.
+            // In the rightmost column of the superblock, but not the top row, the top-right pixels fall in the right superblock.
+            // That superblock is not available yet.
             if (((blockColumnInSuperBlock + 1) << blockWidthInModeInfoLog2) >= superBlockModeInfoSize)
             {
                 return false;
             }
 
-            // General case (neither top row nor rightmost column): check if the
-            // top-right block is coded before the current block.
+            // In the general case, the packed table tells whether the decoder reconstructs the top-right block before the current block.
             int thisBlockIndex = ((blockRowInSuperblock + 0) << (Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2 - blockWidthInModeInfoLog2)) + blockColumnInSuperBlock + 0;
             return Av1BottomRightTopLeftConstants.HasTopRight(partition, blockSize, thisBlockIndex);
         }

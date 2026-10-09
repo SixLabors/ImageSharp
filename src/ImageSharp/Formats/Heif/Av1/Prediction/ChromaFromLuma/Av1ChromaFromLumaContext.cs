@@ -134,7 +134,8 @@ internal sealed partial class Av1ChromaFromLumaContext
     {
         if (blockSize.GetHeight() == 4 || blockSize.GetWidth() == 4)
         {
-            // Subsampled chroma shares one CfL surface across the adjacent sub-8x8 luma blocks.
+            // Subsampled chroma shares one CfL surface across the adjacent sub-8x8 luma blocks. A block at an odd mode-info row or column stores into the
+            // second half of that surface.
             if ((modeInfoRow & 1) != 0 && this.subY)
             {
                 row++;
@@ -169,8 +170,8 @@ internal sealed partial class Av1ChromaFromLumaContext
 
         int outputOffset = (storeRow * BufferLine) + storeColumn;
 
-        // Reconstruction reaches this method only through the byte and short decoder pipelines. Dispatching once
-        // here keeps sample conversion out of the row kernels and lets the JIT specialize both storage layouts.
+        // Reconstruction reaches this method only through the byte and short decoder pipelines. One type test here keeps sample conversion out of the row
+        // kernels. The JIT then specializes both storage layouts.
         if (typeof(T) == typeof(byte))
         {
             StoreSamples(
@@ -227,8 +228,8 @@ internal sealed partial class Av1ChromaFromLumaContext
     /// Extends the last stored column and row of a predictor surface to the requested dimensions.
     /// </summary>
     /// <remarks>
-    /// The chroma of a block at the right or bottom frame edge can cover more samples than the luma that the
-    /// encoder stored. <c>cfl_pad</c> repeats the last stored sample over the remainder.
+    /// The chroma of a block at the right or bottom frame edge can cover more samples than the stored luma. This method repeats the last stored sample over the
+    /// remainder.
     /// </remarks>
     /// <param name="q3Buffer">The fixed-stride Q3 predictor surface.</param>
     /// <param name="bufferWidth">The stored width in chroma samples.</param>

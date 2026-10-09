@@ -6,8 +6,7 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 /// <summary>
-/// Defines one thirty-two-point transform over thirty-two consecutive vectors whose sixteen lanes each hold one
-/// independent input set.
+/// Defines one thirty-two-point transform over thirty-two consecutive vectors whose sixteen lanes each hold one independent input set.
 /// </summary>
 internal interface IAv1Kernel32
 {

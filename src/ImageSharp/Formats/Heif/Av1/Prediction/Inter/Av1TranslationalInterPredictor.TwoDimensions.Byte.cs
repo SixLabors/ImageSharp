@@ -15,6 +15,23 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Filters an 8-bit block in sixteen-sample vectors through caller-owned signed scratch.
     /// </summary>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="horizontalCoefficients">The horizontal filter coefficients, starting at the first applied tap.</param>
+    /// <param name="horizontalTapCount">The number of applied horizontal taps.</param>
+    /// <param name="horizontalSourceOffset">The column offset from the integer-position sample to the first applied horizontal tap.</param>
+    /// <param name="verticalCoefficients">The vertical filter coefficients, starting at the first applied tap.</param>
+    /// <param name="verticalTapCount">The number of applied vertical taps.</param>
+    /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
+    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
+    /// <param name="initial">The start value of each accumulator lane. The vector type selects this overload.</param>
     private static void Filter2D(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -41,6 +58,8 @@ internal static partial class Av1TranslationalInterPredictor
         ref short verticalCoefficientBase = ref MemoryMarshal.GetReference(verticalCoefficients);
         int scratchStride = Math.Max(width, MinimumScratchStride);
         int intermediateHeight = height + verticalTapCount - 1;
+
+        // The horizontal bias of 2^(bitDepth + 6) keeps every intermediate value nonnegative and inside a signed 16-bit lane.
         Vector128<int> horizontalInitial = initial + Vector128.Create(1 << (bitDepth + FilterBits - 1));
 
         for (int row = 0; row < intermediateHeight; row++)
@@ -94,6 +113,7 @@ internal static partial class Av1TranslationalInterPredictor
             FilterHorizontalTail(ref sourceRow, ref scratchRow, processedColumns, width, ref horizontalCoefficientBase, horizontalTapCount, bitDepth, round0);
         }
 
+        // The vertical pass adds a bias of 2^offsetBits. After the round1 shift, roundOffset removes it and the horizontal bias.
         int round1 = (2 * FilterBits) - round0;
         int offsetBits = bitDepth + (2 * FilterBits) - round0;
         Vector128<int> verticalInitial = initial + Vector128.Create(1 << offsetBits);
@@ -172,6 +192,23 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Filters an 8-bit block in thirty-two-sample vectors through caller-owned signed scratch.
     /// </summary>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="horizontalCoefficients">The horizontal filter coefficients, starting at the first applied tap.</param>
+    /// <param name="horizontalTapCount">The number of applied horizontal taps.</param>
+    /// <param name="horizontalSourceOffset">The column offset from the integer-position sample to the first applied horizontal tap.</param>
+    /// <param name="verticalCoefficients">The vertical filter coefficients, starting at the first applied tap.</param>
+    /// <param name="verticalTapCount">The number of applied vertical taps.</param>
+    /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
+    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
+    /// <param name="initial">The start value of each accumulator lane. The vector type selects this overload.</param>
     private static void Filter2D(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -279,6 +316,23 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Filters an 8-bit block in sixty-four-sample vectors through caller-owned signed scratch.
     /// </summary>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="horizontalCoefficients">The horizontal filter coefficients, starting at the first applied tap.</param>
+    /// <param name="horizontalTapCount">The number of applied horizontal taps.</param>
+    /// <param name="horizontalSourceOffset">The column offset from the integer-position sample to the first applied horizontal tap.</param>
+    /// <param name="verticalCoefficients">The vertical filter coefficients, starting at the first applied tap.</param>
+    /// <param name="verticalTapCount">The number of applied vertical taps.</param>
+    /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
+    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
+    /// <param name="initial">The start value of each accumulator lane. The vector type selects this overload.</param>
     private static void Filter2D(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -386,6 +440,14 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Finishes an 8-bit horizontal intermediate row after its selected vector width.
     /// </summary>
+    /// <param name="source">The sample that the first horizontal tap reads for column zero.</param>
+    /// <param name="scratch">The first sample of the intermediate row.</param>
+    /// <param name="firstColumn">The first column that the vector loop did not write.</param>
+    /// <param name="width">The row width in samples.</param>
+    /// <param name="coefficients">The first applied horizontal coefficient.</param>
+    /// <param name="tapCount">The number of applied horizontal taps.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="round0">The rounding shift of the horizontal pass.</param>
     private static void FilterHorizontalTail(ref byte source, ref short scratch, int firstColumn, int width, ref short coefficients, int tapCount, int bitDepth, int round0)
     {
         int horizontalBias = 1 << (bitDepth + FilterBits - 1);
@@ -399,6 +461,15 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Finishes an 8-bit vertical output row after its selected vector width.
     /// </summary>
+    /// <param name="scratch">The intermediate sample that the first vertical tap reads for column zero.</param>
+    /// <param name="destination">The first sample of the destination row.</param>
+    /// <param name="firstColumn">The first column that the vector loop did not write.</param>
+    /// <param name="width">The row width in samples.</param>
+    /// <param name="scratchStride">The distance between intermediate rows in samples.</param>
+    /// <param name="coefficients">The first applied vertical coefficient.</param>
+    /// <param name="tapCount">The number of applied vertical taps.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
     private static void FilterVerticalTail(
         ref short scratch,
         ref byte destination,
@@ -426,6 +497,22 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Applies separable two-dimensional filtering to an 8-bit block without explicit hardware intrinsics.
     /// </summary>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="horizontalCoefficients">The horizontal filter coefficients, starting at the first applied tap.</param>
+    /// <param name="horizontalTapCount">The number of applied horizontal taps.</param>
+    /// <param name="horizontalSourceOffset">The column offset from the integer-position sample to the first applied horizontal tap.</param>
+    /// <param name="verticalCoefficients">The vertical filter coefficients, starting at the first applied tap.</param>
+    /// <param name="verticalTapCount">The number of applied vertical taps.</param>
+    /// <param name="verticalSourceOffset">The row offset from the integer-position sample to the first applied vertical tap.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="round0">The rounding shift of the horizontal pass. The vertical pass shifts by 14 minus this value.</param>
+    /// <param name="scratch">Signed intermediate storage of at least <see cref="GetScratchLength"/> elements.</param>
     private static void Filter2DScalar(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -453,8 +540,8 @@ internal static partial class Av1TranslationalInterPredictor
         int intermediateHeight = height + verticalTapCount - 1;
         int horizontalBias = 1 << (bitDepth + FilterBits - 1);
 
-        // The first intermediate row corresponds to the uppermost vertical tap. Horizontal filtering therefore starts
-        // above the nominal source origin and writes one row for every vertical-tap position needed by the final pass.
+        // The first intermediate row is the row of the first applied vertical tap, so the horizontal pass starts at or above the source origin.
+        // It writes one row for each vertical tap position that the vertical pass reads.
         for (int row = 0; row < intermediateHeight; row++)
         {
             ref byte sourceRow = ref Unsafe.Add(ref sourceBase, ((row + verticalSourceOffset) * sourceStride) + horizontalSourceOffset);
@@ -472,8 +559,9 @@ internal static partial class Av1TranslationalInterPredictor
         int verticalBias = 1 << offsetBits;
         int roundOffset = (1 << (offsetBits - round1)) + (1 << (offsetBits - round1 - 1));
 
-        // The biased first pass keeps every intermediate nonnegative and representable by a signed 16-bit lane.
-        // Removing both bias terms after the vertical Q7 filter reproduces the reference decoder's single-reference rounding exactly.
+        // The horizontal bias of 2^(bitDepth + 6) keeps every intermediate value nonnegative and inside a signed 16-bit lane.
+        // The vertical pass adds a second bias of 2^offsetBits. After the round1 shift, roundOffset removes both biases.
+        // This gives exactly the normative single-reference rounding.
         for (int row = 0; row < height; row++)
         {
             ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);

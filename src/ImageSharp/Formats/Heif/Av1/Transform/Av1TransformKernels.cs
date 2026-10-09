@@ -8,8 +8,7 @@ using SixLabors.ImageSharp.Common.Helpers;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 /// <summary>
-/// Shared sixteen-bit vector operations of the register-resident transform kernels, after libaom's
-/// <c>av1_txfm_sse2.h</c> and <c>txfm_common_avx2.h</c> helpers.
+/// Shared sixteen-bit vector operations of the register-resident transform kernels.
 /// </summary>
 internal static class Av1TransformKernels
 {
@@ -24,7 +23,7 @@ internal static class Av1TransformKernels
     public static bool IsWideSupported => Vector256.IsHardwareAccelerated;
 
     /// <summary>
-    /// Creates the interleaved weight pair of <c>pair_set_w16_epi16</c> with one broadcast.
+    /// Creates a 256-bit vector of interleaved weight pairs with one broadcast. Each 32-bit lane holds the two weights of one multiply-add.
     /// </summary>
     /// <param name="weight0">The weight of the even lanes.</param>
     /// <param name="weight1">The weight of the odd lanes.</param>
@@ -34,8 +33,13 @@ internal static class Av1TransformKernels
         => Vector256.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
 
     /// <summary>
-    /// Computes both outputs of sixteen sixteen-bit butterflies in place, as <c>btf_16_w16_avx2</c> does.
+    /// Computes both outputs of sixteen sixteen-bit butterflies in place.
     /// </summary>
+    /// <remarks>
+    /// The unpacks pair each lane of <paramref name="in0"/> with the same lane of <paramref name="in1"/>. A multiply-add with a weight pair (w0, w1) from
+    /// <see cref="PairWide"/> then gives <c>in0 * w0 + in1 * w1</c> in 32 bits. The rounding shift and the saturating pack return to sixteen bits. The pack
+    /// works per 128-bit half, and so do the unpacks, so the lane order stays the same.
+    /// </remarks>
     /// <param name="weights0">The interleaved weights of the first output.</param>
     /// <param name="weights1">The interleaved weights of the second output.</param>
     /// <param name="in0">The first input and output.</param>
@@ -62,7 +66,7 @@ internal static class Av1TransformKernels
     }
 
     /// <summary>
-    /// Replaces two vectors with their saturating sum and difference, as <c>btf_16_adds_subs_avx2</c> does.
+    /// Replaces two vectors with their saturating sum and difference.
     /// </summary>
     /// <param name="in0">The first input, replaced by the sum.</param>
     /// <param name="in1">The second input, replaced by the difference.</param>
@@ -75,17 +79,20 @@ internal static class Av1TransformKernels
     }
 
     /// <summary>
-    /// Transposes eight vectors of two eight-by-eight sixteen-bit tiles in place, one tile per
-    /// one-hundred-twenty-eight-bit lane, as <c>transpose2_8x8_avx2</c> does.
+    /// Transposes eight vectors of two eight-by-eight sixteen-bit tiles in place, one tile per 128-bit lane.
     /// </summary>
-    /// <param name="r0">The first row.</param>
-    /// <param name="r1">The second row.</param>
-    /// <param name="r2">The third row.</param>
-    /// <param name="r3">The fourth row.</param>
-    /// <param name="r4">The fifth row.</param>
-    /// <param name="r5">The sixth row.</param>
-    /// <param name="r6">The seventh row.</param>
-    /// <param name="r7">The eighth row.</param>
+    /// <remarks>
+    /// The unpacks of 16-bit, 32-bit and 64-bit elements each exchange one bit of the row index with one bit of the column index. The 256-bit unpacks work per
+    /// 128-bit lane, so the two tiles never mix.
+    /// </remarks>
+    /// <param name="r0">Row 0 of both tiles. Holds column 0 of both tiles on return.</param>
+    /// <param name="r1">Row 1 of both tiles. Holds column 1 of both tiles on return.</param>
+    /// <param name="r2">Row 2 of both tiles. Holds column 2 of both tiles on return.</param>
+    /// <param name="r3">Row 3 of both tiles. Holds column 3 of both tiles on return.</param>
+    /// <param name="r4">Row 4 of both tiles. Holds column 4 of both tiles on return.</param>
+    /// <param name="r5">Row 5 of both tiles. Holds column 5 of both tiles on return.</param>
+    /// <param name="r6">Row 6 of both tiles. Holds column 6 of both tiles on return.</param>
+    /// <param name="r7">Row 7 of both tiles. Holds column 7 of both tiles on return.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void TransposeTiles8x8(
         ref Vector256<short> r0,
@@ -126,28 +133,28 @@ internal static class Av1TransformKernels
     }
 
     /// <summary>
-    /// Transposes sixteen vectors of sixteen sixteen-bit values in place, as <c>transpose_16bit_16x16_avx2</c> does.
+    /// Transposes sixteen vectors of sixteen sixteen-bit values in place.
     /// </summary>
     /// <remarks>
-    /// The rows regroup into eight vectors that pair the left halves of rows <c>i</c> and <c>i + 8</c> and eight
-    /// that pair the right halves, so that the per-lane tile transpose delivers the columns directly.
+    /// The code regroups the rows into eight vectors that pair the left halves of rows <c>i</c> and <c>i + 8</c>, and eight vectors that pair the right halves.
+    /// The tile transpose of each 128-bit lane then gives the columns directly.
     /// </remarks>
-    /// <param name="r0">The first row.</param>
-    /// <param name="r1">The second row.</param>
-    /// <param name="r2">The third row.</param>
-    /// <param name="r3">The fourth row.</param>
-    /// <param name="r4">The fifth row.</param>
-    /// <param name="r5">The sixth row.</param>
-    /// <param name="r6">The seventh row.</param>
-    /// <param name="r7">The eighth row.</param>
-    /// <param name="r8">The ninth row.</param>
-    /// <param name="r9">The tenth row.</param>
-    /// <param name="r10">The eleventh row.</param>
-    /// <param name="r11">The twelfth row.</param>
-    /// <param name="r12">The thirteenth row.</param>
-    /// <param name="r13">The fourteenth row.</param>
-    /// <param name="r14">The fifteenth row.</param>
-    /// <param name="r15">The sixteenth row.</param>
+    /// <param name="r0">Row 0 of the block. Holds column 0 on return.</param>
+    /// <param name="r1">Row 1 of the block. Holds column 1 on return.</param>
+    /// <param name="r2">Row 2 of the block. Holds column 2 on return.</param>
+    /// <param name="r3">Row 3 of the block. Holds column 3 on return.</param>
+    /// <param name="r4">Row 4 of the block. Holds column 4 on return.</param>
+    /// <param name="r5">Row 5 of the block. Holds column 5 on return.</param>
+    /// <param name="r6">Row 6 of the block. Holds column 6 on return.</param>
+    /// <param name="r7">Row 7 of the block. Holds column 7 on return.</param>
+    /// <param name="r8">Row 8 of the block. Holds column 8 on return.</param>
+    /// <param name="r9">Row 9 of the block. Holds column 9 on return.</param>
+    /// <param name="r10">Row 10 of the block. Holds column 10 on return.</param>
+    /// <param name="r11">Row 11 of the block. Holds column 11 on return.</param>
+    /// <param name="r12">Row 12 of the block. Holds column 12 on return.</param>
+    /// <param name="r13">Row 13 of the block. Holds column 13 on return.</param>
+    /// <param name="r14">Row 14 of the block. Holds column 14 on return.</param>
+    /// <param name="r15">Row 15 of the block. Holds column 15 on return.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Transpose16x16(
         ref Vector256<short> r0,
@@ -206,11 +213,10 @@ internal static class Av1TransformKernels
     }
 
     /// <summary>
-    /// Transposes sixteen consecutive vectors of sixteen sixteen-bit values into sixteen consecutive vectors, as
-    /// <c>transpose_16bit_16x16_avx2</c> does with separate input and output buffers.
+    /// Transposes sixteen consecutive vectors of sixteen sixteen-bit values into sixteen consecutive vectors.
     /// </summary>
     /// <remarks>
-    /// All sixteen rows are read before any output is written, so the source and the destination may be the same.
+    /// The method reads all sixteen rows before it writes any output, so the source and the destination can be the same.
     /// </remarks>
     /// <param name="source">The first of the sixteen rows.</param>
     /// <param name="destination">The first of the sixteen transposed rows.</param>
@@ -255,8 +261,11 @@ internal static class Av1TransformKernels
     }
 
     /// <summary>
-    /// Scales one vector by two rounded fixed-point weights, as <c>btf_16_w16_0_avx2</c> does.
+    /// Scales one vector by two rounded fixed-point weights.
     /// </summary>
+    /// <remarks>
+    /// A weight times eight is a Q15 value. The rounding high multiply then gives <c>(input * weight + 2048) &gt;&gt; 12</c>.
+    /// </remarks>
     /// <param name="weight0">The first weight, with twelve fractional bits.</param>
     /// <param name="weight1">The second weight, with twelve fractional bits.</param>
     /// <param name="input">The input.</param>
@@ -270,9 +279,11 @@ internal static class Av1TransformKernels
     }
 
     /// <summary>
-    /// Rounds and shifts right by a bit count through a rounding multiply, as the inverse drivers' <c>_mm256_mulhrs_epi16</c>
-    /// scaling does.
+    /// Rounds and shifts right by a bit count through a rounding high multiply.
     /// </summary>
+    /// <remarks>
+    /// The multiplier is <c>1 &lt;&lt; (15 - bits)</c>. The rounding high multiply then gives <c>(value + (1 &lt;&lt; (bits - 1))) &gt;&gt; bits</c>.
+    /// </remarks>
     /// <param name="value">The value.</param>
     /// <param name="bits">The number of bits to shift right.</param>
     /// <returns>The rounded value.</returns>
@@ -281,9 +292,11 @@ internal static class Av1TransformKernels
         => Vector256_.MultiplyHighRoundScale(value, Vector256.Create((short)(1 << (15 - bits))));
 
     /// <summary>
-    /// Loads sixteen thirty-two-bit coefficients and packs them to sixteen bits with saturation, as
-    /// <c>load_32bit_to_16bit_w16_avx2</c> does.
+    /// Loads sixteen thirty-two-bit coefficients and packs them to sixteen bits with saturation.
     /// </summary>
+    /// <remarks>
+    /// The 256-bit pack works per 128-bit lane and gives the 64-bit groups in the order 0, 2, 1, 3. The permute with control 0xD8 restores the natural order.
+    /// </remarks>
     /// <param name="source">The coefficient base.</param>
     /// <param name="offset">The offset in coefficients.</param>
     /// <returns>The packed coefficients.</returns>
@@ -298,7 +311,7 @@ internal static class Av1TransformKernels
     }
 
     /// <summary>
-    /// Adds sixteen residuals to sixteen predicted samples with clipping, as <c>write_recon_w16_avx2</c> does.
+    /// Adds sixteen residuals to sixteen predicted samples and clips the result to the byte range.
     /// </summary>
     /// <param name="prediction">The predicted samples.</param>
     /// <param name="residual">The residuals.</param>
@@ -311,8 +324,7 @@ internal static class Av1TransformKernels
     }
 
     /// <summary>
-    /// Widens sixteen sixteen-bit coefficients to thirty-two bits and stores them, as
-    /// <c>store_buffer_16bit_to_32bit_w16_avx2</c> does for one row.
+    /// Widens one row of sixteen sixteen-bit coefficients to thirty-two bits and stores them.
     /// </summary>
     /// <param name="values">The coefficients.</param>
     /// <param name="destination">The destination base.</param>
@@ -325,7 +337,7 @@ internal static class Av1TransformKernels
     }
 
     /// <summary>
-    /// Creates the interleaved weight pair of <c>pair_set_epi16</c> with one broadcast.
+    /// Creates a 128-bit vector of interleaved weight pairs with one broadcast. Each 32-bit lane holds the two weights of one multiply-add.
     /// </summary>
     /// <param name="weight0">The weight of the even lanes.</param>
     /// <param name="weight1">The weight of the odd lanes.</param>
@@ -335,8 +347,12 @@ internal static class Av1TransformKernels
         => Vector128.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
 
     /// <summary>
-    /// Computes both outputs of eight sixteen-bit butterflies, as <c>btf_16_sse2</c> does.
+    /// Computes both outputs of eight sixteen-bit butterflies.
     /// </summary>
+    /// <remarks>
+    /// The unpacks pair each lane of <paramref name="input0"/> with the same lane of <paramref name="input1"/>. A multiply-add with a weight pair (w0, w1) from
+    /// <see cref="Pair"/> then gives <c>input0 * w0 + input1 * w1</c> in 32 bits. The rounding shift and the saturating pack return to sixteen bits.
+    /// </remarks>
     /// <param name="weights0">The interleaved weights of the first output.</param>
     /// <param name="weights1">The interleaved weights of the second output.</param>
     /// <param name="input0">The first input.</param>
@@ -367,8 +383,11 @@ internal static class Av1TransformKernels
     }
 
     /// <summary>
-    /// Scales one vector by two rounded fixed-point weights, as <c>btf_16_ssse3</c> does.
+    /// Scales one vector by two rounded fixed-point weights.
     /// </summary>
+    /// <remarks>
+    /// A weight times eight is a Q15 value. The rounding high multiply then gives <c>(input * weight + 2048) &gt;&gt; 12</c>.
+    /// </remarks>
     /// <param name="weight0">The first weight, with twelve fractional bits.</param>
     /// <param name="weight1">The second weight, with twelve fractional bits.</param>
     /// <param name="input">The input.</param>
@@ -382,8 +401,11 @@ internal static class Av1TransformKernels
     }
 
     /// <summary>
-    /// Rounds and shifts right by a negative bit count, as <c>round_shift_16bit_ssse3</c> does.
+    /// Rounds and shifts right by a bit count through a rounding high multiply.
     /// </summary>
+    /// <remarks>
+    /// The multiplier is <c>1 &lt;&lt; (15 - bits)</c>. The rounding high multiply then gives <c>(value + (1 &lt;&lt; (bits - 1))) &gt;&gt; bits</c>.
+    /// </remarks>
     /// <param name="value">The value.</param>
     /// <param name="bits">The number of bits to shift right.</param>
     /// <returns>The rounded value.</returns>
@@ -392,12 +414,12 @@ internal static class Av1TransformKernels
         => Vector128_.MultiplyHighRoundScale(value, Vector128.Create((short)(1 << (15 - bits))));
 
     /// <summary>
-    /// Transposes the low four lanes of four vectors in place, as <c>transpose_16bit_4x4</c> does.
+    /// Transposes the low four lanes of four vectors in place. The high four lanes of the outputs are not defined.
     /// </summary>
-    /// <param name="r0">The first row.</param>
-    /// <param name="r1">The second row.</param>
-    /// <param name="r2">The third row.</param>
-    /// <param name="r3">The fourth row.</param>
+    /// <param name="r0">Row 0 in the low four lanes. Holds column 0 in the low four lanes on return.</param>
+    /// <param name="r1">Row 1 in the low four lanes. Holds column 1 in the low four lanes on return.</param>
+    /// <param name="r2">Row 2 in the low four lanes. Holds column 2 in the low four lanes on return.</param>
+    /// <param name="r3">Row 3 in the low four lanes. Holds column 3 in the low four lanes on return.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Transpose4x4(
         ref Vector128<short> r0,
@@ -416,16 +438,19 @@ internal static class Av1TransformKernels
     }
 
     /// <summary>
-    /// Transposes eight vectors of eight sixteen-bit values in place, as <c>transpose_16bit_8x8</c> does.
+    /// Transposes eight vectors of eight sixteen-bit values in place.
     /// </summary>
-    /// <param name="r0">The first row.</param>
-    /// <param name="r1">The second row.</param>
-    /// <param name="r2">The third row.</param>
-    /// <param name="r3">The fourth row.</param>
-    /// <param name="r4">The fifth row.</param>
-    /// <param name="r5">The sixth row.</param>
-    /// <param name="r6">The seventh row.</param>
-    /// <param name="r7">The eighth row.</param>
+    /// <remarks>
+    /// The unpacks of 16-bit, 32-bit and 64-bit elements each exchange one bit of the row index with one bit of the column index.
+    /// </remarks>
+    /// <param name="r0">Row 0 of the block. Holds column 0 on return.</param>
+    /// <param name="r1">Row 1 of the block. Holds column 1 on return.</param>
+    /// <param name="r2">Row 2 of the block. Holds column 2 on return.</param>
+    /// <param name="r3">Row 3 of the block. Holds column 3 on return.</param>
+    /// <param name="r4">Row 4 of the block. Holds column 4 on return.</param>
+    /// <param name="r5">Row 5 of the block. Holds column 5 on return.</param>
+    /// <param name="r6">Row 6 of the block. Holds column 6 on return.</param>
+    /// <param name="r7">Row 7 of the block. Holds column 7 on return.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Transpose8x8(
         ref Vector128<short> r0,
@@ -466,7 +491,7 @@ internal static class Av1TransformKernels
     }
 
     /// <summary>
-    /// Widens eight sixteen-bit coefficients to thirty-two bits and stores them, as <c>store_16bit_to_32bit</c> does.
+    /// Widens eight sixteen-bit coefficients to thirty-two bits with sign extension and stores them.
     /// </summary>
     /// <param name="values">The coefficients.</param>
     /// <param name="destination">The destination base.</param>
@@ -474,6 +499,7 @@ internal static class Av1TransformKernels
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Store8(Vector128<short> values, ref int destination, int offset)
     {
+        // Unpacking the vector with itself puts each value in the high half of a 32-bit lane. The arithmetic shift right by 16 then sign-extends it.
         Vector128<int> lower = Vector128.ShiftRightArithmetic(Vector128_.UnpackLow(values, values).AsInt32(), 16);
         Vector128<int> upper = Vector128.ShiftRightArithmetic(Vector128_.UnpackHigh(values, values).AsInt32(), 16);
         lower.StoreUnsafe(ref destination, (nuint)offset);
@@ -481,8 +507,7 @@ internal static class Av1TransformKernels
     }
 
     /// <summary>
-    /// Loads eight thirty-two-bit coefficients and packs them to sixteen bits with saturation, as
-    /// <c>load_32bit_to_16bit</c> does.
+    /// Loads eight thirty-two-bit coefficients and packs them to sixteen bits with saturation.
     /// </summary>
     /// <param name="source">The coefficient base.</param>
     /// <param name="offset">The offset in coefficients.</param>
@@ -492,7 +517,7 @@ internal static class Av1TransformKernels
         => Vector128_.PackSignedSaturate(Vector128.LoadUnsafe(ref source, (nuint)offset), Vector128.LoadUnsafe(ref source, (nuint)(offset + 4)));
 
     /// <summary>
-    /// Adds eight residuals to eight predicted samples with clipping, as <c>lowbd_get_recon_8x8_sse2</c> does.
+    /// Adds eight residuals to eight predicted samples and clips the result to the byte range. The method reads and writes exactly eight bytes.
     /// </summary>
     /// <param name="prediction">The predicted samples.</param>
     /// <param name="residual">The residuals.</param>
@@ -500,6 +525,8 @@ internal static class Av1TransformKernels
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void AddClip8(ref byte prediction, Vector128<short> residual, ref byte destination)
     {
+        // The eight prediction bytes fill the low 64 bits. The unpack with zero widens them to sixteen bits. The unsigned saturating pack clips each sum to the
+        // byte range, and the low 64 bits of the pack hold the eight results.
         Vector128<byte> predicted = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref prediction)).AsByte();
         Vector128<short> sum = Vector128.AddSaturate(residual, Vector128_.UnpackLow(predicted, Vector128<byte>.Zero).AsInt16());
         Unsafe.WriteUnaligned(ref destination, Vector128_.PackUnsignedSaturate(sum, sum).AsUInt64().ToScalar());

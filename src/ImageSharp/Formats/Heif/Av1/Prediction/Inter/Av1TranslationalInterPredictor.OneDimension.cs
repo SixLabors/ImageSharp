@@ -15,6 +15,20 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Filters an 8-bit block in sixteen-sample vectors.
     /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The distance between source rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
+    /// <param name="coefficients">The filter coefficients, starting at the first applied tap.</param>
+    /// <param name="tapCount">The number of applied filter taps.</param>
+    /// <param name="sourceOffset">The offset from the integer-position sample to the sample of the first applied tap.</param>
+    /// <param name="tapStride">The distance between consecutive tap samples: one for a horizontal filter, or the row stride for a vertical filter.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
+    /// <param name="initial">The start value of each accumulator lane. The vector type selects this overload.</param>
     private static void FilterDirect(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -43,8 +57,8 @@ internal static partial class Av1TranslationalInterPredictor
 
             if (width < Vector128<byte>.Count)
             {
-                // Four- and eight-sample AV1 blocks are smaller than one byte vector. Reference-plane padding makes
-                // the complete load readable, while the width-specific store leaves adjacent destination samples intact.
+                // Blocks of two, four, and eight samples are narrower than one byte vector. The padding of the reference plane makes the full load safe.
+                // The store writes only the row width, so the adjacent destination samples do not change.
                 Convolve(
                     ref sourceRow,
                     tapStride,
@@ -88,6 +102,20 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Filters an 8-bit block in thirty-two-sample vectors.
     /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The distance between source rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
+    /// <param name="coefficients">The filter coefficients, starting at the first applied tap.</param>
+    /// <param name="tapCount">The number of applied filter taps.</param>
+    /// <param name="sourceOffset">The offset from the integer-position sample to the sample of the first applied tap.</param>
+    /// <param name="tapStride">The distance between consecutive tap samples: one for a horizontal filter, or the row stride for a vertical filter.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
+    /// <param name="initial">The start value of each accumulator lane. The vector type selects this overload.</param>
     private static void FilterDirect(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -140,6 +168,20 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Filters an 8-bit block in sixty-four-sample vectors.
     /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The distance between source rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
+    /// <param name="coefficients">The filter coefficients, starting at the first applied tap.</param>
+    /// <param name="tapCount">The number of applied filter taps.</param>
+    /// <param name="sourceOffset">The offset from the integer-position sample to the sample of the first applied tap.</param>
+    /// <param name="tapStride">The distance between consecutive tap samples: one for a horizontal filter, or the row stride for a vertical filter.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
+    /// <param name="initial">The start value of each accumulator lane. The vector type selects this overload.</param>
     private static void FilterDirect(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -192,6 +234,21 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Filters a high-bit-depth block in eight-sample vectors.
     /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The distance between source rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
+    /// <param name="coefficients">The filter coefficients, starting at the first applied tap.</param>
+    /// <param name="tapCount">The number of applied filter taps.</param>
+    /// <param name="sourceOffset">The offset from the integer-position sample to the sample of the first applied tap.</param>
+    /// <param name="tapStride">The distance between consecutive tap samples: one for a horizontal filter, or the row stride for a vertical filter.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="initial">The start value of each accumulator lane. The vector type selects this overload.</param>
     private static void FilterDirect(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -226,8 +283,8 @@ internal static partial class Av1TranslationalInterPredictor
                 Convolve(ref sourceRow, tapStride, 0, ref coefficientBase, tapCount, initial, out Vector128<int> result0, out Vector128<int> result1);
                 Round(ref result0, ref result1, firstRound, secondRound);
 
-                // Subsampled sub-8x8 chroma can be two samples wide. Keep the full source load for throughput, but
-                // store only the logical row so the adjacent luma owner's chroma prediction remains intact.
+                // Subsampled chroma of a block smaller than 8x8 can be two samples wide. The full source load stays for throughput.
+                // The store writes only the row width, so the chroma prediction of the adjacent block does not change.
                 StorePartial(PackHighBitDepth(result0, result1, maximum), ref destinationRow, width);
                 continue;
             }
@@ -247,6 +304,21 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Filters a high-bit-depth block in sixteen-sample vectors.
     /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The distance between source rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
+    /// <param name="coefficients">The filter coefficients, starting at the first applied tap.</param>
+    /// <param name="tapCount">The number of applied filter taps.</param>
+    /// <param name="sourceOffset">The offset from the integer-position sample to the sample of the first applied tap.</param>
+    /// <param name="tapStride">The distance between consecutive tap samples: one for a horizontal filter, or the row stride for a vertical filter.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="initial">The start value of each accumulator lane. The vector type selects this overload.</param>
     private static void FilterDirect(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -291,6 +363,21 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Filters a high-bit-depth block in thirty-two-sample vectors.
     /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The distance between source rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
+    /// <param name="coefficients">The filter coefficients, starting at the first applied tap.</param>
+    /// <param name="tapCount">The number of applied filter taps.</param>
+    /// <param name="sourceOffset">The offset from the integer-position sample to the sample of the first applied tap.</param>
+    /// <param name="tapStride">The distance between consecutive tap samples: one for a horizontal filter, or the row stride for a vertical filter.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="initial">The start value of each accumulator lane. The vector type selects this overload.</param>
     private static void FilterDirect(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -335,6 +422,12 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Applies the two direct-filter rounding stages to sixteen 8-bit results.
     /// </summary>
+    /// <param name="result0">The first four sums, rounded in place.</param>
+    /// <param name="result1">The second four sums, rounded in place.</param>
+    /// <param name="result2">The third four sums, rounded in place.</param>
+    /// <param name="result3">The fourth four sums, rounded in place.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
     private static void Round(ref Vector128<int> result0, ref Vector128<int> result1, ref Vector128<int> result2, ref Vector128<int> result3, int firstRound, int secondRound)
     {
         result0 = RoundPowerOfTwo(RoundPowerOfTwo(result0, firstRound), secondRound);
@@ -346,6 +439,12 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Applies the two direct-filter rounding stages to thirty-two 8-bit results.
     /// </summary>
+    /// <param name="result0">The first eight sums, rounded in place.</param>
+    /// <param name="result1">The second eight sums, rounded in place.</param>
+    /// <param name="result2">The third eight sums, rounded in place.</param>
+    /// <param name="result3">The fourth eight sums, rounded in place.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
     private static void Round(ref Vector256<int> result0, ref Vector256<int> result1, ref Vector256<int> result2, ref Vector256<int> result3, int firstRound, int secondRound)
     {
         result0 = RoundPowerOfTwo(RoundPowerOfTwo(result0, firstRound), secondRound);
@@ -357,6 +456,12 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Applies the two direct-filter rounding stages to sixty-four 8-bit results.
     /// </summary>
+    /// <param name="result0">The first sixteen sums, rounded in place.</param>
+    /// <param name="result1">The second sixteen sums, rounded in place.</param>
+    /// <param name="result2">The third sixteen sums, rounded in place.</param>
+    /// <param name="result3">The fourth sixteen sums, rounded in place.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
     private static void Round(ref Vector512<int> result0, ref Vector512<int> result1, ref Vector512<int> result2, ref Vector512<int> result3, int firstRound, int secondRound)
     {
         result0 = RoundPowerOfTwo(RoundPowerOfTwo(result0, firstRound), secondRound);
@@ -368,6 +473,10 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Applies the two direct-filter rounding stages to eight high-bit-depth results.
     /// </summary>
+    /// <param name="result0">The first four sums, rounded in place.</param>
+    /// <param name="result1">The second four sums, rounded in place.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
     private static void Round(ref Vector128<int> result0, ref Vector128<int> result1, int firstRound, int secondRound)
     {
         result0 = RoundPowerOfTwo(RoundPowerOfTwo(result0, firstRound), secondRound);
@@ -377,6 +486,10 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Applies the two direct-filter rounding stages to sixteen high-bit-depth results.
     /// </summary>
+    /// <param name="result0">The first eight sums, rounded in place.</param>
+    /// <param name="result1">The second eight sums, rounded in place.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
     private static void Round(ref Vector256<int> result0, ref Vector256<int> result1, int firstRound, int secondRound)
     {
         result0 = RoundPowerOfTwo(RoundPowerOfTwo(result0, firstRound), secondRound);
@@ -386,6 +499,10 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Applies the two direct-filter rounding stages to thirty-two high-bit-depth results.
     /// </summary>
+    /// <param name="result0">The first sixteen sums, rounded in place.</param>
+    /// <param name="result1">The second sixteen sums, rounded in place.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
     private static void Round(ref Vector512<int> result0, ref Vector512<int> result1, int firstRound, int secondRound)
     {
         result0 = RoundPowerOfTwo(RoundPowerOfTwo(result0, firstRound), secondRound);
@@ -395,6 +512,15 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Finishes an 8-bit row after its selected vector width.
     /// </summary>
+    /// <param name="source">The sample that the first tap reads for column zero.</param>
+    /// <param name="destination">The first sample of the destination row.</param>
+    /// <param name="firstColumn">The first column that the vector loop did not write.</param>
+    /// <param name="width">The row width in samples.</param>
+    /// <param name="tapStride">The distance between the samples of consecutive taps.</param>
+    /// <param name="coefficients">The first applied filter coefficient.</param>
+    /// <param name="tapCount">The number of applied filter taps.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
     private static void FilterDirectTail(
         ref byte source,
         ref byte destination,
@@ -418,6 +544,16 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Finishes a high-bit-depth row after its selected vector width.
     /// </summary>
+    /// <param name="source">The sample that the first tap reads for column zero.</param>
+    /// <param name="destination">The first sample of the destination row.</param>
+    /// <param name="firstColumn">The first column that the vector loop did not write.</param>
+    /// <param name="width">The row width in samples.</param>
+    /// <param name="tapStride">The distance between the samples of consecutive taps.</param>
+    /// <param name="coefficients">The first applied filter coefficient.</param>
+    /// <param name="tapCount">The number of applied filter taps.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
+    /// <param name="maximum">The largest sample value of the bit depth.</param>
     private static void FilterDirectTail(
         ref ushort source,
         ref ushort destination,
@@ -442,6 +578,9 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Stores the two-, four-, or eight-sample prefix of a sixteen-byte prediction vector.
     /// </summary>
+    /// <param name="value">The prediction vector.</param>
+    /// <param name="destination">The first destination sample.</param>
+    /// <param name="width">The prefix width: 2, 4, or 8. Any width other than 4 or 8 stores two samples.</param>
     private static void StorePartial(Vector128<byte> value, ref byte destination, int width)
     {
         if (width == 8)
@@ -461,6 +600,9 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Stores the two-, four-, or eight-sample prefix of an eight-ushort prediction vector.
     /// </summary>
+    /// <param name="value">The prediction vector.</param>
+    /// <param name="destination">The first destination sample.</param>
+    /// <param name="width">The prefix width: 2, 4, or 8. Any width other than 4 or 8 stores two samples.</param>
     private static void StorePartial(Vector128<ushort> value, ref ushort destination, int width)
     {
         if (width == 8)
@@ -480,6 +622,19 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Applies a one-dimensional 8-bit filter without explicit hardware intrinsics.
     /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The distance between source rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
+    /// <param name="coefficients">The filter coefficients, starting at the first applied tap.</param>
+    /// <param name="tapCount">The number of applied filter taps.</param>
+    /// <param name="sourceOffset">The offset from the integer-position sample to the sample of the first applied tap.</param>
+    /// <param name="tapStride">The distance between consecutive tap samples: one for a horizontal filter, or the row stride for a vertical filter.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
     private static void FilterDirectScalar(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -522,6 +677,20 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// Applies a one-dimensional high-bit-depth filter without explicit hardware intrinsics.
     /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The distance between source rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
+    /// <param name="coefficients">The filter coefficients, starting at the first applied tap.</param>
+    /// <param name="tapCount">The number of applied filter taps.</param>
+    /// <param name="sourceOffset">The offset from the integer-position sample to the sample of the first applied tap.</param>
+    /// <param name="tapStride">The distance between consecutive tap samples: one for a horizontal filter, or the row stride for a vertical filter.</param>
+    /// <param name="firstRound">The first rounding shift.</param>
+    /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
     private static void FilterDirectScalar(
         ReadOnlySpan<ushort> source,
         int sourceStride,

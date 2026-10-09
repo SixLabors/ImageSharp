@@ -8,20 +8,17 @@ using SixLabors.ImageSharp.Common.Helpers;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 
 /// <content>
-/// Loads reconstructed luma of either sample depth into the signed sixteen-bit lanes that the Q3
-/// predictor surface is built from.
+/// Loads reconstructed luma of either sample depth into the signed sixteen-bit lanes of the Q3 predictor surface.
 /// </content>
 /// <remarks>
 /// <para>
-/// An eight-bit frame stores luma as <c>byte</c> and a high-bit-depth frame stores it as
-/// <c>ushort</c>, but the predictor surface is <c>short</c> in both cases. Holding that difference
-/// here, in one overload set per register width, lets the traversals be written once and closed
-/// over the sample type, which is how the loop restoration filter and the film grain synthesis
-/// handle the same difference.
+/// An eight-bit frame stores luma as <c>byte</c>, and a high-bit-depth frame stores it as nonnegative <c>short</c> values. The predictor surface is
+/// <c>short</c> in both cases. This file holds that difference in one overload set per register width. Thus the traversals are written once and closed over the
+/// sample type. The loop restoration filter and the film grain synthesis handle the same difference in this way.
 /// </para>
 /// <para>
-/// Every pair sum fits a signed sixteen-bit lane. The largest case is a twelve-bit frame with both
-/// axes subsampled: four samples of 4095 total 16380, and the Q3 shift of one leaves 32760.
+/// Every pair sum fits a signed sixteen-bit lane. The largest case is a twelve-bit frame with both axes subsampled. Four samples of 4095 total 16380, and the
+/// Q3 shift of one gives 32760.
 /// </para>
 /// </remarks>
 internal partial class Av1ChromaFromLumaContext
@@ -30,16 +27,14 @@ internal partial class Av1ChromaFromLumaContext
     /// The fractional bits that every value of the predictor surface carries.
     /// </summary>
     /// <remarks>
-    /// The surface is defined in Q3, so one luma sample shifts left by three, a sum of two luma
-    /// samples by two, and a sum of four by one. Reference: the CFL_ADD_BITS scaling of
-    /// cfl_luma_subsampling_420_lbd_c().
+    /// The surface is defined in Q3. Thus one luma sample shifts left by three, a sum of two luma samples by two, and a sum of four by one.
     /// </remarks>
     private const int Q3Shift = 3;
 
     /// <summary>
     /// Loads one sample.
     /// </summary>
-    /// <typeparam name="TSample">Byte or ushort, selected by the frame.</typeparam>
+    /// <typeparam name="TSample">The sample type, byte or short, that the frame bit depth selects.</typeparam>
     /// <param name="source">The sample.</param>
     /// <returns>The sample value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -52,9 +47,9 @@ internal partial class Av1ChromaFromLumaContext
     /// <summary>
     /// Loads eight adjacent samples into signed sixteen-bit lanes.
     /// </summary>
-    /// <typeparam name="TSample">Byte or ushort, selected by the frame.</typeparam>
+    /// <typeparam name="TSample">The sample type, byte or short, that the frame bit depth selects.</typeparam>
     /// <param name="source">The first of exactly eight addressable samples.</param>
-    /// <param name="width">The overload-selection value.</param>
+    /// <param name="width">An unused value whose type selects the vector width.</param>
     /// <returns>The samples in increasing column order.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<short> LoadSamples<TSample>(ref TSample source, Vector128<short> width)
@@ -62,8 +57,8 @@ internal partial class Av1ChromaFromLumaContext
     {
         if (Unsafe.SizeOf<TSample>() == 1)
         {
-            // Only the eight bytes this batch owns are read. Pairing them with a zero half and
-            // widening the lower half cannot reach across the end of the row.
+            // The load reads only the eight bytes of this batch. The code pairs them with a zero half and widens the lower half, so no read goes past the end
+            // of the row.
             Vector64<byte> packed = Vector64.LoadUnsafe(ref Unsafe.As<TSample, byte>(ref source));
             return Vector128.WidenLower(Vector128.Create(packed, Vector64<byte>.Zero)).AsInt16();
         }
@@ -74,9 +69,9 @@ internal partial class Av1ChromaFromLumaContext
     /// <summary>
     /// Loads sixteen adjacent samples into signed sixteen-bit lanes.
     /// </summary>
-    /// <typeparam name="TSample">Byte or ushort, selected by the frame.</typeparam>
+    /// <typeparam name="TSample">The sample type, byte or short, that the frame bit depth selects.</typeparam>
     /// <param name="source">The first of exactly sixteen addressable samples.</param>
-    /// <param name="width">The overload-selection value.</param>
+    /// <param name="width">An unused value whose type selects the vector width.</param>
     /// <returns>The samples in increasing column order.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<short> LoadSamples<TSample>(ref TSample source, Vector256<short> width)
@@ -94,9 +89,9 @@ internal partial class Av1ChromaFromLumaContext
     /// <summary>
     /// Loads thirty-two adjacent samples into signed sixteen-bit lanes.
     /// </summary>
-    /// <typeparam name="TSample">Byte or ushort, selected by the frame.</typeparam>
+    /// <typeparam name="TSample">The sample type, byte or short, that the frame bit depth selects.</typeparam>
     /// <param name="source">The first of exactly thirty-two addressable samples.</param>
-    /// <param name="width">The overload-selection value.</param>
+    /// <param name="width">An unused value whose type selects the vector width.</param>
     /// <returns>The samples in increasing column order.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector512<short> LoadSamples<TSample>(ref TSample source, Vector512<short> width)
@@ -114,14 +109,14 @@ internal partial class Av1ChromaFromLumaContext
     /// <summary>
     /// Sums the sixteen adjacent sample pairs that produce eight chroma columns.
     /// </summary>
-    /// <typeparam name="TSample">Byte or ushort, selected by the frame.</typeparam>
+    /// <typeparam name="TSample">The sample type, byte or short, that the frame bit depth selects.</typeparam>
     /// <param name="source">The first of exactly sixteen addressable samples.</param>
-    /// <param name="width">The overload-selection value.</param>
+    /// <param name="width">An unused value whose type selects the vector width.</param>
     /// <returns>The eight pair sums in increasing column order.</returns>
     /// <remarks>
-    /// An eight-bit frame pairs sixteen samples in one call. A high-bit-depth frame produces
-    /// thirty-two bit sums, so it takes two calls and narrows them back, which is exact because a
-    /// pair sum of twelve-bit samples reaches only 8190.
+    /// A multiply-add by one adds adjacent lanes, so lane i of the result is the sum of samples 2i and 2i + 1. An eight-bit frame pairs sixteen samples in one
+    /// multiply-add. A high-bit-depth frame produces 32-bit sums, so it uses two multiply-adds and narrows the results. The narrowing is exact, because a pair
+    /// sum of twelve-bit samples reaches only 8190.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<short> LoadPairSums<TSample>(ref TSample source, Vector128<short> width)
@@ -145,9 +140,9 @@ internal partial class Av1ChromaFromLumaContext
     /// <summary>
     /// Sums the thirty-two adjacent sample pairs that produce sixteen chroma columns.
     /// </summary>
-    /// <typeparam name="TSample">Byte or ushort, selected by the frame.</typeparam>
+    /// <typeparam name="TSample">The sample type, byte or short, that the frame bit depth selects.</typeparam>
     /// <param name="source">The first of exactly thirty-two addressable samples.</param>
-    /// <param name="width">The overload-selection value.</param>
+    /// <param name="width">An unused value whose type selects the vector width.</param>
     /// <returns>The sixteen pair sums in increasing column order.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<short> LoadPairSums<TSample>(ref TSample source, Vector256<short> width)
@@ -171,9 +166,9 @@ internal partial class Av1ChromaFromLumaContext
     /// <summary>
     /// Sums the sixty-four adjacent sample pairs that produce thirty-two chroma columns.
     /// </summary>
-    /// <typeparam name="TSample">Byte or ushort, selected by the frame.</typeparam>
+    /// <typeparam name="TSample">The sample type, byte or short, that the frame bit depth selects.</typeparam>
     /// <param name="source">The first of exactly sixty-four addressable samples.</param>
-    /// <param name="width">The overload-selection value.</param>
+    /// <param name="width">An unused value whose type selects the vector width.</param>
     /// <returns>The thirty-two pair sums in increasing column order.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector512<short> LoadPairSums<TSample>(ref TSample source, Vector512<short> width)

@@ -24,7 +24,7 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
         /// </summary>
         /// <param name="first">The first compound intermediate.</param>
         /// <param name="second">The second compound intermediate.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The reconstructed sample.</returns>
         public static abstract byte Average(ushort first, ushort second, int roundBits, int roundOffset);
@@ -34,7 +34,7 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
         /// </summary>
         /// <param name="first">The first compound intermediate.</param>
         /// <param name="second">The second compound intermediate.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <param name="maximum">The maximum reconstructed sample value.</param>
         /// <returns>The reconstructed sample.</returns>
@@ -52,7 +52,7 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
         /// <param name="first1">The upper first-predictor intermediates.</param>
         /// <param name="second0">The lower second-predictor intermediates.</param>
         /// <param name="second1">The upper second-predictor intermediates.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The reconstructed samples.</returns>
         public static abstract Vector128<byte> Average(
@@ -70,7 +70,7 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
         /// <param name="first1">The upper first-predictor intermediates.</param>
         /// <param name="second0">The lower second-predictor intermediates.</param>
         /// <param name="second1">The upper second-predictor intermediates.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The reconstructed samples.</returns>
         public static abstract Vector256<byte> Average(
@@ -88,7 +88,7 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
         /// <param name="first1">The upper first-predictor intermediates.</param>
         /// <param name="second0">The lower second-predictor intermediates.</param>
         /// <param name="second1">The upper second-predictor intermediates.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The reconstructed samples.</returns>
         public static abstract Vector512<byte> Average(
@@ -104,7 +104,7 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
         /// </summary>
         /// <param name="first">The first compound intermediates.</param>
         /// <param name="second">The second compound intermediates.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <param name="maximum">The maximum reconstructed sample value.</param>
         /// <returns>The reconstructed samples.</returns>
@@ -120,7 +120,7 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
         /// </summary>
         /// <param name="first">The first compound intermediates.</param>
         /// <param name="second">The second compound intermediates.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <param name="maximum">The maximum reconstructed sample value.</param>
         /// <returns>The reconstructed samples.</returns>
@@ -136,7 +136,7 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
         /// </summary>
         /// <param name="first">The first compound intermediates.</param>
         /// <param name="second">The second compound intermediates.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <param name="maximum">The maximum reconstructed sample value.</param>
         /// <returns>The reconstructed samples.</returns>
@@ -150,6 +150,8 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
 
     /// <summary>
     /// Implements equal-average finalization for scalar and SIMD lane groups.
+    /// The vector forms use <c>(a &amp; b) + ((a ^ b) &gt;&gt; 1)</c>. This identity equals <c>(a + b) &gt;&gt; 1</c> and cannot overflow an unsigned lane.
+    /// The 8-bit forms clamp to 0 through 255 before they narrow, so the narrowing keeps every value.
     /// </summary>
     private readonly struct CompoundIntermediateAverageOperator : IAv1CompoundIntermediateAverageOperator
     {
@@ -157,7 +159,7 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte Average(ushort first, ushort second, int roundBits, int roundOffset)
         {
-            // The reference average deliberately truncates here. Finalization performs the sole rounding step.
+            // The AV1 average truncates here. The final shift does the only rounding.
             int result = ((first + second) >> 1) - roundOffset;
             return (byte)Math.Clamp(RoundPowerOfTwo(result, roundBits), 0, byte.MaxValue);
         }

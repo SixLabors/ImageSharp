@@ -94,6 +94,7 @@ internal static partial class Av1CompoundMaskBlendPredictor
 
     /// <summary>
     /// Implements AV1 alpha-mask blending for scalar and SIMD lane groups.
+    /// Each form computes <c>(alpha * first + (64 - alpha) * second + 32) &gt;&gt; MaskWeightBits</c>.
     /// </summary>
     private readonly struct CompoundMaskBlendOperator : IAv1CompoundMaskBlendOperator
     {
@@ -111,6 +112,7 @@ internal static partial class Av1CompoundMaskBlendPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<byte> Blend(Vector128<byte> first, Vector128<byte> second, Vector128<byte> alpha)
         {
+            // Zero-extend each quarter of the 8-bit lanes to 32 bits, blend the quarters, then pack them back in lane order.
             Av1NonDirectionalIntraPredictorBase.Widen(first, out Vector128<int> first0, out Vector128<int> first1, out Vector128<int> first2, out Vector128<int> first3);
             Av1NonDirectionalIntraPredictorBase.Widen(second, out Vector128<int> second0, out Vector128<int> second1, out Vector128<int> second2, out Vector128<int> second3);
             Av1NonDirectionalIntraPredictorBase.Widen(alpha, out Vector128<int> alpha0, out Vector128<int> alpha1, out Vector128<int> alpha2, out Vector128<int> alpha3);
@@ -153,6 +155,7 @@ internal static partial class Av1CompoundMaskBlendPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<ushort> Blend(Vector128<ushort> first, Vector128<ushort> second, Vector128<ushort> alpha)
         {
+            // Samples use at most 12 bits, so the signed 16-bit view keeps every value. Each half widens to 32 bits, blends, then packs back.
             Av1NonDirectionalIntraPredictorBase.Widen(first.AsInt16(), out Vector128<int> first0, out Vector128<int> first1);
             Av1NonDirectionalIntraPredictorBase.Widen(second.AsInt16(), out Vector128<int> second0, out Vector128<int> second1);
             Av1NonDirectionalIntraPredictorBase.Widen(alpha.AsInt16(), out Vector128<int> alpha0, out Vector128<int> alpha1);
@@ -182,6 +185,10 @@ internal static partial class Av1CompoundMaskBlendPredictor
         /// <summary>
         /// Applies alpha-mask blending to 128-bit vectors of widened samples.
         /// </summary>
+        /// <param name="first">The widened first samples.</param>
+        /// <param name="second">The widened second samples.</param>
+        /// <param name="alpha">The widened first-sample weights in the AV1 mask range.</param>
+        /// <returns>The rounded blended samples.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<int> Blend(Vector128<int> first, Vector128<int> second, Vector128<int> alpha)
             => ((alpha * first) + ((Vector128.Create(MaximumMaskAlpha) - alpha) * second) + Vector128.Create(32)) >> MaskWeightBits;
@@ -189,6 +196,10 @@ internal static partial class Av1CompoundMaskBlendPredictor
         /// <summary>
         /// Applies alpha-mask blending to 256-bit vectors of widened samples.
         /// </summary>
+        /// <param name="first">The widened first samples.</param>
+        /// <param name="second">The widened second samples.</param>
+        /// <param name="alpha">The widened first-sample weights in the AV1 mask range.</param>
+        /// <returns>The rounded blended samples.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector256<int> Blend(Vector256<int> first, Vector256<int> second, Vector256<int> alpha)
             => ((alpha * first) + ((Vector256.Create(MaximumMaskAlpha) - alpha) * second) + Vector256.Create(32)) >> MaskWeightBits;
@@ -196,6 +207,10 @@ internal static partial class Av1CompoundMaskBlendPredictor
         /// <summary>
         /// Applies alpha-mask blending to 512-bit vectors of widened samples.
         /// </summary>
+        /// <param name="first">The widened first samples.</param>
+        /// <param name="second">The widened second samples.</param>
+        /// <param name="alpha">The widened first-sample weights in the AV1 mask range.</param>
+        /// <returns>The rounded blended samples.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector512<int> Blend(Vector512<int> first, Vector512<int> second, Vector512<int> alpha)
             => ((alpha * first) + ((Vector512.Create(MaximumMaskAlpha) - alpha) * second) + Vector512.Create(32)) >> MaskWeightBits;

@@ -26,6 +26,7 @@ internal static partial class Av1InverseTransformer
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Add(ref short prediction, ref short destination, Vector128<int> residual, int bitDepth)
         {
+            // Read and write exactly four 16-bit samples as one 64-bit value. The zero upper half of the narrow never reaches memory.
             ulong packed = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<short, byte>(ref prediction));
             Vector128<int> predicted = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsInt16());
             Vector128<int> reconstructed =
@@ -51,8 +52,8 @@ internal static partial class Av1InverseTransformer
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Add(ref short prediction, ref short destination, Vector512<int> residual, int bitDepth)
         {
-            // Widen the lower and upper eight predictions into ordered Int32 halves. Clipping before narrowing keeps
-            // the stored sixteen samples within their actual 8-, 10-, or 12-bit range, including negative residuals.
+            // Widen the lower and upper eight predictions into ordered Int32 halves. Clipping before narrowing keeps the stored sixteen samples within their
+            // actual 8-, 10-, or 12-bit range, including negative residuals.
             Vector256<short> packed = Vector256.LoadUnsafe(ref prediction);
             Vector512<int> predicted = Vector512.Create(Vector256.WidenLower(packed), Vector256.WidenUpper(packed));
             Vector512<int> reconstructed = Vector512.Clamp(predicted + residual, Vector512<int>.Zero, Vector512.Create((1 << bitDepth) - 1));

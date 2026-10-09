@@ -17,8 +17,8 @@ internal static partial class Av1WarpedInterPredictor
     /// Defines the affine warped-motion dot product for scalar and SIMD lane groups.
     /// </summary>
     /// <remarks>
-    /// Each SIMD overload contains consecutive independent eight-tap filters. The generic warped traversal
-    /// gathers source windows and coefficient phases, while the closed operator owns the exact multiply-and-sum arithmetic.
+    /// Each SIMD overload holds consecutive independent eight-tap filters.
+    /// The generic warped traversal gathers the source windows and the coefficient phases. The closed operator does the exact multiply and sum.
     /// </remarks>
     private interface IAv1WarpedPredictionOperator
     {
@@ -110,8 +110,8 @@ internal static partial class Av1WarpedInterPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<int> Convolve(Vector256<ushort> samples, Vector256<short> coefficients)
         {
-            // Widen preserves the two eight-tap windows as separate 256-bit results. Reducing each product vector
-            // therefore produces the two independent predictions without horizontal lane shuffles.
+            // Widen puts each eight-tap window into its own 256-bit vector.
+            // Thus the sum of each product vector gives one prediction, without lane shuffles.
             (Vector256<uint> sample0, Vector256<uint> sample1) = Vector256.Widen(samples);
             (Vector256<int> coefficient0, Vector256<int> coefficient1) = Vector256.Widen(coefficients);
             return Vector128.Create(
@@ -125,8 +125,8 @@ internal static partial class Av1WarpedInterPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<int> Convolve(Vector512<ushort> samples, Vector512<short> coefficients)
         {
-            // The four eight-tap windows occupy four consecutive 256-bit quarters after widening. Multiplication
-            // remains 512-bit; quarter reductions recover the four independent scalar dot products in output order.
+            // After the widen, the four eight-tap windows fill four consecutive 256-bit quarters, and the multiply stays 512-bit.
+            // The sum of each quarter gives one dot product, in output order.
             (Vector512<uint> sampleLower, Vector512<uint> sampleUpper) = Vector512.Widen(samples);
             (Vector512<int> coefficientLower, Vector512<int> coefficientUpper) = Vector512.Widen(coefficients);
             Vector512<int> productLower = sampleLower.AsInt32() * coefficientLower;

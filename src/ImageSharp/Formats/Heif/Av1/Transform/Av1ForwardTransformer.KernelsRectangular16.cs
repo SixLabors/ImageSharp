@@ -16,11 +16,9 @@ internal static partial class Av1ForwardTransformer
     /// Applies an eight-wide, sixteen-high eight-bit transform with every stage in registers.
     /// </summary>
     /// <remarks>
-    /// This follows <c>lowbd_fwd_txfm2d_8x16_avx2</c>. The shifts are <c>av1_fwd_txfm_shift_ls[TX_8X16]</c> (2, -2, 0)
-    /// and both cosine bit counts are 13. The column transform is a sixteen-point kernel on the eight columns, as
-    /// <c>col_txfm8x16_arr</c> selects. The row transform is an eight-point kernel on the sixteen rows, as
-    /// <c>row_txfm8x16_arr</c> selects; it runs once for rows 0 to 7 and once for rows 8 to 15, which gives the same
-    /// lanes as the sixteen-lane form because every kernel works lane by lane.
+    /// The stage shifts are 2, -2 and 0, and both cosine bit counts are 13. The column transform is a sixteen-point kernel on the eight columns.
+    /// The row transform is an eight-point kernel on the sixteen rows. It runs once for rows 0 to 7 and once for rows 8 to 15.
+    /// This gives the same lanes as the sixteen-lane form, because every kernel works lane by lane.
     /// </remarks>
     /// <param name="input">The spatial residual samples.</param>
     /// <param name="stride">The number of input samples between rows.</param>
@@ -100,9 +98,9 @@ internal static partial class Av1ForwardTransformer
         where TColumn : struct, IAv1Kernel16
         where TRow : struct, IAv1Kernel8
     {
-        // The sixteen rows load into sixteen vectors whose eight lanes are the columns, scaled by the first shift (2).
-        // The column kernel is the sixteen-lane form, so each row widens to a 256-bit vector. Its high lanes are never
-        // read again, because every kernel works lane by lane.
+        // The sixteen rows load into sixteen vectors whose eight lanes are the columns, and the first stage shift of 2 applies.
+        // The column kernel is the sixteen-lane form, so each row widens to a 256-bit vector.
+        // Every kernel works lane by lane, so the code discards the results in the undefined high lanes.
         ref short source = ref MemoryMarshal.GetReference(input);
         Vector256<short> r0;
         Vector256<short> r1;
@@ -162,7 +160,7 @@ internal static partial class Av1ForwardTransformer
         TColumn.Transform(
             ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15, 13);
 
-        // round_shift_16bit with shift -2 on the low eight lanes: add one half and shift, with saturation on the addition.
+        // The second stage shift of -2 applies to the low eight lanes. It adds 2, half of the divisor 4, and then shifts right by 2. The addition saturates.
         Vector128<short> half = Vector128.Create((short)2);
         Vector128<short> l0 = Vector128.AddSaturate(r0.GetLower(), half) >> 2;
         Vector128<short> l1 = Vector128.AddSaturate(r1.GetLower(), half) >> 2;
@@ -181,14 +179,13 @@ internal static partial class Av1ForwardTransformer
         Vector128<short> u6 = Vector128.AddSaturate(r14.GetLower(), half) >> 2;
         Vector128<short> u7 = Vector128.AddSaturate(r15.GetLower(), half) >> 2;
 
-        // The two transpose_16bit_8x8 calls: each vector of the first set now holds one column of rows 0 to 7, and the
-        // same vector of the second set holds that column for rows 8 to 15.
+        // After the two 8x8 transposes, each vector of the first set holds one column of rows 0 to 7.
+        // The same vector of the second set holds that column for rows 8 to 15.
         Av1TransformKernels.Transpose8x8(ref l0, ref l1, ref l2, ref l3, ref l4, ref l5, ref l6, ref l7);
         Av1TransformKernels.Transpose8x8(ref u0, ref u1, ref u2, ref u3, ref u4, ref u5, ref u6, ref u7);
 
-        // The row kernel transforms across the eight column vectors, lane by lane, for each half. A horizontal flip
-        // enters the columns in reverse order, as flip_buf_sse2 does. The outputs then hold one horizontal frequency
-        // each, with the vertical frequencies of the half in their lanes.
+        // The row kernel transforms across the eight column vectors, lane by lane, for each half. A horizontal flip enters the columns in reverse order.
+        // The outputs then hold one horizontal frequency each, with the vertical frequencies of the half in their lanes.
         if (flipLeftToRight)
         {
             TRow.Transform(ref l7, ref l6, ref l5, ref l4, ref l3, ref l2, ref l1, ref l0, 13);
@@ -202,10 +199,9 @@ internal static partial class Av1ForwardTransformer
             TRow.Transform(ref u0, ref u1, ref u2, ref u3, ref u4, ref u5, ref u6, ref u7, 13);
         }
 
-        // The reference stores each horizontal frequency as one row of sixteen. This port keeps coefficients
-        // row-major, so a transpose of each half gives the rows of vertical frequencies 0 to 7 and 8 to 15, with the
-        // eight horizontal frequencies in their lanes. The third shift is zero, and the 2:1 shape scales each
-        // coefficient by the square root of two while it widens, as store_rect_buffer_16bit_to_32bit_w16_avx2 does.
+        // The coefficients are row-major. A transpose of each half gives the rows of vertical frequencies 0 to 7 and 8 to 15.
+        // Each row holds the eight horizontal frequencies in its lanes. The third shift is zero.
+        // The 2:1 shape scales each coefficient by the square root of two when the store widens it.
         Av1TransformKernels.Transpose8x8(ref l0, ref l1, ref l2, ref l3, ref l4, ref l5, ref l6, ref l7);
         Av1TransformKernels.Transpose8x8(ref u0, ref u1, ref u2, ref u3, ref u4, ref u5, ref u6, ref u7);
         ref int destination = ref MemoryMarshal.GetReference(coefficients);
@@ -231,10 +227,9 @@ internal static partial class Av1ForwardTransformer
     /// Applies a sixteen-wide, eight-high eight-bit transform with every stage in registers.
     /// </summary>
     /// <remarks>
-    /// This follows <c>lowbd_fwd_txfm2d_16x8_avx2</c>. The shifts are <c>av1_fwd_txfm_shift_ls[TX_16X8]</c> (2, -2, 0)
-    /// and both cosine bit counts are 13. The column transform is an eight-point kernel on the sixteen columns, as
-    /// <c>col_txfm16x8_arr</c> selects; it runs once for columns 0 to 7 and once for columns 8 to 15. The row
-    /// transform is a sixteen-point kernel on the eight rows, as <c>row_txfm16x8_arr</c> selects.
+    /// The stage shifts are 2, -2 and 0, and both cosine bit counts are 13.
+    /// The column transform is an eight-point kernel on the sixteen columns. It runs once for columns 0 to 7 and once for columns 8 to 15.
+    /// The row transform is a sixteen-point kernel on the eight rows.
     /// </remarks>
     /// <param name="input">The spatial residual samples.</param>
     /// <param name="stride">The number of input samples between rows.</param>
@@ -314,8 +309,7 @@ internal static partial class Av1ForwardTransformer
         where TColumn : struct, IAv1Kernel8
         where TRow : struct, IAv1Kernel16
     {
-        // Each of the eight rows loads as a left vector (columns 0 to 7) and a right vector (columns 8 to 15), scaled
-        // by the first shift (2), as the two load_buffer_16bit_to_16bit calls do.
+        // Each of the eight rows loads as a left vector (columns 0 to 7) and a right vector (columns 8 to 15), and the first stage shift of 2 applies.
         ref short source = ref MemoryMarshal.GetReference(input);
         Vector128<short> l0;
         Vector128<short> l1;
@@ -360,7 +354,7 @@ internal static partial class Av1ForwardTransformer
         TColumn.Transform(ref l0, ref l1, ref l2, ref l3, ref l4, ref l5, ref l6, ref l7, 13);
         TColumn.Transform(ref h0, ref h1, ref h2, ref h3, ref h4, ref h5, ref h6, ref h7, 13);
 
-        // round_shift_16bit_w16_avx2 with shift -2: add one half and shift, with saturation on the addition.
+        // The second stage shift of -2 adds 2, half of the divisor 4, and then shifts right by 2. The addition saturates.
         Vector128<short> half = Vector128.Create((short)2);
         l0 = Vector128.AddSaturate(l0, half) >> 2;
         l1 = Vector128.AddSaturate(l1, half) >> 2;
@@ -379,13 +373,12 @@ internal static partial class Av1ForwardTransformer
         h6 = Vector128.AddSaturate(h6, half) >> 2;
         h7 = Vector128.AddSaturate(h7, half) >> 2;
 
-        // transpose_16bit_16x8_avx2 with extract_reg: after the two transposes, the left set holds columns 0 to 7 and
-        // the right set holds columns 8 to 15, each with the eight rows in its lanes.
+        // After the two transposes, the left set holds columns 0 to 7 and the right set holds columns 8 to 15, each with the eight rows in its lanes.
         Av1TransformKernels.Transpose8x8(ref l0, ref l1, ref l2, ref l3, ref l4, ref l5, ref l6, ref l7);
         Av1TransformKernels.Transpose8x8(ref h0, ref h1, ref h2, ref h3, ref h4, ref h5, ref h6, ref h7);
 
-        // The sixteen-point row kernel is the sixteen-lane form, so each column widens to a 256-bit vector whose high
-        // lanes are never read again. A horizontal flip enters the sixteen columns in reverse order.
+        // The sixteen-point row kernel is the sixteen-lane form, so each column widens to a 256-bit vector.
+        // The code discards the results in the undefined high lanes. A horizontal flip enters the sixteen columns in reverse order.
         Vector256<short> c0;
         Vector256<short> c1;
         Vector256<short> c2;
@@ -444,10 +437,9 @@ internal static partial class Av1ForwardTransformer
         TRow.Transform(
             ref c0, ref c1, ref c2, ref c3, ref c4, ref c5, ref c6, ref c7, ref c8, ref c9, ref c10, ref c11, ref c12, ref c13, ref c14, ref c15, 13);
 
-        // The outputs hold one horizontal frequency each, with the eight vertical frequencies in their low lanes. This
-        // port keeps coefficients row-major, so a transpose of frequencies 0 to 7 and one of 8 to 15 give the left and
-        // right halves of each row. The third shift is zero, and the 2:1 shape scales each coefficient by the square
-        // root of two while it widens, as store_rect_buffer_16bit_to_32bit_w8 does.
+        // The outputs hold one horizontal frequency each, with the eight vertical frequencies in their low lanes.
+        // The coefficients are row-major. Transposes of frequencies 0 to 7 and of frequencies 8 to 15 give the left and right halves of each row.
+        // The third shift is zero. The 2:1 shape scales each coefficient by the square root of two when the store widens it.
         l0 = c0.GetLower();
         l1 = c1.GetLower();
         l2 = c2.GetLower();
@@ -486,7 +478,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Loads one row of eight samples, scaled by the first shift (2), into the low lanes of a 256-bit vector.
+    /// Loads one row of eight samples into the low lanes of a 256-bit vector and applies the first stage shift of 2.
     /// </summary>
     /// <param name="source">The first residual sample.</param>
     /// <param name="offset">The index of the first sample of the row.</param>
@@ -496,11 +488,11 @@ internal static partial class Av1ForwardTransformer
         => (Vector128.LoadUnsafe(ref source, offset) << 2).ToVector256Unsafe();
 
     /// <summary>
-    /// Loads one row of sixteen samples, scaled by the first shift (2), as a left and a right vector.
+    /// Loads one row of sixteen samples as a left and a right vector and applies the first stage shift of 2.
     /// </summary>
     /// <param name="source">The first residual sample.</param>
     /// <param name="offset">The index of the first sample of the row.</param>
-    /// <returns>Columns 0 to 7 and columns 8 to 15 of the row.</returns>
+    /// <returns>The scaled row. <c>Left</c> holds columns 0 to 7, and <c>Right</c> holds columns 8 to 15.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static (Vector128<short> Left, Vector128<short> Right) LoadRow16(ref short source, uint offset)
         => (Vector128.LoadUnsafe(ref source, offset) << 2, Vector128.LoadUnsafe(ref source, offset + 8) << 2);

@@ -12,10 +12,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 /// </summary>
 /// <typeparam name="TValue">The scalar or SIMD value containing independent transform axes.</typeparam>
 /// <remarks>
-/// Each closed <typeparamref name="TValue"/> is either one scalar axis or a vector of independent axes. The
-/// <see langword="typeof"/> branches are resolved when the generic type is compiled, so they select arithmetic once
-/// without adding per-stage runtime dispatch. Signed 16-bit representations use the saturating operations required by
-/// the packed transform pipeline; 32-bit representations retain the normative wrapping fixed-point arithmetic.
+/// Each closed <typeparamref name="TValue"/> is either one scalar axis or a vector of independent axes.
+/// The JIT resolves the <see langword="typeof"/> branches when it compiles the generic type.
+/// Thus they select the arithmetic once, with no runtime dispatch per stage.
+/// Signed 16-bit representations use the saturating operations that the packed transform pipeline requires.
+/// 32-bit representations keep the normative wrapping fixed-point arithmetic.
 /// </remarks>
 internal static class Av1ForwardTransformArithmetic<TValue>
     where TValue : struct
@@ -30,8 +31,8 @@ internal static class Av1ForwardTransformArithmetic<TValue>
     {
         int value = 1 << (cosBit - 1);
 
-        // The closed TValue makes this a compile-time shape selection. Only the matching explicit-layout field is
-        // initialized and subsequently read, keeping the broadcast outside every butterfly in the stage network.
+        // The closed TValue makes this a compile-time shape selection. The code initializes only the matching explicit-layout field.
+        // The stage network reads only that field, so the broadcast stays outside every butterfly.
         if (typeof(TValue) == typeof(Vector128<short>) || typeof(TValue) == typeof(Vector128<int>))
         {
             return new Av1TransformRounding(Vector128.Create(value));
@@ -685,6 +686,13 @@ internal static class Av1ForwardTransformArithmetic<TValue>
     /// <summary>
     /// Calculates and narrows two weighted 128-bit signed sixteen-bit vectors.
     /// </summary>
+    /// <param name="input0">The first transform value.</param>
+    /// <param name="weight0">The fixed-point weight for <paramref name="input0"/>.</param>
+    /// <param name="input1">The second transform value.</param>
+    /// <param name="weight1">The fixed-point weight for <paramref name="input1"/>.</param>
+    /// <param name="cosBit">The number of fractional bits in each weight.</param>
+    /// <param name="rounding">The broadcast rounding value added before the shift.</param>
+    /// <returns>The rounded lane-wise weighted sum, saturated to signed sixteen-bit lanes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<short> MultiplyRound(
         Vector128<short> input0,
@@ -696,8 +704,8 @@ internal static class Av1ForwardTransformArithmetic<TValue>
     {
         if (Vector128.IsHardwareAccelerated)
         {
-            // btf_16_sse2: adjacent (input0, input1) pairs multiply-add into Int32 sums, and the saturating pack
-            // restores the lane order. This is half the operations of the widening form below.
+            // Adjacent (input0, input1) pairs multiply-add into Int32 sums, and the saturating pack restores the lane order.
+            // This takes half the operations of the widening form below.
             Vector128<short> lowerInputs = Vector128_.UnpackLow(input0, input1);
             Vector128<short> upperInputs = Vector128_.UnpackHigh(input0, input1);
             Vector128<short> weights = Vector128.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
@@ -706,8 +714,8 @@ internal static class Av1ForwardTransformArithmetic<TValue>
             return Vector128_.PackSignedSaturate(lowerSum, upperSum);
         }
 
-        // Widening preserves lane order on every Vector128 implementation. The explicit clamp gives Narrow the
-        // signed-saturating demotion semantics used by Highway on x86, Arm, and WebAssembly.
+        // Widening keeps the lane order on every Vector128 implementation.
+        // The explicit clamp gives Narrow a signed-saturating demotion, the same on x86, Arm, and WebAssembly.
         (Vector128<int> input0Lower, Vector128<int> input0Upper) = Vector128.Widen(input0);
         (Vector128<int> input1Lower, Vector128<int> input1Upper) = Vector128.Widen(input1);
 
@@ -726,6 +734,13 @@ internal static class Av1ForwardTransformArithmetic<TValue>
     /// <summary>
     /// Calculates and narrows two weighted 256-bit signed sixteen-bit vectors.
     /// </summary>
+    /// <param name="input0">The first transform value.</param>
+    /// <param name="weight0">The fixed-point weight for <paramref name="input0"/>.</param>
+    /// <param name="input1">The second transform value.</param>
+    /// <param name="weight1">The fixed-point weight for <paramref name="input1"/>.</param>
+    /// <param name="cosBit">The number of fractional bits in each weight.</param>
+    /// <param name="rounding">The broadcast rounding value added before the shift.</param>
+    /// <returns>The rounded lane-wise weighted sum, saturated to signed sixteen-bit lanes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<short> MultiplyRound(
         Vector256<short> input0,
@@ -735,8 +750,8 @@ internal static class Av1ForwardTransformArithmetic<TValue>
         int cosBit,
         Vector256<int> rounding)
     {
-        // The AVX2 path mirrors Highway's WidenMulPairwiseAdd primitive: adjacent Int16 products become Int32
-        // sums, then VPACKSSDW restores the original lane width with signed saturation.
+        // Unpacking forms adjacent (input0, input1) pairs inside each 128-bit lane. Pairwise multiply-add sums each pair into one Int32 lane.
+        // The signed-saturating pack then restores the Int16 width and the original lane order.
         Vector256<short> lowerInputs = Vector256_.UnpackLow(input0, input1);
         Vector256<short> upperInputs = Vector256_.UnpackHigh(input0, input1);
         Vector256<short> weights = Vector256.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
@@ -748,6 +763,13 @@ internal static class Av1ForwardTransformArithmetic<TValue>
     /// <summary>
     /// Calculates and narrows two weighted 512-bit signed sixteen-bit vectors.
     /// </summary>
+    /// <param name="input0">The first transform value.</param>
+    /// <param name="weight0">The fixed-point weight for <paramref name="input0"/>.</param>
+    /// <param name="input1">The second transform value.</param>
+    /// <param name="weight1">The fixed-point weight for <paramref name="input1"/>.</param>
+    /// <param name="cosBit">The number of fractional bits in each weight.</param>
+    /// <param name="rounding">The broadcast rounding value added before the shift.</param>
+    /// <returns>The rounded lane-wise weighted sum, saturated to signed sixteen-bit lanes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector512<short> MultiplyRound(
         Vector512<short> input0,
@@ -757,8 +779,8 @@ internal static class Av1ForwardTransformArithmetic<TValue>
         int cosBit,
         Vector512<int> rounding)
     {
-        // Unpacking forms adjacent (input0, input1) pairs independently inside each 128-bit lane. Pairwise multiply-add
-        // widens those pairs to Int32 for rounding, and the final pack restores original lane order with saturation.
+        // Unpacking forms adjacent (input0, input1) pairs inside each 128-bit lane. Pairwise multiply-add widens each pair to Int32 for rounding.
+        // The signed-saturating pack then restores the Int16 width and the original lane order.
         Vector512<short> lowerInputs = Vector512_.UnpackLow(input0, input1);
         Vector512<short> upperInputs = Vector512_.UnpackHigh(input0, input1);
         Vector512<short> weights = Vector512.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
@@ -770,6 +792,17 @@ internal static class Av1ForwardTransformArithmetic<TValue>
     /// <summary>
     /// Calculates and narrows four weighted 128-bit signed sixteen-bit vectors.
     /// </summary>
+    /// <param name="input0">The first transform value.</param>
+    /// <param name="weight0">The fixed-point weight for <paramref name="input0"/>.</param>
+    /// <param name="input1">The second transform value.</param>
+    /// <param name="weight1">The fixed-point weight for <paramref name="input1"/>.</param>
+    /// <param name="input2">The third transform value.</param>
+    /// <param name="weight2">The fixed-point weight for <paramref name="input2"/>.</param>
+    /// <param name="input3">The fourth transform value.</param>
+    /// <param name="weight3">The fixed-point weight for <paramref name="input3"/>.</param>
+    /// <param name="cosBit">The number of fractional bits in each weight.</param>
+    /// <param name="rounding">The broadcast rounding value added before the shift.</param>
+    /// <returns>The rounded lane-wise weighted sum, saturated to signed sixteen-bit lanes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<short> MultiplyRound(
         Vector128<short> input0,
@@ -783,8 +816,8 @@ internal static class Av1ForwardTransformArithmetic<TValue>
         int cosBit,
         Vector128<int> rounding)
     {
-        // Four products can exceed Int16 even though the completed stage value cannot. Widening each input first keeps
-        // the full fixed-point sum until rounding; explicit clamping supplies the required saturating demotion.
+        // The products and partial sums need more than 16 bits. The code widens each input first, so the full fixed-point sum stays exact until rounding.
+        // An explicit clamp gives Narrow the required signed-saturating demotion.
         (Vector128<int> input0Lower, Vector128<int> input0Upper) = Vector128.Widen(input0);
         (Vector128<int> input1Lower, Vector128<int> input1Upper) = Vector128.Widen(input1);
         (Vector128<int> input2Lower, Vector128<int> input2Upper) = Vector128.Widen(input2);
@@ -812,6 +845,17 @@ internal static class Av1ForwardTransformArithmetic<TValue>
     /// <summary>
     /// Calculates and narrows four weighted 256-bit signed sixteen-bit vectors.
     /// </summary>
+    /// <param name="input0">The first transform value.</param>
+    /// <param name="weight0">The fixed-point weight for <paramref name="input0"/>.</param>
+    /// <param name="input1">The second transform value.</param>
+    /// <param name="weight1">The fixed-point weight for <paramref name="input1"/>.</param>
+    /// <param name="input2">The third transform value.</param>
+    /// <param name="weight2">The fixed-point weight for <paramref name="input2"/>.</param>
+    /// <param name="input3">The fourth transform value.</param>
+    /// <param name="weight3">The fixed-point weight for <paramref name="input3"/>.</param>
+    /// <param name="cosBit">The number of fractional bits in each weight.</param>
+    /// <param name="rounding">The broadcast rounding value added before the shift.</param>
+    /// <returns>The rounded lane-wise weighted sum, saturated to signed sixteen-bit lanes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<short> MultiplyRound(
         Vector256<short> input0,
@@ -825,8 +869,8 @@ internal static class Av1ForwardTransformArithmetic<TValue>
         int cosBit,
         Vector256<int> rounding)
     {
-        // The two unpack streams contain alternating input pairs for the lower and upper lane groups. Adding the two
-        // pairwise products completes each four-term dot product before the rounded saturating pack restores Int16.
+        // The unpack streams hold alternating input pairs for the lower and upper lane groups. The sum of two pairwise products is the four-term dot product.
+        // The rounding shift and the signed-saturating pack then restore Int16.
         Vector256<short> weights01 = Vector256.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
         Vector256<short> weights23 = Vector256_.UnpackLow(Vector256.Create((short)weight2), Vector256.Create((short)weight3));
         Vector256<int> lower = Vector256_.MultiplyAddAdjacent(Vector256_.UnpackLow(input0, input1), weights01)
@@ -843,6 +887,17 @@ internal static class Av1ForwardTransformArithmetic<TValue>
     /// <summary>
     /// Calculates and narrows four weighted 512-bit signed sixteen-bit vectors.
     /// </summary>
+    /// <param name="input0">The first transform value.</param>
+    /// <param name="weight0">The fixed-point weight for <paramref name="input0"/>.</param>
+    /// <param name="input1">The second transform value.</param>
+    /// <param name="weight1">The fixed-point weight for <paramref name="input1"/>.</param>
+    /// <param name="input2">The third transform value.</param>
+    /// <param name="weight2">The fixed-point weight for <paramref name="input2"/>.</param>
+    /// <param name="input3">The fourth transform value.</param>
+    /// <param name="weight3">The fixed-point weight for <paramref name="input3"/>.</param>
+    /// <param name="cosBit">The number of fractional bits in each weight.</param>
+    /// <param name="rounding">The broadcast rounding value added before the shift.</param>
+    /// <returns>The rounded lane-wise weighted sum, saturated to signed sixteen-bit lanes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector512<short> MultiplyRound(
         Vector512<short> input0,
@@ -856,8 +911,8 @@ internal static class Av1ForwardTransformArithmetic<TValue>
         int cosBit,
         Vector512<int> rounding)
     {
-        // AVX-512BW preserves the same lane-local pair layout as the 256-bit path. Two pairwise dot products form each
-        // four-term result in Int32, after which rounding and signed saturation return thirty-two independent axes.
+        // This path uses the same lane-local pair layout as the 256-bit path. Two pairwise dot products form each four-term result in Int32.
+        // The rounding shift and the signed-saturating pack then return thirty-two independent Int16 axes.
         Vector512<short> weights01 = Vector512.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
         Vector512<short> weights23 = Vector512_.UnpackLow(Vector512.Create((short)weight2), Vector512.Create((short)weight3));
         Vector512<int> lower = Vector512_.MultiplyAddAdjacent(Vector512_.UnpackLow(input0, input1), weights01)

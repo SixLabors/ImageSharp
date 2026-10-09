@@ -8,16 +8,15 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>sourceOrigin</c> identifies the integer sample selected by motion-vector scaling within the complete
-/// padded reference plane. A filtered axis can consume three samples before the block and four samples after it. Byte
-/// rows narrower than sixteen samples and 16-bit rows narrower than eight samples must additionally permit a complete
-/// 128-bit source load at every selected tap. The frame prediction border provides this storage; no destination padding
-/// is required.
+/// <c>sourceOrigin</c> identifies the integer sample selected by motion-vector scaling within the full padded reference plane.
+/// A filtered axis can read three samples before the block and four samples after it.
+/// Byte rows narrower than sixteen samples and 16-bit rows narrower than eight samples must also permit a full 128-bit source load at every selected tap.
+/// The frame prediction border provides this storage. No destination padding is necessary.
 /// </para>
 /// <para>
-/// Two-dimensional filtering uses caller-owned scratch so block reconstruction does not allocate. The scratch span must
-/// contain at least <see cref="GetScratchLength(int, int)"/> elements when both phases are nonzero and may be empty for
-/// copy or one-dimensional filtering.
+/// Two-dimensional filtering uses caller-owned work storage, so block reconstruction does not allocate.
+/// That span must contain at least <see cref="GetScratchLength(int, int)"/> elements when both phases are nonzero.
+/// It can be empty for copy or one-dimensional filtering.
 /// </para>
 /// </remarks>
 internal static partial class Av1TranslationalInterPredictor
@@ -28,7 +27,7 @@ internal static partial class Av1TranslationalInterPredictor
     internal const int FilterBits = 7;
 
     /// <summary>
-    /// The normal first-round shift used by the reference decoder single-reference convolution.
+    /// The normal first-round shift of the single-reference convolution.
     /// </summary>
     internal const int Round0Bits = 3;
 
@@ -64,9 +63,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalFilter">The vertical interpolation filter.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="scratch">
-    /// Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.
-    /// </param>
+    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     public static void Predict(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -109,9 +106,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The decoded sample precision: 8, 10, or 12 bits.</param>
-    /// <param name="scratch">
-    /// Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.
-    /// </param>
+    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     public static void Predict(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -155,9 +150,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="verticalFilter">The vertical interpolation filter.</param>
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
-    /// <param name="scratch">
-    /// Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.
-    /// </param>
+    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     public static void PredictScalar(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -200,9 +193,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
     /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
     /// <param name="bitDepth">The decoded sample precision: 8, 10, or 12 bits.</param>
-    /// <param name="scratch">
-    /// Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.
-    /// </param>
+    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     public static void PredictScalar(
         ReadOnlySpan<ushort> source,
         int sourceStride,

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 internal static partial class Av1IntraEdgeFilter
 {
     /// <summary>
-    /// Applies the strength-2 three-tap edge smoothing kernel.
+    /// Applies the strength-2 three-tap edge smoothing kernel. Each output is <c>(5b + 6c + 5d + 8) &gt;&gt; 4</c>.
     /// </summary>
     internal readonly struct Strength2Operator : IEdgeFilterOperator
     {

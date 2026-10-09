@@ -14,12 +14,12 @@ internal static class Av1ChromaFromLumaMath
     private const int Signs = 3;
 
     /// <summary>
-    /// The number of bits occupied by each plane's packed alpha-magnitude index.
+    /// The number of bits of the packed alpha-magnitude index of each plane.
     /// </summary>
     private const int AlphabetSizeLog2 = 4;
 
     /// <summary>
-    /// The number of nonzero alpha magnitudes represented by each plane's alphabet.
+    /// The number of nonzero alpha magnitudes in the alphabet of each plane.
     /// </summary>
     public const int AlphaMagnitudeCount = 1 << AlphabetSizeLog2;
 
@@ -53,6 +53,9 @@ internal static class Av1ChromaFromLumaMath
     /// </summary>
     /// <param name="jointSign">The coded joint U/V sign symbol.</param>
     /// <returns>The U-plane sign state.</returns>
+    /// <remarks>
+    /// The joint symbol is signU * 3 + signV - 1. The multiply by 11 and the shift by 5 divide jointSign + 1 by 3 exactly for all eight symbols.
+    /// </remarks>
     public static int SignU(int jointSign) => ((jointSign + 1) * 11) >> 5;
 
     /// <summary>

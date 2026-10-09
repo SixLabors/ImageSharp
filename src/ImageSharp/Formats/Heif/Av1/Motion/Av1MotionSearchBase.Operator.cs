@@ -121,8 +121,8 @@ internal static partial class Av1MotionSearchBase
             int bitDepth);
 
         /// <summary>
-        /// Produces a packed prediction from a reference of another size than the frame, stepping the source position
-        /// and phase by the scale of each axis. Reference: the scaled branch of av1_make_inter_predictor().
+        /// Produces a packed prediction from a reference of another size than the frame.
+        /// The source position and phase step by the scale of each axis.
         /// </summary>
         /// <param name="reference">The bordered reference plane.</param>
         /// <param name="referenceStride">The reference row stride.</param>
@@ -203,7 +203,7 @@ internal static partial class Av1MotionSearchBase
         /// <param name="prediction">The searched reference block samples.</param>
         /// <param name="predictionStride">The searched reference row stride.</param>
         /// <param name="secondPrediction">The fixed second predictor, packed at the block width.</param>
-        /// <param name="mask">The six-bit weights of the searched reference, packed at the block width; empty selects equal weights.</param>
+        /// <param name="mask">The six-bit weights of the searched reference, packed at the block width. An empty mask selects equal weights.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         /// <param name="rowStep">One for all rows or two for alternate rows.</param>
@@ -227,7 +227,7 @@ internal static partial class Av1MotionSearchBase
         /// <param name="prediction">The searched reference block samples.</param>
         /// <param name="predictionStride">The searched reference row stride.</param>
         /// <param name="secondPrediction">The fixed second predictor, packed at the block width.</param>
-        /// <param name="mask">The six-bit weights of the searched reference, packed at the block width; empty selects equal weights.</param>
+        /// <param name="mask">The six-bit weights of the searched reference, packed at the block width. An empty mask selects equal weights.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         /// <param name="sum">The raw signed residual sum.</param>

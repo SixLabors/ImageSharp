@@ -124,13 +124,11 @@ internal static partial class Av1IntraBlockCopyBilinearPredictor
     /// Applies the separable two-dimensional interpolation required when both source axes have a half-sample phase.
     /// </summary>
     /// <remarks>
-    /// The offsets in the reference decoder's separable two-pass implementation cancel algebraically to
-    /// <c>(topLeft + topRight + bottomLeft + bottomRight + 2) &gt;&gt; 2</c>, so the closed operator produces the exact
-    /// result directly without an intermediate image buffer.
+    /// The offsets of the normative separable two-pass filter cancel algebraically to <c>(topLeft + topRight + bottomLeft + bottomRight + 2) &gt;&gt; 2</c>.
+    /// Thus the closed operator produces the exact result directly, without an intermediate image buffer.
     ///
-    /// Byte lanes widen to unsigned 16-bit halves before the four-source sum, while high-bit-depth lanes widen to
-    /// unsigned 32-bit halves. Narrowing recombines those halves in source-column order after the rounded result has
-    /// returned to the original sample range.
+    /// Byte lanes widen to unsigned 16-bit halves before the four-source sum, while high-bit-depth lanes widen to unsigned 32-bit halves. Narrowing recombines
+    /// those halves in source-column order after the rounding shift, when each result is again in the original sample range.
     /// </remarks>
     private readonly struct IntraBlockCopyBilinearOperator : IAv1IntraBlockCopyBilinearOperator
     {
@@ -150,8 +148,8 @@ internal static partial class Av1IntraBlockCopyBilinearPredictor
             (Vector128<ushort> bottomLeftLow, Vector128<ushort> bottomLeftHigh) = Vector128.Widen(bottomLeft);
             (Vector128<ushort> bottomRightLow, Vector128<ushort> bottomRightHigh) = Vector128.Widen(bottomRight);
 
-            // Four byte samples can sum to 1020, so ushort lanes preserve the complete value before AV1's +2
-            // rounding term and divide-by-four shift. Narrowing is exact because the result remains in byte range.
+            // Four byte samples can sum to 1020, so ushort lanes keep the complete value before the +2 rounding term and the divide-by-four shift. Narrowing is
+            // exact because the result stays in byte range.
             Vector128<ushort> low = (topLeftLow + topRightLow + bottomLeftLow + bottomRightLow + Vector128.Create((ushort)2)) >> 2;
             Vector128<ushort> high = (topLeftHigh + topRightHigh + bottomLeftHigh + bottomRightHigh + Vector128.Create((ushort)2)) >> 2;
             return Vector128.Narrow(low, high);
@@ -207,8 +205,8 @@ internal static partial class Av1IntraBlockCopyBilinearPredictor
             (Vector128<uint> bottomLeftLow, Vector128<uint> bottomLeftHigh) = Vector128.Widen(bottomLeft.AsUInt16());
             (Vector128<uint> bottomRightLow, Vector128<uint> bottomRightHigh) = Vector128.Widen(bottomRight.AsUInt16());
 
-            // High-bit-depth storage is signed for integration with transform code, but reconstructed samples are
-            // nonnegative. Unsigned widening therefore preserves 10- and 12-bit values through the four-input sum.
+            // High-bit-depth storage is signed for integration with transform code, but reconstructed samples are nonnegative. Unsigned widening therefore
+            // keeps 10- and 12-bit values exact through the four-input sum.
             Vector128<uint> low = (topLeftLow + topRightLow + bottomLeftLow + bottomRightLow + Vector128.Create(2U)) >> 2;
             Vector128<uint> high = (topLeftHigh + topRightHigh + bottomLeftHigh + bottomRightHigh + Vector128.Create(2U)) >> 2;
             return Vector128.Narrow(low, high).AsInt16();

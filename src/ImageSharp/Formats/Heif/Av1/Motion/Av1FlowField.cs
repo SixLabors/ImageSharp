@@ -13,56 +13,51 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 /// </summary>
 /// <remarks>
 /// <para>
-/// One entry describes a square of <see cref="DownsampleFactor"/> samples, so the field is that
-/// many times smaller than the frame in each direction. The two components are stored apart, each
-/// with a border of <see cref="BorderOuter"/> entries on every side, because the upscale filter of
-/// one level reads that far outside the area the level filled.
-/// </para>
-/// <para>
-/// Reference: FlowField, alloc_flow_field(), compute_flow_field(), fill_flow_field_borders() and
-/// upscale_flow_component().
+/// One entry describes a square of <see cref="DownsampleFactor"/> samples, so the field is that many times smaller than the frame in each direction.
+/// The two components are stored apart. Each one has a border of <see cref="BorderOuter"/> entries on every side. The upscale filter of one level
+/// reads that far outside the area that the level filled.
 /// </para>
 /// </remarks>
 internal sealed class Av1FlowField : IDisposable
 {
     /// <summary>
-    /// The bits by which the field is smaller than the frame in each direction.
+    /// The base-two logarithm of the factor by which the field is smaller than the frame in each direction.
     /// </summary>
-    /// <remarks>Reference: DOWNSAMPLE_SHIFT.</remarks>
     public const int DownsampleShift = 3;
 
     /// <summary>
-    /// The samples that one field entry describes in each direction.
+    /// The number of samples that one field entry describes in each direction.
     /// </summary>
-    /// <remarks>Reference: DOWNSAMPLE_FACTOR.</remarks>
     public const int DownsampleFactor = 1 << DownsampleShift;
 
     /// <summary>
     /// The offset from the first sample of a block to the sample the entry describes.
     /// </summary>
-    /// <remarks>Reference: UPSAMPLE_CENTER_OFFSET.</remarks>
     public const int UpsampleCenterOffset = (DownsampleFactor - 1) / 2;
 
     /// <summary>
-    /// The entries at each edge that the solver leaves alone because a patch centered there would
-    /// read outside the level.
+    /// The number of entries at each edge that the solver does not write, because a patch centered there reads outside the level.
     /// </summary>
-    /// <remarks>Reference: FLOW_BORDER_INNER.</remarks>
     public const int BorderInner = (Av1DenseFlowSolver.PatchSize >> 1) >> DownsampleShift;
 
     /// <summary>
-    /// The taps of the upscale filter.
+    /// The number of taps of the upscale filter.
     /// </summary>
-    /// <remarks>Reference: FLOW_UPSCALE_TAPS.</remarks>
     private const int UpscaleTaps = 4;
 
     /// <summary>
-    /// The entries held outside each edge, so that the upscale filter needs no clamping.
+    /// The number of entries held outside each edge, so that the upscale filter needs no clamping.
     /// </summary>
-    /// <remarks>Reference: FLOW_BORDER_OUTER.</remarks>
     public const int BorderOuter = UpscaleTaps / 2;
 
+    /// <summary>
+    /// The owner of the storage of both components.
+    /// </summary>
     private readonly IMemoryOwner<double> owner;
+
+    /// <summary>
+    /// The number of entries in one component, including its border.
+    /// </summary>
     private readonly int planeLength;
 
     /// <summary>
@@ -79,24 +74,23 @@ internal sealed class Av1FlowField : IDisposable
         this.planeLength = this.Stride * (this.Height + (2 * BorderOuter));
         this.Origin = (BorderOuter * this.Stride) + BorderOuter;
 
-        // The two components share one allocation, and both are cleared, because the coarsest level
-        // begins from a flow of zero and the border of every level is filled from entries that the
-        // level itself wrote.
+        // The two components share one allocation. The allocation is cleared, because the coarsest level starts from a flow of zero. The border
+        // of every level gets its values from entries that the level itself wrote.
         this.owner = allocator.Allocate<double>(2 * this.planeLength, AllocationOptions.Clean);
     }
 
     /// <summary>
-    /// Gets the entries across the finest level.
+    /// Gets the number of entries across the finest level.
     /// </summary>
     public int Width { get; }
 
     /// <summary>
-    /// Gets the entries down the finest level.
+    /// Gets the number of entries down the finest level.
     /// </summary>
     public int Height { get; }
 
     /// <summary>
-    /// Gets the entries between one row of the field and the next, including both borders.
+    /// Gets the number of entries between one row of the field and the next, including both borders.
     /// </summary>
     public int Stride { get; }
 
@@ -118,27 +112,25 @@ internal sealed class Av1FlowField : IDisposable
     /// <summary>
     /// Gets the cubic taps of the output entry that sits a quarter of an entry before its input.
     /// </summary>
-    /// <remarks>Reference: flow_upscale_filter, phase 0.75.</remarks>
+    /// <remarks>These are the cubic taps of phase 0.75.</remarks>
     private static ReadOnlySpan<double> LowerPhaseFilter => [-3 / 128.0, 29 / 128.0, 111 / 128.0, -9 / 128.0];
 
     /// <summary>
     /// Gets the cubic taps of the output entry that sits a quarter of an entry after its input.
     /// </summary>
-    /// <remarks>Reference: flow_upscale_filter, phase 0.25.</remarks>
+    /// <remarks>These are the cubic taps of phase 0.25.</remarks>
     private static ReadOnlySpan<double> UpperPhaseFilter => [-9 / 128.0, 111 / 128.0, 29 / 128.0, -3 / 128.0];
 
     /// <summary>
     /// Refines the flow of one frame pair from the coarsest level of the pyramid to the finest.
     /// </summary>
-    /// <param name="allocator">The allocator of the scratch used between two levels.</param>
+    /// <param name="allocator">The allocator of the buffer that holds one horizontally upscaled level.</param>
     /// <param name="source">The pyramid of the frame the model maps from.</param>
     /// <param name="reference">The pyramid of the frame the model maps to.</param>
-    /// <param name="levelCount">The levels that both pyramids hold.</param>
+    /// <param name="levelCount">The number of levels that both pyramids hold.</param>
     /// <remarks>
-    /// The refinement stops after level one. The field of level zero is the interpolation of level
-    /// one and is not refined, because refining the correspondences themselves later is both faster
-    /// and more accurate than refining every entry of the finest level.
-    /// Reference: compute_flow_field().
+    /// The refinement stops after level one. The field of level zero is the interpolation of level one, without refinement. A later refinement of
+    /// the correspondences is faster and more accurate than a refinement of every entry of the finest level.
     /// </remarks>
     public void Compute(MemoryAllocator allocator, Av1ImagePyramid source, Av1ImagePyramid reference, int levelCount)
     {
@@ -147,9 +139,8 @@ internal sealed class Av1FlowField : IDisposable
         int scratchOrigin = 0;
         if (levelCount >= 2)
         {
-            // The scratch holds one horizontally upscaled level, which is as tall as the level that
-            // is upscaled and as wide as the field. Its rows above and below the level are written
-            // by the upscale itself, so the allocation does not have to be cleared.
+            // This buffer holds one horizontally upscaled level. It is as tall as the source level and as wide as the field. The upscale itself
+            // writes the rows above and below the level, so the allocation does not need a clear.
             int scratchHeight = source.GetLevel(1).Height >> DownsampleShift;
             scratchOwner = allocator.Allocate<double>((scratchHeight + (2 * BorderOuter)) * this.Stride);
             scratch = scratchOwner.Memory.Span;
@@ -173,8 +164,7 @@ internal sealed class Av1FlowField : IDisposable
                 {
                     for (int column = BorderInner; column < levelWidth - BorderInner; column++)
                     {
-                        // The entry describes the sample at the center of its block, and the patch is
-                        // placed so that its own center sample is that sample.
+                        // The entry describes the sample at the center of its block. The patch position puts the patch center on that sample.
                         int patchX = (column << DownsampleShift) + UpsampleCenterOffset - Av1DenseFlowSolver.PatchCenter;
                         int patchY = (row << DownsampleShift) + UpsampleCenterOffset - Av1DenseFlowSolver.PatchCenter;
                         int entry = this.Origin + (row * this.Stride) + column;
@@ -192,17 +182,16 @@ internal sealed class Av1FlowField : IDisposable
                     }
                 }
 
-                // The edges the solver left alone are filled from the nearest entry it did write, so
-                // that the upscale of this level reads a defined value everywhere.
+                // The edges that the solver did not write get the nearest entry that it wrote. Thus the upscale of this level reads a defined value
+                // everywhere.
                 this.FillBorders(horizontal, levelWidth, levelHeight);
                 this.FillBorders(vertical, levelWidth, levelHeight);
 
                 this.Upscale(horizontal, levelWidth, levelHeight, scratch, scratchOrigin);
                 this.Upscale(vertical, levelWidth, levelHeight, scratch, scratchOrigin);
 
-                // An odd level width or height gives the next level one more entry than the doubling
-                // produced. That entry takes the value of its neighbour, which keeps the ratio of the
-                // two levels at exactly two.
+                // An odd level width or height gives the next level one more entry than the doubling produced. That entry takes the value of its
+                // neighbor, which keeps the ratio of the two levels at exactly two.
                 Av1ImagePyramid.Level nextLevel = source.GetLevel(level - 1);
                 this.ExtendUpscaledEdges(
                     horizontal,
@@ -224,11 +213,10 @@ internal sealed class Av1FlowField : IDisposable
     /// </summary>
     /// <param name="component">The component to read.</param>
     /// <param name="offset">The index of the entry at or before the position.</param>
-    /// <param name="stride">The entries between one row and the next.</param>
+    /// <param name="stride">The number of entries between one row and the next.</param>
     /// <param name="horizontalKernel">The four horizontal taps.</param>
     /// <param name="verticalKernel">The four vertical taps.</param>
     /// <returns>The interpolated value.</returns>
-    /// <remarks>Reference: bicubic_interp_one().</remarks>
     public static double Interpolate(
         ReadOnlySpan<double> component,
         int offset,
@@ -249,8 +237,7 @@ internal sealed class Av1FlowField : IDisposable
     /// Builds the four cubic taps of one fractional position.
     /// </summary>
     /// <param name="fraction">The position between two entries, from zero through one.</param>
-    /// <param name="kernel">The four taps, in increasing position order.</param>
-    /// <remarks>Reference: get_cubic_kernel_dbl().</remarks>
+    /// <param name="kernel">Receives the four taps, in increasing position order.</param>
     public static void GetCubicKernel(double fraction, Span<double> kernel)
     {
         double square = fraction * fraction;
@@ -267,14 +254,18 @@ internal sealed class Av1FlowField : IDisposable
     /// <summary>
     /// Applies four taps to four consecutive values.
     /// </summary>
-    /// <remarks>Reference: get_cubic_value_dbl().</remarks>
+    /// <param name="values">The values, starting at the first of the four.</param>
+    /// <param name="kernel">The four taps.</param>
+    /// <returns>The weighted sum of the four values.</returns>
     private static double Apply(ReadOnlySpan<double> values, ReadOnlySpan<double> kernel)
         => (values[0] * kernel[0]) + (values[1] * kernel[1]) + (values[2] * kernel[2]) + (values[3] * kernel[3]);
 
     /// <summary>
     /// Spreads the outermost written entry of one component into the edges around it.
     /// </summary>
-    /// <remarks>Reference: fill_flow_field_borders().</remarks>
+    /// <param name="component">The component to fill, in place.</param>
+    /// <param name="width">The number of entries across the level.</param>
+    /// <param name="height">The number of entries down the level.</param>
     private void FillBorders(Span<double> component, int width, int height)
     {
         if (width <= 2 * BorderInner || height <= 2 * BorderInner)
@@ -287,8 +278,7 @@ internal sealed class Av1FlowField : IDisposable
         int rowLength = width + (2 * BorderOuter);
         int start = this.Origin - BorderOuter;
 
-        // Each row is taken from its own left edge, so every index below counts from that edge and
-        // none of them is negative. Entry j of the row therefore sits at BorderOuter + j.
+        // Each row slice starts at its own left edge, so every index below is not negative. Entry j of the row is at BorderOuter + j.
         for (int row = BorderInner; row <= lastRow; row++)
         {
             Span<double> entries = component.Slice(start + (row * this.Stride), rowLength);
@@ -296,8 +286,7 @@ internal sealed class Av1FlowField : IDisposable
             entries[(BorderOuter + lastColumn + 1)..].Fill(entries[BorderOuter + lastColumn]);
         }
 
-        // The rows above and below take a complete copy of the nearest written row, including the
-        // left and right edges that were just filled.
+        // The rows above and below get a full copy of the nearest written row, with the left and right edges that the loop above filled.
         ReadOnlySpan<double> firstWritten = component.Slice(start + (BorderInner * this.Stride), rowLength);
         for (int row = -BorderOuter; row < BorderInner; row++)
         {
@@ -315,16 +304,14 @@ internal sealed class Av1FlowField : IDisposable
     /// Doubles one component in both directions and doubles its magnitude with it.
     /// </summary>
     /// <remarks>
-    /// The two output entries of one input entry sit a quarter of an entry on each side of it, so
-    /// each takes its own phase of the cubic filter. The magnitude doubles because an entry of the
-    /// finer level spans half the samples that an entry of this level spans.
-    /// Reference: upscale_flow_component().
+    /// The two output entries of one input entry are a quarter of an entry on each side of it. Thus each one uses its own phase of the cubic filter.
+    /// The magnitude doubles, because one sample of this level spans two samples of the finer level.
     /// </remarks>
     /// <param name="component">The component to double, in place.</param>
-    /// <param name="width">The entries across the level.</param>
-    /// <param name="height">The entries down the level.</param>
+    /// <param name="width">The number of entries across the level.</param>
+    /// <param name="height">The number of entries down the level.</param>
     /// <param name="scratch">The storage of the horizontally doubled level.</param>
-    /// <param name="scratchOrigin">The index of the first entry of the scratch that is not border.</param>
+    /// <param name="scratchOrigin">The index of the first entry of that storage that is not border.</param>
     private void Upscale(Span<double> component, int width, int height, Span<double> scratch, int scratchOrigin)
     {
         int upscaledWidth = width * 2;
@@ -336,8 +323,7 @@ internal sealed class Av1FlowField : IDisposable
                 scratch.Slice(scratchOrigin + (row * this.Stride), upscaledWidth));
         }
 
-        // The vertical pass reads rows above and below the level, so the scratch keeps a copy of its
-        // first and last rows there.
+        // The vertical pass reads rows above and below the level, so the buffer keeps copies of its first and last rows there.
         ReadOnlySpan<double> topRow = scratch.Slice(scratchOrigin, upscaledWidth);
         for (int row = -BorderOuter; row < 0; row++)
         {
@@ -362,16 +348,14 @@ internal sealed class Av1FlowField : IDisposable
     }
 
     /// <summary>
-    /// Doubles one row of a component horizontally, and doubles its magnitude, as the first pass of
-    /// <c>upscale_flow_component</c> does.
+    /// Doubles one row of a component horizontally and doubles its magnitude. This is the first pass of the upscale.
     /// </summary>
     /// <remarks>
-    /// The two outputs of one entry form a lane pair whose inputs are adjacent, so a pair loads two adjacent entries
-    /// and multiplies them by the two phases' taps at once. Each lane sums its taps in the reference order with
-    /// separate multiplies and adds, so every output is exact.
+    /// The two outputs of one entry form a lane pair whose inputs are adjacent. Thus a pair loads two adjacent entries and multiplies them by the taps
+    /// of the two phases at once. The wider stages shuffle the entries 0, 1, 1, 2 and more into those pairs. Each lane sums its taps in tap order,
+    /// with separate multiplies and adds. Thus every output is bit-exact with the scalar loop.
     /// </remarks>
-    /// <param name="input">The row, beginning <see cref="BorderOuter"/> entries before its first entry and ending as
-    /// many after its last.</param>
+    /// <param name="input">The row, beginning <see cref="BorderOuter"/> entries before its first entry and ending as many after its last.</param>
     /// <param name="output">Receives two entries for each entry of the row.</param>
     internal static void UpscaleRow(ReadOnlySpan<double> input, Span<double> output)
     {
@@ -382,7 +366,7 @@ internal sealed class Av1FlowField : IDisposable
         ref double outputBase = ref MemoryMarshal.GetReference(output);
         int column = 0;
 
-        // Each stage stops where its last load would pass the right border.
+        // Each stage stops before its last load passes the right border.
         if (Vector512.IsHardwareAccelerated)
         {
             Vector512<long> pairs = Vector512.Create(0L, 1, 1, 2, 2, 3, 3, 4);
@@ -447,15 +431,13 @@ internal sealed class Av1FlowField : IDisposable
     }
 
     /// <summary>
-    /// Doubles one row of a horizontally doubled component vertically, as the second pass of
-    /// <c>upscale_flow_component</c> does.
+    /// Doubles one row of a horizontally doubled component vertically. This is the second pass of the upscale.
     /// </summary>
     /// <remarks>
-    /// Each lane sums its taps in the reference order with separate multiplies and adds, so every output is exact.
+    /// Each lane sums its taps in tap order, with separate multiplies and adds. Thus every output is bit-exact with the scalar loop.
     /// </remarks>
-    /// <param name="input">The entries <see cref="BorderOuter"/> rows above the input row, followed by the rest of
-    /// the component.</param>
-    /// <param name="stride">The entries between one row and the next.</param>
+    /// <param name="input">The entries <see cref="BorderOuter"/> rows above the input row, followed by the rest of the component.</param>
+    /// <param name="stride">The number of entries between one row and the next.</param>
     /// <param name="top">Receives the output row a quarter of an entry above the input row.</param>
     /// <param name="bottom">Receives the output row a quarter of an entry below the input row.</param>
     internal static void UpscaleColumns(ReadOnlySpan<double> input, int stride, Span<double> top, Span<double> bottom)
@@ -463,6 +445,8 @@ internal sealed class Av1FlowField : IDisposable
         ReadOnlySpan<double> lowerPhase = LowerPhaseFilter;
         ReadOnlySpan<double> upperPhase = UpperPhaseFilter;
         int width = top.Length;
+
+        // This check covers the last entry that the loops below read, so the unchecked vector loads stay inside the input.
         _ = input[(UpscaleTaps * stride) + width - 1];
         ref double inputBase = ref MemoryMarshal.GetReference(input);
         ref double topBase = ref MemoryMarshal.GetReference(top);
@@ -539,9 +523,14 @@ internal sealed class Av1FlowField : IDisposable
     }
 
     /// <summary>
-    /// Copies the neighbouring entry into a column or a row that the doubling did not produce.
+    /// Copies the neighboring entry into a column or a row that the doubling did not produce.
     /// </summary>
-    /// <remarks>Reference: the rightmost column and bottommost row blocks of compute_flow_field().</remarks>
+    /// <param name="horizontal">The horizontal component, in place.</param>
+    /// <param name="vertical">The vertical component, in place.</param>
+    /// <param name="upscaledWidth">The number of entries across the doubled level.</param>
+    /// <param name="upscaledHeight">The number of entries down the doubled level.</param>
+    /// <param name="nextWidth">The number of entries across the next finer level.</param>
+    /// <param name="nextHeight">The number of entries down the next finer level.</param>
     private void ExtendUpscaledEdges(
         Span<double> horizontal,
         Span<double> vertical,

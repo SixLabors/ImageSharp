@@ -24,7 +24,9 @@ internal abstract partial class Av1FilterIntraPredictorBase
         public static abstract Av1FilterIntraMode Mode { get; }
 
         /// <summary>
-        /// Gets the eight seven-tap coefficient rows used by the operator.
+        /// Gets the eight seven-tap Q4 coefficient rows used by the operator.
+        /// Row <c>i</c> holds the taps for output <c>i</c> of a 2-by-4 group in row-major order.
+        /// Taps 0 to 4 weight the top-left input and the four inputs above the group. Taps 5 and 6 weight the two inputs to the left of the group.
         /// </summary>
         public static abstract ReadOnlySpan<sbyte> Taps { get; }
     }
@@ -34,10 +36,10 @@ internal abstract partial class Av1FilterIntraPredictorBase
     /// </summary>
     /// <typeparam name="TOperator">The filter-intra coefficient set.</typeparam>
     /// <remarks>
-    /// AV1 filter-intra predicts a two-row by four-column group from seven samples that may include previously
-    /// predicted groups. The fixed-stride scratch surface preserves those dependencies with a one-sample top and left
-    /// border. SIMD lanes hold the eight outputs of one group in row-major order; they do not span independent groups,
-    /// because the next group can depend on the values just produced.
+    /// AV1 filter-intra predicts a two-row by four-column group from seven samples. These samples can include previously predicted groups.
+    /// The fixed-stride work surface keeps those dependencies with a one-sample top and left border.
+    /// SIMD lanes hold the eight outputs of one group in row-major order.
+    /// Lanes never span groups, because the next group can depend on the values of the previous group.
     /// </remarks>
     internal sealed class Av1FilterIntraPredictor<TOperator> : Av1FilterIntraPredictorBase
         where TOperator : struct, IAv1FilterIntraPredictionOperator
@@ -57,8 +59,8 @@ internal abstract partial class Av1FilterIntraPredictorBase
 
             if (Vector256.IsHardwareAccelerated)
             {
-                // Each tap vector contains the coefficient at one tap position for the eight row-major outputs in a
-                // 2-by-4 group. Broadcasting the seven reconstructed inputs therefore evaluates all outputs together.
+                // Each tap vector holds the coefficients at one tap position for the eight row-major outputs of a 2-by-4 group.
+                // Thus the seven broadcast inputs evaluate all eight outputs together. The Q4 sum is rounded with 8, shifted right by 4 and clamped.
                 Vector256<int> tap0 = CreateTapVector256(ref taps, 0);
                 Vector256<int> tap1 = CreateTapVector256(ref taps, 1);
                 Vector256<int> tap2 = CreateTapVector256(ref taps, 2);
@@ -97,8 +99,8 @@ internal abstract partial class Av1FilterIntraPredictorBase
             }
             else if (Vector128.IsHardwareAccelerated)
             {
-                // A 128-bit vector covers one four-sample output row. Low and high coefficient vectors describe the
-                // first and second rows respectively while sharing the same seven reconstructed input broadcasts.
+                // A 128-bit vector covers one four-sample output row. The low and high coefficient vectors describe the first and the second row.
+                // Both rows share the same seven broadcast inputs.
                 Vector128<int> tap0Low = CreateTapVector128(ref taps, 0, 0);
                 Vector128<int> tap1Low = CreateTapVector128(ref taps, 1, 0);
                 Vector128<int> tap2Low = CreateTapVector128(ref taps, 2, 0);
@@ -157,8 +159,8 @@ internal abstract partial class Av1FilterIntraPredictorBase
 
             if (Vector256.IsHardwareAccelerated)
             {
-                // High-bit-depth storage changes only the final clamp and narrowing. The Int32 accumulator layout is
-                // identical to the eight-bit path, preserving all signed coefficient products before Q4 rounding.
+                // High-bit-depth storage changes only the final clamp and narrowing. The 32-bit accumulator layout is the same as in the 8-bit path.
+                // It keeps all signed coefficient products exact before the Q4 rounding.
                 Vector256<int> tap0 = CreateTapVector256(ref taps, 0);
                 Vector256<int> tap1 = CreateTapVector256(ref taps, 1);
                 Vector256<int> tap2 = CreateTapVector256(ref taps, 2);
@@ -276,8 +278,8 @@ internal abstract partial class Av1FilterIntraPredictorBase
         /// <param name="topLeft">The shared top-left reference.</param>
         private static void Initialize(Span<byte> buffer, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int width, int height, byte topLeft)
         {
-            // Predictions use one-based coordinates in the workspace. Row zero and column zero retain the prepared
-            // references while later groups overwrite only the interior values on which following groups depend.
+            // Predictions use one-based coordinates in the workspace. Row zero and column zero keep the prepared references.
+            // Each group writes only interior values. Later groups read these values as their inputs.
             buffer[0] = topLeft;
             above[..width].CopyTo(buffer[1..]);
             for (int row = 0; row < height; row++)
@@ -297,7 +299,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
         /// <param name="topLeft">The shared top-left reference.</param>
         private static void Initialize(Span<short> buffer, ReadOnlySpan<short> above, ReadOnlySpan<short> left, int width, int height, short topLeft)
         {
-            // Match the eight-bit one-based workspace so the recursive source offsets remain representation-agnostic.
+            // This workspace uses the same one-based layout as the 8-bit workspace. Thus the source offsets are the same for both sample types.
             buffer[0] = topLeft;
             above[..width].CopyTo(buffer[1..]);
             for (int row = 0; row < height; row++)
@@ -349,13 +351,13 @@ internal abstract partial class Av1FilterIntraPredictorBase
         /// <param name="tap4">The fifth tap coefficients.</param>
         /// <param name="tap5">The sixth tap coefficients.</param>
         /// <param name="tap6">The seventh tap coefficients.</param>
-        /// <param name="p0">The first reconstructed sample.</param>
-        /// <param name="p1">The second reconstructed sample.</param>
-        /// <param name="p2">The third reconstructed sample.</param>
-        /// <param name="p3">The fourth reconstructed sample.</param>
-        /// <param name="p4">The fifth reconstructed sample.</param>
-        /// <param name="p5">The sixth reconstructed sample.</param>
-        /// <param name="p6">The seventh reconstructed sample.</param>
+        /// <param name="p0">The reconstructed sample above and to the left of the group.</param>
+        /// <param name="p1">The reconstructed sample above the first group column.</param>
+        /// <param name="p2">The reconstructed sample above the second group column.</param>
+        /// <param name="p3">The reconstructed sample above the third group column.</param>
+        /// <param name="p4">The reconstructed sample above the fourth group column.</param>
+        /// <param name="p5">The reconstructed sample to the left of the first group row.</param>
+        /// <param name="p6">The reconstructed sample to the left of the second group row.</param>
         /// <returns>The unrounded predictions.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector256<int> Calculate(
@@ -385,13 +387,13 @@ internal abstract partial class Av1FilterIntraPredictorBase
         /// <param name="tap4">The fifth tap coefficients.</param>
         /// <param name="tap5">The sixth tap coefficients.</param>
         /// <param name="tap6">The seventh tap coefficients.</param>
-        /// <param name="p0">The first reconstructed sample.</param>
-        /// <param name="p1">The second reconstructed sample.</param>
-        /// <param name="p2">The third reconstructed sample.</param>
-        /// <param name="p3">The fourth reconstructed sample.</param>
-        /// <param name="p4">The fifth reconstructed sample.</param>
-        /// <param name="p5">The sixth reconstructed sample.</param>
-        /// <param name="p6">The seventh reconstructed sample.</param>
+        /// <param name="p0">The reconstructed sample above and to the left of the group.</param>
+        /// <param name="p1">The reconstructed sample above the first group column.</param>
+        /// <param name="p2">The reconstructed sample above the second group column.</param>
+        /// <param name="p3">The reconstructed sample above the third group column.</param>
+        /// <param name="p4">The reconstructed sample above the fourth group column.</param>
+        /// <param name="p5">The reconstructed sample to the left of the first group row.</param>
+        /// <param name="p6">The reconstructed sample to the left of the second group row.</param>
         /// <returns>The unrounded predictions.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<int> Calculate(
@@ -421,6 +423,8 @@ internal abstract partial class Av1FilterIntraPredictorBase
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void StoreEightBytes(Vector256<int> prediction, ref byte buffer, int firstRowOffset, int secondRowOffset)
         {
+            // The clamped values fit a byte, so two narrowing steps are exact.
+            // The first 32-bit element then holds the first row, and the second element holds the second row.
             Vector256<ushort> narrowed16 = Vector256.Narrow(prediction.AsUInt32(), Vector256<uint>.Zero);
             Vector256<byte> narrowed8 = Vector256.Narrow(narrowed16, Vector256<ushort>.Zero);
             Unsafe.As<byte, uint>(ref Unsafe.Add(ref buffer, firstRowOffset)) = narrowed8.AsUInt32().GetElement(0);
@@ -504,6 +508,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
                             + (Unsafe.Add(ref taps, tapOffset + 5) * p5)
                             + (Unsafe.Add(ref taps, tapOffset + 6) * p6);
 
+                        // Outputs 0 to 3 go to the first group row and outputs 4 to 7 go to the second group row.
                         int destinationOffset = ((row + (pixel >> 2)) * BufferStride) + column + (pixel & 3);
                         Unsafe.Add(ref bufferBase, destinationOffset) = (byte)Math.Clamp((prediction + 8) >> 4, 0, maximum);
                     }

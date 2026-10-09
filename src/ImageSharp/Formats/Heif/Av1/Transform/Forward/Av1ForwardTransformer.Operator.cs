@@ -14,8 +14,8 @@ internal static partial class Av1ForwardTransformer
     /// Defines the scalar and SIMD arithmetic for one AV1 forward transform.
     /// </summary>
     /// <remarks>
-    /// Every overload applies the same stage network to independent transform axes. The family traversal selects one
-    /// concrete lane width, while the closed semantic operator lets the JIT resolve the static call before the stages.
+    /// Every overload applies the same stage network to independent transform axes. The family traversal selects one concrete lane width.
+    /// The closed operator type lets the JIT resolve the static call before the stages run.
     /// </remarks>
     internal interface IAv1ForwardTransform1dOperator
     {

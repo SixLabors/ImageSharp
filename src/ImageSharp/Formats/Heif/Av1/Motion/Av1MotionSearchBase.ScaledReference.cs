@@ -8,10 +8,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 internal static partial class Av1MotionSearchBase
 {
     /// <summary>
-    /// A reference of another size than the frame, from which a fractional search measures its candidates. The full
-    /// search reads the copy of the reference resized to the frame size, and the fractional search predicts each
-    /// candidate from the reference itself with its scale factors and the regular filter. Reference: the buffers that
-    /// av1_single_motion_search() swaps back before the subpel search, and aom_upsampled_pred_scaled().
+    /// A reference of another size than the frame, from which a fractional search measures its candidates.
+    /// The full-pixel search reads the copy of the reference resized to the frame size.
+    /// The fractional search predicts each candidate from the reference itself, with its scale factors and the regular filter.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     public readonly ref struct ScaledReference<TSample>
@@ -86,8 +85,8 @@ internal static partial class Av1MotionSearchBase
         public bool IsScaled => !this.samples.IsEmpty;
 
         /// <summary>
-        /// Predicts the block at a candidate vector from the reference with its scale factors and the regular filter,
-        /// as the fractional search measures it. Reference: aom_upsampled_pred_scaled().
+        /// Predicts the block at a candidate vector from the reference with its scale factors and the regular filter.
+        /// The fractional search measures each candidate with this prediction.
         /// </summary>
         /// <typeparam name="TOperator">The closed prediction and error operator.</typeparam>
         /// <param name="vector">The candidate vector in eighth samples.</param>
@@ -101,7 +100,6 @@ internal static partial class Av1MotionSearchBase
 
         /// <summary>
         /// Predicts the block at a candidate vector from the reference with its scale factors.
-        /// Reference: the scaled branch of av1_make_inter_predictor().
         /// </summary>
         /// <typeparam name="TOperator">The closed prediction and error operator.</typeparam>
         /// <param name="vector">The candidate vector in eighth samples.</param>
@@ -119,6 +117,8 @@ internal static partial class Av1MotionSearchBase
             int bitDepth)
             where TOperator : struct, IMotionSearchOperator<TSample>
         {
+            // The block origin and the eighth-sample vector both convert to sixteenth-sample units before the scale maps them into the reference.
+            // The integer part of the scaled position selects the first reference sample, and the fraction is the first filter phase.
             Point position = this.scale.ScalePosition(
                 (this.blockOrigin.X << 4) + (vector.Column << 1),
                 (this.blockOrigin.Y << 4) + (vector.Row << 1),

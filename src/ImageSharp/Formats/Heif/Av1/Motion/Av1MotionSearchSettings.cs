@@ -10,10 +10,29 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 /// </summary>
 internal readonly struct Av1MotionSearchSettings
 {
+    /// <summary>
+    /// The encoding speed.
+    /// </summary>
     private readonly HeifEncodingSpeed speed;
+
+    /// <summary>
+    /// The full-pixel pattern of the frame, before the block-size override.
+    /// </summary>
     private readonly FullPixelSearchMethod fullPixelMethod;
+
+    /// <summary>
+    /// The shorter block side at which a block uses a faster full-pixel pattern, or zero when no block does.
+    /// </summary>
     private readonly int fasterSearchMinimumDimension;
+
+    /// <summary>
+    /// The base quantizer index, or -1 before the quantizer-dependent features first run.
+    /// </summary>
     private readonly int qIndex;
+
+    /// <summary>
+    /// The shorter side of the visible frame, in samples.
+    /// </summary>
     private readonly int minimumDimension;
 
     /// <summary>
@@ -24,9 +43,7 @@ internal readonly struct Av1MotionSearchSettings
     /// <param name="frameSize">The visible frame dimensions.</param>
     /// <param name="qIndex">The base quantizer index.</param>
     /// <param name="boostedFrame">Whether this is a key, golden, or alternate-reference frame with boosted quality.</param>
-    /// <param name="screenContent">
-    /// Whether the frame is graphics content or uses the screen content tools, which lowers the mesh search threshold.
-    /// </param>
+    /// <param name="screenContent">Whether the frame is graphics content or uses the screen content tools. This lowers the mesh search threshold.</param>
     /// <param name="tuning">The tune metric.</param>
     public Av1MotionSearchSettings(
         HeifEncodingSpeed speed,
@@ -41,10 +58,9 @@ internal readonly struct Av1MotionSearchSettings
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1MotionSearchSettings"/> struct as a frame leaves them after
-    /// every quantizer-dependent update it made. Reference: av1_set_speed_features_framesize_independent() and
-    /// av1_set_speed_features_qindex_dependent(), which the screen content trial calls at its own quantizer before
-    /// the frame calls it at the frame quantizer.
+    /// Initializes a new instance of the <see cref="Av1MotionSearchSettings"/> struct.
+    /// The settings match the state of a frame after all its quantizer-dependent updates.
+    /// The screen content trial applies its update at its own quantizer. Then the frame applies its update at the frame quantizer.
     /// </summary>
     /// <param name="speed">The encoding speed.</param>
     /// <param name="intraOnly">Whether every frame is coded independently.</param>
@@ -54,7 +70,7 @@ internal readonly struct Av1MotionSearchSettings
     /// <param name="boostedFrame">Whether this is a key, golden, or alternate-reference frame with boosted quality.</param>
     /// <param name="lowMeshThreshold">
     /// Whether the frame is graphics or animation, or used the screen content tools when its speed features were set.
-    /// Reference: the fr_content_type and use_screen_content_tools test of exhaustive_searches_thresh.
+    /// This lowers the mesh search threshold.
     /// </param>
     /// <param name="tuning">The tune metric.</param>
     public Av1MotionSearchSettings(
@@ -80,8 +96,8 @@ internal readonly struct Av1MotionSearchSettings
         this.AllowIntraBlockCopy = true;
         this.MeshErrorThreshold = 1 << (lowMeshThreshold ? 20 : 25);
 
-        // Apply coding-mode choices before resolution and quantizer overrides. Reversing that order can
-        // incorrectly suppress a second motion candidate or replace a quantizer-selected search pattern.
+        // The coding-mode choices come before the resolution and quantizer overrides.
+        // In the reverse order, the code can wrongly suppress a second motion candidate or replace a quantizer-selected search pattern.
         if (speed >= HeifEncodingSpeed.Level1)
         {
             this.MeshErrorThreshold <<= 1;
@@ -114,8 +130,8 @@ internal readonly struct Av1MotionSearchSettings
         }
         else if (speed >= HeifEncodingSpeed.Level7)
         {
-            // Real-time motion search has its own baseline. It must not inherit progressively
-            // reduced search ranges or four-tap interpolation from the lower speed levels.
+            // Real-time motion search has its own baseline.
+            // It does not inherit the reduced search ranges or the four-tap interpolation of the lower speed levels.
             this.fullPixelMethod = FullPixelSearchMethod.FastDiamond;
             this.FractionalMethod = FractionalSearchMethod.PrunedTree;
             this.FractionalIterationsPerStep = 1;
@@ -126,8 +142,8 @@ internal readonly struct Av1MotionSearchSettings
             this.MotionCostUpdate = CostUpdateFrequency.SuperblockRow;
             this.UseRefiningObmcSearch = true;
 
-            // Real-time usage searches intra block copy only with the screen content tune, which this encoder never
-            // sets. Detected screen content does not turn it on.
+            // Real-time usage searches intra block copy only with the screen content tune. This encoder never sets that tune.
+            // Detected screen content does not turn it on.
             this.AllowIntraBlockCopy = false;
         }
         else
@@ -153,8 +169,7 @@ internal readonly struct Av1MotionSearchSettings
                 this.SecondCandidateSelection = CandidateSelection.FirstOnly;
                 this.MeshPruningLevel = 1;
 
-                // The image and SSIMULACRA 2 tunes keep intra block copy. Reference: the use_intrabc override of the
-                // AOM_TUNE_IQ and AOM_TUNE_SSIMULACRA2 block of set_good_speed_features_framesize_independent().
+                // The image and SSIMULACRA 2 tunes keep intra block copy at these speeds.
                 this.AllowIntraBlockCopy = tuning.IsImageTuning();
                 this.MotionCostUpdate = CostUpdateFrequency.SuperblockRow;
             }
@@ -214,8 +229,7 @@ internal readonly struct Av1MotionSearchSettings
             }
         }
 
-        // Each quantizer-dependent update only overrides the pattern, so a trial update stays unless the frame
-        // update replaces it.
+        // Each quantizer-dependent update only overrides the pattern, so a trial update stays unless the frame update replaces it.
         if (trialQIndex >= 0)
         {
             this.fullPixelMethod = ApplyQIndexDependentMethod(speed, is720pOrLarger, trialQIndex, this.fullPixelMethod);
@@ -228,7 +242,7 @@ internal readonly struct Av1MotionSearchSettings
     }
 
     /// <summary>
-    /// The serial tile traversal boundaries at which coding costs are refreshed.
+    /// The points in the serial tile traversal where the encoder refreshes the coding costs.
     /// </summary>
     public enum CostUpdateFrequency
     {
@@ -468,7 +482,8 @@ internal readonly struct Av1MotionSearchSettings
     public CandidateSelection SecondCandidateSelection { get; }
 
     /// <summary>
-    /// Gets a value indicating whether zero, four, or eight neighboring start/reference positions can reuse an earlier search.
+    /// Gets the start pruning level. Zero disables the pruning.
+    /// One prunes a start when the start and reference positions are within one axial step of an earlier search. Two also accepts diagonal steps.
     /// </summary>
     public int StartCandidatePruningLevel { get; }
 
@@ -495,6 +510,7 @@ internal readonly struct Av1MotionSearchSettings
             return this.fullPixelMethod;
         }
 
+        // A block whose shorter side reaches the threshold steps down to the next faster pattern.
         return this.fullPixelMethod switch
         {
             FullPixelSearchMethod.NStep or FullPixelSearchMethod.EightPointNStep => FullPixelSearchMethod.Diamond,
@@ -561,9 +577,9 @@ internal readonly struct Av1MotionSearchSettings
             }
         }
 
-        // Source activity controls precision only after displacement has had its first opportunity
-        // to stop the search. Reversing these decisions can retain expensive small-step searches.
-        // Frames of at least 720 samples below speed 9 reduce precision for low-complexity blocks.
+        // Source activity sets the precision only after the displacement test, which can stop the search first.
+        // In the reverse order, the code can keep expensive small-step searches.
+        // Below speed 9, frames whose shorter side is at least 720 samples reduce the precision for low-complexity blocks.
         if (this.minimumDimension >= 720 && this.speed < HeifEncodingSpeed.Level9 &&
             sourceSad <= Av1SourceSadLevel.VeryLow && blockSize > Av1BlockSize.Block16x16 && this.qIndex >= 64)
         {
@@ -608,8 +624,8 @@ internal readonly struct Av1MotionSearchSettings
     /// <returns>Four range/interval pairs. Traversal ends after the first interval of one.</returns>
     public ReadOnlySpan<int> GetMeshPattern(bool intraBlockCopy)
     {
-        // The alternating range/interval layout is immutable static storage. A frame or candidate does not
-        // allocate a pattern, and an interval of one terminates refinement before unused trailing entries.
+        // The patterns alternate range and interval and live in static read-only data, so no frame or candidate allocates one.
+        // An interval of one ends the refinement before the unused trailing entries.
         if (intraBlockCopy)
         {
             return this.speed switch
@@ -629,9 +645,8 @@ internal readonly struct Av1MotionSearchSettings
     }
 
     /// <summary>
-    /// Returns the full-pixel pattern after one quantizer-dependent update: coarse quantizers select a less
-    /// expensive pattern at the slower speeds, and other quantizers keep the current one. Reference: the mv_sf
-    /// search_method choices of av1_set_speed_features_qindex_dependent().
+    /// Returns the full-pixel pattern after one quantizer-dependent update.
+    /// At the slower speeds, coarse quantizers select a less expensive pattern. Other quantizers keep the current pattern.
     /// </summary>
     /// <param name="speed">The encoding speed.</param>
     /// <param name="is720pOrLarger">Whether the shorter frame dimension is at least 720.</param>

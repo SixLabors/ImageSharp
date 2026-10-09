@@ -109,8 +109,8 @@ internal sealed class Av1BlockDecoder
         int chromaFromLumaOffset = predictorWorkingOffset + predictorWorkingLength;
         this.predictionScratchOffset = Av1TransformWorkspace.InverseMaximumLength * 2;
 
-        // Integer workspaces occupy even signed-short slices. The session retains the owner while these
-        // frame-local views supply prediction and CfL contexts without transferring ownership.
+        // Integer workspaces occupy even signed-short slices. The session retains the owner while these frame-local views supply prediction and CfL contexts
+        // without transferring ownership.
         Memory<short> predictionScratch = workspace[this.predictionScratchOffset..];
         this.predictorWorkingLength = predictorWorkingLength;
         this.predictorWorkingOffset = this.predictionScratchOffset + predictorWorkingOffset;
@@ -123,14 +123,14 @@ internal sealed class Av1BlockDecoder
     }
 
     /// <summary>
-    /// Gets the inverse-transform and prediction storage. A caller reads it once per tile and passes it to
-    /// <see cref="BeginBlock"/> and <see cref="DecodeTransform"/>.
+    /// Gets the inverse-transform and prediction storage. A caller reads it once per tile and passes it to <see cref="BeginBlock"/> and
+    /// <see cref="DecodeTransform"/>.
     /// </summary>
     public Span<short> Workspace => this.workspace.Span;
 
     /// <summary>
-    /// Gets the samples of one plane of the reconstructed frame. A caller reads each plane once per tile and passes it to
-    /// <see cref="BeginBlock"/>, <see cref="DecodeTransform"/> and <see cref="EndBlock"/>.
+    /// Gets the samples of one plane of the reconstructed frame. A caller reads each plane once per tile and passes it to <see cref="BeginBlock"/>,
+    /// <see cref="DecodeTransform"/> and <see cref="EndBlock"/>.
     /// </summary>
     /// <param name="plane">The plane.</param>
     /// <returns>The plane samples, or an empty span for a chroma plane of a monochrome frame.</returns>
@@ -146,8 +146,8 @@ internal sealed class Av1BlockDecoder
         int maximumBlockLength = 1 << sequenceHeader.SuperblockSizeLog2;
         int maximumBlockArea = maximumBlockLength * maximumBlockLength;
 
-        // Two full prediction surfaces and the byte compound mask precede the shared predictor working area.
-        // Inverse transforms occupy int storage, so their element count is doubled in this short-based layout.
+        // Two full prediction surfaces and the byte compound mask precede the shared predictor working area. Inverse transforms occupy int storage, so their
+        // element count doubles in this short-based layout.
         return (Av1TransformWorkspace.InverseMaximumLength * 2) +
             (2 * maximumBlockArea) +
             ((maximumBlockArea + 1) >> 1) +
@@ -158,6 +158,8 @@ internal sealed class Av1BlockDecoder
     /// <summary>
     /// Gets the shared working extent needed by each prediction family.
     /// </summary>
+    /// <param name="maximumBlockLength">The superblock width and height in luma samples.</param>
+    /// <returns>The largest working length, in signed-short elements, of the intra, translational inter and scaled inter predictors.</returns>
     private static int GetPredictorWorkingLength(int maximumBlockLength)
         => Math.Max(
             Av1PredictionDecoder.ScratchLength,
@@ -171,8 +173,8 @@ internal sealed class Av1BlockDecoder
     /// <param name="superblockInfo">The superblock whose coefficient streams will be consumed.</param>
     public void UpdateSuperblock(Av1SuperblockInfo superblockInfo)
     {
-        // Each superblock owns independent coefficient regions for Y, U, and V. Every transform advances its
-        // plane cursor by its nominal area, including transforms with no coded residual.
+        // Each superblock owns independent coefficient regions for Y, U, and V. Every transform advances its plane cursor by its nominal area, including
+        // transforms with no coded residual.
         this.currentCoefficientIndex[0] = 0;
         this.currentCoefficientIndex[1] = 0;
         this.currentCoefficientIndex[2] = 0;
@@ -201,8 +203,8 @@ internal sealed class Av1BlockDecoder
 
         if (hasChroma)
         {
-            // A one-unit luma edge maps to the same chroma sample as the adjacent unit on a subsampled axis. In that
-            // case the usable chroma neighbor is two mode-info units away rather than immediately above or left.
+            // A one-unit luma edge maps to the same chroma sample as the adjacent unit on a subsampled axis. In that case the usable chroma neighbor is two
+            // mode-info units away rather than immediately above or left.
             if (colorConfig.SubSamplingY && blockSize.Get4x4HighCount() == 1)
             {
                 partitionInfo.AvailableAboveForChroma = modeInfoPosition.Y - 2 >= tileInfo.ModeInfoRowStart;
@@ -241,8 +243,8 @@ internal sealed class Av1BlockDecoder
                 continue;
             }
 
-            // Luma transform descriptors occupy their own stream. U and V share one stream, with the V descriptors
-            // following the U descriptors for this block, so the V base includes the complete U transform-unit count.
+            // Luma transform descriptors occupy their own stream. U and V share one stream, and the V descriptors of this block follow its U descriptors. Thus
+            // the V base includes the complete U transform-unit count.
             int transformInfoIndex = plane switch
             {
                 2 => modeInfo.GetFirstTransformLocation(Av1Plane.V) + chromaTransformUnitCount,
@@ -295,8 +297,8 @@ internal sealed class Av1BlockDecoder
         partitionInfo.ChromaFromLumaContext = this.chromaFromLumaContext;
         ref Av1BlockModeInfo modeInfo = ref partitionInfo.ModeInfo;
 
-        // Ordinary intra prediction consumes the immediately preceding transform's reconstructed edge.
-        // Inter and intra-block-copy predictions cover the complete block before any residual is added.
+        // Ordinary intra prediction consumes the immediately preceding transform's reconstructed edge. Inter and intra-block-copy predictions cover the
+        // complete block before any residual is added.
         if (modeInfo.ReferenceFrames[0] < Av1ReferenceFrameType.Last && !modeInfo.UseIntraBlockCopy)
         {
             return;
@@ -330,8 +332,8 @@ internal sealed class Av1BlockDecoder
                 }
             }
 
-            // A non-compound block aliases the unused secondary slot to its required primary frame. This keeps the
-            // published inter state complete without manufacturing a nullable second half.
+            // A non-compound block aliases the unused secondary slot to its required primary frame. This keeps the published inter state complete without a
+            // nullable second half.
             interReferenceBuffers = new(primaryReferenceFrameBuffer, secondaryReferenceFrameBuffer);
         }
 
@@ -357,8 +359,8 @@ internal sealed class Av1BlockDecoder
             Span<short> highBitDepthBlockReconstructionBuffer = default;
             int reconstructionStride;
 
-            // Prediction reads the row immediately above the destination through negative-relative neighbor offsets.
-            // The frame-buffer helpers therefore return a span beginning one logical sample row before the block.
+            // Prediction reads the row immediately above the destination through negative-relative neighbor offsets. The frame-buffer helpers therefore return
+            // a span beginning one logical sample row before the block.
             if (highBitDepth)
             {
                 highBitDepthBlockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer16(
@@ -382,10 +384,9 @@ internal sealed class Av1BlockDecoder
 
             if (modeInfo.UseIntraBlockCopy)
             {
-                // Predict the complete plane before adding transform residuals. The displacement validator keeps
-                // the source in an earlier decoded region, so later residual writes cannot change this prediction.
-                // Displacement vectors use one-eighth luma-sample units. Converting them to the plane's q4 grid
-                // leaves luma on an integer sample and can leave subsampled chroma exactly at phase eight.
+                // Predict the complete plane before adding transform residuals. The displacement validator keeps the source in an earlier decoded region, so
+                // later residual writes cannot change this prediction. Displacement vectors use one-eighth luma-sample units. Converting them to the plane's q4
+                // grid leaves luma on an integer sample and can leave subsampled chroma exactly at phase eight.
                 int sourceColumnQ4 = (pixelPosition.X << 4) +
                     (modeInfo.DisplacementVector.Column << (1 - subX));
 
@@ -486,8 +487,8 @@ internal sealed class Av1BlockDecoder
 
                 int referenceCount = usesSub8x8ChromaPrediction ? 0 : isCompound ? 2 : 1;
 
-                // Every compound predictor is combined before its final rounding step. Warped prediction has its own
-                // convolution kernels, but both outputs retain the same unsigned intermediate scale.
+                // Every compound predictor is combined before its final rounding step. Warped prediction has its own convolution kernels, but both outputs
+                // retain the same unsigned intermediate scale.
                 bool useHighBitDepthCompoundIntermediates =
                     highBitDepth &&
                     modeInfo.CompoundType is (
@@ -514,9 +515,8 @@ internal sealed class Av1BlockDecoder
                     bool isScaledReference = activeReferenceFrameBuffer.Width != this.frameHeader.FrameSize.FrameWidth ||
                         activeReferenceFrameBuffer.Height != this.frameHeader.FrameSize.FrameHeight;
 
-                    // Warped prediction is selected per plane. In subsampled frames an otherwise qualifying 8x8 luma
-                    // block has a 4x4 chroma prediction requiring the translational center motion vector.
-                    // Scaled references and integer-only frames exclude both local and global warp.
+                    // Warped prediction is selected per plane. In subsampled frames an otherwise qualifying 8x8 luma block has a 4x4 chroma prediction
+                    // requiring the translational center motion vector. Scaled references and integer-only frames exclude both local and global warp.
                     bool canUseWarpedPrediction =
                         !isScaledReference &&
                         !this.frameHeader.ForceIntegerMotionVector &&
@@ -543,8 +543,8 @@ internal sealed class Av1BlockDecoder
                             Av1GlobalMotionParameters globalMotionParameters =
                                 this.frameHeader.GetGlobalMotionParameters()[canonicalReferenceIndex];
 
-                            // Identity and translation GLOBALMV modes use their derived center vector. Rotation/zoom and
-                            // affine models use the complete matrix only when the decoded shear parameters are valid.
+                            // Identity and translation GLOBALMV modes use their derived center vector. Rotation/zoom and affine models use the complete matrix
+                            // only when the decoded shear parameters are valid.
                             if (globalMotionParameters.Type > Av1GlobalMotionType.Translation &&
                                 !globalMotionParameters.IsInvalid)
                             {
@@ -717,8 +717,8 @@ internal sealed class Av1BlockDecoder
                         continue;
                     }
 
-                    // AV1 predicts the complete declared plane block even when its luma extent crosses the frame boundary.
-                    // Subsampled dimensions retain a four-sample minimum on each axis.
+                    // AV1 predicts the complete declared plane block even when its luma extent crosses the frame boundary. Subsampled dimensions retain a
+                    // four-sample minimum on each axis.
                     int horizontalMotionQ4 = motionVector.Column << (1 - subX);
                     int verticalMotionQ4 = motionVector.Row << (1 - subY);
                     int horizontalExtensionQ4 = (4 + predictionWidth) << 4;
@@ -726,9 +726,8 @@ internal sealed class Av1BlockDecoder
                     int horizontalEdgeScale = 1 << (1 - subX);
                     int verticalEdgeScale = 1 << (1 - subY);
 
-                    // The UMV clamp is expressed in one-sixteenth plane-sample units. A 128-sample block can legally
-                    // address 135 samples beyond an edge once its prediction extent and eight-tap filter support are
-                    // included; the frame-owned prediction border keeps that source directly addressable.
+                    // The UMV clamp is in one-sixteenth plane-sample units. A 128-sample block can legally address 135 samples beyond an edge, with its
+                    // prediction extent and eight-tap filter support. The prediction border of the frame keeps that source directly addressable.
                     horizontalMotionQ4 = Av1Math.Clip3(
                         (partitionInfo.ModeBlockToLeftEdge * horizontalEdgeScale) - horizontalExtensionQ4,
                         (partitionInfo.ModeBlockToRightEdge * horizontalEdgeScale) + horizontalExtensionQ4 - 16,
@@ -742,9 +741,9 @@ internal sealed class Av1BlockDecoder
                     int sourceColumnQ4 = (pixelPosition.X << 4) + horizontalMotionQ4;
                     int sourceRowQ4 = (pixelPosition.Y << 4) + verticalMotionQ4;
 
-                    // Motion vectors use one-eighth luma-sample units. Shifting by one minus the plane subsampling converts
-                    // them directly to the predictor's one-sixteenth-plane-sample phase; masking then preserves the signed
-                    // floor used to select the integer source sample.
+                    // Motion vectors use one-eighth luma-sample units. A shift by one minus the plane subsampling changes them directly to the one-sixteenth
+                    // plane-sample phase of the predictor. The mask keeps the fractional phase. The arithmetic right shift by four gives the signed floor that
+                    // selects the integer source sample.
                     int horizontalPhase = sourceColumnQ4 & 15;
                     int verticalPhase = sourceRowQ4 & 15;
 
@@ -870,8 +869,8 @@ internal sealed class Av1BlockDecoder
 
                             if (modeInfo.CompoundType == Av1CompoundType.DistanceWeighted)
                             {
-                                // Distance weighting must consume the no-round intermediates. Equal-averaging the
-                                // already filtered references loses the decoded display-distance contribution.
+                                // Distance weighting must consume the no-round intermediates. Equal-averaging the already filtered references loses the decoded
+                                // display-distance contribution.
                                 Av1CompoundIntermediateDistanceWeightedPredictor.DistanceWeightedIntermediate(
                                     highBitDepthDestination,
                                     reconstructionStride,
@@ -897,8 +896,8 @@ internal sealed class Av1BlockDecoder
                                     subY,
                                     invert: false);
 
-                                // Masked compound prediction blends unsigned convolution intermediates so the mask
-                                // is applied before the sole final rounding step.
+                                // Masked compound prediction blends unsigned convolution intermediates. Thus the mask applies before the only final rounding
+                                // step.
                                 Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
                                     highBitDepthDestination,
                                     reconstructionStride,
@@ -919,8 +918,8 @@ internal sealed class Av1BlockDecoder
                                 int lumaWidth = blockSize.GetWidth();
                                 if (plane == 0)
                                 {
-                                    // Difference-weighted chroma reuses the luma-derived segment mask. Building it
-                                    // only for plane zero preserves that decoded contract before chroma subsampling.
+                                    // Difference-weighted chroma reuses the luma-derived segment mask. Building it only for plane zero preserves that decoded
+                                    // contract before chroma subsampling.
                                     Av1CompoundIntermediateDifferenceWeightedMaskBuilder.FillDifferenceWeightedIntermediateMask(
                                         compoundMask,
                                         lumaWidth,
@@ -934,8 +933,8 @@ internal sealed class Av1BlockDecoder
                                         modeInfo.DifferenceWeightedMaskType);
                                 }
 
-                                // The d16 mask and final blend consume the same no-round intermediates. Rounding
-                                // either reference first changes both the derived mask and the reconstructed sample.
+                                // The d16 mask and final blend consume the same no-round intermediates. Rounding either reference first changes both the
+                                // derived mask and the reconstructed sample.
                                 Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
                                     highBitDepthDestination,
                                     reconstructionStride,
@@ -1376,8 +1375,8 @@ internal sealed class Av1BlockDecoder
         Span<short> highBitDepthBlockReconstructionBuffer = default;
         int reconstructionStride;
 
-        // Prediction reads the row immediately above the destination through negative-relative neighbor offsets.
-        // The frame-buffer helpers therefore return a span beginning one logical sample row before the block.
+        // Prediction reads the row immediately above the destination through negative-relative neighbor offsets. The frame-buffer helpers therefore return a
+        // span beginning one logical sample row before the block.
         if (highBitDepth)
         {
             highBitDepthBlockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer16(
@@ -1397,8 +1396,8 @@ internal sealed class Av1BlockDecoder
         Span<short> highBitDepthTransformBlockReconstructionBuffer = default;
         Span<int> coefficients = planeCoefficients[this.currentCoefficientIndex[plane]..];
 
-        // Transform offsets are stored in mode-info units. Reconstruction strides are expressed in logical
-        // samples for both storage pipelines, so no byte scaling is applied to the high-bit-depth offset.
+        // Transform offsets use mode-info units. Reconstruction strides count logical samples in both storage pipelines, so the high-bit-depth offset needs no
+        // byte scaling.
         int transformBlockOffset = ((transformInfo.OffsetY * reconstructionStride) + transformInfo.OffsetX) << Av1Constants.ModeInfoSizeLog2;
         if (highBitDepth)
         {
@@ -1411,8 +1410,8 @@ internal sealed class Av1BlockDecoder
 
         if (!isInterBlock && !modeInfo.UseIntraBlockCopy)
         {
-            // Conventional intra prediction consumes the reference-prefixed destination span before the
-            // transform residual is reconstructed over its first output row.
+            // Conventional intra prediction consumes the reference-prefixed destination span before the inverse transform adds the residual from its first
+            // output row.
             if (highBitDepth)
             {
                 this.predictionDecoder.Decode(
@@ -1450,8 +1449,8 @@ internal sealed class Av1BlockDecoder
         {
             Av1TransformType transformType = transformInfo.Type;
 
-            // Entropy decoding has already applied quantization, scan placement, and coefficient clipping.
-            // Prediction includes a top-reference row; inverse reconstruction begins one stride after it.
+            // Entropy decoding already applied dequantization, scan placement, and coefficient clipping. The prediction includes a top-reference row. Inverse
+            // reconstruction begins one stride after it.
             if (highBitDepth)
             {
                 Av1InverseTransformer.ReconstructHighBitDepth(
@@ -1480,8 +1479,8 @@ internal sealed class Av1BlockDecoder
                     transformWorkspace);
             }
 
-            // Scan order can visit a high raster index before EOB. Clear through the largest written index,
-            // leaving the untouched zero tail ready for a different transform layout in the next superblock.
+            // Scan order can visit a high raster index before EOB. The code clears through the largest written index. The untouched tail stays zero for a
+            // different transform layout in the next superblock.
             coefficients[..(transformInfo.MaximumCoefficientIndex + 1)].Clear();
         }
 
@@ -1489,8 +1488,8 @@ internal sealed class Av1BlockDecoder
 
         if (plane == (int)Av1Plane.Y && !isInterBlock && !modeInfo.UseIntraBlockCopy && StoreChromaFromLumaRequired(colorConfig, ref partitionInfo))
         {
-            // The predictor span begins on the previous row; CFL storage consumes reconstructed samples from
-            // the transform block itself, hence the explicit one-stride advance for both sample pipelines.
+            // The predictor span begins on the previous row. CfL storage reads reconstructed samples from the transform block itself. For this reason, both
+            // sample pipelines advance one stride.
             if (highBitDepth)
             {
                 this.chromaFromLumaContext.Store(
@@ -1532,8 +1531,8 @@ internal sealed class Av1BlockDecoder
         bool isInterBlock = modeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Last || modeInfo.UseIntraBlockCopy;
         if (isInterBlock && StoreChromaFromLumaRequired(this.sequenceHeader.ColorConfig, ref partitionInfo))
         {
-            // Inter prediction covers the whole block before residual reconstruction. Store its completed luma once,
-            // including the edge extension required by the final parsed luma transform's dimensions.
+            // Inter prediction covers the whole block before residual reconstruction. Store its completed luma once, including the edge extension required by
+            // the final parsed luma transform's dimensions.
             int lastTransformIndex = modeInfo.GetFirstTransformLocation(Av1Plane.Y) + modeInfo.GetTransformUnitCount(Av1Plane.Y) - 1;
             Av1TransformSize transformSize = partitionInfo.SuperblockInfo.GetTransformInfoY()[lastTransformIndex].Size;
             Av1BlockSize blockSize = modeInfo.BlockSize;
@@ -1549,8 +1548,8 @@ internal sealed class Av1BlockDecoder
                 partitionInfo.ColumnIndex << Av1Constants.ModeInfoSizeLog2,
                 partitionInfo.RowIndex << Av1Constants.ModeInfoSizeLog2);
 
-            // These views include the preceding reference row. Advance one stride to the block's first sample;
-            // both branches pass logical sample strides to the shared Q3 storage kernel.
+            // These views include the preceding reference row. Advance one stride to the block's first sample. Both branches pass logical sample strides to the
+            // shared Q3 storage kernel.
             if (this.frameBuffer.BytesPerSample == 2)
             {
                 Span<short> samples = this.frameBuffer.DeriveBlockPointer16(frameLuma, Av1Plane.Y, pixelPosition, 0, 0, out int stride);
@@ -1587,6 +1586,26 @@ internal sealed class Av1BlockDecoder
     /// <summary>
     /// Reconstructs a subsampled chroma block assembled from multiple neighboring luma inter blocks.
     /// </summary>
+    /// <param name="partitionInfo">The current block, its superblock mode records, and its distances to the frame edges.</param>
+    /// <param name="modeInfoPosition">The block origin in mode-info units.</param>
+    /// <param name="blockSize">The current block size.</param>
+    /// <param name="plane">The zero-based chroma plane index.</param>
+    /// <param name="subX">The horizontal subsampling shift of the plane.</param>
+    /// <param name="subY">The vertical subsampling shift of the plane.</param>
+    /// <param name="pixelPosition">The top-left sample of the chroma prediction in plane coordinates.</param>
+    /// <param name="predictionWidth">The chroma prediction width in samples.</param>
+    /// <param name="predictionHeight">The chroma prediction height in samples.</param>
+    /// <param name="blockReconstructionBuffer">
+    /// The eight-bit reconstruction view that begins one row above the block. It is empty for high-bit-depth frames.
+    /// </param>
+    /// <param name="highBitDepthBlockReconstructionBuffer">
+    /// The high-bit-depth reconstruction view that begins one row above the block. It is empty for eight-bit frames.
+    /// </param>
+    /// <param name="reconstructionStride">The reconstruction row stride in samples.</param>
+    /// <param name="predictionScratch">The predictor working storage.</param>
+    /// <returns>
+    /// <see langword="true"/> when this method wrote the complete chroma prediction. <see langword="false"/> when the ordinary path must predict the block.
+    /// </returns>
     private bool TryPredictSub8x8Chroma(
         ref Av1PartitionInfo partitionInfo,
         Point modeInfoPosition,
@@ -1612,9 +1631,8 @@ internal sealed class Av1BlockDecoder
         int rowStart = isSub4Y ? -1 : 0;
         int columnStart = isSub4X ? -1 : 0;
 
-        // One chroma block can cover two or four independently decoded luma blocks. the reference decoder enters this path only
-        // when every contributing owner is a conventional inter block; otherwise the current block supplies the
-        // complete chroma prediction through the ordinary path.
+        // One chroma block can cover two or four independently decoded luma blocks. This path applies only when every contributing owner is a conventional
+        // inter block, as the AV1 specification defines. Otherwise, the current block supplies the full chroma prediction through the ordinary path.
         for (int row = rowStart; row <= 0; row++)
         {
             for (int column = columnStart; column <= 0; column++)
@@ -1633,9 +1651,8 @@ internal sealed class Av1BlockDecoder
         int subPredictionHeight = blockSize.GetHeight() >> subY;
         int modeRow = rowStart;
 
-        // Chroma ownership is assigned to the bottom-right luma mode record on each subsampled axis. Consequently
-        // pixelPosition is already the top-left of this assembled plane block even when its first luma owner is at
-        // row or column -1. Each subprediction writes directly into its final rectangle without a staging copy.
+        // The bottom-right luma mode record on each subsampled axis owns the chroma block. Thus pixelPosition is already the top-left of this assembled plane
+        // block, even when its first luma owner is at row or column -1. Each subprediction writes directly into its final rectangle without a staging copy.
         for (int y = 0; y < predictionHeight; y += subPredictionHeight)
         {
             int modeColumn = columnStart;
@@ -1692,9 +1709,8 @@ internal sealed class Av1BlockDecoder
                     int horizontalEdgeScale = 1 << (1 - subX);
                     int verticalEdgeScale = 1 << (1 - subY);
 
-                    // The block-relative UMV edges belong to the current coding block, while each contributing luma
-                    // owner supplies only its motion vector and interpolation filters. This is the same split used by
-                    // the reference decoder's sub-8x8 chroma builder.
+                    // The block-relative UMV edges belong to the current coding block. Each contributing luma owner supplies only its motion vector and
+                    // interpolation filters.
                     horizontalMotionQ4 = Av1Math.Clip3(
                         (partitionInfo.ModeBlockToLeftEdge * horizontalEdgeScale) - horizontalExtensionQ4,
                         (partitionInfo.ModeBlockToRightEdge * horizontalEdgeScale) + horizontalExtensionQ4 - 16,
@@ -1784,19 +1800,40 @@ internal sealed class Av1BlockDecoder
     /// <summary>
     /// Resolves one canonical retained reference frame.
     /// </summary>
+    /// <param name="referenceFrame">The reference frame type. It is <see cref="Av1ReferenceFrameType.Last"/> or a later inter reference.</param>
+    /// <returns>The frame buffer of the retained frame in the slot that the frame header selects for this reference.</returns>
     private Av1FrameBuffer<byte> ResolveReferenceFrame(Av1ReferenceFrameType referenceFrame)
     {
         int canonicalReferenceIndex = (int)referenceFrame - (int)Av1ReferenceFrameType.Last;
         uint referenceSlot = this.frameHeader.GetReferenceFrameIndices()[canonicalReferenceIndex];
 
-        // The uncompressed-header parser validates each selected slot and the reference store remains unchanged
-        // until frame reconstruction completes, so every parsed inter block resolves the same retained owner.
+        // The uncompressed-header parser validates each selected slot. The reference store does not change until frame reconstruction completes. Thus every
+        // parsed inter block resolves the same retained owner.
         return this.referenceFrames.ResolveRequired((int)referenceSlot).FrameBuffer;
     }
 
     /// <summary>
     /// Predicts one block from a retained reference whose visible dimensions differ from the current coded frame.
     /// </summary>
+    /// <param name="referenceFrameBuffer">The retained reference frame.</param>
+    /// <param name="motionVector">The motion vector in one-eighth luma-sample units.</param>
+    /// <param name="plane">The zero-based color-plane index.</param>
+    /// <param name="subX">The horizontal subsampling shift of the plane.</param>
+    /// <param name="subY">The vertical subsampling shift of the plane.</param>
+    /// <param name="predictionOrigin">The top-left sample of the prediction in plane coordinates of the current frame.</param>
+    /// <param name="predictionWidth">The prediction width in samples.</param>
+    /// <param name="predictionHeight">The prediction height in samples.</param>
+    /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="destination">
+    /// The eight-bit destination. The method writes it when <paramref name="compoundDestination"/> is empty and the frame has eight-bit samples.
+    /// </param>
+    /// <param name="highBitDepthDestination">
+    /// The high-bit-depth destination. The method writes it when <paramref name="compoundDestination"/> is empty and the frame has high-bit-depth samples.
+    /// </param>
+    /// <param name="compoundDestination">The unrounded compound intermediate destination, or an empty span for a final prediction.</param>
+    /// <param name="destinationStride">The row stride of the destination in elements.</param>
+    /// <param name="predictionScratch">The predictor working storage.</param>
     private void PredictScaledReference(
         Av1FrameBuffer<byte> referenceFrameBuffer,
         Av1MotionVector motionVector,
@@ -1829,8 +1866,8 @@ internal sealed class Av1BlockDecoder
         int horizontalMargin = (Av1FrameBuffer<byte>.DecoderPaddingValue >> subX) - 4;
         int verticalMargin = (Av1FrameBuffer<byte>.DecoderPaddingValue >> subY) - 4;
 
-        // The scaled coordinate clamp is intentionally wider than the ordinary block-relative UMV clamp. The retained
-        // frame owns the normative border, so every variable-phase eight-tap source remains directly addressable.
+        // The scaled coordinate clamp is intentionally wider than the ordinary block-relative UMV clamp. The retained frame owns the normative border, so every
+        // variable-phase eight-tap source remains directly addressable.
         sourceColumnQ10 = Av1Math.Clip3(
             -horizontalMargin << Av1ReferenceScale.SubpixelBits,
             (referencePlaneWidth + 4) << Av1ReferenceScale.SubpixelBits,
@@ -1952,6 +1989,23 @@ internal sealed class Av1BlockDecoder
     /// <summary>
     /// Blends predictions from eligible above and left neighbors into one regular inter prediction.
     /// </summary>
+    /// <param name="partitionInfo">The current block, its neighbor availability, and its superblock mode records.</param>
+    /// <param name="plane">The zero-based color-plane index.</param>
+    /// <param name="subX">The horizontal subsampling shift of the plane.</param>
+    /// <param name="subY">The vertical subsampling shift of the plane.</param>
+    /// <param name="predictionWidth">The plane prediction width in samples.</param>
+    /// <param name="predictionHeight">The plane prediction height in samples.</param>
+    /// <param name="blockReconstructionBuffer">
+    /// The eight-bit reconstruction view that begins one row above the block. It holds the current prediction and receives the blended result.
+    /// </param>
+    /// <param name="highBitDepthBlockReconstructionBuffer">
+    /// The high-bit-depth reconstruction view that begins one row above the block. It holds the current prediction and receives the blended result.
+    /// </param>
+    /// <param name="reconstructionStride">The reconstruction row stride in samples.</param>
+    /// <param name="neighborPrediction">The eight-bit storage for one neighbor prediction.</param>
+    /// <param name="highBitDepthNeighborPrediction">The high-bit-depth storage for one neighbor prediction.</param>
+    /// <param name="maskStorage">The storage for the expanded mask of the above overlap.</param>
+    /// <param name="predictionScratch">The predictor working storage.</param>
     private void ApplyOverlappedMotionCompensation(
         ref Av1PartitionInfo partitionInfo,
         int plane,
@@ -1974,8 +2028,8 @@ internal sealed class Av1BlockDecoder
         int blockRow = partitionInfo.RowIndex;
         bool highBitDepth = this.frameBuffer.BytesPerSample == 2;
 
-        // Chroma planes smaller than 8x8 use left overlap only. This is the AV1 bandwidth rule for 4x4,
-        // 8x4, and 4x8 plane blocks; luma cannot reach those sizes when motion variation is selectable.
+        // Chroma planes smaller than 8x8 use left overlap only. This is the AV1 bandwidth rule for 4x4, 8x4, and 4x8 plane blocks. Luma cannot reach those
+        // sizes when motion variation is selectable.
         bool skipAbove = (predictionWidth == 4 && predictionHeight <= 8) ||
             (predictionWidth == 8 && predictionHeight == 4);
 
@@ -1990,8 +2044,8 @@ internal sealed class Av1BlockDecoder
                 int step = Math.Min(candidate.BlockSize.Get4x4WideCount(), Av1BlockSize.Block64x64.Get4x4WideCount());
                 if (step == 1)
                 {
-                    // A four-sample neighbor is one half of the chroma-bearing eight-sample pair. the reference decoder aligns
-                    // the traversal to the pair start and reads prediction state from its second mode record.
+                    // A four-sample neighbor is one half of the chroma-bearing eight-sample pair. The traversal aligns to the start of the pair and reads the
+                    // prediction state from its second mode record.
                     aboveColumn &= ~1;
                     candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(aboveColumn + 1, blockRow - 1));
                     step = 2;
@@ -2029,8 +2083,8 @@ internal sealed class Av1BlockDecoder
                     Span<byte> expandedMask = maskStorage[..(neighborWidth * overlapHeight)];
                     for (int row = 0; row < overlapHeight; row++)
                     {
-                        // The vertical mask has one alpha per row. Expanding it into the reusable scratch plane lets
-                        // the existing SIMD masked blender process complete rows without a specialized duplicate path.
+                        // The vertical mask has one alpha per row. Expanding it into the reusable mask plane lets the existing SIMD masked blender process
+                        // complete rows without a specialized duplicate path.
                         expandedMask.Slice(row * neighborWidth, neighborWidth).Fill(verticalMask[row]);
                     }
 
@@ -2148,6 +2202,16 @@ internal sealed class Av1BlockDecoder
     /// <summary>
     /// Builds one neighboring block's primary translational predictor into the reusable OBMC workspace.
     /// </summary>
+    /// <param name="neighbor">The mode record of the above or left neighbor.</param>
+    /// <param name="plane">The zero-based color-plane index.</param>
+    /// <param name="subX">The horizontal subsampling shift of the plane.</param>
+    /// <param name="subY">The vertical subsampling shift of the plane.</param>
+    /// <param name="predictionOrigin">The top-left sample of the neighbor prediction in plane coordinates.</param>
+    /// <param name="predictionWidth">The neighbor prediction width in samples. It is also the destination row stride.</param>
+    /// <param name="predictionHeight">The neighbor prediction height in samples.</param>
+    /// <param name="destination">The eight-bit destination. The method writes it for eight-bit frames.</param>
+    /// <param name="highBitDepthDestination">The high-bit-depth destination. The method writes it for high-bit-depth frames.</param>
+    /// <param name="predictionScratch">The predictor working storage.</param>
     private void PredictObmcNeighbor(
         Av1BlockModeInfo neighbor,
         int plane,
@@ -2194,9 +2258,9 @@ internal sealed class Av1BlockDecoder
         int framePlaneWidth = (this.frameHeader.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) >> subX;
         int framePlaneHeight = (this.frameHeader.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2) >> subY;
 
-        // the reference decoder clamps the motion vector relative to each neighbor rectangle. Once the neighbor origin is added, the
-        // prediction extent remains in the left/top limit but cancels from the right/bottom limit. Keeping this
-        // asymmetry avoids counting the OBMC rectangle twice when the source lies beyond the far frame edge.
+        // The motion vector is clamped relative to each neighbor rectangle. After the neighbor origin is added, the prediction extent stays in the left and top
+        // limits but cancels from the right and bottom limits. This asymmetry does not count the OBMC rectangle twice when the source lies beyond the far frame
+        // edge.
         sourceColumnQ4 = Av1Math.Clip3(
             -horizontalExtensionQ4,
             ((framePlaneWidth + 4) << 4) - 16,
@@ -2267,6 +2331,8 @@ internal sealed class Av1BlockDecoder
     /// <summary>
     /// Determines whether a decoded neighbor supplies an inter predictor for OBMC.
     /// </summary>
+    /// <param name="candidate">The mode record of the neighbor.</param>
+    /// <returns><see langword="true"/> when the neighbor uses an inter reference frame or intra block copy.</returns>
     private static bool IsOverlappable(Av1BlockModeInfo candidate)
         => candidate.UseIntraBlockCopy || candidate.ReferenceFrames[0] > Av1ReferenceFrameType.Intra;
 
@@ -2290,6 +2356,8 @@ internal sealed class Av1BlockDecoder
         /// <summary>
         /// Initializes a new instance of the <see cref="InterReferenceBuffers"/> struct.
         /// </summary>
+        /// <param name="primary">The retained frame of the first reference.</param>
+        /// <param name="secondary">The retained frame of the second reference, or the primary frame for a non-compound block.</param>
         public InterReferenceBuffers(Av1FrameBuffer<byte> primary, Av1FrameBuffer<byte> secondary)
         {
             this.Primary = primary;

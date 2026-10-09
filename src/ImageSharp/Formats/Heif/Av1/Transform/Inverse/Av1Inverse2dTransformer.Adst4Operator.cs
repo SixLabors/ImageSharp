@@ -9,8 +9,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// Defines the four-point AV1 inverse asymmetric discrete sine transform operator.
 /// </summary>
 /// <remarks>
-/// Vector fields represent transform positions and vector lanes represent independent axes. The SIMD overloads apply
-/// the same staged rotations, fixed-point rounding, and range clamps as the scalar overload without mixing axes.
+/// Vector fields represent transform positions. Vector lanes represent independent axes. The SIMD overloads compute each output as one four-term sum of sine
+/// products. This sum is equal to the staged scalar factorization and uses the same final rounding. The SIMD overloads never mix axes.
 /// </remarks>
 internal static partial class Av1Inverse2dTransformer
 {
@@ -24,15 +24,15 @@ internal static partial class Av1Inverse2dTransformer
         /// </summary>
         /// <param name="input">The four frequency-domain coefficients.</param>
         /// <param name="output">The four spatial-domain residual values.</param>
-        /// <param name="step">The stage buffer owned by the containing two-dimensional transform.</param>
+        /// <param name="step">Unused stage storage supplied by the common transform-kernel contract.</param>
         /// <param name="cosBit">The fixed-point precision of the sine constants.</param>
-        /// <param name="stageRange">The signed-bit range assigned to each transform stage.</param>
+        /// <param name="stageRange">Unused stage ranges supplied by the common transform-kernel contract.</param>
         public static void Transform(ReadOnlySpan<int> input, Span<int> output, Span<int> step, int cosBit, InlineArray12<byte> stageRange)
         {
             ReadOnlySpan<int> sinpi = Av1SinusConstants.SinusPi(cosBit);
 
-            // The four-point factorization retains its sine products at fixed-point scale until the final shift.
-            // Int64 intermediates preserve that range; this transform needs no separate stage buffer.
+            // The four-point factorization keeps its sine products at fixed-point scale until the final shift. Int64 intermediates keep that range. This
+            // transform needs no separate stage buffer.
             long x0 = input[0];
             long x1 = input[1];
             long x2 = input[2];
@@ -58,7 +58,7 @@ internal static partial class Av1Inverse2dTransformer
             long s6 = sinpi[4] * x3;
             long s7 = (x0 - x2) + x3;
 
-            // Stages 3 through 6 combine the products while preserving the fixed-point scale until the final rounding.
+            // Stages 3 through 6 combine the products. The sums keep the fixed-point scale until the final rounding.
             s0 += s3;
             s1 -= s4;
             s3 = s2;
@@ -92,9 +92,8 @@ internal static partial class Av1Inverse2dTransformer
             Vector128<int> x2 = input.V2;
             Vector128<int> x3 = input.V3;
 
-            // The reference decoder retains the sine-table scale in Int32 products and sums, but performs the twelve-bit row
-            // kernel's terminal scaling and rounding in Int64. This is the only stage whose rounding bias can overflow
-            // a valid Int32 fixed-point sum.
+            // The sine-table scale stays in Int32 products and sums. The final scale and rounding of the twelve-bit row kernel run in Int64. This is the only
+            // stage whose rounding bias can overflow a valid Int32 fixed-point sum.
             if (widenedRound)
             {
                 output.V0 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[1], x0, sinpi[3], x1, sinpi[4], x2, sinpi[2], x3, cosBit);

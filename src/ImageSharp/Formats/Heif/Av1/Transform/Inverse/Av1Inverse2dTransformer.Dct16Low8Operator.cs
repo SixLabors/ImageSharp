@@ -11,9 +11,8 @@ internal static partial class Av1Inverse2dTransformer
     /// Applies the 16-point inverse DCT with at most 8 low-frequency input coefficients.
     /// </summary>
     /// <remarks>
-    /// The selected scan bound guarantees all later inputs are zero. Rotations with one surviving input retain
-    /// their original rounding boundary, and all nonzero butterfly outputs retain their stage clamps.
-    /// Vector fields identify transform positions; lanes remain independent rows or columns throughout.
+    /// The selected scan bound guarantees that all later inputs are zero. Rotations with one surviving input retain their original rounding boundary. All
+    /// nonzero butterfly outputs retain their stage clamps. Vector fields identify transform positions. Lanes stay independent rows or columns throughout.
     /// </remarks>
     internal readonly struct Dct16Low8Operator : IAv1Transform1dOperator
     {
@@ -35,7 +34,7 @@ internal static partial class Av1Inverse2dTransformer
             output[12] = input[3];
             output[14] = input[7];
 
-            // Stage 2 rotates the highest odd-frequency coefficient pairs by their pi/32 angles.
+            // Stage 2 rotates the highest odd-frequency coefficient pairs by odd multiples of pi/32.
             step[0] = output[0];
             step[2] = output[2];
             step[4] = output[4];
@@ -158,7 +157,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V12 = input.V3;
             output.V14 = input.V7;
 
-            // Stage 2 rotates the highest odd-frequency coefficient pairs by their pi/32 angles.
+            // Stage 2 rotates the highest odd-frequency coefficient pairs by odd multiples of pi/32.
             step.V0 = output.V0;
             step.V2 = output.V2;
             step.V4 = output.V4;
@@ -281,7 +280,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V12 = input.V3;
             output.V14 = input.V7;
 
-            // Stage 2 rotates the highest odd-frequency coefficient pairs by their pi/32 angles.
+            // Stage 2 rotates the highest odd-frequency coefficient pairs by odd multiples of pi/32.
             step.V0 = output.V0;
             step.V2 = output.V2;
             step.V4 = output.V4;

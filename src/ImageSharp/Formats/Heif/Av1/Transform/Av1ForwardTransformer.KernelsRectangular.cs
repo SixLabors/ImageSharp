@@ -17,10 +17,9 @@ internal static partial class Av1ForwardTransformer
     /// Applies a four-wide, eight-high eight-bit transform with every stage in registers.
     /// </summary>
     /// <remarks>
-    /// This follows <c>av1_lowbd_fwd_txfm2d_4x8_sse2</c>. The shifts are <c>av1_fwd_txfm_shift_ls[TX_4X8]</c>
-    /// (2, -1, 0) and both cosine bit counts are 13. The column transform is an eight-point kernel on vectors whose
-    /// low four lanes hold the four columns, as <c>col_txfm4x8_arr</c> selects. The row transform is a four-point
-    /// kernel on vectors whose eight lanes hold the eight rows, as <c>row_txfm8x4_arr</c> selects.
+    /// The stage shifts are 2, -1 and 0, and both cosine bit counts are 13.
+    /// The column transform is an eight-point kernel on vectors whose low four lanes hold the four columns.
+    /// The row transform is a four-point kernel on vectors whose eight lanes hold the eight rows.
     /// </remarks>
     /// <param name="input">The spatial residual samples.</param>
     /// <param name="stride">The number of input samples between rows.</param>
@@ -100,8 +99,8 @@ internal static partial class Av1ForwardTransformer
         where TColumn : struct, IAv1Kernel8
         where TRow : struct, IAv1Kernel4Wide
     {
-        // Each of the eight rows loads into the low four lanes of one vector, scaled by the first shift (2). The column
-        // kernel works lane by lane, so the unused high lanes never reach a stored coefficient.
+        // Each of the eight rows loads into the low four lanes of one vector, and the first stage shift of 2 applies.
+        // The column kernel works lane by lane, so the unused high lanes never reach a stored coefficient.
         ref short source = ref MemoryMarshal.GetReference(input);
         Vector128<short> r0;
         Vector128<short> r1;
@@ -136,7 +135,7 @@ internal static partial class Av1ForwardTransformer
 
         TColumn.Transform(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, 13);
 
-        // round_shift_16bit with shift -1: add one half and shift, with saturation on the addition.
+        // The second stage shift of -1 adds 1, half of the divisor 2, and then shifts right by 1. The addition saturates.
         Vector128<short> half = Vector128.Create((short)1);
         r0 = Vector128.AddSaturate(r0, half) >> 1;
         r1 = Vector128.AddSaturate(r1, half) >> 1;
@@ -147,13 +146,11 @@ internal static partial class Av1ForwardTransformer
         r6 = Vector128.AddSaturate(r6, half) >> 1;
         r7 = Vector128.AddSaturate(r7, half) >> 1;
 
-        // transpose_16bit_4x8: after the transpose, vectors 0 to 3 each hold one column with the eight rows in its
-        // lanes. Vectors 4 to 7 hold only the unused high lanes.
+        // After the transpose, vectors 0 to 3 each hold one column with the eight rows in its lanes. Vectors 4 to 7 hold only the unused high lanes.
         Av1TransformKernels.Transpose8x8(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7);
 
-        // The row kernel transforms across the four column vectors, lane by lane. A horizontal flip enters the columns
-        // in reverse order, as flip_buf_sse2 does. The outputs then hold one horizontal frequency each, with the eight
-        // vertical frequencies in their lanes.
+        // The row kernel transforms across the four column vectors, lane by lane. A horizontal flip enters the columns in reverse order.
+        // The outputs then hold one horizontal frequency each, with the eight vertical frequencies in their lanes.
         Vector128<short> zero = Vector128<short>.Zero;
         Vector128<short> f0;
         Vector128<short> f1;
@@ -170,10 +167,9 @@ internal static partial class Av1ForwardTransformer
             (f0, f1, f2, f3) = (r0, r1, r2, r3);
         }
 
-        // The reference stores each horizontal frequency as one row of eight. This port keeps coefficients row-major,
-        // vertical frequency first, so one more transpose gives eight vectors with four horizontal frequencies each.
-        // Zero vectors fill the unused inputs of the transpose. The third shift is zero, and the 2:1 shape scales each
-        // coefficient by the square root of two while it widens, as store_rect_buffer_16bit_to_32bit_w8 does.
+        // The coefficients are row-major, vertical frequency first. One more transpose gives eight vectors with four horizontal frequencies each.
+        // Zero vectors fill the unused inputs of the transpose. The third shift is zero.
+        // The 2:1 shape scales each coefficient by the square root of two when the store widens it.
         Vector128<short> f4 = zero;
         Vector128<short> f5 = zero;
         Vector128<short> f6 = zero;
@@ -194,10 +190,9 @@ internal static partial class Av1ForwardTransformer
     /// Applies an eight-wide, four-high eight-bit transform with every stage in registers.
     /// </summary>
     /// <remarks>
-    /// This follows <c>av1_lowbd_fwd_txfm2d_8x4_sse2</c>. The shifts are <c>av1_fwd_txfm_shift_ls[TX_8X4]</c>
-    /// (2, -1, 0) and both cosine bit counts are 13. The column transform is a four-point kernel on vectors whose eight
-    /// lanes hold the eight columns, as <c>col_txfm8x4_arr</c> selects. The row transform is an eight-point kernel on
-    /// vectors whose low four lanes hold the four rows, as <c>row_txfm4x8_arr</c> selects.
+    /// The stage shifts are 2, -1 and 0, and both cosine bit counts are 13.
+    /// The column transform is a four-point kernel on vectors whose eight lanes hold the eight columns.
+    /// The row transform is an eight-point kernel on vectors whose low four lanes hold the four rows.
     /// </remarks>
     /// <param name="input">The spatial residual samples.</param>
     /// <param name="stride">The number of input samples between rows.</param>
@@ -277,7 +272,7 @@ internal static partial class Av1ForwardTransformer
         where TColumn : struct, IAv1Kernel4Wide
         where TRow : struct, IAv1Kernel8
     {
-        // Each of the four rows loads into one full vector, scaled by the first shift (2).
+        // Each of the four rows loads into one full vector, and the first stage shift of 2 applies.
         ref short source = ref MemoryMarshal.GetReference(input);
         Vector128<short> r0;
         Vector128<short> r1;
@@ -300,15 +295,15 @@ internal static partial class Av1ForwardTransformer
 
         TColumn.Transform(ref r0, ref r1, ref r2, ref r3, 13);
 
-        // Round the four rows and shift them right by one bit. The saturating add keeps a sum at the 16-bit limit from wrapping.
+        // The second stage shift of -1 adds 1, half of the divisor 2, and then shifts right by 1. The addition saturates.
         Vector128<short> half = Vector128.Create((short)1);
         r0 = Vector128.AddSaturate(r0, half) >> 1;
         r1 = Vector128.AddSaturate(r1, half) >> 1;
         r2 = Vector128.AddSaturate(r2, half) >> 1;
         r3 = Vector128.AddSaturate(r3, half) >> 1;
 
-        // transpose_16bit_8x8 on the four rows: each of the eight outputs holds one column, with the four vertical
-        // frequencies in its low lanes. Zero vectors fill the four unused input rows.
+        // An 8x8 transpose of the four rows gives eight outputs. Each output holds one column, with the four vertical frequencies in its low lanes.
+        // Zero vectors fill the four unused input rows.
         Vector128<short> c0 = r0;
         Vector128<short> c1 = r1;
         Vector128<short> c2 = r2;
@@ -319,9 +314,8 @@ internal static partial class Av1ForwardTransformer
         Vector128<short> c7 = Vector128<short>.Zero;
         Av1TransformKernels.Transpose8x8(ref c0, ref c1, ref c2, ref c3, ref c4, ref c5, ref c6, ref c7);
 
-        // The row kernel transforms across the eight column vectors, lane by lane. A horizontal flip enters the columns
-        // in reverse order. The outputs then hold one horizontal frequency each, with the four vertical frequencies in
-        // their low lanes.
+        // The row kernel transforms across the eight column vectors, lane by lane. A horizontal flip enters the columns in reverse order.
+        // The outputs then hold one horizontal frequency each, with the four vertical frequencies in their low lanes.
         if (flipLeftToRight)
         {
             TRow.Transform(ref c7, ref c6, ref c5, ref c4, ref c3, ref c2, ref c1, ref c0, 13);
@@ -332,9 +326,8 @@ internal static partial class Av1ForwardTransformer
             TRow.Transform(ref c0, ref c1, ref c2, ref c3, ref c4, ref c5, ref c6, ref c7, 13);
         }
 
-        // One more transpose gives four row-major vectors, one per vertical frequency, with the eight horizontal
-        // frequencies in their lanes. The third shift is zero, and the 2:1 shape scales each coefficient by the square
-        // root of two while it widens, as store_rect_buffer_16bit_to_32bit_w4 does.
+        // One more transpose gives four row-major vectors, one per vertical frequency, with the eight horizontal frequencies in their lanes.
+        // The third shift is zero. The 2:1 shape scales each coefficient by the square root of two when the store widens it.
         Av1TransformKernels.Transpose8x8(ref c0, ref c1, ref c2, ref c3, ref c4, ref c5, ref c6, ref c7);
         ref int destination = ref MemoryMarshal.GetReference(coefficients);
         StoreRect8(c0, ref destination, 0);
@@ -344,8 +337,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Scales the low four lanes by the square root of two with rounding, widens them to thirty-two bits and stores
-    /// them, as <c>store_rect_16bit_to_32bit_w4</c> does.
+    /// Scales the low four lanes by the square root of two with rounding, widens them to thirty-two bits and stores them.
     /// </summary>
     /// <param name="values">The sixteen-bit coefficients in the low four lanes.</param>
     /// <param name="destination">The first coefficient of the destination.</param>
@@ -355,8 +347,7 @@ internal static partial class Av1ForwardTransformer
         => ScaleRoundSqrt2(Vector128_.UnpackLow(values, Vector128.Create((short)1))).StoreUnsafe(ref destination, (nuint)offset);
 
     /// <summary>
-    /// Scales eight lanes by the square root of two with rounding, widens them to thirty-two bits and stores them, as
-    /// <c>store_rect_16bit_to_32bit</c> does.
+    /// Scales eight lanes by the square root of two with rounding, widens them to thirty-two bits and stores them.
     /// </summary>
     /// <param name="values">The sixteen-bit coefficients.</param>
     /// <param name="destination">The first coefficient of the destination.</param>
@@ -370,9 +361,8 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Multiplies each value by the square root of two in fixed point and rounds, as <c>scale_round_sse2</c> does with
-    /// <c>NewSqrt2</c>. Each 32-bit lane holds one value in its low half and the constant one in its high half, so one
-    /// multiply-add adds the rounding term.
+    /// Multiplies each value by the square root of two in fixed point, <see cref="Av1Transform1dMath.NewSqrt2"/>, and rounds.
+    /// Each 32-bit lane holds one value in its low half and the constant one in its high half. Thus one multiply-add also adds the rounding term.
     /// </summary>
     /// <param name="valueAndOne">The interleaved values and ones.</param>
     /// <returns>The scaled values.</returns>
@@ -384,7 +374,7 @@ internal static partial class Av1ForwardTransformer
             >> Av1Transform1dMath.NewSqrt2Bits;
 
     /// <summary>
-    /// The four-point DCT of <c>fdct8x4_new_sse2</c>, on eight lanes.
+    /// The four-point forward DCT, on eight lanes.
     /// </summary>
     private readonly struct Dct4WideKernel : IAv1Kernel4Wide
     {
@@ -413,14 +403,14 @@ internal static partial class Av1ForwardTransformer
             Vector128<short> x11 = Vector128.AddSaturate(in1, in2);
             Vector128<short> x12 = Vector128.SubtractSaturate(in1, in2);
 
-            // stages 2 and 3: the outputs leave in the order 0, 2, 1, 3 of the butterflies.
+            // stages 2 and 3: the first butterfly gives outputs 0 and 2, and the second butterfly gives outputs 1 and 3.
             Av1TransformKernels.Butterfly16(p32p32, p32m32, x10, x11, out in0, out in2, cosBit, rounding);
             Av1TransformKernels.Butterfly16(p48p16, m16p48, x12, x13, out in1, out in3, cosBit, rounding);
         }
     }
 
     /// <summary>
-    /// The four-point ADST of <c>fadst8x4_new_sse2</c>, on eight lanes.
+    /// The four-point forward ADST, on eight lanes.
     /// </summary>
     private readonly struct Adst4WideKernel : IAv1Kernel4Wide
     {
@@ -446,11 +436,11 @@ internal static partial class Av1ForwardTransformer
             Vector128<short> s3s3 = Vector128.Create(s3);
             Vector128<short> zero = Vector128<short>.Zero;
 
-            // The sum wraps, as _mm_add_epi16 does.
+            // The sum wraps at sixteen bits. It does not saturate.
             Vector128<short> in7 = in0 + in1;
 
-            // Each output is formed twice: once for the low four lanes and once for the high four lanes, because one
-            // multiply-add produces four 32-bit products.
+            // Each output is formed twice, once for the low four lanes and once for the high four lanes.
+            // The reason is that one multiply-add produces only four 32-bit sums.
             Vector128<short> u0Low = Vector128_.UnpackLow(in0, in1);
             Vector128<short> u0High = Vector128_.UnpackHigh(in0, in1);
             Vector128<short> u1Low = Vector128_.UnpackLow(in2, in3);
@@ -498,8 +488,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// The four-point identity transform of <c>fidentity8x4_new_sse2</c>, on eight lanes, which scales by the square
-    /// root of two.
+    /// The four-point forward identity transform, on eight lanes, which scales by the square root of two.
     /// </summary>
     private readonly struct Identity4WideKernel : IAv1Kernel4Wide
     {

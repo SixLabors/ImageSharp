@@ -11,9 +11,8 @@ internal static partial class Av1Inverse2dTransformer
     /// Applies the 64-point inverse DCT with at most 16 low-frequency input coefficients.
     /// </summary>
     /// <remarks>
-    /// The selected scan bound guarantees all later inputs are zero. Rotations with one surviving input retain
-    /// their original rounding boundary, and all nonzero butterfly outputs retain their stage clamps.
-    /// Vector fields identify transform positions; lanes remain independent rows or columns throughout.
+    /// The selected scan bound guarantees that all later inputs are zero. Rotations with one surviving input retain their original rounding boundary. All
+    /// nonzero butterfly outputs retain their stage clamps. Vector fields identify transform positions. Lanes stay independent rows or columns throughout.
     /// </remarks>
     internal readonly struct Dct64Low16Operator : IAv1Transform1dOperator
     {
@@ -25,7 +24,8 @@ internal static partial class Av1Inverse2dTransformer
         {
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
 
-            // Stage 1 permutes frequency-ordered coefficients into the recursive DCT factorization order.
+            // Stage 1 permutes the coefficients from frequency order into the input order of the recursive butterfly network. Each later stage changes only the
+            // positions that its comment names. The other positions pass through. Every stage clamps its sums and differences to the range of that stage.
             output[0] = input[0];
             output[4] = input[8];
             output[8] = input[4];
@@ -43,7 +43,7 @@ internal static partial class Av1Inverse2dTransformer
             output[56] = input[7];
             output[60] = input[15];
 
-            // Stage 2 rotates the highest odd-frequency coefficient pairs by their pi/128 angles.
+            // Stage 2 rotates the mirrored pairs in positions 32 to 63 by odd multiples of pi/128.
             step[0] = output[0];
             step[4] = output[4];
             step[8] = output[8];
@@ -69,7 +69,7 @@ internal static partial class Av1Inverse2dTransformer
             step[60] = Av1Math.RoundShift((long)output[60] * cospi[15], cosBit);
             step[63] = Av1Math.RoundShift((long)output[32] * cospi[1], cosBit);
 
-            // Stage 3 reconstructs the first nested groups and combines their adjacent odd terms.
+            // Stage 3 rotates the mirrored pairs in positions 16 to 31 by odd multiples of pi/64. It adds and subtracts adjacent pairs in positions 32 to 63.
             output[0] = step[0];
             output[4] = step[4];
             output[8] = step[8];
@@ -115,7 +115,8 @@ internal static partial class Av1Inverse2dTransformer
             output[62] = Av1Transform1dMath.Clamp(step[63], stageRange[3]);
             output[63] = Av1Transform1dMath.Clamp(step[63], stageRange[3]);
 
-            // Stage 4 rotates the next odd-frequency level while preserving completed low-frequency lanes.
+            // Stage 4 rotates the mirrored pairs in positions 8 to 15 and selected pairs in positions 32 to 63 by odd multiples of pi/32. It adds and subtracts
+            // adjacent pairs in positions 16 to 31.
             step[0] = output[0];
             step[4] = output[4];
             step[8] = Av1Math.RoundShift((long)output[8] * cospi[60], cosBit);
@@ -171,7 +172,8 @@ internal static partial class Av1Inverse2dTransformer
             step[62] = Av1Transform1dMath.HalfButterfly(cospi[60], output[33], cospi[4], output[62], cosBit);
             step[63] = output[63];
 
-            // Stage 5 widens the nested groups through the next butterfly level.
+            // Stage 5 rotates the mirrored pairs in positions 4 to 7 and selected pairs in positions 16 to 31 by odd multiples of pi/16. It adds and subtracts
+            // adjacent pairs in positions 8 to 15 and mirrored pairs within each group of four in positions 32 to 63.
             output[0] = step[0];
             output[4] = Av1Math.RoundShift((long)step[4] * cospi[56], cosBit);
             output[7] = Av1Math.RoundShift((long)step[4] * cospi[8], cosBit);
@@ -232,7 +234,9 @@ internal static partial class Av1Inverse2dTransformer
             output[62] = Av1Transform1dMath.Clamp(step[61] + step[62], stageRange[5]);
             output[63] = Av1Transform1dMath.Clamp(step[60] + step[63], stageRange[5]);
 
-            // Stage 6 rotates the next odd-frequency level while preserving completed low-frequency lanes.
+            // Stage 6 rotates positions 0 and 1 by pi/4. It rotates positions 2 and 3 and selected pairs in positions 8 to 15 by odd multiples of pi/8. It
+            // rotates selected pairs in positions 32 to 63 by odd multiples of pi/16. It adds and subtracts adjacent pairs in positions 4 to 7 and mirrored
+            // pairs within each group of four in positions 16 to 31.
             step[0] = Av1Math.RoundShift((long)output[0] * cospi[32], cosBit);
             step[1] = Av1Math.RoundShift((long)output[0] * cospi[32], cosBit);
             step[4] = Av1Transform1dMath.Clamp(output[4], stageRange[6]);
@@ -296,7 +300,8 @@ internal static partial class Av1Inverse2dTransformer
             step[62] = output[62];
             step[63] = output[63];
 
-            // Stage 7 reconstructs the embedded sixteen-point groups and combines adjacent odd terms.
+            // Stage 7 rotates positions 5 and 6 by pi/4 and selected pairs in positions 16 to 31 by odd multiples of pi/8. It adds and subtracts mirrored pairs
+            // within each group of four in positions 0 to 3 and 8 to 15, and within each group of eight in positions 32 to 63.
             output[0] = Av1Transform1dMath.Clamp(step[0], stageRange[7]);
             output[1] = Av1Transform1dMath.Clamp(step[1], stageRange[7]);
             output[2] = Av1Transform1dMath.Clamp(step[1], stageRange[7]);
@@ -362,7 +367,8 @@ internal static partial class Av1Inverse2dTransformer
             output[62] = Av1Transform1dMath.Clamp(step[57] + step[62], stageRange[7]);
             output[63] = Av1Transform1dMath.Clamp(step[56] + step[63], stageRange[7]);
 
-            // Stage 8 completes the embedded eight-point groups and rotates their odd-frequency pairs.
+            // Stage 8 rotates positions 10 to 13 by pi/4 and selected pairs in positions 32 to 63 by odd multiples of pi/8. It adds and subtracts mirrored
+            // pairs within each group of eight in positions 0 to 7 and 16 to 31.
             step[0] = Av1Transform1dMath.Clamp(output[0] + output[7], stageRange[8]);
             step[1] = Av1Transform1dMath.Clamp(output[1] + output[6], stageRange[8]);
             step[2] = Av1Transform1dMath.Clamp(output[2] + output[5], stageRange[8]);
@@ -428,7 +434,7 @@ internal static partial class Av1Inverse2dTransformer
             step[62] = output[62];
             step[63] = output[63];
 
-            // Stage 9 widens the reconstructed groups through their next butterfly level.
+            // Stage 9 rotates positions 20 to 27 by pi/4. It adds and subtracts mirrored pairs within each group of sixteen in positions 0 to 15 and 32 to 63.
             output[0] = Av1Transform1dMath.Clamp(step[0] + step[15], stageRange[9]);
             output[1] = Av1Transform1dMath.Clamp(step[1] + step[14], stageRange[9]);
             output[2] = Av1Transform1dMath.Clamp(step[2] + step[13], stageRange[9]);
@@ -494,7 +500,7 @@ internal static partial class Av1Inverse2dTransformer
             output[62] = Av1Transform1dMath.Clamp(step[49] + step[62], stageRange[9]);
             output[63] = Av1Transform1dMath.Clamp(step[48] + step[63], stageRange[9]);
 
-            // Stage 10 applies the remaining pi/4 rotations before the terminal spatial merge.
+            // Stage 10 rotates positions 40 to 55 by pi/4. It adds and subtracts mirrored pairs in positions 0 to 31.
             step[0] = Av1Transform1dMath.Clamp(output[0] + output[31], stageRange[10]);
             step[1] = Av1Transform1dMath.Clamp(output[1] + output[30], stageRange[10]);
             step[2] = Av1Transform1dMath.Clamp(output[2] + output[29], stageRange[10]);
@@ -560,7 +566,8 @@ internal static partial class Av1Inverse2dTransformer
             step[62] = output[62];
             step[63] = output[63];
 
-            // Stage 11 merges the even and odd halves into spatial order and clamps every result.
+            // Stage 11 adds and subtracts mirrored pairs across all 64 positions. It clamps each result to the final stage range and writes the output in
+            // spatial order.
             output[0] = Av1Transform1dMath.Clamp(step[0] + step[63], stageRange[11]);
             output[1] = Av1Transform1dMath.Clamp(step[1] + step[62], stageRange[11]);
             output[2] = Av1Transform1dMath.Clamp(step[2] + step[61], stageRange[11]);
@@ -637,7 +644,8 @@ internal static partial class Av1Inverse2dTransformer
         {
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
 
-            // Stage 1 permutes frequency-ordered coefficients into the recursive DCT factorization order.
+            // Stage 1 permutes the coefficients from frequency order into the input order of the recursive butterfly network. Each later stage changes only the
+            // positions that its comment names. The other positions pass through. Every stage clamps its sums and differences to the range of that stage.
             output.V0 = input.V0;
             output.V4 = input.V8;
             output.V8 = input.V4;
@@ -655,7 +663,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V56 = input.V7;
             output.V60 = input.V15;
 
-            // Stage 2 rotates the highest odd-frequency coefficient pairs by their pi/128 angles.
+            // Stage 2 rotates the mirrored pairs in positions 32 to 63 by odd multiples of pi/128.
             step.V0 = output.V0;
             step.V4 = output.V4;
             step.V8 = output.V8;
@@ -681,7 +689,7 @@ internal static partial class Av1Inverse2dTransformer
             step.V60 = Av1Transform1dMath.MultiplyRound(output.V60, cospi[15], cosBit);
             step.V63 = Av1Transform1dMath.MultiplyRound(output.V32, cospi[1], cosBit);
 
-            // Stage 3 reconstructs the first nested groups and combines their adjacent odd terms.
+            // Stage 3 rotates the mirrored pairs in positions 16 to 31 by odd multiples of pi/64. It adds and subtracts adjacent pairs in positions 32 to 63.
             output.V0 = step.V0;
             output.V4 = step.V4;
             output.V8 = step.V8;
@@ -727,7 +735,8 @@ internal static partial class Av1Inverse2dTransformer
             output.V62 = Av1Transform1dMath.Clamp(step.V63, stageRange[3]);
             output.V63 = Av1Transform1dMath.Clamp(step.V63, stageRange[3]);
 
-            // Stage 4 rotates the next odd-frequency level while preserving completed low-frequency lanes.
+            // Stage 4 rotates the mirrored pairs in positions 8 to 15 and selected pairs in positions 32 to 63 by odd multiples of pi/32. It adds and subtracts
+            // adjacent pairs in positions 16 to 31.
             step.V0 = output.V0;
             step.V4 = output.V4;
             step.V8 = Av1Transform1dMath.MultiplyRound(output.V8, cospi[60], cosBit);
@@ -783,7 +792,8 @@ internal static partial class Av1Inverse2dTransformer
             step.V62 = Av1Transform1dMath.HalfButterfly(cospi[60], output.V33, cospi[4], output.V62, cosBit);
             step.V63 = output.V63;
 
-            // Stage 5 widens the nested groups through the next butterfly level.
+            // Stage 5 rotates the mirrored pairs in positions 4 to 7 and selected pairs in positions 16 to 31 by odd multiples of pi/16. It adds and subtracts
+            // adjacent pairs in positions 8 to 15 and mirrored pairs within each group of four in positions 32 to 63.
             output.V0 = step.V0;
             output.V4 = Av1Transform1dMath.MultiplyRound(step.V4, cospi[56], cosBit);
             output.V7 = Av1Transform1dMath.MultiplyRound(step.V4, cospi[8], cosBit);
@@ -844,7 +854,9 @@ internal static partial class Av1Inverse2dTransformer
             output.V62 = Av1Transform1dMath.Clamp(step.V61 + step.V62, stageRange[5]);
             output.V63 = Av1Transform1dMath.Clamp(step.V60 + step.V63, stageRange[5]);
 
-            // Stage 6 rotates the next odd-frequency level while preserving completed low-frequency lanes.
+            // Stage 6 rotates positions 0 and 1 by pi/4. It rotates positions 2 and 3 and selected pairs in positions 8 to 15 by odd multiples of pi/8. It
+            // rotates selected pairs in positions 32 to 63 by odd multiples of pi/16. It adds and subtracts adjacent pairs in positions 4 to 7 and mirrored
+            // pairs within each group of four in positions 16 to 31.
             step.V0 = Av1Transform1dMath.MultiplyRound(output.V0, cospi[32], cosBit);
             step.V1 = Av1Transform1dMath.MultiplyRound(output.V0, cospi[32], cosBit);
             step.V4 = Av1Transform1dMath.Clamp(output.V4, stageRange[6]);
@@ -908,7 +920,8 @@ internal static partial class Av1Inverse2dTransformer
             step.V62 = output.V62;
             step.V63 = output.V63;
 
-            // Stage 7 reconstructs the embedded sixteen-point groups and combines adjacent odd terms.
+            // Stage 7 rotates positions 5 and 6 by pi/4 and selected pairs in positions 16 to 31 by odd multiples of pi/8. It adds and subtracts mirrored pairs
+            // within each group of four in positions 0 to 3 and 8 to 15, and within each group of eight in positions 32 to 63.
             output.V0 = Av1Transform1dMath.Clamp(step.V0, stageRange[7]);
             output.V1 = Av1Transform1dMath.Clamp(step.V1, stageRange[7]);
             output.V2 = Av1Transform1dMath.Clamp(step.V1, stageRange[7]);
@@ -974,7 +987,8 @@ internal static partial class Av1Inverse2dTransformer
             output.V62 = Av1Transform1dMath.Clamp(step.V57 + step.V62, stageRange[7]);
             output.V63 = Av1Transform1dMath.Clamp(step.V56 + step.V63, stageRange[7]);
 
-            // Stage 8 completes the embedded eight-point groups and rotates their odd-frequency pairs.
+            // Stage 8 rotates positions 10 to 13 by pi/4 and selected pairs in positions 32 to 63 by odd multiples of pi/8. It adds and subtracts mirrored
+            // pairs within each group of eight in positions 0 to 7 and 16 to 31.
             step.V0 = Av1Transform1dMath.Clamp(output.V0 + output.V7, stageRange[8]);
             step.V1 = Av1Transform1dMath.Clamp(output.V1 + output.V6, stageRange[8]);
             step.V2 = Av1Transform1dMath.Clamp(output.V2 + output.V5, stageRange[8]);
@@ -1040,7 +1054,7 @@ internal static partial class Av1Inverse2dTransformer
             step.V62 = output.V62;
             step.V63 = output.V63;
 
-            // Stage 9 widens the reconstructed groups through their next butterfly level.
+            // Stage 9 rotates positions 20 to 27 by pi/4. It adds and subtracts mirrored pairs within each group of sixteen in positions 0 to 15 and 32 to 63.
             output.V0 = Av1Transform1dMath.Clamp(step.V0 + step.V15, stageRange[9]);
             output.V1 = Av1Transform1dMath.Clamp(step.V1 + step.V14, stageRange[9]);
             output.V2 = Av1Transform1dMath.Clamp(step.V2 + step.V13, stageRange[9]);
@@ -1106,7 +1120,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V62 = Av1Transform1dMath.Clamp(step.V49 + step.V62, stageRange[9]);
             output.V63 = Av1Transform1dMath.Clamp(step.V48 + step.V63, stageRange[9]);
 
-            // Stage 10 applies the remaining pi/4 rotations before the terminal spatial merge.
+            // Stage 10 rotates positions 40 to 55 by pi/4. It adds and subtracts mirrored pairs in positions 0 to 31.
             step.V0 = Av1Transform1dMath.Clamp(output.V0 + output.V31, stageRange[10]);
             step.V1 = Av1Transform1dMath.Clamp(output.V1 + output.V30, stageRange[10]);
             step.V2 = Av1Transform1dMath.Clamp(output.V2 + output.V29, stageRange[10]);
@@ -1172,7 +1186,8 @@ internal static partial class Av1Inverse2dTransformer
             step.V62 = output.V62;
             step.V63 = output.V63;
 
-            // Stage 11 merges the even and odd halves into spatial order and clamps every result.
+            // Stage 11 adds and subtracts mirrored pairs across all 64 positions. It clamps each result to the final stage range and writes the output in
+            // spatial order.
             output.V0 = Av1Transform1dMath.Clamp(step.V0 + step.V63, stageRange[11]);
             output.V1 = Av1Transform1dMath.Clamp(step.V1 + step.V62, stageRange[11]);
             output.V2 = Av1Transform1dMath.Clamp(step.V2 + step.V61, stageRange[11]);
@@ -1249,7 +1264,8 @@ internal static partial class Av1Inverse2dTransformer
         {
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
 
-            // Stage 1 permutes frequency-ordered coefficients into the recursive DCT factorization order.
+            // Stage 1 permutes the coefficients from frequency order into the input order of the recursive butterfly network. Each later stage changes only the
+            // positions that its comment names. The other positions pass through. Every stage clamps its sums and differences to the range of that stage.
             output.V0 = input.V0;
             output.V4 = input.V8;
             output.V8 = input.V4;
@@ -1267,7 +1283,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V56 = input.V7;
             output.V60 = input.V15;
 
-            // Stage 2 rotates the highest odd-frequency coefficient pairs by their pi/128 angles.
+            // Stage 2 rotates the mirrored pairs in positions 32 to 63 by odd multiples of pi/128.
             step.V0 = output.V0;
             step.V4 = output.V4;
             step.V8 = output.V8;
@@ -1293,7 +1309,7 @@ internal static partial class Av1Inverse2dTransformer
             step.V60 = Av1Transform1dMath.MultiplyRound(output.V60, cospi[15], cosBit);
             step.V63 = Av1Transform1dMath.MultiplyRound(output.V32, cospi[1], cosBit);
 
-            // Stage 3 reconstructs the first nested groups and combines their adjacent odd terms.
+            // Stage 3 rotates the mirrored pairs in positions 16 to 31 by odd multiples of pi/64. It adds and subtracts adjacent pairs in positions 32 to 63.
             output.V0 = step.V0;
             output.V4 = step.V4;
             output.V8 = step.V8;
@@ -1339,7 +1355,8 @@ internal static partial class Av1Inverse2dTransformer
             output.V62 = Av1Transform1dMath.Clamp(step.V63, stageRange[3]);
             output.V63 = Av1Transform1dMath.Clamp(step.V63, stageRange[3]);
 
-            // Stage 4 rotates the next odd-frequency level while preserving completed low-frequency lanes.
+            // Stage 4 rotates the mirrored pairs in positions 8 to 15 and selected pairs in positions 32 to 63 by odd multiples of pi/32. It adds and subtracts
+            // adjacent pairs in positions 16 to 31.
             step.V0 = output.V0;
             step.V4 = output.V4;
             step.V8 = Av1Transform1dMath.MultiplyRound(output.V8, cospi[60], cosBit);
@@ -1395,7 +1412,8 @@ internal static partial class Av1Inverse2dTransformer
             step.V62 = Av1Transform1dMath.HalfButterfly(cospi[60], output.V33, cospi[4], output.V62, cosBit);
             step.V63 = output.V63;
 
-            // Stage 5 widens the nested groups through the next butterfly level.
+            // Stage 5 rotates the mirrored pairs in positions 4 to 7 and selected pairs in positions 16 to 31 by odd multiples of pi/16. It adds and subtracts
+            // adjacent pairs in positions 8 to 15 and mirrored pairs within each group of four in positions 32 to 63.
             output.V0 = step.V0;
             output.V4 = Av1Transform1dMath.MultiplyRound(step.V4, cospi[56], cosBit);
             output.V7 = Av1Transform1dMath.MultiplyRound(step.V4, cospi[8], cosBit);
@@ -1456,7 +1474,9 @@ internal static partial class Av1Inverse2dTransformer
             output.V62 = Av1Transform1dMath.Clamp(step.V61 + step.V62, stageRange[5]);
             output.V63 = Av1Transform1dMath.Clamp(step.V60 + step.V63, stageRange[5]);
 
-            // Stage 6 rotates the next odd-frequency level while preserving completed low-frequency lanes.
+            // Stage 6 rotates positions 0 and 1 by pi/4. It rotates positions 2 and 3 and selected pairs in positions 8 to 15 by odd multiples of pi/8. It
+            // rotates selected pairs in positions 32 to 63 by odd multiples of pi/16. It adds and subtracts adjacent pairs in positions 4 to 7 and mirrored
+            // pairs within each group of four in positions 16 to 31.
             step.V0 = Av1Transform1dMath.MultiplyRound(output.V0, cospi[32], cosBit);
             step.V1 = Av1Transform1dMath.MultiplyRound(output.V0, cospi[32], cosBit);
             step.V4 = Av1Transform1dMath.Clamp(output.V4, stageRange[6]);
@@ -1520,7 +1540,8 @@ internal static partial class Av1Inverse2dTransformer
             step.V62 = output.V62;
             step.V63 = output.V63;
 
-            // Stage 7 reconstructs the embedded sixteen-point groups and combines adjacent odd terms.
+            // Stage 7 rotates positions 5 and 6 by pi/4 and selected pairs in positions 16 to 31 by odd multiples of pi/8. It adds and subtracts mirrored pairs
+            // within each group of four in positions 0 to 3 and 8 to 15, and within each group of eight in positions 32 to 63.
             output.V0 = Av1Transform1dMath.Clamp(step.V0, stageRange[7]);
             output.V1 = Av1Transform1dMath.Clamp(step.V1, stageRange[7]);
             output.V2 = Av1Transform1dMath.Clamp(step.V1, stageRange[7]);
@@ -1586,7 +1607,8 @@ internal static partial class Av1Inverse2dTransformer
             output.V62 = Av1Transform1dMath.Clamp(step.V57 + step.V62, stageRange[7]);
             output.V63 = Av1Transform1dMath.Clamp(step.V56 + step.V63, stageRange[7]);
 
-            // Stage 8 completes the embedded eight-point groups and rotates their odd-frequency pairs.
+            // Stage 8 rotates positions 10 to 13 by pi/4 and selected pairs in positions 32 to 63 by odd multiples of pi/8. It adds and subtracts mirrored
+            // pairs within each group of eight in positions 0 to 7 and 16 to 31.
             step.V0 = Av1Transform1dMath.Clamp(output.V0 + output.V7, stageRange[8]);
             step.V1 = Av1Transform1dMath.Clamp(output.V1 + output.V6, stageRange[8]);
             step.V2 = Av1Transform1dMath.Clamp(output.V2 + output.V5, stageRange[8]);
@@ -1652,7 +1674,7 @@ internal static partial class Av1Inverse2dTransformer
             step.V62 = output.V62;
             step.V63 = output.V63;
 
-            // Stage 9 widens the reconstructed groups through their next butterfly level.
+            // Stage 9 rotates positions 20 to 27 by pi/4. It adds and subtracts mirrored pairs within each group of sixteen in positions 0 to 15 and 32 to 63.
             output.V0 = Av1Transform1dMath.Clamp(step.V0 + step.V15, stageRange[9]);
             output.V1 = Av1Transform1dMath.Clamp(step.V1 + step.V14, stageRange[9]);
             output.V2 = Av1Transform1dMath.Clamp(step.V2 + step.V13, stageRange[9]);
@@ -1718,7 +1740,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V62 = Av1Transform1dMath.Clamp(step.V49 + step.V62, stageRange[9]);
             output.V63 = Av1Transform1dMath.Clamp(step.V48 + step.V63, stageRange[9]);
 
-            // Stage 10 applies the remaining pi/4 rotations before the terminal spatial merge.
+            // Stage 10 rotates positions 40 to 55 by pi/4. It adds and subtracts mirrored pairs in positions 0 to 31.
             step.V0 = Av1Transform1dMath.Clamp(output.V0 + output.V31, stageRange[10]);
             step.V1 = Av1Transform1dMath.Clamp(output.V1 + output.V30, stageRange[10]);
             step.V2 = Av1Transform1dMath.Clamp(output.V2 + output.V29, stageRange[10]);
@@ -1784,7 +1806,8 @@ internal static partial class Av1Inverse2dTransformer
             step.V62 = output.V62;
             step.V63 = output.V63;
 
-            // Stage 11 merges the even and odd halves into spatial order and clamps every result.
+            // Stage 11 adds and subtracts mirrored pairs across all 64 positions. It clamps each result to the final stage range and writes the output in
+            // spatial order.
             output.V0 = Av1Transform1dMath.Clamp(step.V0 + step.V63, stageRange[11]);
             output.V1 = Av1Transform1dMath.Clamp(step.V1 + step.V62, stageRange[11]);
             output.V2 = Av1Transform1dMath.Clamp(step.V2 + step.V61, stageRange[11]);

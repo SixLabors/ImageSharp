@@ -11,9 +11,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// Applies the reversible four-by-four inverse Walsh-Hadamard transform used by lossless AV1 segments.
 /// </summary>
 /// <remarks>
-/// The vector path stores one transform row in each <see cref="Vector128{T}"/> and one column position in each lane.
-/// Register transposes exchange the two transform dimensions between identical reversible butterflies. Reconstruction
-/// then adds four consecutive residual lanes to each prediction row with exact-width output stores.
+/// The vector path stores one transform row in each <see cref="Vector128{T}"/> and one column position in each lane. Register transposes exchange the two
+/// transform dimensions between identical reversible butterflies. Reconstruction then adds four consecutive residual lanes to each prediction row with
+/// exact-width output stores.
 /// </remarks>
 internal static class Av1InverseWalshHadamardTransformer
 {
@@ -83,6 +83,16 @@ internal static class Av1InverseWalshHadamardTransformer
     /// <summary>
     /// Selects the packed or scalar four-by-four reconstruction path.
     /// </summary>
+    /// <typeparam name="TSample">The decoded sample storage type.</typeparam>
+    /// <typeparam name="TOutputOperator">The operator that adds residuals to samples and clips them.</typeparam>
+    /// <param name="coefficients">The sixteen dequantized coefficients in raster order.</param>
+    /// <param name="readBuffer">The predicted samples read by reconstruction.</param>
+    /// <param name="readStride">The number of read samples between rows.</param>
+    /// <param name="writeBuffer">The destination reconstructed samples.</param>
+    /// <param name="writeStride">The number of destination samples between rows.</param>
+    /// <param name="coefficientCount">The decoded coefficient end position. A value of one selects the DC-only form.</param>
+    /// <param name="workspace">The reusable transform workspace. Only the scalar path uses it.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
     private static void TransformAdd<TSample, TOutputOperator>(
         ReadOnlySpan<int> coefficients,
         Span<TSample> readBuffer,
@@ -105,8 +115,17 @@ internal static class Av1InverseWalshHadamardTransformer
     }
 
     /// <summary>
-    /// Applies both reversible transform dimensions to four packed coefficient rows.
+    /// Applies both reversible transform dimensions to four packed coefficient rows and reconstructs the samples.
     /// </summary>
+    /// <typeparam name="TSample">The decoded sample storage type.</typeparam>
+    /// <typeparam name="TOutputOperator">The operator that adds residuals to samples and clips them.</typeparam>
+    /// <param name="coefficients">The sixteen dequantized coefficients in raster order.</param>
+    /// <param name="readBuffer">The predicted samples read by reconstruction.</param>
+    /// <param name="readStride">The number of read samples between rows.</param>
+    /// <param name="writeBuffer">The destination reconstructed samples.</param>
+    /// <param name="writeStride">The number of destination samples between rows.</param>
+    /// <param name="coefficientCount">The decoded coefficient end position. A value of one selects the DC-only form.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
     private static void TransformVector<TSample, TOutputOperator>(
         ReadOnlySpan<int> coefficients,
         Span<TSample> readBuffer,
@@ -126,8 +145,8 @@ internal static class Av1InverseWalshHadamardTransformer
 
         if (coefficientCount == 1)
         {
-            // The DC-only form bypasses fifteen known-zero coefficients and both full butterflies. These divisions
-            // deliberately use arithmetic shifts because negative coefficients must round toward negative infinity.
+            // The DC-only form skips fifteen known-zero coefficients and both full butterflies. The halving uses arithmetic shifts, so negative values round
+            // toward negative infinity as in the full butterfly.
             int first = Unsafe.Add(ref coefficientBase, 0) >> UnitQuantizationShift;
             int half = first >> 1;
             Vector128<int> intermediate = Vector128.Create(first - half, half, half, half);
@@ -144,14 +163,14 @@ internal static class Av1InverseWalshHadamardTransformer
             row2 = Vector128.LoadUnsafe(ref coefficientBase, 8) >> UnitQuantizationShift;
             row3 = Vector128.LoadUnsafe(ref coefficientBase, 12) >> UnitQuantizationShift;
 
-            // Entropy decoding normalizes AV1's column-major coefficient positions to the row-major transform
-            // workspace. Restore the normative dimension order before either reversible butterfly performs its
-            // signed half shift; swapping the dimensions after those shifts would not preserve lossless rounding.
+            // Entropy decoding normalizes the column-major coefficient positions of AV1 to the row-major transform workspace. The transpose restores the
+            // normative dimension order before either reversible butterfly does its signed half shift. A swap of the dimensions after those shifts breaks the
+            // lossless rounding.
             Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
             Transform(ref row0, ref row1, ref row2, ref row3);
 
-            // The first pass produces four packed intermediate columns. Transposition turns those columns into rows
-            // so the same reversible butterfly implements the second dimension without scratch.
+            // After the first pass, vector i holds intermediate row i. The second transpose puts intermediate row j into lane j, so the same lane-wise
+            // butterfly does the second dimension without a workspace.
             Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
             Transform(ref row0, ref row1, ref row2, ref row3);
         }
@@ -160,8 +179,18 @@ internal static class Av1InverseWalshHadamardTransformer
     }
 
     /// <summary>
-    /// Applies both reversible transform dimensions without hardware intrinsics.
+    /// Applies both reversible transform dimensions without hardware intrinsics and reconstructs the samples.
     /// </summary>
+    /// <typeparam name="TSample">The decoded sample storage type.</typeparam>
+    /// <typeparam name="TOutputOperator">The operator that adds residuals to samples and clips them.</typeparam>
+    /// <param name="coefficients">The sixteen dequantized coefficients in raster order.</param>
+    /// <param name="readBuffer">The predicted samples read by reconstruction.</param>
+    /// <param name="readStride">The number of read samples between rows.</param>
+    /// <param name="writeBuffer">The destination reconstructed samples.</param>
+    /// <param name="writeStride">The number of destination samples between rows.</param>
+    /// <param name="coefficientCount">The decoded coefficient end position. A value of one selects the DC-only form.</param>
+    /// <param name="workspace">The workspace that holds the sixteen intermediate values between the two dimensions.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
     private static void TransformScalar<TSample, TOutputOperator>(
         ReadOnlySpan<int> coefficients,
         Span<TSample> readBuffer,
@@ -179,6 +208,7 @@ internal static class Av1InverseWalshHadamardTransformer
 
         if (coefficientCount == 1)
         {
+            // The DC-only form gives one intermediate value per column. Row 0 receives the value minus its arithmetic half, and rows 1 to 3 receive the half.
             int first = coefficients[0] >> UnitQuantizationShift;
             int half = first >> 1;
             int firstResidual = first - half;
@@ -205,9 +235,8 @@ internal static class Av1InverseWalshHadamardTransformer
         ref int coefficientBase = ref MemoryMarshal.GetReference(coefficients);
         ref int intermediateBase = ref MemoryMarshal.GetReference(workspace);
 
-        // Entropy decoding stores the transposed scan in row-major order, so each contiguous local row is one
-        // normative transform column. Writing those results down the intermediate columns preserves the reference decoder's
-        // dimension order without a separate transpose or per-block allocation.
+        // Entropy decoding stores the transposed scan in row-major order, so each contiguous local row is one normative transform column. The results go down
+        // the intermediate columns. This keeps the normative dimension order without a separate transpose or per-block allocation.
         for (int row = 0; row < 4; row++)
         {
             int coefficientOffset = row * 4;
@@ -241,8 +270,12 @@ internal static class Av1InverseWalshHadamardTransformer
     }
 
     /// <summary>
-    /// Applies one packed four-point reversible Walsh-Hadamard dimension.
+    /// Applies one packed four-point reversible Walsh-Hadamard dimension. Each lane holds one independent transform.
     /// </summary>
+    /// <param name="row0">The first input of each lane. Holds output a on return.</param>
+    /// <param name="row1">The second input of each lane. Holds output b on return.</param>
+    /// <param name="row2">The third input of each lane. Holds output c on return.</param>
+    /// <param name="row3">The fourth input of each lane. Holds output d on return.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Transform(
         ref Vector128<int> row0,
@@ -263,8 +296,8 @@ internal static class Av1InverseWalshHadamardTransformer
         a -= b;
         d += c;
 
-        // The transform's arithmetic names the fourth input b and the second input c. Restore raster row order
-        // explicitly so the transpose and packed output stages see a, b, c, d exactly as the reference does.
+        // The arithmetic of the transform names the fourth input b and the second input c. The code restores the raster row order, so the transpose and packed
+        // output stages see a, b, c and d in the normative order.
         row0 = a;
         row1 = b;
         row2 = c;
@@ -274,6 +307,10 @@ internal static class Av1InverseWalshHadamardTransformer
     /// <summary>
     /// Applies one scalar four-point reversible Walsh-Hadamard dimension.
     /// </summary>
+    /// <param name="a">The first input. Holds output a on return.</param>
+    /// <param name="b">The fourth input. Holds output b on return.</param>
+    /// <param name="c">The second input. Holds output c on return.</param>
+    /// <param name="d">The third input. Holds output d on return.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Transform(ref int a, ref int b, ref int c, ref int d)
     {
@@ -289,6 +326,17 @@ internal static class Av1InverseWalshHadamardTransformer
     /// <summary>
     /// Adds four packed residual rows to their prediction rows through the active sample operator.
     /// </summary>
+    /// <typeparam name="TSample">The decoded sample storage type.</typeparam>
+    /// <typeparam name="TOutputOperator">The operator that adds residuals to samples and clips them.</typeparam>
+    /// <param name="readBuffer">The predicted samples read by reconstruction.</param>
+    /// <param name="readStride">The number of read samples between rows.</param>
+    /// <param name="writeBuffer">The destination reconstructed samples.</param>
+    /// <param name="writeStride">The number of destination samples between rows.</param>
+    /// <param name="row0">The four residuals of row 0.</param>
+    /// <param name="row1">The four residuals of row 1.</param>
+    /// <param name="row2">The four residuals of row 2.</param>
+    /// <param name="row3">The four residuals of row 3.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
     private static void AddRows<TSample, TOutputOperator>(
         Span<TSample> readBuffer,
         int readStride,

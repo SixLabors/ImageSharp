@@ -16,8 +16,19 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
 {
     /// <summary>
-    /// Combines two compound intermediates using the decoded temporal-distance weights.
+    /// Combines two compound intermediates with the decoded display-distance weights.
     /// </summary>
+    /// <param name="destination">The reconstructed 8-bit samples.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="first">The first compound intermediate.</param>
+    /// <param name="firstStride">The distance between first-intermediate rows in samples.</param>
+    /// <param name="second">The second compound intermediate.</param>
+    /// <param name="secondStride">The distance between second-intermediate rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="firstWeight">The weight of the first predictor.</param>
+    /// <param name="secondWeight">The weight of the second predictor.</param>
+    /// <param name="bitDepth">The decoded sample precision that produced the intermediates.</param>
     public static void DistanceWeightedIntermediate(
         Span<byte> destination,
         int destinationStride,
@@ -47,6 +58,17 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
     /// Executes one closed distance-weighted compound-intermediate operator.
     /// </summary>
     /// <typeparam name="TOperator">The compound-intermediate operator.</typeparam>
+    /// <param name="destination">The reconstructed 8-bit samples.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="first">The first compound intermediate.</param>
+    /// <param name="firstStride">The distance between first-intermediate rows in samples.</param>
+    /// <param name="second">The second compound intermediate.</param>
+    /// <param name="secondStride">The distance between second-intermediate rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="firstWeight">The weight of the first predictor.</param>
+    /// <param name="secondWeight">The weight of the second predictor.</param>
+    /// <param name="bitDepth">The decoded sample precision that produced the intermediates.</param>
     private static void DistanceWeightedIntermediate<TOperator>(
         Span<byte> destination,
         int destinationStride,
@@ -72,6 +94,8 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
             ref ushort secondReference = ref MemoryMarshal.GetReference(secondRow);
             int column = 0;
 
+            // Each step loads two 16-bit vectors from each intermediate and stores one byte vector that covers the same columns.
+            // The widest supported vectors take the row first. Each narrower width takes the columns that remain, and the scalar loop finishes the tail.
             if (Vector512.IsHardwareAccelerated)
             {
                 nuint vectorCount = Numerics.Vector512Count<byte>(width - column);
@@ -155,8 +179,19 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
     }
 
     /// <summary>
-    /// Combines two high-bit-depth compound intermediates using the decoded display-distance weights.
+    /// Combines two high-bit-depth compound intermediates with the decoded display-distance weights.
     /// </summary>
+    /// <param name="destination">The reconstructed high-bit-depth samples.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="first">The first compound intermediate.</param>
+    /// <param name="firstStride">The distance between first-intermediate rows in samples.</param>
+    /// <param name="second">The second compound intermediate.</param>
+    /// <param name="secondStride">The distance between second-intermediate rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="firstWeight">The weight of the first predictor.</param>
+    /// <param name="secondWeight">The weight of the second predictor.</param>
+    /// <param name="bitDepth">The decoded sample precision.</param>
     public static void DistanceWeightedIntermediate(
         Span<ushort> destination,
         int destinationStride,
@@ -186,6 +221,17 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
     /// Executes one closed high-bit-depth distance-weighted compound-intermediate operator.
     /// </summary>
     /// <typeparam name="TOperator">The compound-intermediate operator.</typeparam>
+    /// <param name="destination">The reconstructed high-bit-depth samples.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="first">The first compound intermediate.</param>
+    /// <param name="firstStride">The distance between first-intermediate rows in samples.</param>
+    /// <param name="second">The second compound intermediate.</param>
+    /// <param name="secondStride">The distance between second-intermediate rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="firstWeight">The weight of the first predictor.</param>
+    /// <param name="secondWeight">The weight of the second predictor.</param>
+    /// <param name="bitDepth">The decoded sample precision.</param>
     private static void DistanceWeightedIntermediate<TOperator>(
         Span<ushort> destination,
         int destinationStride,
@@ -213,6 +259,7 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
             ref ushort secondReference = ref MemoryMarshal.GetReference(secondRow);
             int column = 0;
 
+            // The widest supported vectors take the row first. Each narrower width takes the columns that remain, and the scalar loop finishes the tail.
             if (Vector512.IsHardwareAccelerated)
             {
                 nuint vectorCount = Numerics.Vector512Count<ushort>(width - column);

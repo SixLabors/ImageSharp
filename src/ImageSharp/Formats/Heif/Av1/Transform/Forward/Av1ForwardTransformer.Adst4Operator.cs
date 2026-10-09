@@ -36,7 +36,7 @@ internal static partial class Av1ForwardTransformer
             int input3 = Load<int>(ref values, inputStride, 3);
             int input01 = Av1ForwardTransformArithmetic<int>.Add(input0, input1);
 
-            // Packed lanes form input0 + input1 before widening, matching Highway's observable saturating arithmetic.
+            // Output 1 weights the 32-bit sum input0 + input1 with sinpi[3].
             int output0 = Av1ForwardTransformArithmetic<int>.MultiplyAddRound(
                 sinpi[1], input0, sinpi[2], input1, sinpi[3], input2, sinpi[4], input3, cosBit, in rounding);
 
@@ -46,7 +46,8 @@ internal static partial class Av1ForwardTransformer
             int output2 = Av1ForwardTransformArithmetic<int>.MultiplyAddRound(
                 sinpi[4], input0, -sinpi[1], input1, -sinpi[3], input2, sinpi[2], input3, cosBit, in rounding);
 
-            // This expression preserves Highway's widened w2 - w0 + 3 * v5 sequence with one rounding point.
+            // Before rounding, output 3 equals output 2 minus output 0 plus 3 * sinpi[3] * input2.
+            // The folded weights compute that sum as one weighted sum, so it rounds only once.
             int output3 = Av1ForwardTransformArithmetic<int>.MultiplyAddRound(
                 sinpi[4] - sinpi[1],
                 input0,
@@ -85,7 +86,7 @@ internal static partial class Av1ForwardTransformer
             short input3 = Load<short>(ref values, inputStride, 3);
             short input01 = Av1ForwardTransformArithmetic<short>.Add(input0, input1);
 
-            // Packed lanes form input0 + input1 before widening, matching Highway's observable saturating arithmetic.
+            // Output 1 weights the sum input0 + input1 with sinpi[3]. This 16-bit sum saturates before the weighted sum widens, as packed 16-bit lanes do.
             short output0 = Av1ForwardTransformArithmetic<short>.MultiplyAddRound(
                 sinpi[1], input0, sinpi[2], input1, sinpi[3], input2, sinpi[4], input3, cosBit, in rounding);
 
@@ -95,7 +96,8 @@ internal static partial class Av1ForwardTransformer
             short output2 = Av1ForwardTransformArithmetic<short>.MultiplyAddRound(
                 sinpi[4], input0, -sinpi[1], input1, -sinpi[3], input2, sinpi[2], input3, cosBit, in rounding);
 
-            // This expression preserves Highway's widened w2 - w0 + 3 * v5 sequence with one rounding point.
+            // Before rounding, output 3 equals output 2 minus output 0 plus 3 * sinpi[3] * input2.
+            // The folded weights compute that sum as one weighted sum, so it rounds only once.
             short output3 = Av1ForwardTransformArithmetic<short>.MultiplyAddRound(
                 sinpi[4] - sinpi[1],
                 input0,
@@ -134,7 +136,7 @@ internal static partial class Av1ForwardTransformer
             Vector128<short> input3 = Load<Vector128<short>>(ref values, inputStride, 3);
             Vector128<short> input01 = Av1ForwardTransformArithmetic<Vector128<short>>.Add(input0, input1);
 
-            // Packed lanes form input0 + input1 before widening, matching Highway's observable saturating arithmetic.
+            // Output 1 weights the sum input0 + input1 with sinpi[3]. This 16-bit sum saturates before the weighted sum widens, as packed 16-bit lanes do.
             Vector128<short> output0 = Av1ForwardTransformArithmetic<Vector128<short>>.MultiplyAddRound(
                 sinpi[1], input0, sinpi[2], input1, sinpi[3], input2, sinpi[4], input3, cosBit, in rounding);
 
@@ -144,7 +146,8 @@ internal static partial class Av1ForwardTransformer
             Vector128<short> output2 = Av1ForwardTransformArithmetic<Vector128<short>>.MultiplyAddRound(
                 sinpi[4], input0, -sinpi[1], input1, -sinpi[3], input2, sinpi[2], input3, cosBit, in rounding);
 
-            // This expression preserves Highway's widened w2 - w0 + 3 * v5 sequence with one rounding point.
+            // Before rounding, output 3 equals output 2 minus output 0 plus 3 * sinpi[3] * input2.
+            // The folded weights compute that sum as one weighted sum, so it rounds only once.
             Vector128<short> output3 = Av1ForwardTransformArithmetic<Vector128<short>>.MultiplyAddRound(
                 sinpi[4] - sinpi[1],
                 input0,
@@ -183,7 +186,7 @@ internal static partial class Av1ForwardTransformer
             Vector256<short> input3 = Load<Vector256<short>>(ref values, inputStride, 3);
             Vector256<short> input01 = Av1ForwardTransformArithmetic<Vector256<short>>.Add(input0, input1);
 
-            // Packed lanes form input0 + input1 before widening, matching Highway's observable saturating arithmetic.
+            // Output 1 weights the sum input0 + input1 with sinpi[3]. This 16-bit sum saturates before the weighted sum widens, as packed 16-bit lanes do.
             Vector256<short> output0 = Av1ForwardTransformArithmetic<Vector256<short>>.MultiplyAddRound(
                 sinpi[1], input0, sinpi[2], input1, sinpi[3], input2, sinpi[4], input3, cosBit, in rounding);
 
@@ -193,7 +196,8 @@ internal static partial class Av1ForwardTransformer
             Vector256<short> output2 = Av1ForwardTransformArithmetic<Vector256<short>>.MultiplyAddRound(
                 sinpi[4], input0, -sinpi[1], input1, -sinpi[3], input2, sinpi[2], input3, cosBit, in rounding);
 
-            // This expression preserves Highway's widened w2 - w0 + 3 * v5 sequence with one rounding point.
+            // Before rounding, output 3 equals output 2 minus output 0 plus 3 * sinpi[3] * input2.
+            // The folded weights compute that sum as one weighted sum, so it rounds only once.
             Vector256<short> output3 = Av1ForwardTransformArithmetic<Vector256<short>>.MultiplyAddRound(
                 sinpi[4] - sinpi[1],
                 input0,
@@ -232,7 +236,7 @@ internal static partial class Av1ForwardTransformer
             Vector512<short> input3 = Load<Vector512<short>>(ref values, inputStride, 3);
             Vector512<short> input01 = Av1ForwardTransformArithmetic<Vector512<short>>.Add(input0, input1);
 
-            // Packed lanes form input0 + input1 before widening, matching Highway's observable saturating arithmetic.
+            // Output 1 weights the sum input0 + input1 with sinpi[3]. This 16-bit sum saturates before the weighted sum widens, as packed 16-bit lanes do.
             Vector512<short> output0 = Av1ForwardTransformArithmetic<Vector512<short>>.MultiplyAddRound(
                 sinpi[1], input0, sinpi[2], input1, sinpi[3], input2, sinpi[4], input3, cosBit, in rounding);
 
@@ -242,7 +246,8 @@ internal static partial class Av1ForwardTransformer
             Vector512<short> output2 = Av1ForwardTransformArithmetic<Vector512<short>>.MultiplyAddRound(
                 sinpi[4], input0, -sinpi[1], input1, -sinpi[3], input2, sinpi[2], input3, cosBit, in rounding);
 
-            // This expression preserves Highway's widened w2 - w0 + 3 * v5 sequence with one rounding point.
+            // Before rounding, output 3 equals output 2 minus output 0 plus 3 * sinpi[3] * input2.
+            // The folded weights compute that sum as one weighted sum, so it rounds only once.
             Vector512<short> output3 = Av1ForwardTransformArithmetic<Vector512<short>>.MultiplyAddRound(
                 sinpi[4] - sinpi[1],
                 input0,
@@ -281,7 +286,7 @@ internal static partial class Av1ForwardTransformer
             Vector128<int> input3 = Load<Vector128<int>>(ref values, inputStride, 3);
             Vector128<int> input01 = Av1ForwardTransformArithmetic<Vector128<int>>.Add(input0, input1);
 
-            // Packed lanes form input0 + input1 before widening, matching Highway's observable saturating arithmetic.
+            // Output 1 weights the 32-bit sum input0 + input1 with sinpi[3].
             Vector128<int> output0 = Av1ForwardTransformArithmetic<Vector128<int>>.MultiplyAddRound(
                 sinpi[1], input0, sinpi[2], input1, sinpi[3], input2, sinpi[4], input3, cosBit, in rounding);
 
@@ -291,7 +296,8 @@ internal static partial class Av1ForwardTransformer
             Vector128<int> output2 = Av1ForwardTransformArithmetic<Vector128<int>>.MultiplyAddRound(
                 sinpi[4], input0, -sinpi[1], input1, -sinpi[3], input2, sinpi[2], input3, cosBit, in rounding);
 
-            // This expression preserves Highway's widened w2 - w0 + 3 * v5 sequence with one rounding point.
+            // Before rounding, output 3 equals output 2 minus output 0 plus 3 * sinpi[3] * input2.
+            // The folded weights compute that sum as one weighted sum, so it rounds only once.
             Vector128<int> output3 = Av1ForwardTransformArithmetic<Vector128<int>>.MultiplyAddRound(
                 sinpi[4] - sinpi[1],
                 input0,
@@ -330,7 +336,7 @@ internal static partial class Av1ForwardTransformer
             Vector256<int> input3 = Load<Vector256<int>>(ref values, inputStride, 3);
             Vector256<int> input01 = Av1ForwardTransformArithmetic<Vector256<int>>.Add(input0, input1);
 
-            // Packed lanes form input0 + input1 before widening, matching Highway's observable saturating arithmetic.
+            // Output 1 weights the 32-bit sum input0 + input1 with sinpi[3].
             Vector256<int> output0 = Av1ForwardTransformArithmetic<Vector256<int>>.MultiplyAddRound(
                 sinpi[1], input0, sinpi[2], input1, sinpi[3], input2, sinpi[4], input3, cosBit, in rounding);
 
@@ -340,7 +346,8 @@ internal static partial class Av1ForwardTransformer
             Vector256<int> output2 = Av1ForwardTransformArithmetic<Vector256<int>>.MultiplyAddRound(
                 sinpi[4], input0, -sinpi[1], input1, -sinpi[3], input2, sinpi[2], input3, cosBit, in rounding);
 
-            // This expression preserves Highway's widened w2 - w0 + 3 * v5 sequence with one rounding point.
+            // Before rounding, output 3 equals output 2 minus output 0 plus 3 * sinpi[3] * input2.
+            // The folded weights compute that sum as one weighted sum, so it rounds only once.
             Vector256<int> output3 = Av1ForwardTransformArithmetic<Vector256<int>>.MultiplyAddRound(
                 sinpi[4] - sinpi[1],
                 input0,
@@ -379,7 +386,7 @@ internal static partial class Av1ForwardTransformer
             Vector512<int> input3 = Load<Vector512<int>>(ref values, inputStride, 3);
             Vector512<int> input01 = Av1ForwardTransformArithmetic<Vector512<int>>.Add(input0, input1);
 
-            // Packed lanes form input0 + input1 before widening, matching Highway's observable saturating arithmetic.
+            // Output 1 weights the 32-bit sum input0 + input1 with sinpi[3].
             Vector512<int> output0 = Av1ForwardTransformArithmetic<Vector512<int>>.MultiplyAddRound(
                 sinpi[1], input0, sinpi[2], input1, sinpi[3], input2, sinpi[4], input3, cosBit, in rounding);
 
@@ -389,7 +396,8 @@ internal static partial class Av1ForwardTransformer
             Vector512<int> output2 = Av1ForwardTransformArithmetic<Vector512<int>>.MultiplyAddRound(
                 sinpi[4], input0, -sinpi[1], input1, -sinpi[3], input2, sinpi[2], input3, cosBit, in rounding);
 
-            // This expression preserves Highway's widened w2 - w0 + 3 * v5 sequence with one rounding point.
+            // Before rounding, output 3 equals output 2 minus output 0 plus 3 * sinpi[3] * input2.
+            // The folded weights compute that sum as one weighted sum, so it rounds only once.
             Vector512<int> output3 = Av1ForwardTransformArithmetic<Vector512<int>>.MultiplyAddRound(
                 sinpi[4] - sinpi[1],
                 input0,

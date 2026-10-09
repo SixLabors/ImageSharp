@@ -11,9 +11,8 @@ internal static partial class Av1Inverse2dTransformer
     /// Applies the 32-point inverse DCT with at most 8 low-frequency input coefficients.
     /// </summary>
     /// <remarks>
-    /// The selected scan bound guarantees all later inputs are zero. Rotations with one surviving input retain
-    /// their original rounding boundary, and all nonzero butterfly outputs retain their stage clamps.
-    /// Vector fields identify transform positions; lanes remain independent rows or columns throughout.
+    /// The selected scan bound guarantees that all later inputs are zero. Rotations with one surviving input retain their original rounding boundary. All
+    /// nonzero butterfly outputs retain their stage clamps. Vector fields identify transform positions. Lanes stay independent rows or columns throughout.
     /// </remarks>
     internal readonly struct Dct32Low8Operator : IAv1Transform1dOperator
     {
@@ -35,7 +34,7 @@ internal static partial class Av1Inverse2dTransformer
             output[24] = input[3];
             output[28] = input[7];
 
-            // Stage 2 rotates the highest odd-frequency coefficient pairs by their pi/64 angles.
+            // Stage 2 rotates the highest odd-frequency coefficient pairs by odd multiples of pi/64.
             step[0] = output[0];
             step[4] = output[4];
             step[8] = output[8];
@@ -73,7 +72,7 @@ internal static partial class Av1Inverse2dTransformer
             output[30] = Av1Transform1dMath.Clamp(step[31], stageRange[3]);
             output[31] = Av1Transform1dMath.Clamp(step[31], stageRange[3]);
 
-            // Stage 4 rotates the next odd-frequency level while preserving completed low-frequency lanes.
+            // Stage 4 rotates the next odd-frequency level. Positions 0 to 3 pass through unchanged.
             step[0] = output[0];
             step[4] = Av1Math.RoundShift((long)output[4] * cospi[56], cosBit);
             step[7] = Av1Math.RoundShift((long)output[4] * cospi[8], cosBit);
@@ -291,7 +290,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V24 = input.V3;
             output.V28 = input.V7;
 
-            // Stage 2 rotates the highest odd-frequency coefficient pairs by their pi/64 angles.
+            // Stage 2 rotates the highest odd-frequency coefficient pairs by odd multiples of pi/64.
             step.V0 = output.V0;
             step.V4 = output.V4;
             step.V8 = output.V8;
@@ -329,7 +328,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V30 = Av1Transform1dMath.Clamp(step.V31, stageRange[3]);
             output.V31 = Av1Transform1dMath.Clamp(step.V31, stageRange[3]);
 
-            // Stage 4 rotates the next odd-frequency level while preserving completed low-frequency lanes.
+            // Stage 4 rotates the next odd-frequency level. Positions 0 to 3 pass through unchanged.
             step.V0 = output.V0;
             step.V4 = Av1Transform1dMath.MultiplyRound(output.V4, cospi[56], cosBit);
             step.V7 = Av1Transform1dMath.MultiplyRound(output.V4, cospi[8], cosBit);
@@ -547,7 +546,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V24 = input.V3;
             output.V28 = input.V7;
 
-            // Stage 2 rotates the highest odd-frequency coefficient pairs by their pi/64 angles.
+            // Stage 2 rotates the highest odd-frequency coefficient pairs by odd multiples of pi/64.
             step.V0 = output.V0;
             step.V4 = output.V4;
             step.V8 = output.V8;
@@ -585,7 +584,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V30 = Av1Transform1dMath.Clamp(step.V31, stageRange[3]);
             output.V31 = Av1Transform1dMath.Clamp(step.V31, stageRange[3]);
 
-            // Stage 4 rotates the next odd-frequency level while preserving completed low-frequency lanes.
+            // Stage 4 rotates the next odd-frequency level. Positions 0 to 3 pass through unchanged.
             step.V0 = output.V0;
             step.V4 = Av1Transform1dMath.MultiplyRound(output.V4, cospi[56], cosBit);
             step.V7 = Av1Transform1dMath.MultiplyRound(output.V4, cospi[8], cosBit);

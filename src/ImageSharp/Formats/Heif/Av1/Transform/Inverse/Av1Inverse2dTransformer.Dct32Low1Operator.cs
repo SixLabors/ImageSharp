@@ -8,12 +8,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 internal static partial class Av1Inverse2dTransformer
 {
     /// <summary>
-    /// Applies the 32-point inverse DCT with at most 1 low-frequency input coefficients.
+    /// Applies the 32-point inverse DCT with at most 1 low-frequency input coefficient.
     /// </summary>
     /// <remarks>
-    /// The selected scan bound guarantees all later inputs are zero. Rotations with one surviving input retain
-    /// their original rounding boundary, and all nonzero butterfly outputs retain their stage clamps.
-    /// Vector fields identify transform positions; lanes remain independent rows or columns throughout.
+    /// The selected scan bound guarantees that all later inputs are zero. Rotations with one surviving input retain their original rounding boundary. All
+    /// nonzero butterfly outputs retain their stage clamps. Vector fields identify transform positions. Lanes stay independent rows or columns throughout.
     /// </remarks>
     internal readonly struct Dct32Low1Operator : IAv1Transform1dOperator
     {
@@ -23,8 +22,8 @@ internal static partial class Av1Inverse2dTransformer
         /// <inheritdoc/>
         public static void Transform(ReadOnlySpan<int> input, Span<int> output, Span<int> step, int cosBit, InlineArray12<byte> stageRange)
         {
-            // Only the DC basis survives. The remaining butterflies copy that value into every output;
-            // inverse stage ranges are uniform within an axis, so one clamp covers the repeated merges.
+            // Only the DC basis survives. The remaining butterflies copy that value into every output.
+            // Inverse stage ranges are uniform within an axis, so one clamp covers the repeated merges.
             int cosine = Av1SinusConstants.CosinusPi(cosBit)[32];
             int value = Av1Transform1dMath.Clamp(Av1Math.RoundShift((long)input[0] * cosine, cosBit), stageRange[9]);
 
@@ -39,8 +38,8 @@ internal static partial class Av1Inverse2dTransformer
             int cosBit,
             InlineArray12<byte> stageRange)
         {
-            // Only the DC basis survives. The remaining butterflies copy that value into every output;
-            // inverse stage ranges are uniform within an axis, so one clamp covers the repeated merges.
+            // Only the DC basis survives. The remaining butterflies copy that value into every output.
+            // Inverse stage ranges are uniform within an axis, so one clamp covers the repeated merges.
             int cosine = Av1SinusConstants.CosinusPi(cosBit)[32];
             Vector256<int> value = Av1Transform1dMath.Clamp(Av1Transform1dMath.MultiplyRound(input.V0, cosine, cosBit), stageRange[9]);
 
@@ -86,8 +85,8 @@ internal static partial class Av1Inverse2dTransformer
             int cosBit,
             InlineArray12<byte> stageRange)
         {
-            // Only the DC basis survives. The remaining butterflies copy that value into every output;
-            // inverse stage ranges are uniform within an axis, so one clamp covers the repeated merges.
+            // Only the DC basis survives. The remaining butterflies copy that value into every output.
+            // Inverse stage ranges are uniform within an axis, so one clamp covers the repeated merges.
             int cosine = Av1SinusConstants.CosinusPi(cosBit)[32];
             Vector128<int> value = Av1Transform1dMath.Clamp(Av1Transform1dMath.MultiplyRound(input.V0, cosine, cosBit), stageRange[9]);
 

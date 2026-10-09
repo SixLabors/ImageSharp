@@ -13,19 +13,13 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 /// </content>
 /// <remarks>
 /// <para>
-/// One lane is one chroma column throughout. A luma sample becomes a Q3 value by a shift of three,
-/// and a subsampled chroma column is the sum of the luma samples that map to it, shifted so that the
-/// result carries the same three fractional bits: a horizontal pair keeps a shift of two and a
-/// horizontal and vertical quad keeps a shift of one.
+/// One lane is one chroma column throughout. A luma sample becomes a Q3 value by a shift of three. A subsampled chroma column is the sum of the luma samples
+/// that map to it. A shift then gives the result the same three fractional bits. Thus a horizontal pair uses a shift of two, and a horizontal and vertical quad
+/// uses a shift of one.
 /// </para>
 /// <para>
-/// The sample depth of the frame is closed over rather than written out twice. The traversals below
-/// are generic over the sample type and the depth-specific loads live beside them, which is how the
-/// loop restoration filter and the film grain synthesis handle the same difference.
-/// </para>
-/// <para>
-/// Reference: cfl_luma_subsampling_420_lbd_c(), cfl_luma_subsampling_444_lbd_c(),
-/// subtract_average_c() and cfl_pad().
+/// The traversals below are generic over the sample type, so the code is not written twice for the two sample depths. The depth-specific loads are beside them.
+/// The loop restoration filter and the film grain synthesis use the same pattern.
 /// </para>
 /// </remarks>
 internal partial class Av1ChromaFromLumaContext
@@ -73,7 +67,7 @@ internal partial class Av1ChromaFromLumaContext
     /// <summary>
     /// Subsamples one reconstructed luma block of either depth and removes its rounded Q3 mean.
     /// </summary>
-    /// <typeparam name="TSample">Byte or short, selected by the frame.</typeparam>
+    /// <typeparam name="TSample">The sample type, byte or short, that the frame bit depth selects.</typeparam>
     /// <param name="input">The reconstructed luma samples.</param>
     /// <param name="inputStride">The distance, in samples, between input rows.</param>
     /// <param name="output">The fixed-stride Q3 predictor workspace.</param>
@@ -94,8 +88,8 @@ internal partial class Av1ChromaFromLumaContext
         int subX = subsamplingX ? 1 : 0;
         int subY = subsamplingY ? 1 : 0;
 
-        // cfl_store_tx stores each coded luma transform. Beyond the coded extent the reference has
-        // nothing stored, so cfl_pad repeats the last stored column and row instead.
+        // The store covers each coded luma transform. Beyond the coded extent, nothing is stored. Thus the pad step repeats the last stored column and row
+        // there.
         int lumaWidth = Math.Min(lumaExtent.Width, transformSize.GetWidth() << subX);
         int lumaHeight = Math.Min(lumaExtent.Height, transformSize.GetHeight() << subY);
         StoreSamples(input, inputStride, 0, lumaWidth, lumaHeight, output, subsamplingX, subsamplingY);
@@ -106,7 +100,7 @@ internal partial class Av1ChromaFromLumaContext
     /// <summary>
     /// Stores reconstructed luma samples in the Q3 predictor surface.
     /// </summary>
-    /// <typeparam name="TSample">Byte or short, selected by the frame.</typeparam>
+    /// <typeparam name="TSample">The sample type, byte or short, that the frame bit depth selects.</typeparam>
     /// <param name="input">The reconstructed luma samples.</param>
     /// <param name="inputStride">The distance, in samples, between input rows.</param>
     /// <param name="outputOffset">The first destination sample in the fixed-stride predictor buffer.</param>
@@ -138,7 +132,7 @@ internal partial class Av1ChromaFromLumaContext
     /// <summary>
     /// Stores luma samples that map one to one onto chroma columns.
     /// </summary>
-    /// <typeparam name="TSample">Byte or short, selected by the frame.</typeparam>
+    /// <typeparam name="TSample">The sample type, byte or short, that the frame bit depth selects.</typeparam>
     /// <param name="input">The reconstructed luma samples.</param>
     /// <param name="inputStride">The distance, in samples, between input rows.</param>
     /// <param name="outputOffset">The first destination sample in the fixed-stride predictor buffer.</param>
@@ -163,8 +157,8 @@ internal partial class Av1ChromaFromLumaContext
             ref short outputRow = ref Unsafe.Add(ref outputBase, outputOffset + (row * BufferLine));
             int column = 0;
 
-            // Descending widths share one column offset, so a remainder that a wider register
-            // cannot fill is still taken by a narrower one before the scalar loop sees it.
+            // The vector widths share one column offset and run from wide to narrow. A narrower vector takes the remainder that a wider vector cannot fill. The
+            // scalar loop takes the rest.
             if (Vector512.IsHardwareAccelerated)
             {
                 for (; column <= width - Vector512<short>.Count; column += Vector512<short>.Count)
@@ -202,7 +196,7 @@ internal partial class Av1ChromaFromLumaContext
     /// <summary>
     /// Stores luma samples that map in horizontal pairs onto chroma columns.
     /// </summary>
-    /// <typeparam name="TSample">Byte or short, selected by the frame.</typeparam>
+    /// <typeparam name="TSample">The sample type, byte or short, that the frame bit depth selects.</typeparam>
     /// <param name="input">The reconstructed luma samples.</param>
     /// <param name="inputStride">The distance, in samples, between input rows.</param>
     /// <param name="outputOffset">The first destination sample in the fixed-stride predictor buffer.</param>
@@ -211,9 +205,8 @@ internal partial class Av1ChromaFromLumaContext
     /// <param name="output">The fixed-stride Q3 predictor workspace.</param>
     /// <param name="subsamplingY">Whether vertical luma pairs are subsampled as well.</param>
     /// <remarks>
-    /// A chroma column takes two luma samples, or four when the vertical axis is subsampled too. The
-    /// remaining shift is what keeps every case at three fractional bits: a sum of two keeps two
-    /// more bits and a sum of four keeps one.
+    /// A chroma column takes two luma samples, or four when the vertical axis is also subsampled. The remaining shift keeps every case at three fractional
+    /// bits. A sum of two needs a shift of two, and a sum of four needs a shift of one.
     /// </remarks>
     private static void StorePairedSamples<TSample>(
         ReadOnlySpan<TSample> input,
@@ -237,8 +230,7 @@ internal partial class Av1ChromaFromLumaContext
             ref short outputRow = ref Unsafe.Add(ref outputBase, outputOffset + ((row / rowStep) * BufferLine));
             int column = 0;
 
-            // Each stage consumes twice as many luma samples as the chroma columns it writes, so
-            // the destination offset is half the source offset throughout.
+            // Each stage reads twice as many luma samples as the chroma columns that it writes. Thus the destination offset is always half the source offset.
             if (Vector512.IsHardwareAccelerated)
             {
                 for (; column <= width - (2 * Vector512<short>.Count); column += 2 * Vector512<short>.Count)
@@ -298,8 +290,7 @@ internal partial class Av1ChromaFromLumaContext
     }
 
     /// <summary>
-    /// Subtracts the rounded Q3 average from each predictor sample, leaving the alternating-current
-    /// contribution that chroma-from-luma prediction scales.
+    /// Subtracts the rounded Q3 average from each predictor sample. The result is the alternating-current part that chroma-from-luma prediction scales.
     /// </summary>
     /// <param name="buffer">The fixed-stride Q3 predictor workspace.</param>
     /// <param name="transformSize">The populated predictor dimensions.</param>
@@ -309,9 +300,8 @@ internal partial class Av1ChromaFromLumaContext
         int height = transformSize.GetHeight();
         ref short bufferBase = ref MemoryMarshal.GetReference(buffer);
 
-        // Transform dimensions are powers of two, so the division by the sample count is an exact
-        // right shift. Half the sample count is accumulated first, which is the normative rounding
-        // to the nearest whole Q3 value.
+        // Transform dimensions are powers of two, so the division by the sample count is an exact right shift. The sum starts at half the sample count. This
+        // gives the rounding to the nearest whole Q3 value that AV1 defines.
         int sumQ3 = (width * height) >> 1;
         for (int row = 0; row < height; row++)
         {
@@ -333,8 +323,8 @@ internal partial class Av1ChromaFromLumaContext
     /// <param name="width">The number of samples in the row.</param>
     /// <returns>The total of the row.</returns>
     /// <remarks>
-    /// A Q3 sample of a twelve-bit frame reaches 32760, and a 32 by 32 transform holds 1024 of them,
-    /// so the total needs more than sixteen bits and the lanes widen before they accumulate.
+    /// A Q3 sample of a twelve-bit frame reaches 32760. A 32 by 32 transform holds 1024 of them. Thus the total needs more than sixteen bits, and the lanes
+    /// widen before they accumulate.
     /// </remarks>
     private static int SumRow(ref short row, int width)
     {

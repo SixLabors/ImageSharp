@@ -9,8 +9,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// Defines the 32-point AV1 inverse discrete cosine transform operator.
 /// </summary>
 /// <remarks>
-/// Vector fields represent transform positions and vector lanes represent independent axes. The SIMD overloads apply
-/// the same staged butterflies, fixed-point rounding, and range clamps as the scalar overload without mixing axes.
+/// Vector fields represent transform positions. Vector lanes represent independent axes. The SIMD overloads apply the same staged butterflies, fixed-point
+/// rounding, and range clamps as the scalar overload. They never mix axes.
 /// </remarks>
 internal static partial class Av1Inverse2dTransformer
 {
@@ -67,7 +67,7 @@ internal static partial class Av1Inverse2dTransformer
             output[30] = input[15];
             output[31] = input[31];
 
-            // Stage 2 rotates the highest odd-frequency coefficient pairs by their pi/64 angles.
+            // Stage 2 rotates the highest odd-frequency coefficient pairs by odd multiples of pi/64.
             stage++;
             step[0] = output[0];
             step[1] = output[1];
@@ -138,7 +138,7 @@ internal static partial class Av1Inverse2dTransformer
             output[30] = Av1Transform1dMath.Clamp(-step[30] + step[31], range);
             output[31] = Av1Transform1dMath.Clamp(step[30] + step[31], range);
 
-            // Stage 4 rotates the next odd-frequency level while preserving completed low-frequency lanes.
+            // Stage 4 rotates the next odd-frequency level. Positions 0 to 3 pass through unchanged.
             stage++;
             range = stageRange[stage];
             step[0] = output[0];
@@ -401,7 +401,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V30 = input.V15;
             output.V31 = input.V31;
 
-            // Stage 2 rotates the highest odd-frequency coefficient pairs by their pi/64 angles.
+            // Stage 2 rotates the highest odd-frequency coefficient pairs by odd multiples of pi/64.
             stage++;
             step.V0 = output.V0;
             step.V1 = output.V1;
@@ -472,7 +472,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V30 = Av1Transform1dMath.Clamp(-step.V30 + step.V31, range);
             output.V31 = Av1Transform1dMath.Clamp(step.V30 + step.V31, range);
 
-            // Stage 4 rotates the next odd-frequency level while preserving completed low-frequency lanes.
+            // Stage 4 rotates the next odd-frequency level. Positions 0 to 3 pass through unchanged.
             stage++;
             range = stageRange[stage];
             step.V0 = output.V0;
@@ -742,7 +742,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V30 = input.V15;
             output.V31 = input.V31;
 
-            // Stage 2 rotates the highest odd-frequency coefficient pairs by their pi/64 angles.
+            // Stage 2 rotates the highest odd-frequency coefficient pairs by odd multiples of pi/64.
             stage++;
             step.V0 = output.V0;
             step.V1 = output.V1;
@@ -813,7 +813,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V30 = Av1Transform1dMath.Clamp(-step.V30 + step.V31, range);
             output.V31 = Av1Transform1dMath.Clamp(step.V30 + step.V31, range);
 
-            // Stage 4 rotates the next odd-frequency level while preserving completed low-frequency lanes.
+            // Stage 4 rotates the next odd-frequency level. Positions 0 to 3 pass through unchanged.
             stage++;
             range = stageRange[stage];
             step.V0 = output.V0;

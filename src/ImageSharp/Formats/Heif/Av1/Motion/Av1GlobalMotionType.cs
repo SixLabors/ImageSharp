@@ -9,22 +9,22 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 internal enum Av1GlobalMotionType : byte
 {
     /// <summary>
-    /// No geometric displacement is applied.
+    /// The model has no geometric displacement.
     /// </summary>
     Identity = 0,
 
     /// <summary>
-    /// Horizontal and vertical translation are applied.
+    /// The model has horizontal and vertical translation.
     /// </summary>
     Translation = 1,
 
     /// <summary>
-    /// Translation, rotation, and uniform zoom are applied.
+    /// The model has translation, rotation, and uniform zoom.
     /// </summary>
     RotationZoom = 2,
 
     /// <summary>
-    /// A general six-parameter affine transformation is applied.
+    /// The model is a general six-parameter affine transformation.
     /// </summary>
     Affine = 3
 }

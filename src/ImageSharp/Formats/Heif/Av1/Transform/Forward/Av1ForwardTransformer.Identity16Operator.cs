@@ -29,8 +29,8 @@ internal static partial class Av1ForwardTransformer
             _ = buffer1;
             _ = cosBit;
 
-            // The length-specific normalization is applied directly in the semantic operator so each scalar
-            // or SIMD overload retains the exact AV1 identity-transform arithmetic without a forwarding layer.
+            // The identity transform has no butterflies, so it ignores both buffers and cosBit. The sixteen-point identity scales each value by 2 * sqrt(2).
+            // NewSqrt2 holds sqrt(2) with NewSqrt2Bits fractional bits. MultiplyRound rounds the product back to the integer scale.
             for (int i = 0; i < 16; i++)
             {
                 int input = Load<int>(ref values, inputStride, i);
@@ -56,8 +56,8 @@ internal static partial class Av1ForwardTransformer
             _ = buffer1;
             _ = cosBit;
 
-            // The length-specific normalization is applied directly in the semantic operator so each scalar
-            // or SIMD overload retains the exact AV1 identity-transform arithmetic without a forwarding layer.
+            // The identity transform has no butterflies, so it ignores both buffers and cosBit. The sixteen-point identity scales each value by 2 * sqrt(2).
+            // NewSqrt2 holds sqrt(2) with NewSqrt2Bits fractional bits. MultiplyRound rounds the product back to the integer scale.
             for (int i = 0; i < 16; i++)
             {
                 short input = Load<short>(ref values, inputStride, i);
@@ -83,8 +83,8 @@ internal static partial class Av1ForwardTransformer
             _ = buffer1;
             _ = cosBit;
 
-            // The length-specific normalization is applied directly in the semantic operator so each scalar
-            // or SIMD overload retains the exact AV1 identity-transform arithmetic without a forwarding layer.
+            // The identity transform has no butterflies, so it ignores both buffers and cosBit. The sixteen-point identity scales each value by 2 * sqrt(2).
+            // NewSqrt2 holds sqrt(2) with NewSqrt2Bits fractional bits. MultiplyRound rounds the product back to the integer scale.
             for (int i = 0; i < 16; i++)
             {
                 Vector128<short> input = Load<Vector128<short>>(ref values, inputStride, i);
@@ -110,8 +110,8 @@ internal static partial class Av1ForwardTransformer
             _ = buffer1;
             _ = cosBit;
 
-            // The length-specific normalization is applied directly in the semantic operator so each scalar
-            // or SIMD overload retains the exact AV1 identity-transform arithmetic without a forwarding layer.
+            // The identity transform has no butterflies, so it ignores both buffers and cosBit. The sixteen-point identity scales each value by 2 * sqrt(2).
+            // NewSqrt2 holds sqrt(2) with NewSqrt2Bits fractional bits. MultiplyRound rounds the product back to the integer scale.
             for (int i = 0; i < 16; i++)
             {
                 Vector256<short> input = Load<Vector256<short>>(ref values, inputStride, i);
@@ -137,8 +137,8 @@ internal static partial class Av1ForwardTransformer
             _ = buffer1;
             _ = cosBit;
 
-            // The length-specific normalization is applied directly in the semantic operator so each scalar
-            // or SIMD overload retains the exact AV1 identity-transform arithmetic without a forwarding layer.
+            // The identity transform has no butterflies, so it ignores both buffers and cosBit. The sixteen-point identity scales each value by 2 * sqrt(2).
+            // NewSqrt2 holds sqrt(2) with NewSqrt2Bits fractional bits. MultiplyRound rounds the product back to the integer scale.
             for (int i = 0; i < 16; i++)
             {
                 Vector512<short> input = Load<Vector512<short>>(ref values, inputStride, i);
@@ -164,8 +164,8 @@ internal static partial class Av1ForwardTransformer
             _ = buffer1;
             _ = cosBit;
 
-            // The length-specific normalization is applied directly in the semantic operator so each scalar
-            // or SIMD overload retains the exact AV1 identity-transform arithmetic without a forwarding layer.
+            // The identity transform has no butterflies, so it ignores both buffers and cosBit. The sixteen-point identity scales each value by 2 * sqrt(2).
+            // NewSqrt2 holds sqrt(2) with NewSqrt2Bits fractional bits. MultiplyRound rounds the product back to the integer scale.
             for (int i = 0; i < 16; i++)
             {
                 Vector128<int> input = Load<Vector128<int>>(ref values, inputStride, i);
@@ -191,8 +191,8 @@ internal static partial class Av1ForwardTransformer
             _ = buffer1;
             _ = cosBit;
 
-            // The length-specific normalization is applied directly in the semantic operator so each scalar
-            // or SIMD overload retains the exact AV1 identity-transform arithmetic without a forwarding layer.
+            // The identity transform has no butterflies, so it ignores both buffers and cosBit. The sixteen-point identity scales each value by 2 * sqrt(2).
+            // NewSqrt2 holds sqrt(2) with NewSqrt2Bits fractional bits. MultiplyRound rounds the product back to the integer scale.
             for (int i = 0; i < 16; i++)
             {
                 Vector256<int> input = Load<Vector256<int>>(ref values, inputStride, i);
@@ -218,8 +218,8 @@ internal static partial class Av1ForwardTransformer
             _ = buffer1;
             _ = cosBit;
 
-            // The length-specific normalization is applied directly in the semantic operator so each scalar
-            // or SIMD overload retains the exact AV1 identity-transform arithmetic without a forwarding layer.
+            // The identity transform has no butterflies, so it ignores both buffers and cosBit. The sixteen-point identity scales each value by 2 * sqrt(2).
+            // NewSqrt2 holds sqrt(2) with NewSqrt2Bits fractional bits. MultiplyRound rounds the product back to the integer scale.
             for (int i = 0; i < 16; i++)
             {
                 Vector512<int> input = Load<Vector512<int>>(ref values, inputStride, i);

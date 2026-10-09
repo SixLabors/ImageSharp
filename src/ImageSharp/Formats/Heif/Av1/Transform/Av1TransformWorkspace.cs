@@ -9,9 +9,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// Describes the reusable storage required by an AV1 two-dimensional transform operation.
 /// </summary>
 /// <remarks>
-/// Forward transformation reserves three vectors, raster buffers, and its fixed transpose area. Inverse transformation
-/// shares input and stage storage and retains one raster intermediate. Sizes are expressed as integers so callers can
-/// rent one buffer and reinterpret its prefixes for SIMD lanes without per-block allocations.
+/// Forward transformation reserves three vectors, two raster buffers, and a fixed transpose area. Inverse transformation shares the input and stage storage and
+/// keeps one raster intermediate. Sizes are counts of 32-bit integers. Callers can rent one buffer and reinterpret its prefixes for SIMD lanes without
+/// per-block allocations.
 /// </remarks>
 internal static class Av1TransformWorkspace
 {
@@ -21,7 +21,7 @@ internal static class Av1TransformWorkspace
     public const int Vector512StorageLength = 3 * Av1Constants.MaxTransformSize * 16;
 
     /// <summary>
-    /// The number of integer elements occupied by the AVX-512 transpose scratch.
+    /// The number of integer elements occupied by the AVX-512 transpose area.
     /// </summary>
     public const int Vector512TransposeStorageLength = 16 * 8 * 2;
 
@@ -59,9 +59,9 @@ internal static class Av1TransformWorkspace
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
 
-        // Input coefficients are consumed before stage exchange begins, so those two regions share storage.
-        // Reserve the widest supported traversal for these dimensions, allowing the same workspace to serve every
-        // hardware tier. Four-point axes use four-lane traversal; all larger pairs can use eight lanes.
+        // The inverse transform reads the input coefficients before the stage exchange begins, so those two regions share storage. The length covers the widest
+        // supported traversal for these dimensions, so the same workspace serves every hardware tier. Four-point axes use a four-lane traversal. All larger
+        // pairs can use eight lanes.
         int lanes = width >= 8 && height >= 8 ? 8 : 4;
         return (2 * Math.Max(width, height) * lanes) + (width * height);
     }
@@ -73,9 +73,8 @@ internal static class Av1TransformWorkspace
     /// <returns>The required workspace length.</returns>
     public static int GetRequiredLength(Av1TransformSize transformSize)
     {
-        // The widest packed transform evaluates thirty-two independent axes together. Small AV1 blocks are padded
-        // to that lane count, so their workspace requirement is determined by the vector tile rather than the
-        // coded coefficient count.
+        // The widest packed transform evaluates thirty-two independent axes together. Small blocks are padded to that lane count, so the vector tile, not the
+        // coded coefficient count, sets the workspace length.
         int width = Math.Max(transformSize.GetWidth(), Vector512<short>.Count);
         int height = Math.Max(transformSize.GetHeight(), Vector512<short>.Count);
         int blockLength = width * height;

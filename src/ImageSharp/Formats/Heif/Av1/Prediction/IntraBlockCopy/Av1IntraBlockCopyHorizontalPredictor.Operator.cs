@@ -130,24 +130,40 @@ internal static partial class Av1IntraBlockCopyHorizontalPredictor
         /// <summary>
         /// Computes a rounded average without overflowing unsigned byte lanes.
         /// </summary>
+        /// <remarks>
+        /// The sum <c>a + b</c> equals <c>2 * (a | b) - (a ^ b)</c>. The expression <c>(a | b) - ((a ^ b) &gt;&gt; 1)</c> therefore equals
+        /// <c>(a + b + 1) &gt;&gt; 1</c>, and no intermediate value exceeds the lane range.
+        /// </remarks>
+        /// <param name="left">The integer-position source samples.</param>
+        /// <param name="right">The source samples one column to the right.</param>
+        /// <returns>The rounded averages.</returns>
         private static Vector128<byte> AverageRounded(Vector128<byte> left, Vector128<byte> right)
             => (left | right) - ((left ^ right) >> 1);
 
         /// <summary>
         /// Computes a rounded average without overflowing unsigned byte lanes.
         /// </summary>
+        /// <param name="left">The integer-position source samples.</param>
+        /// <param name="right">The source samples one column to the right.</param>
+        /// <returns>The rounded averages.</returns>
         private static Vector256<byte> AverageRounded(Vector256<byte> left, Vector256<byte> right)
             => (left | right) - ((left ^ right) >> 1);
 
         /// <summary>
         /// Computes a rounded average without overflowing unsigned byte lanes.
         /// </summary>
+        /// <param name="left">The integer-position source samples.</param>
+        /// <param name="right">The source samples one column to the right.</param>
+        /// <returns>The rounded averages.</returns>
         private static Vector512<byte> AverageRounded(Vector512<byte> left, Vector512<byte> right)
             => (left | right) - ((left ^ right) >> 1);
 
         /// <summary>
         /// Computes a rounded average without overflowing nonnegative high-bit-depth lanes.
         /// </summary>
+        /// <param name="left">The integer-position source samples.</param>
+        /// <param name="right">The source samples one column to the right.</param>
+        /// <returns>The rounded averages.</returns>
         private static Vector128<short> AverageRounded(Vector128<short> left, Vector128<short> right)
         {
             Vector128<ushort> leftUnsigned = left.AsUInt16();
@@ -160,6 +176,9 @@ internal static partial class Av1IntraBlockCopyHorizontalPredictor
         /// <summary>
         /// Computes a rounded average without overflowing nonnegative high-bit-depth lanes.
         /// </summary>
+        /// <param name="left">The integer-position source samples.</param>
+        /// <param name="right">The source samples one column to the right.</param>
+        /// <returns>The rounded averages.</returns>
         private static Vector256<short> AverageRounded(Vector256<short> left, Vector256<short> right)
         {
             Vector256<ushort> leftUnsigned = left.AsUInt16();
@@ -170,6 +189,9 @@ internal static partial class Av1IntraBlockCopyHorizontalPredictor
         /// <summary>
         /// Computes a rounded average without overflowing nonnegative high-bit-depth lanes.
         /// </summary>
+        /// <param name="left">The integer-position source samples.</param>
+        /// <param name="right">The source samples one column to the right.</param>
+        /// <returns>The rounded averages.</returns>
         private static Vector512<short> AverageRounded(Vector512<short> left, Vector512<short> right)
         {
             Vector512<ushort> leftUnsigned = left.AsUInt16();

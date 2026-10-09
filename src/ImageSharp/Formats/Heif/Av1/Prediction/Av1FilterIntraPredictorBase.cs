@@ -9,12 +9,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// Reconstructs AV1 filter-intra prediction blocks from prepared neighboring samples.
 /// </summary>
 /// <remarks>
-/// The implementation follows the recursive filter-intra process in section 7.11.2.3 of the AV1 specification.
+/// The implementation follows the recursive filter-intra process of the AV1 specification.
 /// </remarks>
 internal abstract partial class Av1FilterIntraPredictorBase
 {
     /// <summary>
-    /// The row stride of the recursive prediction workspace.
+    /// The row stride of the recursive prediction workspace. It holds one border sample and the 32 samples of the widest filter-intra block.
     /// </summary>
     public const int BufferStride = 33;
 
@@ -78,7 +78,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
     /// <param name="left">The prepared left reference.</param>
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
-    /// <param name="scratch">The caller-owned recursive prediction workspace.</param>
+    /// <param name="scratch">The caller-owned recursive prediction workspace of at least <see cref="ScratchLength"/> samples.</param>
     public abstract void Predict(Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int width, int height, Span<byte> scratch);
 
     /// <summary>
@@ -91,7 +91,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
     /// <param name="bitDepth">The reconstructed sample precision.</param>
-    /// <param name="scratch">The caller-owned recursive prediction workspace.</param>
+    /// <param name="scratch">The caller-owned recursive prediction workspace of at least <see cref="ScratchLength"/> samples.</param>
     public abstract void Predict(Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, int width, int height, int bitDepth, Span<short> scratch);
 
     /// <summary>
@@ -103,7 +103,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
     /// <param name="left">The prepared left reference.</param>
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
-    /// <param name="scratch">The caller-owned recursive prediction workspace.</param>
+    /// <param name="scratch">The caller-owned recursive prediction workspace of at least <see cref="ScratchLength"/> samples.</param>
     public abstract void PredictScalar(Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int width, int height, Span<byte> scratch);
 
     /// <summary>
@@ -116,6 +116,6 @@ internal abstract partial class Av1FilterIntraPredictorBase
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
     /// <param name="bitDepth">The reconstructed sample precision.</param>
-    /// <param name="scratch">The caller-owned recursive prediction workspace.</param>
+    /// <param name="scratch">The caller-owned recursive prediction workspace of at least <see cref="ScratchLength"/> samples.</param>
     public abstract void PredictScalar(Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, int width, int height, int bitDepth, Span<short> scratch);
 }

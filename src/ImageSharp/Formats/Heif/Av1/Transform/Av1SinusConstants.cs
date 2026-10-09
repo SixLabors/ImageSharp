@@ -69,8 +69,7 @@ internal static class Av1SinusConstants
     /// Fixed-point sine values indexed by precision minus <see cref="MinimumCosinusBit"/> and angle step.
     /// </summary>
     /// <remarks>
-    /// Values follow <c>round((sqrt(2) * sin(angle * pi / 9) * 2 / 3) * 2^precision)</c>, adjusted so
-    /// the first two nonzero elements sum to the fourth.
+    /// Values follow <c>round((sqrt(2) * sin(angle * pi / 9) * 2 / 3) * 2^precision)</c>, adjusted so that elements 1 and 2 sum to element 4.
     /// </remarks>
     private static readonly int[][] SinusPiArray =
         [
@@ -84,8 +83,11 @@ internal static class Av1SinusConstants
         ];
 
     /// <summary>
-    /// One quadrant of the signed cosine table used by directional intra prediction.
+    /// One quadrant of the 12-bit cosine table used by the butterfly functions of the AV1 specification.
     /// </summary>
+    /// <remarks>
+    /// Entry <c>i</c> is <c>round(4096 * cos(i * pi / 128))</c> for <c>i</c> from 0 to 64.
+    /// </remarks>
     private static readonly int[] Cosinus128Lookup = [
         4096, 4095, 4091, 4085, 4076, 4065, 4052, 4036,
         4017, 3996, 3973, 3948, 3920, 3889, 3857, 3822,
@@ -112,25 +114,26 @@ internal static class Av1SinusConstants
     public static Span<int> SinusPi(int n) => SinusPiArray[n - MinimumCosinusBit];
 
     /// <summary>
-    /// Spec: 7.13.2.1 Butterfly functions
+    /// Gets the 12-bit fixed-point sine of an angle in units of <c>pi / 128</c>.
     /// </summary>
-    /// <summary>
-    /// Gets a directional-prediction sine value for an angle in 128-step circle units.
-    /// </summary>
-    /// <param name="angle">The signed angle.</param>
-    /// <returns>The signed fixed-point sine value.</returns>
+    /// <remarks>
+    /// The AV1 specification defines this function in section 7.13.2.1, Butterfly functions.
+    /// </remarks>
+    /// <param name="angle">The signed angle in units of <c>pi / 128</c>.</param>
+    /// <returns>The value <c>round(4096 * sin(angle * pi / 128))</c>.</returns>
     public static int Sinus128(int angle) => Cosinus128(angle - 64);
 
     /// <summary>
-    /// Spec: 7.13.2.1 Butterfly functions
+    /// Gets the 12-bit fixed-point cosine of an angle in units of <c>pi / 128</c>.
     /// </summary>
-    /// <summary>
-    /// Gets a directional-prediction cosine value for an angle in 128-step circle units.
-    /// </summary>
-    /// <param name="angle">The signed angle.</param>
-    /// <returns>The signed fixed-point cosine value.</returns>
+    /// <remarks>
+    /// The AV1 specification defines this function in section 7.13.2.1, Butterfly functions.
+    /// </remarks>
+    /// <param name="angle">The signed angle in units of <c>pi / 128</c>.</param>
+    /// <returns>The value <c>round(4096 * cos(angle * pi / 128))</c>.</returns>
     public static int Cosinus128(int angle)
     {
+        // A full turn is 256 units. The lookup holds the first quadrant, and the cosine symmetries map the other three quadrants onto it.
         int angle2 = angle & 255;
         if (angle2 is >= 0 and <= 64)
         {

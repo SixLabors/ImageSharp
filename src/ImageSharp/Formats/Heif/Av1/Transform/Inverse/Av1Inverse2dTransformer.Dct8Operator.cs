@@ -9,8 +9,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// Defines the eight-point AV1 inverse discrete cosine transform operator.
 /// </summary>
 /// <remarks>
-/// Vector fields represent transform positions and vector lanes represent independent axes. The SIMD overloads apply
-/// the same staged butterflies, fixed-point rounding, and range clamps as the scalar overload without mixing axes.
+/// Vector fields represent transform positions. Vector lanes represent independent axes. The SIMD overloads apply the same staged butterflies, fixed-point
+/// rounding, and range clamps as the scalar overload. They never mix axes.
 /// </remarks>
 internal static partial class Av1Inverse2dTransformer
 {
@@ -43,7 +43,7 @@ internal static partial class Av1Inverse2dTransformer
             output[6] = input[3];
             output[7] = input[7];
 
-            // Stage 2 rotates the odd-frequency coefficient pairs by their pi/16 angles.
+            // Stage 2 rotates the odd-frequency coefficient pairs by odd multiples of pi/16.
             stage++;
             step[0] = output[0];
             step[1] = output[1];
@@ -112,7 +112,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V6 = input.V3;
             output.V7 = input.V7;
 
-            // Stage 2 rotates the odd-frequency coefficient pairs by their pi/16 angles.
+            // Stage 2 rotates the odd-frequency coefficient pairs by odd multiples of pi/16.
             stage++;
             step.V0 = output.V0;
             step.V1 = output.V1;
@@ -188,7 +188,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V6 = input.V3;
             output.V7 = input.V7;
 
-            // Stage 2 rotates the odd-frequency coefficient pairs by their pi/16 angles.
+            // Stage 2 rotates the odd-frequency coefficient pairs by odd multiples of pi/16.
             stage++;
             step.V0 = output.V0;
             step.V1 = output.V1;

@@ -58,6 +58,7 @@ internal static partial class Av1CompoundAveragePredictor
             ref byte secondReference = ref MemoryMarshal.GetReference(secondRow);
             int column = 0;
 
+            // The widest supported vectors take the row first. Each narrower width takes the columns that remain, and the scalar loop finishes the tail.
             if (Vector512.IsHardwareAccelerated)
             {
                 nuint vectorCount = Numerics.Vector512Count<byte>(width - column);
@@ -143,6 +144,7 @@ internal static partial class Av1CompoundAveragePredictor
             ref ushort secondReference = ref MemoryMarshal.GetReference(secondRow);
             int column = 0;
 
+            // The widest supported vectors take the row first. Each narrower width takes the columns that remain, and the scalar loop finishes the tail.
             if (Vector512.IsHardwareAccelerated)
             {
                 nuint vectorCount = Numerics.Vector512Count<ushort>(width - column);

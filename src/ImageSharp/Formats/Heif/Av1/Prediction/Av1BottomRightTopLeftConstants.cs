@@ -12,11 +12,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// </remarks>
 internal static class Av1BottomRightTopLeftConstants
 {
-    // Tables to store if the top-right reference pixels are available. The flags
-    // are represented with bits, packed into 8-bit integers. E.g., for the 32x32
-    // blocks in a 128x128 superblock, the index of the "o" block is 10 (in raster
-    // order), so its flag is stored at the 3rd bit of the 2nd entry in the table,
-    // i.e. (table[10 / 8] >> (10 % 8)) & 1.
+    // These tables store whether the top-right reference pixels are available. Each flag is one bit, packed into 8-bit integers.
+    // For example, for the 32x32 blocks in a 128x128 superblock, the index of the "o" block is 10 in raster order.
+    // Thus its flag is at the 3rd bit of the 2nd entry in the table, that is (table[10 / 8] >> (10 % 8)) & 1.
     //       . . . .
     //       . . . .
     //       . . o .
@@ -292,18 +290,13 @@ internal static class Av1BottomRightTopLeftConstants
     /// </summary>
     private static readonly byte[] HasTopRightVertical64x64 = [3];
 
-    // The _vert_* tables are like the ordinary tables above, but describe the
-    // order we visit square blocks when doing a PARTITION_VERT_A or
-    // PARTITION_VERT_B. This is the same order as normal except for on the last
-    // split where we go vertically (TL, BL, TR, BR). We treat the rectangular block
-    // as a pair of squares, which means that these tables work correctly for both
-    // mixed vertical partition types.
+    // The Vertical tables are like the ordinary tables above. They describe the order of the square blocks in a VerticalA or VerticalB partition.
+    // This order is the normal order, except for the last split, which goes vertically (TL, BL, TR, BR).
+    // The rectangular block counts as a pair of squares. Thus these tables are correct for both mixed vertical partition types.
     //
-    // There are tables for each of the square sizes. Vertical rectangles (like
-    // BLOCK_16X32) use their respective "non-vert" table
+    // Each square size has a Vertical table. Vertical rectangles, for example 16x32, use their ordinary table.
 
-    // Similar to the has_tr_* tables, but store if the bottom-left reference
-    // pixels are available.
+    // The bottom-left tables use the same layout as the top-right tables. Each bit tells if the bottom-left reference pixels are available.
 
     /// <summary>
     /// Packed bottom-left availability bits for 4-by-4 blocks.
@@ -573,15 +566,11 @@ internal static class Av1BottomRightTopLeftConstants
     /// </summary>
     private static readonly byte[] HasBottomLeftVertical64x64 = [2];
 
-    // The _vert_* tables are like the ordinary tables above, but describe the
-    // order we visit square blocks when doing a PARTITION_VERT_A or
-    // PARTITION_VERT_B. This is the same order as normal except for on the last
-    // split where we go vertically (TL, BL, TR, BR). We treat the rectangular block
-    // as a pair of squares, which means that these tables work correctly for both
-    // mixed vertical partition types.
+    // The Vertical tables are like the ordinary tables above. They describe the order of the square blocks in a VerticalA or VerticalB partition.
+    // This order is the normal order, except for the last split, which goes vertically (TL, BL, TR, BR).
+    // The rectangular block counts as a pair of squares. Thus these tables are correct for both mixed vertical partition types.
     //
-    // There are tables for each of the square sizes. Vertical rectangles (like
-    // BLOCK_16X32) use their respective "non-vert" table
+    // Each square size has a Vertical table. Vertical rectangles, for example 16x32, use their ordinary table.
 
     /// <summary>
     /// Determines whether the top-right reference samples are available for a block at the specified traversal index.
@@ -589,11 +578,10 @@ internal static class Av1BottomRightTopLeftConstants
     /// <param name="partitionType">The partition type that determines the block traversal order.</param>
     /// <param name="blockSize">The size of each block represented by the selected availability table.</param>
     /// <param name="blockIndex">The block's index in partition traversal order.</param>
-    /// <returns><see langword="true"/> when the block may use its top-right reference samples; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when the block can use its top-right reference samples, otherwise <see langword="false"/>.</returns>
     public static bool HasTopRight(Av1PartitionType partitionType, Av1BlockSize blockSize, int blockIndex)
     {
-        // Eight block flags share each byte; the quotient selects the byte and the
-        // remainder selects the bit within that byte.
+        // Eight block flags share each byte. The quotient selects the byte, and the remainder selects the bit in that byte.
         int index1 = blockIndex / 8;
         int index2 = blockIndex % 8;
         ReadOnlySpan<byte> hasTopRightTable = GetHasTopRightTable(partitionType, blockSize);
@@ -606,11 +594,10 @@ internal static class Av1BottomRightTopLeftConstants
     /// <param name="partitionType">The partition type that determines the block traversal order.</param>
     /// <param name="blockSize">The size of each block represented by the selected availability table.</param>
     /// <param name="blockIndex">The block's index in partition traversal order.</param>
-    /// <returns><see langword="true"/> when the block may use its bottom-left reference samples; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when the block can use its bottom-left reference samples, otherwise <see langword="false"/>.</returns>
     public static bool HasBottomLeft(Av1PartitionType partitionType, Av1BlockSize blockSize, int blockIndex)
     {
-        // Eight block flags share each byte; the quotient selects the byte and the
-        // remainder selects the bit within that byte.
+        // Eight block flags share each byte. The quotient selects the byte, and the remainder selects the bit in that byte.
         int index1 = blockIndex / 8;
         int index2 = blockIndex % 8;
         ReadOnlySpan<byte> hasBottomLeftTable = GetHasBottomLeftTable(partitionType, blockSize);
@@ -625,11 +612,11 @@ internal static class Av1BottomRightTopLeftConstants
     /// <returns>The packed top-right availability table.</returns>
     private static ReadOnlySpan<byte> GetHasTopRightTable(Av1PartitionType partition, Av1BlockSize blockSize)
     {
-        // If this is a mixed vertical partition, look up block size in vertical order.
+        // A mixed vertical partition visits its blocks in vertical order. Thus it uses the Vertical tables for square sizes.
         if (partition is Av1PartitionType.VerticalA or Av1PartitionType.VerticalB)
         {
-            // libaom asserts that mixed-vertical traversal can select only vertical rectangles or squares.
-            // Listing those shapes directly keeps the impossible horizontal-rectangle states out of the table type.
+            // A mixed-vertical traversal selects only vertical rectangles or squares.
+            // The switch lists only those shapes, so an impossible horizontal rectangle throws.
             return blockSize switch
             {
                 Av1BlockSize.Block4x8 => HasTopRight4x8,
@@ -657,10 +644,10 @@ internal static class Av1BottomRightTopLeftConstants
     /// <returns>The packed bottom-left availability table.</returns>
     private static ReadOnlySpan<byte> GetHasBottomLeftTable(Av1PartitionType partition, Av1BlockSize blockSize)
     {
-        // If this is a mixed vertical partition, look up block size in vertical order.
+        // A mixed vertical partition visits its blocks in vertical order. Thus it uses the Vertical tables for square sizes.
         if (partition is Av1PartitionType.VerticalA or Av1PartitionType.VerticalB)
         {
-            // The valid block shapes mirror the top-right table and the libaom traversal assertion.
+            // The valid block shapes are the same as for the top-right table.
             return blockSize switch
             {
                 Av1BlockSize.Block4x8 => HasBottomLeft4x8,

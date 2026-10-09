@@ -213,11 +213,11 @@ internal static class Av1TransformSizeExtensions
     /// Gets the next smaller transform size used when a transform block is subdivided.
     /// </summary>
     /// <param name="size">The transform size.</param>
-    /// <returns>The transform's subdivision size.</returns>
+    /// <returns>The transform size after one subdivision.</returns>
     public static Av1TransformSize GetSubSize(this Av1TransformSize size) => SubTransformSize[(int)size];
 
     /// <summary>
-    /// Gets a uniformly subdivided transform's sample origin in depth-first coding order.
+    /// Gets the sample origin of one leaf of a uniformly subdivided transform, with leaves in depth-first coding order.
     /// </summary>
     /// <param name="size">The root transform size.</param>
     /// <param name="leafSize">The selected descendant transform size.</param>
@@ -234,8 +234,8 @@ internal static class Av1TransformSizeExtensions
             int childIndex = index / childLeaves;
             int childColumns = size.GetWidth() / childSize.GetWidth();
 
-            // Finish every descendant of a child before visiting its next sibling. Rectangular
-            // transforms can split into two children, so the column count comes from their dimensions.
+            // Depth-first order visits every descendant of a child before its next sibling. Rectangular transforms can split into two children, so the column
+            // count comes from their dimensions.
             origin.X += (childIndex % childColumns) * childSize.GetWidth();
             origin.Y += (childIndex / childColumns) * childSize.GetHeight();
             index %= childLeaves;
@@ -246,7 +246,7 @@ internal static class Av1TransformSizeExtensions
     }
 
     /// <summary>
-    /// Gets a transform leaf's origin across the maximum-size roots of a coding block.
+    /// Gets the origin of a transform leaf across the maximum-size roots of a coding block.
     /// </summary>
     /// <param name="size">The root transform size.</param>
     /// <param name="blockSize">The complete coding-block dimensions.</param>
@@ -272,8 +272,8 @@ internal static class Av1TransformSizeExtensions
         int rootIndex = (index % leavesPerRegion) / leavesPerRoot;
         int rootColumns = regionWidth / size.GetWidth();
 
-        // Each 64x64 luma region completes before the next begins. Chroma uses the corresponding
-        // subsampled region. Roots advance in raster order, with depth-first subdivisions within each root.
+        // Each 64x64 luma region completes before the next begins. Chroma uses the corresponding subsampled region. Roots advance in raster order, with
+        // depth-first subdivisions within each root.
         Point origin = size.GetPartitionOrigin(leafSize, index % leavesPerRoot);
         origin.X += ((rootIndex % rootColumns) * size.GetWidth()) + ((regionIndex % regionColumns) * regionWidth);
         origin.Y += ((rootIndex / rootColumns) * size.GetHeight()) + ((regionIndex / regionColumns) * regionHeight);
@@ -336,7 +336,7 @@ internal static class Av1TransformSizeExtensions
     public static int GetBlockHeightLog2(this Av1TransformSize size) => BlockHeightLog2[(int)size];
 
     /// <summary>
-    /// Gets the signed base-two ratio between transform width and height.
+    /// Gets the signed base-two logarithm of the ratio between transform width and height.
     /// </summary>
     /// <param name="size">The transform size.</param>
     /// <returns>Zero for square transforms, positive when wider, or negative when taller.</returns>

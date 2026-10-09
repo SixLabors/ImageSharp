@@ -22,7 +22,7 @@ internal static partial class Av1CompoundInterPredictor
         /// Converts one integer-position sample to the compound intermediate representation.
         /// </summary>
         /// <param name="sample">The source sample.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits of the intermediate. The sample shifts left by this count.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The biased compound intermediate.</returns>
         public static abstract ushort Copy(byte sample, int roundBits, int roundOffset);
@@ -31,7 +31,7 @@ internal static partial class Av1CompoundInterPredictor
         /// Converts one high-bit-depth integer-position sample to the compound intermediate representation.
         /// </summary>
         /// <param name="sample">The source sample.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits of the intermediate. The sample shifts left by this count.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The biased compound intermediate.</returns>
         public static abstract ushort CopyHighBitDepth(ushort sample, int roundBits, int roundOffset);
@@ -40,7 +40,7 @@ internal static partial class Av1CompoundInterPredictor
         /// Converts 128 bits of high-bit-depth integer-position samples to compound intermediates.
         /// </summary>
         /// <param name="samples">The source samples.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits of the intermediate. The sample shifts left by this count.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The biased compound intermediates.</returns>
         public static abstract Vector128<ushort> CopyHighBitDepth(
@@ -52,7 +52,7 @@ internal static partial class Av1CompoundInterPredictor
         /// Converts 256 bits of high-bit-depth integer-position samples to compound intermediates.
         /// </summary>
         /// <param name="samples">The source samples.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits of the intermediate. The sample shifts left by this count.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The biased compound intermediates.</returns>
         public static abstract Vector256<ushort> CopyHighBitDepth(
@@ -64,7 +64,7 @@ internal static partial class Av1CompoundInterPredictor
         /// Converts 512 bits of high-bit-depth integer-position samples to compound intermediates.
         /// </summary>
         /// <param name="samples">The source samples.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits of the intermediate. The sample shifts left by this count.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The biased compound intermediates.</returns>
         public static abstract Vector512<ushort> CopyHighBitDepth(
@@ -76,7 +76,7 @@ internal static partial class Av1CompoundInterPredictor
         /// Converts 128 bits of integer-position samples to compound intermediates.
         /// </summary>
         /// <param name="samples">The source samples.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits of the intermediate. The sample shifts left by this count.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <param name="lower">Receives the lower widened intermediates.</param>
         /// <param name="upper">Receives the upper widened intermediates.</param>
@@ -91,7 +91,7 @@ internal static partial class Av1CompoundInterPredictor
         /// Converts 256 bits of integer-position samples to compound intermediates.
         /// </summary>
         /// <param name="samples">The source samples.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits of the intermediate. The sample shifts left by this count.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <param name="lower">Receives the lower widened intermediates.</param>
         /// <param name="upper">Receives the upper widened intermediates.</param>
@@ -106,7 +106,7 @@ internal static partial class Av1CompoundInterPredictor
         /// Converts 512 bits of integer-position samples to compound intermediates.
         /// </summary>
         /// <param name="samples">The source samples.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits of the intermediate. The sample shifts left by this count.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <param name="lower">Receives the lower widened intermediates.</param>
         /// <param name="upper">Receives the upper widened intermediates.</param>
@@ -121,7 +121,7 @@ internal static partial class Av1CompoundInterPredictor
         /// Applies direct-filter rounding and bias to one convolution result.
         /// </summary>
         /// <param name="result">The convolution result.</param>
-        /// <param name="preShift">The shift applied before rounding.</param>
+        /// <param name="preShift">The left shift applied before rounding.</param>
         /// <param name="round">The rounding shift.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The biased compound intermediate.</returns>
@@ -132,7 +132,7 @@ internal static partial class Av1CompoundInterPredictor
         /// </summary>
         /// <param name="lower">The lower convolution results.</param>
         /// <param name="upper">The upper convolution results.</param>
-        /// <param name="preShift">The shift applied before rounding.</param>
+        /// <param name="preShift">The left shift applied before rounding.</param>
         /// <param name="round">The rounding shift.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The biased compound intermediates.</returns>
@@ -148,7 +148,7 @@ internal static partial class Av1CompoundInterPredictor
         /// </summary>
         /// <param name="lower">The lower convolution results.</param>
         /// <param name="upper">The upper convolution results.</param>
-        /// <param name="preShift">The shift applied before rounding.</param>
+        /// <param name="preShift">The left shift applied before rounding.</param>
         /// <param name="round">The rounding shift.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The biased compound intermediates.</returns>
@@ -164,7 +164,7 @@ internal static partial class Av1CompoundInterPredictor
         /// </summary>
         /// <param name="lower">The lower convolution results.</param>
         /// <param name="upper">The upper convolution results.</param>
-        /// <param name="preShift">The shift applied before rounding.</param>
+        /// <param name="preShift">The left shift applied before rounding.</param>
         /// <param name="round">The rounding shift.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The biased compound intermediates.</returns>
@@ -176,9 +176,9 @@ internal static partial class Av1CompoundInterPredictor
             int roundOffset);
 
         /// <summary>
-        /// Applies first-pass compound rounding to one biased horizontal convolution result.
+        /// Adds the 8-bit horizontal bias to one horizontal convolution result and applies first-pass compound rounding.
         /// </summary>
-        /// <param name="result">The biased horizontal convolution result.</param>
+        /// <param name="result">The horizontal convolution result.</param>
         /// <returns>The rounded intermediate.</returns>
         public static abstract short PrepareHorizontal(int result);
 
@@ -207,7 +207,7 @@ internal static partial class Av1CompoundInterPredictor
         public static abstract Vector512<short> PrepareHorizontal(Vector512<int> lower, Vector512<int> upper);
 
         /// <summary>
-        /// Applies first-pass compound rounding to one biased high-bit-depth horizontal convolution result.
+        /// Adds the horizontal bias to one high-bit-depth horizontal convolution result and applies first-pass compound rounding.
         /// </summary>
         /// <param name="result">The horizontal convolution result.</param>
         /// <param name="bias">The bit-depth-dependent horizontal bias.</param>
@@ -258,9 +258,9 @@ internal static partial class Av1CompoundInterPredictor
             int round);
 
         /// <summary>
-        /// Applies second-pass compound rounding to one biased vertical convolution result.
+        /// Adds the 8-bit vertical bias to one vertical convolution result and applies second-pass compound rounding.
         /// </summary>
-        /// <param name="result">The biased vertical convolution result.</param>
+        /// <param name="result">The vertical convolution of the horizontal intermediates. It carries the filtered horizontal bias.</param>
         /// <returns>The compound intermediate.</returns>
         public static abstract ushort PrepareVertical(int result);
 
@@ -289,9 +289,9 @@ internal static partial class Av1CompoundInterPredictor
         public static abstract Vector512<ushort> PrepareVertical(Vector512<int> lower, Vector512<int> upper);
 
         /// <summary>
-        /// Applies second-pass compound rounding to one biased high-bit-depth vertical convolution result.
+        /// Adds the vertical bias to one high-bit-depth vertical convolution result and applies second-pass compound rounding.
         /// </summary>
-        /// <param name="result">The vertical convolution result.</param>
+        /// <param name="result">The vertical convolution of the horizontal intermediates. It carries the filtered horizontal bias.</param>
         /// <param name="bias">The bit-depth-dependent vertical bias.</param>
         /// <returns>The compound intermediate.</returns>
         public static abstract ushort PrepareHighBitDepthVertical(int result, int bias);
@@ -338,6 +338,8 @@ internal static partial class Av1CompoundInterPredictor
     /// </summary>
     private readonly struct CompoundPredictionOperator : IAv1CompoundPredictionOperator
     {
+        // The first pass shifts HorizontalBias right by Round0Bits. The vertical taps add up to 128, so the vertical sum carries that term times 128.
+        // After the second-pass shift, that term plus VerticalBias gives exactly the 8-bit compound intermediate bias.
         private const int HorizontalBias = 1 << (8 + FilterBits - 1);
         private const int VerticalBias = 1 << (8 + (2 * FilterBits) - Round0Bits);
 

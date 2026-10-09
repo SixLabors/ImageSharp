@@ -39,7 +39,7 @@ internal ref struct Av1Transform2dFlipConfiguration
     private InlineArray12<byte> stageRangeRow;
 
     /// <summary>
-    /// Gets the function applied down the transform columns for each compound transform type.
+    /// The function applied down the transform columns for each compound transform type.
     /// </summary>
     private static readonly Av1TransformType1d[] VerticalType =
         [
@@ -70,24 +70,44 @@ internal ref struct Av1Transform2dFlipConfiguration
             32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32,
         ];
 
+    /// <summary>
+    /// Sparse inverse bounds of the 8x8 size, indexed by the last scan index divided by the width. The low byte holds the last column and the high byte holds
+    /// the last row that the scan prefix can reach.
+    /// </summary>
     private static readonly ushort[] InverseBounds8x8 =
         [0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0707];
 
+    /// <summary>
+    /// Sparse inverse bounds of the 16x16 size, indexed by the last scan index divided by the width. The low byte holds the last column and the high byte holds
+    /// the last row that the scan prefix can reach.
+    /// </summary>
     private static readonly ushort[] InverseBounds16x16 =
         [
             0x0707, 0x0707, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F,
             0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F,
         ];
 
+    /// <summary>
+    /// Sparse inverse bounds of the 8x16 size, indexed by the last scan index divided by the width. The low byte holds the last column and the high byte holds
+    /// the last row that the scan prefix can reach.
+    /// </summary>
     private static readonly ushort[] InverseBounds8x16 =
         [
             0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0F07, 0x0F07, 0x0F07,
             0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07,
         ];
 
+    /// <summary>
+    /// Sparse inverse bounds of the 16x8 size, indexed by the last scan index divided by the width. The low byte holds the last column and the high byte holds
+    /// the last row that the scan prefix can reach.
+    /// </summary>
     private static readonly ushort[] InverseBounds16x8 =
         [0x0707, 0x0707, 0x070F, 0x070F, 0x070F, 0x070F, 0x070F, 0x070F];
 
+    /// <summary>
+    /// Sparse inverse bounds of the 16x32 size, indexed by the last scan index divided by the width. The low byte holds the last column and the high byte holds
+    /// the last row that the scan prefix can reach.
+    /// </summary>
     private static readonly ushort[] InverseBounds16x32 =
         [
             0x0707, 0x0707, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F,
@@ -96,12 +116,20 @@ internal ref struct Av1Transform2dFlipConfiguration
             0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F,
         ];
 
+    /// <summary>
+    /// Sparse inverse bounds of the 32x16 size, indexed by the last scan index divided by the width. The low byte holds the last column and the high byte holds
+    /// the last row that the scan prefix can reach.
+    /// </summary>
     private static readonly ushort[] InverseBounds32x16 =
         [
             0x0707, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F,
             0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F,
         ];
 
+    /// <summary>
+    /// Sparse inverse bounds of the 8x32 size, indexed by the last scan index divided by the width. The low byte holds the last column and the high byte holds
+    /// the last row that the scan prefix can reach.
+    /// </summary>
     private static readonly ushort[] InverseBounds8x32 =
         [
             0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0F07, 0x0F07, 0x0F07,
@@ -110,9 +138,17 @@ internal ref struct Av1Transform2dFlipConfiguration
             0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07,
         ];
 
+    /// <summary>
+    /// Sparse inverse bounds of the 32x8 size, indexed by the last scan index divided by the width. The low byte holds the last column and the high byte holds
+    /// the last row that the scan prefix can reach.
+    /// </summary>
     private static readonly ushort[] InverseBounds32x8 =
         [0x0707, 0x070F, 0x070F, 0x071F, 0x071F, 0x071F, 0x071F, 0x071F];
 
+    /// <summary>
+    /// Sparse inverse bounds of the 32x32, 32x64, 64x32 and 64x64 sizes, indexed by the last scan index divided by the width. The low byte holds the last
+    /// column and the high byte holds the last row that the scan prefix can reach.
+    /// </summary>
     private static readonly ushort[] InverseBounds32x32 =
         [
             0x0707, 0x0F0F, 0x0F0F, 0x0F0F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F,
@@ -122,7 +158,7 @@ internal ref struct Av1Transform2dFlipConfiguration
         ];
 
     /// <summary>
-    /// Gets the function applied across the transform rows for each compound transform type.
+    /// The function applied across the transform rows for each compound transform type.
     /// </summary>
     private static readonly Av1TransformType1d[] HorizontalType =
         [
@@ -145,7 +181,7 @@ internal ref struct Av1Transform2dFlipConfiguration
         ];
 
     /// <summary>
-    /// Gets the three normative forward fixed-point shifts for every transform size.
+    /// The three forward fixed-point shifts for every transform size.
     /// </summary>
     private static readonly int[] ForwardShiftMap =
         [
@@ -171,7 +207,7 @@ internal ref struct Av1Transform2dFlipConfiguration
         ];
 
     /// <summary>
-    /// Gets the two normative inverse fixed-point shifts for every transform size.
+    /// The two normative inverse fixed-point shifts for every transform size: the row shift, then the column shift.
     /// </summary>
     private static readonly int[] InverseShiftMap =
         [
@@ -197,7 +233,8 @@ internal ref struct Av1Transform2dFlipConfiguration
         ];
 
     /// <summary>
-    /// Gets column-transform cosine precision by width and height logarithm.
+    /// The forward column-transform cosine precision, indexed by <c>widthIndex * 5 + heightIndex</c>. Each index is the base-two logarithm of the dimension
+    /// minus two. Zero marks a size that does not exist.
     /// </summary>
     private static readonly int[] ForwardCosBitColumnMap =
     [
@@ -209,7 +246,8 @@ internal ref struct Av1Transform2dFlipConfiguration
     ];
 
     /// <summary>
-    /// Gets row-transform cosine precision by width and height logarithm.
+    /// The forward row-transform cosine precision, indexed by <c>widthIndex * 5 + heightIndex</c>. Each index is the base-two logarithm of the dimension minus
+    /// two. Zero marks a size that does not exist.
     /// </summary>
     private static readonly int[] ForwardCosBitRowMap =
     [
@@ -221,7 +259,7 @@ internal ref struct Av1Transform2dFlipConfiguration
     ];
 
     /// <summary>
-    /// Gets the concrete staged function for each transform dimension and one-dimensional type.
+    /// The concrete staged function for each transform dimension and one-dimensional type, indexed by <c>(log2(length) - 2) * 4 + type</c>.
     /// </summary>
     private static readonly Av1TransformFunctionType[] TransformFunctionTypeMap =
         [
@@ -233,22 +271,22 @@ internal ref struct Av1Transform2dFlipConfiguration
         ];
 
     /// <summary>
-    /// Gets the number of fixed-point stages executed by each concrete transform function.
+    /// The number of fixed-point stages executed by each concrete transform function.
     /// </summary>
     private static readonly int[] StageNumberList =
         [
-            4, // TXFM_TYPE_DCT4
-            6, // TXFM_TYPE_DCT8
-            8, // TXFM_TYPE_DCT16
-            10, // TXFM_TYPE_DCT32
-            12, // TXFM_TYPE_DCT64
-            7, // TXFM_TYPE_ADST4
-            8, // TXFM_TYPE_ADST8
-            10, // TXFM_TYPE_ADST16
-            1, // TXFM_TYPE_IDENTITY4
-            1, // TXFM_TYPE_IDENTITY8
-            1, // TXFM_TYPE_IDENTITY16
-            1, // TXFM_TYPE_IDENTITY32
+            4, // Dct4
+            6, // Dct8
+            8, // Dct16
+            10, // Dct32
+            12, // Dct64
+            7, // Adst4
+            8, // Adst8
+            10, // Adst16
+            1, // Identity4
+            1, // Identity8
+            1, // Identity16
+            1, // Identity32
         ];
 
     /// <summary>
@@ -262,8 +300,8 @@ internal ref struct Av1Transform2dFlipConfiguration
     {
         this = default;
 
-        // Resolve the axis operators and fixed-point settings once so the hot traversal contains no per-row
-        // transform-type lookup or flip decision.
+        // The constructor resolves the axis operators and fixed-point settings once, so the hot traversal has no per-row transform-type lookup or flip
+        // decision.
         this.TransformSize = transformSize;
         this.TransformType = transformType;
         this.NonzeroWidth = Math.Min(transformSize.GetWidth(), 32);
@@ -423,20 +461,20 @@ internal ref struct Av1Transform2dFlipConfiguration
         int width = this.NonzeroWidth;
         int height = this.NonzeroHeight;
 
-        // Four-point axes use complete kernels. A two-axis identity transform retains the complete coefficient
-        // rectangle because each input maps directly to one output instead of spreading across the other axis.
+        // Four-point axes use complete kernels. A two-axis identity transform keeps the complete coefficient rectangle, because each input maps directly to one
+        // output and does not spread across the other axis.
         if (width == 4 || height == 4 || this.TransformType == Av1TransformType.Identity)
         {
             return;
         }
 
-        // The sparse kernels accept one, eight, sixteen, or thirty-two inputs. Each entry rounds a last coefficient
-        // index up to the corresponding exclusive bound, preserving every coded coefficient in the scan prefix.
+        // The sparse kernels accept one, eight, sixteen, or thirty-two inputs. Each entry rounds a last coefficient index up to the corresponding exclusive
+        // bound, so the bound keeps every coded coefficient in the scan prefix.
         int last = endOfBuffer - 1;
         if (this.TransformTypeRow == Av1TransformType1d.Identity)
         {
-            // The byte path follows the row scan in both dimensions. The wider path keeps the entire identity axis
-            // and uses a conservative column bound, which must not also limit the identity axis.
+            // The 8-bit path follows the row scan in both dimensions. The wider path keeps the entire identity axis and uses a conservative bound for the
+            // column transform. That bound must not also limit the identity axis.
             if (bitDepth == 8)
             {
                 this.NonzeroWidth = last >= width - 1 ? width : InverseExtentByLastIndex[last];
@@ -452,8 +490,8 @@ internal ref struct Av1Transform2dFlipConfiguration
 
         if (this.TransformTypeColumn == Av1TransformType1d.Identity)
         {
-            // The column scan advances down the block first. The wider pipeline retains the full identity axis
-            // while only the horizontal transform selects a reduced input network.
+            // The column scan advances down the block first. The wider pipeline keeps the full identity axis. Only the horizontal transform selects a reduced
+            // input network.
             if (bitDepth == 8)
             {
                 this.NonzeroWidth = InverseExtentByLastIndex[last / height];
@@ -474,9 +512,8 @@ internal ref struct Av1Transform2dFlipConfiguration
             return;
         }
 
-        // Diagonal scan bounds use complete scan-prefix rows, not the raster row of the final coefficient. The low
-        // byte stores the last column and the high byte stores the last row. Adjusted dimensions keep sixty-four-point
-        // transforms within their coded thirty-two-frequency rectangle.
+        // The diagonal-scan bounds are indexed by groups of width scan positions, not by the raster row of the final coefficient. The low byte stores the last
+        // column and the high byte stores the last row. Adjusted dimensions keep sixty-four-point transforms within their coded thirty-two-frequency rectangle.
         ReadOnlySpan<ushort> bounds = this.TransformSize.GetAdjusted() switch
         {
             Av1TransformSize.Size8x8 => InverseBounds8x8,
@@ -501,8 +538,8 @@ internal ref struct Av1Transform2dFlipConfiguration
     /// <returns><see langword="true"/> when the transform combination is valid for the transform size.</returns>
     public bool IsAllowed()
     {
-        // AV1 selects the legal transform set from the block's square-up size: blocks up to 16x16 allow all sixteen
-        // types, a 32x32 square-up allows DCT and identity, and larger square-up sizes allow DCT only.
+        // AV1 selects the legal transform set from the square-up size of the block. Square-up sizes up to 16x16 allow all sixteen types. A 32x32 square-up
+        // allows DCT and identity, and larger square-up sizes allow DCT only.
         return this.TransformSize switch
         {
             Av1TransformSize.Size32x32 or Av1TransformSize.Size16x32 or Av1TransformSize.Size32x16 or
@@ -520,8 +557,8 @@ internal ref struct Av1Transform2dFlipConfiguration
     /// <param name="transformType">The compound transform type.</param>
     /// <param name="columnType">The vertical transform.</param>
     /// <param name="rowType">The horizontal transform.</param>
-    /// <param name="flipUpsideDown">Whether the rows are mirrored.</param>
-    /// <param name="flipLeftToRight">Whether the columns are mirrored.</param>
+    /// <param name="flipUpsideDown">Whether the vertical axis is flipped, so the row order is reversed.</param>
+    /// <param name="flipLeftToRight">Whether the horizontal axis is flipped, so the column order is reversed.</param>
     public static void GetAxes(
         Av1TransformType transformType,
         out Av1TransformType1d columnType,
@@ -584,11 +621,12 @@ internal ref struct Av1Transform2dFlipConfiguration
     }
 
     /// <summary>
-    /// Sets the optimized inverse stage ranges used to clamp intermediate values at the coded bit depth.
+    /// Sets the inverse stage ranges that clamp intermediate values for the coded bit depth.
     /// </summary>
     /// <param name="bitDepth">The coded sample bit depth.</param>
     private void GenerateInverseStageRange(int bitDepth)
     {
+        // The AV1 specification clamps row stages to BitDepth + 8 bits and column stages to Max(BitDepth + 6, 16) bits.
         byte rowRange = bitDepth switch
         {
             8 => 16,

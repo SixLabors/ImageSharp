@@ -17,7 +17,7 @@ internal static partial class Av1ForwardTransformer
     internal readonly struct Adst8Operator : IAv1ForwardTransform1dOperator
     {
         /// <summary>
-        /// Gets the fixed coefficient permutation.
+        /// Gets the output permutation. Entry i is the buffer index that holds output coefficient i.
         /// </summary>
         private static ReadOnlySpan<byte> OutputOrder => [1, 6, 3, 4, 5, 2, 7, 0];
 
@@ -33,7 +33,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<int>.CreateRounding(cosBit);
 
-            // Stage 1 applies the ADST permutation and signs while the source block is still read-only.
+            // Stage 1 applies the ADST input permutation and signs before any output overwrites the source.
             buffer0[0] = Load<int>(ref values, inputStride, 0);
             buffer0[1] = Av1ForwardTransformArithmetic<int>.Negate(Load<int>(ref values, inputStride, 7));
             buffer0[2] = Av1ForwardTransformArithmetic<int>.Negate(Load<int>(ref values, inputStride, 3));
@@ -43,7 +43,7 @@ internal static partial class Av1ForwardTransformer
             buffer0[6] = Load<int>(ref values, inputStride, 2);
             buffer0[7] = Av1ForwardTransformArithmetic<int>.Negate(Load<int>(ref values, inputStride, 5));
 
-            // Stage 2 rotates the second pair in each four-value group while copying the already aligned pairs.
+            // Stage 2 rotates the second pair in each four-value group by pi/4 and copies the first pair.
             buffer1[0] = buffer0[0];
             buffer1[1] = buffer0[1];
             Butterfly(cospi[32], cospi[32], buffer0[2], buffer0[3], ref buffer1, 2, 3, cosBit, in rounding);
@@ -51,7 +51,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[5] = buffer0[5];
             Butterfly(cospi[32], cospi[32], buffer0[6], buffer0[7], ref buffer1, 6, 7, cosBit, in rounding);
 
-            // Stage 3 combines the rotated and copied pairs into two independent four-value groups.
+            // Stage 3 adds and subtracts the two pairs within each four-value group.
             for (int group = 0; group < 8; group += 4)
             {
                 for (int i = 0; i < 2; i++)
@@ -64,7 +64,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 4 rotates the upper group by pi/8 while the completed lower group passes through unchanged.
+            // Stage 4 rotates the upper four values by pi/8 and copies the completed lower four values.
             for (int i = 0; i < 4; i++)
             {
                 buffer1[i] = buffer0[i];
@@ -75,7 +75,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[6] = Av1ForwardTransformArithmetic<int>.HalfButterfly(-cospi[48], buffer0[6], cospi[16], buffer0[7], cosBit, in rounding);
             buffer1[7] = Av1ForwardTransformArithmetic<int>.HalfButterfly(cospi[16], buffer0[6], cospi[48], buffer0[7], cosBit, in rounding);
 
-            // Stage 5 creates the four final butterfly pairs spanning the two groups.
+            // Stage 5 adds and subtracts the lower and upper four values to form the four final butterfly pairs.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<int>.AddSubtract(buffer1[i], buffer1[i + 4], out buffer0[i], out buffer0[i + 4]);
@@ -112,7 +112,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<short>.CreateRounding(cosBit);
 
-            // Stage 1 applies the ADST permutation and signs while the source block is still read-only.
+            // Stage 1 applies the ADST input permutation and signs before any output overwrites the source.
             buffer0[0] = Load<short>(ref values, inputStride, 0);
             buffer0[1] = Av1ForwardTransformArithmetic<short>.Negate(Load<short>(ref values, inputStride, 7));
             buffer0[2] = Av1ForwardTransformArithmetic<short>.Negate(Load<short>(ref values, inputStride, 3));
@@ -122,7 +122,7 @@ internal static partial class Av1ForwardTransformer
             buffer0[6] = Load<short>(ref values, inputStride, 2);
             buffer0[7] = Av1ForwardTransformArithmetic<short>.Negate(Load<short>(ref values, inputStride, 5));
 
-            // Stage 2 rotates the second pair in each four-value group while copying the already aligned pairs.
+            // Stage 2 rotates the second pair in each four-value group by pi/4 and copies the first pair.
             buffer1[0] = buffer0[0];
             buffer1[1] = buffer0[1];
             Butterfly(cospi[32], cospi[32], buffer0[2], buffer0[3], ref buffer1, 2, 3, cosBit, in rounding);
@@ -130,7 +130,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[5] = buffer0[5];
             Butterfly(cospi[32], cospi[32], buffer0[6], buffer0[7], ref buffer1, 6, 7, cosBit, in rounding);
 
-            // Stage 3 combines the rotated and copied pairs into two independent four-value groups.
+            // Stage 3 adds and subtracts the two pairs within each four-value group.
             for (int group = 0; group < 8; group += 4)
             {
                 for (int i = 0; i < 2; i++)
@@ -143,7 +143,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 4 rotates the upper group by pi/8 while the completed lower group passes through unchanged.
+            // Stage 4 rotates the upper four values by pi/8 and copies the completed lower four values.
             for (int i = 0; i < 4; i++)
             {
                 buffer1[i] = buffer0[i];
@@ -154,7 +154,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[6] = Av1ForwardTransformArithmetic<short>.HalfButterfly(-cospi[48], buffer0[6], cospi[16], buffer0[7], cosBit, in rounding);
             buffer1[7] = Av1ForwardTransformArithmetic<short>.HalfButterfly(cospi[16], buffer0[6], cospi[48], buffer0[7], cosBit, in rounding);
 
-            // Stage 5 creates the four final butterfly pairs spanning the two groups.
+            // Stage 5 adds and subtracts the lower and upper four values to form the four final butterfly pairs.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<short>.AddSubtract(buffer1[i], buffer1[i + 4], out buffer0[i], out buffer0[i + 4]);
@@ -191,7 +191,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector128<short>>.CreateRounding(cosBit);
 
-            // Stage 1 applies the ADST permutation and signs while the source block is still read-only.
+            // Stage 1 applies the ADST input permutation and signs before any output overwrites the source.
             buffer0[0] = Load<Vector128<short>>(ref values, inputStride, 0);
             buffer0[1] = Av1ForwardTransformArithmetic<Vector128<short>>.Negate(Load<Vector128<short>>(ref values, inputStride, 7));
             buffer0[2] = Av1ForwardTransformArithmetic<Vector128<short>>.Negate(Load<Vector128<short>>(ref values, inputStride, 3));
@@ -201,7 +201,7 @@ internal static partial class Av1ForwardTransformer
             buffer0[6] = Load<Vector128<short>>(ref values, inputStride, 2);
             buffer0[7] = Av1ForwardTransformArithmetic<Vector128<short>>.Negate(Load<Vector128<short>>(ref values, inputStride, 5));
 
-            // Stage 2 rotates the second pair in each four-value group while copying the already aligned pairs.
+            // Stage 2 rotates the second pair in each four-value group by pi/4 and copies the first pair.
             buffer1[0] = buffer0[0];
             buffer1[1] = buffer0[1];
             Butterfly(cospi[32], cospi[32], buffer0[2], buffer0[3], ref buffer1, 2, 3, cosBit, in rounding);
@@ -209,7 +209,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[5] = buffer0[5];
             Butterfly(cospi[32], cospi[32], buffer0[6], buffer0[7], ref buffer1, 6, 7, cosBit, in rounding);
 
-            // Stage 3 combines the rotated and copied pairs into two independent four-value groups.
+            // Stage 3 adds and subtracts the two pairs within each four-value group.
             for (int group = 0; group < 8; group += 4)
             {
                 for (int i = 0; i < 2; i++)
@@ -222,7 +222,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 4 rotates the upper group by pi/8 while the completed lower group passes through unchanged.
+            // Stage 4 rotates the upper four values by pi/8 and copies the completed lower four values.
             for (int i = 0; i < 4; i++)
             {
                 buffer1[i] = buffer0[i];
@@ -233,7 +233,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[6] = Av1ForwardTransformArithmetic<Vector128<short>>.HalfButterfly(-cospi[48], buffer0[6], cospi[16], buffer0[7], cosBit, in rounding);
             buffer1[7] = Av1ForwardTransformArithmetic<Vector128<short>>.HalfButterfly(cospi[16], buffer0[6], cospi[48], buffer0[7], cosBit, in rounding);
 
-            // Stage 5 creates the four final butterfly pairs spanning the two groups.
+            // Stage 5 adds and subtracts the lower and upper four values to form the four final butterfly pairs.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer1[i], buffer1[i + 4], out buffer0[i], out buffer0[i + 4]);
@@ -270,7 +270,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector256<short>>.CreateRounding(cosBit);
 
-            // Stage 1 applies the ADST permutation and signs while the source block is still read-only.
+            // Stage 1 applies the ADST input permutation and signs before any output overwrites the source.
             buffer0[0] = Load<Vector256<short>>(ref values, inputStride, 0);
             buffer0[1] = Av1ForwardTransformArithmetic<Vector256<short>>.Negate(Load<Vector256<short>>(ref values, inputStride, 7));
             buffer0[2] = Av1ForwardTransformArithmetic<Vector256<short>>.Negate(Load<Vector256<short>>(ref values, inputStride, 3));
@@ -280,7 +280,7 @@ internal static partial class Av1ForwardTransformer
             buffer0[6] = Load<Vector256<short>>(ref values, inputStride, 2);
             buffer0[7] = Av1ForwardTransformArithmetic<Vector256<short>>.Negate(Load<Vector256<short>>(ref values, inputStride, 5));
 
-            // Stage 2 rotates the second pair in each four-value group while copying the already aligned pairs.
+            // Stage 2 rotates the second pair in each four-value group by pi/4 and copies the first pair.
             buffer1[0] = buffer0[0];
             buffer1[1] = buffer0[1];
             Butterfly(cospi[32], cospi[32], buffer0[2], buffer0[3], ref buffer1, 2, 3, cosBit, in rounding);
@@ -288,7 +288,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[5] = buffer0[5];
             Butterfly(cospi[32], cospi[32], buffer0[6], buffer0[7], ref buffer1, 6, 7, cosBit, in rounding);
 
-            // Stage 3 combines the rotated and copied pairs into two independent four-value groups.
+            // Stage 3 adds and subtracts the two pairs within each four-value group.
             for (int group = 0; group < 8; group += 4)
             {
                 for (int i = 0; i < 2; i++)
@@ -301,7 +301,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 4 rotates the upper group by pi/8 while the completed lower group passes through unchanged.
+            // Stage 4 rotates the upper four values by pi/8 and copies the completed lower four values.
             for (int i = 0; i < 4; i++)
             {
                 buffer1[i] = buffer0[i];
@@ -312,7 +312,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[6] = Av1ForwardTransformArithmetic<Vector256<short>>.HalfButterfly(-cospi[48], buffer0[6], cospi[16], buffer0[7], cosBit, in rounding);
             buffer1[7] = Av1ForwardTransformArithmetic<Vector256<short>>.HalfButterfly(cospi[16], buffer0[6], cospi[48], buffer0[7], cosBit, in rounding);
 
-            // Stage 5 creates the four final butterfly pairs spanning the two groups.
+            // Stage 5 adds and subtracts the lower and upper four values to form the four final butterfly pairs.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer1[i], buffer1[i + 4], out buffer0[i], out buffer0[i + 4]);
@@ -349,7 +349,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector512<short>>.CreateRounding(cosBit);
 
-            // Stage 1 applies the ADST permutation and signs while the source block is still read-only.
+            // Stage 1 applies the ADST input permutation and signs before any output overwrites the source.
             buffer0[0] = Load<Vector512<short>>(ref values, inputStride, 0);
             buffer0[1] = Av1ForwardTransformArithmetic<Vector512<short>>.Negate(Load<Vector512<short>>(ref values, inputStride, 7));
             buffer0[2] = Av1ForwardTransformArithmetic<Vector512<short>>.Negate(Load<Vector512<short>>(ref values, inputStride, 3));
@@ -359,7 +359,7 @@ internal static partial class Av1ForwardTransformer
             buffer0[6] = Load<Vector512<short>>(ref values, inputStride, 2);
             buffer0[7] = Av1ForwardTransformArithmetic<Vector512<short>>.Negate(Load<Vector512<short>>(ref values, inputStride, 5));
 
-            // Stage 2 rotates the second pair in each four-value group while copying the already aligned pairs.
+            // Stage 2 rotates the second pair in each four-value group by pi/4 and copies the first pair.
             buffer1[0] = buffer0[0];
             buffer1[1] = buffer0[1];
             Butterfly(cospi[32], cospi[32], buffer0[2], buffer0[3], ref buffer1, 2, 3, cosBit, in rounding);
@@ -367,7 +367,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[5] = buffer0[5];
             Butterfly(cospi[32], cospi[32], buffer0[6], buffer0[7], ref buffer1, 6, 7, cosBit, in rounding);
 
-            // Stage 3 combines the rotated and copied pairs into two independent four-value groups.
+            // Stage 3 adds and subtracts the two pairs within each four-value group.
             for (int group = 0; group < 8; group += 4)
             {
                 for (int i = 0; i < 2; i++)
@@ -380,7 +380,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 4 rotates the upper group by pi/8 while the completed lower group passes through unchanged.
+            // Stage 4 rotates the upper four values by pi/8 and copies the completed lower four values.
             for (int i = 0; i < 4; i++)
             {
                 buffer1[i] = buffer0[i];
@@ -391,7 +391,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[6] = Av1ForwardTransformArithmetic<Vector512<short>>.HalfButterfly(-cospi[48], buffer0[6], cospi[16], buffer0[7], cosBit, in rounding);
             buffer1[7] = Av1ForwardTransformArithmetic<Vector512<short>>.HalfButterfly(cospi[16], buffer0[6], cospi[48], buffer0[7], cosBit, in rounding);
 
-            // Stage 5 creates the four final butterfly pairs spanning the two groups.
+            // Stage 5 adds and subtracts the lower and upper four values to form the four final butterfly pairs.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer1[i], buffer1[i + 4], out buffer0[i], out buffer0[i + 4]);
@@ -428,7 +428,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector128<int>>.CreateRounding(cosBit);
 
-            // Stage 1 applies the ADST permutation and signs while the source block is still read-only.
+            // Stage 1 applies the ADST input permutation and signs before any output overwrites the source.
             buffer0[0] = Load<Vector128<int>>(ref values, inputStride, 0);
             buffer0[1] = Av1ForwardTransformArithmetic<Vector128<int>>.Negate(Load<Vector128<int>>(ref values, inputStride, 7));
             buffer0[2] = Av1ForwardTransformArithmetic<Vector128<int>>.Negate(Load<Vector128<int>>(ref values, inputStride, 3));
@@ -438,7 +438,7 @@ internal static partial class Av1ForwardTransformer
             buffer0[6] = Load<Vector128<int>>(ref values, inputStride, 2);
             buffer0[7] = Av1ForwardTransformArithmetic<Vector128<int>>.Negate(Load<Vector128<int>>(ref values, inputStride, 5));
 
-            // Stage 2 rotates the second pair in each four-value group while copying the already aligned pairs.
+            // Stage 2 rotates the second pair in each four-value group by pi/4 and copies the first pair.
             buffer1[0] = buffer0[0];
             buffer1[1] = buffer0[1];
             Butterfly(cospi[32], cospi[32], buffer0[2], buffer0[3], ref buffer1, 2, 3, cosBit, in rounding);
@@ -446,7 +446,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[5] = buffer0[5];
             Butterfly(cospi[32], cospi[32], buffer0[6], buffer0[7], ref buffer1, 6, 7, cosBit, in rounding);
 
-            // Stage 3 combines the rotated and copied pairs into two independent four-value groups.
+            // Stage 3 adds and subtracts the two pairs within each four-value group.
             for (int group = 0; group < 8; group += 4)
             {
                 for (int i = 0; i < 2; i++)
@@ -459,7 +459,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 4 rotates the upper group by pi/8 while the completed lower group passes through unchanged.
+            // Stage 4 rotates the upper four values by pi/8 and copies the completed lower four values.
             for (int i = 0; i < 4; i++)
             {
                 buffer1[i] = buffer0[i];
@@ -470,7 +470,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[6] = Av1ForwardTransformArithmetic<Vector128<int>>.HalfButterfly(-cospi[48], buffer0[6], cospi[16], buffer0[7], cosBit, in rounding);
             buffer1[7] = Av1ForwardTransformArithmetic<Vector128<int>>.HalfButterfly(cospi[16], buffer0[6], cospi[48], buffer0[7], cosBit, in rounding);
 
-            // Stage 5 creates the four final butterfly pairs spanning the two groups.
+            // Stage 5 adds and subtracts the lower and upper four values to form the four final butterfly pairs.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer1[i], buffer1[i + 4], out buffer0[i], out buffer0[i + 4]);
@@ -507,7 +507,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector256<int>>.CreateRounding(cosBit);
 
-            // Stage 1 applies the ADST permutation and signs while the source block is still read-only.
+            // Stage 1 applies the ADST input permutation and signs before any output overwrites the source.
             buffer0[0] = Load<Vector256<int>>(ref values, inputStride, 0);
             buffer0[1] = Av1ForwardTransformArithmetic<Vector256<int>>.Negate(Load<Vector256<int>>(ref values, inputStride, 7));
             buffer0[2] = Av1ForwardTransformArithmetic<Vector256<int>>.Negate(Load<Vector256<int>>(ref values, inputStride, 3));
@@ -517,7 +517,7 @@ internal static partial class Av1ForwardTransformer
             buffer0[6] = Load<Vector256<int>>(ref values, inputStride, 2);
             buffer0[7] = Av1ForwardTransformArithmetic<Vector256<int>>.Negate(Load<Vector256<int>>(ref values, inputStride, 5));
 
-            // Stage 2 rotates the second pair in each four-value group while copying the already aligned pairs.
+            // Stage 2 rotates the second pair in each four-value group by pi/4 and copies the first pair.
             buffer1[0] = buffer0[0];
             buffer1[1] = buffer0[1];
             Butterfly(cospi[32], cospi[32], buffer0[2], buffer0[3], ref buffer1, 2, 3, cosBit, in rounding);
@@ -525,7 +525,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[5] = buffer0[5];
             Butterfly(cospi[32], cospi[32], buffer0[6], buffer0[7], ref buffer1, 6, 7, cosBit, in rounding);
 
-            // Stage 3 combines the rotated and copied pairs into two independent four-value groups.
+            // Stage 3 adds and subtracts the two pairs within each four-value group.
             for (int group = 0; group < 8; group += 4)
             {
                 for (int i = 0; i < 2; i++)
@@ -538,7 +538,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 4 rotates the upper group by pi/8 while the completed lower group passes through unchanged.
+            // Stage 4 rotates the upper four values by pi/8 and copies the completed lower four values.
             for (int i = 0; i < 4; i++)
             {
                 buffer1[i] = buffer0[i];
@@ -549,7 +549,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[6] = Av1ForwardTransformArithmetic<Vector256<int>>.HalfButterfly(-cospi[48], buffer0[6], cospi[16], buffer0[7], cosBit, in rounding);
             buffer1[7] = Av1ForwardTransformArithmetic<Vector256<int>>.HalfButterfly(cospi[16], buffer0[6], cospi[48], buffer0[7], cosBit, in rounding);
 
-            // Stage 5 creates the four final butterfly pairs spanning the two groups.
+            // Stage 5 adds and subtracts the lower and upper four values to form the four final butterfly pairs.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer1[i], buffer1[i + 4], out buffer0[i], out buffer0[i + 4]);
@@ -586,7 +586,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector512<int>>.CreateRounding(cosBit);
 
-            // Stage 1 applies the ADST permutation and signs while the source block is still read-only.
+            // Stage 1 applies the ADST input permutation and signs before any output overwrites the source.
             buffer0[0] = Load<Vector512<int>>(ref values, inputStride, 0);
             buffer0[1] = Av1ForwardTransformArithmetic<Vector512<int>>.Negate(Load<Vector512<int>>(ref values, inputStride, 7));
             buffer0[2] = Av1ForwardTransformArithmetic<Vector512<int>>.Negate(Load<Vector512<int>>(ref values, inputStride, 3));
@@ -596,7 +596,7 @@ internal static partial class Av1ForwardTransformer
             buffer0[6] = Load<Vector512<int>>(ref values, inputStride, 2);
             buffer0[7] = Av1ForwardTransformArithmetic<Vector512<int>>.Negate(Load<Vector512<int>>(ref values, inputStride, 5));
 
-            // Stage 2 rotates the second pair in each four-value group while copying the already aligned pairs.
+            // Stage 2 rotates the second pair in each four-value group by pi/4 and copies the first pair.
             buffer1[0] = buffer0[0];
             buffer1[1] = buffer0[1];
             Butterfly(cospi[32], cospi[32], buffer0[2], buffer0[3], ref buffer1, 2, 3, cosBit, in rounding);
@@ -604,7 +604,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[5] = buffer0[5];
             Butterfly(cospi[32], cospi[32], buffer0[6], buffer0[7], ref buffer1, 6, 7, cosBit, in rounding);
 
-            // Stage 3 combines the rotated and copied pairs into two independent four-value groups.
+            // Stage 3 adds and subtracts the two pairs within each four-value group.
             for (int group = 0; group < 8; group += 4)
             {
                 for (int i = 0; i < 2; i++)
@@ -617,7 +617,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 4 rotates the upper group by pi/8 while the completed lower group passes through unchanged.
+            // Stage 4 rotates the upper four values by pi/8 and copies the completed lower four values.
             for (int i = 0; i < 4; i++)
             {
                 buffer1[i] = buffer0[i];
@@ -628,7 +628,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[6] = Av1ForwardTransformArithmetic<Vector512<int>>.HalfButterfly(-cospi[48], buffer0[6], cospi[16], buffer0[7], cosBit, in rounding);
             buffer1[7] = Av1ForwardTransformArithmetic<Vector512<int>>.HalfButterfly(cospi[16], buffer0[6], cospi[48], buffer0[7], cosBit, in rounding);
 
-            // Stage 5 creates the four final butterfly pairs spanning the two groups.
+            // Stage 5 adds and subtracts the lower and upper four values to form the four final butterfly pairs.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer1[i], buffer1[i + 4], out buffer0[i], out buffer0[i + 4]);

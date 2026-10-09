@@ -10,11 +10,10 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
 /// <content>
-/// Provides packed projection kernels for AV1 directional intra prediction. Contiguous zone-one references map one
-/// output sample to each lane. Upsampled references use native byte or 16-bit table shuffles to select alternating
-/// half-sample positions, while zone-two left projections construct four independent coordinates per vector because
-/// their bases advance by the directional derivative rather than by a fixed memory stride. Every interpolation uses
-/// Q5 weights and the scalar continuation preserves the same rounding and endpoint-extension rules.
+/// Provides packed projection kernels for AV1 directional intra prediction. Contiguous zone-one references map one output sample to each lane.
+/// Upsampled references use native byte or 16-bit table shuffles to select alternating half-sample positions.
+/// Zone-two left projections build four independent coordinates per vector. Their bases advance by the directional derivative, not by a fixed memory stride.
+/// Every interpolation uses Q5 weights. The scalar continuation keeps the same rounding and endpoint-extension rules.
 /// </content>
 internal static partial class Av1DirectionalIntraPredictor
 {
@@ -51,7 +50,7 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="destinationStride">The destination row stride.</param>
         /// <param name="above">The projected top reference.</param>
         /// <param name="upsample">Whether the reference contains half-sample positions.</param>
-        /// <param name="derivative">The Q8 projection derivative.</param>
+        /// <param name="derivative">The Q6 projection derivative.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         private static void PredictZone1(Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, bool upsample, int derivative, int width, int height)
@@ -61,8 +60,8 @@ internal static partial class Av1DirectionalIntraPredictor
             int fractionBits = 6 - upsampleShift;
             int projection = derivative;
 
-            // The register-resident kernel reads sixteen samples past every base position, which the padded edge
-            // buffer of the prepared references allows.
+            // The register-resident kernel reads up to sixteen samples past every base position.
+            // The length test makes sure that the padded edge buffer holds them.
             if (Vector256.IsHardwareAccelerated && width <= 16 && above.Length >= maximumBasis + 17)
             {
                 PredictZone1Wide(destination, destinationStride, above, upsampleShift, derivative, width, height, maximumBasis);
@@ -78,19 +77,19 @@ internal static partial class Av1DirectionalIntraPredictor
         }
 
         /// <summary>
-        /// Predicts one 8-bit zone 1 block of at most sixteen columns with one vector per row, as
-        /// <c>dr_prediction_z1_HxW_internal_avx2</c> does.
+        /// Predicts one 8-bit zone 1 block of at most sixteen columns with one vector per row.
         /// </summary>
         /// <remarks>
-        /// Each row loads sixteen reference samples at its base and the sixteen that follow, forms
-        /// <c>a[x] * 32 + 16 + (a[x + 1] - a[x]) * shift</c> in sixteen-bit lanes, and blends the lanes past the final
-        /// reference sample with that sample. Once a row's base reaches the final sample every remaining row is that sample.
+        /// Each row loads the left taps <c>a[x]</c> and the right taps <c>a[x + 1]</c> for sixteen lanes.
+        /// It forms <c>(a[x] * 32 + 16 + (a[x + 1] - a[x]) * shift) &gt;&gt; 5</c> in 16-bit lanes.
+        /// Then it blends the lanes past the final reference sample with that sample.
+        /// When the base of a row reaches the final sample, every remaining row is that sample.
         /// </remarks>
         /// <param name="destination">The destination block origin.</param>
         /// <param name="destinationStride">The destination row stride.</param>
-        /// <param name="above">The projected top reference with at least seventeen readable samples past the final one.</param>
+        /// <param name="above">The projected top reference with at least sixteen readable samples past the final one.</param>
         /// <param name="upsampleShift">One when the reference contains half-sample positions.</param>
-        /// <param name="derivative">The Q8 projection derivative.</param>
+        /// <param name="derivative">The Q6 projection derivative.</param>
         /// <param name="width">The block width, at most sixteen.</param>
         /// <param name="height">The block height.</param>
         /// <param name="maximumBasis">The final extended reference coordinate.</param>
@@ -134,10 +133,14 @@ internal static partial class Av1DirectionalIntraPredictor
                     shift = Vector256.Create((short)((projection & 0x3F) >> 1));
                 }
 
+                // The weighted sum is a Q5 blend of two bytes plus the rounding term, so it stays in 0..8176.
+                // Thus 16-bit lanes hold it exactly, and the logical shift by five gives the rounded sample.
                 Vector256<short> left = Vector256_.Widen(a0);
                 Vector256<short> right = Vector256_.Widen(a1);
                 Vector256<short> result = Vector256.ShiftRightLogical(((left << 5) + sixteen) + Vector256_.MultiplyLow(right - left, shift), 5);
                 Vector128<byte> samples = Vector128_.PackUnsignedSaturate(result.GetLower(), result.GetUpper());
+
+                // Lanes at or past the valid count read past the final reference sample. The mask replaces them with that sample.
                 Vector128<byte> mask = Vector128.GreaterThan(Vector128.Create((sbyte)Math.Min(validCount, width)), laneIndices).AsByte();
                 StoreRow(Vector128.ConditionalSelect(mask, samples, finalSample), ref Unsafe.Add(ref destinationBase, row * destinationStride), width);
             }
@@ -146,6 +149,9 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <summary>
         /// Stores the first four, eight or sixteen bytes of one predicted row.
         /// </summary>
+        /// <param name="row">The predicted row samples.</param>
+        /// <param name="destination">The first destination sample of the row.</param>
+        /// <param name="width">The row width. Any value other than eight or sixteen stores four bytes.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void StoreRow(Vector128<byte> row, ref byte destination, int width)
         {
@@ -170,7 +176,7 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="destinationStride">The destination row stride.</param>
         /// <param name="above">The projected top reference.</param>
         /// <param name="upsample">Whether the reference contains half-sample positions.</param>
-        /// <param name="derivative">The Q8 projection derivative.</param>
+        /// <param name="derivative">The Q6 projection derivative.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         private static void PredictZone1(Span<short> destination, int destinationStride, ReadOnlySpan<short> above, bool upsample, int derivative, int width, int height)
@@ -197,8 +203,8 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="left">The projected left reference.</param>
         /// <param name="upsampleAbove">Whether the top reference contains half-sample positions.</param>
         /// <param name="upsampleLeft">Whether the left reference contains half-sample positions.</param>
-        /// <param name="dx">The horizontal Q8 derivative.</param>
-        /// <param name="dy">The vertical Q8 derivative.</param>
+        /// <param name="dx">The horizontal Q6 derivative.</param>
+        /// <param name="dy">The vertical Q6 derivative.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         private static void PredictZone2(Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, bool upsampleAbove, bool upsampleLeft, int dx, int dy, int width, int height)
@@ -212,6 +218,8 @@ internal static partial class Av1DirectionalIntraPredictor
             for (int row = 0; row < height; row++, topProjection -= dx)
             {
                 int topBasis = topProjection >> topFractionBits;
+
+                // Columns whose top base falls before the top-left corner project onto the left edge. These columns form a prefix of the row.
                 int leftCount = 0;
                 while (leftCount < width && topBasis < minimumTopBasis)
                 {
@@ -240,8 +248,8 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="left">The projected left reference.</param>
         /// <param name="upsampleAbove">Whether the top reference contains half-sample positions.</param>
         /// <param name="upsampleLeft">Whether the left reference contains half-sample positions.</param>
-        /// <param name="dx">The horizontal Q8 derivative.</param>
-        /// <param name="dy">The vertical Q8 derivative.</param>
+        /// <param name="dx">The horizontal Q6 derivative.</param>
+        /// <param name="dy">The vertical Q6 derivative.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         private static void PredictZone2(Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, bool upsampleAbove, bool upsampleLeft, int dx, int dy, int width, int height)
@@ -255,6 +263,8 @@ internal static partial class Av1DirectionalIntraPredictor
             for (int row = 0; row < height; row++, topProjection -= dx)
             {
                 int topBasis = topProjection >> topFractionBits;
+
+                // Columns whose top base falls before the top-left corner project onto the left edge. These columns form a prefix of the row.
                 int leftCount = 0;
                 while (leftCount < width && topBasis < minimumTopBasis)
                 {
@@ -288,6 +298,8 @@ internal static partial class Av1DirectionalIntraPredictor
             ref byte destinationBase = ref MemoryMarshal.GetReference(destination);
             ref byte referenceBase = ref MemoryMarshal.GetReference(reference);
             int basisIncrement = upsample ? 2 : 1;
+
+            // Columns whose base is before the final extended coordinate interpolate. The remaining columns take the final sample.
             int validCount = maximumBasis == int.MaxValue || basis >= maximumBasis
                 ? maximumBasis == int.MaxValue ? destination.Length : 0
                 : Math.Min(destination.Length, ((maximumBasis - 1 - basis) / basisIncrement) + 1);
@@ -296,8 +308,8 @@ internal static partial class Av1DirectionalIntraPredictor
 
             if (!upsample)
             {
-                // A single index is advanced through all supported widths. A narrower path consumes only the remainder
-                // left by the wider path, so the row is written once without requiring padded destination storage.
+                // One index advances through all supported widths. Each narrower path takes only the remainder of the wider path.
+                // Thus each sample is written once, and the destination needs no padding.
                 if (Vector512.IsHardwareAccelerated)
                 {
                     nuint vectorCount = Numerics.Vector512Count<byte>(validCount - index);
@@ -338,8 +350,8 @@ internal static partial class Av1DirectionalIntraPredictor
                 {
                     Vector128<byte> source = Vector128.LoadUnsafe(ref referenceBase, (nuint)(basis + (index * 2)));
 
-                    // ShuffleNative maps to byte-table lookup on AdvSimd and PSHUFB on x86. Eight output samples are
-                    // gathered from sixteen half-sample positions without scalar lane construction.
+                    // ShuffleNative maps to a byte-table lookup on AdvSimd and to PSHUFB on x86. The even half-sample positions are the left taps.
+                    // The odd half-sample positions are the right taps. Thus sixteen loaded samples give eight output samples in the low lanes.
                     Vector128<byte> left = Vector128.ShuffleNative(source, EvenByteIndices);
                     Vector128<byte> right = Vector128.ShuffleNative(source, OddByteIndices);
                     Vector128<byte> prediction = TOperator.Interpolate(left, right, weight);
@@ -349,8 +361,8 @@ internal static partial class Av1DirectionalIntraPredictor
 
             if (Vector128.IsHardwareAccelerated)
             {
-                // Four-lane construction covers both the final non-upsampled remainder and targets without a native
-                // gather. Each lane carries an independently projected coordinate but shares the row's interpolation weight.
+                // The four-lane path handles the remainder of the wider paths, for both plain and upsampled references.
+                // Each lane reads its own pair of reference samples. All lanes share the interpolation weight of the row.
                 int oneVectorFromEnd = validCount - 4;
                 for (; index <= oneVectorFromEnd; index += 4)
                 {
@@ -397,6 +409,8 @@ internal static partial class Av1DirectionalIntraPredictor
             ref short destinationBase = ref MemoryMarshal.GetReference(destination);
             ref short referenceBase = ref MemoryMarshal.GetReference(reference);
             int basisIncrement = upsample ? 2 : 1;
+
+            // Columns whose base is before the final extended coordinate interpolate. The remaining columns take the final sample.
             int validCount = maximumBasis == int.MaxValue || basis >= maximumBasis
                 ? maximumBasis == int.MaxValue ? destination.Length : 0
                 : Math.Min(destination.Length, ((maximumBasis - 1 - basis) / basisIncrement) + 1);
@@ -405,8 +419,8 @@ internal static partial class Av1DirectionalIntraPredictor
 
             if (!upsample)
             {
-                // High-bit-depth samples stay in signed 16-bit storage, but interpolation widens to Int32 before the Q5
-                // weighted sum. The largest supported 12-bit sample therefore cannot overflow an intermediate lane.
+                // High-bit-depth samples use signed 16-bit storage. The interpolation widens them to 32-bit lanes before the Q5 weighted sum.
+                // Thus a 12-bit sample cannot overflow an intermediate lane. The index advances through the widths as in the 8-bit overload.
                 if (Vector512.IsHardwareAccelerated)
                 {
                     nuint vectorCount = Numerics.Vector512Count<short>(validCount - index);
@@ -493,7 +507,7 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="destination">The destination prefix.</param>
         /// <param name="left">The projected left reference.</param>
         /// <param name="projection">The first Q6 left projection.</param>
-        /// <param name="derivative">The Q8 derivative subtracted between columns.</param>
+        /// <param name="derivative">The Q6 derivative subtracted between columns.</param>
         /// <param name="upsample">Whether the left reference contains half-sample positions.</param>
         private static void InterpolateLeft(Span<byte> destination, ReadOnlySpan<byte> left, int projection, int derivative, bool upsample)
         {
@@ -505,8 +519,8 @@ internal static partial class Av1DirectionalIntraPredictor
 
             if (Vector128.IsHardwareAccelerated)
             {
-                // Zone-two left references are not contiguous across output columns. Constructing the four source pairs
-                // directly avoids a temporary gather-index buffer and keeps the scalar continuation at the same offset.
+                // Zone-two left references are not contiguous across output columns. Each lane computes its own projection, base and weight.
+                // Direct lane construction needs no temporary buffer for gather indices. The scalar loop continues at the same index.
                 int oneVectorFromEnd = destination.Length - 4;
                 for (; index <= oneVectorFromEnd; index += 4)
                 {
@@ -545,7 +559,7 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="destination">The destination prefix.</param>
         /// <param name="left">The projected left reference.</param>
         /// <param name="projection">The first Q6 left projection.</param>
-        /// <param name="derivative">The Q8 derivative subtracted between columns.</param>
+        /// <param name="derivative">The Q6 derivative subtracted between columns.</param>
         /// <param name="upsample">Whether the left reference contains half-sample positions.</param>
         private static void InterpolateLeft(Span<short> destination, ReadOnlySpan<short> left, int projection, int derivative, bool upsample)
         {
@@ -623,13 +637,13 @@ internal static partial class Av1DirectionalIntraPredictor
         where TOperator : struct, IDirectionalPredictionOperator
     {
         /// <summary>
-        /// Gets the Q8 directional derivatives indexed by acute prediction angle.
+        /// Gets the Q6 directional derivatives indexed by acute prediction angle. The 45 degree entry is 64, one sample per row.
         /// </summary>
         private static ReadOnlySpan<int> DirectionalIntraDerivative =>
         [
 
-            // Zero entries represent angles which AV1 never signals. Direct indexing avoids a search or division in
-            // each directional block while retaining the exact fixed-point projections from the normative table.
+            // Zero entries are angles that AV1 never signals. Direct indexing by angle needs no search or division in each directional block.
+            // The values are the exact fixed-point derivatives of the normative AV1 table.
             0, 0, 0, 1023, 0, 0, 547, 0, 0, 372, 0, 0, 0, 0, 273, 0, 0, 215, 0, 0, 178, 0, 0,
             151, 0, 0, 132, 0, 0, 116, 0, 0, 102, 0, 0, 0, 90, 0, 0, 80, 0, 0, 71, 0, 0, 64, 0, 0,
             57, 0, 0, 51, 0, 0, 45, 0, 0, 0, 40, 0, 0, 35, 0, 0, 31, 0, 0, 27, 0, 0, 23, 0, 0,
@@ -663,8 +677,8 @@ internal static partial class Av1DirectionalIntraPredictor
             }
             else if (angle is > 180 and < 270)
             {
-                // the reference decoder computes zone 3 as a zone 1 block with swapped dimensions, then transposes it. This preserves
-                // contiguous reference reads and destination stores in both hot stages instead of scattering columns.
+                // Zone 3 uses a zone 1 prediction with swapped dimensions, followed by a transpose.
+                // Thus both stages read edges and store rows contiguously, and no stage scatters columns.
                 Span<byte> transposed = scratch[..(width * height)];
                 PredictZone1(transposed, height, left, upsampleLeft, GetDeltaY(angle), height, width);
                 Transpose(transposed, destination, height, width, destinationStride);
@@ -785,7 +799,7 @@ internal static partial class Av1DirectionalIntraPredictor
         }
 
         /// <summary>
-        /// Gets the horizontal Q8 projection derivative for an adjusted angle.
+        /// Gets the horizontal Q6 projection derivative for an adjusted angle.
         /// </summary>
         /// <param name="angle">The adjusted prediction angle.</param>
         /// <returns>The horizontal derivative, or one when the selected zone does not consume it.</returns>
@@ -798,7 +812,7 @@ internal static partial class Av1DirectionalIntraPredictor
             };
 
         /// <summary>
-        /// Gets the vertical Q8 projection derivative for an adjusted angle.
+        /// Gets the vertical Q6 projection derivative for an adjusted angle.
         /// </summary>
         /// <param name="angle">The adjusted prediction angle.</param>
         /// <returns>The vertical derivative, or one when the selected zone does not consume it.</returns>
@@ -817,7 +831,7 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="destinationStride">The destination row stride.</param>
         /// <param name="above">The projected top reference.</param>
         /// <param name="upsample">Whether the reference contains half-sample positions.</param>
-        /// <param name="derivative">The Q8 projection derivative.</param>
+        /// <param name="derivative">The Q6 projection derivative.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         private static void PredictZone1Scalar(Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, bool upsample, int derivative, int width, int height)
@@ -851,7 +865,7 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="destinationStride">The destination row stride.</param>
         /// <param name="above">The projected top reference.</param>
         /// <param name="upsample">Whether the reference contains half-sample positions.</param>
-        /// <param name="derivative">The Q8 projection derivative.</param>
+        /// <param name="derivative">The Q6 projection derivative.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         private static void PredictZone1Scalar(Span<short> destination, int destinationStride, ReadOnlySpan<short> above, bool upsample, int derivative, int width, int height)
@@ -887,8 +901,8 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="left">The projected left reference.</param>
         /// <param name="upsampleAbove">Whether the top reference contains half-sample positions.</param>
         /// <param name="upsampleLeft">Whether the left reference contains half-sample positions.</param>
-        /// <param name="dx">The horizontal Q8 derivative.</param>
-        /// <param name="dy">The vertical Q8 derivative.</param>
+        /// <param name="dx">The horizontal Q6 derivative.</param>
+        /// <param name="dy">The vertical Q6 derivative.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         private static void PredictZone2Scalar(Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, bool upsampleAbove, bool upsampleLeft, int dx, int dy, int width, int height)
@@ -938,8 +952,8 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="left">The projected left reference.</param>
         /// <param name="upsampleAbove">Whether the top reference contains half-sample positions.</param>
         /// <param name="upsampleLeft">Whether the left reference contains half-sample positions.</param>
-        /// <param name="dx">The horizontal Q8 derivative.</param>
-        /// <param name="dy">The vertical Q8 derivative.</param>
+        /// <param name="dx">The horizontal Q6 derivative.</param>
+        /// <param name="dy">The vertical Q6 derivative.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         private static void PredictZone2Scalar(Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, bool upsampleAbove, bool upsampleLeft, int dx, int dy, int width, int height)
@@ -987,7 +1001,7 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="destinationStride">The destination row stride.</param>
         /// <param name="left">The projected left reference.</param>
         /// <param name="upsample">Whether the reference contains half-sample positions.</param>
-        /// <param name="derivative">The Q8 projection derivative.</param>
+        /// <param name="derivative">The Q6 projection derivative.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         private static void PredictZone3Scalar(Span<byte> destination, int destinationStride, ReadOnlySpan<byte> left, bool upsample, int derivative, int width, int height)
@@ -1019,7 +1033,7 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="destinationStride">The destination row stride.</param>
         /// <param name="left">The projected left reference.</param>
         /// <param name="upsample">Whether the reference contains half-sample positions.</param>
-        /// <param name="derivative">The Q8 projection derivative.</param>
+        /// <param name="derivative">The Q6 projection derivative.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         private static void PredictZone3Scalar(Span<short> destination, int destinationStride, ReadOnlySpan<short> left, bool upsample, int derivative, int width, int height)

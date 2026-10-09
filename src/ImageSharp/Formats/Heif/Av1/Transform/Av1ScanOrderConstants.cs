@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 /// <summary>
-/// Contains the normative coefficient scan orders and quantization-matrix dimensions for AV1 transform blocks.
+/// Contains the normative coefficient scan orders and the quantization-matrix level constants for AV1 transform blocks.
 /// </summary>
 internal static class Av1ScanOrderConstants
 {
@@ -475,427 +475,427 @@ internal static class Av1ScanOrderConstants
         220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241,
         242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255,];
 
-    // InverseScan is not used (yet) for AVIF coding, leave these arrays empty for now.
+    // These inverse scan arrays are empty. For an empty array, Av1ScanOrder derives the inverse scan from the forward scan.
 
     /// <summary>
-    /// The inverse mapping of the default coefficient scan for a 4x4 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the default coefficient scan for a 4x4 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] DefaultInverseScan4x4 = [];
 
     /// <summary>
-    /// The inverse mapping of the default coefficient scan for an 8x8 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the default coefficient scan for an 8x8 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] DefaultInverseScan8x8 = [];
 
     /// <summary>
-    /// The inverse mapping of the default coefficient scan for a 16x16 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the default coefficient scan for a 16x16 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] DefaultInverseScan16x16 = [];
 
     /// <summary>
-    /// The inverse mapping of the default coefficient scan for a 32x32 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the default coefficient scan for a 32x32 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] DefaultInverseScan32x32 = [];
 
     /// <summary>
-    /// The inverse mapping of the default coefficient scan for a 4x8 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the default coefficient scan for a 4x8 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] DefaultInverseScan4x8 = [];
 
     /// <summary>
-    /// The inverse mapping of the default coefficient scan for an 8x4 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the default coefficient scan for an 8x4 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] DefaultInverseScan8x4 = [];
 
     /// <summary>
-    /// The inverse mapping of the default coefficient scan for an 8x16 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the default coefficient scan for an 8x16 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] DefaultInverseScan8x16 = [];
 
     /// <summary>
-    /// The inverse mapping of the default coefficient scan for a 16x8 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the default coefficient scan for a 16x8 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] DefaultInverseScan16x8 = [];
 
     /// <summary>
-    /// The inverse mapping of the default coefficient scan for a 16x32 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the default coefficient scan for a 16x32 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] DefaultInverseScan16x32 = [];
 
     /// <summary>
-    /// The inverse mapping of the default coefficient scan for a 32x16 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the default coefficient scan for a 32x16 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] DefaultInverseScan32x16 = [];
 
     /// <summary>
-    /// The inverse mapping of the default coefficient scan for a 4x16 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the default coefficient scan for a 4x16 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] DefaultInverseScan4x16 = [];
 
     /// <summary>
-    /// The inverse mapping of the default coefficient scan for a 16x4 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the default coefficient scan for a 16x4 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] DefaultInverseScan16x4 = [];
 
     /// <summary>
-    /// The inverse mapping of the default coefficient scan for an 8x32 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the default coefficient scan for an 8x32 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] DefaultInverseScan8x32 = [];
 
     /// <summary>
-    /// The inverse mapping of the default coefficient scan for a 32x8 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the default coefficient scan for a 32x8 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] DefaultInverseScan32x8 = [];
 
     /// <summary>
-    /// The inverse mapping of the column-oriented coefficient scan for a 4x4 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the column-oriented coefficient scan for a 4x4 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixColumnInverseScan4x4 = [];
 
     /// <summary>
-    /// The inverse mapping of the column-oriented coefficient scan for an 8x8 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the column-oriented coefficient scan for an 8x8 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixColumnInverseScan8x8 = [];
 
     /// <summary>
-    /// The inverse mapping of the column-oriented coefficient scan for a 16x16 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the column-oriented coefficient scan for a 16x16 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixColumnInverseScan16x16 = [];
 
     /// <summary>
-    /// The inverse mapping of the column-oriented coefficient scan for a 32x32 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the column-oriented coefficient scan for a 32x32 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixColumnInverseScan32x32 = [];
 
     /// <summary>
-    /// The inverse mapping of the column-oriented coefficient scan for a 4x8 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the column-oriented coefficient scan for a 4x8 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixColumnInverseScan4x8 = [];
 
     /// <summary>
-    /// The inverse mapping of the column-oriented coefficient scan for an 8x4 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the column-oriented coefficient scan for an 8x4 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixColumnInverseScan8x4 = [];
 
     /// <summary>
-    /// The inverse mapping of the column-oriented coefficient scan for an 8x16 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the column-oriented coefficient scan for an 8x16 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixColumnInverseScan8x16 = [];
 
     /// <summary>
-    /// The inverse mapping of the column-oriented coefficient scan for a 16x8 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the column-oriented coefficient scan for a 16x8 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixColumnInverseScan16x8 = [];
 
     /// <summary>
-    /// The inverse mapping of the column-oriented coefficient scan for a 16x32 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the column-oriented coefficient scan for a 16x32 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixColumnInverseScan16x32 = [];
 
     /// <summary>
-    /// The inverse mapping of the column-oriented coefficient scan for a 32x16 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the column-oriented coefficient scan for a 32x16 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixColumnInverseScan32x16 = [];
 
     /// <summary>
-    /// The inverse mapping of the column-oriented coefficient scan for a 4x16 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the column-oriented coefficient scan for a 4x16 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixColumnInverseScan4x16 = [];
 
     /// <summary>
-    /// The inverse mapping of the column-oriented coefficient scan for a 16x4 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the column-oriented coefficient scan for a 16x4 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixColumnInverseScan16x4 = [];
 
     /// <summary>
-    /// The inverse mapping of the column-oriented coefficient scan for an 8x32 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the column-oriented coefficient scan for an 8x32 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixColumnInverseScan8x32 = [];
 
     /// <summary>
-    /// The inverse mapping of the column-oriented coefficient scan for a 32x8 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the column-oriented coefficient scan for a 32x8 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixColumnInverseScan32x8 = [];
 
     /// <summary>
-    /// The inverse mapping of the row-oriented coefficient scan for a 4x4 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the row-oriented coefficient scan for a 4x4 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixRowInverseScan4x4 = [];
 
     /// <summary>
-    /// The inverse mapping of the row-oriented coefficient scan for an 8x8 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the row-oriented coefficient scan for an 8x8 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixRowInverseScan8x8 = [];
 
     /// <summary>
-    /// The inverse mapping of the row-oriented coefficient scan for a 16x16 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the row-oriented coefficient scan for a 16x16 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixRowInverseScan16x16 = [];
 
     /// <summary>
-    /// The inverse mapping of the row-oriented coefficient scan for a 32x32 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the row-oriented coefficient scan for a 32x32 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixRowInverseScan32x32 = [];
 
     /// <summary>
-    /// The inverse mapping of the row-oriented coefficient scan for a 4x8 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the row-oriented coefficient scan for a 4x8 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixRowInverseScan4x8 = [];
 
     /// <summary>
-    /// The inverse mapping of the row-oriented coefficient scan for an 8x4 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the row-oriented coefficient scan for an 8x4 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixRowInverseScan8x4 = [];
 
     /// <summary>
-    /// The inverse mapping of the row-oriented coefficient scan for an 8x16 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the row-oriented coefficient scan for an 8x16 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixRowInverseScan8x16 = [];
 
     /// <summary>
-    /// The inverse mapping of the row-oriented coefficient scan for a 16x8 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the row-oriented coefficient scan for a 16x8 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixRowInverseScan16x8 = [];
 
     /// <summary>
-    /// The inverse mapping of the row-oriented coefficient scan for a 16x32 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the row-oriented coefficient scan for a 16x32 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixRowInverseScan16x32 = [];
 
     /// <summary>
-    /// The inverse mapping of the row-oriented coefficient scan for a 32x16 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the row-oriented coefficient scan for a 32x16 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixRowInverseScan32x16 = [];
 
     /// <summary>
-    /// The inverse mapping of the row-oriented coefficient scan for a 4x16 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the row-oriented coefficient scan for a 4x16 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixRowInverseScan4x16 = [];
 
     /// <summary>
-    /// The inverse mapping of the row-oriented coefficient scan for a 16x4 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the row-oriented coefficient scan for a 16x4 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixRowInverseScan16x4 = [];
 
     /// <summary>
-    /// The inverse mapping of the row-oriented coefficient scan for an 8x32 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the row-oriented coefficient scan for an 8x32 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixRowInverseScan8x32 = [];
 
     /// <summary>
-    /// The inverse mapping of the row-oriented coefficient scan for a 32x8 transform; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The inverse mapping of the row-oriented coefficient scan for a 32x8 transform. It is empty, so <see cref="Av1ScanOrder"/> derives it from the scan.
     /// </summary>
     private static readonly short[] MatrixRowInverseScan32x8 = [];
 
-    // Neighbors are not used (yet) for AVIF coding, leave these arrays empty for now.
+    // No code reads the scan neighbor arrays, so they are empty.
 
     /// <summary>
-    /// The entropy-neighbor lookup for the default 4x4 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the default 4x4 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] DefaultScan4x4Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the default 8x8 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the default 8x8 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] DefaultScan8x8Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the default 16x16 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the default 16x16 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] DefaultScan16x16Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the default 32x32 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the default 32x32 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] DefaultScan32x32Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the default 4x8 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the default 4x8 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] DefaultScan4x8Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the default 8x4 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the default 8x4 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] DefaultScan8x4Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the default 8x16 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the default 8x16 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] DefaultScan8x16Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the default 16x8 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the default 16x8 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] DefaultScan16x8Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the default 16x32 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the default 16x32 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] DefaultScan16x32Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the default 32x16 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the default 32x16 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] DefaultScan32x16Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the default 4x16 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the default 4x16 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] DefaultScan4x16Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the default 16x4 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the default 16x4 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] DefaultScan16x4Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the default 8x32 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the default 8x32 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] DefaultScan8x32Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the default 32x8 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the default 32x8 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] DefaultScan32x8Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the column-oriented 4x4 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the column-oriented 4x4 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixColumnScan4x4Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the column-oriented 8x8 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the column-oriented 8x8 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixColumnScan8x8Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the column-oriented 16x16 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the column-oriented 16x16 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixColumnScan16x16Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the column-oriented 32x32 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the column-oriented 32x32 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixColumnScan32x32Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the column-oriented 4x8 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the column-oriented 4x8 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixColumnScan4x8Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the column-oriented 8x4 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the column-oriented 8x4 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixColumnScan8x4Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the column-oriented 8x16 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the column-oriented 8x16 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixColumnScan8x16Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the column-oriented 16x8 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the column-oriented 16x8 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixColumnScan16x8Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the column-oriented 16x32 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the column-oriented 16x32 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixColumnScan16x32Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the column-oriented 32x16 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the column-oriented 32x16 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixColumnScan32x16Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the column-oriented 4x16 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the column-oriented 4x16 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixColumnScan4x16Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the column-oriented 16x4 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the column-oriented 16x4 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixColumnScan16x4Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the column-oriented 8x32 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the column-oriented 8x32 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixColumnScan8x32Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the column-oriented 32x8 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the column-oriented 32x8 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixColumnScan32x8Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the row-oriented 4x4 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the row-oriented 4x4 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixRowScan4x4Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the row-oriented 8x8 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the row-oriented 8x8 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixRowScan8x8Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the row-oriented 16x16 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the row-oriented 16x16 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixRowScan16x16Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the row-oriented 32x32 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the row-oriented 32x32 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixRowScan32x32Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the row-oriented 4x8 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the row-oriented 4x8 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixRowScan4x8Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the row-oriented 8x4 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the row-oriented 8x4 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixRowScan8x4Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the row-oriented 8x16 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the row-oriented 8x16 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixRowScan8x16Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the row-oriented 16x8 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the row-oriented 16x8 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixRowScan16x8Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the row-oriented 16x32 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the row-oriented 16x32 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixRowScan16x32Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the row-oriented 32x16 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the row-oriented 32x16 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixRowScan32x16Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the row-oriented 4x16 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the row-oriented 4x16 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixRowScan4x16Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the row-oriented 16x4 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the row-oriented 16x4 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixRowScan16x4Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the row-oriented 8x32 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the row-oriented 8x32 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixRowScan8x32Neighbors = [];
 
     /// <summary>
-    /// The entropy-neighbor lookup for the row-oriented 32x8 coefficient scan; reserved for AV1 syntax that still-image decoding does not consume.
+    /// The entropy-neighbor lookup for the row-oriented 32x8 coefficient scan. It is empty, because no code reads it.
     /// </summary>
     private static readonly short[] MatrixRowScan32x8Neighbors = [];
 
@@ -987,8 +987,7 @@ internal static class Av1ScanOrderConstants
         [
 
             // Transform size 64X64
-            // Half of the coefficients of tx64 at higher frequencies are set to
-            // zeros. So tx32's scan order is used.
+            // The higher-frequency half of each 64-point axis holds only zero coefficients, so the 32-point scan order applies.
             new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
             new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
             new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
@@ -1129,8 +1128,7 @@ internal static class Av1ScanOrderConstants
         [
 
             // Transform size 32X64
-            // Half of the coefficients of tx64 at higher frequencies are set to
-            // zeros. So tx32's scan order is used.
+            // The higher-frequency half of each 64-point axis holds only zero coefficients, so the 32-point scan order applies.
             new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
             new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
             new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
@@ -1151,8 +1149,7 @@ internal static class Av1ScanOrderConstants
         [
 
             // Transform size 64X32
-            // Half of the coefficients of tx64 at higher frequencies are set to
-            // zeros. So tx32's scan order is used.
+            // The higher-frequency half of each 64-point axis holds only zero coefficients, so the 32-point scan order applies.
             new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
             new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
             new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
@@ -1253,8 +1250,7 @@ internal static class Av1ScanOrderConstants
         [
 
             // Transform size 16X64
-            // Half of the coefficients of tx64 at higher frequencies are set to
-            // zeros. So tx32's scan order is used.
+            // The higher-frequency half of each 64-point axis holds only zero coefficients, so the 32-point scan order applies.
             new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
             new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
             new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
@@ -1275,8 +1271,7 @@ internal static class Av1ScanOrderConstants
         [
 
             // Transform size 64X16
-            // Half of the coefficients of tx64 at higher frequencies are set to
-            // zeros. So tx32's scan order is used.
+            // The higher-frequency half of each 64-point axis holds only zero coefficients, so the 32-point scan order applies.
             new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
             new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
             new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),

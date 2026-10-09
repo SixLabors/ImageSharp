@@ -10,8 +10,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 /// Stores the fixed-point rounding value in the lane shape selected for one forward transform.
 /// </summary>
 /// <remarks>
-/// The fields overlap because a closed transform instantiation reads exactly one representation. This keeps the
-/// rounding broadcast outside the butterfly sequence without increasing the caller-owned transform workspace.
+/// The fields overlap because a closed transform instantiation reads exactly one representation.
+/// This keeps the rounding broadcast outside the butterfly sequence and does not increase the caller-owned transform workspace.
 /// </remarks>
 [StructLayout(LayoutKind.Explicit)]
 internal readonly struct Av1TransformRounding

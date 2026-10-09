@@ -10,10 +10,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 /// Reduces one patch to the least-squares system that a refinement step solves.
 /// </content>
 /// <remarks>
-/// The two methods here are reductions rather than lane-wise transforms: each folds a whole patch
-/// into a few scalars. A reduction has no per-width arithmetic to name, so it is written directly
-/// with a vector path and a scalar path instead of behind an operator. The lane-wise work that the
-/// reductions consume does sit behind an operator, in <see cref="IAv1CubicOperator"/>.
+/// The two methods here are reductions, not lane-wise transforms. Each one folds a whole patch into a few scalars. A reduction has no per-width
+/// arithmetic for an operator to name. Thus each reduction has a direct vector path and a scalar path. The lane-wise work that the reductions
+/// consume uses an operator, <see cref="IAv1CubicOperator"/>.
 /// </remarks>
 internal static partial class Av1DenseFlowSolver
 {
@@ -26,10 +25,8 @@ internal static partial class Av1DenseFlowSolver
     /// <param name="m1">Receives the sum of the gradient products.</param>
     /// <param name="m3">Receives the sum of the squared vertical gradients.</param>
     /// <remarks>
-    /// The matrix is symmetric, so its two off-diagonal entries are one value. A regularization of
-    /// one is added to each diagonal entry. That is what guarantees a determinant of at least one,
-    /// so no test for invertibility is needed, and it keeps every entry a whole number.
-    /// Reference: compute_flow_matrix().
+    /// The matrix is symmetric, so its two off-diagonal entries are one value. The method adds a regularization of one to each diagonal entry. This
+    /// makes the determinant at least one, so no invertibility test is necessary. Every entry stays a whole number.
     /// </remarks>
     private static void ComputeNormalMatrix(
         ReadOnlySpan<short> dx,
@@ -43,15 +40,14 @@ internal static partial class Av1DenseFlowSolver
             ref short dxBase = ref MemoryMarshal.GetReference(dx);
             ref short dyBase = ref MemoryMarshal.GetReference(dy);
 
-            // A gradient reaches about six thousand, so a product needs thirty-two bit lanes.
+            // A gradient reaches a magnitude of 4 * 255 = 1020. Thus a product of two gradients needs thirty-two-bit lanes.
             Vector128<int> sum0 = Vector128<int>.Zero;
             Vector128<int> sum1 = Vector128<int>.Zero;
             Vector128<int> sum3 = Vector128<int>.Zero;
             for (int row = 0; row < PatchSize; row++)
             {
-                // One patch row is eight gradients, which is one vector of sixteen-bit lanes. Both
-                // halves of the widened row accumulate into the same vectors. The total is taken at
-                // the end and integer addition is associative, so the lane order cannot change it.
+                // One patch row is eight gradients, which is one vector of sixteen-bit lanes. Both halves of the widened row accumulate into the same vectors.
+                // The total comes at the end, and integer addition is associative. Thus the lane order cannot change it.
                 (Vector128<int> lowX, Vector128<int> highX) = Vector128.Widen(Vector128.LoadUnsafe(ref dxBase, (nuint)(row * PatchSize)));
 
                 (Vector128<int> lowY, Vector128<int> highY) = Vector128.Widen(Vector128.LoadUnsafe(ref dyBase, (nuint)(row * PatchSize)));
@@ -96,11 +92,9 @@ internal static partial class Av1DenseFlowSolver
     /// </summary>
     /// <typeparam name="TOperator">The cubic interpolation arithmetic.</typeparam>
     /// <remarks>
-    /// The reference patch is warped by the current flow with a separable cubic interpolation, and
-    /// the difference from the source is then weighted by each gradient. The fetch position is
-    /// clamped so that every read stays inside the border of the level while remaining far enough
-    /// out that the border samples themselves cannot change the result.
-    /// Reference: compute_flow_vector().
+    /// A separable cubic interpolation warps the reference patch by the current flow. Each gradient then weights the difference from the source. The
+    /// fetch position is clamped, so every read stays inside the border of the level. The clamp keeps the fetch far enough out that the border
+    /// samples cannot change the result.
     /// </remarks>
     private static class Warp<TOperator>
         where TOperator : struct, IAv1CubicOperator
@@ -126,7 +120,7 @@ internal static partial class Av1DenseFlowSolver
         /// <param name="dx">The horizontal gradients.</param>
         /// <param name="dy">The vertical gradients.</param>
         /// <param name="b0">Receives the horizontal component of the right-hand side.</param>
-        /// <param name="b1">Receives the vertical component.</param>
+        /// <param name="b1">Receives the vertical component of the right-hand side.</param>
         public static void ComputeResidual(
             ReadOnlySpan<byte> source,
             ReadOnlySpan<byte> reference,
@@ -150,17 +144,16 @@ internal static partial class Av1DenseFlowSolver
             GetCubicKernel(u - integerU, horizontalKernel);
             GetCubicKernel(v - integerV, verticalKernel);
 
-            // The patch is eight samples square and the cubic kernel reaches one sample before and
-            // two after, so the extreme reads are one before the patch origin and nine past it.
+            // The patch is eight samples square, and the cubic kernel reaches one sample before and two after. Thus the extreme reads are one before
+            // the patch origin and nine past it.
             int x0 = Math.Clamp(x + integerU, -9, width);
             int y0 = Math.Clamp(y + integerV, -9, height);
 
-            // Eleven rows of intermediate, beginning one row above the patch.
+            // The intermediate holds eleven rows and begins one row above the patch.
             Span<int> intermediate = stackalloc int[PatchSize * IntermediateRows];
 
-            // The second pass rounds off the bits that the first pass kept, but it retains the
-            // fractional bits of the gradients so that the difference and the gradients share a
-            // single scale.
+            // The second pass removes the bits that the first pass kept. It keeps the fractional bits of the gradients, so the difference and the
+            // gradients have the same scale.
             int roundBits = InterpolationBits + IntermediateBits - DerivativeScaleLog2;
 
             if (Vector128.IsHardwareAccelerated)
@@ -219,16 +212,14 @@ internal static partial class Av1DenseFlowSolver
         /// <param name="horizontalKernel">The horizontal cubic taps.</param>
         /// <param name="verticalKernel">The vertical cubic taps.</param>
         /// <param name="roundBits">The shift applied after the second pass.</param>
-        /// <param name="intermediate">Scratch for the eleven intermediate rows.</param>
+        /// <param name="intermediate">The buffer for the eleven intermediate rows.</param>
         /// <param name="dx">The horizontal gradients.</param>
         /// <param name="dy">The vertical gradients.</param>
         /// <param name="b0">Receives the horizontal component of the right-hand side.</param>
-        /// <param name="b1">Receives the vertical component.</param>
+        /// <param name="b1">Receives the vertical component of the right-hand side.</param>
         /// <remarks>
-        /// A patch row is eight samples and the intermediate is thirty-two bits wide, so one row
-        /// occupies two vectors and both passes run as two halves. The four cubic taps of the first
-        /// pass are four overlapping loads of one reference row, which leaves the pass with no
-        /// horizontal data movement at all.
+        /// A patch row is eight samples, and the intermediate is thirty-two bits wide. Thus one row fills two vectors, and both passes run as two halves.
+        /// The four cubic taps of the first pass are four overlapping loads of one reference row. As a result, the pass has no horizontal data movement.
         /// </remarks>
         private static void ComputeResidualVector128(
             ReadOnlySpan<byte> source,
@@ -266,8 +257,7 @@ internal static partial class Av1DenseFlowSolver
                 (Vector128<int> lowC, Vector128<int> highC) = WidenSamplesToInt32(ref referenceBase, rowOffset + 1);
                 (Vector128<int> lowD, Vector128<int> highD) = WidenSamplesToInt32(ref referenceBase, rowOffset + 2);
 
-                // The first pass keeps six fractional bits, which is the most the intermediate of
-                // the reference tolerates, so both passes match it bit for bit.
+                // The first pass keeps six fractional bits, which is the most that the intermediate values tolerate.
                 int firstPassBits = InterpolationBits - IntermediateBits;
                 TOperator.Filter(lowA, lowB, lowC, lowD, tap0, tap1, tap2, tap3, firstPassBits)
                     .StoreUnsafe(ref intermediateBase, (nuint)((row + 1) * PatchSize));
@@ -292,8 +282,8 @@ internal static partial class Av1DenseFlowSolver
 
                 for (int half = 0; half < 2; half++)
                 {
-                    // The four vertical taps are four rows of the intermediate, which is contiguous
-                    // at a stride of one patch row, so each tap is a plain offset load.
+                    // The four vertical taps are four rows of the intermediate. The rows are contiguous at a stride of one patch row, so each tap is a
+                    // plain offset load.
                     nuint offset = (nuint)((row * PatchSize) + (half * 4));
                     Vector128<int> above = Vector128.LoadUnsafe(ref intermediateBase, offset);
                     Vector128<int> centre = Vector128.LoadUnsafe(ref intermediateBase, offset + PatchSize);
@@ -303,8 +293,8 @@ internal static partial class Av1DenseFlowSolver
                     Vector128<int> warped = TOperator.Filter(
                         above, centre, below, beyond, vertical0, vertical1, vertical2, vertical3, roundBits);
 
-                    // The source is raised to the scale of the gradients so that the difference
-                    // shares it. Only the half that this iteration covers is taken.
+                    // The code raises the source to the scale of the gradients, so the difference has the same scale. The code uses only the low four
+                    // samples, which are the half that this iteration covers.
                     nuint sourceOffset = (nuint)(origin + ((y + row) * stride) + x + (half * 4));
                     (Vector128<int> sourceLow, _) = WidenSamplesToInt32(ref sourceBase, sourceOffset);
                     Vector128<int> difference = warped - (sourceLow << DerivativeScaleLog2);
@@ -334,11 +324,11 @@ internal static partial class Av1DenseFlowSolver
         /// <param name="horizontalKernel">The horizontal cubic taps.</param>
         /// <param name="verticalKernel">The vertical cubic taps.</param>
         /// <param name="roundBits">The shift applied after the second pass.</param>
-        /// <param name="intermediate">Scratch for the eleven intermediate rows.</param>
+        /// <param name="intermediate">The buffer for the eleven intermediate rows.</param>
         /// <param name="dx">The horizontal gradients.</param>
         /// <param name="dy">The vertical gradients.</param>
         /// <param name="b0">Receives the horizontal component of the right-hand side.</param>
-        /// <param name="b1">Receives the vertical component.</param>
+        /// <param name="b1">Receives the vertical component of the right-hand side.</param>
         private static void ComputeResidualScalar(
             ReadOnlySpan<byte> source,
             ReadOnlySpan<byte> reference,

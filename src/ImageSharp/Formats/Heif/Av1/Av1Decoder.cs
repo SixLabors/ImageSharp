@@ -72,8 +72,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     private readonly Av1ReferenceFrameStore referenceFrames = new();
 
     /// <summary>
-    /// The frame-base, tile-working, and published entropy contexts created for the first coded frame and then reused
-    /// for this bounded decoder session.
+    /// The frame-base, tile-working, and published entropy contexts. The decoder creates them for the first coded frame and reuses them after that.
     /// </summary>
     private Av1FrameEntropyContexts? entropyContexts;
 
@@ -103,7 +102,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     private FrameDecodeState? frameDecodeState;
 
     /// <summary>
-    /// Retains reconstruction scratch across frames; the active frame borrows its memory until completion.
+    /// Retains the reconstruction work buffer across frames. The active frame borrows its memory until it completes.
     /// </summary>
     private IMemoryOwner<short>? reconstructionWorkspace;
 
@@ -129,8 +128,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         this.restorationBoundary = new(configuration.MemoryAllocator);
         this.restorationDecoder = new(configuration.MemoryAllocator);
 
-        // Sequential tile decoding needs only the palette indices belonging to the current superblock. One fixed
-        // owner keeps both maximum-superblock maps reusable across the bounded session without fragmented group rents.
+        // Sequential tile decoding needs only the palette indices of the current superblock. One fixed owner holds both maps at the maximum superblock size.
+        // Thus the maps stay reusable for the session without fragmented group rents.
         int paletteMapLength = 1 << Av1Constants.MaxSuperBlockSizeLog2;
         int paletteMapArea = paletteMapLength * paletteMapLength;
         this.paletteColorIndexMapOwner = configuration.MemoryAllocator.Allocate<byte>(2 * paletteMapArea);
@@ -151,8 +150,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     public ObuSequenceHeader? SequenceHeader { get; private set; }
 
     /// <summary>
-    /// Gets tile and superblock state for the most recently reconstructed frame, or <see langword="null"/> when no
-    /// frame was reconstructed or the output selected an existing reference without new tile syntax.
+    /// Gets tile and superblock state for the most recently reconstructed frame. The value is <see langword="null"/> when no frame was reconstructed, or when
+    /// the output selected an existing reference without new tile syntax.
     /// </summary>
     public Av1FrameInfo? FrameInfo { get; private set; }
 
@@ -192,6 +191,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <param name="profile">The source profile selected for conversion, or null to preserve source colors.</param>
     /// <param name="alphaFrame">The decoder-owned auxiliary frame, or null for opaque pixels.</param>
     /// <param name="premultiplied">Whether source RGB is associated with alpha.</param>
+    /// <returns>The effective CICP description of the decoded sample.</returns>
     public CicpProfile DecodeSequenceFrame<TPixel>(
         Span<byte> buffer,
         CicpProfile? containerColorProfile,
@@ -223,7 +223,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
                 "The decoded image-sequence sample dimensions do not match its visual sample entry.");
         }
 
-        // Keep reconstructed reference state unchanged while honoring the container's presentation range.
+        // The conversion uses the presentation range of the container when it has one. It does not change the reconstructed reference state.
         Av1YuvConverter.ConvertToRgb(
             this.configuration,
             outputFrame.FrameBuffer,
@@ -304,7 +304,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// The container color description that supplies unspecified sequence-header color information.
     /// </param>
     /// <param name="codecConfiguration">The AV1 codec configuration validated against the coded sequence header.</param>
-    /// <param name="expectedCodedSize">The required coded dimensions, or an empty size when the item extent may differ.</param>
+    /// <param name="expectedCodedSize">The required coded dimensions, or an empty size when the item extent can differ.</param>
     /// <param name="destination">The packed color frame receiving alpha values.</param>
     /// <param name="outputSize">The complete presented size of the auxiliary image or grid tile.</param>
     /// <param name="destinationRectangle">The destination region receiving the top-left portion of the presented alpha image.</param>
@@ -401,8 +401,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
 
         if (frameBuffer.ColorFormat != Av1ColorFormat.Yuv400)
         {
-            // AVIF auxiliary alpha is the luma plane of an AV1 monochrome image. Accepting chroma-bearing payloads
-            // would silently reinterpret a color image and contradict the Sequence Header mono_chrome requirement.
+            // AVIF auxiliary alpha is the luma plane of an AV1 monochrome image. A chroma-bearing payload is a color image. It does not meet the mono_chrome
+            // requirement of the Sequence Header, so the decoder rejects it.
             throw new InvalidImageContentException("An AV1 auxiliary alpha image must be encoded as monochrome.");
         }
 
@@ -443,8 +443,15 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             layeredImageIndex);
 
     /// <summary>
-    /// Parses every coded frame in an AV1 payload and returns the final shown frame's native planes and header.
+    /// Parses every coded frame in an AV1 payload and returns the native planes and header of the final shown frame.
     /// </summary>
+    /// <param name="buffer">The complete AV1 elementary-stream payload.</param>
+    /// <param name="containerColorProfile">The container color description that supplies unspecified sequence-header color information.</param>
+    /// <param name="codecConfiguration">The AV1 codec configuration validated against the coded sequence header.</param>
+    /// <param name="effectiveColorProfile">Receives the effective CICP description associated with the native planes.</param>
+    /// <param name="frameHeader">Receives the frame header of the final shown frame.</param>
+    /// <param name="layeredImageIndex">The optional byte boundaries of a layered AV1 image item.</param>
+    /// <returns>The reconstructed native frame buffer. Ownership transfers to the caller.</returns>
     private Av1FrameBuffer<byte> DecodeFrameBuffer(
         Span<byte> buffer,
         CicpProfile? containerColorProfile,
@@ -489,8 +496,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         this.FrameHeader = null;
         this.DecodedInterPredictionFeatures = Av1InterPredictionFeatures.None;
 
-        // Full tile syntax describes only frames reconstructed by this payload. Reference slots already own the compact
-        // state needed by later frames, so release the previous payload's reconstruction graph before parsing the next.
+        // Full tile syntax describes only the frames that this payload reconstructs. Reference slots already own the compact state that later frames need. Thus
+        // the decoder releases the reconstruction graph of the previous payload before it parses this payload.
         this.FrameInfo?.ReleaseOwner();
         this.FrameInfo = null;
 
@@ -540,8 +547,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
                 _ = this.referenceFrames.ResolveOutput();
             }
 
-            // Preserve the effective CICP description used for conversion, including container values that legally
-            // supplied unspecified bitstream fields. This also exposes bitstream-only color metadata to callers.
+            // The returned profile is the effective CICP description that conversion uses. It includes container values that legally replaced unspecified
+            // bitstream fields. It also gives bitstream-only color metadata to callers.
             ObuColorConfig effectiveColorConfig = sequenceHeader.ColorConfig;
             return new CicpProfile(
                 (byte)effectiveColorConfig.ColorPrimaries,
@@ -551,8 +558,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         }
         catch
         {
-            // A failed frame may own pooled neighbor contexts while earlier layers own reconstructed references and
-            // published CDF snapshots. None can be reused after a non-transactional frame transition has failed.
+            // A failed frame can own pooled neighbor contexts, and earlier layers own reconstructed references and published CDF snapshots. After a failed
+            // non-transactional frame transition, none of them can be used again.
             this.frameDecodeState?.Dispose();
             this.frameDecodeState = null;
             this.obuReader.Reset();
@@ -567,8 +574,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         }
         finally
         {
-            // Validation inputs belong to this bounded decode call. Completed native buffers retain no references to
-            // either description, so releasing them here prevents a reused decoder from observing stale item state.
+            // Validation inputs belong to this bounded decode call. Completed native buffers keep no reference to either description. Thus the release here
+            // prevents a reused decoder from seeing stale item state.
             this.codecConfiguration = null;
             this.containerColorProfile = null;
             this.validatedSequenceHeader = null;
@@ -596,8 +603,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             ObuTransferCharacteristics containerTransferCharacteristics = (ObuTransferCharacteristics)colorProfile.TransferCharacteristics;
             ObuMatrixCoefficients containerMatrixCoefficients = (ObuMatrixCoefficients)colorProfile.MatrixCoefficients;
 
-            // AV1-ISOBMFF permits nclx to supply only bitstream fields explicitly coded as unspecified. A different
-            // specified value is a conformance error rather than a container-level color override.
+            // AV1-ISOBMFF permits nclx to supply only bitstream fields explicitly coded as unspecified. A different specified value is a conformance error, not
+            // a container-level color override.
             if (colorConfig.ColorPrimaries == ObuColorPrimaries.Unspecified)
             {
                 colorConfig.ColorPrimaries = containerColorPrimaries;
@@ -644,8 +651,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             ObuFrameHeader frameHeader = this.obuReader.CurrentFrameHeader;
             this.ValidateSequence(sequenceHeader);
 
-            // Sequence dimensions are an upper bound, not an allocation request. Check the active upscaled frame
-            // before renting its syntax state; a small frame can legally belong to a much larger sequence envelope.
+            // Sequence dimensions are an upper bound, not an allocation request. The code checks the active upscaled frame before it rents its syntax state. A
+            // small frame can legally belong to a much larger sequence envelope.
             Av1FrameBuffer<byte>.ValidateDimensions(
                 sequenceHeader,
                 sequenceHeader.ColorConfig.GetColorFormat(),
@@ -657,8 +664,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             {
                 if (this.entropySequenceHeader is not null)
                 {
-                    // A coded-sequence boundary invalidates both sample references and their retained CDF snapshots.
-                    // Returned snapshot graphs stay decoder-local and can be overwritten for the new sequence.
+                    // A coded-sequence boundary invalidates both sample references and their retained CDF snapshots. Returned snapshot graphs stay
+                    // decoder-local and can be overwritten for the new sequence.
                     this.referenceFrames.Reset();
                     this.entropyContexts?.Reset();
                 }
@@ -670,8 +677,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             byte? primaryReferenceSlot = frameHeader.PrimaryReferenceSlot;
             if (primaryReferenceSlot is not null)
             {
-                // The uncompressed-header parser validates slot occupancy. Entropy ownership is checked here because
-                // only the reconstructed frame owner knows whether that slot retained a completed CDF snapshot.
+                // The uncompressed-header parser validates slot occupancy. This code checks entropy ownership, because only the reconstructed frame owner knows
+                // if that slot kept a completed CDF snapshot.
                 Av1ReferenceFrame? primaryReference = this.referenceFrames.Resolve(primaryReferenceSlot.Value);
                 if (primaryReference is null || primaryReference.EntropyContext is null)
                 {
@@ -688,8 +695,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             Av1TileReader? tileReader = null;
             Av1FrameBuffer<byte>? frameBuffer = null;
 
-            // Presentation-only samples contain no new tile syntax, so they keep the most recently reconstructed
-            // frame state. Release that state only when a new reconstruction begins to avoid overlapping two graphs.
+            // Presentation-only samples contain no new tile syntax, so they keep the most recently reconstructed frame state. The decoder releases that state
+            // only when a new reconstruction begins. Thus two reconstruction graphs never overlap.
             this.FrameInfo?.ReleaseOwner();
             this.FrameInfo = null;
 
@@ -717,8 +724,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
                     Height = frameHeader.FrameSize.FrameHeight
                 };
 
-                // No preceding frame is active here. Release an undersized owner before renting its replacement;
-                // a failed rent leaves the session empty and retryable, while completed frames reuse this storage.
+                // No preceding frame is active here. The code releases an undersized owner before it rents the replacement. Thus a failed rent leaves the
+                // session empty and retryable. Completed frames reuse this storage.
                 int workspaceLength = Av1BlockDecoder.GetWorkspaceLength(sequenceHeader);
                 if (this.reconstructionWorkspace is null || this.reconstructionWorkspace.Memory.Length < workspaceLength)
                 {
@@ -758,7 +765,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     }
 
     /// <summary>
-    /// Reconstructs a frame after all of its tile payloads have been parsed.
+    /// Completes the current frame after the parser reads all of its tile payloads. The method presents a shown existing frame, or reconstructs a new frame
+    /// from its tiles.
     /// </summary>
     public void CompleteFrame()
     {
@@ -784,8 +792,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
 
                 if (existingFrameHeader.FrameType == ObuFrameType.KeyFrame)
                 {
-                    // Both the decoder working context and the context retained by the newly aliased key frame reset
-                    // frame. Later primary-reference selection must therefore observe normative defaults.
+                    // Showing an existing key frame resets both the working context of the decoder and the context that the key frame keeps. Thus a later
+                    // primary-reference selection sees the default entropy contexts.
                     existingFrame.ResetEntropyContext();
                     this.entropyContexts?.Reset();
                 }
@@ -794,8 +802,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
                 {
                     presentationBuffer = Av1FrameBuffer<byte>.CreatePresentation(this.configuration, sequenceHeader, existingFrame.FrameBuffer);
 
-                    // Retained reference samples remain ungrained. Existing-frame presentation receives its own
-                    // allocator-owned copy only when the inherited film-grain parameters actually modify the output.
+                    // Retained reference samples remain ungrained. Existing-frame presentation receives its own allocator-owned copy only when the inherited
+                    // film-grain parameters change the output.
                     existingFrame.FrameBuffer.CopyVisibleTo(presentationBuffer);
                     Av1FilmGrainDecoder filmGrainDecoder = new(sequenceHeader, existingFrameHeader, presentationBuffer);
                     filmGrainDecoder.DecodeFrame();
@@ -829,12 +837,12 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             bool retainsReference = (frameHeader.RefreshFrameFlags & byte.MaxValue) != 0;
             if (retainsReference)
             {
-                // Motion compensation may address any clamped position inside the decoder border. Extending once after
-                // all in-loop filters lets every later block use the full padded span without per-prediction edge copies.
+                // Motion compensation can address any clamped position inside the decoder border. One extension after all in-loop filters lets every later
+                // block use the full padded span, without edge copies for each prediction.
                 Av1ReferenceFrameBorder.Extend(reconstructedFrameBuffer);
 
-                // Detach only the state libaom retains on RefCntBuffer before any later ownership transfer can fail.
-                // The full reconstruction graph remains local to the current result and expires independently.
+                // The code detaches only the state that a reference frame keeps, before any later ownership transfer can fail. The full reconstruction graph
+                // stays local to the current result and expires separately.
                 frameInfo.PrepareReferenceState();
             }
 
@@ -843,8 +851,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             {
                 presentationBuffer = Av1FrameBuffer<byte>.CreatePresentation(this.configuration, sequenceHeader, reconstructedFrameBuffer);
 
-                // Film grain must never contaminate a decoded reference. A shown frame that is also refreshed therefore
-                // receives one allocator-owned presentation copy; frames with no reference role are grained in place.
+                // Film grain must never change a decoded reference. Thus a shown frame that is also refreshed gets one allocator-owned presentation copy.
+                // Frames with no reference role get the grain in place.
                 reconstructedFrameBuffer.CopyVisibleTo(presentationBuffer);
             }
 
@@ -867,7 +875,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
                 }
                 catch
                 {
-                    // The snapshot rent precedes the reference owner. Return it if object construction cannot accept it.
+                    // The snapshot rent comes before the reference owner exists. If the construction fails, the code returns the snapshot.
                     entropyContexts.ReturnSnapshot(entropySnapshot);
                     throw;
                 }
@@ -896,17 +904,16 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             this.FrameHeader = frameHeader;
             this.DecodedInterPredictionFeatures |= frameInfo.InterPredictionFeatures;
 
-            // Hidden frames can contain the inter syntax needed to validate a sequence. Retain only the latest full
-            // reconstruction state until the next bounded decode; reference-map entries keep their compact state.
+            // Hidden frames can contain the inter syntax that is necessary to validate a sequence. Only the latest full reconstruction state stays until the
+            // next bounded decode. Reference-map entries keep their compact state.
             frameInfo.AddOwner();
             this.FrameInfo?.ReleaseOwner();
             this.FrameInfo = frameInfo;
         }
         finally
         {
-            // A non-shown frame or failed reconstruction never escapes this callback. The tile reader releases the
-            // reconstruction lease; a retained frame keeps only its compact reference state after neighbor contexts
-            // and the remaining frame-sized syntax are returned.
+            // A non-shown frame or a failed reconstruction never leaves this callback. The tile reader releases the reconstruction lease. After the neighbor
+            // contexts and the remaining frame-sized syntax are returned, a retained frame keeps only its compact reference state.
             presentationBuffer?.Dispose();
             frameBuffer?.Dispose();
             tileReader?.Dispose();

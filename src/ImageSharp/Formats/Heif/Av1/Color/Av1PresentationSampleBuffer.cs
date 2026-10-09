@@ -74,7 +74,7 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
                 chroma = new ChromaPlanes(chromaBlue, chromaRed);
             }
 
-            // Publish ownership only after every required plane has been allocated and initialized.
+            // The constructor publishes ownership only after it allocates and initializes every required plane.
             this.planes = new PresentationPlanes(luma, chroma);
         }
         catch
@@ -182,7 +182,7 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
     }
 
     /// <summary>
-    /// Scales one component plane with the native integer filter used by pinned libavif's libyuv backend.
+    /// Scales one component plane with an integer bilinear filter. The filter gives the same samples as common AVIF decoders.
     /// </summary>
     /// <param name="source">The reconstructed component planes.</param>
     /// <param name="plane">The component plane to scale.</param>
@@ -240,9 +240,9 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
             return;
         }
 
-        // Layer selection presents a lower spatial layer at the full item extent, so both dimensions are monotonic.
-        // The general libyuv path maps destination centers in 16.16 fixed point and retains only two horizontally
-        // filtered rows. This avoids a second full-plane intermediate and remains group-safe under small allocators.
+        // Layer selection presents a lower spatial layer at the full item extent, so both dimensions are monotonic. The general path maps destination centers
+        // in 16.16 fixed point and keeps only two horizontally filtered rows. Thus no second full-plane intermediate is necessary, and the path stays
+        // group-safe with small allocators.
         using Buffer2D<TSample> horizontalRows = this.memoryAllocator.Allocate2D<TSample>(destinationWidth, 2);
         int horizontalStep = sourceWidth > 1 && destinationWidth > 1
             ? FixedDivideOne(sourceWidth, destinationWidth)
@@ -299,7 +299,7 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
     }
 
     /// <summary>
-    /// Applies libyuv's edge-aware two-times bilinear kernel to one complete plane.
+    /// Applies an edge-aware two-times bilinear kernel to one full plane.
     /// </summary>
     /// <param name="source">The reconstructed component planes.</param>
     /// <param name="plane">The component plane to scale.</param>
@@ -370,8 +370,7 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
         ref TSample topDestinationBase = ref MemoryMarshal.GetReference(topDestination);
         ref TSample bottomDestinationBase = ref MemoryMarshal.GetReference(bottomDestination);
 
-        // The first and the last destination samples have only one source column to interpolate
-        // between, so they take the two-tap edge form rather than the four-tap interior form.
+        // The first and the last destination samples have only one source column. They therefore take the two-tap edge form, not the four-tap interior form.
         int firstTop = ReadSample(ref topSourceBase);
         int firstBottom = ReadSample(ref bottomSourceBase);
         WriteSample(ref topDestinationBase, 0, ((3 * firstTop) + firstBottom + 2) >> 2);
@@ -382,9 +381,8 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
 
         if (Vector128.IsHardwareAccelerated)
         {
-            // Eight source positions produce sixteen destination samples. The pair that each
-            // position produces is interleaved on the store, so one iteration covers sixteen
-            // destination columns of both rows.
+            // Eight source positions produce sixteen destination samples. The pair that each position produces is interleaved on the store, so one iteration
+            // covers sixteen destination columns of both rows.
             for (; x + Vector128<ushort>.Count <= lastSource; x += Vector128<ushort>.Count)
             {
                 CalculateBilinearPairs(
@@ -463,9 +461,8 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
     /// <param name="offset">The sample offset.</param>
     /// <returns>The samples in increasing column order.</returns>
     /// <remarks>
-    /// An eight-bit row is read through a packed integer and widened, which touches only the eight
-    /// bytes that this iteration owns. A high-bit-depth row is already sixteen bits wide, so it
-    /// loads directly.
+    /// An eight-bit row is read through a packed integer and widened, which touches only the eight bytes that this iteration owns. A high-bit-depth row is
+    /// already sixteen bits wide, so it loads directly.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<ushort> LoadEight(ref TSample source, int offset)
@@ -488,9 +485,8 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
     /// <param name="destination">The first sample of the row.</param>
     /// <param name="offset">The destination sample offset.</param>
     /// <remarks>
-    /// Each source position produces two adjacent destination samples, so the two result vectors
-    /// interleave. An eight-bit row then narrows the sixteen interleaved lanes into one vector of
-    /// bytes, which is exact because every result already sits inside the range of a byte.
+    /// Each source position produces two adjacent destination samples, so the two result vectors interleave. An eight-bit row then narrows the sixteen
+    /// interleaved lanes into one vector of bytes. The narrowing is exact because every result is already inside the byte range.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void StoreInterleaved(
@@ -536,9 +532,8 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
     {
         Vector128<ushort> rounding = Vector128.Create((ushort)8);
 
-        // The largest twelve-bit weighted sum is 16 * 4095 + 8, which remains within unsigned 16-bit lanes.
-        // Keeping eight independent source positions per vector therefore avoids widening and preserves libyuv's
-        // exact add-before-shift rounding for both byte and high-bit-depth presentation planes.
+        // The largest twelve-bit weighted sum is 16 * 4095 + 8, which remains within unsigned 16-bit lanes. Thus eight independent source positions per vector
+        // need no widening. The exact add-before-shift rounding stays the same for byte and high-bit-depth presentation planes.
         upperEven = (((top0 << 3) + top0) + ((top1 << 1) + top1) + ((bottom0 << 1) + bottom0) + bottom1 + rounding) >> 4;
         upperOdd = (((top0 << 1) + top0) + ((top1 << 3) + top1) + bottom0 + ((bottom1 << 1) + bottom1) + rounding) >> 4;
         lowerEven = (((top0 << 1) + top0) + top1 + ((bottom0 << 3) + bottom0) + ((bottom1 << 1) + bottom1) + rounding) >> 4;
@@ -546,7 +541,7 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
     }
 
     /// <summary>
-    /// Applies libyuv's edge-aware horizontal two-times linear kernel.
+    /// Applies an edge-aware horizontal two-times linear kernel.
     /// </summary>
     /// <param name="source">The source row.</param>
     /// <param name="destination">The destination row.</param>
@@ -599,8 +594,11 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
     }
 
     /// <summary>
-    /// Horizontally maps one source row with libyuv's 16.16 fixed-point bilinear positions.
+    /// Horizontally maps one source row with 16.16 fixed-point bilinear positions.
     /// </summary>
+    /// <remarks>
+    /// Eight-bit rows use a 7-bit fraction and the rounding offset 0x40. High-bit-depth rows use the full 16-bit fraction and the rounding offset 0x8000.
+    /// </remarks>
     /// <param name="source">The source row.</param>
     /// <param name="destination">The destination row.</param>
     /// <param name="step">The 16.16 source-position increment.</param>
@@ -692,7 +690,7 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
     }
 
     /// <summary>
-    /// Divides two decremented lengths into libyuv's 16.16 endpoint-preserving step.
+    /// Divides two decremented lengths into a 16.16 step that maps the first and last samples onto each other.
     /// </summary>
     /// <param name="sourceLength">The source length.</param>
     /// <param name="destinationLength">The destination length.</param>
@@ -708,39 +706,57 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
     /// <returns>The ceiling-rounded quotient.</returns>
     private static int DivideCeiling(int value, int divisor) => (value + divisor - 1) / divisor;
 
+    /// <summary>
+    /// Holds the two scaled chroma planes as one owned pair.
+    /// </summary>
     private readonly struct ChromaPlanes
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ChromaPlanes"/> struct.
         /// </summary>
-        /// <param name="blue">The blue.</param>
-        /// <param name="red">The red.</param>
+        /// <param name="blue">The scaled blue-difference plane.</param>
+        /// <param name="red">The scaled red-difference plane.</param>
         public ChromaPlanes(Buffer2D<TSample> blue, Buffer2D<TSample> red)
         {
             this.Blue = blue;
             this.Red = red;
         }
 
+        /// <summary>
+        /// Gets the scaled blue-difference plane.
+        /// </summary>
         public Buffer2D<TSample> Blue { get; }
 
+        /// <summary>
+        /// Gets the scaled red-difference plane.
+        /// </summary>
         public Buffer2D<TSample> Red { get; }
     }
 
+    /// <summary>
+    /// Holds the complete set of owned presentation planes.
+    /// </summary>
     private readonly struct PresentationPlanes
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PresentationPlanes"/> struct.
         /// </summary>
-        /// <param name="luma">The luma.</param>
-        /// <param name="chroma">The chroma.</param>
+        /// <param name="luma">The scaled luma plane.</param>
+        /// <param name="chroma">The scaled chroma planes, or <see langword="null"/> for a monochrome image.</param>
         public PresentationPlanes(Buffer2D<TSample> luma, ChromaPlanes? chroma)
         {
             this.Luma = luma;
             this.Chroma = chroma;
         }
 
+        /// <summary>
+        /// Gets the scaled luma plane.
+        /// </summary>
         public Buffer2D<TSample> Luma { get; }
 
+        /// <summary>
+        /// Gets the scaled chroma planes, or <see langword="null"/> for a monochrome image.
+        /// </summary>
         public ChromaPlanes? Chroma { get; }
     }
 }

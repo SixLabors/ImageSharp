@@ -33,8 +33,8 @@ internal static partial class Av1ForwardTransformer
             int input2 = Load<int>(ref values, inputStride, 2);
             int input3 = Load<int>(ref values, inputStride, 3);
 
-            // The paired stage keeps the axes in their native lane representation. Packed short lanes therefore retain
-            // Highway's saturating add/subtract behavior before the widening butterfly multiplication.
+            // Stage 1 adds and subtracts the mirrored input pairs in the lane type of the overload. Thus 16-bit lanes saturate before the butterflies widen.
+            // Stage 2 rotates the sum pair by pi/4 into outputs 0 and 2, and the difference pair by pi/8 into outputs 1 and 3.
             Av1ForwardTransformArithmetic<int>.AddSubtract(input0, input3, out buffer0[0], out buffer0[3]);
             Av1ForwardTransformArithmetic<int>.AddSubtract(input1, input2, out buffer0[1], out buffer0[2]);
             Av1ForwardTransformArithmetic<int>.Butterfly(
@@ -80,8 +80,8 @@ internal static partial class Av1ForwardTransformer
             short input2 = Load<short>(ref values, inputStride, 2);
             short input3 = Load<short>(ref values, inputStride, 3);
 
-            // The paired stage keeps the axes in their native lane representation. Packed short lanes therefore retain
-            // Highway's saturating add/subtract behavior before the widening butterfly multiplication.
+            // Stage 1 adds and subtracts the mirrored input pairs in the lane type of the overload. Thus 16-bit lanes saturate before the butterflies widen.
+            // Stage 2 rotates the sum pair by pi/4 into outputs 0 and 2, and the difference pair by pi/8 into outputs 1 and 3.
             Av1ForwardTransformArithmetic<short>.AddSubtract(input0, input3, out buffer0[0], out buffer0[3]);
             Av1ForwardTransformArithmetic<short>.AddSubtract(input1, input2, out buffer0[1], out buffer0[2]);
             Av1ForwardTransformArithmetic<short>.Butterfly(
@@ -127,8 +127,8 @@ internal static partial class Av1ForwardTransformer
             Vector128<short> input2 = Load<Vector128<short>>(ref values, inputStride, 2);
             Vector128<short> input3 = Load<Vector128<short>>(ref values, inputStride, 3);
 
-            // The paired stage keeps the axes in their native lane representation. Packed short lanes therefore retain
-            // Highway's saturating add/subtract behavior before the widening butterfly multiplication.
+            // Stage 1 adds and subtracts the mirrored input pairs in the lane type of the overload. Thus 16-bit lanes saturate before the butterflies widen.
+            // Stage 2 rotates the sum pair by pi/4 into outputs 0 and 2, and the difference pair by pi/8 into outputs 1 and 3.
             Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(input0, input3, out buffer0[0], out buffer0[3]);
             Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(input1, input2, out buffer0[1], out buffer0[2]);
             Av1ForwardTransformArithmetic<Vector128<short>>.Butterfly(
@@ -174,8 +174,8 @@ internal static partial class Av1ForwardTransformer
             Vector256<short> input2 = Load<Vector256<short>>(ref values, inputStride, 2);
             Vector256<short> input3 = Load<Vector256<short>>(ref values, inputStride, 3);
 
-            // The paired stage keeps the axes in their native lane representation. Packed short lanes therefore retain
-            // Highway's saturating add/subtract behavior before the widening butterfly multiplication.
+            // Stage 1 adds and subtracts the mirrored input pairs in the lane type of the overload. Thus 16-bit lanes saturate before the butterflies widen.
+            // Stage 2 rotates the sum pair by pi/4 into outputs 0 and 2, and the difference pair by pi/8 into outputs 1 and 3.
             Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(input0, input3, out buffer0[0], out buffer0[3]);
             Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(input1, input2, out buffer0[1], out buffer0[2]);
             Av1ForwardTransformArithmetic<Vector256<short>>.Butterfly(
@@ -221,8 +221,8 @@ internal static partial class Av1ForwardTransformer
             Vector512<short> input2 = Load<Vector512<short>>(ref values, inputStride, 2);
             Vector512<short> input3 = Load<Vector512<short>>(ref values, inputStride, 3);
 
-            // The paired stage keeps the axes in their native lane representation. Packed short lanes therefore retain
-            // Highway's saturating add/subtract behavior before the widening butterfly multiplication.
+            // Stage 1 adds and subtracts the mirrored input pairs in the lane type of the overload. Thus 16-bit lanes saturate before the butterflies widen.
+            // Stage 2 rotates the sum pair by pi/4 into outputs 0 and 2, and the difference pair by pi/8 into outputs 1 and 3.
             Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(input0, input3, out buffer0[0], out buffer0[3]);
             Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(input1, input2, out buffer0[1], out buffer0[2]);
             Av1ForwardTransformArithmetic<Vector512<short>>.Butterfly(
@@ -268,8 +268,8 @@ internal static partial class Av1ForwardTransformer
             Vector128<int> input2 = Load<Vector128<int>>(ref values, inputStride, 2);
             Vector128<int> input3 = Load<Vector128<int>>(ref values, inputStride, 3);
 
-            // The paired stage keeps the axes in their native lane representation. Packed short lanes therefore retain
-            // Highway's saturating add/subtract behavior before the widening butterfly multiplication.
+            // Stage 1 adds and subtracts the mirrored input pairs in the lane type of the overload. Thus 16-bit lanes saturate before the butterflies widen.
+            // Stage 2 rotates the sum pair by pi/4 into outputs 0 and 2, and the difference pair by pi/8 into outputs 1 and 3.
             Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(input0, input3, out buffer0[0], out buffer0[3]);
             Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(input1, input2, out buffer0[1], out buffer0[2]);
             Av1ForwardTransformArithmetic<Vector128<int>>.Butterfly(
@@ -315,8 +315,8 @@ internal static partial class Av1ForwardTransformer
             Vector256<int> input2 = Load<Vector256<int>>(ref values, inputStride, 2);
             Vector256<int> input3 = Load<Vector256<int>>(ref values, inputStride, 3);
 
-            // The paired stage keeps the axes in their native lane representation. Packed short lanes therefore retain
-            // Highway's saturating add/subtract behavior before the widening butterfly multiplication.
+            // Stage 1 adds and subtracts the mirrored input pairs in the lane type of the overload. Thus 16-bit lanes saturate before the butterflies widen.
+            // Stage 2 rotates the sum pair by pi/4 into outputs 0 and 2, and the difference pair by pi/8 into outputs 1 and 3.
             Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(input0, input3, out buffer0[0], out buffer0[3]);
             Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(input1, input2, out buffer0[1], out buffer0[2]);
             Av1ForwardTransformArithmetic<Vector256<int>>.Butterfly(
@@ -362,8 +362,8 @@ internal static partial class Av1ForwardTransformer
             Vector512<int> input2 = Load<Vector512<int>>(ref values, inputStride, 2);
             Vector512<int> input3 = Load<Vector512<int>>(ref values, inputStride, 3);
 
-            // The paired stage keeps the axes in their native lane representation. Packed short lanes therefore retain
-            // Highway's saturating add/subtract behavior before the widening butterfly multiplication.
+            // Stage 1 adds and subtracts the mirrored input pairs in the lane type of the overload. Thus 16-bit lanes saturate before the butterflies widen.
+            // Stage 2 rotates the sum pair by pi/4 into outputs 0 and 2, and the difference pair by pi/8 into outputs 1 and 3.
             Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(input0, input3, out buffer0[0], out buffer0[3]);
             Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(input1, input2, out buffer0[1], out buffer0[2]);
             Av1ForwardTransformArithmetic<Vector512<int>>.Butterfly(

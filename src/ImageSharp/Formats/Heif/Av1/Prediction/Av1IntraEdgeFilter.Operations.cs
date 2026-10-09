@@ -24,8 +24,8 @@ internal static partial class Av1IntraEdgeFilter
         /// <param name="scratch">The reusable source workspace.</param>
         public static void Apply(ref byte edge, int count, Span<byte> scratch)
         {
-            // Each convolution reads the original edge. Duplicate its first sample once and its last sample
-            // twice so the five-tap windows implement endpoint clamping without per-lane boundary branches.
+            // Each convolution reads the original edge. Thus the source copy repeats the first sample once and the last sample twice.
+            // The five-tap windows then clamp at the endpoints without per-lane boundary branches.
             scratch[0] = edge;
             MemoryMarshal.CreateReadOnlySpan(ref edge, count).CopyTo(scratch[1..]);
             scratch.Slice(count + 1, 2).Fill(Unsafe.Add(ref edge, count - 1));
@@ -34,8 +34,10 @@ internal static partial class Av1IntraEdgeFilter
             int outputCount = count - 1;
             int i = 0;
 
-            // The same offset advances through descending SIMD widths. Adjacent lanes represent adjacent
-            // output samples, and only complete windows are loaded; the final incomplete window is scalar.
+            // The same offset advances through descending SIMD widths. Adjacent lanes are adjacent output samples.
+            // Only full vectors are loaded. The scalar loop computes the remaining outputs.
+            // Each tap loads half a vector of bytes and widens it to 16-bit lanes.
+            // Thus the weighted sum cannot overflow, and the narrowing back to bytes is exact.
             if (Vector512.IsHardwareAccelerated)
             {
                 int vectorEnd = outputCount - Vector512<ushort>.Count;
@@ -132,8 +134,8 @@ internal static partial class Av1IntraEdgeFilter
         /// <param name="scratch">The reusable source workspace.</param>
         public static void Apply(ref short edge, int count, Span<short> scratch)
         {
-            // Each convolution reads the original edge. Duplicate its first sample once and its last sample
-            // twice so the five-tap windows implement endpoint clamping without per-lane boundary branches.
+            // Each convolution reads the original edge. Thus the source copy repeats the first sample once and the last sample twice.
+            // The five-tap windows then clamp at the endpoints without per-lane boundary branches.
             scratch[0] = edge;
             MemoryMarshal.CreateReadOnlySpan(ref edge, count).CopyTo(scratch[1..]);
             scratch.Slice(count + 1, 2).Fill(Unsafe.Add(ref edge, count - 1));
@@ -142,10 +144,10 @@ internal static partial class Av1IntraEdgeFilter
             int outputCount = count - 1;
             int i = 0;
 
-            // The same offset advances through descending SIMD widths. Adjacent lanes represent adjacent
-            // output samples, and only complete windows are loaded; the final incomplete window is scalar.
-            // Nonnegative 12-bit samples have a maximum weighted sum of 65520. The rounding bias keeps
-            // that below 65536, so unsigned 16-bit lanes preserve the normative result at all strengths.
+            // The same offset advances through descending SIMD widths. Adjacent lanes are adjacent output samples.
+            // Only full vectors are loaded. The scalar loop computes the remaining outputs.
+            // Nonnegative 12-bit samples give a weighted sum of at most 65520. With the rounding bias, the sum stays below 65536.
+            // Thus unsigned 16-bit lanes give the normative result at all strengths.
             if (Vector512.IsHardwareAccelerated)
             {
                 int vectorEnd = outputCount - Vector512<ushort>.Count;

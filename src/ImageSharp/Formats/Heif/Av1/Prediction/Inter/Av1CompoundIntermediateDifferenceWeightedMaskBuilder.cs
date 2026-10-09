@@ -19,6 +19,16 @@ internal static partial class Av1CompoundIntermediateDifferenceWeightedMaskBuild
     /// <summary>
     /// Fills a luma-resolution difference-weighted mask from compound intermediates.
     /// </summary>
+    /// <param name="mask">The mask output. Each value is the weight of the first predictor, 0 through 64.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="first">The first compound intermediate.</param>
+    /// <param name="firstStride">The distance between first-intermediate rows in samples.</param>
+    /// <param name="second">The second compound intermediate.</param>
+    /// <param name="secondStride">The distance between second-intermediate rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="bitDepth">The decoded sample precision that produced the intermediates.</param>
+    /// <param name="maskType">The difference-weighted mask type. The inverse type swaps the weights of the two predictors.</param>
     public static void FillDifferenceWeightedIntermediateMask(
         Span<byte> mask,
         int maskStride,
@@ -46,6 +56,16 @@ internal static partial class Av1CompoundIntermediateDifferenceWeightedMaskBuild
     /// Executes one closed difference-mask compound-intermediate operator.
     /// </summary>
     /// <typeparam name="TOperator">The compound-intermediate operator.</typeparam>
+    /// <param name="mask">The mask output.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="first">The first compound intermediate.</param>
+    /// <param name="firstStride">The distance between first-intermediate rows in samples.</param>
+    /// <param name="second">The second compound intermediate.</param>
+    /// <param name="secondStride">The distance between second-intermediate rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="bitDepth">The decoded sample precision that produced the intermediates.</param>
+    /// <param name="maskType">The difference-weighted mask type.</param>
     private static void FillDifferenceWeightedIntermediateMask<TOperator>(
         Span<byte> mask,
         int maskStride,
@@ -61,6 +81,8 @@ internal static partial class Av1CompoundIntermediateDifferenceWeightedMaskBuild
     {
         bool invert = maskType == Av1DifferenceWeightedMaskType.Type38Inverse;
         GetIntermediateRounding(bitDepth, out int roundBits, out _);
+
+        // The shift removes the fractional bits of the intermediates and scales the difference from bitDepth to 8-bit sample units.
         int differenceRound = roundBits + bitDepth - 8;
         for (int row = 0; row < height; row++)
         {
@@ -72,6 +94,8 @@ internal static partial class Av1CompoundIntermediateDifferenceWeightedMaskBuild
             ref ushort secondReference = ref MemoryMarshal.GetReference(secondRow);
             int column = 0;
 
+            // Each step loads two 16-bit vectors from each intermediate and stores one byte vector that covers the same columns.
+            // The widest supported vectors take the row first. Each narrower width takes the columns that remain, and the scalar loop finishes the tail.
             if (Vector512.IsHardwareAccelerated)
             {
                 nuint vectorCount = Numerics.Vector512Count<byte>(width - column);

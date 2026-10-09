@@ -18,8 +18,7 @@ internal static partial class Av1DenseFlowSolver
     /// <param name="bits">The shift, which is always one or more here.</param>
     /// <returns>The shifted value.</returns>
     /// <remarks>
-    /// The rounding term is added before the arithmetic shift, which is what the reference macro
-    /// ROUND_POWER_OF_TWO does for a signed value.
+    /// The method adds the rounding term before the arithmetic shift. Thus a negative value rounds half up, the same as a positive value.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int RoundShift(int value, int bits) => (value + (1 << (bits - 1))) >> bits;
@@ -31,8 +30,7 @@ internal static partial class Av1DenseFlowSolver
     /// <param name="bits">The shift, which is always one or more here.</param>
     /// <returns>The shifted lanes.</returns>
     /// <remarks>
-    /// The shift is arithmetic, so a negative lane rounds towards negative infinity exactly as the
-    /// scalar form does.
+    /// The shift is arithmetic, so a negative lane rounds the same as the scalar form.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<int> RoundShift(Vector128<int> value, int bits)
@@ -42,7 +40,7 @@ internal static partial class Av1DenseFlowSolver
     /// Weights four samples by the cubic taps and applies a rounded right shift.
     /// </summary>
     /// <remarks>
-    /// Reference: the two interpolation passes of compute_flow_vector().
+    /// The horizontal and the vertical interpolation passes both use this operator.
     /// </remarks>
     private readonly struct CubicOperator : IAv1CubicOperator
     {
@@ -67,10 +65,9 @@ internal static partial class Av1DenseFlowSolver
             Vector128<int> k3,
             int roundBits)
         {
-            // Each lane is one independent output. The taps are broadcast by the traversal, so the
-            // four products are plain lane-wise multiplications with no shuffle between them.
-            // Thirty-two bit lanes are needed: a tap reaches a magnitude of about 18000 in Q14 and a
-            // sample reaches 255, so one product alone passes the range of a sixteen-bit lane.
+            // Each lane is one independent output. The traversal broadcasts the taps, so the four products are lane-wise multiplications with no shuffle.
+            // The lanes must be thirty-two bits wide. A tap reaches 16384 in Q14, and a sample reaches 255. Thus one product alone is out of
+            // the range of a sixteen-bit lane.
             Vector128<int> sum = (k0 * s0) + (k1 * s1) + (k2 * s2) + (k3 * s3);
             return RoundShift(sum, roundBits);
         }

@@ -69,7 +69,7 @@ internal enum Av1PredictionMode : byte
     SmoothHorizontal,
 
     /// <summary>
-    /// Selects the neighbor with the smallest gradient from the top-left reference.
+    /// Selects the left, top, or top-left neighbor that is nearest to top + left - topLeft.
     /// </summary>
     Paeth,
 
@@ -179,12 +179,12 @@ internal enum Av1PredictionMode : byte
     InterModeEnd = NewNewMotionVector + 1,
 
     /// <summary>
-    /// The number of luma and inter prediction modes in the complete AV1 mode domain.
+    /// The number of luma intra-prediction and inter-prediction modes.
     /// </summary>
     PredictionModeCount = NewNewMotionVector + 1,
 
     /// <summary>
-    /// The invalid intra-mode sentinel matching the complete AV1 prediction-mode domain.
+    /// The value that marks an invalid intra mode. It equals <see cref="PredictionModeCount"/>.
     /// </summary>
     IntraInvalid = PredictionModeCount,
 }

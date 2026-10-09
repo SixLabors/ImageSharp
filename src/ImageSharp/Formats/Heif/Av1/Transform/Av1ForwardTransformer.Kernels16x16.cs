@@ -22,11 +22,9 @@ internal static partial class Av1ForwardTransformer
     /// Applies a sixteen-by-sixteen eight-bit transform with every stage in registers.
     /// </summary>
     /// <remarks>
-    /// This follows <c>lowbd_fwd_txfm2d_16x16_avx2</c>: the rows load into sixteen vectors whose lanes are
-    /// columns, the column transform combines those vectors, one transpose turns columns into lanes for the
-    /// row transform, and a second transpose restores the row-major coefficient order of this port. The shifts
-    /// are <c>av1_fwd_txfm_shift_ls[TX_16X16]</c> (2, -2, 0); the column cosine bit count is 13 and the row
-    /// cosine bit count is 12, from <c>av1_fwd_cos_bit_col</c> and <c>av1_fwd_cos_bit_row</c>.
+    /// The rows load into sixteen vectors whose lanes are columns, and the column transform combines those vectors.
+    /// One transpose turns columns into lanes for the row transform. A second transpose restores the row-major coefficient order.
+    /// The stage shifts are 2, -2 and 0. The column cosine bit count is 13, and the row cosine bit count is 12.
     /// </remarks>
     /// <param name="input">The spatial residual samples.</param>
     /// <param name="stride">The number of input samples between rows.</param>
@@ -164,7 +162,7 @@ internal static partial class Av1ForwardTransformer
 
         TColumn.Transform(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15, 13);
 
-        // round_shift_16bit_w16_avx2 with shift -2: add one half and shift, with saturation on the addition.
+        // The second stage shift of -2 adds 2, half of the divisor 4, and then shifts right by 2. The addition saturates.
         Vector256<short> half = Vector256.Create((short)2);
         r0 = Vector256.AddSaturate(r0, half) >> 2;
         r1 = Vector256.AddSaturate(r1, half) >> 2;
@@ -186,7 +184,7 @@ internal static partial class Av1ForwardTransformer
         Av1TransformKernels.Transpose16x16(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15);
         if (flipLeftToRight)
         {
-            // After the transpose each vector is one column; reversing their order mirrors the block horizontally.
+            // After the transpose, each vector is one column. The reversed order mirrors the block horizontally.
             TRow.Transform(ref r15, ref r14, ref r13, ref r12, ref r11, ref r10, ref r9, ref r8, ref r7, ref r6, ref r5, ref r4, ref r3, ref r2, ref r1, ref r0, 12);
             Av1TransformKernels.Transpose16x16(ref r15, ref r14, ref r13, ref r12, ref r11, ref r10, ref r9, ref r8, ref r7, ref r6, ref r5, ref r4, ref r3, ref r2, ref r1, ref r0);
             Store16x16(r15, r14, r13, r12, r11, r10, r9, r8, r7, r6, r5, r4, r3, r2, r1, r0, coefficients);
@@ -199,8 +197,25 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Stores sixteen coefficient rows in row-major order.
+    /// Widens sixteen sixteen-bit coefficient rows to thirty-two bits and stores them in row-major order.
     /// </summary>
+    /// <param name="r0">Coefficient row 0.</param>
+    /// <param name="r1">Coefficient row 1.</param>
+    /// <param name="r2">Coefficient row 2.</param>
+    /// <param name="r3">Coefficient row 3.</param>
+    /// <param name="r4">Coefficient row 4.</param>
+    /// <param name="r5">Coefficient row 5.</param>
+    /// <param name="r6">Coefficient row 6.</param>
+    /// <param name="r7">Coefficient row 7.</param>
+    /// <param name="r8">Coefficient row 8.</param>
+    /// <param name="r9">Coefficient row 9.</param>
+    /// <param name="r10">Coefficient row 10.</param>
+    /// <param name="r11">Coefficient row 11.</param>
+    /// <param name="r12">Coefficient row 12.</param>
+    /// <param name="r13">Coefficient row 13.</param>
+    /// <param name="r14">Coefficient row 14.</param>
+    /// <param name="r15">Coefficient row 15.</param>
+    /// <param name="coefficients">The destination for the 256 coefficients.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Store16x16(
         Vector256<short> r0,
@@ -241,7 +256,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// The sixteen-point DCT of <c>fdct16x16_new_avx2</c>.
+    /// The sixteen-point forward DCT on sixteen lanes.
     /// </summary>
     private readonly struct Dct16Kernel : IAv1Kernel16
     {
@@ -366,7 +381,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// The sixteen-point ADST of <c>fadst16x16_new_avx2</c>.
+    /// The sixteen-point forward ADST on sixteen lanes.
     /// </summary>
     private readonly struct Adst16Kernel : IAv1Kernel16
     {
@@ -522,8 +537,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// The sixteen-point identity transform of <c>fidentity16x16_new_avx2</c>, which scales by two times the
-    /// square root of two with rounding.
+    /// The sixteen-point forward identity transform on sixteen lanes, which scales by two times the square root of two with rounding.
     /// </summary>
     private readonly struct Identity16Kernel : IAv1Kernel16
     {
@@ -548,8 +562,7 @@ internal static partial class Av1ForwardTransformer
             ref Vector256<short> in15,
             int cosBit)
         {
-            // scale_round_avx2 with 2 * NewSqrt2: each lane pairs with a one so that one multiply-add yields
-            // value * scale + rounding before the shift by NewSqrt2Bits.
+            // The scale is 2 * NewSqrt2. Each lane pairs with a one, so one multiply-add gives value * scale + rounding before the shift by NewSqrt2Bits.
             Vector256<short> one = Vector256.Create((short)1);
             Vector256<short> scale = Av1TransformKernels.PairWide(2 * Av1Transform1dMath.NewSqrt2, 1 << (Av1Transform1dMath.NewSqrt2Bits - 1));
             in0 = Scale(in0, one, scale);
@@ -570,6 +583,16 @@ internal static partial class Av1ForwardTransformer
             in15 = Scale(in15, one, scale);
         }
 
+        /// <summary>
+        /// Multiplies sixteen lanes by two times the square root of two in fixed point, with rounding.
+        /// </summary>
+        /// <remarks>
+        /// Each unpack pairs a value with one inside each 128-bit lane. The pack restores the original lane order.
+        /// </remarks>
+        /// <param name="value">The values to scale.</param>
+        /// <param name="one">A vector with the value one in every lane.</param>
+        /// <param name="scale">The interleaved weight pair of the scale factor and the rounding offset.</param>
+        /// <returns>The scaled values, saturated to sixteen bits.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector256<short> Scale(Vector256<short> value, Vector256<short> one, Vector256<short> scale)
         {

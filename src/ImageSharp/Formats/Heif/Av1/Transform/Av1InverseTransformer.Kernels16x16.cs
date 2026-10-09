@@ -14,12 +14,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 internal static partial class Av1InverseTransformer
 {
     /// <summary>
-    /// The scale of the sixteen-point identity transform, <c>NewSqrt2list[2]</c>.
+    /// The scale of the sixteen-point identity transform, two times the square root of two in fixed point.
     /// </summary>
     private const short Identity16Scale = 2 * Av1Transform1dMath.NewSqrt2;
 
     /// <summary>
-    /// Gets the end-of-block position of each sixteen-row group, <c>eob_fill</c>, for the identity axes.
+    /// Gets the last axis position of each group of sixteen scan positions, for the identity axes.
     /// </summary>
     private static ReadOnlySpan<byte> EndOfBlockFill => [0, 7, 7, 7, 7, 7, 7, 7, 15, 15, 15, 15, 15, 15, 15, 15];
 
@@ -27,10 +27,8 @@ internal static partial class Av1InverseTransformer
     /// Adds the inverse transform of a sixteen-by-sixteen eight-bit block to its prediction with every stage in registers.
     /// </summary>
     /// <remarks>
-    /// This follows <c>lowbd_inv_txfm2d_add_universe_avx2</c> for <c>TX_16X16</c>: the end of block selects the
-    /// one-, eight- or sixteen-coefficient kernel of each axis through <c>get_eobx_eoby_scan_default</c> and
-    /// <c>lowbd_txfm_all_1d_zeros_idx</c>, and the identity axes take the dedicated paths that fold their shifts
-    /// into the scale. The shifts are <c>av1_inv_txfm_shift_ls[TX_16X16]</c> (-2, -4).
+    /// The end of block selects the one-, eight- or sixteen-coefficient kernel of each axis. The identity axes take dedicated paths that fold the adjacent
+    /// stage shift into each identity scale. The stage shifts are -2 and -4.
     /// </remarks>
     /// <param name="coefficients">The row-major dequantized coefficients.</param>
     /// <param name="prediction">The predicted samples.</param>
@@ -59,7 +57,7 @@ internal static partial class Av1InverseTransformer
 
         if (rowIdentity)
         {
-            // get_eobx_eoby_scan_h_identity: the vertical extent follows the row of the final coefficient.
+            // With a horizontal identity, the vertical extent follows the row of the final coefficient.
             int variant = GetVariant(EndOfBlockFill[(endOfBlock - 1) >> 4]);
             switch (columnType, variant)
             {
@@ -88,7 +86,7 @@ internal static partial class Av1InverseTransformer
 
         if (columnIdentity)
         {
-            // get_eobx_eoby_scan_v_identity: the horizontal extent follows the row of the final coefficient.
+            // With a vertical identity, the horizontal extent follows the row of the final coefficient.
             int variant = GetVariant(EndOfBlockFill[(endOfBlock - 1) >> 4]);
             switch (rowType, variant)
             {
@@ -115,8 +113,8 @@ internal static partial class Av1InverseTransformer
             return;
         }
 
-        // get_eobx_eoby_scan_default with av1_eob_to_eobxy_16x16_default: one coefficient keeps the DC kernels,
-        // the first two rows of the scan keep the eight-coefficient kernels, and later positions need all sixteen.
+        // With the default scan, one coefficient keeps the DC kernels. An end position up to 32 keeps the eight-coefficient kernels. Later positions need all
+        // sixteen.
         int shared = endOfBlock == 1 ? 0 : endOfBlock <= 32 ? 1 : 2;
         bool rowDct = rowType == Av1TransformType1d.Dct;
         bool columnDct = columnType == Av1TransformType1d.Dct;
@@ -159,7 +157,7 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// Maps an axis end position to its kernel variant, as <c>lowbd_txfm_all_1d_zeros_idx</c> does for sixteen points.
+    /// Maps an axis end position to its sixteen-point kernel variant.
     /// </summary>
     /// <param name="endPosition">The zero-based final nonzero position along the axis.</param>
     /// <returns>Zero for the DC kernel, one for the eight-coefficient kernel, two for the complete kernel.</returns>
@@ -169,6 +167,16 @@ internal static partial class Av1InverseTransformer
     /// <summary>
     /// Selects the vertical kernel of the shared variant and runs the block.
     /// </summary>
+    /// <typeparam name="TRow">The horizontal kernel, applied first.</typeparam>
+    /// <param name="coefficients">The row-major dequantized coefficients.</param>
+    /// <param name="prediction">The predicted samples.</param>
+    /// <param name="predictionStride">The number of predicted samples between rows.</param>
+    /// <param name="destination">The reconstructed samples.</param>
+    /// <param name="destinationStride">The number of reconstructed samples between rows.</param>
+    /// <param name="columnDct">Whether the vertical transform is a DCT. Otherwise it is an ADST.</param>
+    /// <param name="variant">Zero for the DC kernel, one for the eight-coefficient kernel, two for the complete kernel.</param>
+    /// <param name="flipUpsideDown">Whether the residual block is mirrored vertically.</param>
+    /// <param name="flipLeftToRight">Whether the residual block is mirrored horizontally.</param>
     private static void InverseColumn16x16<TRow>(
         ReadOnlySpan<int> coefficients,
         ReadOnlySpan<byte> prediction,
@@ -220,11 +228,17 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// Applies one horizontal and one vertical kernel to a sixteen-by-sixteen block and adds the result, as
-    /// <c>lowbd_inv_txfm2d_add_no_identity_avx2</c> does.
+    /// Applies one horizontal and one vertical kernel to a sixteen-by-sixteen block and adds the result.
     /// </summary>
     /// <typeparam name="TRow">The horizontal kernel, applied first.</typeparam>
     /// <typeparam name="TColumn">The vertical kernel.</typeparam>
+    /// <param name="coefficients">The row-major dequantized coefficients.</param>
+    /// <param name="prediction">The predicted samples.</param>
+    /// <param name="predictionStride">The number of predicted samples between rows.</param>
+    /// <param name="destination">The reconstructed samples.</param>
+    /// <param name="destinationStride">The number of reconstructed samples between rows.</param>
+    /// <param name="flipUpsideDown">Whether the residual block is mirrored vertically.</param>
+    /// <param name="flipLeftToRight">Whether the residual block is mirrored horizontally.</param>
     private static void Inverse16x16<TRow, TColumn>(
         ReadOnlySpan<int> coefficients,
         ReadOnlySpan<byte> prediction,
@@ -243,8 +257,8 @@ internal static partial class Av1InverseTransformer
         TRow.Transform(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15, InverseCosBit);
         RoundShift16x16(2, ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15);
 
-        // Each vector is now one spatial column; reversing their order mirrors the block horizontally, after
-        // which row k sits in r(15 - k) and the vertical kernel runs over the reversed references.
+        // Each vector is now one spatial column. The reversed order mirrors the block horizontally. After that, row k is in r(15 - k), and the vertical kernel
+        // runs over the reversed references.
         if (flipLeftToRight)
         {
             Av1TransformKernels.Transpose16x16(ref r15, ref r14, ref r13, ref r12, ref r11, ref r10, ref r9, ref r8, ref r7, ref r6, ref r5, ref r4, ref r3, ref r2, ref r1, ref r0);
@@ -257,17 +271,25 @@ internal static partial class Av1InverseTransformer
         }
 
         RoundShift16x16(4, ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15);
+
+        // A horizontal flip leaves row k in r(15 - k), and a vertical flip reverses the row order again. The rows are reversed when exactly one flip applies.
         AddRows16x16(prediction, predictionStride, destination, destinationStride, flipUpsideDown != flipLeftToRight, r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15);
     }
 
     /// <summary>
-    /// Reconstructs a block whose horizontal transform is the identity, as <c>lowbd_inv_txfm2d_add_h_identity_avx2</c> does.
+    /// Reconstructs a block whose horizontal transform is the identity.
     /// </summary>
     /// <remarks>
-    /// The identity scale is elementwise, so the rows never need the transpose: after scaling, each vector is one
-    /// vertical frequency across the sixteen columns, which is the vertical kernel's input.
+    /// The identity scale is elementwise, so the rows never need the transpose. After the scale, each vector is one vertical frequency across the sixteen
+    /// columns, which is the input of the vertical kernel.
     /// </remarks>
     /// <typeparam name="TColumn">The vertical kernel.</typeparam>
+    /// <param name="coefficients">The row-major dequantized coefficients.</param>
+    /// <param name="prediction">The predicted samples.</param>
+    /// <param name="predictionStride">The number of predicted samples between rows.</param>
+    /// <param name="destination">The reconstructed samples.</param>
+    /// <param name="destinationStride">The number of reconstructed samples between rows.</param>
+    /// <param name="flipUpsideDown">Whether the residual block is mirrored vertically.</param>
     private static void InverseRowIdentity16x16<TColumn>(
         ReadOnlySpan<int> coefficients,
         ReadOnlySpan<byte> prediction,
@@ -285,9 +307,15 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// Reconstructs a block whose vertical transform is the identity, as <c>lowbd_inv_txfm2d_add_v_identity_avx2</c> does.
+    /// Reconstructs a block whose vertical transform is the identity.
     /// </summary>
     /// <typeparam name="TRow">The horizontal kernel.</typeparam>
+    /// <param name="coefficients">The row-major dequantized coefficients.</param>
+    /// <param name="prediction">The predicted samples.</param>
+    /// <param name="predictionStride">The number of predicted samples between rows.</param>
+    /// <param name="destination">The reconstructed samples.</param>
+    /// <param name="destinationStride">The number of reconstructed samples between rows.</param>
+    /// <param name="flipLeftToRight">Whether the residual block is mirrored horizontally.</param>
     private static void InverseColumnIdentity16x16<TRow>(
         ReadOnlySpan<int> coefficients,
         ReadOnlySpan<byte> prediction,
@@ -301,7 +329,7 @@ internal static partial class Av1InverseTransformer
         Av1TransformKernels.Transpose16x16(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15);
         TRow.Transform(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15, InverseCosBit);
 
-        // round_shift_16bit_w16_avx2 with shift -2: add one half and shift, with saturation on the addition.
+        // The first stage shift of -2 adds the rounding offset 2 and shifts right by 2. The addition saturates.
         Vector256<short> half = Vector256.Create((short)2);
         r0 = Vector256.AddSaturate(r0, half) >> 2;
         r1 = Vector256.AddSaturate(r1, half) >> 2;
@@ -320,6 +348,7 @@ internal static partial class Av1InverseTransformer
         r14 = Vector256.AddSaturate(r14, half) >> 2;
         r15 = Vector256.AddSaturate(r15, half) >> 2;
 
+        // The reversed transpose mirrors the lanes horizontally and leaves row k in r(15 - k). The reversed add then restores the row order.
         if (flipLeftToRight)
         {
             Av1TransformKernels.Transpose16x16(ref r15, ref r14, ref r13, ref r12, ref r11, ref r10, ref r9, ref r8, ref r7, ref r6, ref r5, ref r4, ref r3, ref r2, ref r1, ref r0);
@@ -333,8 +362,16 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// Reconstructs a block whose both transforms are the identity, as <c>lowbd_inv_txfm2d_add_idtx_avx2</c> does.
+    /// Reconstructs a block whose two transforms are both the identity.
     /// </summary>
+    /// <remarks>
+    /// Both scales are elementwise, so no transpose is necessary. An identity transform type has no flips.
+    /// </remarks>
+    /// <param name="coefficients">The row-major dequantized coefficients.</param>
+    /// <param name="prediction">The predicted samples.</param>
+    /// <param name="predictionStride">The number of predicted samples between rows.</param>
+    /// <param name="destination">The reconstructed samples.</param>
+    /// <param name="destinationStride">The number of reconstructed samples between rows.</param>
     private static void InverseIdentity16x16(
         ReadOnlySpan<int> coefficients,
         ReadOnlySpan<byte> prediction,
@@ -348,8 +385,25 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// Packs the sixteen coefficient rows to sixteen bits.
+    /// Packs the sixteen coefficient rows to sixteen bits with saturation.
     /// </summary>
+    /// <param name="coefficients">The row-major dequantized coefficients.</param>
+    /// <param name="r0">Receives coefficient row 0.</param>
+    /// <param name="r1">Receives coefficient row 1.</param>
+    /// <param name="r2">Receives coefficient row 2.</param>
+    /// <param name="r3">Receives coefficient row 3.</param>
+    /// <param name="r4">Receives coefficient row 4.</param>
+    /// <param name="r5">Receives coefficient row 5.</param>
+    /// <param name="r6">Receives coefficient row 6.</param>
+    /// <param name="r7">Receives coefficient row 7.</param>
+    /// <param name="r8">Receives coefficient row 8.</param>
+    /// <param name="r9">Receives coefficient row 9.</param>
+    /// <param name="r10">Receives coefficient row 10.</param>
+    /// <param name="r11">Receives coefficient row 11.</param>
+    /// <param name="r12">Receives coefficient row 12.</param>
+    /// <param name="r13">Receives coefficient row 13.</param>
+    /// <param name="r14">Receives coefficient row 14.</param>
+    /// <param name="r15">Receives coefficient row 15.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Load16x16(
         ReadOnlySpan<int> coefficients,
@@ -390,8 +444,25 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// Rounds and shifts sixteen vectors right through the rounding multiply of the reference drivers.
+    /// Rounds and shifts sixteen vectors right through a rounding high multiply.
     /// </summary>
+    /// <param name="bits">The number of bits to shift right.</param>
+    /// <param name="r0">Vector 0. Holds the shifted value on return.</param>
+    /// <param name="r1">Vector 1. Holds the shifted value on return.</param>
+    /// <param name="r2">Vector 2. Holds the shifted value on return.</param>
+    /// <param name="r3">Vector 3. Holds the shifted value on return.</param>
+    /// <param name="r4">Vector 4. Holds the shifted value on return.</param>
+    /// <param name="r5">Vector 5. Holds the shifted value on return.</param>
+    /// <param name="r6">Vector 6. Holds the shifted value on return.</param>
+    /// <param name="r7">Vector 7. Holds the shifted value on return.</param>
+    /// <param name="r8">Vector 8. Holds the shifted value on return.</param>
+    /// <param name="r9">Vector 9. Holds the shifted value on return.</param>
+    /// <param name="r10">Vector 10. Holds the shifted value on return.</param>
+    /// <param name="r11">Vector 11. Holds the shifted value on return.</param>
+    /// <param name="r12">Vector 12. Holds the shifted value on return.</param>
+    /// <param name="r13">Vector 13. Holds the shifted value on return.</param>
+    /// <param name="r14">Vector 14. Holds the shifted value on return.</param>
+    /// <param name="r15">Vector 15. Holds the shifted value on return.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void RoundShift16x16(
         int bits,
@@ -431,8 +502,24 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// Scales sixteen rows by the identity transform with the first shift folded in, as <c>iidentity_row_16xn_avx2</c> does.
+    /// Scales sixteen rows by the identity transform, with the first stage shift folded in.
     /// </summary>
+    /// <param name="r0">Coefficient row 0. Holds the scaled row on return.</param>
+    /// <param name="r1">Coefficient row 1. Holds the scaled row on return.</param>
+    /// <param name="r2">Coefficient row 2. Holds the scaled row on return.</param>
+    /// <param name="r3">Coefficient row 3. Holds the scaled row on return.</param>
+    /// <param name="r4">Coefficient row 4. Holds the scaled row on return.</param>
+    /// <param name="r5">Coefficient row 5. Holds the scaled row on return.</param>
+    /// <param name="r6">Coefficient row 6. Holds the scaled row on return.</param>
+    /// <param name="r7">Coefficient row 7. Holds the scaled row on return.</param>
+    /// <param name="r8">Coefficient row 8. Holds the scaled row on return.</param>
+    /// <param name="r9">Coefficient row 9. Holds the scaled row on return.</param>
+    /// <param name="r10">Coefficient row 10. Holds the scaled row on return.</param>
+    /// <param name="r11">Coefficient row 11. Holds the scaled row on return.</param>
+    /// <param name="r12">Coefficient row 12. Holds the scaled row on return.</param>
+    /// <param name="r13">Coefficient row 13. Holds the scaled row on return.</param>
+    /// <param name="r14">Coefficient row 14. Holds the scaled row on return.</param>
+    /// <param name="r15">Coefficient row 15. Holds the scaled row on return.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ScaleIdentityRows16x16(
         ref Vector256<short> r0,
@@ -452,7 +539,8 @@ internal static partial class Av1InverseTransformer
         ref Vector256<short> r14,
         ref Vector256<short> r15)
     {
-        // The rounding carries both the identity's NewSqrt2Bits and the -2 shift: one shift by fourteen follows.
+        // The identity rounding (NewSqrt2Bits) and the -2 stage shift add their offsets in one rounding term. Nested floor divisions combine, so one shift by
+        // fourteen gives the same result as the two separate rounding shifts.
         const int shift = Av1Transform1dMath.NewSqrt2Bits + 2;
         Vector256<short> one = Vector256.Create((short)1);
         Vector256<short> scale = Av1TransformKernels.PairWide(Identity16Scale, (1 << (Av1Transform1dMath.NewSqrt2Bits - 1)) + (1 << (shift - 1)));
@@ -477,6 +565,14 @@ internal static partial class Av1InverseTransformer
     /// <summary>
     /// Scales one vector by the identity weight with a rounding offset paired to each lane.
     /// </summary>
+    /// <remarks>
+    /// The unpacks pair each value with one, so each multiply-add gives <c>value * weight + offset</c> in 32 bits. The saturating pack returns to sixteen bits.
+    /// </remarks>
+    /// <param name="value">The values to scale.</param>
+    /// <param name="one">A vector of ones that pairs with each value.</param>
+    /// <param name="scale">The interleaved pair of the identity weight and the rounding offset.</param>
+    /// <param name="shift">The number of bits to shift right after the multiply-add.</param>
+    /// <returns>The scaled values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<short> ScaleIdentity(Vector256<short> value, Vector256<short> one, Vector256<short> scale, int shift)
     {
@@ -486,9 +582,29 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// Scales sixteen rows by the vertical identity transform with the second shift and adds them to the prediction,
-    /// as <c>iidentity_col_16xn_avx2</c> does.
+    /// Scales sixteen rows by the vertical identity transform with the second stage shift and adds them to the prediction.
     /// </summary>
+    /// <param name="prediction">The predicted samples.</param>
+    /// <param name="predictionStride">The number of predicted samples between rows.</param>
+    /// <param name="destination">The reconstructed samples.</param>
+    /// <param name="destinationStride">The number of reconstructed samples between rows.</param>
+    /// <param name="reversed">Whether vector k holds row 15 - k.</param>
+    /// <param name="r0">Residual vector 0 before the vertical identity scale.</param>
+    /// <param name="r1">Residual vector 1 before the vertical identity scale.</param>
+    /// <param name="r2">Residual vector 2 before the vertical identity scale.</param>
+    /// <param name="r3">Residual vector 3 before the vertical identity scale.</param>
+    /// <param name="r4">Residual vector 4 before the vertical identity scale.</param>
+    /// <param name="r5">Residual vector 5 before the vertical identity scale.</param>
+    /// <param name="r6">Residual vector 6 before the vertical identity scale.</param>
+    /// <param name="r7">Residual vector 7 before the vertical identity scale.</param>
+    /// <param name="r8">Residual vector 8 before the vertical identity scale.</param>
+    /// <param name="r9">Residual vector 9 before the vertical identity scale.</param>
+    /// <param name="r10">Residual vector 10 before the vertical identity scale.</param>
+    /// <param name="r11">Residual vector 11 before the vertical identity scale.</param>
+    /// <param name="r12">Residual vector 12 before the vertical identity scale.</param>
+    /// <param name="r13">Residual vector 13 before the vertical identity scale.</param>
+    /// <param name="r14">Residual vector 14 before the vertical identity scale.</param>
+    /// <param name="r15">Residual vector 15 before the vertical identity scale.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AddIdentityRows16x16(
         ReadOnlySpan<byte> prediction,
@@ -521,6 +637,13 @@ internal static partial class Av1InverseTransformer
     /// <summary>
     /// Scales one vector by the identity weight, then rounds and shifts it right by four in thirty-two bits.
     /// </summary>
+    /// <remarks>
+    /// The identity scale rounds and shifts by NewSqrt2Bits first. Then the second stage shift rounds and shifts by four.
+    /// </remarks>
+    /// <param name="value">The values to scale.</param>
+    /// <param name="one">A vector of ones that pairs with each value.</param>
+    /// <param name="scale">The interleaved pair of the identity weight and the identity rounding offset.</param>
+    /// <returns>The scaled and shifted residuals.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<short> ScaleIdentityColumn(Vector256<short> value, Vector256<short> one, Vector256<short> scale)
     {
@@ -531,8 +654,29 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// Adds sixteen residual rows to the prediction rows, in reverse order when the block flips vertically.
+    /// Adds sixteen residual rows to the prediction rows, in reverse order when <paramref name="reversed"/> is set.
     /// </summary>
+    /// <param name="prediction">The predicted samples.</param>
+    /// <param name="predictionStride">The number of predicted samples between rows.</param>
+    /// <param name="destination">The reconstructed samples.</param>
+    /// <param name="destinationStride">The number of reconstructed samples between rows.</param>
+    /// <param name="reversed">Whether vector k goes to row 15 - k.</param>
+    /// <param name="r0">Residual vector 0.</param>
+    /// <param name="r1">Residual vector 1.</param>
+    /// <param name="r2">Residual vector 2.</param>
+    /// <param name="r3">Residual vector 3.</param>
+    /// <param name="r4">Residual vector 4.</param>
+    /// <param name="r5">Residual vector 5.</param>
+    /// <param name="r6">Residual vector 6.</param>
+    /// <param name="r7">Residual vector 7.</param>
+    /// <param name="r8">Residual vector 8.</param>
+    /// <param name="r9">Residual vector 9.</param>
+    /// <param name="r10">Residual vector 10.</param>
+    /// <param name="r11">Residual vector 11.</param>
+    /// <param name="r12">Residual vector 12.</param>
+    /// <param name="r13">Residual vector 13.</param>
+    /// <param name="r14">Residual vector 14.</param>
+    /// <param name="r15">Residual vector 15.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AddRows16x16(
         ReadOnlySpan<byte> prediction,
@@ -599,8 +743,14 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// Adds one sixteen-sample residual row to its prediction row.
+    /// Adds one sixteen-sample residual row to its prediction row with clipping.
     /// </summary>
+    /// <param name="prediction">The first predicted sample of the block.</param>
+    /// <param name="predictionStride">The number of predicted samples between rows.</param>
+    /// <param name="destination">The first reconstructed sample of the block.</param>
+    /// <param name="destinationStride">The number of reconstructed samples between rows.</param>
+    /// <param name="row">The row index.</param>
+    /// <param name="residual">The sixteen residuals of the row.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AddRow16(ref byte prediction, int predictionStride, ref byte destination, int destinationStride, int row, Vector256<short> residual)
         => Av1TransformKernels.AddClip16(
@@ -609,8 +759,43 @@ internal static partial class Av1InverseTransformer
             ref Unsafe.Add(ref destination, row * destinationStride));
 
     /// <summary>
-    /// Runs stages five to seven of the sixteen-point inverse DCT, <c>idct16_stage5_avx2</c> to <c>idct16_stage7_avx2</c>.
+    /// Runs stages five to seven of the sixteen-point inverse DCT.
     /// </summary>
+    /// <param name="x0">Stage value 0 from stage four. The method overwrites it.</param>
+    /// <param name="x1">Stage value 1 from stage four. The method overwrites it.</param>
+    /// <param name="x2">Stage value 2 from stage four. The method overwrites it.</param>
+    /// <param name="x3">Stage value 3 from stage four. The method overwrites it.</param>
+    /// <param name="x4">Stage value 4 from stage four. The method overwrites it.</param>
+    /// <param name="x5">Stage value 5 from stage four. The method overwrites it.</param>
+    /// <param name="x6">Stage value 6 from stage four. The method overwrites it.</param>
+    /// <param name="x7">Stage value 7 from stage four. The method overwrites it.</param>
+    /// <param name="x8">Stage value 8 from stage four. The method overwrites it.</param>
+    /// <param name="x9">Stage value 9 from stage four. The method overwrites it.</param>
+    /// <param name="x10">Stage value 10 from stage four. The method overwrites it.</param>
+    /// <param name="x11">Stage value 11 from stage four. The method overwrites it.</param>
+    /// <param name="x12">Stage value 12 from stage four. The method overwrites it.</param>
+    /// <param name="x13">Stage value 13 from stage four. The method overwrites it.</param>
+    /// <param name="x14">Stage value 14 from stage four. The method overwrites it.</param>
+    /// <param name="x15">Stage value 15 from stage four. The method overwrites it.</param>
+    /// <param name="out0">Receives output 0.</param>
+    /// <param name="out1">Receives output 1.</param>
+    /// <param name="out2">Receives output 2.</param>
+    /// <param name="out3">Receives output 3.</param>
+    /// <param name="out4">Receives output 4.</param>
+    /// <param name="out5">Receives output 5.</param>
+    /// <param name="out6">Receives output 6.</param>
+    /// <param name="out7">Receives output 7.</param>
+    /// <param name="out8">Receives output 8.</param>
+    /// <param name="out9">Receives output 9.</param>
+    /// <param name="out10">Receives output 10.</param>
+    /// <param name="out11">Receives output 11.</param>
+    /// <param name="out12">Receives output 12.</param>
+    /// <param name="out13">Receives output 13.</param>
+    /// <param name="out14">Receives output 14.</param>
+    /// <param name="out15">Receives output 15.</param>
+    /// <param name="c32">The cosine-table weight cos(pi/4).</param>
+    /// <param name="rounding">The rounding offset for the widened products.</param>
+    /// <param name="cosBit">The number of fractional bits in the weights.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Dct16Stages5To7(
         ref Vector256<short> x0,
@@ -652,7 +837,7 @@ internal static partial class Av1InverseTransformer
         Vector256<short> m32p32 = Av1TransformKernels.PairWide((short)-c32, c32);
         Vector256<short> p32p32 = Av1TransformKernels.PairWide(c32, c32);
 
-        // stage 5
+        // Stage 5: x0 to x3 complete their four-point DCT, x5 and x6 take the cos(pi/4) butterfly, and x8 to x15 take saturated sums and differences.
         Av1TransformKernels.AddSubtractWide(ref x0, ref x3);
         Av1TransformKernels.AddSubtractWide(ref x1, ref x2);
         Av1TransformKernels.ButterflyWide(m32p32, p32p32, ref x5, ref x6, rounding, cosBit);
@@ -661,7 +846,7 @@ internal static partial class Av1InverseTransformer
         Av1TransformKernels.AddSubtractWide(ref x15, ref x12);
         Av1TransformKernels.AddSubtractWide(ref x14, ref x13);
 
-        // stage 6
+        // Stage 6: x0 to x7 complete their eight-point DCT, and the cos(pi/4) butterflies combine (x10, x13) and (x11, x12).
         Av1TransformKernels.AddSubtractWide(ref x0, ref x7);
         Av1TransformKernels.AddSubtractWide(ref x1, ref x6);
         Av1TransformKernels.AddSubtractWide(ref x2, ref x5);
@@ -669,7 +854,7 @@ internal static partial class Av1InverseTransformer
         Av1TransformKernels.ButterflyWide(m32p32, p32p32, ref x10, ref x13, rounding, cosBit);
         Av1TransformKernels.ButterflyWide(m32p32, p32p32, ref x11, ref x12, rounding, cosBit);
 
-        // stage 7
+        // Stage 7: the output butterflies combine the even and odd halves with saturation.
         out0 = Vector256.AddSaturate(x0, x15);
         out15 = Vector256.SubtractSaturate(x0, x15);
         out1 = Vector256.AddSaturate(x1, x14);
@@ -689,8 +874,43 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// Runs stages three to nine of the sixteen-point inverse ADST, <c>iadst16_stage3_avx2</c> to <c>iadst16_stage9_avx2</c>.
+    /// Runs stages three to nine of the sixteen-point inverse ADST.
     /// </summary>
+    /// <param name="x0">Stage value 0 from stage two. The method overwrites it.</param>
+    /// <param name="x1">Stage value 1 from stage two. The method overwrites it.</param>
+    /// <param name="x2">Stage value 2 from stage two. The method overwrites it.</param>
+    /// <param name="x3">Stage value 3 from stage two. The method overwrites it.</param>
+    /// <param name="x4">Stage value 4 from stage two. The method overwrites it.</param>
+    /// <param name="x5">Stage value 5 from stage two. The method overwrites it.</param>
+    /// <param name="x6">Stage value 6 from stage two. The method overwrites it.</param>
+    /// <param name="x7">Stage value 7 from stage two. The method overwrites it.</param>
+    /// <param name="x8">Stage value 8 from stage two. The method overwrites it.</param>
+    /// <param name="x9">Stage value 9 from stage two. The method overwrites it.</param>
+    /// <param name="x10">Stage value 10 from stage two. The method overwrites it.</param>
+    /// <param name="x11">Stage value 11 from stage two. The method overwrites it.</param>
+    /// <param name="x12">Stage value 12 from stage two. The method overwrites it.</param>
+    /// <param name="x13">Stage value 13 from stage two. The method overwrites it.</param>
+    /// <param name="x14">Stage value 14 from stage two. The method overwrites it.</param>
+    /// <param name="x15">Stage value 15 from stage two. The method overwrites it.</param>
+    /// <param name="out0">Receives output 0.</param>
+    /// <param name="out1">Receives output 1.</param>
+    /// <param name="out2">Receives output 2.</param>
+    /// <param name="out3">Receives output 3.</param>
+    /// <param name="out4">Receives output 4.</param>
+    /// <param name="out5">Receives output 5.</param>
+    /// <param name="out6">Receives output 6.</param>
+    /// <param name="out7">Receives output 7.</param>
+    /// <param name="out8">Receives output 8.</param>
+    /// <param name="out9">Receives output 9.</param>
+    /// <param name="out10">Receives output 10.</param>
+    /// <param name="out11">Receives output 11.</param>
+    /// <param name="out12">Receives output 12.</param>
+    /// <param name="out13">Receives output 13.</param>
+    /// <param name="out14">Receives output 14.</param>
+    /// <param name="out15">Receives output 15.</param>
+    /// <param name="cospi">The cosine table for <paramref name="cosBit"/>.</param>
+    /// <param name="rounding">The rounding offset for the widened products.</param>
+    /// <param name="cosBit">The number of fractional bits in the weights.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Adst16Stages3To9(
         ref Vector256<short> x0,
@@ -741,7 +961,7 @@ internal static partial class Av1InverseTransformer
         Vector256<short> p48m16 = Av1TransformKernels.PairWide(c48, (short)-c16);
         Vector256<short> m48p16 = Av1TransformKernels.PairWide((short)-c48, c16);
 
-        // stage 3
+        // Stage 3: saturated sums and differences between the two halves.
         Av1TransformKernels.AddSubtractWide(ref x0, ref x8);
         Av1TransformKernels.AddSubtractWide(ref x1, ref x9);
         Av1TransformKernels.AddSubtractWide(ref x2, ref x10);
@@ -751,13 +971,13 @@ internal static partial class Av1InverseTransformer
         Av1TransformKernels.AddSubtractWide(ref x6, ref x14);
         Av1TransformKernels.AddSubtractWide(ref x7, ref x15);
 
-        // stage 4
+        // Stage 4: rotate x8 to x15 with the cosine-table weights 8 and 56, and 40 and 24.
         Av1TransformKernels.ButterflyWide(p08p56, Av1TransformKernels.PairWide(c56, (short)-c8), ref x8, ref x9, rounding, cosBit);
         Av1TransformKernels.ButterflyWide(p40p24, Av1TransformKernels.PairWide(c24, (short)-c40), ref x10, ref x11, rounding, cosBit);
         Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide((short)-c56, c8), p08p56, ref x12, ref x13, rounding, cosBit);
         Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide((short)-c24, c40), p40p24, ref x14, ref x15, rounding, cosBit);
 
-        // stage 5
+        // Stage 5: saturated sums and differences between the quarters of each half.
         Av1TransformKernels.AddSubtractWide(ref x0, ref x4);
         Av1TransformKernels.AddSubtractWide(ref x1, ref x5);
         Av1TransformKernels.AddSubtractWide(ref x2, ref x6);
@@ -767,13 +987,13 @@ internal static partial class Av1InverseTransformer
         Av1TransformKernels.AddSubtractWide(ref x10, ref x14);
         Av1TransformKernels.AddSubtractWide(ref x11, ref x15);
 
-        // stage 6
+        // Stage 6: rotate the second quarter of each half with the weights 16 and 48.
         Av1TransformKernels.ButterflyWide(p16p48, p48m16, ref x4, ref x5, rounding, cosBit);
         Av1TransformKernels.ButterflyWide(m48p16, p16p48, ref x6, ref x7, rounding, cosBit);
         Av1TransformKernels.ButterflyWide(p16p48, p48m16, ref x12, ref x13, rounding, cosBit);
         Av1TransformKernels.ButterflyWide(m48p16, p16p48, ref x14, ref x15, rounding, cosBit);
 
-        // stage 7
+        // Stage 7: saturated sums and differences between value pairs two positions apart.
         Av1TransformKernels.AddSubtractWide(ref x0, ref x2);
         Av1TransformKernels.AddSubtractWide(ref x1, ref x3);
         Av1TransformKernels.AddSubtractWide(ref x4, ref x6);
@@ -787,8 +1007,43 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// Runs stages eight and nine of the sixteen-point inverse ADST, <c>iadst16_stage8_avx2</c> and <c>iadst16_stage9_avx2</c>.
+    /// Runs stages eight and nine of the sixteen-point inverse ADST.
     /// </summary>
+    /// <param name="x0">Stage value 0 from stage seven. The method can overwrite it.</param>
+    /// <param name="x1">Stage value 1 from stage seven. The method can overwrite it.</param>
+    /// <param name="x2">Stage value 2 from stage seven. The method can overwrite it.</param>
+    /// <param name="x3">Stage value 3 from stage seven. The method can overwrite it.</param>
+    /// <param name="x4">Stage value 4 from stage seven. The method can overwrite it.</param>
+    /// <param name="x5">Stage value 5 from stage seven. The method can overwrite it.</param>
+    /// <param name="x6">Stage value 6 from stage seven. The method can overwrite it.</param>
+    /// <param name="x7">Stage value 7 from stage seven. The method can overwrite it.</param>
+    /// <param name="x8">Stage value 8 from stage seven. The method can overwrite it.</param>
+    /// <param name="x9">Stage value 9 from stage seven. The method can overwrite it.</param>
+    /// <param name="x10">Stage value 10 from stage seven. The method can overwrite it.</param>
+    /// <param name="x11">Stage value 11 from stage seven. The method can overwrite it.</param>
+    /// <param name="x12">Stage value 12 from stage seven. The method can overwrite it.</param>
+    /// <param name="x13">Stage value 13 from stage seven. The method can overwrite it.</param>
+    /// <param name="x14">Stage value 14 from stage seven. The method can overwrite it.</param>
+    /// <param name="x15">Stage value 15 from stage seven. The method can overwrite it.</param>
+    /// <param name="out0">Receives output 0.</param>
+    /// <param name="out1">Receives output 1.</param>
+    /// <param name="out2">Receives output 2.</param>
+    /// <param name="out3">Receives output 3.</param>
+    /// <param name="out4">Receives output 4.</param>
+    /// <param name="out5">Receives output 5.</param>
+    /// <param name="out6">Receives output 6.</param>
+    /// <param name="out7">Receives output 7.</param>
+    /// <param name="out8">Receives output 8.</param>
+    /// <param name="out9">Receives output 9.</param>
+    /// <param name="out10">Receives output 10.</param>
+    /// <param name="out11">Receives output 11.</param>
+    /// <param name="out12">Receives output 12.</param>
+    /// <param name="out13">Receives output 13.</param>
+    /// <param name="out14">Receives output 14.</param>
+    /// <param name="out15">Receives output 15.</param>
+    /// <param name="c32">The cosine-table weight cos(pi/4).</param>
+    /// <param name="rounding">The rounding offset for the widened products.</param>
+    /// <param name="cosBit">The number of fractional bits in the weights.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Adst16Stages8And9(
         ref Vector256<short> x0,
@@ -831,13 +1086,13 @@ internal static partial class Av1InverseTransformer
         Vector256<short> p32m32 = Av1TransformKernels.PairWide(c32, (short)-c32);
         Vector256<short> zero = Vector256<short>.Zero;
 
-        // stage 8
+        // Stage 8: the cos(pi/4) butterflies.
         Av1TransformKernels.ButterflyWide(p32p32, p32m32, ref x2, ref x3, rounding, cosBit);
         Av1TransformKernels.ButterflyWide(p32p32, p32m32, ref x6, ref x7, rounding, cosBit);
         Av1TransformKernels.ButterflyWide(p32p32, p32m32, ref x10, ref x11, rounding, cosBit);
         Av1TransformKernels.ButterflyWide(p32p32, p32m32, ref x14, ref x15, rounding, cosBit);
 
-        // stage 9
+        // Stage 9: the ADST output permutation, which negates every odd output with saturation.
         out0 = x0;
         out1 = Vector256.SubtractSaturate(zero, x8);
         out2 = x12;
@@ -857,7 +1112,7 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// The sixteen-point inverse DCT of <c>idct16_avx2</c>.
+    /// The sixteen-point inverse DCT on sixteen lanes.
     /// </summary>
     private readonly struct Dct16InverseKernel : IAv1Kernel16
     {
@@ -900,7 +1155,7 @@ internal static partial class Av1InverseTransformer
             short c16 = (short)cospi[16];
             short c48 = (short)cospi[48];
 
-            // stage 1
+            // Stage 1: bit-reversed input order. The even inputs feed the eight-point DCT half, and the odd inputs feed the rotation half.
             Vector256<short> x0 = in0;
             Vector256<short> x1 = in8;
             Vector256<short> x2 = in4;
@@ -918,13 +1173,13 @@ internal static partial class Av1InverseTransformer
             Vector256<short> x14 = in7;
             Vector256<short> x15 = in15;
 
-            // stage 2
+            // Stage 2: rotate the odd pairs (x8, x15), (x9, x14), (x10, x13) and (x11, x12).
             Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c60, (short)-c4), Av1TransformKernels.PairWide(c4, c60), ref x8, ref x15, rounding, cosBit);
             Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c28, (short)-c36), Av1TransformKernels.PairWide(c36, c28), ref x9, ref x14, rounding, cosBit);
             Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c44, (short)-c20), Av1TransformKernels.PairWide(c20, c44), ref x10, ref x13, rounding, cosBit);
             Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c12, (short)-c52), Av1TransformKernels.PairWide(c52, c12), ref x11, ref x12, rounding, cosBit);
 
-            // stage 3
+            // Stage 3: rotate (x4, x7) and (x5, x6), and take saturated sums and differences of x8 to x15.
             Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c56, (short)-c8), Av1TransformKernels.PairWide(c8, c56), ref x4, ref x7, rounding, cosBit);
             Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c24, (short)-c40), Av1TransformKernels.PairWide(c40, c24), ref x5, ref x6, rounding, cosBit);
             Av1TransformKernels.AddSubtractWide(ref x8, ref x9);
@@ -932,7 +1187,7 @@ internal static partial class Av1InverseTransformer
             Av1TransformKernels.AddSubtractWide(ref x12, ref x13);
             Av1TransformKernels.AddSubtractWide(ref x15, ref x14);
 
-            // stage 4
+            // Stage 4: the cos(pi/4) butterfly of (x0, x1), the rotation of (x2, x3), sums and differences of x4 to x7, and rotations of x9, x10, x13, x14.
             Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c32, c32), Av1TransformKernels.PairWide(c32, (short)-c32), ref x0, ref x1, rounding, cosBit);
             Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c48, (short)-c16), Av1TransformKernels.PairWide(c16, c48), ref x2, ref x3, rounding, cosBit);
             Av1TransformKernels.AddSubtractWide(ref x4, ref x5);
@@ -945,7 +1200,7 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// The sixteen-point inverse DCT of <c>idct16_low8_avx2</c>, for blocks whose axis ends within eight coefficients.
+    /// The sixteen-point inverse DCT on sixteen lanes, for blocks whose axis ends within eight coefficients.
     /// </summary>
     private readonly struct Dct16LowInverseKernel : IAv1Kernel16
     {
@@ -976,7 +1231,8 @@ internal static partial class Av1InverseTransformer
             short c16 = (short)cospi[16];
             short c48 = (short)cospi[48];
 
-            // stage 1
+            // Inputs 8 to 15 are zero, so stage 1 places only the nonzero inputs in bit-reversed order. Each stage-2 and stage-3 rotation then has one zero
+            // input and reduces to two scaled copies of the other input.
             Vector256<short> x0 = in0;
             Vector256<short> x2 = in4;
             Vector256<short> x4 = in2;
@@ -986,13 +1242,13 @@ internal static partial class Av1InverseTransformer
             Vector256<short> x12 = in3;
             Vector256<short> x14 = in7;
 
-            // stage 2
+            // Stage 2: the odd rotations with one zero input.
             Av1TransformKernels.ScaleWide((short)cospi[60], (short)cospi[4], x8, out x8, out Vector256<short> x15);
             Av1TransformKernels.ScaleWide((short)-cospi[36], (short)cospi[28], x14, out Vector256<short> x9, out x14);
             Av1TransformKernels.ScaleWide((short)cospi[44], (short)cospi[20], x10, out x10, out Vector256<short> x13);
             Av1TransformKernels.ScaleWide((short)-cospi[52], (short)cospi[12], x12, out Vector256<short> x11, out x12);
 
-            // stage 3
+            // Stage 3: the rotations of x4 and x6 with one zero input, and saturated sums and differences of x8 to x15.
             Av1TransformKernels.ScaleWide((short)cospi[56], (short)cospi[8], x4, out x4, out Vector256<short> x7);
             Av1TransformKernels.ScaleWide((short)-cospi[40], (short)cospi[24], x6, out Vector256<short> x5, out x6);
             Av1TransformKernels.AddSubtractWide(ref x8, ref x9);
@@ -1000,7 +1256,7 @@ internal static partial class Av1InverseTransformer
             Av1TransformKernels.AddSubtractWide(ref x12, ref x13);
             Av1TransformKernels.AddSubtractWide(ref x15, ref x14);
 
-            // stage 4
+            // Stage 4: x1 and x3 are zero, so the butterflies of (x0, x1) and (x2, x3) reduce to scaled copies. The other operations match the complete kernel.
             Av1TransformKernels.ScaleWide(c32, c32, x0, out x0, out Vector256<short> x1);
             Av1TransformKernels.ScaleWide(c48, c16, x2, out x2, out Vector256<short> x3);
             Av1TransformKernels.AddSubtractWide(ref x4, ref x5);
@@ -1013,7 +1269,7 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// The DC-only sixteen-point inverse DCT of <c>idct16_low1_avx2</c>.
+    /// The DC-only sixteen-point inverse DCT on sixteen lanes.
     /// </summary>
     private readonly struct Dct16DcInverseKernel : IAv1Kernel16
     {
@@ -1038,6 +1294,7 @@ internal static partial class Av1InverseTransformer
             ref Vector256<short> in15,
             int cosBit)
         {
+            // Only in0 is nonzero, so every output equals in0 times cos(pi/4).
             short c32 = (short)Av1SinusConstants.CosinusPi(cosBit)[32];
             Av1TransformKernels.ScaleWide(c32, c32, in0, out Vector256<short> x0, out Vector256<short> x1);
             in0 = x0;
@@ -1060,7 +1317,7 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// The sixteen-point inverse ADST of <c>iadst16_avx2</c>.
+    /// The sixteen-point inverse ADST on sixteen lanes.
     /// </summary>
     private readonly struct Adst16InverseKernel : IAv1Kernel16
     {
@@ -1104,7 +1361,7 @@ internal static partial class Av1InverseTransformer
             short c58 = (short)cospi[58];
             short c6 = (short)cospi[6];
 
-            // stage 1
+            // Stage 1: the ADST input permutation.
             Vector256<short> x0 = in15;
             Vector256<short> x1 = in0;
             Vector256<short> x2 = in13;
@@ -1122,7 +1379,7 @@ internal static partial class Av1InverseTransformer
             Vector256<short> x14 = in1;
             Vector256<short> x15 = in14;
 
-            // stage 2
+            // Stage 2: eight rotations with the odd cosine-table weights.
             Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c2, c62), Av1TransformKernels.PairWide(c62, (short)-c2), ref x0, ref x1, rounding, cosBit);
             Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c10, c54), Av1TransformKernels.PairWide(c54, (short)-c10), ref x2, ref x3, rounding, cosBit);
             Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c18, c46), Av1TransformKernels.PairWide(c46, (short)-c18), ref x4, ref x5, rounding, cosBit);
@@ -1137,7 +1394,7 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// The sixteen-point inverse ADST of <c>iadst16_low8_avx2</c>, for blocks whose axis ends within eight coefficients.
+    /// The sixteen-point inverse ADST on sixteen lanes, for blocks whose axis ends within eight coefficients.
     /// </summary>
     private readonly struct Adst16LowInverseKernel : IAv1Kernel16
     {
@@ -1165,7 +1422,8 @@ internal static partial class Av1InverseTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Vector256<int> rounding = Vector256.Create(1 << (cosBit - 1));
 
-            // stages 1 and 2
+            // Stages 1 and 2: inputs 8 to 15 are zero, so each stage-2 rotation has one zero input. Each rotation reduces to two scaled copies of the input
+            // that the ADST permutation places in the pair.
             Av1TransformKernels.ScaleWide((short)cospi[62], (short)-cospi[2], in0, out Vector256<short> x0, out Vector256<short> x1);
             Av1TransformKernels.ScaleWide((short)cospi[54], (short)-cospi[10], in2, out Vector256<short> x2, out Vector256<short> x3);
             Av1TransformKernels.ScaleWide((short)cospi[46], (short)-cospi[18], in4, out Vector256<short> x4, out Vector256<short> x5);
@@ -1180,7 +1438,7 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// The DC-only sixteen-point inverse ADST of <c>iadst16_low1_avx2</c>.
+    /// The DC-only sixteen-point inverse ADST on sixteen lanes.
     /// </summary>
     private readonly struct Adst16DcInverseKernel : IAv1Kernel16
     {
@@ -1216,15 +1474,16 @@ internal static partial class Av1InverseTransformer
             Vector256<short> p16p48 = Av1TransformKernels.PairWide(c16, c48);
             Vector256<short> p48m16 = Av1TransformKernels.PairWide(c48, (short)-c16);
 
-            // stages 1 and 2
+            // Only in0 is nonzero, so stages 1 and 2 reduce to the input rotation with the cosine-table weights 62 and -2. Each later add-subtract stage copies
+            // its nonzero inputs to the zero positions, so those stages become plain copies.
             Av1TransformKernels.ScaleWide((short)cospi[62], (short)-cospi[2], in0, out Vector256<short> x0, out Vector256<short> x1);
 
-            // stages 3 and 4
+            // Stages 3 and 4: x8 and x9 start as copies of x0 and x1 and take the rotation with weights 8 and 56.
             Vector256<short> x8 = x0;
             Vector256<short> x9 = x1;
             Av1TransformKernels.ButterflyWide(p08p56, p56m08, ref x8, ref x9, rounding, cosBit);
 
-            // stages 5 and 6
+            // Stages 5 and 6: (x4, x5) and (x12, x13) start as copies of (x0, x1) and (x8, x9) and take the rotation with weights 16 and 48.
             Vector256<short> x4 = x0;
             Vector256<short> x5 = x1;
             Vector256<short> x12 = x8;
@@ -1232,7 +1491,7 @@ internal static partial class Av1InverseTransformer
             Av1TransformKernels.ButterflyWide(p16p48, p48m16, ref x4, ref x5, rounding, cosBit);
             Av1TransformKernels.ButterflyWide(p16p48, p48m16, ref x12, ref x13, rounding, cosBit);
 
-            // stage 7
+            // Stage 7: each value pair two positions apart starts as a copy of the earlier pair.
             Vector256<short> x2 = x0;
             Vector256<short> x3 = x1;
             Vector256<short> x6 = x4;

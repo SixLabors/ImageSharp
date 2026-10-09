@@ -15,10 +15,8 @@ internal static partial class Av1DenseFlowSolver
     /// Differentiates along the rows and smooths along the columns.
     /// </summary>
     /// <remarks>
-    /// The derivative is <c>sample[-1] - sample[+1]</c>, which is minus twice the true derivative,
-    /// and the smoothing taps total four. The pair therefore carries the eight-fold scale that the
-    /// gradients are defined to have, and the sign is absorbed by the residual.
-    /// Reference: sobel_filter() with a direction of one.
+    /// The derivative is <c>sample[-1] - sample[+1]</c>, which is minus twice the true derivative. The smoothing taps total four. Thus the pair
+    /// carries the eight-fold scale of the gradients. The residual absorbs the sign.
     /// </remarks>
     private readonly struct HorizontalGradientOperator : IAv1SobelOperator
     {
@@ -39,9 +37,8 @@ internal static partial class Av1DenseFlowSolver
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<short> FilterColumn(Vector128<short> above, Vector128<short> centre, Vector128<short> below)
         {
-            // Each lane is one independent column. The centre is added twice rather than multiplied,
-            // because an add is cheaper than a multiply on every supported path and the two forms
-            // give the same wrapped result in sixteen-bit lanes.
+            // Each lane is one independent column. The code adds the centre twice and does not multiply it. An add is faster than a multiply on
+            // every supported path, and both forms give the same wrapped result in sixteen-bit lanes.
             return above + centre + centre + below;
         }
     }
@@ -50,8 +47,7 @@ internal static partial class Av1DenseFlowSolver
     /// Smooths along the rows and differentiates along the columns.
     /// </summary>
     /// <remarks>
-    /// This is the same pair of kernels as the horizontal gradient with the passes exchanged, so it
-    /// carries the same eight-fold scale. Reference: sobel_filter() with a direction of zero.
+    /// This operator uses the kernels of the horizontal gradient with the passes exchanged, so it carries the same eight-fold scale.
     /// </remarks>
     private readonly struct VerticalGradientOperator : IAv1SobelOperator
     {

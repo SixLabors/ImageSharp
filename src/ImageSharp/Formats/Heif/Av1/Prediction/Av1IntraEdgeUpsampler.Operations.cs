@@ -28,8 +28,8 @@ internal static partial class Av1IntraEdgeUpsampler
             ref byte destination = ref MemoryMarshal.GetReference(edge);
             ref byte source = ref MemoryMarshal.GetReference(scratch);
 
-            // Preserve the corner twice and the final sample once. Every SIMD load below covers exactly its
-            // input lanes, so the native 16+3-sample workspace also suffices for the widest interpolation.
+            // The workspace holds the corner twice, then the original samples, then the final sample once more.
+            // Each SIMD load reads exactly its input lanes. Thus `ScratchLength` samples suffice for the widest interpolation.
             source = Unsafe.Subtract(ref destination, 1);
             Unsafe.Add(ref source, 1) = source;
             edge[..count].CopyTo(scratch[2..]);
@@ -64,11 +64,13 @@ internal static partial class Av1IntraEdgeUpsampler
                     Vector512<int> s3 = Vector512.WidenLower(Vector512.Create(w3, Vector256<ushort>.Zero)).AsInt32();
 
                     Vector512<int> values = TOperator.Interpolate(s0, s1, s2, s3, 255);
+
+                    // The interpolation clamps to 0..255, so both narrowing steps are exact.
                     Vector256<ushort> halfWords = Vector512.Narrow(values, Vector512<int>.Zero).GetLower().AsUInt16();
                     Vector128<byte> halfSamples = Vector256.Narrow(halfWords, Vector256<ushort>.Zero).GetLower();
                     Vector128<byte> originals = Vector128.LoadUnsafe(ref source, (nuint)(i + 2));
 
-                    // Unpack the lower and upper eight pairs independently to retain linear sample order.
+                    // Each half sample goes before its original sample. The low and high unpacks each write eight pairs in linear order.
                     Vector128_.UnpackLow(halfSamples, originals).StoreUnsafe(ref firstOutput, (nuint)(2 * i));
                     Vector128_.UnpackHigh(halfSamples, originals).StoreUnsafe(ref firstOutput, (nuint)((2 * i) + 16));
                 }
@@ -146,6 +148,7 @@ internal static partial class Av1IntraEdgeUpsampler
                     Unsafe.Add(ref source, i + 3),
                     255);
 
+                // Half sample i goes to position 2i - 1, and original sample i goes to position 2i.
                 Unsafe.Add(ref destination, (2 * i) - 1) = (byte)value;
                 Unsafe.Add(ref destination, 2 * i) = Unsafe.Add(ref source, i + 2);
             }
@@ -163,8 +166,8 @@ internal static partial class Av1IntraEdgeUpsampler
             ref short destination = ref MemoryMarshal.GetReference(edge);
             ref short source = ref MemoryMarshal.GetReference(scratch);
 
-            // Preserve the corner twice and the final sample once. Every SIMD load below covers exactly its
-            // input lanes, so the native 16+3-sample workspace also suffices for the widest interpolation.
+            // The workspace holds the corner twice, then the original samples, then the final sample once more.
+            // Each SIMD load reads exactly its input lanes. Thus `ScratchLength` samples suffice for the widest interpolation.
             source = Unsafe.Subtract(ref destination, 1);
             Unsafe.Add(ref source, 1) = source;
             edge[..count].CopyTo(scratch[2..]);
@@ -194,8 +197,8 @@ internal static partial class Av1IntraEdgeUpsampler
                     Vector256<short> halfSamples = Vector512.Narrow(values, Vector512<int>.Zero).GetLower();
                     Vector256<short> originals = Vector256.LoadUnsafe(ref source, (nuint)(i + 2));
 
-                    // Four contiguous groups of four pairs avoid treating lane-local unpack order as one
-                    // linear 256-bit edge. Each store writes only prepared half samples and their originals.
+                    // A 256-bit unpack interleaves inside each 128-bit lane, so its result is not in linear order.
+                    // Thus four 128-bit unpacks each write four pairs in linear order. Each pair is a half sample and its original sample.
                     Vector128_.UnpackLow(halfSamples.GetLower(), originals.GetLower())
                         .StoreUnsafe(ref firstOutput, (nuint)(2 * i));
 
@@ -270,6 +273,7 @@ internal static partial class Av1IntraEdgeUpsampler
                     Unsafe.Add(ref source, i + 3),
                     maximum);
 
+                // Half sample i goes to position 2i - 1, and original sample i goes to position 2i.
                 Unsafe.Add(ref destination, (2 * i) - 1) = (short)value;
                 Unsafe.Add(ref destination, 2 * i) = Unsafe.Add(ref source, i + 2);
             }

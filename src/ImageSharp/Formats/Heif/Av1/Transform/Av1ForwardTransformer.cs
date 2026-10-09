@@ -14,10 +14,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// Converts spatial residual samples into AV1 transform coefficients.
 /// </summary>
 /// <remarks>
-/// The SIMD pipeline transposes rows into lanes before invoking the one-dimensional operators. One vector then holds
-/// the same transform position from several independent axes, allowing the complete stage network to run lane-wise.
-/// Eight-bit blocks use saturating 16-bit stages where their normative ranges permit it; high-bit-depth and scalar
-/// fallback paths retain 32-bit stages. Both representations produce the same row-major coefficient contract.
+/// The SIMD pipeline transposes rows into lanes before it calls the one-dimensional operators. One vector then holds the same transform position from several
+/// independent axes, so the full stage network runs lane-wise. Eight-bit blocks use saturating 16-bit stages where their normative ranges permit it.
+/// High-bit-depth and scalar fallback paths keep 32-bit stages. Both representations produce the same row-major coefficient contract.
 /// </remarks>
 internal static partial class Av1ForwardTransformer
 {
@@ -35,8 +34,8 @@ internal static partial class Av1ForwardTransformer
         Span<int> rows = workspace.Slice(sampleCount, sampleCount);
         Span<int> temporary = workspace.Slice(2 * sampleCount, width);
 
-        // Keep both passes in Int32: twelve-bit residuals can produce coefficients of magnitude 262080. Widening
-        // once lets the existing vectorized tensor operations serve all three sample depths without saturation.
+        // Both passes stay in Int32 because twelve-bit residuals can produce coefficients of magnitude 262080. Widening once lets the existing vectorized
+        // tensor operations serve all three sample depths without saturation.
         TensorPrimitives.ConvertChecked(residual[..sampleCount], columns);
         Hadamard8Columns(columns, temporary);
 
@@ -48,8 +47,8 @@ internal static partial class Av1ForwardTransformer
         }
         else if (Vector128.IsHardwareAccelerated)
         {
-            // Four four-by-four tiles exchange their row and column origins, preserving the same eight-by-eight
-            // layout on machines whose vectors cannot hold a complete row of eight Int32 values.
+            // Four four-by-four tiles exchange their row and column origins. This gives the same eight-by-eight layout on machines whose vectors cannot hold a
+            // complete row of eight Int32 values.
             for (int y = 0; y < width; y += Vector128<int>.Count)
             {
                 for (int x = 0; x < width; x += Vector128<int>.Count)
@@ -72,14 +71,21 @@ internal static partial class Av1ForwardTransformer
 
         Hadamard8Columns(rows, temporary);
 
-        // SATD is invariant under coefficient permutation. Retain natural Hadamard order and omit the reference's
-        // output permutation and final transpose, since only the magnitude sum escapes this scratch workspace.
+        // SATD does not change under a coefficient permutation. Thus the code keeps the natural Hadamard order and omits an output permutation and a final
+        // transpose. Only the magnitude sum leaves this work buffer.
         return TensorPrimitives.SumOfMagnitudes<int>(rows);
     }
 
     /// <summary>
-    /// Computes the quick-transform SATD used by libaom's intra mode model.
+    /// Computes the quick-transform SATD of the intra mode model.
     /// </summary>
+    /// <param name="residual">The residual samples.</param>
+    /// <param name="stride">The residual row stride.</param>
+    /// <param name="size">The square block size.</param>
+    /// <param name="highBitDepth">Whether the residual comes from high-bit-depth samples.</param>
+    /// <param name="coefficients">Receives the Hadamard coefficients.</param>
+    /// <param name="workspace">The intermediate buffer of the transform.</param>
+    /// <returns>The sum of the coefficient magnitudes.</returns>
     public static long GetHadamardCost(
         ReadOnlySpan<short> residual,
         int stride,
@@ -88,14 +94,13 @@ internal static partial class Av1ForwardTransformer
         Span<int> coefficients,
         Span<int> workspace)
     {
-        // The quadrants of a larger block are transformed without their own sums; the combined block is summed once.
+        // The quadrants of a larger block get no separate sums. The method sums the combined block once.
         TransformHadamard(residual, stride, size, highBitDepth, coefficients, workspace);
         return TensorPrimitives.SumOfMagnitudes<int>(coefficients[..(size * size)]);
     }
 
     /// <summary>
-    /// Computes the quick Hadamard transform of a square residual block, building a 16- or 32-point block from its
-    /// four quadrant transforms.
+    /// Computes the quick Hadamard transform of a square residual block. A 16- or 32-point block combines its four quadrant transforms.
     /// </summary>
     /// <param name="residual">The residual samples.</param>
     /// <param name="stride">The residual row stride.</param>
@@ -162,9 +167,8 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Computes the 4x4 Hadamard transform with the halving butterflies of aom_hadamard_4x4(). Each vector lane
-    /// is one column, so both passes are lane-wise butterflies over rows; the two transposes keep the coefficient
-    /// order that the column-by-column definition produces.
+    /// Computes the 4x4 Hadamard transform with halving butterflies. Each vector lane is one column, so both passes are lane-wise butterflies over rows. The
+    /// two transposes keep the coefficient order of the column-by-column definition.
     /// </summary>
     /// <param name="residual">The residual samples.</param>
     /// <param name="stride">The residual row stride.</param>
@@ -200,7 +204,7 @@ internal static partial class Av1ForwardTransformer
         => Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<short, byte>(ref Unsafe.Add(ref residual, offset)))).AsInt16());
 
     /// <summary>
-    /// Applies the halving butterflies of one aom_hadamard_4x4() pass to four columns at once.
+    /// Applies the halving butterflies of one 4x4 Hadamard pass to four columns at once.
     /// </summary>
     /// <param name="row0">The first row, replaced by the first output.</param>
     /// <param name="row1">The second row, replaced by the second output.</param>
@@ -220,8 +224,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Combines four equal Hadamard quadrants in place with the halving butterflies of the 16x16 and 32x32
-    /// transforms. Reference: the combine loops of aom_hadamard_16x16_c() and aom_hadamard_32x32_c().
+    /// Combines four equal Hadamard quadrants in place with the halving butterflies of the 16x16 and 32x32 transforms.
     /// </summary>
     /// <param name="coefficients">The four quadrants in quadrant order.</param>
     /// <param name="quadrantLength">The number of coefficients in one quadrant.</param>
@@ -308,8 +311,8 @@ internal static partial class Av1ForwardTransformer
                     Span<int> first = block.Slice(row * width, width);
                     Span<int> second = block.Slice((row + half) * width, width);
 
-                    // Whole-row addition and subtraction use the existing SIMD APIs, including narrower hardware
-                    // and scalar fallback. Preserve the sum until subtraction has consumed the original first row.
+                    // Whole-row addition and subtraction use the existing SIMD APIs, including narrower hardware and scalar fallback. The temporary row keeps
+                    // the sum until the subtraction reads the original first row.
                     TensorPrimitives.Add<int>(first, second, temporary);
                     TensorPrimitives.Subtract<int>(first, second, second);
                     temporary.CopyTo(first);
@@ -438,14 +441,14 @@ internal static partial class Av1ForwardTransformer
                 input[(3 * inputStride) + 2],
                 input[(3 * inputStride) + 3]);
 
-            // Each lane initially holds one column. The first stage transforms those columns in parallel, then the
-            // transpose makes each transformed column a row so the same lane-wise network can process the other axis.
+            // Each lane initially holds one column. The first stage transforms those columns in parallel. The transpose then makes each transformed column a
+            // row, so the same lane-wise network can process the other axis.
             TransformLosslessStage(ref row0, ref row1, ref row2, ref row3);
             Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
             TransformLosslessStage(ref row0, ref row1, ref row2, ref row3);
 
-            // The entropy pipeline stores transform positions in row-major order, while the reversible reference
-            // walk leaves the two frequency axes exchanged. Normalize that boundary before scan-order traversal.
+            // The entropy pipeline stores transform positions in row-major order. The two reversible passes leave the two frequency axes exchanged. This
+            // transpose restores row-major order before scan-order traversal.
             Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
 
             ref int coefficientBase = ref MemoryMarshal.GetReference(coefficients);
@@ -456,8 +459,8 @@ internal static partial class Av1ForwardTransformer
             return;
         }
 
-        // The first pass writes transposed columns into the destination, matching the layout consumed in-place by
-        // the second pass. This keeps the scalar fallback allocation-free without a temporary matrix.
+        // The first pass writes transposed columns into the destination, and the second pass reads that layout in place. This keeps the scalar fallback
+        // allocation-free without a temporary matrix.
         for (int column = 0; column < 4; column++)
         {
             int a = input[column];
@@ -501,7 +504,7 @@ internal static partial class Av1ForwardTransformer
             coefficients[12 + column] = b * 4;
         }
 
-        // Normalize the scalar reference walk to the row-major coefficient contract used by entropy coding.
+        // The two passes leave the frequency axes exchanged. These swaps transpose the result to the row-major coefficient contract of entropy coding.
         (coefficients[1], coefficients[4]) = (coefficients[4], coefficients[1]);
         (coefficients[2], coefficients[8]) = (coefficients[8], coefficients[2]);
         (coefficients[3], coefficients[12]) = (coefficients[12], coefficients[3]);
@@ -513,6 +516,10 @@ internal static partial class Av1ForwardTransformer
     /// <summary>
     /// Applies one axis of the reversible four-point transform to four independent SIMD lanes.
     /// </summary>
+    /// <param name="row0">Input position 0 of each lane. Holds output 0 on return.</param>
+    /// <param name="row1">Input position 1 of each lane. Holds output 1 on return.</param>
+    /// <param name="row2">Input position 2 of each lane. Holds output 2 on return.</param>
+    /// <param name="row3">Input position 3 of each lane. Holds output 3 on return.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void TransformLosslessStage(
         ref Vector128<int> row0,
@@ -595,7 +602,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Selects the concrete row operator after the column operator has been specialized.
+    /// Selects the concrete row operator for the column operator that <see cref="DispatchColumn"/> selected.
     /// </summary>
     /// <typeparam name="TColumnOperator">The column transform operator selected for the block.</typeparam>
     /// <param name="input">The spatial residual samples.</param>
@@ -677,8 +684,8 @@ internal static partial class Av1ForwardTransformer
         where TColumnOperator : struct, IAv1ForwardTransform1dOperator
         where TRowOperator : struct, IAv1ForwardTransform1dOperator
     {
-        // Highway keeps eight-bit transform stages in Int16 lanes and promotes only the large rectangular layouts.
-        // The independent scalar reference uses Int32, so hardware without packed Int16 support follows that exact fallback instead.
+        // The vector path keeps eight-bit transform stages in Int16 lanes. It promotes to Int32 only a padded block with one 64-sample side and at least 32
+        // samples on the other side. High bit depths and hardware without Vector128 acceleration use the Int32 path.
         if (bitDepth == 8 && Vector128.IsHardwareAccelerated)
         {
             TransformPacked<TColumnOperator, TRowOperator>(input, coefficients, stride, ref config, workspace);
@@ -710,8 +717,8 @@ internal static partial class Av1ForwardTransformer
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
 
-        // Packed short stages halve the arithmetic width and AVX-512BW doubles their lane count. Highway selects
-        // this representation by ISA capability, independently of the runtime preference used for generic vectors.
+        // Packed short stages halve the arithmetic width, and AVX-512BW doubles their lane count. The code selects this representation by ISA capability, not
+        // by the runtime preference for generic vectors.
         int blockLaneCount = Vector512.IsHardwareAccelerated
             ? Vector512<short>.Count
             : Vector256.IsHardwareAccelerated ? Vector256<short>.Count : Vector128<short>.Count;
@@ -728,6 +735,7 @@ internal static partial class Av1ForwardTransformer
         LoadPacked(input, stride, ref buffer0Base, blockWidth, width, height, config.Shift0, config.FlipUpsideDown, config.FlipLeftToRight);
         TransformPackedAxis<TColumnOperator>(buffer0, width, blockWidth, blockWidth, config.CosBitColumn, workspace);
 
+        // A 64-point axis keeps only its 32 lowest frequencies, so the output holds at most 32 positions on each axis.
         int retainedHeight = Math.Min(height, 32);
         int retainedWidth = Math.Min(width, 32);
         bool normalizeRectangle = Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1;
@@ -786,8 +794,8 @@ internal static partial class Av1ForwardTransformer
 
         TransformPackedAxis<TRowOperator>(buffer1Packed, height, blockHeight, blockHeight, config.CosBitRow, workspace);
 
-        // The second transform produces horizontal frequency in rows and vertical frequency in lanes. Transposing
-        // once more adapts the reference decoder's native layout to the row-major coefficient contract used by ImageSharp.
+        // The second transform produces horizontal frequency in rows and vertical frequency in lanes. One more transpose changes this layout to the row-major
+        // coefficient contract.
         TransposePacked(
             ref buffer1PackedBase,
             blockHeight,
@@ -941,8 +949,8 @@ internal static partial class Av1ForwardTransformer
                 continue;
             }
 
-            // Four-point transforms occupy the lower half of the padded Vector128 row. Loading each source value
-            // explicitly avoids reading beyond a caller row whose stride is exactly four samples.
+            // Four-point transforms occupy the lower half of the padded Vector128 row. Loading each source value explicitly avoids reading beyond a caller row
+            // whose stride is exactly four samples.
             for (int column = 0; column < width; column++)
             {
                 int sourceColumn = flipLeftToRight ? width - column - 1 : column;
@@ -1106,8 +1114,15 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Applies a packed transform to thirty-two independent axes.
+    /// Applies a packed transform to every axis of the block, thirty-two independent axes per batch.
     /// </summary>
+    /// <typeparam name="TOperator">The one-dimensional transform operator.</typeparam>
+    /// <param name="buffer">The packed transform block, transformed in place.</param>
+    /// <param name="transformCount">The number of independent axes.</param>
+    /// <param name="inputStride">The number of packed values between input positions.</param>
+    /// <param name="outputStride">The number of packed values between output positions.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    /// <param name="workspace">The workspace whose start holds the two stage buffers of the operator.</param>
     private static void TransformPackedVector512<TOperator>(
         Span<short> buffer,
         int transformCount,
@@ -1136,8 +1151,15 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Applies a packed transform to sixteen independent axes.
+    /// Applies a packed transform to every axis of the block, sixteen independent axes per batch.
     /// </summary>
+    /// <typeparam name="TOperator">The one-dimensional transform operator.</typeparam>
+    /// <param name="buffer">The packed transform block, transformed in place.</param>
+    /// <param name="transformCount">The number of independent axes.</param>
+    /// <param name="inputStride">The number of packed values between input positions.</param>
+    /// <param name="outputStride">The number of packed values between output positions.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    /// <param name="workspace">The workspace whose start holds the two stage buffers of the operator.</param>
     private static void TransformPackedVector256<TOperator>(
         Span<short> buffer,
         int transformCount,
@@ -1166,8 +1188,15 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Applies a packed transform to eight independent axes.
+    /// Applies a packed transform to every axis of the block, eight independent axes per batch.
     /// </summary>
+    /// <typeparam name="TOperator">The one-dimensional transform operator.</typeparam>
+    /// <param name="buffer">The packed transform block, transformed in place.</param>
+    /// <param name="transformCount">The number of independent axes.</param>
+    /// <param name="inputStride">The number of packed values between input positions.</param>
+    /// <param name="outputStride">The number of packed values between output positions.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    /// <param name="workspace">The workspace whose start holds the two stage buffers of the operator.</param>
     private static void TransformPackedVector128<TOperator>(
         Span<short> buffer,
         int transformCount,
@@ -1196,8 +1225,15 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Applies an expanded transform to sixteen independent axes.
+    /// Applies an expanded transform to every axis of the block, sixteen independent axes per batch.
     /// </summary>
+    /// <typeparam name="TOperator">The one-dimensional transform operator.</typeparam>
+    /// <param name="buffer">The expanded transform block, transformed in place.</param>
+    /// <param name="transformCount">The number of independent axes.</param>
+    /// <param name="inputStride">The number of expanded values between input positions.</param>
+    /// <param name="outputStride">The number of expanded values between output positions.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    /// <param name="workspace">The workspace whose start holds the two stage buffers of the operator.</param>
     private static void TransformExpandedVector512<TOperator>(
         Span<int> buffer,
         int transformCount,
@@ -1226,8 +1262,15 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Applies an expanded transform to eight independent axes.
+    /// Applies an expanded transform to every axis of the block, eight independent axes per batch.
     /// </summary>
+    /// <typeparam name="TOperator">The one-dimensional transform operator.</typeparam>
+    /// <param name="buffer">The expanded transform block, transformed in place.</param>
+    /// <param name="transformCount">The number of independent axes.</param>
+    /// <param name="inputStride">The number of expanded values between input positions.</param>
+    /// <param name="outputStride">The number of expanded values between output positions.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    /// <param name="workspace">The workspace whose start holds the two stage buffers of the operator.</param>
     private static void TransformExpandedVector256<TOperator>(
         Span<int> buffer,
         int transformCount,
@@ -1256,8 +1299,15 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Applies an expanded transform to four independent axes.
+    /// Applies an expanded transform to every axis of the block, four independent axes per batch.
     /// </summary>
+    /// <typeparam name="TOperator">The one-dimensional transform operator.</typeparam>
+    /// <param name="buffer">The expanded transform block, transformed in place.</param>
+    /// <param name="transformCount">The number of independent axes.</param>
+    /// <param name="inputStride">The number of expanded values between input positions.</param>
+    /// <param name="outputStride">The number of expanded values between output positions.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    /// <param name="workspace">The workspace whose start holds the two stage buffers of the operator.</param>
     private static void TransformExpandedVector128<TOperator>(
         Span<int> buffer,
         int transformCount,
@@ -1286,8 +1336,15 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Applies an expanded transform to one axis.
+    /// Applies an expanded transform to every axis of the block, one axis at a time.
     /// </summary>
+    /// <typeparam name="TOperator">The one-dimensional transform operator.</typeparam>
+    /// <param name="buffer">The expanded transform block, transformed in place.</param>
+    /// <param name="transformCount">The number of independent axes.</param>
+    /// <param name="inputStride">The number of expanded values between input positions.</param>
+    /// <param name="outputStride">The number of expanded values between output positions.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    /// <param name="workspace">The workspace whose start holds the two stage buffers of the operator.</param>
     private static void TransformExpandedScalar<TOperator>(
         Span<int> buffer,
         int transformCount,
@@ -1384,7 +1441,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Promotes and transposes the large packed layouts at the same axis boundary as the reference decoder.
+    /// Promotes and transposes the large packed layouts at the axis boundary between the column and row transforms.
     /// </summary>
     /// <param name="source">The first packed value in the source block.</param>
     /// <param name="sourceStride">The number of packed values between source rows.</param>
@@ -1580,6 +1637,7 @@ internal static partial class Av1ForwardTransformer
                 upper.StoreUnsafe(ref destinationRow, (nuint)(column + Vector128<int>.Count));
             }
 
+            // The vector loops consume multiples of eight values, so only a four-wide matrix reaches this tail. One 64-bit load reads exactly its four values.
             if (column < width)
             {
                 Vector128<int> value = Vector128.WidenLower(

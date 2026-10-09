@@ -95,6 +95,12 @@ internal static class Av1IntraBlockCopy
     /// <summary>
     /// Ranks the shared decoder or encoder reference context without allocating candidate state.
     /// </summary>
+    /// <param name="context">The view of the mode information around the current block.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    /// <param name="superblockModeInfoSize">The superblock width in 4x4 mode-information units.</param>
+    /// <param name="candidates">Reusable storage for up to eight unique reference vectors.</param>
+    /// <param name="weights">Reusable storage for the corresponding spatial weights.</param>
+    /// <returns>The nearest nonzero spatial candidate, or the normative tile-relative fallback.</returns>
     private static Av1MotionVector FindReference(
         ref ReferenceContext context,
         Av1TileInfo tileInfo,
@@ -148,8 +154,8 @@ internal static class Av1IntraBlockCopy
             weights[index] += NearestCandidateWeight;
         }
 
-        // The top-left sample begins the outer search region. Sorting the adjacent and outer regions independently
-        // preserves the reference decoder's nearest/near ordering while still accumulating repeated vectors across both regions.
+        // The top-left sample begins the outer search region. The adjacent and outer regions are sorted separately. This keeps the normative
+        // nearest and near order, and repeated vectors still accumulate weight across both regions.
         AddBlock(ref context, -1, -1, tileInfo, candidates, weights, ref candidateCount);
         for (int index = 2; index <= ReferenceSearchDistance; index++)
         {
@@ -169,9 +175,9 @@ internal static class Av1IntraBlockCopy
         SortByWeight(candidates, weights, 0, nearestCandidateCount);
         SortByWeight(candidates, weights, nearestCandidateCount, candidateCount);
 
-        // The reference decoder clamps the ranked stack before selecting nearest and near. The displacement entropy syntax is
-        // differential, so using an unclamped spatial candidate changes every following component even though the
-        // final decoded displacement is validated separately against the stricter intra-block-copy source limits.
+        // The decoder clamps the ranked stack before it selects nearest and near. The displacement entropy syntax is differential. Thus an unclamped
+        // spatial candidate changes every following component. This is true although a separate check tests the final decoded displacement against
+        // the stricter intra-block-copy source limits.
         for (int index = 0; index < candidateCount; index++)
         {
             candidates[index] = candidates[index].ClampReference(
@@ -211,7 +217,7 @@ internal static class Av1IntraBlockCopy
     /// <param name="partitionInfo">The current block geometry.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <param name="sequenceHeader">The sequence-level superblock and chroma configuration.</param>
-    /// <returns><see langword="true"/> when the complete source block is a permitted reference; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when the complete source block is a permitted reference, otherwise <see langword="false"/>.</returns>
     public static bool IsValid(Av1MotionVector vector, ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo, ObuSequenceHeader sequenceHeader)
         => IsValid(
             vector,
@@ -230,7 +236,7 @@ internal static class Av1IntraBlockCopy
     /// <param name="isChroma">Indicates whether chroma subsampling constraints apply.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <param name="sequenceHeader">The sequence-level superblock and chroma configuration.</param>
-    /// <returns><see langword="true"/> when the complete source block is a permitted reference; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when the complete source block is a permitted reference, otherwise <see langword="false"/>.</returns>
     public static bool IsValid(
         Av1MotionVector vector,
         Point modeInfoPosition,
@@ -267,8 +273,8 @@ internal static class Av1IntraBlockCopy
         ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
         if (isChroma && colorConfig.PlaneCount > 1)
         {
-            // A sub-8x8 luma block can map to a chroma block whose rounded origin lies one additional luma unit
-            // inside the tile. These checks prevent that chroma reference from crossing the tile boundary.
+            // A sub-8x8 luma block can map to a chroma block whose rounded origin lies one additional luma unit inside the tile. These checks
+            // prevent that chroma reference from crossing the tile boundary.
             if (blockWidth < 8 && colorConfig.SubSamplingX && sourceLeft < tileLeft + (modeInfoSampleSize * eighthSampleScale))
             {
                 return false;
@@ -295,8 +301,8 @@ internal static class Av1IntraBlockCopy
             return false;
         }
 
-        // The wavefront boundary reserves four completed 64-sample columns and advances farther right for every
-        // completed source row. A 128x128 superblock adds one column to account for its two 64-sample halves.
+        // The wavefront boundary reserves four completed 64-sample columns and advances farther right for every completed source row. A 128x128
+        // superblock adds one column to account for its two 64-sample halves.
         int gradient = 1 + Delay64 + (superblockSize > 64 ? 1 : 0);
         int wavefrontOffset = gradient * (activeSuperblockRow - sourceSuperblockRow);
         return sourceSuperblockRow <= activeSuperblockRow && source64Column < active64Column - Delay64 + wavefrontOffset;
@@ -305,6 +311,16 @@ internal static class Av1IntraBlockCopy
     /// <summary>
     /// Scans a mode-information row using AV1's block-size-dependent steps and weights.
     /// </summary>
+    /// <param name="context">The view of the mode information around the current block.</param>
+    /// <param name="rowOffset">The offset of the scanned row from the current block, in 4x4 mode-information units.</param>
+    /// <param name="maximumRowOffset">The farthest row offset that the search reaches.</param>
+    /// <param name="candidates">The unique candidate vectors found so far.</param>
+    /// <param name="weights">The accumulated weight of each candidate.</param>
+    /// <param name="candidateCount">The number of candidates, updated in place.</param>
+    /// <param name="processedRows">
+    /// Receives the farthest row distance that a scanned candidate covers, when the candidate is at least as wide as the block. A later scan skips
+    /// the rows within that distance.
+    /// </param>
     private static void ScanRow(
         ref ReferenceContext context,
         int rowOffset,
@@ -326,7 +342,8 @@ internal static class Av1IntraBlockCopy
             }
         }
 
-        // Blocks below 64 samples use the finer two-mode-info-unit scan step.
+        // A block at least 64 samples wide scans in steps of at least four mode-information units. A narrower block scans the rows that are not
+        // adjacent in steps of at least two units.
         bool useFourUnitStep = width >= 16;
         for (int index = 0; index < end;)
         {
@@ -360,6 +377,16 @@ internal static class Av1IntraBlockCopy
     /// <summary>
     /// Scans a mode-information column using AV1's block-size-dependent steps and weights.
     /// </summary>
+    /// <param name="context">The view of the mode information around the current block.</param>
+    /// <param name="columnOffset">The offset of the scanned column from the current block, in 4x4 mode-information units.</param>
+    /// <param name="maximumColumnOffset">The farthest column offset that the search reaches.</param>
+    /// <param name="candidates">The unique candidate vectors found so far.</param>
+    /// <param name="weights">The accumulated weight of each candidate.</param>
+    /// <param name="candidateCount">The number of candidates, updated in place.</param>
+    /// <param name="processedColumns">
+    /// Receives the farthest column distance that a scanned candidate covers, when the candidate is at least as tall as the block. A later scan
+    /// skips the columns within that distance.
+    /// </param>
     private static void ScanColumn(
         ref ReferenceContext context,
         int columnOffset,
@@ -381,7 +408,8 @@ internal static class Av1IntraBlockCopy
             }
         }
 
-        // Blocks below 64 samples use the finer two-mode-info-unit scan step.
+        // A block at least 64 samples tall scans in steps of at least four mode-information units. A shorter block scans the columns that are not
+        // adjacent in steps of at least two units.
         bool useFourUnitStep = height >= 16;
         for (int index = 0; index < end;)
         {
@@ -415,6 +443,13 @@ internal static class Av1IntraBlockCopy
     /// <summary>
     /// Adds the intra-block-copy vector at one tile-relative search position.
     /// </summary>
+    /// <param name="context">The view of the mode information around the current block.</param>
+    /// <param name="rowOffset">The row offset of the position from the current block, in 4x4 mode-information units.</param>
+    /// <param name="columnOffset">The column offset of the position from the current block, in 4x4 mode-information units.</param>
+    /// <param name="tileInfo">The active tile boundaries. A position outside the tile adds nothing.</param>
+    /// <param name="candidates">The unique candidate vectors found so far.</param>
+    /// <param name="weights">The accumulated weight of each candidate.</param>
+    /// <param name="candidateCount">The number of candidates, updated in place.</param>
     private static void AddBlock(
         ref ReferenceContext context,
         int rowOffset,
@@ -439,6 +474,14 @@ internal static class Av1IntraBlockCopy
     /// <summary>
     /// Accumulates one unique intra-block-copy candidate and its spatial weight.
     /// </summary>
+    /// <param name="candidate">The neighboring block. A block that does not use intra block copy adds nothing.</param>
+    /// <param name="weight">The weight that the candidate adds.</param>
+    /// <param name="candidates">The unique candidate vectors found so far.</param>
+    /// <param name="weights">The accumulated weight of each candidate.</param>
+    /// <param name="candidateCount">The number of candidates, updated in place.</param>
+    /// <remarks>
+    /// A vector that is already in the list adds its weight to the existing entry. A new vector is dropped when the list is full.
+    /// </remarks>
     private static void AddCandidate(
         ReferenceBlock candidate,
         int weight,
@@ -473,6 +516,14 @@ internal static class Av1IntraBlockCopy
     /// <summary>
     /// Sorts one candidate region by descending accumulated weight.
     /// </summary>
+    /// <param name="candidates">The candidate vectors, sorted in place.</param>
+    /// <param name="weights">The weight of each candidate, sorted in place with the candidates.</param>
+    /// <param name="start">The index of the first entry of the region.</param>
+    /// <param name="end">The index one past the last entry of the region.</param>
+    /// <remarks>
+    /// The bubble sort swaps two entries only when the second weight is strictly larger. Thus the sort is stable, and equal weights keep their scan
+    /// order. Each pass ends at the last swap of the pass before, because the entries after it are already in order.
+    /// </remarks>
     private static void SortByWeight(Span<Av1MotionVector> candidates, Span<int> weights, int start, int end)
     {
         int length = end;
@@ -503,7 +554,14 @@ internal static class Av1IntraBlockCopy
     /// </summary>
     private readonly ref struct ReferenceContext
     {
+        /// <summary>
+        /// The decoder superblock whose mode information the decoder view reads. The encoder view does not read it.
+        /// </summary>
         private readonly Av1SuperblockInfo decodedSuperblock;
+
+        /// <summary>
+        /// The encoder picture, or <see langword="null"/> for the decoder view.
+        /// </summary>
         private readonly Av1PictureControlSet? encodedPicture;
 
         /// <summary>
@@ -526,6 +584,11 @@ internal static class Av1IntraBlockCopy
         /// </summary>
         private readonly int encodedStride;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReferenceContext"/> struct over the decoder partition state.
+        /// </summary>
+        /// <param name="partitionInfo">The current block geometry and decoded neighbors.</param>
+        /// <param name="superblockModeInfoSize">The superblock size in 4x4 mode-information units.</param>
         public ReferenceContext(ref Av1PartitionInfo partitionInfo, int superblockModeInfoSize)
         {
             this.decodedSuperblock = partitionInfo.SuperblockInfo;
@@ -543,8 +606,7 @@ internal static class Av1IntraBlockCopy
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReferenceContext"/> struct over the encoder picture state,
-        /// which the caller read once.
+        /// Initializes a new instance of the <see cref="ReferenceContext"/> struct over the encoder picture state, which the caller read once.
         /// </summary>
         /// <param name="picture">The encoded frame's mapped mode and displacement state.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
@@ -589,26 +651,66 @@ internal static class Av1IntraBlockCopy
                 superblockModeInfoSize);
         }
 
+        /// <summary>
+        /// Gets the size of the current block.
+        /// </summary>
         public Av1BlockSize BlockSize { get; }
 
+        /// <summary>
+        /// Gets the row of the current block, in 4x4 mode-information units.
+        /// </summary>
         public int RowIndex { get; }
 
+        /// <summary>
+        /// Gets the column of the current block, in 4x4 mode-information units.
+        /// </summary>
         public int ColumnIndex { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the row above the current block is available.
+        /// </summary>
         public bool AvailableAbove { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the column to the left of the current block is available.
+        /// </summary>
         public bool AvailableLeft { get; }
 
+        /// <summary>
+        /// Gets the signed distance from the left edge of the current block to the left frame edge, in one-eighth-sample units.
+        /// </summary>
         public int ModeBlockToLeftEdge { get; }
 
+        /// <summary>
+        /// Gets the signed distance from the right edge of the current block to the right frame edge, in one-eighth-sample units.
+        /// </summary>
+        /// <remarks>
+        /// The value is negative when the block extends past the right frame edge.
+        /// </remarks>
         public int ModeBlockToRightEdge { get; }
 
+        /// <summary>
+        /// Gets the signed distance from the top edge of the current block to the top frame edge, in one-eighth-sample units.
+        /// </summary>
         public int ModeBlockToTopEdge { get; }
 
+        /// <summary>
+        /// Gets the signed distance from the bottom edge of the current block to the bottom frame edge, in one-eighth-sample units.
+        /// </summary>
+        /// <remarks>
+        /// The value is negative when the block extends past the bottom frame edge.
+        /// </remarks>
         public int ModeBlockToBottomEdge { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the top-right neighbor of the current block is available.
+        /// </summary>
         public bool HasTopRight { get; }
 
+        /// <summary>
+        /// Gets the width of the part of the current block that is inside the frame.
+        /// </summary>
+        /// <returns>The width, in 4x4 mode-information units.</returns>
         public int GetMaxBlockWide()
         {
             int width = this.BlockSize.GetWidth();
@@ -620,6 +722,10 @@ internal static class Av1IntraBlockCopy
             return width >> Av1Constants.ModeInfoSizeLog2;
         }
 
+        /// <summary>
+        /// Gets the height of the part of the current block that is inside the frame.
+        /// </summary>
+        /// <returns>The height, in 4x4 mode-information units.</returns>
         public int GetMaxBlockHigh()
         {
             int height = this.BlockSize.GetHeight();
@@ -631,6 +737,11 @@ internal static class Av1IntraBlockCopy
             return height >> Av1Constants.ModeInfoSizeLog2;
         }
 
+        /// <summary>
+        /// Reads the mode fields of the block that covers one mode-information position.
+        /// </summary>
+        /// <param name="position">The position, in 4x4 mode-information units.</param>
+        /// <returns>The block size, the intra-block-copy flag and the displacement vector of that block.</returns>
         public ReferenceBlock GetModeInfoAt(Point position)
         {
             if (this.encodedPicture is not null)
@@ -657,6 +768,12 @@ internal static class Av1IntraBlockCopy
     /// </summary>
     private readonly struct ReferenceBlock
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReferenceBlock"/> struct.
+        /// </summary>
+        /// <param name="blockSize">The size of the neighboring block.</param>
+        /// <param name="useIntraBlockCopy">A value indicating whether the neighboring block uses intra block copy.</param>
+        /// <param name="displacementVector">The displacement vector of the neighboring block.</param>
         public ReferenceBlock(
             Av1BlockSize blockSize,
             bool useIntraBlockCopy,
@@ -667,10 +784,19 @@ internal static class Av1IntraBlockCopy
             this.DisplacementVector = displacementVector;
         }
 
+        /// <summary>
+        /// Gets the size of the neighboring block.
+        /// </summary>
         public Av1BlockSize BlockSize { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the neighboring block uses intra block copy.
+        /// </summary>
         public bool UseIntraBlockCopy { get; }
 
+        /// <summary>
+        /// Gets the displacement vector of the neighboring block.
+        /// </summary>
         public Av1MotionVector DisplacementVector { get; }
     }
 }

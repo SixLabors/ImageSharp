@@ -29,8 +29,7 @@ internal readonly struct Av1ReferenceScale
     public const int ExtraOffset = 1 << (SubpixelBits - 4 - 1);
 
     /// <summary>
-    /// The border, in luma samples, to which a scaled position clamps on the top and left. Reference:
-    /// AOM_BORDER_IN_PIXELS in AOM_LEFT_TOP_MARGIN_SCALED().
+    /// The border, in luma samples, to which a scaled position clamps on the top and left.
     /// </summary>
     public const int ClampBorder = 288;
 
@@ -43,6 +42,8 @@ internal readonly struct Av1ReferenceScale
     /// <param name="currentHeight">The current coded-frame height.</param>
     public Av1ReferenceScale(int referenceWidth, int referenceHeight, int currentWidth, int currentHeight)
     {
+        // Each scale is the rounded Q14 ratio of the reference size to the current size.
+        // Each step rounds that ratio from Q14 to Q10.
         this.HorizontalScale = ((referenceWidth << 14) + (currentWidth >> 1)) / currentWidth;
         this.VerticalScale = ((referenceHeight << 14) + (currentHeight >> 1)) / currentHeight;
         this.HorizontalStep = (this.HorizontalScale + 8) >> 4;
@@ -75,10 +76,9 @@ internal readonly struct Av1ReferenceScale
     public bool IsScaled => this.HorizontalScale != IdentityScale || this.VerticalScale != IdentityScale;
 
     /// <summary>
-    /// Maps a position of the current plane into the reference plane, centered on the reference grid, and clamps it
-    /// to the scaled border on the top and left and to the interpolation extension past the visible reference on the
-    /// bottom and right. Reference: init_subpel_params() with av1_scaled_x(), av1_scaled_y() and
-    /// AOM_LEFT_TOP_MARGIN_SCALED().
+    /// Maps a position of the current plane into the reference plane, centered on the reference grid, and clamps it.
+    /// On the top and left, the clamp limit is the scaled border.
+    /// On the bottom and right, the clamp limit is the interpolation extension past the visible reference.
     /// </summary>
     /// <param name="columnQ4">The column in sixteenth samples of the current plane.</param>
     /// <param name="rowQ4">The row in sixteenth samples of the current plane.</param>
@@ -89,7 +89,7 @@ internal readonly struct Av1ReferenceScale
     /// <returns>The reference position in 1/1024 samples.</returns>
     public Point ScalePosition(int columnQ4, int rowQ4, int planeWidth, int planeHeight, int subsamplingX, int subsamplingY)
     {
-        // The extension is AOM_INTERP_EXTEND.
+        // The interpolation extension is four samples.
         const int extension = 4;
         int column = Math.Clamp(
             this.ScaleHorizontal(columnQ4) + ExtraOffset,
@@ -107,18 +107,27 @@ internal readonly struct Av1ReferenceScale
     /// <summary>
     /// Scales one horizontal Q4 current-frame coordinate into the Q10 reference grid.
     /// </summary>
+    /// <param name="value">The horizontal coordinate in sixteenth samples.</param>
+    /// <returns>The scaled coordinate in 1/1024 samples.</returns>
     public int ScaleHorizontal(int value) => Scale(value, this.HorizontalScale);
 
     /// <summary>
     /// Scales one vertical Q4 current-frame coordinate into the Q10 reference grid.
     /// </summary>
+    /// <param name="value">The vertical coordinate in sixteenth samples.</param>
+    /// <returns>The scaled coordinate in 1/1024 samples.</returns>
     public int ScaleVertical(int value) => Scale(value, this.VerticalScale);
 
     /// <summary>
-    /// Applies the reference decoder's signed fixed-point rounding without relying on implementation-defined negative shifts.
+    /// Applies the AV1 signed fixed-point scale. The rounding is symmetric about zero and uses no shift of a negative value.
     /// </summary>
+    /// <param name="value">The coordinate in sixteenth samples.</param>
+    /// <param name="scale">The scale factor of the axis.</param>
+    /// <returns>The scaled coordinate in 1/1024 samples.</returns>
     private static int Scale(int value, int scale)
     {
+        // The product of the Q4 value and the Q14 scale is Q18, and the shift by 8 gives Q10.
+        // The offset adds (scale - 1) half samples, so that sample centers line up: x * scale + ((scale - 1) / 2).
         long offset = (scale - IdentityScale) * 8L;
         long scaled = ((long)value * scale) + offset;
         const int shift = 8;

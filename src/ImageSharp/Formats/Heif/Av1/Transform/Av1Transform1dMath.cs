@@ -11,9 +11,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// Provides the fixed-point arithmetic shared by the scalar and SIMD AV1 one-dimensional transform kernels.
 /// </summary>
 /// <remarks>
-/// The general transform path keeps one independent axis in each signed 32-bit lane. Low-bit-depth forward transforms
-/// additionally use signed 16-bit lanes and whole-butterfly AVX2 or AVX-512 multiply-add operations, matching AV1's
-/// stage saturation points before packing. Scalar overloads preserve the same rounding and serve as the fallback.
+/// The general transform path keeps one independent axis in each signed 32-bit lane. Low-bit-depth forward transforms also use signed 16-bit lanes and
+/// whole-butterfly AVX2 or AVX-512 multiply-add operations. These operations saturate at the same stage points as the AV1 stage arithmetic before packing.
+/// Scalar overloads use the same rounding and serve as the fallback.
 /// </remarks>
 internal static class Av1Transform1dMath
 {
@@ -44,8 +44,8 @@ internal static class Av1Transform1dMath
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int HalfButterfly(int weight0, int input0, int weight1, int input1, int cosBit)
     {
-        // The scalar path widens before multiplication so it remains an exact oracle for stress inputs outside the
-        // bounded production range as well as for conformant transform stages.
+        // The scalar path widens before multiplication. It stays exact for conformant transform stages and also for stress inputs outside the bounded
+        // production range.
         long weightedSum = ((long)weight0 * input0) + ((long)weight1 * input1);
         return (int)((weightedSum + (1L << (cosBit - 1))) >> cosBit);
     }
@@ -76,8 +76,8 @@ internal static class Av1Transform1dMath
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<int> HalfButterfly(int weight0, Vector128<int> input0, int weight1, Vector128<int> input1, int cosBit)
     {
-        // The transform stage ranges bound this sequence so the low 32-bit products and sum produce the normative
-        // result. Keeping those operations in Int32 lanes maps directly to the optimized SSE and Neon kernels.
+        // The transform stage ranges bound this sequence, so the low 32-bit products and sum produce the normative result. Int32 lanes map directly to the SSE
+        // and Neon multiply, add, and shift instructions.
         Vector128<int> weightedSum = (input0 * weight0) + (input1 * weight1);
         return (weightedSum + Vector128.Create(1 << (cosBit - 1))) >> cosBit;
     }
@@ -94,8 +94,8 @@ internal static class Av1Transform1dMath
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<int> HalfButterfly(int weight0, Vector256<int> input0, int weight1, Vector256<int> input1, int cosBit)
     {
-        // The bounded stage inputs allow the complete butterfly to remain in 32-bit lanes, letting the JIT emit the
-        // AVX2 multiply/add/shift sequence instead of splitting every input into widened 64-bit vectors.
+        // The bounded stage inputs let the complete butterfly stay in 32-bit lanes. The JIT then emits the AVX2 multiply, add, and shift sequence and does not
+        // split every input into widened 64-bit vectors.
         Vector256<int> weightedSum = (input0 * weight0) + (input1 * weight1);
         return (weightedSum + Vector256.Create(1 << (cosBit - 1))) >> cosBit;
     }
@@ -112,8 +112,8 @@ internal static class Av1Transform1dMath
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<int> HalfButterfly(int weight0, Vector512<int> input0, int weight1, Vector512<int> input1, int cosBit)
     {
-        // AV1 stage ranges keep the products and sum inside the normative wrapping Int32 domain. Preserving that lane
-        // width lets 512-bit SIMD evaluate sixteen independent transform axes without widened intermediate vectors.
+        // The AV1 stage ranges bound the products and the sum, so Int32 lanes produce the normative result. With 32-bit lanes, 512-bit SIMD evaluates sixteen
+        // independent transform axes without widened intermediate vectors.
         Vector512<int> weightedSum = (input0 * weight0) + (input1 * weight1);
         return (weightedSum + Vector512.Create(1 << (cosBit - 1))) >> cosBit;
     }
@@ -132,8 +132,8 @@ internal static class Av1Transform1dMath
         out Vector512<short> sum,
         out Vector512<short> difference)
     {
-        // Read both operands before either destination is written because the reference decoder deliberately permits an input
-        // buffer to alias one or both outputs while alternating between its two fixed transform-stage buffers.
+        // The code reads both operands before it writes either destination. An input can alias one or both outputs, because the stages alternate between two
+        // fixed transform-stage buffers.
         Vector512<short> left = input0;
         Vector512<short> right = input1;
 
@@ -163,8 +163,10 @@ internal static class Av1Transform1dMath
         int cosBit,
         in Vector512<int> rounding)
     {
-        // VPMADDWD evaluates adjacent Int16 products into Int32 lanes. Both outputs reuse the same interleaved
-        // inputs, matching the reference decoder's whole butterfly instead of loading and unpacking each input pair twice.
+        // VPMADDWD multiplies matching Int16 lanes and adds each adjacent pair of products into one Int32 lane. UnpackLow and UnpackHigh interleave input0 and
+        // input1 within each 128-bit block, so each Int32 lane holds one (input0, input1) pair. Each weight lane packs (weight0, weight1) for output0 and
+        // (weight1, -weight0) for output1. Thus output0 = input0 * weight0 + input1 * weight1 and output1 = input0 * weight1 - input1 * weight0. Both outputs
+        // use the same interleaved inputs, so the code unpacks each input pair only once.
         Vector512<short> left = input0;
         Vector512<short> right = input1;
         Vector512<short> interleavedLower = Vector512_.UnpackLow(left, right);
@@ -181,8 +183,8 @@ internal static class Av1Transform1dMath
         output1Lower = (output1Lower + rounding) >> cosBit;
         output1Upper = (output1Upper + rounding) >> cosBit;
 
-        // VPACKSSDW restores the original lane order within each 128-bit block and narrows with the saturation
-        // required by the low-bit-depth AV1 stage arithmetic.
+        // VPACKSSDW restores the original lane order within each 128-bit block and narrows with the saturation required by the low-bit-depth AV1 stage
+        // arithmetic.
         output0 = Vector512_.PackSignedSaturate(output0Lower, output0Upper);
         output1 = Vector512_.PackSignedSaturate(output1Lower, output1Upper);
     }
@@ -277,8 +279,8 @@ internal static class Av1Transform1dMath
 
         if (Vector128.IsHardwareAccelerated)
         {
-            // PMADDWD is the native x86 form of Highway's pairwise widening multiply-add. Interleaving once lets
-            // both butterfly outputs reuse the same input arrangement before signed-saturating demotion.
+            // PMADDWD is the native x86 pairwise widening multiply-add. One interleave serves both butterfly outputs before the signed-saturating demotion. On
+            // Arm, the shared helper emulates PMADDWD with widening multiplies and pairwise additions.
             Vector128<short> interleavedLower = Vector128_.UnpackLow(left, right);
             Vector128<short> interleavedUpper = Vector128_.UnpackHigh(left, right);
             Vector128<short> weights0 = Vector128.Create((ushort)weight0 | (weight1 << 16)).AsInt16();
@@ -298,8 +300,8 @@ internal static class Av1Transform1dMath
             return;
         }
 
-        // AdvSimd and WebAssembly do not expose PMADDWD. Widen both inputs once and retain the complete operation
-        // in Vector128 lanes so those targets still execute the transform as a whole SIMD butterfly.
+        // This path runs only when Vector128 has no hardware acceleration. It widens both inputs once and computes both butterfly outputs in Int32 lanes. The
+        // clamp to the Int16 range before the narrowing matches the signed saturation of the accelerated path.
         (Vector128<int> leftLower, Vector128<int> leftUpper) = Vector128.Widen(left);
         (Vector128<int> rightLower, Vector128<int> rightUpper) = Vector128.Widen(right);
 
@@ -408,8 +410,8 @@ internal static class Av1Transform1dMath
         (Vector128<long> lower, Vector128<long> upper) = Vector128.Widen(value);
         Vector128<long> rounding = Vector128.Create(1L << (fractionalBits - 1));
 
-        // The reference decoder's high-bit-depth identity kernels multiply in signed 64-bit lanes. Widen before both the
-        // product and rounding addition so a valid 20-bit twelve-bit row value cannot wrap through Int32.
+        // High-bit-depth identity kernels multiply in signed 64-bit lanes. The code widens before the product and the rounding addition, so a valid 20-bit row
+        // value of twelve-bit content cannot wrap through Int32.
         lower = ((lower * multiplier) + rounding) >> fractionalBits;
         upper = ((upper * multiplier) + rounding) >> fractionalBits;
         return Vector128.Narrow(lower, upper);
@@ -478,8 +480,8 @@ internal static class Av1Transform1dMath
         Vector128<int> input3,
         int fractionalBits)
     {
-        // The four-point ADST factorization has the same bounded-intermediate contract as the butterfly stages.
-        // Accumulating in Int32 lanes preserves the normative result and avoids eight widening operations per sum.
+        // The four-point ADST factorization has the same bounded-intermediate contract as the butterfly stages. Accumulation in Int32 lanes gives the normative
+        // result and avoids eight widening operations per sum.
         Vector128<int> weightedSum = (input0 * weight0) + (input1 * weight1) + (input2 * weight2) + (input3 * weight3);
         return (weightedSum + Vector128.Create(1 << (fractionalBits - 1))) >> fractionalBits;
     }
@@ -567,8 +569,8 @@ internal static class Av1Transform1dMath
         Vector128<int> input3,
         int fractionalBits)
     {
-        // the reference decoder keeps conformant ADST4 sine products and their factorized sums in Int32, then widens the terminal
-        // scaling and rounding. Preserve that exact boundary instead of widening every transform multiplication.
+        // Conformant ADST4 sine products and their factorized sums stay in Int32. Only the final scale and rounding widen. The code keeps that exact boundary
+        // and does not widen every transform multiplication.
         Vector128<int> weightedSum = (input0 * weight0) + (input1 * weight1) + (input2 * weight2) + (input3 * weight3);
         return MultiplyRoundWidened(weightedSum, 1, fractionalBits);
     }

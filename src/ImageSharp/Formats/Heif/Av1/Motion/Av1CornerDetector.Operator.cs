@@ -15,9 +15,9 @@ internal static partial class Av1CornerDetector
     /// Tests one direction of the corner threshold.
     /// </summary>
     /// <remarks>
-    /// A pixel is a corner when nine adjacent samples of the circle around it are all brighter than
-    /// the pixel by the barrier, or all darker than it by the barrier. The run test is the same for
-    /// both directions, so the two directions are two operators over one traversal.
+    /// A pixel is a corner when nine adjacent samples of the circle around it are all brighter than the pixel by the barrier. A pixel is also a corner
+    /// when nine adjacent samples are all darker than it by the barrier. The run test is the same for both directions, so the two directions are two
+    /// operators over one traversal.
     /// </remarks>
     internal interface IAv1CornerThresholdOperator
     {
@@ -44,10 +44,9 @@ internal static partial class Av1CornerDetector
         /// <param name="barrier">The barrier in every lane.</param>
         /// <returns>The thresholds that the circle samples are compared against.</returns>
         /// <remarks>
-        /// A threshold is saturated to the range of a byte lane. The scalar overload does not
-        /// saturate, because it computes in a wider type, and the two still agree on every result:
-        /// a sample cannot leave the range zero through 255, so a saturated threshold decides the
-        /// comparison the same way the unsaturated value decides it.
+        /// The vector form saturates a threshold to the range of a byte lane. The scalar overload computes in a wider type and does not saturate.
+        /// The two forms still agree on every result. A sample cannot leave the range zero through 255. Thus a saturated threshold decides the
+        /// comparison the same way as the unsaturated value.
         /// </remarks>
         public static abstract Vector128<byte> Threshold(Vector128<byte> centre, Vector128<byte> barrier);
 
@@ -98,23 +97,25 @@ internal static partial class Av1CornerDetector
     /// <typeparam name="TOperator">The threshold direction.</typeparam>
     /// <remarks>
     /// <para>
-    /// The circle around a pixel is sixteen samples, so the sixteen comparisons of one pixel form a
-    /// sixteen-bit circular word, and the test is whether that word holds nine adjacent ones. The
-    /// traversal never builds the word. It keeps the sixteen comparisons as sixteen lane masks and
-    /// reduces them in steps, each of which doubles the length of the run it proves.
+    /// The circle around a pixel is sixteen samples. Thus the sixteen comparisons of one pixel form a sixteen-bit circular word. The test is whether
+    /// that word holds nine adjacent ones. The traversal never builds the word. It keeps the sixteen comparisons as sixteen lane masks and reduces
+    /// them in steps. Each step doubles the length of the run that it proves.
     /// </para>
     /// <para>
-    /// With <c>m</c> the sixteen masks and every index taken around the circle,
-    /// <c>pair[i] = m[i] &amp; m[i+1]</c> proves a run of two at <c>i</c>,
-    /// <c>quad[i] = pair[i] &amp; pair[i+2]</c> a run of four,
-    /// <c>oct[i] = quad[i] &amp; quad[i+4]</c> a run of eight, and
-    /// <c>oct[i] &amp; m[i+8]</c> a run of nine. Because every step is shared by all sixteen
-    /// starting positions, the whole test costs sixty-four lane operations rather than the one
-    /// hundred and twenty-eight that testing each starting position on its own would cost.
+    /// In the steps below, <c>m</c> is the sixteen masks, and every index wraps around the circle.
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><c>pair[i] = m[i] &amp; m[i+1]</c> proves a run of two at <c>i</c>.</description></item>
+    /// <item><description><c>quad[i] = pair[i] &amp; pair[i+2]</c> proves a run of four.</description></item>
+    /// <item><description><c>oct[i] = quad[i] &amp; quad[i+4]</c> proves a run of eight.</description></item>
+    /// <item><description><c>oct[i] &amp; m[i+8]</c> proves a run of nine.</description></item>
+    /// </list>
+    /// <para>
+    /// All sixteen starting positions share every step. Thus the whole test costs sixty-four lane AND operations. A separate test of each starting
+    /// position costs one hundred and twenty-eight.
     /// </para>
     /// <para>
-    /// The result is the union over the starting positions, so one pass marks every pixel of the
-    /// row segment.
+    /// The result is the union over the starting positions. Thus one pass marks every pixel of the row segment.
     /// </para>
     /// </remarks>
     private static class Runs<TOperator>
@@ -129,16 +130,15 @@ internal static partial class Av1CornerDetector
         /// <param name="destination">The first mark of the row segment.</param>
         /// <param name="count">The number of pixels in the row segment.</param>
         /// <remarks>
-        /// Both threshold directions contribute to one row of marks, so this method only ever sets
-        /// a mark. The caller clears the row once, before the first direction runs.
+        /// Both threshold directions contribute to one row of marks, so this method only sets marks. The caller clears the row once, before the first
+        /// direction runs.
         /// </remarks>
         public static void Mark(ref byte centre, ReadOnlySpan<int> offsets, int barrier, ref byte destination, int count)
         {
             int i = 0;
 
-            // Descending widths share one offset, so a machine with AVX-512 still finishes a
-            // thirty-two or sixteen pixel remainder in vectors rather than in the scalar loop. Each
-            // stage owns its scratch, so the widths that do not run cost no stack.
+            // Descending widths share one offset. Thus a machine with AVX-512 still runs a thirty-two-pixel or sixteen-pixel remainder in vectors.
+            // Each stage owns its stack buffers, so the widths that do not run cost no stack.
             if (Vector512.IsHardwareAccelerated && count - i >= Vector512<byte>.Count)
             {
                 i = MarkVector512(ref centre, offsets, barrier, ref destination, count, i);
@@ -154,8 +154,7 @@ internal static partial class Av1CornerDetector
                 i = MarkVector128(ref centre, offsets, barrier, ref destination, count, i);
             }
 
-            // The scalar form tests the same runs, so the marks it sets are the marks that the
-            // vector stages would have set for the same pixels.
+            // The scalar form tests the same runs. Thus it sets the same marks as the vector stages for the same pixels.
             for (; i < count; i++)
             {
                 if (Test(ref Unsafe.Add(ref centre, i), offsets, barrier))
@@ -173,8 +172,7 @@ internal static partial class Av1CornerDetector
         /// <param name="barrier">The barrier.</param>
         /// <returns>Whether nine adjacent samples of the circle pass the threshold.</returns>
         /// <remarks>
-        /// A run may wrap around the circle, so walking sixteen plus eight positions covers every
-        /// starting position without a second loop.
+        /// A run can wrap around the circle. A walk of sixteen plus eight positions covers every starting position without a second loop.
         /// </remarks>
         public static bool Test(ref byte centre, ReadOnlySpan<int> offsets, int barrier)
         {
@@ -210,9 +208,8 @@ internal static partial class Av1CornerDetector
         /// <param name="start">The first pixel this stage covers.</param>
         /// <returns>The first pixel the stage did not cover.</returns>
         /// <remarks>
-        /// The three scratch arrays hold the sixteen masks and the two intermediate run lengths.
-        /// They are allocated once for the whole stage, never inside the loop, because the stack of
-        /// a method is not released until the method returns.
+        /// The three stack buffers hold the sixteen masks and the masks of runs of two and four. The stage allocates them once, never inside the loop,
+        /// because the stack of a method stays in use until the method returns.
         /// </remarks>
         private static int MarkVector512(
             ref byte centre,
@@ -231,16 +228,13 @@ internal static partial class Av1CornerDetector
             int vectorEnd = count - Vector512<byte>.Count;
             for (; i <= vectorEnd; i += Vector512<byte>.Count)
             {
-                // Sixty-four adjacent pixels are sixty-four independent lanes, and each sample of
-                // the circle is one unaligned load at a constant offset from the centre.
+                // Sixty-four adjacent pixels are sixty-four independent lanes. Each circle sample is one unaligned load at a constant offset from the centre.
                 Vector512<byte> threshold = TOperator.Threshold(
                     Vector512.LoadUnsafe(ref centre, (nuint)i), barrierVector);
 
                 for (int point = 0; point < CircleLength; point++)
                 {
-                    // A circle offset is signed, so it is applied to the reference itself.
-                    // Casting it into the unsigned element offset would turn a negative offset
-                    // into an enormous one.
+                    // A circle offset is signed, so the code adds it to the reference. A negative value cast to the unsigned element offset is very large.
                     masks[point] = TOperator.Exceeds(
                         Vector512.LoadUnsafe(ref Unsafe.Add(ref centre, offsets[point]), (nuint)i), threshold);
                 }
@@ -300,9 +294,7 @@ internal static partial class Av1CornerDetector
 
                 for (int point = 0; point < CircleLength; point++)
                 {
-                    // A circle offset is signed, so it is applied to the reference itself.
-                    // Casting it into the unsigned element offset would turn a negative offset
-                    // into an enormous one.
+                    // A circle offset is signed, so the code adds it to the reference. A negative value cast to the unsigned element offset is very large.
                     masks[point] = TOperator.Exceeds(
                         Vector256.LoadUnsafe(ref Unsafe.Add(ref centre, offsets[point]), (nuint)i), threshold);
                 }
@@ -362,9 +354,7 @@ internal static partial class Av1CornerDetector
 
                 for (int point = 0; point < CircleLength; point++)
                 {
-                    // A circle offset is signed, so it is applied to the reference itself.
-                    // Casting it into the unsigned element offset would turn a negative offset
-                    // into an enormous one.
+                    // A circle offset is signed, so the code adds it to the reference. A negative value cast to the unsigned element offset is very large.
                     masks[point] = TOperator.Exceeds(
                         Vector128.LoadUnsafe(ref Unsafe.Add(ref centre, offsets[point]), (nuint)i), threshold);
                 }

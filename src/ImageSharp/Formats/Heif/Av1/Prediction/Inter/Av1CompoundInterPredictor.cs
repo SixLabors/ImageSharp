@@ -35,8 +35,22 @@ internal static partial class Av1CompoundInterPredictor
     internal const int MaximumMaskAlpha = 1 << MaskWeightBits;
 
     /// <summary>
-    /// Reconstructs one 8-bit translational reference into AV1's unsigned compound intermediate format.
+    /// Reconstructs one 8-bit translational reference into the unsigned AV1 compound intermediate format.
     /// </summary>
+    /// <param name="source">The complete padded reference plane that contains every source sample of the block.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The nonnegative, zero-based index of the integer-position source sample in <paramref name="source"/>.</param>
+    /// <param name="destination">The biased compound intermediate output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="scratch">
+    /// Caller-owned signed intermediate storage sized by <see cref="Av1TranslationalInterPredictor.GetScratchLength(int, int)"/> when both phases are nonzero.
+    /// </param>
     public static void PredictCompound(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -66,8 +80,23 @@ internal static partial class Av1CompoundInterPredictor
             useSimd: true);
 
     /// <summary>
-    /// Reconstructs one high-bit-depth translational reference into AV1's unsigned compound intermediate format.
+    /// Reconstructs one high-bit-depth translational reference into the unsigned AV1 compound intermediate format.
     /// </summary>
+    /// <param name="source">The complete padded reference plane that contains every source sample of the block.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The nonnegative, zero-based index of the integer-position source sample in <paramref name="source"/>.</param>
+    /// <param name="destination">The biased compound intermediate output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="bitDepth">The decoded sample precision: 8, 10, or 12 bits.</param>
+    /// <param name="scratch">
+    /// Caller-owned signed intermediate storage sized by <see cref="Av1TranslationalInterPredictor.GetScratchLength(int, int)"/> when both phases are nonzero.
+    /// </param>
     public static void PredictCompound(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -99,9 +128,22 @@ internal static partial class Av1CompoundInterPredictor
             useSimd: true);
 
     /// <summary>
-    /// Executes one closed compound-prediction conversion operator.
+    /// Selects the copy, one-dimensional or two-dimensional 8-bit path and runs it through one closed conversion operator.
     /// </summary>
     /// <typeparam name="TOperator">The compound-prediction conversion operator.</typeparam>
+    /// <param name="source">The complete padded reference plane that contains every source sample of the block.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The nonnegative, zero-based index of the integer-position source sample in <paramref name="source"/>.</param>
+    /// <param name="destination">The biased compound intermediate output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="scratch">Caller-owned signed intermediate storage for the two-dimensional path.</param>
+    /// <param name="useSimd"><see langword="true"/> to use the vector loops. <see langword="false"/> to use only the scalar loops.</param>
     private static void PredictCompound<TOperator>(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -120,11 +162,14 @@ internal static partial class Av1CompoundInterPredictor
     {
         ReadOnlySpan<short> horizontalCoefficients = GetCompoundCoefficients(horizontalFilter, horizontalPhase, width <= 4);
         ReadOnlySpan<short> verticalCoefficients = GetCompoundCoefficients(verticalFilter, verticalPhase, height <= 4);
+
+        // Every path below leaves roundBits fractional bits in the intermediate and adds roundOffset.
         int roundBits = (2 * FilterBits) - Round0Bits - CompoundRound1Bits;
         int offsetBits = 8 + (2 * FilterBits) - Round0Bits;
         int roundOffset = (1 << (offsetBits - CompoundRound1Bits)) +
             (1 << (offsetBits - CompoundRound1Bits - 1));
 
+        // Integer positions need no filter.
         if (horizontalPhase == 0 && verticalPhase == 0)
         {
             CopyCompound<TOperator>(
@@ -142,6 +187,7 @@ internal static partial class Av1CompoundInterPredictor
             return;
         }
 
+        // Only the horizontal filter applies. It uses the same first-pass shift as the two-dimensional path.
         if (verticalPhase == 0)
         {
             GetEffectiveKernel(horizontalCoefficients, out int firstCoefficient, out int tapCount);
@@ -165,6 +211,7 @@ internal static partial class Av1CompoundInterPredictor
             return;
         }
 
+        // Only the vertical filter applies. The left shift before rounding restores the precision of the skipped horizontal pass.
         if (horizontalPhase == 0)
         {
             GetEffectiveKernel(verticalCoefficients, out int firstCoefficient, out int tapCount);
@@ -209,9 +256,23 @@ internal static partial class Av1CompoundInterPredictor
     }
 
     /// <summary>
-    /// Executes one closed high-bit-depth compound-prediction conversion operator.
+    /// Selects the copy, one-dimensional or two-dimensional high-bit-depth path and runs it through one closed conversion operator.
     /// </summary>
     /// <typeparam name="TOperator">The compound-prediction conversion operator.</typeparam>
+    /// <param name="source">The complete padded reference plane that contains every source sample of the block.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The nonnegative, zero-based index of the integer-position source sample in <paramref name="source"/>.</param>
+    /// <param name="destination">The biased compound intermediate output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="bitDepth">The decoded sample precision: 8, 10, or 12 bits.</param>
+    /// <param name="scratch">Caller-owned signed intermediate storage for the two-dimensional path.</param>
+    /// <param name="useSimd"><see langword="true"/> to use the vector loops. <see langword="false"/> to use only the scalar loops.</param>
     private static void PredictCompound<TOperator>(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -232,8 +293,8 @@ internal static partial class Av1CompoundInterPredictor
         ReadOnlySpan<short> horizontalCoefficients = GetCompoundCoefficients(horizontalFilter, horizontalPhase, width <= 4);
         ReadOnlySpan<short> verticalCoefficients = GetCompoundCoefficients(verticalFilter, verticalPhase, height <= 4);
 
-        // The reference decoder increases the first-round shift only for 12-bit input. This keeps the signed horizontal
-        // intermediate within sixteen bits while preserving the same total Q14 convolution precision.
+        // The first-pass shift increases only for 12-bit input. This keeps the signed horizontal intermediate within 16 bits.
+        // roundBits decreases by the same amount, so the shifts still remove all 14 fractional bits of the two filter passes.
         int intermediateRange = bitDepth + FilterBits - Round0Bits + 2;
         int round0 = Round0Bits + Math.Max(intermediateRange - 16, 0);
         int roundBits = (2 * FilterBits) - round0 - CompoundRound1Bits;
@@ -241,6 +302,7 @@ internal static partial class Av1CompoundInterPredictor
         int roundOffset = (1 << (offsetBits - CompoundRound1Bits)) +
             (1 << (offsetBits - CompoundRound1Bits - 1));
 
+        // Integer positions need no filter.
         if (horizontalPhase == 0 && verticalPhase == 0)
         {
             CopyCompound<TOperator>(
@@ -258,6 +320,7 @@ internal static partial class Av1CompoundInterPredictor
             return;
         }
 
+        // Only the horizontal filter applies. It uses the same first-pass shift as the two-dimensional path.
         if (verticalPhase == 0)
         {
             GetEffectiveKernel(horizontalCoefficients, out int firstCoefficient, out int tapCount);
@@ -281,6 +344,7 @@ internal static partial class Av1CompoundInterPredictor
             return;
         }
 
+        // Only the vertical filter applies. The left shift before rounding restores the precision of the skipped horizontal pass.
         if (horizontalPhase == 0)
         {
             GetEffectiveKernel(verticalCoefficients, out int firstCoefficient, out int tapCount);
@@ -329,6 +393,20 @@ internal static partial class Av1CompoundInterPredictor
     /// <summary>
     /// Reconstructs one compound intermediate without explicit hardware intrinsics.
     /// </summary>
+    /// <param name="source">The complete padded reference plane that contains every source sample of the block.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The nonnegative, zero-based index of the integer-position source sample in <paramref name="source"/>.</param>
+    /// <param name="destination">The biased compound intermediate output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="scratch">
+    /// Caller-owned signed intermediate storage sized by <see cref="Av1TranslationalInterPredictor.GetScratchLength(int, int)"/> when both phases are nonzero.
+    /// </param>
     public static void PredictCompoundScalar(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -360,6 +438,21 @@ internal static partial class Av1CompoundInterPredictor
     /// <summary>
     /// Reconstructs one high-bit-depth compound intermediate without explicit hardware intrinsics.
     /// </summary>
+    /// <param name="source">The complete padded reference plane that contains every source sample of the block.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The nonnegative, zero-based index of the integer-position source sample in <paramref name="source"/>.</param>
+    /// <param name="destination">The biased compound intermediate output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="bitDepth">The decoded sample precision: 8, 10, or 12 bits.</param>
+    /// <param name="scratch">
+    /// Caller-owned signed intermediate storage sized by <see cref="Av1TranslationalInterPredictor.GetScratchLength(int, int)"/> when both phases are nonzero.
+    /// </param>
     public static void PredictCompoundScalar(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -394,6 +487,16 @@ internal static partial class Av1CompoundInterPredictor
     /// Copies integer-position samples through one closed compound-prediction operator.
     /// </summary>
     /// <typeparam name="TOperator">The compound-prediction conversion operator.</typeparam>
+    /// <param name="source">The reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The zero-based index of the top-left source sample in <paramref name="source"/>.</param>
+    /// <param name="destination">The biased compound intermediate output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="roundBits">The fractional bits of the intermediate.</param>
+    /// <param name="roundOffset">The compound intermediate bias.</param>
+    /// <param name="useSimd"><see langword="true"/> to use the vector loops. <see langword="false"/> to use only the scalar loop.</param>
     private static void CopyCompound<TOperator>(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -463,6 +566,16 @@ internal static partial class Av1CompoundInterPredictor
     /// Copies high-bit-depth integer-position samples through one closed compound-prediction operator.
     /// </summary>
     /// <typeparam name="TOperator">The compound-prediction conversion operator.</typeparam>
+    /// <param name="source">The reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The zero-based index of the top-left source sample in <paramref name="source"/>.</param>
+    /// <param name="destination">The biased compound intermediate output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="roundBits">The fractional bits of the intermediate.</param>
+    /// <param name="roundOffset">The compound intermediate bias.</param>
+    /// <param name="useSimd"><see langword="true"/> to use the vector loops. <see langword="false"/> to use only the scalar loop.</param>
     private static void CopyCompound<TOperator>(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -532,6 +645,21 @@ internal static partial class Av1CompoundInterPredictor
     /// Applies one compound convolution direction through one closed conversion operator.
     /// </summary>
     /// <typeparam name="TOperator">The compound-prediction conversion operator.</typeparam>
+    /// <param name="source">The reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The zero-based index of the integer-position source sample in <paramref name="source"/>.</param>
+    /// <param name="destination">The biased compound intermediate output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="coefficients">The effective kernel, which starts at its first nonzero tap.</param>
+    /// <param name="tapCount">The number of taps in <paramref name="coefficients"/>.</param>
+    /// <param name="sourceOffset">The offset from each output position to the source sample of the first tap.</param>
+    /// <param name="tapStride">The distance between the source samples of adjacent taps: 1 horizontally, or <paramref name="sourceStride"/> vertically.</param>
+    /// <param name="preShift">The left shift applied to each sum before rounding.</param>
+    /// <param name="round">The rounding right shift.</param>
+    /// <param name="roundOffset">The compound intermediate bias.</param>
+    /// <param name="useSimd"><see langword="true"/> to use the vector loops. <see langword="false"/> to use only the scalar loop.</param>
     private static void FilterCompoundDirect<TOperator>(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -650,8 +778,24 @@ internal static partial class Av1CompoundInterPredictor
 
     /// <summary>
     /// Applies one high-bit-depth compound convolution direction through one closed conversion operator.
+    /// The vector loops read the samples as signed 16-bit values. This is safe because every sample is less than <see cref="short.MaxValue"/>.
     /// </summary>
     /// <typeparam name="TOperator">The compound-prediction conversion operator.</typeparam>
+    /// <param name="source">The reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The zero-based index of the integer-position source sample in <paramref name="source"/>.</param>
+    /// <param name="destination">The biased compound intermediate output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="coefficients">The effective kernel, which starts at its first nonzero tap.</param>
+    /// <param name="tapCount">The number of taps in <paramref name="coefficients"/>.</param>
+    /// <param name="sourceOffset">The offset from each output position to the source sample of the first tap.</param>
+    /// <param name="tapStride">The distance between the source samples of adjacent taps: 1 horizontally, or <paramref name="sourceStride"/> vertically.</param>
+    /// <param name="preShift">The left shift applied to each sum before rounding.</param>
+    /// <param name="round">The rounding right shift.</param>
+    /// <param name="roundOffset">The compound intermediate bias.</param>
+    /// <param name="useSimd"><see langword="true"/> to use the vector loops. <see langword="false"/> to use only the scalar loop.</param>
     private static void FilterCompoundDirect<TOperator>(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -755,9 +899,27 @@ internal static partial class Av1CompoundInterPredictor
     }
 
     /// <summary>
-    /// Applies separable compound convolution through caller-owned signed scratch.
+    /// Applies separable compound convolution through caller-owned signed intermediate storage.
     /// </summary>
     /// <typeparam name="TOperator">The compound-prediction conversion operator.</typeparam>
+    /// <param name="source">The reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The zero-based index of the integer-position source sample in <paramref name="source"/>.</param>
+    /// <param name="destination">The biased compound intermediate output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="horizontalCoefficients">The effective horizontal kernel, which starts at its first nonzero tap.</param>
+    /// <param name="horizontalTapCount">The number of taps in <paramref name="horizontalCoefficients"/>.</param>
+    /// <param name="horizontalSourceOffset">The column offset from each output position to the source sample of the first horizontal tap.</param>
+    /// <param name="verticalCoefficients">The effective vertical kernel, which starts at its first nonzero tap.</param>
+    /// <param name="verticalTapCount">The number of taps in <paramref name="verticalCoefficients"/>.</param>
+    /// <param name="verticalSourceOffset">The row offset from each output row to the source row of the first vertical tap.</param>
+    /// <param name="scratch">
+    /// Caller-owned signed storage for <paramref name="height"/> + <paramref name="verticalTapCount"/> - 1 rows of horizontal intermediates.
+    /// The row stride is the larger of <paramref name="width"/> and <see cref="Av1TranslationalInterPredictor.MinimumScratchStride"/>.
+    /// </param>
+    /// <param name="useSimd"><see langword="true"/> to use the vector loops. <see langword="false"/> to use only the scalar loops.</param>
     private static void FilterCompound2D<TOperator>(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -784,8 +946,8 @@ internal static partial class Av1CompoundInterPredictor
         int scratchStride = Math.Max(width, MinimumScratchStride);
         int intermediateHeight = height + verticalTapCount - 1;
 
-        // The horizontal pass retains Q7 precision in signed scratch. Each SIMD stage continues at the shared
-        // column offset so mixed-width rows need no padding stores and never cross the logical block edge.
+        // The horizontal pass shifts the Q7 sums right by Round0Bits and stores Q4 values in the signed buffer.
+        // Each SIMD stage continues at the shared column offset. Thus mixed-width rows need no padding stores and never cross the logical block edge.
         for (int row = 0; row < intermediateHeight; row++)
         {
             ref byte sourceRow = ref Unsafe.Add(
@@ -953,9 +1115,29 @@ internal static partial class Av1CompoundInterPredictor
     }
 
     /// <summary>
-    /// Applies separable high-bit-depth compound convolution through caller-owned signed scratch.
+    /// Applies separable high-bit-depth compound convolution through caller-owned signed intermediate storage.
     /// </summary>
     /// <typeparam name="TOperator">The compound-prediction conversion operator.</typeparam>
+    /// <param name="source">The reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The zero-based index of the integer-position source sample in <paramref name="source"/>.</param>
+    /// <param name="destination">The biased compound intermediate output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="horizontalCoefficients">The effective horizontal kernel, which starts at its first nonzero tap.</param>
+    /// <param name="horizontalTapCount">The number of taps in <paramref name="horizontalCoefficients"/>.</param>
+    /// <param name="horizontalSourceOffset">The column offset from each output position to the source sample of the first horizontal tap.</param>
+    /// <param name="verticalCoefficients">The effective vertical kernel, which starts at its first nonzero tap.</param>
+    /// <param name="verticalTapCount">The number of taps in <paramref name="verticalCoefficients"/>.</param>
+    /// <param name="verticalSourceOffset">The row offset from each output row to the source row of the first vertical tap.</param>
+    /// <param name="bitDepth">The decoded sample precision: 8, 10, or 12 bits.</param>
+    /// <param name="round0">The first-pass right shift for <paramref name="bitDepth"/>.</param>
+    /// <param name="scratch">
+    /// Caller-owned signed storage for <paramref name="height"/> + <paramref name="verticalTapCount"/> - 1 rows of horizontal intermediates.
+    /// The row stride is the larger of <paramref name="width"/> and <see cref="Av1TranslationalInterPredictor.MinimumScratchStride"/>.
+    /// </param>
+    /// <param name="useSimd"><see langword="true"/> to use the vector loops. <see langword="false"/> to use only the scalar loops.</param>
     private static void FilterCompound2D<TOperator>(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -986,8 +1168,8 @@ internal static partial class Av1CompoundInterPredictor
         int horizontalBias = 1 << (bitDepth + FilterBits - 1);
         int verticalBias = 1 << (bitDepth + (2 * FilterBits) - round0);
 
-        // High-bit-depth input is still below short.MaxValue. Reinterpreting the source lets the shared signed
-        // widening kernels apply negative filter coefficients without copying or allocating a conversion buffer.
+        // High-bit-depth samples are less than short.MaxValue. Thus the signed view of the source lets the shared signed widening kernels
+        // apply negative filter coefficients without a copy or a conversion buffer.
         for (int row = 0; row < intermediateHeight; row++)
         {
             ref ushort sourceRowUnsigned = ref Unsafe.Add(
@@ -1154,6 +1336,10 @@ internal static partial class Av1CompoundInterPredictor
     /// <summary>
     /// Gets the selected interpolation kernel for compound traversal.
     /// </summary>
+    /// <param name="filter">The interpolation filter. Any value that is not regular, smooth or sharp selects the bilinear kernels.</param>
+    /// <param name="phase">The phase in one-sixteenth-sample units.</param>
+    /// <param name="useReducedFilter"><see langword="true"/> to select the reduced kernel for a block dimension of 4 or less.</param>
+    /// <returns>The eight Q7 coefficients of the kernel.</returns>
     private static ReadOnlySpan<short> GetCompoundCoefficients(
         Av1InterpolationFilter filter,
         int phase,

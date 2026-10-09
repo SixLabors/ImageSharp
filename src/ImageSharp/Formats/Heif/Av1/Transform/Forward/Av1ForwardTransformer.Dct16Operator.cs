@@ -28,7 +28,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<int>.CreateRounding(cosBit);
 
-            // Stage 1 forms the mirror-symmetric pairs consumed by the recursive even and odd factorizations.
+            // Stage 1 adds and subtracts the mirrored input pairs. The sums feed the even half and the differences feed the odd half.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<int>.AddSubtract(
@@ -38,7 +38,7 @@ internal static partial class Av1ForwardTransformer
                     out buffer0[15 - i]);
             }
 
-            // Stage 2 begins the recursive factorization of the even half and rotates the central odd pairs by pi/4.
+            // Stage 2 adds and subtracts the mirrored pairs of the even half and rotates the central odd pairs by pi/4.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<int>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
@@ -64,7 +64,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 3 reduces both eight-value groups into the four-value units consumed by the terminal rotations.
+            // Stage 3 adds and subtracts the first four even terms, rotates even terms 5 and 6 by pi/4, and combines the odd terms.
             for (int i = 0; i < 2; i++)
             {
                 Av1ForwardTransformArithmetic<int>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
@@ -86,7 +86,7 @@ internal static partial class Av1ForwardTransformer
                 Av1ForwardTransformArithmetic<int>.AddSubtract(buffer0[15 - i], buffer1[12 + i], out buffer0[15 - i], out buffer0[12 + i]);
             }
 
-            // The even coefficients become final at stages 4 and 5, so they are written directly to their AV1 order.
+            // Stages 4 and 5 complete the even outputs and prepare the odd terms. Each even result takes the name of its output index.
             Av1ForwardTransformArithmetic<int>.Butterfly(
                 cospi[32],
                 cospi[32],
@@ -154,8 +154,8 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<int>.AddSubtract(buffer0[12], buffer1[13], out buffer0[12], out buffer0[13]);
             Av1ForwardTransformArithmetic<int>.AddSubtract(buffer0[15], buffer1[14], out buffer0[15], out buffer0[14]);
 
-            // Stage 6 applies the final pi/32 odd-frequency rotations. The following stores perform only the normative
-            // coefficient permutation, so each rotation result is named by its final destination.
+            // Stage 6 applies the final odd-frequency rotations in multiples of pi/32. Each result takes the name of its output index.
+            // Thus the ordered stores below apply the output permutation.
             Av1ForwardTransformArithmetic<int>.Butterfly(
                 cospi[4],
                 cospi[60],
@@ -226,7 +226,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<short>.CreateRounding(cosBit);
 
-            // Stage 1 forms the mirror-symmetric pairs consumed by the recursive even and odd factorizations.
+            // Stage 1 adds and subtracts the mirrored input pairs. The sums feed the even half and the differences feed the odd half.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<short>.AddSubtract(
@@ -236,7 +236,7 @@ internal static partial class Av1ForwardTransformer
                     out buffer0[15 - i]);
             }
 
-            // Stage 2 begins the recursive factorization of the even half and rotates the central odd pairs by pi/4.
+            // Stage 2 adds and subtracts the mirrored pairs of the even half and rotates the central odd pairs by pi/4.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<short>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
@@ -262,7 +262,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 3 reduces both eight-value groups into the four-value units consumed by the terminal rotations.
+            // Stage 3 adds and subtracts the first four even terms, rotates even terms 5 and 6 by pi/4, and combines the odd terms.
             for (int i = 0; i < 2; i++)
             {
                 Av1ForwardTransformArithmetic<short>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
@@ -284,7 +284,7 @@ internal static partial class Av1ForwardTransformer
                 Av1ForwardTransformArithmetic<short>.AddSubtract(buffer0[15 - i], buffer1[12 + i], out buffer0[15 - i], out buffer0[12 + i]);
             }
 
-            // The even coefficients become final at stages 4 and 5, so they are written directly to their AV1 order.
+            // Stages 4 and 5 complete the even outputs and prepare the odd terms. Each even result takes the name of its output index.
             Av1ForwardTransformArithmetic<short>.Butterfly(
                 cospi[32],
                 cospi[32],
@@ -352,8 +352,8 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<short>.AddSubtract(buffer0[12], buffer1[13], out buffer0[12], out buffer0[13]);
             Av1ForwardTransformArithmetic<short>.AddSubtract(buffer0[15], buffer1[14], out buffer0[15], out buffer0[14]);
 
-            // Stage 6 applies the final pi/32 odd-frequency rotations. The following stores perform only the normative
-            // coefficient permutation, so each rotation result is named by its final destination.
+            // Stage 6 applies the final odd-frequency rotations in multiples of pi/32. Each result takes the name of its output index.
+            // Thus the ordered stores below apply the output permutation.
             Av1ForwardTransformArithmetic<short>.Butterfly(
                 cospi[4],
                 cospi[60],
@@ -424,7 +424,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector128<short>>.CreateRounding(cosBit);
 
-            // Stage 1 forms the mirror-symmetric pairs consumed by the recursive even and odd factorizations.
+            // Stage 1 adds and subtracts the mirrored input pairs. The sums feed the even half and the differences feed the odd half.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(
@@ -434,7 +434,7 @@ internal static partial class Av1ForwardTransformer
                     out buffer0[15 - i]);
             }
 
-            // Stage 2 begins the recursive factorization of the even half and rotates the central odd pairs by pi/4.
+            // Stage 2 adds and subtracts the mirrored pairs of the even half and rotates the central odd pairs by pi/4.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
@@ -460,7 +460,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 3 reduces both eight-value groups into the four-value units consumed by the terminal rotations.
+            // Stage 3 adds and subtracts the first four even terms, rotates even terms 5 and 6 by pi/4, and combines the odd terms.
             for (int i = 0; i < 2; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
@@ -482,7 +482,7 @@ internal static partial class Av1ForwardTransformer
                 Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer0[15 - i], buffer1[12 + i], out buffer0[15 - i], out buffer0[12 + i]);
             }
 
-            // The even coefficients become final at stages 4 and 5, so they are written directly to their AV1 order.
+            // Stages 4 and 5 complete the even outputs and prepare the odd terms. Each even result takes the name of its output index.
             Av1ForwardTransformArithmetic<Vector128<short>>.Butterfly(
                 cospi[32],
                 cospi[32],
@@ -550,8 +550,8 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer0[12], buffer1[13], out buffer0[12], out buffer0[13]);
             Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer0[15], buffer1[14], out buffer0[15], out buffer0[14]);
 
-            // Stage 6 applies the final pi/32 odd-frequency rotations. The following stores perform only the normative
-            // coefficient permutation, so each rotation result is named by its final destination.
+            // Stage 6 applies the final odd-frequency rotations in multiples of pi/32. Each result takes the name of its output index.
+            // Thus the ordered stores below apply the output permutation.
             Av1ForwardTransformArithmetic<Vector128<short>>.Butterfly(
                 cospi[4],
                 cospi[60],
@@ -622,7 +622,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector256<short>>.CreateRounding(cosBit);
 
-            // Stage 1 forms the mirror-symmetric pairs consumed by the recursive even and odd factorizations.
+            // Stage 1 adds and subtracts the mirrored input pairs. The sums feed the even half and the differences feed the odd half.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(
@@ -632,7 +632,7 @@ internal static partial class Av1ForwardTransformer
                     out buffer0[15 - i]);
             }
 
-            // Stage 2 begins the recursive factorization of the even half and rotates the central odd pairs by pi/4.
+            // Stage 2 adds and subtracts the mirrored pairs of the even half and rotates the central odd pairs by pi/4.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
@@ -658,7 +658,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 3 reduces both eight-value groups into the four-value units consumed by the terminal rotations.
+            // Stage 3 adds and subtracts the first four even terms, rotates even terms 5 and 6 by pi/4, and combines the odd terms.
             for (int i = 0; i < 2; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
@@ -680,7 +680,7 @@ internal static partial class Av1ForwardTransformer
                 Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer0[15 - i], buffer1[12 + i], out buffer0[15 - i], out buffer0[12 + i]);
             }
 
-            // The even coefficients become final at stages 4 and 5, so they are written directly to their AV1 order.
+            // Stages 4 and 5 complete the even outputs and prepare the odd terms. Each even result takes the name of its output index.
             Av1ForwardTransformArithmetic<Vector256<short>>.Butterfly(
                 cospi[32],
                 cospi[32],
@@ -748,8 +748,8 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer0[12], buffer1[13], out buffer0[12], out buffer0[13]);
             Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer0[15], buffer1[14], out buffer0[15], out buffer0[14]);
 
-            // Stage 6 applies the final pi/32 odd-frequency rotations. The following stores perform only the normative
-            // coefficient permutation, so each rotation result is named by its final destination.
+            // Stage 6 applies the final odd-frequency rotations in multiples of pi/32. Each result takes the name of its output index.
+            // Thus the ordered stores below apply the output permutation.
             Av1ForwardTransformArithmetic<Vector256<short>>.Butterfly(
                 cospi[4],
                 cospi[60],
@@ -820,7 +820,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector512<short>>.CreateRounding(cosBit);
 
-            // Stage 1 forms the mirror-symmetric pairs consumed by the recursive even and odd factorizations.
+            // Stage 1 adds and subtracts the mirrored input pairs. The sums feed the even half and the differences feed the odd half.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(
@@ -830,7 +830,7 @@ internal static partial class Av1ForwardTransformer
                     out buffer0[15 - i]);
             }
 
-            // Stage 2 begins the recursive factorization of the even half and rotates the central odd pairs by pi/4.
+            // Stage 2 adds and subtracts the mirrored pairs of the even half and rotates the central odd pairs by pi/4.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
@@ -856,7 +856,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 3 reduces both eight-value groups into the four-value units consumed by the terminal rotations.
+            // Stage 3 adds and subtracts the first four even terms, rotates even terms 5 and 6 by pi/4, and combines the odd terms.
             for (int i = 0; i < 2; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
@@ -878,7 +878,7 @@ internal static partial class Av1ForwardTransformer
                 Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer0[15 - i], buffer1[12 + i], out buffer0[15 - i], out buffer0[12 + i]);
             }
 
-            // The even coefficients become final at stages 4 and 5, so they are written directly to their AV1 order.
+            // Stages 4 and 5 complete the even outputs and prepare the odd terms. Each even result takes the name of its output index.
             Av1ForwardTransformArithmetic<Vector512<short>>.Butterfly(
                 cospi[32],
                 cospi[32],
@@ -946,8 +946,8 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer0[12], buffer1[13], out buffer0[12], out buffer0[13]);
             Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer0[15], buffer1[14], out buffer0[15], out buffer0[14]);
 
-            // Stage 6 applies the final pi/32 odd-frequency rotations. The following stores perform only the normative
-            // coefficient permutation, so each rotation result is named by its final destination.
+            // Stage 6 applies the final odd-frequency rotations in multiples of pi/32. Each result takes the name of its output index.
+            // Thus the ordered stores below apply the output permutation.
             Av1ForwardTransformArithmetic<Vector512<short>>.Butterfly(
                 cospi[4],
                 cospi[60],
@@ -1018,7 +1018,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector128<int>>.CreateRounding(cosBit);
 
-            // Stage 1 forms the mirror-symmetric pairs consumed by the recursive even and odd factorizations.
+            // Stage 1 adds and subtracts the mirrored input pairs. The sums feed the even half and the differences feed the odd half.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(
@@ -1028,7 +1028,7 @@ internal static partial class Av1ForwardTransformer
                     out buffer0[15 - i]);
             }
 
-            // Stage 2 begins the recursive factorization of the even half and rotates the central odd pairs by pi/4.
+            // Stage 2 adds and subtracts the mirrored pairs of the even half and rotates the central odd pairs by pi/4.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
@@ -1054,7 +1054,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 3 reduces both eight-value groups into the four-value units consumed by the terminal rotations.
+            // Stage 3 adds and subtracts the first four even terms, rotates even terms 5 and 6 by pi/4, and combines the odd terms.
             for (int i = 0; i < 2; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
@@ -1076,7 +1076,7 @@ internal static partial class Av1ForwardTransformer
                 Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer0[15 - i], buffer1[12 + i], out buffer0[15 - i], out buffer0[12 + i]);
             }
 
-            // The even coefficients become final at stages 4 and 5, so they are written directly to their AV1 order.
+            // Stages 4 and 5 complete the even outputs and prepare the odd terms. Each even result takes the name of its output index.
             Av1ForwardTransformArithmetic<Vector128<int>>.Butterfly(
                 cospi[32],
                 cospi[32],
@@ -1144,8 +1144,8 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer0[12], buffer1[13], out buffer0[12], out buffer0[13]);
             Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer0[15], buffer1[14], out buffer0[15], out buffer0[14]);
 
-            // Stage 6 applies the final pi/32 odd-frequency rotations. The following stores perform only the normative
-            // coefficient permutation, so each rotation result is named by its final destination.
+            // Stage 6 applies the final odd-frequency rotations in multiples of pi/32. Each result takes the name of its output index.
+            // Thus the ordered stores below apply the output permutation.
             Av1ForwardTransformArithmetic<Vector128<int>>.Butterfly(
                 cospi[4],
                 cospi[60],
@@ -1216,7 +1216,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector256<int>>.CreateRounding(cosBit);
 
-            // Stage 1 forms the mirror-symmetric pairs consumed by the recursive even and odd factorizations.
+            // Stage 1 adds and subtracts the mirrored input pairs. The sums feed the even half and the differences feed the odd half.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(
@@ -1226,7 +1226,7 @@ internal static partial class Av1ForwardTransformer
                     out buffer0[15 - i]);
             }
 
-            // Stage 2 begins the recursive factorization of the even half and rotates the central odd pairs by pi/4.
+            // Stage 2 adds and subtracts the mirrored pairs of the even half and rotates the central odd pairs by pi/4.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
@@ -1252,7 +1252,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 3 reduces both eight-value groups into the four-value units consumed by the terminal rotations.
+            // Stage 3 adds and subtracts the first four even terms, rotates even terms 5 and 6 by pi/4, and combines the odd terms.
             for (int i = 0; i < 2; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
@@ -1274,7 +1274,7 @@ internal static partial class Av1ForwardTransformer
                 Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer0[15 - i], buffer1[12 + i], out buffer0[15 - i], out buffer0[12 + i]);
             }
 
-            // The even coefficients become final at stages 4 and 5, so they are written directly to their AV1 order.
+            // Stages 4 and 5 complete the even outputs and prepare the odd terms. Each even result takes the name of its output index.
             Av1ForwardTransformArithmetic<Vector256<int>>.Butterfly(
                 cospi[32],
                 cospi[32],
@@ -1342,8 +1342,8 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer0[12], buffer1[13], out buffer0[12], out buffer0[13]);
             Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer0[15], buffer1[14], out buffer0[15], out buffer0[14]);
 
-            // Stage 6 applies the final pi/32 odd-frequency rotations. The following stores perform only the normative
-            // coefficient permutation, so each rotation result is named by its final destination.
+            // Stage 6 applies the final odd-frequency rotations in multiples of pi/32. Each result takes the name of its output index.
+            // Thus the ordered stores below apply the output permutation.
             Av1ForwardTransformArithmetic<Vector256<int>>.Butterfly(
                 cospi[4],
                 cospi[60],
@@ -1414,7 +1414,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector512<int>>.CreateRounding(cosBit);
 
-            // Stage 1 forms the mirror-symmetric pairs consumed by the recursive even and odd factorizations.
+            // Stage 1 adds and subtracts the mirrored input pairs. The sums feed the even half and the differences feed the odd half.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(
@@ -1424,7 +1424,7 @@ internal static partial class Av1ForwardTransformer
                     out buffer0[15 - i]);
             }
 
-            // Stage 2 begins the recursive factorization of the even half and rotates the central odd pairs by pi/4.
+            // Stage 2 adds and subtracts the mirrored pairs of the even half and rotates the central odd pairs by pi/4.
             for (int i = 0; i < 4; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
@@ -1450,7 +1450,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 3 reduces both eight-value groups into the four-value units consumed by the terminal rotations.
+            // Stage 3 adds and subtracts the first four even terms, rotates even terms 5 and 6 by pi/4, and combines the odd terms.
             for (int i = 0; i < 2; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
@@ -1472,7 +1472,7 @@ internal static partial class Av1ForwardTransformer
                 Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer0[15 - i], buffer1[12 + i], out buffer0[15 - i], out buffer0[12 + i]);
             }
 
-            // The even coefficients become final at stages 4 and 5, so they are written directly to their AV1 order.
+            // Stages 4 and 5 complete the even outputs and prepare the odd terms. Each even result takes the name of its output index.
             Av1ForwardTransformArithmetic<Vector512<int>>.Butterfly(
                 cospi[32],
                 cospi[32],
@@ -1540,8 +1540,8 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer0[12], buffer1[13], out buffer0[12], out buffer0[13]);
             Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer0[15], buffer1[14], out buffer0[15], out buffer0[14]);
 
-            // Stage 6 applies the final pi/32 odd-frequency rotations. The following stores perform only the normative
-            // coefficient permutation, so each rotation result is named by its final destination.
+            // Stage 6 applies the final odd-frequency rotations in multiples of pi/32. Each result takes the name of its output index.
+            // Thus the ordered stores below apply the output permutation.
             Av1ForwardTransformArithmetic<Vector512<int>>.Butterfly(
                 cospi[4],
                 cospi[60],

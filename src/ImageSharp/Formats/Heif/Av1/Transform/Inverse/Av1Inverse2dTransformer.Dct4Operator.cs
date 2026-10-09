@@ -9,8 +9,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// Defines the four-point AV1 inverse discrete cosine transform operator.
 /// </summary>
 /// <remarks>
-/// Vector fields represent transform positions and vector lanes represent independent axes. The SIMD overloads apply
-/// the same staged butterflies, fixed-point rounding, and range clamps as the scalar overload without mixing axes.
+/// Vector fields represent transform positions. Vector lanes represent independent axes. The SIMD overloads apply the same staged butterflies, fixed-point
+/// rounding, and range clamps as the scalar overload. They never mix axes.
 /// </remarks>
 internal static partial class Av1Inverse2dTransformer
 {
@@ -29,7 +29,7 @@ internal static partial class Av1Inverse2dTransformer
         /// <param name="stageRange">The signed-bit range assigned to each transform stage.</param>
         public static void Transform(ReadOnlySpan<int> input, Span<int> output, Span<int> step, int cosBit, InlineArray12<byte> stageRange)
         {
-            // AV1 stores coefficients in frequency order; this permutation restores the order expected by the staged DCT.
+            // AV1 stores coefficients in frequency order. This permutation restores the input order of the staged DCT.
             output[0] = input[0];
             output[1] = input[2];
             output[2] = input[1];
@@ -58,7 +58,7 @@ internal static partial class Av1Inverse2dTransformer
             int cosBit,
             InlineArray12<byte> stageRange)
         {
-            // AV1 stores coefficients in frequency order; this permutation restores the order expected by the staged DCT.
+            // AV1 stores coefficients in frequency order. This permutation restores the input order of the staged DCT.
             output.V0 = input.V0;
             output.V1 = input.V2;
             output.V2 = input.V1;
@@ -94,7 +94,7 @@ internal static partial class Av1Inverse2dTransformer
             int cosBit,
             InlineArray12<byte> stageRange)
         {
-            // AV1 stores coefficients in frequency order; this permutation restores the order expected by the staged DCT.
+            // AV1 stores coefficients in frequency order. This permutation restores the input order of the staged DCT.
             output.V0 = input.V0;
             output.V1 = input.V2;
             output.V2 = input.V1;

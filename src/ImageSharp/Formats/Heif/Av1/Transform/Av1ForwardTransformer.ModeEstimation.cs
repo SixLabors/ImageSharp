@@ -14,17 +14,17 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 internal static partial class Av1ForwardTransformer
 {
     /// <summary>
-    /// The Q14 cosine of pi/4, cospi_16_64.
+    /// The Q14 cosine of pi/4.
     /// </summary>
     private const short Cosine16 = 11585;
 
     /// <summary>
-    /// The Q14 cosine of pi/8, cospi_8_64.
+    /// The Q14 cosine of pi/8.
     /// </summary>
     private const short Cosine8 = 15137;
 
     /// <summary>
-    /// The Q14 cosine of 3pi/8, cospi_24_64.
+    /// The Q14 cosine of 3pi/8.
     /// </summary>
     private const short Cosine24 = 6270;
 
@@ -35,7 +35,7 @@ internal static partial class Av1ForwardTransformer
     /// <param name="stride">The residual row stride.</param>
     /// <param name="size">The square transform width, four, eight or sixteen.</param>
     /// <param name="coefficients">The transformed coefficient destination.</param>
-    /// <param name="workspace">The transform scratch.</param>
+    /// <param name="workspace">The intermediate buffer of the transform.</param>
     /// <param name="highBitDepth">Whether coefficients use the high-bit-depth estimation layout.</param>
     public static void TransformForModeEstimation(
         ReadOnlySpan<short> residual,
@@ -47,16 +47,15 @@ internal static partial class Av1ForwardTransformer
         => TransformRowForModeEstimation(residual, stride, size, 1, coefficients, workspace, highBitDepth);
 
     /// <summary>
-    /// Transforms a row of horizontally adjacent square residual blocks for intra mode cost estimation.
-    /// Reference: the transform stage of av1_block_yrd(): aom_fdct4x4_lp() or aom_fdct4x4() for 4x4,
-    /// aom_hadamard_lp_8x8_dual() or aom_hadamard_lp_8x8() for 8x8, and aom_hadamard_lp_16x16() for 16x16.
+    /// Transforms a row of horizontally adjacent square residual blocks for intra mode cost estimation. A 4x4 block uses the forward DCT. An 8x8 or a 16x16
+    /// block uses the sixteen-bit Hadamard transform.
     /// </summary>
     /// <param name="residual">The first block's top-left residual sample.</param>
     /// <param name="stride">The residual row stride.</param>
     /// <param name="size">The square transform width, four, eight or sixteen.</param>
     /// <param name="blockCount">The number of adjacent blocks.</param>
     /// <param name="coefficients">Receives each block's coefficients, one block after another.</param>
-    /// <param name="workspace">The transform scratch.</param>
+    /// <param name="workspace">The intermediate buffer of the transform.</param>
     /// <param name="highBitDepth">Whether coefficients use the high-bit-depth estimation layout.</param>
     public static void TransformRowForModeEstimation(
         ReadOnlySpan<short> residual,
@@ -75,8 +74,7 @@ internal static partial class Av1ForwardTransformer
             return;
         }
 
-        // The Hadamard transforms keep sixteen-bit lanes throughout, as aom_hadamard_lp_8x8 does, and each
-        // 128-bit lane holds one eight-by-eight block.
+        // The Hadamard transforms keep sixteen-bit lanes throughout. Each 128-bit lane holds one eight-by-eight block.
         int blockLength = size * size;
         Span<short> packed = MemoryMarshal.Cast<int, short>(workspace[..((blockCount * blockLength) / 2)]);
         ref short packedBase = ref MemoryMarshal.GetReference(packed);
@@ -91,8 +89,7 @@ internal static partial class Av1ForwardTransformer
                 ref short blockResidual = ref Unsafe.Add(ref residualBase, block * 16);
                 ref short blockCoefficients = ref Unsafe.Add(ref packedBase, block * blockLength);
 
-                // A 16x16 block is four eight-by-eight blocks in quadrant order: two per 256-bit vector, as
-                // aom_hadamard_lp_8x8_dual_avx2 lays them out, or all four per 512-bit vector.
+                // A 16x16 block is four eight-by-eight blocks in quadrant order: two per 256-bit vector, or all four per 512-bit vector.
                 if (Vector512.IsHardwareAccelerated)
                 {
                     HadamardQuadrants(ref blockResidual, stride, ref blockCoefficients);
@@ -111,16 +108,15 @@ internal static partial class Av1ForwardTransformer
                     }
                 }
 
-                // Four eight-by-eight transforms are combined in quadrant order. Arithmetic shifts halve the
-                // paired coefficients before the final sum to preserve the estimation scale. Every sum stays in a
-                // sixteen-bit lane, so a high-bit-depth residual wraps before the shift and again after the final
-                // sum, as the reference x64 encoder computes it. Reference: aom_hadamard_lp_16x16_avx2().
+                // The four eight-by-eight transforms combine in quadrant order. Arithmetic shifts halve the paired coefficients before the final sum, which
+                // keeps the estimation scale. Every sum stays in a sixteen-bit lane. Thus a high-bit-depth residual wraps before the shift and again after the
+                // final sum, as in x64 builds of other AV1 encoders.
                 CombineHadamardQuadrants(ref blockCoefficients);
             }
         }
 
-        // The high-bit-depth 16x16 scan addresses the middle four lanes of each sixteen-value group in exchanged
-        // order. Every other layout keeps its coefficient order.
+        // Each pass widens sixteen packed values. The high-bit-depth 16x16 layout exchanges the two middle groups of four values, positions 4 to 7 and 8 to 11.
+        // Every other layout keeps its coefficient order.
         bool exchangeMiddle = size == 16 && highBitDepth;
         nuint length = (nuint)(blockCount * blockLength);
         for (nuint i = 0; i < length; i += 16)
@@ -143,8 +139,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Transforms a row of eight-by-eight blocks, widest first: four per 512-bit vector, two per 256-bit vector as
-    /// aom_hadamard_lp_8x8_dual_avx2() does, then one per 128-bit vector.
+    /// Transforms a row of eight-by-eight blocks, widest first: four per 512-bit vector, two per 256-bit vector, then one per 128-bit vector.
     /// </summary>
     /// <param name="residual">The first block's top-left residual sample.</param>
     /// <param name="stride">The residual row stride.</param>
@@ -184,7 +179,7 @@ internal static partial class Av1ForwardTransformer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void HadamardRowOfFour(ref short residual, int stride, ref short coefficients)
     {
-        // The rows are taken as a span once, outside the loop, rather than through the inline array indexer.
+        // The loop writes the rows through a span taken once, outside the loop, and not through the inline array indexer.
         InlineArray8<Vector512<short>> rows = default;
         Span<Vector512<short>> rowSpan = rows;
         for (int row = 0; row < 8; row++)
@@ -244,8 +239,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Applies the 4x4 forward DCT to a row of blocks, widest first: four blocks per 512-bit vector, two per
-    /// 256-bit vector, then one per 128-bit vector.
+    /// Applies the 4x4 forward DCT to a row of blocks, widest first: four blocks per 512-bit vector, two per 256-bit vector, then one per 128-bit vector.
     /// </summary>
     /// <param name="residual">The first block's top-left residual sample.</param>
     /// <param name="stride">The residual row stride.</param>
@@ -323,7 +317,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Loads two four-sample residual rows into one 128-bit vector, as the aom_fdct4x4 helper arranges them.
+    /// Loads two four-sample residual rows into one 128-bit vector. The DCT pairs rows 0 and 3 and rows 1 and 2 in this way.
     /// </summary>
     /// <param name="residual">The block's top-left residual sample.</param>
     /// <param name="stride">The residual row stride.</param>
@@ -349,9 +343,8 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Applies the 4x4 forward DCT of one block. The arithmetic is the sixteen-bit x86 form, with wrapping adds and
-    /// saturating packs, so high-bit-depth residuals give the reference x64 results. Reference: fdct4x4_helper() in
-    /// aom_fdct4x4_sse2() and aom_fdct4x4_lp_sse2().
+    /// Applies the 4x4 forward DCT of one block. The arithmetic is the sixteen-bit x86 form, with wrapping adds and saturating packs. Thus high-bit-depth
+    /// residuals give the same results as x64 builds of other AV1 encoders.
     /// </summary>
     /// <param name="upper">Rows 0 and 3, replaced by coefficients 0 to 7.</param>
     /// <param name="lower">Rows 1 and 2, replaced by coefficients 8 to 15.</param>
@@ -360,8 +353,8 @@ internal static partial class Av1ForwardTransformer
         Vector128<short> in0 = upper << 4;
         Vector128<short> in1 = lower << 4;
 
-        // Add one to the top-left sample when it is not zero. Only that lane can equal the zero of the comparison
-        // pattern, because every other lane is compared with one and a value shifted left by four is never one.
+        // This adds one to the top-left sample when it is not zero. Only that lane can equal the zero of the comparison pattern. Every other lane is compared
+        // with one, and a value shifted left by four is never one.
         Vector128<short> mask = Vector128.Equals(in0, Vector128.Create((short)0, 1, 1, 1, 1, 1, 1, 1));
         in0 += mask + Vector128.Create((short)1, 0, 0, 0, 0, 0, 0, 0);
 
@@ -380,7 +373,7 @@ internal static partial class Av1ForwardTransformer
         in0 = Vector128.Shuffle(Vector128_.PackSignedSaturate(w0, w1).AsInt32(), Vector128.Create(0, 2, 1, 3)).AsInt16();
         in1 = Vector128.Shuffle(Vector128_.PackSignedSaturate(w2, w3).AsInt32(), Vector128.Create(1, 3, 0, 2)).AsInt16();
 
-        // Stage 3 and 4: the horizontal butterflies and multiplies. The rounding folds in the final (v + 1) >> 2.
+        // Stages 3 and 4: the horizontal butterflies and multiplies. The rounding folds in the final (v + 1) >> 2.
         t0 = in0 + in1;
         t1 = in0 - in1;
         Vector128<int> rounding2 = Vector128.Create(8192 + 16384);
@@ -399,6 +392,7 @@ internal static partial class Av1ForwardTransformer
     /// <param name="lower">Rows 1 and 2 of each block, replaced by coefficients 8 to 15.</param>
     private static void ForwardDct4x4(ref Vector256<short> upper, ref Vector256<short> lower)
     {
+        // The stages match the 128-bit form. Each constant pattern and shuffle repeats in both 128-bit lanes, so each lane computes one block.
         Vector256<short> in0 = upper << 4;
         Vector256<short> in1 = lower << 4;
         Vector128<short> biasA = Vector128.Create((short)0, 1, 1, 1, 1, 1, 1, 1);
@@ -437,6 +431,7 @@ internal static partial class Av1ForwardTransformer
     /// <param name="lower">Rows 1 and 2 of each block, replaced by coefficients 8 to 15.</param>
     private static void ForwardDct4x4(ref Vector512<short> upper, ref Vector512<short> lower)
     {
+        // The stages match the 128-bit form. Each constant pattern and shuffle repeats in all four 128-bit lanes, so each lane computes one block.
         Vector512<short> in0 = upper << 4;
         Vector512<short> in1 = lower << 4;
         Vector512<short> mask = Vector512.Equals(in0, Repeat(Repeat(Vector128.Create((short)0, 1, 1, 1, 1, 1, 1, 1))));
@@ -485,7 +480,6 @@ internal static partial class Av1ForwardTransformer
 
     /// <summary>
     /// Combines the four eight-by-eight Hadamard quadrants of a 16x16 block in place with sixteen-bit wrapping.
-    /// Reference: the combine loop of aom_hadamard_lp_16x16_avx2().
     /// </summary>
     /// <param name="packed">The four 64-coefficient quadrants in quadrant order.</param>
     private static void CombineHadamardQuadrants(ref short packed)
@@ -548,7 +542,6 @@ internal static partial class Av1ForwardTransformer
 
     /// <summary>
     /// Transforms one eight-by-eight block with sixteen-bit Hadamard butterflies.
-    /// Reference: aom_hadamard_lp_8x8_sse2().
     /// </summary>
     /// <param name="residual">The block's top-left residual sample.</param>
     /// <param name="stride">The residual row stride.</param>
@@ -557,7 +550,7 @@ internal static partial class Av1ForwardTransformer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void HadamardBlocks(ref short residual, int stride, ref short coefficients, Vector128<short> width)
     {
-        // The rows are taken as a span once, outside the loops, rather than through the inline array indexer.
+        // The loops access the rows through a span taken once, outside the loops, and not through the inline array indexer.
         InlineArray8<Vector128<short>> rows = default;
         Span<Vector128<short>> rowSpan = rows;
         for (int row = 0; row < 8; row++)
@@ -576,7 +569,6 @@ internal static partial class Av1ForwardTransformer
 
     /// <summary>
     /// Transforms two horizontally adjacent eight-by-eight blocks, one per 128-bit lane.
-    /// Reference: aom_hadamard_lp_8x8_dual_avx2().
     /// </summary>
     /// <param name="residual">The left block's top-left residual sample.</param>
     /// <param name="stride">The residual row stride.</param>
@@ -585,7 +577,7 @@ internal static partial class Av1ForwardTransformer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void HadamardBlocks(ref short residual, int stride, ref short coefficients, Vector256<short> width)
     {
-        // The rows are taken as a span once, outside the loops, rather than through the inline array indexer.
+        // The loops access the rows through a span taken once, outside the loops, and not through the inline array indexer.
         InlineArray8<Vector256<short>> rows = default;
         Span<Vector256<short>> rowSpan = rows;
         for (int row = 0; row < 8; row++)
@@ -604,8 +596,8 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Applies the three butterfly stages to eight columns per 128-bit lane and writes the rows in the order
-    /// hadamard_col8_sse2() produces them.
+    /// Applies the three butterfly stages to eight columns per 128-bit lane. The final sums c0+c4, c1+c5, c2+c6 and c3+c7 go to rows 0, 7, 3 and 4. The final
+    /// differences c0-c4, c1-c5, c2-c6 and c3-c7 go to rows 2, 6, 1 and 5. This order sets the coefficient layout of the estimation.
     /// </summary>
     /// <param name="rows">The eight rows, replaced by the transformed rows.</param>
     private static void HadamardColumns(ref InlineArray8<Vector128<short>> rows)
@@ -637,8 +629,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Applies the three butterfly stages to eight columns per 128-bit lane and writes the rows in the order
-    /// hadamard_col8x2_avx2() produces them.
+    /// Applies the three butterfly stages to eight columns per 128-bit lane and writes the rows in the order of the 128-bit form.
     /// </summary>
     /// <param name="rows">The eight rows, replaced by the transformed rows.</param>
     private static void HadamardColumns(ref InlineArray8<Vector256<short>> rows)
@@ -670,8 +661,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Applies the three butterfly stages to eight columns per 128-bit lane and writes the rows in the order the
-    /// narrower forms produce them.
+    /// Applies the three butterfly stages to eight columns per 128-bit lane and writes the rows in the order the narrower forms produce them.
     /// </summary>
     /// <param name="rows">The eight rows, replaced by the transformed rows.</param>
     private static void HadamardColumns(ref InlineArray8<Vector512<short>> rows)
@@ -708,6 +698,7 @@ internal static partial class Av1ForwardTransformer
     /// <param name="rows">The eight rows, replaced by the transposed rows.</param>
     private static void TransposeLanes(ref InlineArray8<Vector128<short>> rows)
     {
+        // Three unpack rounds interleave 16-bit values of row pairs, then 32-bit pairs, then 64-bit quads. After the last round, row k holds column k.
         Vector128<int> pair0 = Vector128_.UnpackLow(rows[0], rows[1]).AsInt32();
         Vector128<int> pair1 = Vector128_.UnpackHigh(rows[0], rows[1]).AsInt32();
         Vector128<int> pair2 = Vector128_.UnpackLow(rows[2], rows[3]).AsInt32();

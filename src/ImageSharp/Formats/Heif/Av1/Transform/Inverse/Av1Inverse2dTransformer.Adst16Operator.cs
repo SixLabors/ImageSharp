@@ -9,8 +9,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// Defines the 16-point AV1 inverse asymmetric discrete sine transform operator.
 /// </summary>
 /// <remarks>
-/// Vector fields represent transform positions and vector lanes represent independent axes. The SIMD overloads apply
-/// the same staged rotations, fixed-point rounding, and range clamps as the scalar overload without mixing axes.
+/// Vector fields represent transform positions. Vector lanes represent independent axes. The SIMD overloads apply the same staged rotations, fixed-point
+/// rounding, and range clamps as the scalar overload. They never mix axes.
 /// </remarks>
 internal static partial class Av1Inverse2dTransformer
 {
@@ -89,7 +89,7 @@ internal static partial class Av1Inverse2dTransformer
             output[14] = Av1Transform1dMath.Clamp(step[6] - step[14], stageRange[stage]);
             output[15] = Av1Transform1dMath.Clamp(step[7] - step[15], stageRange[stage]);
 
-            // Stage 4 reverses the pi/16 rotations in the upper half.
+            // Stage 4 reverses the rotations by odd multiples of pi/16 in the upper half.
             stage++;
             step[0] = output[0];
             step[1] = output[1];
@@ -270,7 +270,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V14 = Av1Transform1dMath.Clamp(step.V6 - step.V14, stageRange[stage]);
             output.V15 = Av1Transform1dMath.Clamp(step.V7 - step.V15, stageRange[stage]);
 
-            // Stage 4 reverses the pi/16 rotations in the upper half.
+            // Stage 4 reverses the rotations by odd multiples of pi/16 in the upper half.
             stage++;
             step.V0 = output.V0;
             step.V1 = output.V1;
@@ -458,7 +458,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V14 = Av1Transform1dMath.Clamp(step.V6 - step.V14, stageRange[stage]);
             output.V15 = Av1Transform1dMath.Clamp(step.V7 - step.V15, stageRange[stage]);
 
-            // Stage 4 reverses the pi/16 rotations in the upper half.
+            // Stage 4 reverses the rotations by odd multiples of pi/16 in the upper half.
             stage++;
             step.V0 = output.V0;
             step.V1 = output.V1;

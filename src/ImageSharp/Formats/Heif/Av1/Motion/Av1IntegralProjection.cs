@@ -9,8 +9,7 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 
 /// <summary>
-/// Builds and compares the integral projections of eight-bit blocks with the arithmetic of an
-/// <see cref="IIntegralProjectionOperator"/>.
+/// Builds and compares the integral projections of eight-bit blocks with the arithmetic of an <see cref="IIntegralProjectionOperator"/>.
 /// </summary>
 /// <remarks>
 /// Each traversal walks the widest available register first and finishes in the scalar overload.
@@ -18,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 internal static partial class Av1IntegralProjection
 {
     /// <summary>
-    /// Sums each column of a block and normalizes the sums. Reference: aom_int_pro_row.
+    /// Sums each column of a block and normalizes the sums.
     /// </summary>
     /// <param name="destination">Receives one normalized sum per column.</param>
     /// <param name="samples">The samples at the block origin.</param>
@@ -30,7 +29,7 @@ internal static partial class Av1IntegralProjection
         => ProjectColumns<IntegralProjectionOperator>(destination, samples, stride, width, height, shift);
 
     /// <summary>
-    /// Sums each row of a block and normalizes the sums. Reference: aom_int_pro_col.
+    /// Sums each row of a block and normalizes the sums.
     /// </summary>
     /// <param name="destination">Receives one normalized sum per row.</param>
     /// <param name="samples">The samples at the block origin.</param>
@@ -42,11 +41,10 @@ internal static partial class Av1IntegralProjection
         => ProjectRows<IntegralProjectionOperator>(destination, samples, stride, width, height, shift);
 
     /// <summary>
-    /// Returns the squared error of two projections with the mean of their difference removed. Reference:
-    /// aom_vector_var.
+    /// Returns the squared error of two projections with the mean of their difference removed.
     /// </summary>
     /// <param name="reference">The reference projection, at least as long as the source projection.</param>
-    /// <param name="source">The source projection; its length is a power of two.</param>
+    /// <param name="source">The source projection. Its length is a power of two.</param>
     /// <returns>The centered squared error.</returns>
     public static int GetVariance(ReadOnlySpan<short> reference, ReadOnlySpan<short> source)
         => GetVariance<IntegralProjectionOperator>(reference, source);
@@ -54,6 +52,13 @@ internal static partial class Av1IntegralProjection
     /// <summary>
     /// Traverses <see cref="ProjectColumns(Span{short}, ReadOnlySpan{byte}, int, int, int, int)"/> at descending register widths.
     /// </summary>
+    /// <typeparam name="TOperator">The projection arithmetic.</typeparam>
+    /// <param name="destination">Receives one normalized sum per column.</param>
+    /// <param name="samples">The samples at the block origin.</param>
+    /// <param name="stride">The sample row stride.</param>
+    /// <param name="width">The number of columns.</param>
+    /// <param name="height">The number of rows, at most 128.</param>
+    /// <param name="shift">The normalization shift.</param>
     private static void ProjectColumns<TOperator>(Span<short> destination, ReadOnlySpan<byte> samples, int stride, int width, int height, int shift)
         where TOperator : struct, IIntegralProjectionOperator
     {
@@ -117,6 +122,13 @@ internal static partial class Av1IntegralProjection
     /// <summary>
     /// Traverses <see cref="ProjectRows(Span{short}, ReadOnlySpan{byte}, int, int, int, int)"/> at descending register widths.
     /// </summary>
+    /// <typeparam name="TOperator">The projection arithmetic.</typeparam>
+    /// <param name="destination">Receives one normalized sum per row.</param>
+    /// <param name="samples">The samples at the block origin.</param>
+    /// <param name="stride">The sample row stride.</param>
+    /// <param name="width">The number of columns, at most 128.</param>
+    /// <param name="height">The number of rows.</param>
+    /// <param name="shift">The normalization shift.</param>
     private static void ProjectRows<TOperator>(Span<short> destination, ReadOnlySpan<byte> samples, int stride, int width, int height, int shift)
         where TOperator : struct, IIntegralProjectionOperator
     {
@@ -170,6 +182,10 @@ internal static partial class Av1IntegralProjection
     /// <summary>
     /// Traverses <see cref="GetVariance(ReadOnlySpan{short}, ReadOnlySpan{short})"/> at descending register widths.
     /// </summary>
+    /// <typeparam name="TOperator">The projection arithmetic.</typeparam>
+    /// <param name="reference">The reference projection, at least as long as the source projection.</param>
+    /// <param name="source">The source projection. Its length is a power of two.</param>
+    /// <returns>The centered squared error.</returns>
     private static int GetVariance<TOperator>(ReadOnlySpan<short> reference, ReadOnlySpan<short> source)
         where TOperator : struct, IIntegralProjectionOperator
     {
@@ -224,8 +240,7 @@ internal static partial class Av1IntegralProjection
         sum += Vector128.Sum(sum128);
         squares += Vector128.Sum(squares128);
 
-        // A 128-value projection can need all 32 bits for its squared mean, so the square is formed from the
-        // magnitude in unsigned arithmetic, as aom_vector_var does.
+        // The squared sum of a 128-value projection can need all 32 bits. Thus the code squares the magnitude in unsigned arithmetic.
         uint magnitude = (uint)Math.Abs(sum);
         return squares - (int)((magnitude * magnitude) >> BitOperations.Log2((uint)length));
     }

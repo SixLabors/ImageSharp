@@ -14,8 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 internal static partial class Av1InterIntraMaskBuilder
 {
     /// <summary>
-    /// Gets the reference decoder's inter-intra alpha curve sampled every fourth entry, the weights of a
-    /// 32-sample block. Reference: ii_weights1d[] at ii_size_scales[] of 4.
+    /// Gets the AV1 inter-intra weight curve sampled at every fourth entry. These are the weights of a 32-sample block.
     /// </summary>
     private static ReadOnlySpan<byte> Weights32 =>
     [
@@ -24,22 +23,22 @@ internal static partial class Av1InterIntraMaskBuilder
     ];
 
     /// <summary>
-    /// Gets the alpha curve sampled every eighth entry, the weights of a 16-sample block.
+    /// Gets the inter-intra weight curve sampled at every eighth entry. These are the weights of a 16-sample block.
     /// </summary>
     private static ReadOnlySpan<byte> Weights16 => [60, 45, 34, 26, 19, 15, 11, 8, 6, 5, 4, 3, 2, 2, 1, 1];
 
     /// <summary>
-    /// Gets the alpha curve sampled every sixteenth entry, the weights of an 8-sample block.
+    /// Gets the inter-intra weight curve sampled at every sixteenth entry. These are the weights of an 8-sample block.
     /// </summary>
     private static ReadOnlySpan<byte> Weights8 => [60, 34, 19, 11, 6, 4, 2, 1];
 
     /// <summary>
-    /// Gets the alpha curve sampled every thirty-second entry, the weights of a 4-sample block.
+    /// Gets the inter-intra weight curve sampled at every thirty-second entry. These are the weights of a 4-sample block.
     /// </summary>
     private static ReadOnlySpan<byte> Weights4 => [60, 19, 6, 2];
 
     /// <summary>
-    /// Fills a smooth inter-intra mask for one plane. Reference: build_smooth_interintra_mask().
+    /// Fills a smooth inter-intra mask for one plane.
     /// </summary>
     /// <param name="mask">The mask destination.</param>
     /// <param name="maskStride">The distance between mask rows.</param>
@@ -55,9 +54,8 @@ internal static partial class Av1InterIntraMaskBuilder
         Av1InterIntraMode mode,
         bool invert)
     {
-        // The alpha at row r and column c is weights[r], weights[c] or weights[min(r, c)], where the weights are
-        // the curve sampled at the block's size scale. Each mask row is therefore a weight-row copy, a fill, or a
-        // prefix copy followed by a fill.
+        // The alpha at row r and column c is weights[r], weights[c] or weights[min(r, c)]. The weights are the curve sampled at the scale of the block size.
+        // Each mask row is therefore a weight-row copy, a fill, or a prefix copy followed by a fill.
         ReadOnlySpan<byte> curve = Math.Max(width, height) switch
         {
             32 => Weights32,

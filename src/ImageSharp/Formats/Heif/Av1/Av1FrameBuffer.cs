@@ -19,8 +19,8 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     /// <summary>
     /// The number of luma border samples reserved for prediction and in-loop filtering.
     /// </summary>
-    // Scaled prediction may start 284 luma samples outside a retained frame and then consume three preceding filter
-    // taps. The normative 288-sample border keeps that entire source window directly addressable without block copies.
+    // Scaled prediction can start 284 luma samples outside a retained frame and then read three preceding filter taps. The normative 288-sample border keeps
+    // that full source window directly addressable without block copies.
     public const int DecoderPaddingValue = 288;
 
     /// <summary>
@@ -80,6 +80,17 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1FrameBuffer{T}"/> class with the border and allocation options of one frame kind.
+    /// </summary>
+    /// <param name="allocator">The allocator for the frame planes.</param>
+    /// <param name="sequenceHeader">The sequence header defining bit depth and chroma layout.</param>
+    /// <param name="maxColorFormat">The color format to allocate for a non-monochrome sequence.</param>
+    /// <param name="is16BitPipeline">Indicates whether reconstruction uses native 16-bit sample storage.</param>
+    /// <param name="allocationWidth">The active luma width before borders.</param>
+    /// <param name="allocationHeight">The active luma height before borders.</param>
+    /// <param name="kind">The frame use, which selects the border width and the allocation options.</param>
+    /// <exception cref="InvalidImageContentException">The padded frame planes cannot be represented as contiguous allocations.</exception>
     private Av1FrameBuffer(
         MemoryAllocator allocator,
         ObuSequenceHeader sequenceHeader,
@@ -125,8 +136,8 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             this.storageElementsPerSample,
             kind);
 
-        // One allocation owns every component plane. Restoration retains its capacity across frames;
-        // new storage starts cleared so unwritten alignment and border slots cannot expose pooled data.
+        // One allocation owns every component plane. A restoration frame keeps its capacity across frames. Its new storage starts cleared, so unwritten
+        // alignment and border slots cannot expose pooled data.
         AllocationOptions options = kind == FrameBufferKind.Restoration ? AllocationOptions.Clean : AllocationOptions.None;
         this.planes = FramePlanes.Allocate(allocator, layout, colorFormat, options);
     }
@@ -136,8 +147,19 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     /// </summary>
     private enum FrameBufferKind
     {
+        /// <summary>
+        /// A reconstructed frame with the full decoder border for prediction and in-loop filtering.
+        /// </summary>
         Reconstruction,
+
+        /// <summary>
+        /// A presentation or auxiliary frame without a border.
+        /// </summary>
         Presentation,
+
+        /// <summary>
+        /// A loop-restoration output frame with a 32-sample border and cleared new storage.
+        /// </summary>
         Restoration
     }
 
@@ -310,8 +332,8 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     /// <param name="source">The reconstructed frame whose output geometry is required.</param>
     public void ResizeRestoration(ObuSequenceHeader sequenceHeader, Av1FrameBuffer<T> source)
     {
-        // The decoder owns this live restoration frame for its entire session. A different layout may
-        // need new views without needing a new allocation; capacity grows only when the new planes exceed it.
+        // The decoder owns this live restoration frame for its full session. A different layout can need new views without a new allocation. The capacity grows
+        // only when the new planes exceed it.
         FramePlanes? retainedPlanes = this.planes;
         if (retainedPlanes is null || this.Width != source.Width || this.Height != source.Height ||
             this.ColorFormat != source.ColorFormat || this.BytesPerSample != source.BytesPerSample)
@@ -326,9 +348,8 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             FramePlanes activePlanes = retainedPlanes.GetValueOrDefault();
             if (retainedPlanes is null || !activePlanes.CanHold(layout))
             {
-                // Restoration needs none of the previous target's samples. Release its old allocation
-                // before growing so two complete output frames never overlap in memory. A failed rent
-                // leaves an empty target that session disposal or the next resize can handle.
+                // Restoration needs none of the samples of the previous target. The code releases the old allocation before it grows, so two complete output
+                // frames never overlap in memory. A failed rent leaves an empty target that session disposal or the next resize can handle.
                 this.Dispose();
                 this.planes = FramePlanes.Allocate(this.MemoryAllocator, layout, source.ColorFormat, AllocationOptions.Clean);
             }
@@ -365,8 +386,8 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     /// <param name="destination">The frame buffer receiving the copied reconstruction.</param>
     public void CopyVisibleTo(Av1FrameBuffer<T> destination)
     {
-        // Origins, strides, and capacity belong to the destination allocation. Only the active picture extent
-        // transfers: a presentation copy may have no border and need much less storage than its source.
+        // Origins, strides, and capacity belong to the destination allocation. Only the active picture extent transfers. A presentation copy can have no border
+        // and need much less storage than its source.
         destination.Width = this.Width;
         destination.Height = this.Height;
         destination.BitDepth = this.BitDepth;
@@ -407,8 +428,8 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             int sourceOffset = (sourceOriginY * sourceBuffer.Stride) + sourceStorageX;
             int destinationOffset = (destinationOriginY * destinationBuffer.Stride) + destinationStorageX;
 
-            // A film-grain presentation owns only the active picture. Grain synthesis creates its odd-edge
-            // extension before reading it, so copying reference borders or unused sequence-sized storage is waste.
+            // A film-grain presentation owns only the active picture. Grain synthesis creates its odd-edge extension before it reads that extension. Thus a
+            // copy of reference borders or unused sequence-sized storage has no use.
             for (int row = 0; row < height; row++)
             {
                 sourceSamples.Slice(sourceOffset, storageWidth).CopyTo(destinationSamples.Slice(destinationOffset, storageWidth));
@@ -467,8 +488,8 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     }
 
     /// <summary>
-    /// Gets the samples of a complete plane allocation, or an empty span for a chroma plane of a monochrome frame. A caller
-    /// that addresses many blocks reads them once and passes them to the block pointer overloads that take plane samples.
+    /// Gets the samples of a complete plane allocation, or an empty span for a chroma plane of a monochrome frame. A caller that addresses many blocks reads
+    /// them once and passes them to the block pointer overloads that take plane samples.
     /// </summary>
     /// <param name="plane">The luma or chroma plane.</param>
     /// <returns>The plane samples, including decoder padding.</returns>
@@ -489,8 +510,7 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     }
 
     /// <summary>
-    /// Gets a span beginning one logical row before a block, from plane samples that the caller read once with
-    /// <see cref="GetPlaneSamples"/>.
+    /// Gets a span beginning one logical row before a block, from plane samples that the caller read once with <see cref="GetPlaneSamples"/>.
     /// </summary>
     /// <param name="planeSamples">The samples of <paramref name="plane"/>, from <see cref="GetPlaneSamples"/>.</param>
     /// <param name="plane">The luma or chroma plane.</param>
@@ -515,8 +535,8 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     }
 
     /// <summary>
-    /// Gets a native 16-bit sample span beginning one logical row before a block, from plane samples that the caller read
-    /// once with <see cref="GetPlaneSamples"/>.
+    /// Gets a native 16-bit sample span beginning one logical row before a block, from plane samples that the caller read once with
+    /// <see cref="GetPlaneSamples"/>.
     /// </summary>
     /// <param name="planeSamples">The samples of <paramref name="plane"/>, from <see cref="GetPlaneSamples"/>.</param>
     /// <param name="plane">The luma or chroma plane.</param>
@@ -714,6 +734,13 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     /// <summary>
     /// Calculates the aligned physical plane layout retained by one frame owner.
     /// </summary>
+    /// <param name="width">The active luma width before borders.</param>
+    /// <param name="height">The active luma height before borders.</param>
+    /// <param name="colorFormat">The sampling layout, which decides the chroma plane sizes.</param>
+    /// <param name="storageElementsPerSample">The number of <typeparamref name="T"/> elements occupied by one logical sample.</param>
+    /// <param name="kind">The frame use, which selects the border and the alignment.</param>
+    /// <returns>The plane sizes, offsets and total storage length in <typeparamref name="T"/> elements.</returns>
+    /// <exception cref="InvalidImageContentException">The padded frame planes cannot be represented as one contiguous allocation.</exception>
     private static FrameBufferLayout CreateFrameBufferLayout(
         int width,
         int height,
@@ -721,8 +748,8 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
         int storageElementsPerSample,
         FrameBufferKind kind)
     {
-        // Reconstruction and restoration share eight-sample coded alignment but require different borders.
-        // Grain presentation extends only an odd final row/column and aligns rows in bytes at either bit depth.
+        // Reconstruction and restoration frames round both dimensions up to a multiple of eight samples, but use different borders. A presentation frame rounds
+        // only an odd final row or column up to an even count. Its rows align to 16 bytes at either bit depth.
         bool isPresentation = kind == FrameBufferKind.Presentation;
         long dimensionMask = isPresentation ? 1 : 7;
         long border = kind switch
@@ -854,6 +881,9 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
         /// <summary>
         /// Lays a complete padded plane over its slice of the frame allocation.
         /// </summary>
+        /// <param name="plane">The slice of the frame allocation that holds the plane.</param>
+        /// <param name="stride">The number of storage elements in one padded row.</param>
+        /// <returns>The plane region that covers the complete slice.</returns>
         private static Av1PlaneRegion<T> CreatePlane(Memory<T> plane, int stride)
             => new(plane, stride, new Rectangle(0, 0, stride, plane.Length / stride));
     }
@@ -863,6 +893,16 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     /// </summary>
     private readonly struct FrameBufferLayout
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FrameBufferLayout"/> struct.
+        /// </summary>
+        /// <param name="lumaStorageWidth">The number of storage elements in one padded luma row.</param>
+        /// <param name="lumaElementCount">The number of storage elements in the padded luma plane.</param>
+        /// <param name="chromaStorageWidth">The number of storage elements in one padded chroma row, or zero for monochrome.</param>
+        /// <param name="chromaElementCount">The number of storage elements in each padded chroma plane, or zero for monochrome.</param>
+        /// <param name="chromaBlueOffset">The aligned storage offset of the blue-difference plane.</param>
+        /// <param name="chromaRedOffset">The aligned storage offset of the red-difference plane.</param>
+        /// <param name="storageLength">The total number of storage elements that the frame allocation needs.</param>
         public FrameBufferLayout(
             int lumaStorageWidth,
             int lumaElementCount,
@@ -881,18 +921,39 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             this.StorageLength = storageLength;
         }
 
+        /// <summary>
+        /// Gets the number of storage elements in one padded luma row.
+        /// </summary>
         public int LumaStorageWidth { get; }
 
+        /// <summary>
+        /// Gets the number of storage elements in the padded luma plane.
+        /// </summary>
         public int LumaElementCount { get; }
 
+        /// <summary>
+        /// Gets the number of storage elements in one padded chroma row, or zero for monochrome.
+        /// </summary>
         public int ChromaStorageWidth { get; }
 
+        /// <summary>
+        /// Gets the number of storage elements in each padded chroma plane, or zero for monochrome.
+        /// </summary>
         public int ChromaElementCount { get; }
 
+        /// <summary>
+        /// Gets the aligned storage offset of the blue-difference plane.
+        /// </summary>
         public int ChromaBlueOffset { get; }
 
+        /// <summary>
+        /// Gets the aligned storage offset of the red-difference plane.
+        /// </summary>
         public int ChromaRedOffset { get; }
 
+        /// <summary>
+        /// Gets the total number of storage elements that the frame allocation needs.
+        /// </summary>
         public int StorageLength { get; }
     }
 }

@@ -19,6 +19,7 @@ internal static partial class Av1DirectionalIntraPredictor
 
     /// <summary>
     /// Defines scalar and SIMD interpolation for AV1 directional intra prediction.
+    /// Each member computes <c>(left * (32 - weight) + right * weight + 16) &gt;&gt; 5</c> per sample pair.
     /// </summary>
     internal interface IDirectionalPredictionOperator
     {
@@ -105,36 +106,74 @@ internal static partial class Av1DirectionalIntraPredictor
     }
 
     /// <summary>
-    /// Gets the horizontal Q8 projection derivative for an adjusted angle.
+    /// Gets the horizontal Q6 projection derivative for an adjusted angle.
     /// </summary>
+    /// <param name="angle">The adjusted prediction angle.</param>
+    /// <returns>The horizontal derivative, or one when the selected zone does not consume it.</returns>
     public static int GetDeltaX(int angle) => Predictor<DirectionalOperator>.GetDeltaX(angle);
 
     /// <summary>
-    /// Gets the vertical Q8 projection derivative for an adjusted angle.
+    /// Gets the vertical Q6 projection derivative for an adjusted angle.
     /// </summary>
+    /// <param name="angle">The adjusted prediction angle.</param>
+    /// <returns>The vertical derivative, or one when the selected zone does not consume it.</returns>
     public static int GetDeltaY(int angle) => Predictor<DirectionalOperator>.GetDeltaY(angle);
 
     /// <summary>
     /// Predicts an 8-bit directional block.
     /// </summary>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The destination row stride in samples.</param>
+    /// <param name="transformSize">The predicted block dimensions.</param>
+    /// <param name="above">The prepared top reference, including any required extension.</param>
+    /// <param name="left">The prepared left reference, including any required extension.</param>
+    /// <param name="upsampleAbove">Whether the top edge contains half-sample positions.</param>
+    /// <param name="upsampleLeft">Whether the left edge contains half-sample positions.</param>
+    /// <param name="angle">The adjusted prediction angle.</param>
+    /// <param name="scratch">The caller-owned block transposition workspace of at least <see cref="ScratchLength"/> samples.</param>
     public static void Predict(Span<byte> destination, int destinationStride, Av1TransformSize transformSize, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, bool upsampleAbove, bool upsampleLeft, int angle, Span<byte> scratch)
         => Predictor<DirectionalOperator>.Predict(destination, destinationStride, transformSize, above, left, upsampleAbove, upsampleLeft, angle, scratch);
 
     /// <summary>
     /// Predicts a high-bit-depth directional block.
     /// </summary>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The destination row stride in samples.</param>
+    /// <param name="transformSize">The predicted block dimensions.</param>
+    /// <param name="above">The prepared top reference, including any required extension.</param>
+    /// <param name="left">The prepared left reference, including any required extension.</param>
+    /// <param name="upsampleAbove">Whether the top edge contains half-sample positions.</param>
+    /// <param name="upsampleLeft">Whether the left edge contains half-sample positions.</param>
+    /// <param name="angle">The adjusted prediction angle.</param>
+    /// <param name="scratch">The caller-owned block transposition workspace of at least <see cref="ScratchLength"/> samples.</param>
     public static void Predict(Span<short> destination, int destinationStride, Av1TransformSize transformSize, ReadOnlySpan<short> above, ReadOnlySpan<short> left, bool upsampleAbove, bool upsampleLeft, int angle, Span<short> scratch)
         => Predictor<DirectionalOperator>.Predict(destination, destinationStride, transformSize, above, left, upsampleAbove, upsampleLeft, angle, scratch);
 
     /// <summary>
     /// Predicts an 8-bit directional block without hardware intrinsics.
     /// </summary>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The destination row stride in samples.</param>
+    /// <param name="transformSize">The predicted block dimensions.</param>
+    /// <param name="above">The prepared top reference, including any required extension.</param>
+    /// <param name="left">The prepared left reference, including any required extension.</param>
+    /// <param name="upsampleAbove">Whether the top edge contains half-sample positions.</param>
+    /// <param name="upsampleLeft">Whether the left edge contains half-sample positions.</param>
+    /// <param name="angle">The adjusted prediction angle.</param>
     public static void PredictScalar(Span<byte> destination, int destinationStride, Av1TransformSize transformSize, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, bool upsampleAbove, bool upsampleLeft, int angle)
         => Predictor<DirectionalOperator>.PredictScalar(destination, destinationStride, transformSize, above, left, upsampleAbove, upsampleLeft, angle);
 
     /// <summary>
     /// Predicts a high-bit-depth directional block without hardware intrinsics.
     /// </summary>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The destination row stride in samples.</param>
+    /// <param name="transformSize">The predicted block dimensions.</param>
+    /// <param name="above">The prepared top reference, including any required extension.</param>
+    /// <param name="left">The prepared left reference, including any required extension.</param>
+    /// <param name="upsampleAbove">Whether the top edge contains half-sample positions.</param>
+    /// <param name="upsampleLeft">Whether the left edge contains half-sample positions.</param>
+    /// <param name="angle">The adjusted prediction angle.</param>
     public static void PredictScalar(Span<short> destination, int destinationStride, Av1TransformSize transformSize, ReadOnlySpan<short> above, ReadOnlySpan<short> left, bool upsampleAbove, bool upsampleLeft, int angle)
         => Predictor<DirectionalOperator>.PredictScalar(destination, destinationStride, transformSize, above, left, upsampleAbove, upsampleLeft, angle);
 
@@ -157,6 +196,8 @@ internal static partial class Av1DirectionalIntraPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<byte> Interpolate(Vector128<byte> left, Vector128<byte> right, int weight)
         {
+            // Widen to 16-bit lanes. The weighted sum is at most 255 * 32 + 16 = 8176, so it fits a 16-bit lane.
+            // After the shift by five, each lane is at most 255, so the narrowing to bytes is exact.
             (Vector128<ushort> leftLow, Vector128<ushort> leftHigh) = Vector128.Widen(left);
             (Vector128<ushort> rightLow, Vector128<ushort> rightHigh) = Vector128.Widen(right);
             Vector128<ushort> rounding = Vector128.Create((ushort)16);
@@ -196,6 +237,8 @@ internal static partial class Av1DirectionalIntraPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<short> Interpolate(Vector128<short> left, Vector128<short> right, int weight)
         {
+            // Widen to 32-bit lanes. A 12-bit sample times 32 does not fit a signed 16-bit lane.
+            // After the shift by five, each lane is back in the sample range, so the narrowing to 16 bits is exact.
             (Vector128<int> leftLow, Vector128<int> leftHigh) = Vector128.Widen(left);
             (Vector128<int> rightLow, Vector128<int> rightHigh) = Vector128.Widen(right);
             Vector128<int> rounding = Vector128.Create(16);

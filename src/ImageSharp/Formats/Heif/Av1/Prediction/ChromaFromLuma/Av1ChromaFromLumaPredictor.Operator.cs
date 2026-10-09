@@ -9,12 +9,12 @@ using SixLabors.ImageSharp.Common.Helpers;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 
 /// <content>
-/// Defines the closed scalar/SIMD operator contract and traversal for AV1 chroma-from-luma prediction.
+/// Defines the closed scalar and SIMD operator contract and the traversal for AV1 chroma-from-luma prediction.
 /// </content>
 internal static partial class Av1ChromaFromLumaPredictor
 {
     /// <summary>
-    /// The fixed row stride of the AV1 chroma-from-luma scratch buffer.
+    /// The fixed row stride of the AV1 chroma-from-luma Q3 buffer.
     /// </summary>
     private const int BufferLine = 32;
 
@@ -112,6 +112,8 @@ internal static partial class Av1ChromaFromLumaPredictor
 
             if (Vector128.IsHardwareAccelerated)
             {
+                // The rounded high multiply computes (a * b + 2^14) >> 15. With b = |alpha| << 9, this is (|luma| * |alpha| + 32) >> 6, the rounded magnitude.
+                // The sign mask then restores the sign of luma * alpha, as the signed rounding of the scalar form does.
                 Vector128<short> alphaSign = Vector128.Create((short)alphaQ3);
                 Vector128<short> alphaQ12 = Vector128.Create((short)(Math.Abs(alphaQ3) << 9));
                 scaledLumaQ0 = Vector128_.MultiplyHighRoundScale(Vector128.Abs(lumaQ3), alphaQ12);
@@ -120,8 +122,8 @@ internal static partial class Av1ChromaFromLumaPredictor
             }
             else
             {
-                // WebAssembly and other Vector128 targets do not expose packed rounded-high multiply. Widening keeps
-                // the same signed rounding rule without introducing a second scalar traversal.
+                // Without hardware acceleration, the widened form gives the same signed rounding. Adding x >> 31, which is -1 for a negative product, before
+                // the arithmetic shift rounds the magnitude half away from zero.
                 (Vector128<int> lower, Vector128<int> upper) = Vector128.Widen(lumaQ3);
                 Vector128<int> alpha = Vector128.Create(alphaQ3);
                 lower *= alpha;
@@ -167,6 +169,8 @@ internal static partial class Av1ChromaFromLumaPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<short> Predict(Vector512<short> lumaQ3, short dc, int alphaQ3, short maximum)
         {
+            // The 512-bit path always uses the widened form. Adding x >> 31, which is -1 for a negative product, before the arithmetic shift rounds the
+            // magnitude half away from zero, as the scalar form does.
             (Vector512<int> lower, Vector512<int> upper) = Vector512.Widen(lumaQ3);
             Vector512<int> alpha = Vector512.Create(alphaQ3);
             lower *= alpha;
@@ -189,14 +193,20 @@ internal static partial class Av1ChromaFromLumaPredictor
         /// <summary>
         /// Applies chroma-from-luma prediction to an 8-bit block.
         /// </summary>
+        /// <param name="lumaQ3">The zero-mean Q3 luma surface.</param>
+        /// <param name="destination">The DC-predicted chroma block that receives the luma adjustment.</param>
+        /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+        /// <param name="alphaQ3">The signed Q3 chroma scaling factor.</param>
+        /// <param name="width">The block width in samples.</param>
+        /// <param name="height">The block height in samples.</param>
         public static void Predict(ReadOnlySpan<short> lumaQ3, Span<byte> destination, int destinationStride, int alphaQ3, int width, int height)
         {
             ref short lumaBase = ref MemoryMarshal.GetReference(lumaQ3);
             ref byte destinationBase = ref MemoryMarshal.GetReference(destination);
             short dc = destinationBase;
 
-            // CfL follows DC prediction, so one sample supplies the base value for the complete block. The fixed
-            // scratch stride also makes exact-width Vector128 loads safe for the four-sample AV1 tail.
+            // CfL follows DC prediction, so the first sample holds the base value for the complete block. The fixed stride of the luma buffer also makes a full
+            // Vector128 load safe for a tail of four samples.
             for (int row = 0; row < height; row++)
             {
                 int lumaRowOffset = row * BufferLine;
@@ -256,6 +266,13 @@ internal static partial class Av1ChromaFromLumaPredictor
         /// <summary>
         /// Applies chroma-from-luma prediction to a high-bit-depth block.
         /// </summary>
+        /// <param name="lumaQ3">The zero-mean Q3 luma surface.</param>
+        /// <param name="destination">The DC-predicted chroma block that receives the luma adjustment.</param>
+        /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+        /// <param name="alphaQ3">The signed Q3 chroma scaling factor.</param>
+        /// <param name="bitDepth">The number of bits used to represent each sample.</param>
+        /// <param name="width">The block width in samples.</param>
+        /// <param name="height">The block height in samples.</param>
         public static void Predict(ReadOnlySpan<short> lumaQ3, Span<short> destination, int destinationStride, int alphaQ3, int bitDepth, int width, int height)
         {
             ref short lumaBase = ref MemoryMarshal.GetReference(lumaQ3);

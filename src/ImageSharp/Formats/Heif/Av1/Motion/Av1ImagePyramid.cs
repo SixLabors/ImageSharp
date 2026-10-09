@@ -13,32 +13,39 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 /// Holds one frame at a series of halved resolutions, for dense flow estimation to walk.
 /// </summary>
 /// <remarks>
-/// Every level is eight bits deep, whatever the coded depth, and carries a replicated border so that
-/// the flow kernels may read past a level's edge without a boundary test. Reference:
-/// aom_alloc_pyramid(), fill_pyramid() and fill_border().
+/// Every level is eight bits deep, whatever the coded depth. Every level has a replicated border, so the flow kernels can read past the edge of a
+/// level without a boundary test.
 /// </remarks>
 internal sealed class Av1ImagePyramid : IDisposable
 {
     /// <summary>
-    /// The samples of replicated border held on each side of every level.
+    /// The number of samples of replicated border on each side of every level.
     /// </summary>
-    /// <remarks>Reference: PYRAMID_PADDING.</remarks>
     public const int Padding = 16;
 
     /// <summary>
-    /// The byte alignment of the first coded sample of every row of every level.
+    /// The byte multiple to which the row stride of every level is rounded up.
     /// </summary>
-    /// <remarks>Reference: PYRAMID_ALIGNMENT.</remarks>
     private const int Alignment = 32;
 
     /// <summary>
-    /// The base-two logarithm of the smallest level extent the reference will produce.
+    /// The base-two logarithm of the smallest level extent that the pyramid produces.
     /// </summary>
-    /// <remarks>Reference: MIN_PYRAMID_SIZE_LOG2.</remarks>
     private const int MinimumSizeLog2 = 3;
 
+    /// <summary>
+    /// The allocator of the level storage and of the halving buffers.
+    /// </summary>
     private readonly MemoryAllocator allocator;
+
+    /// <summary>
+    /// The geometry of every level that the frame size allows.
+    /// </summary>
     private readonly Level[] levels;
+
+    /// <summary>
+    /// The owner of the storage of every level, or <see langword="null"/> after disposal.
+    /// </summary>
     private IMemoryOwner<byte>? owner;
 
     /// <summary>
@@ -48,9 +55,8 @@ internal sealed class Av1ImagePyramid : IDisposable
     /// <param name="width">The frame width.</param>
     /// <param name="height">The frame height.</param>
     /// <remarks>
-    /// Storage for every level the frame size allows is reserved once, because the reference keeps one
-    /// allocation for the whole pyramid and a frame's pyramid is rebuilt for every reference it is
-    /// compared against.
+    /// The constructor reserves the storage for every level that the frame size allows in one allocation. The pyramid of a frame is built again for
+    /// every reference that it is compared against, so one allocation keeps that cost low.
     /// </remarks>
     public Av1ImagePyramid(MemoryAllocator allocator, int width, int height)
     {
@@ -58,8 +64,8 @@ internal sealed class Av1ImagePyramid : IDisposable
         this.LevelCount = GetMaximumLevelCount(width, height);
         this.levels = new Level[this.LevelCount];
 
-        // Each level is laid out with its border, and its stride is aligned so that the first coded
-        // sample of every row shares the alignment of the first coded sample of the level.
+        // Each level includes its border. The stride is aligned. Thus the first coded sample of every row has the alignment of the first coded
+        // sample of the level.
         int length = 0;
         for (int level = 0; level < this.LevelCount; level++)
         {
@@ -91,9 +97,8 @@ internal sealed class Av1ImagePyramid : IDisposable
     /// <param name="height">The frame height.</param>
     /// <returns>The level count, which is at least one.</returns>
     /// <remarks>
-    /// Halving stops once the shorter side reaches the smallest useful extent, so the count is the
-    /// position of the shorter side's most significant bit less that extent's logarithm.
-    /// Reference: aom_alloc_pyramid().
+    /// Halving stops when the shorter side reaches the smallest useful extent. Thus the count is the position of the most significant bit of the
+    /// shorter side, less the logarithm of that extent.
     /// </remarks>
     public static int GetMaximumLevelCount(int width, int height)
     {
@@ -115,9 +120,8 @@ internal sealed class Av1ImagePyramid : IDisposable
     /// <param name="level">The level index, where zero is the frame resolution.</param>
     /// <returns>The level storage, indexed by the level's stride.</returns>
     /// <remarks>
-    /// The span covers the border as well as the coded samples, because a span cannot express a
-    /// negative index. A caller reads the sample at column x of row y as
-    /// <c>Origin + (y * Stride) + x</c>, where x and y may both be negative down to the padding.
+    /// The span covers the border and the coded samples, because a span cannot express a negative index. A caller reads the sample at column x of
+    /// row y as <c>Origin + (y * Stride) + x</c>. Both x and y can be negative, down to minus the padding.
     /// </remarks>
     public Span<byte> GetSamples(int level) => this.owner!.Memory.Span[this.levels[level].Offset..];
 
@@ -130,8 +134,7 @@ internal sealed class Av1ImagePyramid : IDisposable
     /// <param name="requestedLevels">The number of levels to fill.</param>
     /// <returns>The number of levels filled.</returns>
     /// <remarks>
-    /// A pyramid is eight bits deep whatever the frame is, so the low bits of each sample are
-    /// dropped as it is copied. Reference: the high-bit-depth branch of fill_pyramid().
+    /// A pyramid is eight bits deep whatever the frame depth is. Thus the copy drops the low bits of each sample.
     /// </remarks>
     public int Fill(ReadOnlySpan<ushort> source, int sourceStride, int bitDepth, int requestedLevels)
     {
@@ -158,8 +161,8 @@ internal sealed class Av1ImagePyramid : IDisposable
             this.FilledLevelCount = 1;
         }
 
-        // Every level below the first is halved from the level above it, which is already eight bits
-        // deep, so the rest of the work is the same at either coded depth.
+        // Every level below the first is halved from the level above it, which is already eight bits deep. Thus the rest of the work is the same
+        // at each coded depth.
         return this.Fill(ReadOnlySpan<byte>.Empty, 0, count);
     }
 
@@ -181,10 +184,8 @@ internal sealed class Av1ImagePyramid : IDisposable
         Span<byte> storage = this.owner!.Memory.Span;
         if (this.FilledLevelCount == 0)
         {
-            // The reference points its first level at the frame buffer when the frame is eight bits
-            // deep, and borrows that buffer's border. This port copies instead, so that a pyramid owns
-            // every sample it reads and a frame buffer is never given a second border regime. The
-            // samples are the same either way.
+            // The first level is a copy of the frame, not a view of the frame buffer. Thus the pyramid owns every sample that it reads, and the
+            // frame buffer does not get a second border layout. The samples are the same as in the frame.
             Level first = this.levels[0];
             for (int row = 0; row < first.Height; row++)
             {
@@ -201,9 +202,8 @@ internal sealed class Av1ImagePyramid : IDisposable
             Level previous = this.levels[level - 1];
             Level current = this.levels[level];
 
-            // The halving reads exactly twice the current extent, which clips the last row or column
-            // off a previous level of odd extent. Keeping the ratio at exactly two is what lets the
-            // flow field be rescaled by a shift when it moves between levels.
+            // The halving reads exactly twice the current extent. This clips the last row or column off a previous level of odd extent. The ratio
+            // stays at exactly two, so a shift can rescale the flow field when it moves between levels.
             Av1PlaneDownsampler.Halve(
                 this.allocator,
                 storage[(previous.Offset + previous.Origin)..],
@@ -225,7 +225,7 @@ internal sealed class Av1ImagePyramid : IDisposable
     /// </summary>
     /// <param name="source">The row to read.</param>
     /// <param name="destination">The row to write.</param>
-    /// <param name="shift">The low bits to drop.</param>
+    /// <param name="shift">The number of low bits to drop.</param>
     internal static void Narrow(ReadOnlySpan<ushort> source, Span<byte> destination, int shift)
     {
         ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
@@ -233,8 +233,8 @@ internal sealed class Av1ImagePyramid : IDisposable
         int length = source.Length;
         int x = 0;
 
-        // Two source vectors make one destination vector, because a sample halves in width as it is
-        // narrowed. The widest stage that the hardware has and the row can fill is taken first.
+        // Two source vectors make one destination vector, because the narrow halves the width of a sample. The widest stage that the hardware
+        // supports and that the row can fill runs first.
         if (Vector512.IsHardwareAccelerated)
         {
             for (; x <= length - Vector512<byte>.Count; x += Vector512<byte>.Count)
@@ -284,9 +284,8 @@ internal sealed class Av1ImagePyramid : IDisposable
     /// <param name="storage">The pyramid storage.</param>
     /// <param name="level">The level geometry.</param>
     /// <remarks>
-    /// The left and right borders repeat each row's end samples, and the top and bottom borders then
-    /// repeat the first and last complete row, which carries the corners with them.
-    /// Reference: fill_border().
+    /// The left and right borders repeat the end samples of each row. Then the top and bottom borders repeat the first and last full row. These
+    /// full rows include the corners.
     /// </remarks>
     private static void FillBorder(Span<byte> storage, Level level)
     {
@@ -353,8 +352,7 @@ internal sealed class Av1ImagePyramid : IDisposable
         /// Gets the index of the first coded sample within the level's storage.
         /// </summary>
         /// <remarks>
-        /// The border occupies the rows and columns before this index, so a caller may subtract up
-        /// to the padding from it on either axis.
+        /// The border fills the rows and columns before this index. Thus a caller can subtract up to the padding from it on each axis.
         /// </remarks>
         public int Origin { get; }
     }

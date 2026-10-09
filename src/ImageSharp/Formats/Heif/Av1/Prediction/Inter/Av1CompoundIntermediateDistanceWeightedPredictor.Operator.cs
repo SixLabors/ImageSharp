@@ -26,7 +26,7 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
         /// <param name="second">The second compound intermediate.</param>
         /// <param name="firstWeight">The first predictor weight.</param>
         /// <param name="secondWeight">The second predictor weight.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The reconstructed sample.</returns>
         public static abstract byte DistanceWeighted(
@@ -46,7 +46,7 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
         /// <param name="second1">The upper second-predictor intermediates.</param>
         /// <param name="firstWeight">The first predictor weight.</param>
         /// <param name="secondWeight">The second predictor weight.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The reconstructed samples.</returns>
         public static abstract Vector128<byte> DistanceWeighted(
@@ -68,7 +68,7 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
         /// <param name="second1">The upper second-predictor intermediates.</param>
         /// <param name="firstWeight">The first predictor weight.</param>
         /// <param name="secondWeight">The second predictor weight.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The reconstructed samples.</returns>
         public static abstract Vector256<byte> DistanceWeighted(
@@ -90,7 +90,7 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
         /// <param name="second1">The upper second-predictor intermediates.</param>
         /// <param name="firstWeight">The first predictor weight.</param>
         /// <param name="secondWeight">The second predictor weight.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <returns>The reconstructed samples.</returns>
         public static abstract Vector512<byte> DistanceWeighted(
@@ -110,7 +110,7 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
         /// <param name="second">The second compound intermediate.</param>
         /// <param name="firstWeight">The first predictor weight.</param>
         /// <param name="secondWeight">The second predictor weight.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <param name="maximum">The maximum reconstructed sample value.</param>
         /// <returns>The reconstructed sample.</returns>
@@ -130,7 +130,7 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
         /// <param name="second">The second compound intermediates.</param>
         /// <param name="firstWeight">The first predictor weight.</param>
         /// <param name="secondWeight">The second predictor weight.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <param name="maximum">The maximum reconstructed sample value.</param>
         /// <returns>The reconstructed samples.</returns>
@@ -150,7 +150,7 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
         /// <param name="second">The second compound intermediates.</param>
         /// <param name="firstWeight">The first predictor weight.</param>
         /// <param name="secondWeight">The second predictor weight.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <param name="maximum">The maximum reconstructed sample value.</param>
         /// <returns>The reconstructed samples.</returns>
@@ -170,7 +170,7 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
         /// <param name="second">The second compound intermediates.</param>
         /// <param name="firstWeight">The first predictor weight.</param>
         /// <param name="secondWeight">The second predictor weight.</param>
-        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
         /// <param name="roundOffset">The compound intermediate bias.</param>
         /// <param name="maximum">The maximum reconstructed sample value.</param>
         /// <returns>The reconstructed samples.</returns>
@@ -186,6 +186,8 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
 
     /// <summary>
     /// Implements distance-weighted finalization for scalar and SIMD lane groups.
+    /// The weighted sum shifts right by <see cref="Av1CompoundInterPredictor.DistanceWeightBits"/> without rounding. The final shift does the only rounding.
+    /// The two weights add up to 16, so the shifted sum is never larger than the larger intermediate.
     /// </summary>
     private readonly struct CompoundIntermediateDistanceWeightedOperator : IAv1CompoundIntermediateDistanceWeightedOperator
     {
@@ -276,6 +278,7 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
             int roundOffset,
             int maximum)
         {
+            // The weighted sum needs 32-bit lanes. After the shift it fits in 16 bits again, so the narrowing keeps every value.
             Vector128<uint> firstLower = Vector128.WidenLower(first);
             Vector128<uint> firstUpper = Vector128.WidenUpper(first);
             Vector128<uint> secondLower = Vector128.WidenLower(second);
@@ -306,6 +309,7 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
             int roundOffset,
             int maximum)
         {
+            // The weighted sum needs 32-bit lanes. After the shift it fits in 16 bits again, so the narrowing keeps every value.
             Vector256<uint> firstLower = Vector256.WidenLower(first);
             Vector256<uint> firstUpper = Vector256.WidenUpper(first);
             Vector256<uint> secondLower = Vector256.WidenLower(second);
@@ -336,6 +340,7 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
             int roundOffset,
             int maximum)
         {
+            // The weighted sum needs 32-bit lanes. After the shift it fits in 16 bits again, so the narrowing keeps every value.
             Vector512<uint> firstLower = Vector512.WidenLower(first);
             Vector512<uint> firstUpper = Vector512.WidenUpper(first);
             Vector512<uint> secondLower = Vector512.WidenLower(second);
@@ -356,8 +361,15 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
         }
 
         /// <summary>
-        /// Distance-weights 128-bit lanes without overflowing the unsigned intermediate range.
+        /// Distance-weights and finalizes 128-bit lanes of 8-bit intermediates. The weighted sum uses 32-bit lanes, so it cannot overflow.
         /// </summary>
+        /// <param name="first">The first compound intermediates.</param>
+        /// <param name="second">The second compound intermediates.</param>
+        /// <param name="firstWeight">The first predictor weight.</param>
+        /// <param name="secondWeight">The second predictor weight.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
+        /// <param name="roundOffset">The compound intermediate bias.</param>
+        /// <returns>The 8-bit samples, clamped to 0 through 255, in 16-bit lanes.</returns>
         private static Vector128<ushort> DistanceWeighted(
             Vector128<ushort> first,
             Vector128<ushort> second,
@@ -376,8 +388,15 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
         }
 
         /// <summary>
-        /// Distance-weights 256-bit lanes without overflowing the unsigned intermediate range.
+        /// Distance-weights and finalizes 256-bit lanes of 8-bit intermediates. The weighted sum uses 32-bit lanes, so it cannot overflow.
         /// </summary>
+        /// <param name="first">The first compound intermediates.</param>
+        /// <param name="second">The second compound intermediates.</param>
+        /// <param name="firstWeight">The first predictor weight.</param>
+        /// <param name="secondWeight">The second predictor weight.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
+        /// <param name="roundOffset">The compound intermediate bias.</param>
+        /// <returns>The 8-bit samples, clamped to 0 through 255, in 16-bit lanes.</returns>
         private static Vector256<ushort> DistanceWeighted(
             Vector256<ushort> first,
             Vector256<ushort> second,
@@ -396,8 +415,15 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
         }
 
         /// <summary>
-        /// Distance-weights 512-bit lanes without overflowing the unsigned intermediate range.
+        /// Distance-weights and finalizes 512-bit lanes of 8-bit intermediates. The weighted sum uses 32-bit lanes, so it cannot overflow.
         /// </summary>
+        /// <param name="first">The first compound intermediates.</param>
+        /// <param name="second">The second compound intermediates.</param>
+        /// <param name="firstWeight">The first predictor weight.</param>
+        /// <param name="secondWeight">The second predictor weight.</param>
+        /// <param name="roundBits">The fractional bits to remove.</param>
+        /// <param name="roundOffset">The compound intermediate bias.</param>
+        /// <returns>The 8-bit samples, clamped to 0 through 255, in 16-bit lanes.</returns>
         private static Vector512<ushort> DistanceWeighted(
             Vector512<ushort> first,
             Vector512<ushort> second,

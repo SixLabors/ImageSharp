@@ -17,10 +17,9 @@ internal static partial class Av1InverseTransformer
     /// Adds the inverse transform of a four-by-four eight-bit block to its prediction with every stage in registers.
     /// </summary>
     /// <remarks>
-    /// This follows <c>lowbd_inv_txfm2d_add_4x4_ssse3</c>: the coefficient rows pack to sixteen bits, a transpose
-    /// turns columns into lanes for the horizontal transform, the second transpose turns rows into lanes for the
-    /// vertical transform, and the rows add to the prediction with clipping. The shifts are
-    /// <c>av1_inv_txfm_shift_ls[TX_4X4]</c> (0, -4); the end of block selects no reduced kernel at this size.
+    /// The coefficient rows pack to sixteen bits with saturation, which gives the sixteen-bit row-input clamp. A transpose puts each coefficient row in one
+    /// lane, so the horizontal transform runs on all four rows at once. The second transpose puts each column in one lane for the vertical transform. Then the
+    /// rows add to the prediction with clipping. The stage shifts are 0 and -4. At this size, the end of block selects no reduced kernel.
     /// </remarks>
     /// <param name="coefficients">The row-major dequantized coefficients.</param>
     /// <param name="prediction">The predicted samples.</param>
@@ -55,6 +54,15 @@ internal static partial class Av1InverseTransformer
     /// <summary>
     /// Selects the vertical kernel and runs the block.
     /// </summary>
+    /// <typeparam name="TRow">The horizontal kernel, applied first.</typeparam>
+    /// <param name="coefficients">The row-major dequantized coefficients.</param>
+    /// <param name="prediction">The predicted samples.</param>
+    /// <param name="predictionStride">The number of predicted samples between rows.</param>
+    /// <param name="destination">The reconstructed samples.</param>
+    /// <param name="destinationStride">The number of reconstructed samples between rows.</param>
+    /// <param name="columnType">The one-dimensional type of the vertical transform.</param>
+    /// <param name="flipUpsideDown">Whether the residual block is mirrored vertically.</param>
+    /// <param name="flipLeftToRight">Whether the residual block is mirrored horizontally.</param>
     private static void InverseColumn4x4<TRow>(
         ReadOnlySpan<int> coefficients,
         ReadOnlySpan<byte> prediction,
@@ -86,6 +94,13 @@ internal static partial class Av1InverseTransformer
     /// </summary>
     /// <typeparam name="TRow">The horizontal kernel, applied first.</typeparam>
     /// <typeparam name="TColumn">The vertical kernel.</typeparam>
+    /// <param name="coefficients">The row-major dequantized coefficients.</param>
+    /// <param name="prediction">The predicted samples.</param>
+    /// <param name="predictionStride">The number of predicted samples between rows.</param>
+    /// <param name="destination">The reconstructed samples.</param>
+    /// <param name="destinationStride">The number of reconstructed samples between rows.</param>
+    /// <param name="flipUpsideDown">Whether the residual block is mirrored vertically.</param>
+    /// <param name="flipLeftToRight">Whether the residual block is mirrored horizontally.</param>
     private static void Inverse4x4<TRow, TColumn>(
         ReadOnlySpan<int> coefficients,
         ReadOnlySpan<byte> prediction,
@@ -107,8 +122,8 @@ internal static partial class Av1InverseTransformer
         Av1TransformKernels.Transpose4x4(ref r0, ref r1, ref r2, ref r3);
         TRow.Transform(ref r0, ref r1, ref r2, ref r3, InverseCosBit);
 
-        // Each vector is now one spatial column; reversing their order mirrors the block horizontally, after
-        // which row k sits in r(3 - k) and the vertical kernel runs over the reversed references.
+        // Each vector is now one spatial column. The reversed order mirrors the block horizontally. After that, row k is in r(3 - k), and the vertical kernel
+        // runs over the reversed references.
         if (flipLeftToRight)
         {
             Av1TransformKernels.Transpose4x4(ref r3, ref r2, ref r1, ref r0);
@@ -127,6 +142,8 @@ internal static partial class Av1InverseTransformer
 
         ref byte predictionBase = ref MemoryMarshal.GetReference(prediction);
         ref byte destinationBase = ref MemoryMarshal.GetReference(destination);
+
+        // A horizontal flip leaves row k in r(3 - k), and a vertical flip reverses the row order again. The rows are reversed when exactly one flip applies.
         if (flipUpsideDown != flipLeftToRight)
         {
             AddRow4(ref predictionBase, predictionStride, ref destinationBase, destinationStride, 0, r3);
@@ -143,9 +160,11 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// Loads four thirty-two-bit coefficients and packs them into the low lanes with saturation, as
-    /// <c>load_32bit_to_16bit_w4</c> does.
+    /// Loads four thirty-two-bit coefficients and packs them into the low lanes with saturation.
     /// </summary>
+    /// <param name="source">The first coefficient of the block.</param>
+    /// <param name="offset">The index of the first of the four coefficients.</param>
+    /// <returns>The packed coefficients in the low four lanes. The high four lanes repeat them.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<short> Load4Coefficients(ref int source, int offset)
     {
@@ -154,8 +173,14 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// Adds one four-sample residual row to its prediction row with clipping, as <c>lowbd_write_buffer_4xn_sse2</c> does.
+    /// Adds one four-sample residual row to its prediction row with clipping. The method reads and writes exactly four bytes.
     /// </summary>
+    /// <param name="prediction">The first predicted sample of the block.</param>
+    /// <param name="predictionStride">The number of predicted samples between rows.</param>
+    /// <param name="destination">The first reconstructed sample of the block.</param>
+    /// <param name="destinationStride">The number of reconstructed samples between rows.</param>
+    /// <param name="row">The row index.</param>
+    /// <param name="residual">The residuals of the row in the low four lanes.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AddRow4(ref byte prediction, int predictionStride, ref byte destination, int destinationStride, int row, Vector128<short> residual)
     {
@@ -165,8 +190,16 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// Computes both outputs of four sixteen-bit butterflies, as <c>btf_16_4p_sse2</c> does.
+    /// Computes both outputs of four sixteen-bit butterflies.
     /// </summary>
+    /// <param name="weights0">The interleaved weights of the first output.</param>
+    /// <param name="weights1">The interleaved weights of the second output.</param>
+    /// <param name="input0">The first input in the low four lanes.</param>
+    /// <param name="input1">The second input in the low four lanes.</param>
+    /// <param name="output0">The first output in the low four lanes.</param>
+    /// <param name="output1">The second output in the low four lanes.</param>
+    /// <param name="cosBit">The number of fractional bits in the weights.</param>
+    /// <param name="rounding">The rounding offset for the widened products.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Butterfly4(
         Vector128<short> weights0,
@@ -186,7 +219,7 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// The four-point inverse DCT of <c>idct4_w4_sse2</c>.
+    /// The four-point inverse DCT on four lanes.
     /// </summary>
     private readonly struct Dct4InverseKernel : IAv1Kernel4
     {
@@ -205,11 +238,12 @@ internal static partial class Av1InverseTransformer
             short c16 = (short)cospi[16];
             short c48 = (short)cospi[48];
 
-            // stages 1 and 2
+            // Stages 1 and 2: the even inputs in0 and in2 give x0 and x1 through the cos(pi/4) butterfly. The odd inputs in1 and in3 give x2 and x3 through a
+            // rotation with the cos(pi/8) and cos(3pi/8) weights.
             Butterfly4(Av1TransformKernels.Pair(c32, c32), Av1TransformKernels.Pair(c32, (short)-c32), in0, in2, out Vector128<short> x0, out Vector128<short> x1, cosBit, rounding);
             Butterfly4(Av1TransformKernels.Pair(c48, (short)-c16), Av1TransformKernels.Pair(c16, c48), in1, in3, out Vector128<short> x2, out Vector128<short> x3, cosBit, rounding);
 
-            // stage 3
+            // Stage 3: the output butterflies combine the even and odd halves with saturation.
             in0 = Vector128.AddSaturate(x0, x3);
             in3 = Vector128.SubtractSaturate(x0, x3);
             in1 = Vector128.AddSaturate(x1, x2);
@@ -218,7 +252,7 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// The four-point inverse ADST of <c>iadst4_w4_sse2</c>.
+    /// The four-point inverse ADST on four lanes.
     /// </summary>
     private readonly struct Adst4InverseKernel : IAv1Kernel4
     {
@@ -238,6 +272,8 @@ internal static partial class Av1InverseTransformer
             short s3 = (short)sinpi[3];
             short s4 = (short)sinpi[4];
 
+            // The interleaved pairs (in0, in2) and (in1, in3) let each multiply-add give two weighted terms per lane. In the formulas below, x0 to x3 are the
+            // inputs in0 to in3.
             Vector128<short> u0 = Vector128_.UnpackLow(in0, in2);
             Vector128<short> u1 = Vector128_.UnpackLow(in1, in3);
 
@@ -265,7 +301,7 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// The four-point inverse identity transform of <c>iidentity4_ssse3</c>, which scales by the square root of two.
+    /// The four-point inverse identity transform on four lanes, which scales by the square root of two.
     /// </summary>
     private readonly struct Identity4InverseKernel : IAv1Kernel4
     {
@@ -278,7 +314,7 @@ internal static partial class Av1InverseTransformer
             ref Vector128<short> in3,
             int cosBit)
         {
-            // The fractional part of the scale rounds through the high multiply and the integer part is the input itself.
+            // The scale sqrt(2) is one plus a fraction. The rounding high multiply applies sqrt(2) - 1 in Q15, and the saturating add applies the one.
             Vector128<short> scale = Vector128.Create((short)((Av1Transform1dMath.NewSqrt2 - (1 << Av1Transform1dMath.NewSqrt2Bits)) << (15 - Av1Transform1dMath.NewSqrt2Bits)));
             in0 = Vector128.AddSaturate(Vector128_.MultiplyHighRoundScale(in0, scale), in0);
             in1 = Vector128.AddSaturate(Vector128_.MultiplyHighRoundScale(in1, scale), in1);

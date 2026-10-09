@@ -73,8 +73,8 @@ internal static partial class Av1MotionSearchBase
             }
         }
 
-        // Coarse projection matching advances sixteen samples at a time. Align both ends
-        // independently so the requested search remains inside the physically extended border.
+        // Coarse projection matching steps sixteen samples at a time. The code aligns each end down to a multiple of sixteen on its own.
+        // Thus the search stays inside the allocated border.
         left &= ~15;
         right &= ~15;
         top &= ~15;
@@ -89,9 +89,8 @@ internal static partial class Av1MotionSearchBase
         int verticalShift = 3 + (block.Width >> 5);
 
         // Projection sums fit in signed sixteen-bit storage for blocks up to 128 samples.
-        // Normalize only after summing an entire column or row; individual-sample rounding
-        // would change both the projected variance and the selected displacement.
-        // Reference: the aom_int_pro_row and aom_int_pro_col calls of av1_int_pro_motion_estimation().
+        // The normalization comes only after the sum of a full column or row.
+        // Rounding each sample first gives a different projected variance and a different selected displacement.
         Av1IntegralProjection.ProjectColumns(horizontal, reference[(referenceOrigin - left)..], referenceStride, horizontalCount, block.Height, horizontalShift);
         Av1IntegralProjection.ProjectRows(vertical, reference[(referenceOrigin - (top * referenceStride))..], referenceStride, block.Width, verticalCount, verticalShift);
         Av1IntegralProjection.ProjectColumns(sourceHorizontal, source, sourceStride, block.Width, block.Height, horizontalShift);
@@ -107,8 +106,8 @@ internal static partial class Av1MotionSearchBase
 
         if (scrollSuperblock)
         {
-            // Expanded motion compares its projected one-axis estimates with the two-axis SAD.
-            // Keep those comparison domains and strict ties in their original decision order.
+            // The expanded search compares its projected one-axis errors directly with the two-axis SAD.
+            // The column test comes first, and the strict comparisons keep the current choice on a tie.
             if (columnError < rowError && columnError < bestSad)
             {
                 selected.Y = 0;
@@ -159,8 +158,8 @@ internal static partial class Av1MotionSearchBase
                 }
             }
 
-            // Refine the diagonal formed by the better horizontal and vertical neighbors,
-            // even when neither individual neighbor improved the center.
+            // The search also tests the diagonal of the better horizontal and the better vertical neighbor.
+            // It tests this diagonal even when neither neighbor improved the center.
             Point diagonal = searchCenter + new Size(errors[1] < errors[2] ? -1 : 1, errors[0] < errors[3] ? -1 : 1);
             int diagonalOrigin = referenceOrigin + (diagonal.Y * referenceStride) + diagonal.X;
             uint diagonalSad = (uint)ByteOperator.SumAbsoluteDifferences(
@@ -181,8 +180,8 @@ internal static partial class Av1MotionSearchBase
     }
 
     /// <summary>
-    /// Finds a projected displacement with a coarse-to-fine search: every sixteenth position first, then steps of
-    /// eight, four, two and one around the best position.
+    /// Finds a projected displacement with a coarse-to-fine search. The search tests every sixteenth position first.
+    /// Then it tests steps of eight, four, two and one around the best position.
     /// </summary>
     /// <param name="reference">The complete projected search interval.</param>
     /// <param name="source">The projected source block.</param>

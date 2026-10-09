@@ -16,9 +16,8 @@ internal static partial class Av1IntegralProjection
     /// Defines the integral projection arithmetic of eight-bit samples across hardware widths.
     /// </summary>
     /// <remarks>
-    /// A column sum of at most 128 eight-bit samples is at most 32640, so it fits a sixteen-bit lane, as the
-    /// int16 buffers of aom_int_pro_row hold it. A measure spreads its total across the lanes in no defined way;
-    /// only the reduction of the total is defined.
+    /// A column sum of at most 128 eight-bit samples is at most 32640, so it fits in a sixteen-bit lane. A row sum or a moment spreads its total
+    /// across the lanes in no defined order. Only the reduced total is defined.
     /// </remarks>
     internal interface IIntegralProjectionOperator
     {
@@ -119,8 +118,12 @@ internal static partial class Av1IntegralProjection
     }
 
     /// <summary>
-    /// Applies the integral projection arithmetic of libaom lane by lane.
+    /// Applies the integral projection arithmetic lane by lane.
     /// </summary>
+    /// <remarks>
+    /// A row sum uses a sum of absolute differences against zero. The absolute difference of a byte and zero is the byte itself, so the instruction
+    /// adds groups of bytes into wider lanes.
+    /// </remarks>
     internal readonly struct IntegralProjectionOperator : IIntegralProjectionOperator
     {
         /// <inheritdoc/>
@@ -161,8 +164,8 @@ internal static partial class Av1IntegralProjection
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AccumulateMoments(Vector128<short> reference, Vector128<short> source, ref Vector128<int> sum, ref Vector128<int> squares)
         {
-            // A projection is at most 1020, so a difference and a pairwise sum of squares both stay far inside
-            // a thirty-two-bit lane. Multiplying by one reuses the pairwise instruction for the plain sum.
+            // A projection is at most 1020, so a difference and a pairwise sum of squares both stay far inside a thirty-two-bit lane. A multiply
+            // by one lets the pairwise instruction also make the plain sum.
             Vector128<short> difference = reference - source;
             sum += Vector128_.MultiplyAddAdjacent(difference, Vector128.Create((short)1));
             squares += Vector128_.MultiplyAddAdjacent(difference, difference);

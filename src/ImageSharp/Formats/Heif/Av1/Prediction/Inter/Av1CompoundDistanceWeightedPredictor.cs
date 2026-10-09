@@ -18,6 +18,14 @@ internal static partial class Av1CompoundDistanceWeightedPredictor
     /// <summary>
     /// Combines two 8-bit predictors with AV1 display-distance weights.
     /// </summary>
+    /// <param name="destination">The first predictor and combined output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="second">The second predictor.</param>
+    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="firstWeight">The weight of the first predictor.</param>
+    /// <param name="secondWeight">The weight of the second predictor.</param>
     public static void DistanceWeighted(
         Span<byte> destination,
         int destinationStride,
@@ -41,6 +49,14 @@ internal static partial class Av1CompoundDistanceWeightedPredictor
     /// Executes one closed 8-bit distance-weighted compound operator.
     /// </summary>
     /// <typeparam name="TOperator">The compound arithmetic operator.</typeparam>
+    /// <param name="destination">The first predictor and combined output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="second">The second predictor.</param>
+    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="firstWeight">The weight of the first predictor.</param>
+    /// <param name="secondWeight">The weight of the second predictor.</param>
     private static void DistanceWeighted<TOperator>(
         Span<byte> destination,
         int destinationStride,
@@ -60,6 +76,7 @@ internal static partial class Av1CompoundDistanceWeightedPredictor
             ref byte secondReference = ref MemoryMarshal.GetReference(secondRow);
             int column = 0;
 
+            // The widest supported vectors take the row first. Each narrower width takes the columns that remain, and the scalar loop finishes the tail.
             if (Vector512.IsHardwareAccelerated)
             {
                 nuint vectorCount = Numerics.Vector512Count<byte>(width - column);
@@ -103,6 +120,14 @@ internal static partial class Av1CompoundDistanceWeightedPredictor
     /// <summary>
     /// Combines two high-bit-depth predictors with AV1 display-distance weights.
     /// </summary>
+    /// <param name="destination">The first predictor and combined output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="second">The second predictor.</param>
+    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="firstWeight">The weight of the first predictor.</param>
+    /// <param name="secondWeight">The weight of the second predictor.</param>
     public static void DistanceWeighted(
         Span<ushort> destination,
         int destinationStride,
@@ -126,6 +151,14 @@ internal static partial class Av1CompoundDistanceWeightedPredictor
     /// Executes one closed high-bit-depth distance-weighted compound operator.
     /// </summary>
     /// <typeparam name="TOperator">The compound arithmetic operator.</typeparam>
+    /// <param name="destination">The first predictor and combined output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="second">The second predictor.</param>
+    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="firstWeight">The weight of the first predictor.</param>
+    /// <param name="secondWeight">The weight of the second predictor.</param>
     private static void DistanceWeighted<TOperator>(
         Span<ushort> destination,
         int destinationStride,
@@ -145,6 +178,7 @@ internal static partial class Av1CompoundDistanceWeightedPredictor
             ref ushort secondReference = ref MemoryMarshal.GetReference(secondRow);
             int column = 0;
 
+            // The widest supported vectors take the row first. Each narrower width takes the columns that remain, and the scalar loop finishes the tail.
             if (Vector512.IsHardwareAccelerated)
             {
                 nuint vectorCount = Numerics.Vector512Count<ushort>(width - column);
@@ -188,6 +222,14 @@ internal static partial class Av1CompoundDistanceWeightedPredictor
     /// <summary>
     /// Combines two 8-bit predictors with display-distance weights without explicit hardware intrinsics.
     /// </summary>
+    /// <param name="destination">The first predictor and combined output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="second">The second predictor.</param>
+    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="firstWeight">The weight of the first predictor.</param>
+    /// <param name="secondWeight">The weight of the second predictor.</param>
     public static void DistanceWeightedScalar(
         Span<byte> destination,
         int destinationStride,
@@ -211,6 +253,14 @@ internal static partial class Av1CompoundDistanceWeightedPredictor
     /// Executes one closed 8-bit distance-weighted compound operator without explicit hardware intrinsics.
     /// </summary>
     /// <typeparam name="TOperator">The compound arithmetic operator.</typeparam>
+    /// <param name="destination">The first predictor and combined output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="second">The second predictor.</param>
+    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    /// <param name="firstWeight">The weight of the first predictor.</param>
+    /// <param name="secondWeight">The weight of the second predictor.</param>
     private static void DistanceWeightedScalar<TOperator>(
         Span<byte> destination,
         int destinationStride,

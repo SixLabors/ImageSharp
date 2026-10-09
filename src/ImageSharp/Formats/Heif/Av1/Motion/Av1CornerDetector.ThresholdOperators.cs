@@ -15,10 +15,9 @@ internal static partial class Av1CornerDetector
     /// Passes a circle sample that is brighter than the centre by the barrier.
     /// </summary>
     /// <remarks>
-    /// The threshold is <c>centre + barrier</c>. A byte lane cannot hold every such sum, so the
-    /// vector overloads clamp the centre to <c>255 - barrier</c> before they add. A clamped lane
-    /// yields a threshold of 255, and no sample is above 255, so the comparison is false there, as
-    /// it is for the unclamped sum.
+    /// The threshold is <c>centre + barrier</c>. A byte lane cannot hold every such sum. Thus the vector overloads clamp the centre to
+    /// <c>255 - barrier</c> before they add. A clamped lane yields a threshold of 255, and no sample is above 255. Thus the comparison is false
+    /// there, as it is for the unclamped sum.
     /// </remarks>
     private readonly struct BrighterOperator : IAv1CornerThresholdOperator
     {
@@ -65,10 +64,9 @@ internal static partial class Av1CornerDetector
     /// Passes a circle sample that is darker than the centre by the barrier.
     /// </summary>
     /// <remarks>
-    /// The threshold is <c>centre - barrier</c>. A byte lane cannot hold a negative difference, so
-    /// the vector overloads raise the centre to the barrier before they subtract. A raised lane
-    /// yields a threshold of zero, and no sample is below zero, so the comparison is false there,
-    /// as it is for the unraised difference.
+    /// The threshold is <c>centre - barrier</c>. A byte lane cannot hold a negative difference. Thus the vector overloads raise the centre to the
+    /// barrier before they subtract. A raised lane yields a threshold of zero, and no sample is below zero. Thus the comparison is false there, as
+    /// it is for the unraised difference.
     /// </remarks>
     private readonly struct DarkerOperator : IAv1CornerThresholdOperator
     {

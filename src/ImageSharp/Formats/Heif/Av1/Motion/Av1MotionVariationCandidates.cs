@@ -105,8 +105,8 @@ internal sealed class Av1MotionVariationCandidates
             int candidateWidth = candidate.BlockSize.Get4x4WideCount();
             if (width <= candidateWidth)
             {
-                // A wider above block can also cover the diagonal search positions. The signed alignment offset
-                // prevents those positions from contributing the same block a second time.
+                // A wider above block can also cover the diagonal search positions.
+                // The signed alignment offset stops those positions from adding the same block a second time.
                 int columnOffset = -column % candidateWidth;
                 includeTopLeft = columnOffset >= 0;
                 includeTopRight = columnOffset + candidateWidth <= width;
@@ -194,8 +194,8 @@ internal sealed class Av1MotionVariationCandidates
                 int step = Math.Min(candidate.BlockSize.Get4x4WideCount(), MaximumNeighborStep);
                 if (step == 1)
                 {
-                    // AV1 treats a 4-sample-wide neighbor as one half of an 8-sample pair and reads the mode record
-                    // attached to the pair's second cell before advancing across both cells.
+                    // AV1 treats a 4-sample-wide neighbor as one half of an 8-sample pair.
+                    // It reads the mode record of the second cell in the pair, then steps over both cells.
                     aboveColumn &= ~1;
                     candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(aboveColumn + 1, row - 1));
                     step = 2;
@@ -266,8 +266,8 @@ internal sealed class Av1MotionVariationCandidates
         Point sourcePoint = new(sourceX << MotionVectorSubpixelBits, sourceY << MotionVectorSubpixelBits);
         Av1MotionVector motionVector = candidate.MotionVectors[0];
 
-        // Neighbor centers and motion vectors share Q3 precision. Adding them directly produces the corresponding
-        // reference position without rounding away the fractional displacement needed by the projection solver.
+        // Neighbor centers and motion vectors share Q3 precision. Their sum is the reference position.
+        // The sum keeps the fractional displacement that the projection solver needs.
         this.sourcePoints[this.Count] = sourcePoint;
         this.referencePoints[this.Count] = new Point(sourcePoint.X + motionVector.Column, sourcePoint.Y + motionVector.Row);
         this.Count++;
@@ -277,7 +277,7 @@ internal sealed class Av1MotionVariationCandidates
     /// Determines whether a decoded neighbor can participate in overlapping motion compensation.
     /// </summary>
     /// <param name="candidate">The neighboring decoded block.</param>
-    /// <returns><see langword="true"/> for inter prediction or intra-block copy; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> for inter prediction or intra-block copy, otherwise <see langword="false"/>.</returns>
     private static bool IsOverlappable(Av1BlockModeInfo candidate)
         => candidate.UseIntraBlockCopy || candidate.ReferenceFrames[0] > Av1ReferenceFrameType.Intra;
 }

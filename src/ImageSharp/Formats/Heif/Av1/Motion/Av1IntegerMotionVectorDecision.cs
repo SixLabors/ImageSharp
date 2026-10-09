@@ -4,24 +4,34 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 
 /// <summary>
-/// Decides whether a screen content inter frame codes integer motion vectors only, from how much of its luma repeats
-/// the previous source or is flat along a row or a column, and keeps the share of the frames before it. Reference:
-/// av1_is_integer_mv() with ForceIntegerMVInfo.
+/// Decides whether a screen content inter frame codes integer motion vectors only. The decision uses the share of luma blocks that repeat the
+/// previous source or are flat along a row or a column. The class keeps the shares of the frames before it.
 /// </summary>
 internal sealed class Av1IntegerMotionVectorDecision
 {
     /// <summary>
-    /// The side of the compared blocks. Reference: FORCE_INT_MV_DECISION_BLOCK_SIZE.
+    /// The side of the compared blocks, in samples.
     /// </summary>
     private const int BlockSize = 8;
 
     /// <summary>
-    /// The number of frames whose share the average reads. Reference: max_history_size.
+    /// The number of frames whose share the average reads.
     /// </summary>
     private const int HistoryLength = 32;
 
+    /// <summary>
+    /// The ring of the shares of repeated or flat blocks of the most recent frames.
+    /// </summary>
     private readonly double[] shares = new double[HistoryLength];
+
+    /// <summary>
+    /// The position in <see cref="shares"/> that the next frame writes.
+    /// </summary>
     private int index;
+
+    /// <summary>
+    /// The number of valid entries in <see cref="shares"/>.
+    /// </summary>
     private int count;
 
     /// <summary>
@@ -88,8 +98,8 @@ internal sealed class Av1IntegerMotionVectorDecision
             return false;
         }
 
-        // The reference ends with two tests that no frame passes: fewer than no remaining blocks, and an average of
-        // shares above one.
+        // No frame passes these two final tests. The count of remaining blocks is never negative, and the average share is never above one. Thus
+        // a frame that gets here does not force integer motion vectors.
         return total - collocated - smooth < 0 || average > 1.01;
     }
 }

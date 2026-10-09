@@ -28,8 +28,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<int>.CreateRounding(cosBit);
 
-            // Stages 1 and 2 split the even and odd terms. The asymmetric destinations mirror Highway's buffer
-            // ownership, allowing the later even butterflies to write their final coefficients directly to the block.
+            // Stages 1 and 2 split the even and odd terms. Stage 1 writes differences 4 and 7 straight to buffer1 because stage 2 does not change them.
             Av1ForwardTransformArithmetic<int>.AddSubtract(
                 Load<int>(ref values, inputStride, 0),
                 Load<int>(ref values, inputStride, 7),
@@ -66,7 +65,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 3 completes the even half directly in coefficient order and prepares the four remaining odd terms.
+            // Stage 3 completes the even outputs 0, 2, 4 and 6 and adds and subtracts the four remaining odd terms.
             Av1ForwardTransformArithmetic<int>.Butterfly(
                 cospi[32],
                 cospi[32],
@@ -90,7 +89,7 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<int>.AddSubtract(buffer1[4], buffer1[5], out buffer0[4], out buffer0[5]);
             Av1ForwardTransformArithmetic<int>.AddSubtract(buffer1[7], buffer1[6], out buffer0[7], out buffer0[6]);
 
-            // Highway fuses the final two stages because no intermediate value is reused after either rotation.
+            // Stage 4 rotates the odd terms straight into outputs 1, 7, 5 and 3. Thus no separate output permutation stage follows.
             Av1ForwardTransformArithmetic<int>.Butterfly(
                 cospi[8],
                 cospi[56],
@@ -133,8 +132,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<short>.CreateRounding(cosBit);
 
-            // Stages 1 and 2 split the even and odd terms. The asymmetric destinations mirror Highway's buffer
-            // ownership, allowing the later even butterflies to write their final coefficients directly to the block.
+            // Stages 1 and 2 split the even and odd terms. Stage 1 writes differences 4 and 7 straight to buffer1 because stage 2 does not change them.
             Av1ForwardTransformArithmetic<short>.AddSubtract(
                 Load<short>(ref values, inputStride, 0),
                 Load<short>(ref values, inputStride, 7),
@@ -171,7 +169,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 3 completes the even half directly in coefficient order and prepares the four remaining odd terms.
+            // Stage 3 completes the even outputs 0, 2, 4 and 6 and adds and subtracts the four remaining odd terms.
             Av1ForwardTransformArithmetic<short>.Butterfly(
                 cospi[32],
                 cospi[32],
@@ -195,7 +193,7 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<short>.AddSubtract(buffer1[4], buffer1[5], out buffer0[4], out buffer0[5]);
             Av1ForwardTransformArithmetic<short>.AddSubtract(buffer1[7], buffer1[6], out buffer0[7], out buffer0[6]);
 
-            // Highway fuses the final two stages because no intermediate value is reused after either rotation.
+            // Stage 4 rotates the odd terms straight into outputs 1, 7, 5 and 3. Thus no separate output permutation stage follows.
             Av1ForwardTransformArithmetic<short>.Butterfly(
                 cospi[8],
                 cospi[56],
@@ -238,8 +236,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector128<short>>.CreateRounding(cosBit);
 
-            // Stages 1 and 2 split the even and odd terms. The asymmetric destinations mirror Highway's buffer
-            // ownership, allowing the later even butterflies to write their final coefficients directly to the block.
+            // Stages 1 and 2 split the even and odd terms. Stage 1 writes differences 4 and 7 straight to buffer1 because stage 2 does not change them.
             Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(
                 Load<Vector128<short>>(ref values, inputStride, 0),
                 Load<Vector128<short>>(ref values, inputStride, 7),
@@ -276,7 +273,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 3 completes the even half directly in coefficient order and prepares the four remaining odd terms.
+            // Stage 3 completes the even outputs 0, 2, 4 and 6 and adds and subtracts the four remaining odd terms.
             Av1ForwardTransformArithmetic<Vector128<short>>.Butterfly(
                 cospi[32],
                 cospi[32],
@@ -300,7 +297,7 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer1[4], buffer1[5], out buffer0[4], out buffer0[5]);
             Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer1[7], buffer1[6], out buffer0[7], out buffer0[6]);
 
-            // Highway fuses the final two stages because no intermediate value is reused after either rotation.
+            // Stage 4 rotates the odd terms straight into outputs 1, 7, 5 and 3. Thus no separate output permutation stage follows.
             Av1ForwardTransformArithmetic<Vector128<short>>.Butterfly(
                 cospi[8],
                 cospi[56],
@@ -343,8 +340,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector256<short>>.CreateRounding(cosBit);
 
-            // Stages 1 and 2 split the even and odd terms. The asymmetric destinations mirror Highway's buffer
-            // ownership, allowing the later even butterflies to write their final coefficients directly to the block.
+            // Stages 1 and 2 split the even and odd terms. Stage 1 writes differences 4 and 7 straight to buffer1 because stage 2 does not change them.
             Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(
                 Load<Vector256<short>>(ref values, inputStride, 0),
                 Load<Vector256<short>>(ref values, inputStride, 7),
@@ -381,7 +377,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 3 completes the even half directly in coefficient order and prepares the four remaining odd terms.
+            // Stage 3 completes the even outputs 0, 2, 4 and 6 and adds and subtracts the four remaining odd terms.
             Av1ForwardTransformArithmetic<Vector256<short>>.Butterfly(
                 cospi[32],
                 cospi[32],
@@ -405,7 +401,7 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer1[4], buffer1[5], out buffer0[4], out buffer0[5]);
             Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer1[7], buffer1[6], out buffer0[7], out buffer0[6]);
 
-            // Highway fuses the final two stages because no intermediate value is reused after either rotation.
+            // Stage 4 rotates the odd terms straight into outputs 1, 7, 5 and 3. Thus no separate output permutation stage follows.
             Av1ForwardTransformArithmetic<Vector256<short>>.Butterfly(
                 cospi[8],
                 cospi[56],
@@ -448,8 +444,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector512<short>>.CreateRounding(cosBit);
 
-            // Stages 1 and 2 split the even and odd terms. The asymmetric destinations mirror Highway's buffer
-            // ownership, allowing the later even butterflies to write their final coefficients directly to the block.
+            // Stages 1 and 2 split the even and odd terms. Stage 1 writes differences 4 and 7 straight to buffer1 because stage 2 does not change them.
             Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(
                 Load<Vector512<short>>(ref values, inputStride, 0),
                 Load<Vector512<short>>(ref values, inputStride, 7),
@@ -486,7 +481,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 3 completes the even half directly in coefficient order and prepares the four remaining odd terms.
+            // Stage 3 completes the even outputs 0, 2, 4 and 6 and adds and subtracts the four remaining odd terms.
             Av1ForwardTransformArithmetic<Vector512<short>>.Butterfly(
                 cospi[32],
                 cospi[32],
@@ -510,7 +505,7 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer1[4], buffer1[5], out buffer0[4], out buffer0[5]);
             Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer1[7], buffer1[6], out buffer0[7], out buffer0[6]);
 
-            // Highway fuses the final two stages because no intermediate value is reused after either rotation.
+            // Stage 4 rotates the odd terms straight into outputs 1, 7, 5 and 3. Thus no separate output permutation stage follows.
             Av1ForwardTransformArithmetic<Vector512<short>>.Butterfly(
                 cospi[8],
                 cospi[56],
@@ -553,8 +548,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector128<int>>.CreateRounding(cosBit);
 
-            // Stages 1 and 2 split the even and odd terms. The asymmetric destinations mirror Highway's buffer
-            // ownership, allowing the later even butterflies to write their final coefficients directly to the block.
+            // Stages 1 and 2 split the even and odd terms. Stage 1 writes differences 4 and 7 straight to buffer1 because stage 2 does not change them.
             Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(
                 Load<Vector128<int>>(ref values, inputStride, 0),
                 Load<Vector128<int>>(ref values, inputStride, 7),
@@ -591,7 +585,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 3 completes the even half directly in coefficient order and prepares the four remaining odd terms.
+            // Stage 3 completes the even outputs 0, 2, 4 and 6 and adds and subtracts the four remaining odd terms.
             Av1ForwardTransformArithmetic<Vector128<int>>.Butterfly(
                 cospi[32],
                 cospi[32],
@@ -615,7 +609,7 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer1[4], buffer1[5], out buffer0[4], out buffer0[5]);
             Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer1[7], buffer1[6], out buffer0[7], out buffer0[6]);
 
-            // Highway fuses the final two stages because no intermediate value is reused after either rotation.
+            // Stage 4 rotates the odd terms straight into outputs 1, 7, 5 and 3. Thus no separate output permutation stage follows.
             Av1ForwardTransformArithmetic<Vector128<int>>.Butterfly(
                 cospi[8],
                 cospi[56],
@@ -658,8 +652,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector256<int>>.CreateRounding(cosBit);
 
-            // Stages 1 and 2 split the even and odd terms. The asymmetric destinations mirror Highway's buffer
-            // ownership, allowing the later even butterflies to write their final coefficients directly to the block.
+            // Stages 1 and 2 split the even and odd terms. Stage 1 writes differences 4 and 7 straight to buffer1 because stage 2 does not change them.
             Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(
                 Load<Vector256<int>>(ref values, inputStride, 0),
                 Load<Vector256<int>>(ref values, inputStride, 7),
@@ -696,7 +689,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 3 completes the even half directly in coefficient order and prepares the four remaining odd terms.
+            // Stage 3 completes the even outputs 0, 2, 4 and 6 and adds and subtracts the four remaining odd terms.
             Av1ForwardTransformArithmetic<Vector256<int>>.Butterfly(
                 cospi[32],
                 cospi[32],
@@ -720,7 +713,7 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer1[4], buffer1[5], out buffer0[4], out buffer0[5]);
             Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer1[7], buffer1[6], out buffer0[7], out buffer0[6]);
 
-            // Highway fuses the final two stages because no intermediate value is reused after either rotation.
+            // Stage 4 rotates the odd terms straight into outputs 1, 7, 5 and 3. Thus no separate output permutation stage follows.
             Av1ForwardTransformArithmetic<Vector256<int>>.Butterfly(
                 cospi[8],
                 cospi[56],
@@ -763,8 +756,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector512<int>>.CreateRounding(cosBit);
 
-            // Stages 1 and 2 split the even and odd terms. The asymmetric destinations mirror Highway's buffer
-            // ownership, allowing the later even butterflies to write their final coefficients directly to the block.
+            // Stages 1 and 2 split the even and odd terms. Stage 1 writes differences 4 and 7 straight to buffer1 because stage 2 does not change them.
             Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(
                 Load<Vector512<int>>(ref values, inputStride, 0),
                 Load<Vector512<int>>(ref values, inputStride, 7),
@@ -801,7 +793,7 @@ internal static partial class Av1ForwardTransformer
                 cosBit,
                 in rounding);
 
-            // Stage 3 completes the even half directly in coefficient order and prepares the four remaining odd terms.
+            // Stage 3 completes the even outputs 0, 2, 4 and 6 and adds and subtracts the four remaining odd terms.
             Av1ForwardTransformArithmetic<Vector512<int>>.Butterfly(
                 cospi[32],
                 cospi[32],
@@ -825,7 +817,7 @@ internal static partial class Av1ForwardTransformer
             Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer1[4], buffer1[5], out buffer0[4], out buffer0[5]);
             Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer1[7], buffer1[6], out buffer0[7], out buffer0[6]);
 
-            // Highway fuses the final two stages because no intermediate value is reused after either rotation.
+            // Stage 4 rotates the odd terms straight into outputs 1, 7, 5 and 3. Thus no separate output permutation stage follows.
             Av1ForwardTransformArithmetic<Vector512<int>>.Butterfly(
                 cospi[8],
                 cospi[56],

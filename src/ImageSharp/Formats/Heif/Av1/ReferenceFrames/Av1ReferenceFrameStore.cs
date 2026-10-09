@@ -9,9 +9,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 /// Owns the reference map and selected presentation output for one bounded AV1 decoder session.
 /// </summary>
 /// <remarks>
-/// Several slots and the selected output may identify the same <see cref="Av1ReferenceFrame"/>. The store preserves
-/// that sharing without allocating reference-count objects and releases a frame only after its final owning reference
-/// has been replaced or cleared. This type is not thread safe; one decoder session serializes commit and disposal.
+/// Several slots and the selected output can identify the same <see cref="Av1ReferenceFrame"/>. The store keeps that sharing without reference-count objects.
+/// It releases a frame only after its final owning reference is replaced or cleared. This type is not thread safe. One decoder session serializes commit and
+/// disposal.
 /// </remarks>
 internal sealed class Av1ReferenceFrameStore : IDisposable
 {
@@ -39,11 +39,11 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
     /// Resolves one reference-map slot.
     /// </summary>
     /// <param name="slot">The zero-based reference-map slot in the inclusive range 0 through 7.</param>
-    /// <returns>The retained frame, or <see langword="null"/> when the slot has not been populated.</returns>
+    /// <returns>The retained frame, or <see langword="null"/> when the slot is empty.</returns>
     public Av1ReferenceFrame? Resolve(int slot) => this.frames[slot];
 
     /// <summary>
-    /// Resolves a reference-map slot that an earlier syntax boundary has established as occupied.
+    /// Resolves a reference-map slot that an earlier syntax boundary established as occupied.
     /// </summary>
     /// <param name="slot">The zero-based reference-map slot.</param>
     /// <returns>The retained frame in the selected slot.</returns>
@@ -69,8 +69,8 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
     /// <param name="destination">The eight-entry destination receiving the current slot occupancy.</param>
     public void FillOccupancy(Span<bool> destination)
     {
-        // Physical ownership is intentionally independent from frame-ID validity. Short reference signaling sorts
-        // every occupied slot first, then the uncompressed-header parser validates each derived role separately.
+        // Physical ownership is intentionally independent from frame-ID validity. Short reference signaling sorts every occupied slot first. Then the
+        // uncompressed-header parser validates each derived role separately.
         ReadOnlySpan<Av1ReferenceFrame?> frames = this.frames;
         for (int slot = 0; slot < SlotCount; slot++)
         {
@@ -81,19 +81,16 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
     /// <summary>
     /// Commits a completed frame to the reference map and, when shown, retains it for presentation.
     /// </summary>
-    /// <param name="refreshFrameFlags">
-    /// The mask whose bit <c>n</c> replaces reference-map slot <c>n</c>. Only the low eight bits describe AV1 slots.
-    /// </param>
+    /// <param name="refreshFrameFlags">The mask whose bit <c>n</c> replaces reference-map slot <c>n</c>. Only the low eight bits describe AV1 slots.</param>
     /// <param name="frame">The completed frame to retain in every selected ownership role.</param>
     /// <param name="showFrame">Whether the completed frame replaces the previously retained presentation output.</param>
     /// <returns>
-    /// <see langword="true"/> when the frame is retained as a reference or presentation output and ownership transfers
-    /// to this store; otherwise <see langword="false"/>, in which case no state changes and the caller retains ownership.
+    /// <see langword="true"/> when the frame is retained as a reference or presentation output and ownership transfers to this store. Otherwise
+    /// <see langword="false"/>. In that case, no state changes and the caller keeps ownership.
     /// </returns>
     /// <remarks>
-    /// The caller must invoke this method only after reconstruction and all normative in-loop filters have completed.
-    /// Once ownership transfers, the caller must not dispose the frame. A frame passed here must not already be owned by
-    /// this store.
+    /// The caller must invoke this method only when reconstruction and all normative in-loop filters are complete. After the ownership transfer, the caller
+    /// must not dispose the frame. A frame passed here must not already be owned by this store.
     /// </remarks>
     public bool Commit(uint refreshFrameFlags, Av1ReferenceFrame frame, bool showFrame)
     {
@@ -107,9 +104,8 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
         InlineArray8<Av1ReferenceFrame?> replacedFrames = default;
         Av1ReferenceFrame? replacedOutputFrame = showFrame ? this.outputFrame : null;
 
-        // Capture displaced owners in inline storage, then publish the complete slot and output transition before
-        // releasing anything. A shown frame may also occupy reference slots, so both ownership domains must change as
-        // one operation.
+        // The code captures displaced owners in inline storage. Then it publishes the full slot and output transition before it releases anything. A shown
+        // frame can also occupy reference slots, so both ownership domains must change as one operation.
         Span<Av1ReferenceFrame?> frames = this.frames;
         Span<Av1ReferenceFrame?> replaced = replacedFrames;
         for (int slot = 0; slot < SlotCount; slot++)
@@ -137,13 +133,13 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
 
             if (ReferenceEquals(replacedFrame, replacedOutputFrame))
             {
-                // Let the displaced-output path release this shared owner after every slot candidate has been removed.
+                // The displaced-output path releases this shared owner after this loop removes every slot candidate.
                 replaced[replacedIndex] = null;
                 continue;
             }
 
-            // A displaced frame remains owned when any unrefreshed slot or the selected output still references it.
-            // Eight fixed slots make the bounded identity scan cheaper than allocated reference-count state.
+            // A displaced frame remains owned when any unrefreshed slot or the selected output still references it. Eight fixed slots make the bounded identity
+            // scan cheaper than allocated reference-count state.
             if (this.IsRetained(replacedFrame))
             {
                 replaced[replacedIndex] = null;
@@ -165,16 +161,15 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
     /// </summary>
     /// <param name="frame">The completed presentation frame whose ownership transfers to this store.</param>
     /// <remarks>
-    /// This path is used when film grain requires presentation samples to differ from the ungrained reconstruction
-    /// retained by the reference map.
+    /// The decoder uses this path when film grain makes the presentation samples differ from the ungrained reconstruction retained by the reference map.
     /// </remarks>
     public void CommitOutput(Av1ReferenceFrame frame)
     {
         Av1ReferenceFrame? replacedFrame = this.outputFrame;
         this.outputFrame = frame;
 
-        // The previous output may still be retained by one or more reference slots. Release it only after publishing
-        // the new output and confirming that no reference-map identity remains.
+        // One or more reference slots can still retain the previous output. The code releases it only after it publishes the new output and finds no remaining
+        // reference-map identity.
         if (replacedFrame is not null && !this.IsRetained(replacedFrame))
         {
             replacedFrame.Dispose();
@@ -198,8 +193,8 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
             Span<Av1ReferenceFrame?> frames = this.frames;
             Span<Av1ReferenceFrame?> replaced = replacedFrames;
 
-            // Showing a hidden key frame starts a new coded-video-sequence state. All eight reference-map slots now
-            // identify that same reconstructed owner, so publish every alias before releasing displaced frames.
+            // Showing a hidden key frame starts a new coded-video-sequence state. All eight reference-map slots now identify that same reconstructed owner. The
+            // code publishes every alias before it releases displaced frames.
             for (int mapSlot = 0; mapSlot < SlotCount; mapSlot++)
             {
                 frames[mapSlot] = selectedFrame;
@@ -209,14 +204,14 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
                 }
             }
 
-            // A key frame may be presented through show_existing_frame only once. The retained owner carries this
-            // conformance state because every slot alias must observe the transition.
+            // A key frame can be presented through show_existing_frame only once. The retained owner carries this conformance state, because every slot alias
+            // must see the transition.
             selectedFrame.FrameHeader.ShowableFrame = false;
 
             if (replacedOutputFrame is not null)
             {
-                // Let the displaced-output path release a detached shared owner after all of its old slot aliases have
-                // been removed from the replacement set.
+                // The displaced-output path releases a detached shared owner. This loop first removes all old slot aliases of that owner from the replacement
+                // set.
                 for (int mapSlot = 0; mapSlot < SlotCount; mapSlot++)
                 {
                     if (ReferenceEquals(replaced[mapSlot], replacedOutputFrame))
@@ -246,8 +241,8 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
         Av1ReferenceFrame result = this.ResolveOutput();
         this.outputFrame = null;
 
-        // The caller becomes the sole owner of the selected output. Remove all slot aliases before Reset releases the
-        // remaining session references so the sample buffer can transfer without copying.
+        // The caller becomes the sole owner of the selected output. The code removes all slot aliases before Reset releases the remaining session references,
+        // so the sample buffer transfers without a copy.
         Span<Av1ReferenceFrame?> frames = this.frames;
         for (int slot = 0; slot < SlotCount; slot++)
         {
@@ -271,8 +266,8 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
         Av1ReferenceFrame? releasedOutputFrame = this.outputFrame;
         this.outputFrame = null;
 
-        // Clear the live map before disposal so the store cannot expose a partially reset ownership state. When the
-        // output aliases a slot, let the output path perform the single release after the duplicate slot is removed.
+        // The live map is clear before disposal, so the store cannot expose a partially reset ownership state. When the output aliases a slot, the output path
+        // performs the single release after this loop removes the duplicate slot.
         if (releasedOutputFrame is not null)
         {
             Span<Av1ReferenceFrame?> released = releasedFrames;
@@ -334,8 +329,8 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
                 continue;
             }
 
-            // Null every later alias before disposal. The store intentionally represents shared slot ownership through
-            // object identity, so no separately allocated reference-count state is needed for the eight-entry map.
+            // The loop sets every later alias to null before disposal. The store represents shared slot ownership through object identity, so the eight-entry
+            // map needs no separately allocated reference-count state.
             for (int duplicateIndex = frameIndex + 1; duplicateIndex < SlotCount; duplicateIndex++)
             {
                 if (ReferenceEquals(frames[duplicateIndex], frame))

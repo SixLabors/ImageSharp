@@ -30,8 +30,8 @@ internal static class Av1ChromaPredictionModeExtensions
             Av1ChromaPredictionMode.SmoothHorizontal => Av1PredictionMode.SmoothHorizontal,
             Av1ChromaPredictionMode.Paeth => Av1PredictionMode.Paeth,
 
-            // Chroma-from-luma adds its AC contribution to a DC prediction. the reference decoder's get_uv_mode() therefore maps it
-            // to DC when shared transform and neighbor metadata require the corresponding luma predictor.
+            // Chroma-from-luma adds its AC contribution to a DC prediction.
+            // Thus it maps to DC when shared transform and neighbor metadata require the corresponding luma predictor.
             Av1ChromaPredictionMode.ChromaFromLuma => Av1PredictionMode.DC,
             _ => Av1PredictionMode.IntraInvalid,
         };
@@ -40,7 +40,7 @@ internal static class Av1ChromaPredictionModeExtensions
     /// Determines whether a chroma intra-prediction mode projects samples along a coded angle.
     /// </summary>
     /// <param name="mode">The chroma intra-prediction mode.</param>
-    /// <returns><see langword="true"/> for a directional mode; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> for a directional mode, otherwise <see langword="false"/>.</returns>
     public static bool IsDirectional(this Av1ChromaPredictionMode mode)
         => mode is >= Av1ChromaPredictionMode.Vertical and <= Av1ChromaPredictionMode.Directional67Degrees;
 }

@@ -10,9 +10,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// Widens AV1 sample vectors for fixed-point prediction arithmetic and narrows completed results.
 /// </summary>
 /// <remarks>
-/// Widening preserves consecutive sample order while splitting packed vectors into equal low-to-high groups. Callers
-/// perform interpolation in signed 32-bit lanes and clip before narrowing, so the unsigned byte overloads may use
-/// unsigned narrowing and the high-bit-depth overloads may use signed narrowing without additional saturation logic.
+/// Widening keeps consecutive sample order and splits packed vectors into equal groups from low to high. Callers interpolate in signed 32-bit lanes and clip
+/// before narrowing. Thus the byte overloads can use unsigned narrowing, and the high-bit-depth overloads can use signed narrowing, without more saturation
+/// logic.
 /// </remarks>
 internal abstract partial class Av1NonDirectionalIntraPredictorBase
 {

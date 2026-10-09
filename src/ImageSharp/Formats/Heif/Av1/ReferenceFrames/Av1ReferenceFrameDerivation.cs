@@ -33,8 +33,7 @@ internal static class Av1ReferenceFrameDerivation
         ];
 
     /// <summary>
-    /// Derives the reference-map slot selected for each inter-reference type when an AV1 frame uses short reference
-    /// signaling.
+    /// Derives the reference-map slot selected for each inter-reference type when an AV1 frame uses short reference signaling.
     /// </summary>
     /// <param name="currentOrderHint">The current frame order hint in the active modulo order-hint domain.</param>
     /// <param name="orderHintBitWidth">The number of bits in the active order-hint domain.</param>
@@ -42,22 +41,19 @@ internal static class Av1ReferenceFrameDerivation
     /// <param name="goldenFrameIndex">The explicitly signaled reference-map slot for <see cref="Av1ReferenceFrameType.Golden"/>.</param>
     /// <param name="slotOrderHints">The eight persisted reference-map order hints.</param>
     /// <param name="slotOccupancy">
-    /// The eight values indicating whether each persisted reference-map slot owns a decoded frame. An empty slot is
-    /// excluded from derivation.
+    /// The eight values that tell whether each persisted reference-map slot owns a decoded frame. The derivation ignores an empty slot.
     /// </param>
     /// <param name="referenceFrameIndices">
-    /// The destination for seven slot indices ordered from <see cref="Av1ReferenceFrameType.Last"/> through
-    /// <see cref="Av1ReferenceFrameType.Alternate"/>.
+    /// The destination for seven slot indices ordered from <see cref="Av1ReferenceFrameType.Last"/> through <see cref="Av1ReferenceFrameType.Alternate"/>.
     /// </param>
     /// <exception cref="InvalidImageContentException">
     /// The signaled LAST or GOLDEN slot is empty, refers to the current frame, or refers to a future frame.
     /// </exception>
     /// <remarks>
-    /// The caller owns the fixed AV1 table-size invariants: <paramref name="slotOrderHints"/> and
-    /// <paramref name="slotOccupancy"/> contain eight entries, while <paramref name="referenceFrameIndices"/> contains
-    /// seven entries. The signaled indices and order hints have already been read from their bounded bit fields. Every
-    /// destination entry is overwritten on success, and multiple reference types may select the same slot. Frame-ID
-    /// validity is a separate conformance state that the caller checks for every resolved reference after derivation.
+    /// The caller owns the fixed AV1 table-size invariants. <paramref name="slotOrderHints"/> and <paramref name="slotOccupancy"/> contain eight entries, and
+    /// <paramref name="referenceFrameIndices"/> contains seven entries. The signaled indices and order hints come from their bounded bit fields. On success,
+    /// the method writes every destination entry. More than one reference type can select the same slot. Frame-ID validity is a separate conformance state. The
+    /// caller checks it for every resolved reference after the derivation.
     /// </remarks>
     public static void DeriveShortSignaledReferences(
         uint currentOrderHint,
@@ -73,8 +69,8 @@ internal static class Av1ReferenceFrameDerivation
 
         if (!slotOccupancy[lastMapIndex])
         {
-            // Unlike an unused empty slot, the explicitly signaled LAST slot must own a decoded frame before any
-            // derived mapping can be consumed. the reference decoder rejects the missing reference at this frame-header boundary.
+            // Unlike an unused empty slot, the explicitly signaled LAST slot must own a decoded frame before any derived mapping is used. Thus the decoder
+            // rejects the missing reference at this frame-header boundary.
             throw new InvalidImageContentException("An AV1 inter frame requests an unavailable LAST reference.");
         }
 
@@ -99,16 +95,15 @@ internal static class Av1ReferenceFrameDerivation
 
             if (!slotOccupancy[mapIndex])
             {
-                // the reference decoder gives absent reference buffers sort index -1. Keeping empty managed slots in the same
-                // leading partition prevents their stale order hints from participating in temporal selection.
+                // An absent reference buffer gets sort index -1. Empty slots stay in the same leading partition, so their stale order hints do not take part in
+                // the temporal selection.
                 continue;
             }
 
             int difference = (int)slotOrderHints[mapIndex] - (int)currentOrderHint;
 
-            // get_relative_dist folds the unsigned order-hint difference into the signed half-open interval
-            // [-2^(bits-1), 2^(bits-1)). Adding the half-range makes -1 available as the absence sentinel while valid
-            // entries sort from zero through the complete modulo domain.
+            // The relative distance folds the unsigned order-hint difference into the signed half-open interval [-2^(bits-1), 2^(bits-1)). The added half-range
+            // keeps -1 free as the absence sentinel, and valid entries sort from zero through the complete modulo domain.
             difference = (difference & orderHintMask) - (difference & currentFrameSortIndex);
             info.SortIndex = currentFrameSortIndex + difference;
 
@@ -133,10 +128,9 @@ internal static class Av1ReferenceFrameDerivation
             throw new InvalidImageContentException("An AV1 inter frame requests a current or future frame as GOLDEN.");
         }
 
-        // the reference decoder sorts first by shifted output order and then by reference-map index. The explicit tie break is
-        // normative: equal order hints select the highest map index for latest references and the lowest for earliest
-        // references. Insertion sort is bounded to eight inline entries and does not allocate or require general sort
-        // infrastructure at the frame-header boundary.
+        // The sort uses the shifted output order first and then the reference-map index. The explicit tie break is normative. Equal order hints select the
+        // highest map index for latest references and the lowest for earliest references. The insertion sort is bounded to eight inline entries. It does not
+        // allocate and needs no general sort infrastructure.
         for (int index = 1; index < Av1Constants.ReferenceFrameCount; index++)
         {
             ReferenceFrameInfo current = referenceInfo[index];
@@ -170,8 +164,8 @@ internal static class Av1ReferenceFrameDerivation
         int forwardStartIndex = 0;
         int forwardEndIndex = Av1Constants.ReferenceFrameCount - 1;
 
-        // Empty entries sort before every occupied shifted hint. The first current-or-future entry then divides the
-        // remaining sorted table into forward references on the left and backward references on the right.
+        // Empty entries sort before every occupied shifted hint. The first current-or-future entry then divides the remaining sorted table into forward
+        // references on the left and backward references on the right.
         for (int index = 0; index < Av1Constants.ReferenceFrameCount; index++)
         {
             if (referenceInfo[index].SortIndex == UnavailableSortIndex)
@@ -195,8 +189,8 @@ internal static class Av1ReferenceFrameDerivation
 
         if (backwardStartIndex <= backwardEndIndex)
         {
-            // ALTREF receives the frame farthest into the future. The sorted-map-index tie break selects the highest
-            // slot when multiple frames share that order hint, matching both the specification and the reference decoder.
+            // ALTREF gets the frame farthest into the future. When frames share that order hint, the sorted-map-index tie break selects the highest slot, as
+            // the specification requires.
             referenceFrameIndices[alternateReferenceIndex] = (uint)referenceInfo[backwardEndIndex].MapIndex;
             assignedReferences[alternateReferenceIndex] = true;
             backwardEndIndex--;
@@ -212,8 +206,8 @@ internal static class Av1ReferenceFrameDerivation
 
         if (backwardStartIndex <= backwardEndIndex)
         {
-            // ALTREF2 receives the next-nearest remaining future frame. No further backward lookup follows, so the
-            // lower boundary does not need to advance after this assignment.
+            // ALTREF2 receives the next-nearest remaining future frame. No further backward lookup follows, so the lower boundary does not advance after this
+            // assignment.
             referenceFrameIndices[alternate2ReferenceIndex] = (uint)referenceInfo[backwardStartIndex].MapIndex;
             assignedReferences[alternate2ReferenceIndex] = true;
         }
@@ -229,8 +223,8 @@ internal static class Av1ReferenceFrameDerivation
                 continue;
             }
 
-            // LAST and GOLDEN were already assigned explicitly and cannot be reused while an unassigned forward slot
-            // remains. Moving from the high end chooses the remaining frames in anti-chronological order.
+            // LAST and GOLDEN have explicit assignments and are not reused while an unassigned forward slot remains. The scan moves down from the high end, so
+            // it chooses the remaining frames in anti-chronological order.
             while (forwardStartIndex <= forwardEndIndex &&
                 (referenceInfo[forwardEndIndex].MapIndex == lastMapIndex ||
                  referenceInfo[forwardEndIndex].MapIndex == goldenMapIndex))
@@ -256,8 +250,8 @@ internal static class Av1ReferenceFrameDerivation
                 continue;
             }
 
-            // AV1 requires every unfilled role to reuse the earliest available forward frame. At least LAST and GOLDEN
-            // are occupied forward references, so forwardStartIndex always identifies a usable slot at this point.
+            // AV1 requires every unfilled role to reuse the earliest available forward frame. At least LAST and GOLDEN are occupied forward references, so
+            // forwardStartIndex always identifies a usable slot at this point.
             referenceFrameIndices[referenceIndex] = (uint)referenceInfo[forwardStartIndex].MapIndex;
             assignedReferences[referenceIndex] = true;
         }

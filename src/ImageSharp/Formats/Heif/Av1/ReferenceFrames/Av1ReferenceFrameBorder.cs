@@ -43,7 +43,7 @@ internal static class Av1ReferenceFrameBorder
     }
 
     /// <summary>
-    /// Selects the native sample representation for one byte-backed plane.
+    /// Extends one byte-backed plane through the native sample representation of the frame.
     /// </summary>
     /// <param name="frameBuffer">The frame that defines the native sample size.</param>
     /// <param name="buffer">The padded plane allocation.</param>
@@ -89,8 +89,8 @@ internal static class Av1ReferenceFrameBorder
         {
             Span<TSample> destinationRow = plane.Slice((originY + row) * stride, stride);
 
-            // Span.Fill maps these long constant runs to the runtime's vectorized fill implementation. Extending the
-            // horizontal edges first also makes each later full-row copy include complete left and right padding.
+            // Span.Fill maps these long constant runs to the vectorized fill of the runtime. The horizontal edges extend first, so each later full-row copy
+            // also includes the complete left and right padding.
             destinationRow[..originX].Fill(destinationRow[originX]);
             destinationRow.Slice(rightStart, rightLength).Fill(destinationRow[rightStart - 1]);
         }

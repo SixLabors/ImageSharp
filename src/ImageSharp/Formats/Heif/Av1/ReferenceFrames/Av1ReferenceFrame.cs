@@ -11,8 +11,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 /// Owns the completed decoded state retained for one AV1 reference or presentation frame.
 /// </summary>
 /// <remarks>
-/// Reference-map owners contain reconstruction samples after the normative in-loop filters and before film-grain
-/// synthesis. A presentation-only owner may instead contain the independently synthesized grained output.
+/// Reference-map owners contain reconstruction samples after the normative in-loop filters and before film-grain synthesis. A presentation-only owner can
+/// contain the separately synthesized grained output.
 /// </remarks>
 internal sealed class Av1ReferenceFrame : IDisposable
 {
@@ -29,12 +29,9 @@ internal sealed class Av1ReferenceFrame : IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1ReferenceFrame"/> class for presentation-only ownership.
     /// </summary>
-    /// <param name="frameBuffer">
-    /// The completed sample buffer. Ownership transfers to this instance when construction succeeds.
-    /// </param>
+    /// <param name="frameBuffer">The completed sample buffer. Ownership transfers to this instance when construction succeeds.</param>
     /// <param name="frameHeader">
-    /// The completed frame header associated with the reconstructed samples. The caller must not mutate the header
-    /// after transferring it to this instance.
+    /// The completed frame header associated with the reconstructed samples. The caller must not mutate the header after the transfer to this instance.
     /// </param>
     public Av1ReferenceFrame(Av1FrameBuffer<byte> frameBuffer, ObuFrameHeader frameHeader)
     {
@@ -45,12 +42,9 @@ internal sealed class Av1ReferenceFrame : IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1ReferenceFrame"/> class with retained compact reference state.
     /// </summary>
-    /// <param name="frameBuffer">
-    /// The completed sample buffer. Ownership transfers to this instance when construction succeeds.
-    /// </param>
+    /// <param name="frameBuffer">The completed sample buffer. Ownership transfers to this instance when construction succeeds.</param>
     /// <param name="frameHeader">
-    /// The completed frame header associated with the reconstructed samples. The caller must not mutate the header
-    /// after transferring it to this instance.
+    /// The completed frame header associated with the reconstructed samples. The caller must not mutate the header after the transfer to this instance.
     /// </param>
     /// <param name="frameInfo">The completed reconstruction state from which reference syntax is retained.</param>
     public Av1ReferenceFrame(Av1FrameBuffer<byte> frameBuffer, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo)
@@ -60,19 +54,15 @@ internal sealed class Av1ReferenceFrame : IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1ReferenceFrame"/> class and takes ownership of decoded samples
-    /// and the entropy snapshot retained by a refreshed reference frame.
+    /// Initializes a new instance of the <see cref="Av1ReferenceFrame"/> class and takes ownership of decoded samples and the entropy snapshot retained by a
+    /// refreshed reference frame.
     /// </summary>
-    /// <param name="frameBuffer">
-    /// The completed sample buffer. Ownership transfers to this instance when construction succeeds.
-    /// </param>
+    /// <param name="frameBuffer">The completed sample buffer. Ownership transfers to this instance when construction succeeds.</param>
     /// <param name="frameHeader">
-    /// The completed frame header associated with the reconstructed samples. The caller must not mutate the header
-    /// after transferring it to this instance.
+    /// The completed frame header associated with the reconstructed samples. The caller must not mutate the header after the transfer to this instance.
     /// </param>
     /// <param name="frameInfo">
-    /// The completed per-block state associated with the reconstructed samples. The caller must not mutate the state
-    /// after transferring it to this instance.
+    /// The completed per-block state associated with the reconstructed samples. The caller must not mutate the state after the transfer to this instance.
     /// </param>
     /// <param name="entropyContext">The completed entropy snapshot selected for later primary-reference use.</param>
     /// <param name="entropyContextOwner">The decoder-session owner to which the snapshot is returned.</param>
@@ -124,8 +114,7 @@ internal sealed class Av1ReferenceFrame : IDisposable
     }
 
     /// <summary>
-    /// Gets the entropy context retained for primary-reference use, or <see langword="null"/> for a presentation-only
-    /// frame.
+    /// Gets the entropy context retained for primary-reference use, or <see langword="null"/> for a presentation-only frame.
     /// </summary>
     public Av1FrameEntropyContext? EntropyContext => this.referenceOwnership?.Entropy?.Context;
 
@@ -165,8 +154,8 @@ internal sealed class Av1ReferenceFrame : IDisposable
         this.referenceOwnership = null;
         if (ownership is not null)
         {
-            // Clearing the complete ownership state before returning either resource makes repeated disposal harmless
-            // when one frame owner occupies multiple reference-map slots.
+            // The ownership state is clear before either resource returns. Repeated disposal is then harmless when one frame owner occupies multiple
+            // reference-map slots.
             ReferenceOwnership activeOwnership = ownership.Value;
             EntropyOwnership? entropy = activeOwnership.Entropy;
             if (entropy is not null)

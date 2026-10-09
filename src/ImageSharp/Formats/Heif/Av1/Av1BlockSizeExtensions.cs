@@ -71,7 +71,7 @@ internal static class Av1BlockSizeExtensions
         [4, 5, 5, 6, 7, 7, 8, 9, 9, 10, 11, 11, 12, 13, 13, 14, 6, 6, 8, 8, 10, 10];
 
     /// <summary>
-    /// Maps geometry dimension logarithms to an AV1 block size using the mode-decision scan's transposed axis convention.
+    /// Maps dimension logarithms to an AV1 block size. Each row holds one block width and each column holds one block height.
     /// </summary>
     private static readonly Av1BlockSize[][] HeightWidthToSize = [
         [Av1BlockSize.Block4x4, Av1BlockSize.Block4x8, Av1BlockSize.Block4x16, Av1BlockSize.Invalid, Av1BlockSize.Invalid, Av1BlockSize.Invalid],
@@ -97,14 +97,16 @@ internal static class Av1BlockSizeExtensions
     public static int Get4x4HighCount(this Av1BlockSize blockSize) => SizeHigh[(int)blockSize];
 
     /// <summary>
-    /// Gets the block size from mode-decision geometry dimension logarithms, where zero represents four samples.
+    /// Gets the block size from two dimension logarithms, where zero represents four samples. The lookup is transposed: the block width comes from
+    /// <paramref name="heightLog2"/> and the block height comes from <paramref name="widthLog2"/>.
     /// </summary>
-    /// <param name="widthLog2">The base-two width logarithm minus two.</param>
-    /// <param name="heightLog2">The base-two height logarithm minus two.</param>
+    /// <param name="widthLog2">The base-two logarithm minus two of the block height.</param>
+    /// <param name="heightLog2">The base-two logarithm minus two of the block width.</param>
     /// <returns>The matching block size, or <see cref="Av1BlockSize.Invalid"/> for unsupported dimensions.</returns>
     public static Av1BlockSize FromWidthAndHeight(uint widthLog2, uint heightLog2)
     {
-        // Mode-decision geometry is ported with its source axis order, so its size lookup is indexed height first.
+        // The table rows hold block widths, and the lookup indexes the rows with heightLog2. This keeps the transposed axis order of the mode-decision
+        // geometry.
         return HeightWidthToSize[heightLog2][widthLog2];
     }
 
@@ -147,8 +149,8 @@ internal static class Av1BlockSizeExtensions
     /// <returns>The zero-based size group in the inclusive range zero through three.</returns>
     public static int GetSizeGroup(this Av1BlockSize blockSize)
     {
-        // AV1 section 9.3 groups a block by its smaller dimension in 4x4 units and caps that logarithm at three.
-        // Deriving the value from the existing geometry tables exactly matches the reference decoder's size_group_lookup table.
+        // AV1 groups a block by the logarithm of its smaller dimension in 4x4 units and caps that logarithm at three. The geometry tables give the same values
+        // as the size group table of the AV1 specification.
         return Math.Min(3, Math.Min(blockSize.Get4x4WidthLog2(), blockSize.Get4x4HeightLog2()));
     }
 
@@ -186,7 +188,7 @@ internal static class Av1BlockSizeExtensions
     /// <param name="isLossless">Indicates whether the block belongs to a lossless segment.</param>
     /// <param name="subX">Indicates horizontal chroma subsampling.</param>
     /// <param name="subY">Indicates vertical chroma subsampling.</param>
-    /// <returns><see langword="true"/> when chroma-from-luma prediction is permitted; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when chroma-from-luma prediction is permitted, otherwise <see langword="false"/>.</returns>
     public static bool AllowsChromaFromLuma(
         this Av1BlockSize blockSize,
         bool isLossless,

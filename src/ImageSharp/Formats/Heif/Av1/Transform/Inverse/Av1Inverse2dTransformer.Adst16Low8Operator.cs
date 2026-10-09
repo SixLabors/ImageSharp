@@ -11,9 +11,8 @@ internal static partial class Av1Inverse2dTransformer
     /// Applies the 16-point inverse ADST with at most 8 low-frequency input coefficients.
     /// </summary>
     /// <remarks>
-    /// The selected scan bound guarantees all later inputs are zero. Rotations with one surviving input retain
-    /// their original rounding boundary, and all nonzero butterfly outputs retain their stage clamps.
-    /// Vector fields identify transform positions; lanes remain independent rows or columns throughout.
+    /// The selected scan bound guarantees that all later inputs are zero. Rotations with one surviving input retain their original rounding boundary. All
+    /// nonzero butterfly outputs retain their stage clamps. Vector fields identify transform positions. Lanes stay independent rows or columns throughout.
     /// </remarks>
     internal readonly struct Adst16Low8Operator : IAv1Transform1dOperator
     {
@@ -71,7 +70,7 @@ internal static partial class Av1Inverse2dTransformer
             output[14] = Av1Transform1dMath.Clamp(step[6] - step[14], stageRange[3]);
             output[15] = Av1Transform1dMath.Clamp(step[7] - step[15], stageRange[3]);
 
-            // Stage 4 reverses the pi/16 rotations in the upper half.
+            // Stage 4 reverses the rotations by odd multiples of pi/16 in the upper half.
             step[0] = output[0];
             step[1] = output[1];
             step[2] = output[2];
@@ -236,7 +235,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V14 = Av1Transform1dMath.Clamp(step.V6 - step.V14, stageRange[3]);
             output.V15 = Av1Transform1dMath.Clamp(step.V7 - step.V15, stageRange[3]);
 
-            // Stage 4 reverses the pi/16 rotations in the upper half.
+            // Stage 4 reverses the rotations by odd multiples of pi/16 in the upper half.
             step.V0 = output.V0;
             step.V1 = output.V1;
             step.V2 = output.V2;
@@ -401,7 +400,7 @@ internal static partial class Av1Inverse2dTransformer
             output.V14 = Av1Transform1dMath.Clamp(step.V6 - step.V14, stageRange[3]);
             output.V15 = Av1Transform1dMath.Clamp(step.V7 - step.V15, stageRange[3]);
 
-            // Stage 4 reverses the pi/16 rotations in the upper half.
+            // Stage 4 reverses the rotations by odd multiples of pi/16 in the upper half.
             step.V0 = output.V0;
             step.V1 = output.V1;
             step.V2 = output.V2;

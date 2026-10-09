@@ -6,7 +6,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 /// <summary>
 /// Names one point of a frame and the point of another frame that it moved to.
 /// </summary>
-/// <remarks>Reference: Correspondence.</remarks>
 internal readonly struct Av1Correspondence
 {
     /// <summary>

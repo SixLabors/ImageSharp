@@ -17,8 +17,7 @@ internal static partial class Av1ForwardTransformer
     /// Applies a four-by-four eight-bit transform with every stage in registers.
     /// </summary>
     /// <remarks>
-    /// This follows <c>av1_lowbd_fwd_txfm2d_4x4_sse2</c>. The shifts are <c>av1_fwd_txfm_shift_ls[TX_4X4]</c>
-    /// (2, 0, 0) and both cosine bit counts are 13.
+    /// The stage shifts are 2, 0 and 0, and both cosine bit counts are 13.
     /// </remarks>
     /// <param name="input">The spatial residual samples.</param>
     /// <param name="stride">The number of input samples between rows.</param>
@@ -144,19 +143,25 @@ internal static partial class Av1ForwardTransformer
     /// <summary>
     /// Loads four sixteen-bit samples into the low lanes of a vector.
     /// </summary>
+    /// <param name="source">The first sample of the block.</param>
+    /// <param name="offset">The index of the first of the four samples.</param>
+    /// <returns>The four samples in the low lanes. The method reads exactly eight bytes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<short> Load4(ref short source, uint offset)
         => Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<short, byte>(ref Unsafe.Add(ref source, (nint)offset)))).AsInt16();
 
     /// <summary>
-    /// Widens the low four lanes to thirty-two bits and stores them, as <c>store_16bit_to_32bit_w4</c> does.
+    /// Widens the low four lanes to thirty-two bits with sign extension and stores them.
     /// </summary>
+    /// <param name="values">The sixteen-bit values in the low four lanes.</param>
+    /// <param name="destination">The first coefficient of the destination.</param>
+    /// <param name="offset">The index of the first stored coefficient.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Store4(Vector128<short> values, ref int destination, int offset)
         => Vector128.ShiftRightArithmetic(Vector128_.UnpackLow(values, values).AsInt32(), 16).StoreUnsafe(ref destination, (nuint)offset);
 
     /// <summary>
-    /// The four-point DCT of <c>fdct4x4_new_sse2</c>.
+    /// The four-point forward DCT on four lanes.
     /// </summary>
     private readonly struct Dct4Kernel : IAv1Kernel4
     {
@@ -175,6 +180,8 @@ internal static partial class Av1ForwardTransformer
             short c16 = (short)cospi[16];
             short c48 = (short)cospi[48];
 
+            // Only the low four lanes of each input hold data. Interleaving puts (in0, in1) and (in3, in2) in adjacent lane pairs.
+            // The sum and the difference then hold the stage-one pairs (in0 + in3, in1 + in2) and (in0 - in3, in1 - in2).
             Vector128<short> u0 = Vector128_.UnpackLow(in0, in1);
             Vector128<short> u1 = Vector128_.UnpackLow(in3, in2);
             Vector128<short> v0 = u0 + u1;
@@ -185,6 +192,8 @@ internal static partial class Av1ForwardTransformer
             Vector128<int> o1 = (Vector128_.MultiplyAddAdjacent(v1, Av1TransformKernels.Pair(c16, c48)) + rounding) >> cosBit;
             Vector128<int> o3 = (Vector128_.MultiplyAddAdjacent(v1, Av1TransformKernels.Pair(c48, (short)-c16)) + rounding) >> cosBit;
 
+            // Each pack puts one output in the low four lanes and another in the high four lanes.
+            // The byte shifts move outputs 2 and 3 into the low four lanes.
             in0 = Vector128_.PackSignedSaturate(o0, o2);
             in1 = Vector128_.PackSignedSaturate(o1, o3);
             in2 = Vector128_.ShiftRightBytesInVector(in0.AsByte(), 8).AsInt16();
@@ -193,7 +202,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// The four-point ADST of <c>fadst4x4_new_sse2</c>.
+    /// The four-point forward ADST on four lanes.
     /// </summary>
     private readonly struct Adst4Kernel : IAv1Kernel4
     {
@@ -238,6 +247,7 @@ internal static partial class Av1ForwardTransformer
             Vector128<int> w5 = w4 - v5;
             Vector128<int> w6 = w3 + w5;
 
+            // w0, w1, w2 and w6 are outputs 0, 1, 2 and 3 before rounding. w5 is 3 * v5, formed with a shift and a subtraction.
             w0 = (w0 + rounding) >> cosBit;
             w1 = (w1 + rounding) >> cosBit;
             w2 = (w2 + rounding) >> cosBit;
@@ -251,7 +261,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// The four-point identity transform of <c>fidentity4x4_new_sse2</c>, which scales by the square root of two.
+    /// The four-point forward identity transform on four lanes, which scales by the square root of two.
     /// </summary>
     private readonly struct Identity4Kernel : IAv1Kernel4
     {
@@ -272,6 +282,16 @@ internal static partial class Av1ForwardTransformer
             in3 = ScaleRound(in3, one, scale);
         }
 
+        /// <summary>
+        /// Multiplies the low four lanes by the square root of two in fixed point, with rounding.
+        /// </summary>
+        /// <remarks>
+        /// Interleaving pairs each value with one. The multiply-add then gives <c>value * NewSqrt2 + (1 &lt;&lt; (NewSqrt2Bits - 1))</c> in 32 bits.
+        /// </remarks>
+        /// <param name="value">The values in the low four lanes.</param>
+        /// <param name="one">A vector with the value one in every lane.</param>
+        /// <param name="scale">The interleaved weight pair of the square root of two and the rounding offset.</param>
+        /// <returns>The scaled values in the low four lanes, saturated to sixteen bits. The high four lanes repeat the low four.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<short> ScaleRound(Vector128<short> value, Vector128<short> one, Vector128<short> scale)
         {

@@ -14,14 +14,20 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 /// Produces AV1 wedge masks in caller-owned plane-sized storage.
 /// </summary>
 /// <remarks>
-/// Every row of a wedge master is a contiguous run of a one-dimensional prototype: a constant, a slice, a reversed
-/// slice, or two slices interleaved sample by sample. A mask row is therefore built with vector copies and
-/// interleaves, and chroma rows are averaged with vector arithmetic. Reference: init_wedge_master_masks() and
-/// get_wedge_mask_inplace(), which read the same masters.
+/// Every row of a wedge master is a contiguous run of a one-dimensional prototype.
+/// The run is a constant, a slice, a reversed slice, or two slices interleaved sample by sample.
+/// As a result, vector copies and interleaves build a mask row, and vector arithmetic averages chroma rows.
 /// </remarks>
 internal static class Av1WedgeMask
 {
+    /// <summary>
+    /// The largest mask value. A complement subtracts the mask from this value.
+    /// </summary>
     private const int MaximumAlpha = 64;
+
+    /// <summary>
+    /// The width and height of a wedge master, in luma samples.
+    /// </summary>
     private const int MasterSize = 64;
 
     /// <summary>
@@ -30,8 +36,7 @@ internal static class Av1WedgeMask
     private const int PrototypePadding = 64;
 
     /// <summary>
-    /// Gets the odd-row oblique prototype defined by the reference decoder, padded with its edge values so that
-    /// a shifted read needs no clamp.
+    /// Gets the odd-row oblique prototype of the AV1 wedge masks, padded with its edge values so that a shifted read needs no clamp.
     /// </summary>
     private static ReadOnlySpan<byte> PaddedObliqueOdd =>
     [
@@ -50,8 +55,7 @@ internal static class Av1WedgeMask
     ];
 
     /// <summary>
-    /// Gets the even-row oblique prototype defined by the reference decoder, padded with its edge values so that
-    /// a shifted read needs no clamp.
+    /// Gets the even-row oblique prototype of the AV1 wedge masks, padded with its edge values so that a shifted read needs no clamp.
     /// </summary>
     private static ReadOnlySpan<byte> PaddedObliqueEven =>
     [
@@ -70,7 +74,7 @@ internal static class Av1WedgeMask
     ];
 
     /// <summary>
-    /// Gets the vertical prototype defined by the reference decoder.
+    /// Gets the vertical prototype of the AV1 wedge masks.
     /// </summary>
     private static ReadOnlySpan<byte> MasterVertical =>
     [
@@ -150,9 +154,8 @@ internal static class Av1WedgeMask
         int masterRow = (MasterSize / 2) - verticalOffset;
         int masterColumn = (MasterSize / 2) - horizontalOffset;
 
-        // The sign flip complements the master samples before the chroma average; the caller's inversion
-        // complements the averaged mask, since a rounded average of complements is not always the complement of
-        // the rounded average.
+        // The sign flip complements the master samples before the chroma average. The inversion of the caller complements the averaged mask.
+        // The order matters, because a rounded average of complements is not always the complement of the rounded average.
         bool complement = negative;
         int masterWidth = width << subX;
         Span<byte> upper = stackalloc byte[MasterSize];
@@ -161,8 +164,8 @@ internal static class Av1WedgeMask
         upper.Clear();
         lower.Clear();
 
-        // Chroma masks are the rounded average of the corresponding two or four luma-mask samples. Producing the
-        // plane mask once keeps the vector blend contiguous and avoids gathering mask bytes in every SIMD lane.
+        // A chroma mask sample is the rounded average of the two or four luma mask samples that it covers.
+        // The mask for the whole plane is built once, so the vector blend reads contiguous mask bytes and does no gathers.
         for (int row = 0; row < height; row++)
         {
             Span<byte> destinationRow = destination.Slice(row * destinationStride, width);
@@ -191,7 +194,7 @@ internal static class Av1WedgeMask
     }
 
     /// <summary>
-    /// Writes a run of one wedge master row. Reference: the master construction of init_wedge_master_masks().
+    /// Writes a run of one wedge master row.
     /// </summary>
     /// <param name="direction">The wedge direction.</param>
     /// <param name="complement">Whether to complement the run.</param>
@@ -205,26 +208,27 @@ internal static class Av1WedgeMask
         switch (direction)
         {
             case 0:
-                // WEDGE_VERTICAL: every sample of a row is the prototype value at that row.
+                // The horizontal wedge has a horizontal edge. Every sample of a row is the prototype value at that row.
                 run.Fill(MasterVertical[row]);
                 break;
             case 1:
-                // WEDGE_HORIZONTAL: the row is the prototype itself.
+                // The vertical wedge has a vertical edge. Every row is the prototype itself.
                 MasterVertical.Slice(column, length).CopyTo(run);
                 break;
             case 2:
-                // WEDGE_OBLIQUE27: the transpose of the oblique-63 master, so even and odd columns read the two
-                // prototypes at consecutive positions.
+                // The oblique-27 wedge is the transpose of the oblique-63 master.
+                // Thus even and odd columns read the two prototypes at consecutive positions.
                 InterleavePrototypes(row - 16 + (column >> 1), run);
                 break;
             case 3:
-                // WEDGE_OBLIQUE63: the row's prototype shifted by half the row index.
+                // The oblique-63 wedge reads the prototype for the row parity.
+                // The prototype shifts right by 16 - (row >> 1) on even rows and by 15 - (row >> 1) on odd rows.
                 ReadOnlySpan<byte> prototype = (row & 1) != 0 ? PaddedObliqueOdd : PaddedObliqueEven;
                 int shift = ((row & 1) != 0 ? 15 : 16) - (row >> 1);
                 prototype.Slice(PrototypePadding + column - shift, length).CopyTo(run);
                 break;
             case 4:
-                // WEDGE_OBLIQUE117: the complemented, horizontally mirrored oblique-63 master.
+                // The oblique-117 wedge is the complemented, horizontally mirrored oblique-63 master.
                 ReadOnlySpan<byte> mirrored = (row & 1) != 0 ? PaddedObliqueOdd : PaddedObliqueEven;
                 int mirroredShift = ((row & 1) != 0 ? 15 : 16) - (row >> 1);
                 mirrored.Slice(PrototypePadding + (MasterSize - column - length) - mirroredShift, length).CopyTo(run);
@@ -232,7 +236,7 @@ internal static class Av1WedgeMask
                 complement = !complement;
                 break;
             default:
-                // WEDGE_OBLIQUE153: the complemented, vertically mirrored oblique-27 master.
+                // The oblique-153 wedge is the complemented, vertically mirrored oblique-27 master.
                 InterleavePrototypes(MasterSize - 1 - row - 16 + (column >> 1), run);
                 complement = !complement;
                 break;
@@ -245,10 +249,10 @@ internal static class Av1WedgeMask
     }
 
     /// <summary>
-    /// Writes the even columns from the even prototype and the odd columns from the odd prototype, both starting
-    /// at one prototype position and advancing one position per column pair.
+    /// Writes the even columns from the even prototype and the odd columns from the odd prototype.
+    /// Each prototype advances one position per column pair.
     /// </summary>
-    /// <param name="position">The even prototype position of the first column; the odd prototype starts one later.</param>
+    /// <param name="position">The even prototype position of the first column. The odd prototype starts one position later.</param>
     /// <param name="run">Receives the interleaved run, of even length.</param>
     private static void InterleavePrototypes(int position, Span<byte> run)
     {
@@ -256,8 +260,8 @@ internal static class Av1WedgeMask
         ref byte odd = ref Unsafe.Add(ref MemoryMarshal.GetReference(PaddedObliqueOdd), PrototypePadding + position + 1);
         ref byte destination = ref MemoryMarshal.GetReference(run);
 
-        // A run holds at most 64 samples, so 32 pairs; each 128-bit step interleaves sixteen pairs. The padded
-        // prototypes and the 64-byte run buffers keep the final step's reads and writes in bounds.
+        // A run holds at most 64 samples, that is 32 pairs. Each 128-bit step interleaves sixteen pairs.
+        // The padded prototypes and the 64-byte run buffers keep the reads and writes of the final step in bounds.
         for (int pair = 0; pair < run.Length >> 1; pair += Vector128<byte>.Count)
         {
             Vector128<byte> evenSamples = Vector128.LoadUnsafe(ref even, (nuint)pair);
@@ -272,7 +276,6 @@ internal static class Av1WedgeMask
 
     /// <summary>
     /// Averages one or two master rows into a subsampled mask row with the rounding of the chroma wedge mask.
-    /// Reference: the subsampled masks of av1_init_wedge_masks().
     /// </summary>
     /// <param name="upper">The first master row.</param>
     /// <param name="lower">The second master row, used when the plane is vertically subsampled.</param>
@@ -295,7 +298,8 @@ internal static class Av1WedgeMask
             return;
         }
 
-        // Adjacent column pairs are summed in sixteen-bit lanes; the second row adds its pairs when present.
+        // A multiply-add with ones sums adjacent column pairs in sixteen-bit lanes. If the plane is vertically subsampled, the second row adds its pairs.
+        // Each step reads 32 master samples and writes 16 averaged samples. The averages are at most 64, so the narrowing to bytes is exact.
         int shift = 1 + subY;
         Vector128<short> rounding = Vector128.Create((short)(1 << (shift - 1)));
         Vector128<sbyte> ones = Vector128.Create((sbyte)1);
@@ -316,8 +320,11 @@ internal static class Av1WedgeMask
     }
 
     /// <summary>
-    /// Gets the reference decoder's canonical sign flip for a block and wedge index.
+    /// Gets the AV1 sign flip for a block and wedge index.
     /// </summary>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="wedgeIndex">The wedge index.</param>
+    /// <returns>Whether the wedge mask is complemented.</returns>
     private static bool GetSignFlip(Av1BlockSize blockSize, int wedgeIndex)
     {
         ReadOnlySpan<byte> signFlips = blockSize switch

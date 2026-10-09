@@ -9,8 +9,8 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
 /// <content>
-/// Defines the neighbor-usage flags and scalar/SIMD contract for closed intra-prediction operators, and provides
-/// their shared width-progressive SIMD traversal.
+/// Defines the input flags and the scalar and SIMD contract for closed intra-prediction operators. Also provides the shared SIMD traversal that steps down from
+/// the widest vector to the scalar tail.
 /// </content>
 internal abstract partial class Av1NonDirectionalIntraPredictorBase
 {
@@ -65,8 +65,8 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
     /// Defines the scalar and SIMD arithmetic for one non-directional AV1 intra-prediction mode.
     /// </summary>
     /// <remarks>
-    /// Each overload performs the same lane-wise operation. The generic predictor traversal selects the widest
-    /// available overload, and the JIT specializes each static interface call for the closed operator type.
+    /// Each overload performs the same lane-wise operation. The generic predictor traversal selects the widest available overload. The JIT specializes each
+    /// static interface call for the closed operator type.
     /// </remarks>
     internal interface IAv1IntraPredictionOperator
     {
@@ -190,9 +190,9 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
     /// </summary>
     /// <typeparam name="TOperator">The prediction-mode-specific arithmetic.</typeparam>
     /// <remarks>
-    /// Each lane produces one output column. Top samples and column weights vary by lane, while the current row's
-    /// left sample and row weight are broadcast. <typeparamref name="TOperator"/> declares which references it uses;
-    /// because the operator type is closed, the JIT can remove unused loads and broadcasts from each prediction mode.
+    /// Each lane produces one output column. Top samples and column weights vary by lane. The left sample and the row weight of the current row are broadcast
+    /// to all lanes. <typeparamref name="TOperator"/> declares which references it uses. Because the operator type is closed, the JIT can remove the unused
+    /// loads and broadcasts for each prediction mode.
     /// </remarks>
     internal sealed class Av1NonDirectionalIntraPredictor<TOperator> : Av1NonDirectionalIntraPredictorBase
         where TOperator : struct, IAv1IntraPredictionOperator
@@ -222,17 +222,17 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
             byte bottomLeft = usesBottomLeft ? Unsafe.Add(ref leftBase, height - 1) : default;
             int processedColumns = 0;
 
-            // A row of four or eight samples is narrower than a vector, so an operator without smooth weights packs four
-            // or two rows into one vector instead of taking the scalar path. Its lanes then repeat the top row and hold
-            // each packed row's left sample, so the same lane-wise arithmetic predicts every packed row at once.
+            // A row of four or eight samples is narrower than a vector. For an operator without smooth weights, the traversal packs four or two rows into one
+            // vector instead of taking the scalar path. The lanes repeat the top row and hold the left sample of each packed row. As a result, the same
+            // lane-wise arithmetic predicts every packed row at once.
             if (Vector128.IsHardwareAccelerated && width < Vector128<byte>.Count && !usesColumnWeight && !usesRowWeight)
             {
                 PredictPacked(ref destinationBase, destinationStride, ref topBase, ref leftBase, topLeft, width, height, usesTop, usesLeft, usesTopLeft);
                 return;
             }
 
-            // Widths are cumulative rather than mutually exclusive. A wide vector advances the row prefix, then the
-            // narrower paths consume any complete vectors left before the scalar tail handles the final columns.
+            // The vector widths run in sequence, not as alternatives. The widest vector predicts a prefix of each row. Then the narrower widths predict the
+            // complete vectors that remain, and the scalar tail predicts the final columns.
             if (Vector512.IsHardwareAccelerated)
             {
                 int vectorizedColumns = (int)(Numerics.Vector512Count<byte>(width) * (nuint)Vector512<byte>.Count);
@@ -321,8 +321,8 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
                 }
             }
 
-            // AV1 dimensions are multiples of four. The tail is normally zero on SIMD hardware, but retaining the
-            // scalar continuation keeps the traversal correct when intrinsics are disabled by FeatureTestRunner.
+            // AV1 dimensions are multiples of four. The scalar tail predicts the columns that the vector paths leave. A smooth operator on a block four or
+            // eight samples wide uses only this tail. The tail also keeps the traversal correct when FeatureTestRunner disables intrinsics.
             for (int row = 0; row < height; row++)
             {
                 byte leftSample = usesLeft ? Unsafe.Add(ref leftBase, row) : default;
@@ -368,8 +368,7 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
             nuint stride = (nuint)destinationStride;
             if (width == 4)
             {
-                // Lane groups of four hold rows 0 to 3: the top row repeats in each group, and the left sample of the
-                // group's row fills it.
+                // Each group of four lanes holds one of rows 0 to 3. The top row repeats in each group. The left sample of that row fills the group.
                 Vector128<byte> top = usesTop ? Vector128.Create(Unsafe.ReadUnaligned<uint>(ref topBase)).AsByte() : default;
                 Vector128<byte> rowOfLane = Vector128.Create((byte)0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3);
                 for (int row = 0; row < height; row += 4)
@@ -425,8 +424,8 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
             short bottomLeft = usesBottomLeft ? Unsafe.Add(ref leftBase, height - 1) : default;
             int processedColumns = 0;
 
-            // High-bit-depth samples use signed storage but remain nonnegative. Each vector lane follows one output
-            // column, so the same width-progressive traversal is valid without inter-lane packing or saturation.
+            // High-bit-depth samples use signed storage but remain nonnegative. Each vector lane follows one output column. As a result, the same traversal
+            // from wide to narrow vectors is valid without packing or saturation across lanes.
             if (Vector512.IsHardwareAccelerated)
             {
                 int vectorizedColumns = (int)(Numerics.Vector512Count<short>(width) * (nuint)Vector512<short>.Count);
@@ -515,8 +514,8 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
                 }
             }
 
-            // Retain a scalar continuation for widths smaller than the available vectors and for forced-scalar test
-            // execution. AV1 block dimensions keep this tail short during normal hardware-accelerated decoding.
+            // The scalar tail predicts the columns that the vector paths leave. With hardware vectors, only blocks four samples wide reach this tail. The tail
+            // also keeps the traversal correct when FeatureTestRunner disables intrinsics.
             for (int row = 0; row < height; row++)
             {
                 short leftSample = usesLeft ? Unsafe.Add(ref leftBase, row) : default;

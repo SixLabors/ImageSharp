@@ -15,10 +15,10 @@ internal static partial class Av1PlaneDownsampler
     /// Applies one eight-tap halving kernel to eight adjacent samples.
     /// </summary>
     /// <remarks>
-    /// Every overload describes the same lane-wise kernel. The samples arrive in kernel order, so an
-    /// implementation pairs <c>s0</c> with <c>s7</c>, <c>s1</c> with <c>s6</c>, and so on to exploit
-    /// the symmetry of the kernel. The traversal presents the samples as unsigned sixteen-bit lanes
-    /// because an eight-bit lane cannot hold the weighted sum, and it narrows the result to bytes.
+    /// Every overload describes the same lane-wise kernel. The samples arrive in kernel order.
+    /// Thus an implementation can use the symmetry of the kernel and pair <c>s0</c> with <c>s7</c>, <c>s1</c> with <c>s6</c>, and so on.
+    /// The traversal presents the samples as unsigned sixteen-bit lanes, because an eight-bit lane cannot hold the weighted sum.
+    /// Then it narrows the result to bytes.
     /// </remarks>
     internal interface IAv1HalfFilterOperator
     {
@@ -108,10 +108,10 @@ internal static partial class Av1PlaneDownsampler
     /// </summary>
     /// <typeparam name="TOperator">The kernel arithmetic.</typeparam>
     /// <remarks>
-    /// Both separable passes reduce to the same shape: eight tap streams, one output stream, and a
-    /// count. The horizontal pass supplies eight offsets into the two streams that a source row
-    /// separates into. The vertical pass supplies eight rows of the intermediate plane. Neither pass
-    /// gathers a column, and neither tests a boundary, because both prepare clamped streams first.
+    /// Both separable passes reduce to the same shape: eight tap streams, one output stream, and a count.
+    /// The horizontal pass supplies eight offsets into the two streams that a source row separates into.
+    /// The vertical pass supplies eight rows of the intermediate plane.
+    /// Neither pass gathers a column, and neither tests a boundary, because both prepare clamped streams first.
     /// </remarks>
     private static class Filter<TOperator>
         where TOperator : struct, IAv1HalfFilterOperator
@@ -130,10 +130,9 @@ internal static partial class Av1PlaneDownsampler
         /// <param name="destination">The first output sample.</param>
         /// <param name="count">The number of output samples.</param>
         /// <remarks>
-        /// Every stream is positioned so that lane <c>i</c> of each stream belongs to output
-        /// <c>i</c>. A stage therefore loads one contiguous vector from each stream at the shared
-        /// offset. That keeps eight sequential reads and one sequential write per stage, and it
-        /// leaves no shuffle in the inner loop.
+        /// The caller positions every stream so that lane <c>i</c> of each stream belongs to output <c>i</c>.
+        /// A stage therefore loads one contiguous vector from each stream at the shared offset.
+        /// That keeps eight sequential reads and one sequential write per stage, and it leaves no shuffle in the inner loop.
         /// </remarks>
         public static void Apply(
             ref byte s0,
@@ -149,16 +148,15 @@ internal static partial class Av1PlaneDownsampler
         {
             int i = 0;
 
-            // Descending widths share one offset. A machine with AVX-512 therefore finishes a
-            // sixteen-sample or eight-sample remainder in vectors instead of in the scalar loop.
+            // Descending widths share one offset.
+            // Thus a machine with AVX-512 finishes a sixteen-sample or eight-sample remainder in vectors instead of in the scalar loop.
             if (Vector512.IsHardwareAccelerated)
             {
                 int vectorEnd = count - Vector512<ushort>.Count;
                 for (; i <= vectorEnd; i += Vector512<ushort>.Count)
                 {
-                    // Thirty-two bytes of each stream widen into thirty-two unsigned sixteen-bit
-                    // lanes. Pairing the load with a zero vector and widening the lower half is the
-                    // established byte-to-lane form in this repository, and it needs no permute.
+                    // Each stream gives thirty-two bytes, which widen into thirty-two unsigned sixteen-bit lanes.
+                    // The load joins a zero upper half and widens only the lower half, so it needs no permute.
                     Vector512<ushort> v0 = WidenLower512(ref s0, i);
                     Vector512<ushort> v1 = WidenLower512(ref s1, i);
                     Vector512<ushort> v2 = WidenLower512(ref s2, i);
@@ -168,8 +166,8 @@ internal static partial class Av1PlaneDownsampler
                     Vector512<ushort> v6 = WidenLower512(ref s6, i);
                     Vector512<ushort> v7 = WidenLower512(ref s7, i);
 
-                    // The operator clips to zero through 255. Narrowing against a zero vector and
-                    // keeping the lower half is therefore exact, not a truncation of larger values.
+                    // The operator clips each lane to zero through 255.
+                    // Thus the narrow against a zero vector, with only its lower half kept, is exact and never truncates a larger value.
                     Vector512<ushort> filtered = TOperator.Filter(v0, v1, v2, v3, v4, v5, v6, v7);
                     Vector512.Narrow(filtered, Vector512<ushort>.Zero).GetLower().StoreUnsafe(ref destination, (nuint)i);
                 }
@@ -213,8 +211,8 @@ internal static partial class Av1PlaneDownsampler
                 }
             }
 
-            // Fewer than eight outputs remain. A short plane edge and an unaccelerated runtime both
-            // arrive here, and both must produce the samples that the vector stages produce.
+            // With 128-bit acceleration, fewer than eight outputs remain here. Without acceleration, the whole line arrives here.
+            // The scalar kernel produces the same samples as the vector stages.
             for (; i < count; i++)
             {
                 Unsafe.Add(ref destination, i) = TOperator.Filter(

@@ -68,8 +68,11 @@ internal ref struct Av1BitStreamWriter
     }
 
     /// <summary>
-    /// Advances the output position, emitting the current byte whenever the skip crosses a byte boundary.
+    /// Adds <paramref name="bitCount"/> to the bit position. While the position is 8 or more, the method subtracts 8 and stores the current byte.
     /// </summary>
+    /// <remarks>
+    /// The subtraction makes the position relative, but <see cref="WriteBit(byte)"/> and <see cref="Flush"/> use it as an absolute position.
+    /// </remarks>
     /// <param name="bitCount">The number of bits to skip.</param>
     public void Skip(int bitCount)
     {
@@ -82,13 +85,12 @@ internal ref struct Av1BitStreamWriter
     }
 
     /// <summary>
-    /// Writes a partially assembled byte and resets the position for output-memory reuse.
+    /// Stores a partially assembled byte and resets the position to zero, so the next write starts at the beginning of the buffer.
     /// </summary>
     public void Flush()
     {
         if (Av1Math.Modulus8(this.BitPosition) != 0)
         {
-            // Flush a partial byte also.
             this.WriteBuffer();
         }
 
@@ -165,7 +167,8 @@ internal ref struct Av1BitStreamWriter
         }
         else
         {
-            // libaom partitions the upper values into a shorter prefix followed by the low bit of the offset from m.
+            // Values from m upward use w bits, as the ns(n) syntax of AV1 defines. The (w - 1)-bit prefix is m plus half the offset from m. The last bit is the
+            // low bit of that offset. The reader computes (prefix * 2) - m + bit, which gives the value again.
             uint offset = value - m;
             uint k = m + (offset >> 1);
             this.WriteLiteral(k, w - 1);
@@ -191,16 +194,19 @@ internal ref struct Av1BitStreamWriter
     }
 
     /// <summary>
-    /// Writes one value using a finite sequence of exponentially growing code groups.
+    /// Writes one value with a finite sequence of code groups whose sizes grow exponentially.
     /// </summary>
+    /// <param name="value">The zero-based value to write. It is less than <paramref name="valueCount"/>.</param>
+    /// <param name="valueCount">The number of values in the finite domain.</param>
+    /// <param name="groupBitCount">The bit width of the first subexponential group.</param>
     private void WriteSubexponential(int value, int valueCount, int groupBitCount)
     {
         int groupIndex = 0;
         int groupStart = 0;
         while (true)
         {
-            // The first two groups retain the initial width. Later groups grow one bit at a time until the
-            // finite tail is small enough for the exact non-symmetric alphabet.
+            // The first two groups keep the initial width. Later groups grow one bit at a time until the finite tail fits in three groups. Then the exact
+            // non-symmetric code writes the tail.
             int bitCount = groupIndex == 0 ? groupBitCount : groupBitCount + groupIndex - 1;
             int groupSize = 1 << bitCount;
             if (valueCount <= groupStart + (3 * groupSize))
@@ -226,8 +232,13 @@ internal ref struct Av1BitStreamWriter
     /// <summary>
     /// Maps an unsigned value to increasing distance from a reference inside a finite domain.
     /// </summary>
+    /// <param name="valueCount">The number of values in the finite domain.</param>
+    /// <param name="reference">The reference value within the finite domain.</param>
+    /// <param name="value">The value to map, within the finite domain.</param>
+    /// <returns>The recentered code value in the range zero through <paramref name="valueCount"/> minus one.</returns>
     private static int RecenterFiniteNonNegative(int valueCount, int reference, int value)
     {
+        // References in the upper half use the mirrored domain. Thus the shorter side of the finite range is the side that alternates.
         if ((reference << 1) <= valueCount)
         {
             return RecenterNonNegative(reference, value);
@@ -239,8 +250,13 @@ internal ref struct Av1BitStreamWriter
     /// <summary>
     /// Maps an unsigned value to alternating positions around a nonnegative reference.
     /// </summary>
+    /// <param name="reference">The recentering reference.</param>
+    /// <param name="value">The nonnegative value to map.</param>
+    /// <returns>The recentered code value.</returns>
     private static int RecenterNonNegative(int reference, int value)
     {
+        // Values up to twice the reference alternate. Values at or above the reference get even codes, and values below it get odd codes. Larger values lie
+        // past the range of the lower side and keep their own value.
         if (value > (reference << 1))
         {
             return value;

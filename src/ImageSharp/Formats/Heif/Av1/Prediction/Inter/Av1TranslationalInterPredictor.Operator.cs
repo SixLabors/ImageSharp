@@ -15,7 +15,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// </summary>
     /// <remarks>
     /// The closed operator type lets the JIT inline table selection into each horizontal and vertical filter pair.
-    /// Width reduction is selected once per block dimension rather than inside the sample loops.
+    /// The reduced filter for a small block dimension is selected once per block, not inside the sample loops.
     /// </remarks>
     internal interface IAv1InterPredictorOperator
     {
@@ -32,6 +32,17 @@ internal static partial class Av1TranslationalInterPredictor
     /// Selects an 8-bit vertical interpolation operator for a closed horizontal operator.
     /// </summary>
     /// <typeparam name="THorizontal">The horizontal filter family.</typeparam>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     private static void DispatchVertical<THorizontal>(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -111,6 +122,18 @@ internal static partial class Av1TranslationalInterPredictor
     /// Selects a high-bit-depth vertical interpolation operator for a closed horizontal operator.
     /// </summary>
     /// <typeparam name="THorizontal">The horizontal filter family.</typeparam>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     private static void DispatchVertical<THorizontal>(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -195,6 +218,17 @@ internal static partial class Av1TranslationalInterPredictor
     /// Selects an 8-bit vertical interpolation operator for explicit scalar execution.
     /// </summary>
     /// <typeparam name="THorizontal">The closed horizontal filter family selected from the production operator set.</typeparam>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     private static void DispatchVerticalScalar<THorizontal>(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -274,6 +308,18 @@ internal static partial class Av1TranslationalInterPredictor
     /// Selects a high-bit-depth vertical interpolation operator for explicit scalar execution.
     /// </summary>
     /// <typeparam name="THorizontal">The closed horizontal filter family selected from the production operator set.</typeparam>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="verticalFilter">The vertical interpolation filter.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     private static void DispatchVerticalScalar<THorizontal>(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -359,6 +405,16 @@ internal static partial class Av1TranslationalInterPredictor
     /// </summary>
     /// <typeparam name="THorizontal">The horizontal filter family.</typeparam>
     /// <typeparam name="TVertical">The vertical filter family.</typeparam>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     private static void Predict<THorizontal, TVertical>(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -379,6 +435,8 @@ internal static partial class Av1TranslationalInterPredictor
             return;
         }
 
+        // A horizontal-only filter rounds twice: by Round0Bits, then by the rest of the Q7 shift.
+        // A vertical-only filter rounds once by the full Q7 shift.
         if (verticalPhase == 0)
         {
             ReadOnlySpan<short> coefficients = THorizontal.GetCoefficients(horizontalPhase, width <= 4);
@@ -453,6 +511,17 @@ internal static partial class Av1TranslationalInterPredictor
     /// </summary>
     /// <typeparam name="THorizontal">The horizontal filter family.</typeparam>
     /// <typeparam name="TVertical">The vertical filter family.</typeparam>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     private static void Predict<THorizontal, TVertical>(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -474,8 +543,8 @@ internal static partial class Av1TranslationalInterPredictor
             return;
         }
 
-        // Twelve-bit samples require two additional first-pass rounding bits to keep the reference decoder's signed intermediate
-        // within sixteen bits. The second pass gives those bits back, preserving a total Q14 shift.
+        // Twelve-bit samples need two more first-pass rounding bits to keep the signed intermediate within sixteen bits.
+        // The second pass gives those bits back, so the total shift stays Q14.
         int intermediateRange = bitDepth + FilterBits - Round0Bits + 2;
         int round0 = Round0Bits + Math.Max(intermediateRange - 16, 0);
 
@@ -556,6 +625,16 @@ internal static partial class Av1TranslationalInterPredictor
     /// </summary>
     /// <typeparam name="THorizontal">The horizontal filter family.</typeparam>
     /// <typeparam name="TVertical">The vertical filter family.</typeparam>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     private static void PredictScalar<THorizontal, TVertical>(
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -651,6 +730,17 @@ internal static partial class Av1TranslationalInterPredictor
     /// </summary>
     /// <typeparam name="THorizontal">The horizontal filter family.</typeparam>
     /// <typeparam name="TVertical">The vertical filter family.</typeparam>
+    /// <param name="source">The complete padded reference plane.</param>
+    /// <param name="sourceStride">The distance between reference rows in samples.</param>
+    /// <param name="sourceOrigin">The index of the integer-position source sample within <paramref name="source"/>.</param>
+    /// <param name="destination">The prediction block destination.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="width">The prediction width in samples.</param>
+    /// <param name="height">The prediction height in samples.</param>
+    /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+    /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="scratch">Caller-owned signed intermediate storage sized by <see cref="GetScratchLength"/> when both phases are nonzero.</param>
     private static void PredictScalar<THorizontal, TVertical>(
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -672,8 +762,8 @@ internal static partial class Av1TranslationalInterPredictor
             return;
         }
 
-        // Scalar parity uses the same first-pass range correction as the SIMD traversal so twelve-bit
-        // intermediates remain signed-16-bit without changing the complete Q14 rounding distance.
+        // The scalar path uses the same first-pass range correction as the SIMD path.
+        // Thus 12-bit intermediate values fit in signed 16 bits, and the total rounding shift stays Q14.
         int intermediateRange = bitDepth + FilterBits - Round0Bits + 2;
         int round0 = Round0Bits + Math.Max(intermediateRange - 16, 0);
 
@@ -757,8 +847,8 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="tapCount">Receives the effective two-, four-, six-, or eight-tap length.</param>
     public static void GetEffectiveKernel(ReadOnlySpan<short> coefficients, out int firstCoefficient, out int tapCount)
     {
-        // This matches the reference decoder's get_filter_tap decision. Reducing symmetric zero endpoints avoids source loads and
-        // multiply-adds while retaining the original tap-to-source alignment through firstCoefficient.
+        // The method removes symmetric zero endpoints. This saves source loads and multiply-adds.
+        // firstCoefficient keeps the original alignment of taps to source samples.
         if (coefficients[0] != 0 || coefficients[7] != 0)
         {
             firstCoefficient = 0;

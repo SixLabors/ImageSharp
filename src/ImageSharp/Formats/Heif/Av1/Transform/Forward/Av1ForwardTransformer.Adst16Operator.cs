@@ -22,7 +22,7 @@ internal static partial class Av1ForwardTransformer
         private static ReadOnlySpan<byte> FinalWeights => [2, 10, 18, 26, 34, 42, 50, 58];
 
         /// <summary>
-        /// Gets the fixed coefficient permutation.
+        /// Gets the output permutation. Entry i is the buffer index that holds output coefficient i.
         /// </summary>
         private static ReadOnlySpan<byte> OutputOrder => [1, 14, 3, 12, 5, 10, 7, 8, 9, 6, 11, 4, 13, 2, 15, 0];
 
@@ -38,7 +38,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<int>.CreateRounding(cosBit);
 
-            // Stage 1 is the bit-reversed ADST input order with the normative alternating signs.
+            // Stage 1 applies the ADST input permutation and signs before any output overwrites the source.
             buffer0[0] = Load<int>(ref values, inputStride, 0);
             buffer0[1] = Av1ForwardTransformArithmetic<int>.Negate(Load<int>(ref values, inputStride, 15));
             buffer0[2] = Av1ForwardTransformArithmetic<int>.Negate(Load<int>(ref values, inputStride, 7));
@@ -56,7 +56,7 @@ internal static partial class Av1ForwardTransformer
             buffer0[14] = Av1ForwardTransformArithmetic<int>.Negate(Load<int>(ref values, inputStride, 5));
             buffer0[15] = Load<int>(ref values, inputStride, 10);
 
-            // Stage 2 rotates the second pair in each group of four while copying the first pair unchanged.
+            // Stage 2 rotates the second pair in each four-value group by pi/4 and copies the first pair.
             for (int group = 0; group < 16; group += 4)
             {
                 buffer1[group] = buffer0[group];
@@ -64,7 +64,7 @@ internal static partial class Av1ForwardTransformer
                 Butterfly(cospi[32], cospi[32], buffer0[group + 2], buffer0[group + 3], ref buffer1, group + 2, group + 3, cosBit, in rounding);
             }
 
-            // Stage 3 combines adjacent pairs within each group of four.
+            // Stage 3 adds and subtracts the two pairs within each four-value group.
             for (int group = 0; group < 16; group += 4)
             {
                 for (int i = 0; i < 2; i++)
@@ -77,7 +77,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 4 rotates the upper pair of each eight-value group by pi/8.
+            // Stage 4 rotates the upper four values of each eight-value group by pi/8 and copies the lower four values.
             for (int group = 0; group < 16; group += 8)
             {
                 for (int i = 0; i < 4; i++)
@@ -98,7 +98,7 @@ internal static partial class Av1ForwardTransformer
                     cospi[16], buffer0[group + 6], cospi[48], buffer0[group + 7], cosBit, in rounding);
             }
 
-            // Stage 5 combines the lower and upper quartets within each eight-value group.
+            // Stage 5 adds and subtracts the lower and upper four values within each eight-value group.
             for (int group = 0; group < 16; group += 8)
             {
                 for (int i = 0; i < 4; i++)
@@ -111,7 +111,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 6 rotates the upper octet by pi/16 while retaining the completed lower octet.
+            // Stage 6 rotates the upper eight values by pi/16 and copies the completed lower eight values.
             for (int i = 0; i < 8; i++)
             {
                 buffer1[i] = buffer0[i];
@@ -126,7 +126,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[14] = Av1ForwardTransformArithmetic<int>.HalfButterfly(-cospi[24], buffer0[14], cospi[40], buffer0[15], cosBit, in rounding);
             buffer1[15] = Av1ForwardTransformArithmetic<int>.HalfButterfly(cospi[40], buffer0[14], cospi[24], buffer0[15], cosBit, in rounding);
 
-            // Stage 7 creates the eight final butterfly pairs spanning both octets.
+            // Stage 7 adds and subtracts the lower and upper eight values to form the eight final butterfly pairs.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<int>.AddSubtract(buffer1[i], buffer1[i + 8], out buffer0[i], out buffer0[i + 8]);
@@ -134,8 +134,8 @@ internal static partial class Av1ForwardTransformer
 
             ReadOnlySpan<byte> finalWeights = FinalWeights;
 
-            // Stage 8 applies the final odd-angle rotations. The compact weight table preserves their normative order
-            // without allocating a per-call array or duplicating the complementary cosine-index calculation.
+            // Stage 8 applies the final odd-angle rotations. FinalWeights holds the first cosine index of each pair in static data.
+            // The second index is 64 minus the first because the two weights of each rotation are complementary angles.
             for (int pair = 0; pair < 8; pair++)
             {
                 int first = finalWeights[pair];
@@ -169,7 +169,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<short>.CreateRounding(cosBit);
 
-            // Stage 1 is the bit-reversed ADST input order with the normative alternating signs.
+            // Stage 1 applies the ADST input permutation and signs before any output overwrites the source.
             buffer0[0] = Load<short>(ref values, inputStride, 0);
             buffer0[1] = Av1ForwardTransformArithmetic<short>.Negate(Load<short>(ref values, inputStride, 15));
             buffer0[2] = Av1ForwardTransformArithmetic<short>.Negate(Load<short>(ref values, inputStride, 7));
@@ -187,7 +187,7 @@ internal static partial class Av1ForwardTransformer
             buffer0[14] = Av1ForwardTransformArithmetic<short>.Negate(Load<short>(ref values, inputStride, 5));
             buffer0[15] = Load<short>(ref values, inputStride, 10);
 
-            // Stage 2 rotates the second pair in each group of four while copying the first pair unchanged.
+            // Stage 2 rotates the second pair in each four-value group by pi/4 and copies the first pair.
             for (int group = 0; group < 16; group += 4)
             {
                 buffer1[group] = buffer0[group];
@@ -195,7 +195,7 @@ internal static partial class Av1ForwardTransformer
                 Butterfly(cospi[32], cospi[32], buffer0[group + 2], buffer0[group + 3], ref buffer1, group + 2, group + 3, cosBit, in rounding);
             }
 
-            // Stage 3 combines adjacent pairs within each group of four.
+            // Stage 3 adds and subtracts the two pairs within each four-value group.
             for (int group = 0; group < 16; group += 4)
             {
                 for (int i = 0; i < 2; i++)
@@ -208,7 +208,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 4 rotates the upper pair of each eight-value group by pi/8.
+            // Stage 4 rotates the upper four values of each eight-value group by pi/8 and copies the lower four values.
             for (int group = 0; group < 16; group += 8)
             {
                 for (int i = 0; i < 4; i++)
@@ -229,7 +229,7 @@ internal static partial class Av1ForwardTransformer
                     cospi[16], buffer0[group + 6], cospi[48], buffer0[group + 7], cosBit, in rounding);
             }
 
-            // Stage 5 combines the lower and upper quartets within each eight-value group.
+            // Stage 5 adds and subtracts the lower and upper four values within each eight-value group.
             for (int group = 0; group < 16; group += 8)
             {
                 for (int i = 0; i < 4; i++)
@@ -242,7 +242,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 6 rotates the upper octet by pi/16 while retaining the completed lower octet.
+            // Stage 6 rotates the upper eight values by pi/16 and copies the completed lower eight values.
             for (int i = 0; i < 8; i++)
             {
                 buffer1[i] = buffer0[i];
@@ -257,7 +257,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[14] = Av1ForwardTransformArithmetic<short>.HalfButterfly(-cospi[24], buffer0[14], cospi[40], buffer0[15], cosBit, in rounding);
             buffer1[15] = Av1ForwardTransformArithmetic<short>.HalfButterfly(cospi[40], buffer0[14], cospi[24], buffer0[15], cosBit, in rounding);
 
-            // Stage 7 creates the eight final butterfly pairs spanning both octets.
+            // Stage 7 adds and subtracts the lower and upper eight values to form the eight final butterfly pairs.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<short>.AddSubtract(buffer1[i], buffer1[i + 8], out buffer0[i], out buffer0[i + 8]);
@@ -265,8 +265,8 @@ internal static partial class Av1ForwardTransformer
 
             ReadOnlySpan<byte> finalWeights = FinalWeights;
 
-            // Stage 8 applies the final odd-angle rotations. The compact weight table preserves their normative order
-            // without allocating a per-call array or duplicating the complementary cosine-index calculation.
+            // Stage 8 applies the final odd-angle rotations. FinalWeights holds the first cosine index of each pair in static data.
+            // The second index is 64 minus the first because the two weights of each rotation are complementary angles.
             for (int pair = 0; pair < 8; pair++)
             {
                 int first = finalWeights[pair];
@@ -300,7 +300,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector128<short>>.CreateRounding(cosBit);
 
-            // Stage 1 is the bit-reversed ADST input order with the normative alternating signs.
+            // Stage 1 applies the ADST input permutation and signs before any output overwrites the source.
             buffer0[0] = Load<Vector128<short>>(ref values, inputStride, 0);
             buffer0[1] = Av1ForwardTransformArithmetic<Vector128<short>>.Negate(Load<Vector128<short>>(ref values, inputStride, 15));
             buffer0[2] = Av1ForwardTransformArithmetic<Vector128<short>>.Negate(Load<Vector128<short>>(ref values, inputStride, 7));
@@ -318,7 +318,7 @@ internal static partial class Av1ForwardTransformer
             buffer0[14] = Av1ForwardTransformArithmetic<Vector128<short>>.Negate(Load<Vector128<short>>(ref values, inputStride, 5));
             buffer0[15] = Load<Vector128<short>>(ref values, inputStride, 10);
 
-            // Stage 2 rotates the second pair in each group of four while copying the first pair unchanged.
+            // Stage 2 rotates the second pair in each four-value group by pi/4 and copies the first pair.
             for (int group = 0; group < 16; group += 4)
             {
                 buffer1[group] = buffer0[group];
@@ -326,7 +326,7 @@ internal static partial class Av1ForwardTransformer
                 Butterfly(cospi[32], cospi[32], buffer0[group + 2], buffer0[group + 3], ref buffer1, group + 2, group + 3, cosBit, in rounding);
             }
 
-            // Stage 3 combines adjacent pairs within each group of four.
+            // Stage 3 adds and subtracts the two pairs within each four-value group.
             for (int group = 0; group < 16; group += 4)
             {
                 for (int i = 0; i < 2; i++)
@@ -339,7 +339,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 4 rotates the upper pair of each eight-value group by pi/8.
+            // Stage 4 rotates the upper four values of each eight-value group by pi/8 and copies the lower four values.
             for (int group = 0; group < 16; group += 8)
             {
                 for (int i = 0; i < 4; i++)
@@ -360,7 +360,7 @@ internal static partial class Av1ForwardTransformer
                     cospi[16], buffer0[group + 6], cospi[48], buffer0[group + 7], cosBit, in rounding);
             }
 
-            // Stage 5 combines the lower and upper quartets within each eight-value group.
+            // Stage 5 adds and subtracts the lower and upper four values within each eight-value group.
             for (int group = 0; group < 16; group += 8)
             {
                 for (int i = 0; i < 4; i++)
@@ -373,7 +373,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 6 rotates the upper octet by pi/16 while retaining the completed lower octet.
+            // Stage 6 rotates the upper eight values by pi/16 and copies the completed lower eight values.
             for (int i = 0; i < 8; i++)
             {
                 buffer1[i] = buffer0[i];
@@ -388,7 +388,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[14] = Av1ForwardTransformArithmetic<Vector128<short>>.HalfButterfly(-cospi[24], buffer0[14], cospi[40], buffer0[15], cosBit, in rounding);
             buffer1[15] = Av1ForwardTransformArithmetic<Vector128<short>>.HalfButterfly(cospi[40], buffer0[14], cospi[24], buffer0[15], cosBit, in rounding);
 
-            // Stage 7 creates the eight final butterfly pairs spanning both octets.
+            // Stage 7 adds and subtracts the lower and upper eight values to form the eight final butterfly pairs.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<short>>.AddSubtract(buffer1[i], buffer1[i + 8], out buffer0[i], out buffer0[i + 8]);
@@ -396,8 +396,8 @@ internal static partial class Av1ForwardTransformer
 
             ReadOnlySpan<byte> finalWeights = FinalWeights;
 
-            // Stage 8 applies the final odd-angle rotations. The compact weight table preserves their normative order
-            // without allocating a per-call array or duplicating the complementary cosine-index calculation.
+            // Stage 8 applies the final odd-angle rotations. FinalWeights holds the first cosine index of each pair in static data.
+            // The second index is 64 minus the first because the two weights of each rotation are complementary angles.
             for (int pair = 0; pair < 8; pair++)
             {
                 int first = finalWeights[pair];
@@ -431,7 +431,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector256<short>>.CreateRounding(cosBit);
 
-            // Stage 1 is the bit-reversed ADST input order with the normative alternating signs.
+            // Stage 1 applies the ADST input permutation and signs before any output overwrites the source.
             buffer0[0] = Load<Vector256<short>>(ref values, inputStride, 0);
             buffer0[1] = Av1ForwardTransformArithmetic<Vector256<short>>.Negate(Load<Vector256<short>>(ref values, inputStride, 15));
             buffer0[2] = Av1ForwardTransformArithmetic<Vector256<short>>.Negate(Load<Vector256<short>>(ref values, inputStride, 7));
@@ -449,7 +449,7 @@ internal static partial class Av1ForwardTransformer
             buffer0[14] = Av1ForwardTransformArithmetic<Vector256<short>>.Negate(Load<Vector256<short>>(ref values, inputStride, 5));
             buffer0[15] = Load<Vector256<short>>(ref values, inputStride, 10);
 
-            // Stage 2 rotates the second pair in each group of four while copying the first pair unchanged.
+            // Stage 2 rotates the second pair in each four-value group by pi/4 and copies the first pair.
             for (int group = 0; group < 16; group += 4)
             {
                 buffer1[group] = buffer0[group];
@@ -457,7 +457,7 @@ internal static partial class Av1ForwardTransformer
                 Butterfly(cospi[32], cospi[32], buffer0[group + 2], buffer0[group + 3], ref buffer1, group + 2, group + 3, cosBit, in rounding);
             }
 
-            // Stage 3 combines adjacent pairs within each group of four.
+            // Stage 3 adds and subtracts the two pairs within each four-value group.
             for (int group = 0; group < 16; group += 4)
             {
                 for (int i = 0; i < 2; i++)
@@ -470,7 +470,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 4 rotates the upper pair of each eight-value group by pi/8.
+            // Stage 4 rotates the upper four values of each eight-value group by pi/8 and copies the lower four values.
             for (int group = 0; group < 16; group += 8)
             {
                 for (int i = 0; i < 4; i++)
@@ -491,7 +491,7 @@ internal static partial class Av1ForwardTransformer
                     cospi[16], buffer0[group + 6], cospi[48], buffer0[group + 7], cosBit, in rounding);
             }
 
-            // Stage 5 combines the lower and upper quartets within each eight-value group.
+            // Stage 5 adds and subtracts the lower and upper four values within each eight-value group.
             for (int group = 0; group < 16; group += 8)
             {
                 for (int i = 0; i < 4; i++)
@@ -504,7 +504,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 6 rotates the upper octet by pi/16 while retaining the completed lower octet.
+            // Stage 6 rotates the upper eight values by pi/16 and copies the completed lower eight values.
             for (int i = 0; i < 8; i++)
             {
                 buffer1[i] = buffer0[i];
@@ -519,7 +519,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[14] = Av1ForwardTransformArithmetic<Vector256<short>>.HalfButterfly(-cospi[24], buffer0[14], cospi[40], buffer0[15], cosBit, in rounding);
             buffer1[15] = Av1ForwardTransformArithmetic<Vector256<short>>.HalfButterfly(cospi[40], buffer0[14], cospi[24], buffer0[15], cosBit, in rounding);
 
-            // Stage 7 creates the eight final butterfly pairs spanning both octets.
+            // Stage 7 adds and subtracts the lower and upper eight values to form the eight final butterfly pairs.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<short>>.AddSubtract(buffer1[i], buffer1[i + 8], out buffer0[i], out buffer0[i + 8]);
@@ -527,8 +527,8 @@ internal static partial class Av1ForwardTransformer
 
             ReadOnlySpan<byte> finalWeights = FinalWeights;
 
-            // Stage 8 applies the final odd-angle rotations. The compact weight table preserves their normative order
-            // without allocating a per-call array or duplicating the complementary cosine-index calculation.
+            // Stage 8 applies the final odd-angle rotations. FinalWeights holds the first cosine index of each pair in static data.
+            // The second index is 64 minus the first because the two weights of each rotation are complementary angles.
             for (int pair = 0; pair < 8; pair++)
             {
                 int first = finalWeights[pair];
@@ -562,7 +562,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector512<short>>.CreateRounding(cosBit);
 
-            // Stage 1 is the bit-reversed ADST input order with the normative alternating signs.
+            // Stage 1 applies the ADST input permutation and signs before any output overwrites the source.
             buffer0[0] = Load<Vector512<short>>(ref values, inputStride, 0);
             buffer0[1] = Av1ForwardTransformArithmetic<Vector512<short>>.Negate(Load<Vector512<short>>(ref values, inputStride, 15));
             buffer0[2] = Av1ForwardTransformArithmetic<Vector512<short>>.Negate(Load<Vector512<short>>(ref values, inputStride, 7));
@@ -580,7 +580,7 @@ internal static partial class Av1ForwardTransformer
             buffer0[14] = Av1ForwardTransformArithmetic<Vector512<short>>.Negate(Load<Vector512<short>>(ref values, inputStride, 5));
             buffer0[15] = Load<Vector512<short>>(ref values, inputStride, 10);
 
-            // Stage 2 rotates the second pair in each group of four while copying the first pair unchanged.
+            // Stage 2 rotates the second pair in each four-value group by pi/4 and copies the first pair.
             for (int group = 0; group < 16; group += 4)
             {
                 buffer1[group] = buffer0[group];
@@ -588,7 +588,7 @@ internal static partial class Av1ForwardTransformer
                 Butterfly(cospi[32], cospi[32], buffer0[group + 2], buffer0[group + 3], ref buffer1, group + 2, group + 3, cosBit, in rounding);
             }
 
-            // Stage 3 combines adjacent pairs within each group of four.
+            // Stage 3 adds and subtracts the two pairs within each four-value group.
             for (int group = 0; group < 16; group += 4)
             {
                 for (int i = 0; i < 2; i++)
@@ -601,7 +601,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 4 rotates the upper pair of each eight-value group by pi/8.
+            // Stage 4 rotates the upper four values of each eight-value group by pi/8 and copies the lower four values.
             for (int group = 0; group < 16; group += 8)
             {
                 for (int i = 0; i < 4; i++)
@@ -622,7 +622,7 @@ internal static partial class Av1ForwardTransformer
                     cospi[16], buffer0[group + 6], cospi[48], buffer0[group + 7], cosBit, in rounding);
             }
 
-            // Stage 5 combines the lower and upper quartets within each eight-value group.
+            // Stage 5 adds and subtracts the lower and upper four values within each eight-value group.
             for (int group = 0; group < 16; group += 8)
             {
                 for (int i = 0; i < 4; i++)
@@ -635,7 +635,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 6 rotates the upper octet by pi/16 while retaining the completed lower octet.
+            // Stage 6 rotates the upper eight values by pi/16 and copies the completed lower eight values.
             for (int i = 0; i < 8; i++)
             {
                 buffer1[i] = buffer0[i];
@@ -650,7 +650,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[14] = Av1ForwardTransformArithmetic<Vector512<short>>.HalfButterfly(-cospi[24], buffer0[14], cospi[40], buffer0[15], cosBit, in rounding);
             buffer1[15] = Av1ForwardTransformArithmetic<Vector512<short>>.HalfButterfly(cospi[40], buffer0[14], cospi[24], buffer0[15], cosBit, in rounding);
 
-            // Stage 7 creates the eight final butterfly pairs spanning both octets.
+            // Stage 7 adds and subtracts the lower and upper eight values to form the eight final butterfly pairs.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<short>>.AddSubtract(buffer1[i], buffer1[i + 8], out buffer0[i], out buffer0[i + 8]);
@@ -658,8 +658,8 @@ internal static partial class Av1ForwardTransformer
 
             ReadOnlySpan<byte> finalWeights = FinalWeights;
 
-            // Stage 8 applies the final odd-angle rotations. The compact weight table preserves their normative order
-            // without allocating a per-call array or duplicating the complementary cosine-index calculation.
+            // Stage 8 applies the final odd-angle rotations. FinalWeights holds the first cosine index of each pair in static data.
+            // The second index is 64 minus the first because the two weights of each rotation are complementary angles.
             for (int pair = 0; pair < 8; pair++)
             {
                 int first = finalWeights[pair];
@@ -693,7 +693,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector128<int>>.CreateRounding(cosBit);
 
-            // Stage 1 is the bit-reversed ADST input order with the normative alternating signs.
+            // Stage 1 applies the ADST input permutation and signs before any output overwrites the source.
             buffer0[0] = Load<Vector128<int>>(ref values, inputStride, 0);
             buffer0[1] = Av1ForwardTransformArithmetic<Vector128<int>>.Negate(Load<Vector128<int>>(ref values, inputStride, 15));
             buffer0[2] = Av1ForwardTransformArithmetic<Vector128<int>>.Negate(Load<Vector128<int>>(ref values, inputStride, 7));
@@ -711,7 +711,7 @@ internal static partial class Av1ForwardTransformer
             buffer0[14] = Av1ForwardTransformArithmetic<Vector128<int>>.Negate(Load<Vector128<int>>(ref values, inputStride, 5));
             buffer0[15] = Load<Vector128<int>>(ref values, inputStride, 10);
 
-            // Stage 2 rotates the second pair in each group of four while copying the first pair unchanged.
+            // Stage 2 rotates the second pair in each four-value group by pi/4 and copies the first pair.
             for (int group = 0; group < 16; group += 4)
             {
                 buffer1[group] = buffer0[group];
@@ -719,7 +719,7 @@ internal static partial class Av1ForwardTransformer
                 Butterfly(cospi[32], cospi[32], buffer0[group + 2], buffer0[group + 3], ref buffer1, group + 2, group + 3, cosBit, in rounding);
             }
 
-            // Stage 3 combines adjacent pairs within each group of four.
+            // Stage 3 adds and subtracts the two pairs within each four-value group.
             for (int group = 0; group < 16; group += 4)
             {
                 for (int i = 0; i < 2; i++)
@@ -732,7 +732,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 4 rotates the upper pair of each eight-value group by pi/8.
+            // Stage 4 rotates the upper four values of each eight-value group by pi/8 and copies the lower four values.
             for (int group = 0; group < 16; group += 8)
             {
                 for (int i = 0; i < 4; i++)
@@ -753,7 +753,7 @@ internal static partial class Av1ForwardTransformer
                     cospi[16], buffer0[group + 6], cospi[48], buffer0[group + 7], cosBit, in rounding);
             }
 
-            // Stage 5 combines the lower and upper quartets within each eight-value group.
+            // Stage 5 adds and subtracts the lower and upper four values within each eight-value group.
             for (int group = 0; group < 16; group += 8)
             {
                 for (int i = 0; i < 4; i++)
@@ -766,7 +766,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 6 rotates the upper octet by pi/16 while retaining the completed lower octet.
+            // Stage 6 rotates the upper eight values by pi/16 and copies the completed lower eight values.
             for (int i = 0; i < 8; i++)
             {
                 buffer1[i] = buffer0[i];
@@ -781,7 +781,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[14] = Av1ForwardTransformArithmetic<Vector128<int>>.HalfButterfly(-cospi[24], buffer0[14], cospi[40], buffer0[15], cosBit, in rounding);
             buffer1[15] = Av1ForwardTransformArithmetic<Vector128<int>>.HalfButterfly(cospi[40], buffer0[14], cospi[24], buffer0[15], cosBit, in rounding);
 
-            // Stage 7 creates the eight final butterfly pairs spanning both octets.
+            // Stage 7 adds and subtracts the lower and upper eight values to form the eight final butterfly pairs.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector128<int>>.AddSubtract(buffer1[i], buffer1[i + 8], out buffer0[i], out buffer0[i + 8]);
@@ -789,8 +789,8 @@ internal static partial class Av1ForwardTransformer
 
             ReadOnlySpan<byte> finalWeights = FinalWeights;
 
-            // Stage 8 applies the final odd-angle rotations. The compact weight table preserves their normative order
-            // without allocating a per-call array or duplicating the complementary cosine-index calculation.
+            // Stage 8 applies the final odd-angle rotations. FinalWeights holds the first cosine index of each pair in static data.
+            // The second index is 64 minus the first because the two weights of each rotation are complementary angles.
             for (int pair = 0; pair < 8; pair++)
             {
                 int first = finalWeights[pair];
@@ -824,7 +824,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector256<int>>.CreateRounding(cosBit);
 
-            // Stage 1 is the bit-reversed ADST input order with the normative alternating signs.
+            // Stage 1 applies the ADST input permutation and signs before any output overwrites the source.
             buffer0[0] = Load<Vector256<int>>(ref values, inputStride, 0);
             buffer0[1] = Av1ForwardTransformArithmetic<Vector256<int>>.Negate(Load<Vector256<int>>(ref values, inputStride, 15));
             buffer0[2] = Av1ForwardTransformArithmetic<Vector256<int>>.Negate(Load<Vector256<int>>(ref values, inputStride, 7));
@@ -842,7 +842,7 @@ internal static partial class Av1ForwardTransformer
             buffer0[14] = Av1ForwardTransformArithmetic<Vector256<int>>.Negate(Load<Vector256<int>>(ref values, inputStride, 5));
             buffer0[15] = Load<Vector256<int>>(ref values, inputStride, 10);
 
-            // Stage 2 rotates the second pair in each group of four while copying the first pair unchanged.
+            // Stage 2 rotates the second pair in each four-value group by pi/4 and copies the first pair.
             for (int group = 0; group < 16; group += 4)
             {
                 buffer1[group] = buffer0[group];
@@ -850,7 +850,7 @@ internal static partial class Av1ForwardTransformer
                 Butterfly(cospi[32], cospi[32], buffer0[group + 2], buffer0[group + 3], ref buffer1, group + 2, group + 3, cosBit, in rounding);
             }
 
-            // Stage 3 combines adjacent pairs within each group of four.
+            // Stage 3 adds and subtracts the two pairs within each four-value group.
             for (int group = 0; group < 16; group += 4)
             {
                 for (int i = 0; i < 2; i++)
@@ -863,7 +863,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 4 rotates the upper pair of each eight-value group by pi/8.
+            // Stage 4 rotates the upper four values of each eight-value group by pi/8 and copies the lower four values.
             for (int group = 0; group < 16; group += 8)
             {
                 for (int i = 0; i < 4; i++)
@@ -884,7 +884,7 @@ internal static partial class Av1ForwardTransformer
                     cospi[16], buffer0[group + 6], cospi[48], buffer0[group + 7], cosBit, in rounding);
             }
 
-            // Stage 5 combines the lower and upper quartets within each eight-value group.
+            // Stage 5 adds and subtracts the lower and upper four values within each eight-value group.
             for (int group = 0; group < 16; group += 8)
             {
                 for (int i = 0; i < 4; i++)
@@ -897,7 +897,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 6 rotates the upper octet by pi/16 while retaining the completed lower octet.
+            // Stage 6 rotates the upper eight values by pi/16 and copies the completed lower eight values.
             for (int i = 0; i < 8; i++)
             {
                 buffer1[i] = buffer0[i];
@@ -912,7 +912,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[14] = Av1ForwardTransformArithmetic<Vector256<int>>.HalfButterfly(-cospi[24], buffer0[14], cospi[40], buffer0[15], cosBit, in rounding);
             buffer1[15] = Av1ForwardTransformArithmetic<Vector256<int>>.HalfButterfly(cospi[40], buffer0[14], cospi[24], buffer0[15], cosBit, in rounding);
 
-            // Stage 7 creates the eight final butterfly pairs spanning both octets.
+            // Stage 7 adds and subtracts the lower and upper eight values to form the eight final butterfly pairs.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector256<int>>.AddSubtract(buffer1[i], buffer1[i + 8], out buffer0[i], out buffer0[i + 8]);
@@ -920,8 +920,8 @@ internal static partial class Av1ForwardTransformer
 
             ReadOnlySpan<byte> finalWeights = FinalWeights;
 
-            // Stage 8 applies the final odd-angle rotations. The compact weight table preserves their normative order
-            // without allocating a per-call array or duplicating the complementary cosine-index calculation.
+            // Stage 8 applies the final odd-angle rotations. FinalWeights holds the first cosine index of each pair in static data.
+            // The second index is 64 minus the first because the two weights of each rotation are complementary angles.
             for (int pair = 0; pair < 8; pair++)
             {
                 int first = finalWeights[pair];
@@ -955,7 +955,7 @@ internal static partial class Av1ForwardTransformer
             ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
             Av1TransformRounding rounding = Av1ForwardTransformArithmetic<Vector512<int>>.CreateRounding(cosBit);
 
-            // Stage 1 is the bit-reversed ADST input order with the normative alternating signs.
+            // Stage 1 applies the ADST input permutation and signs before any output overwrites the source.
             buffer0[0] = Load<Vector512<int>>(ref values, inputStride, 0);
             buffer0[1] = Av1ForwardTransformArithmetic<Vector512<int>>.Negate(Load<Vector512<int>>(ref values, inputStride, 15));
             buffer0[2] = Av1ForwardTransformArithmetic<Vector512<int>>.Negate(Load<Vector512<int>>(ref values, inputStride, 7));
@@ -973,7 +973,7 @@ internal static partial class Av1ForwardTransformer
             buffer0[14] = Av1ForwardTransformArithmetic<Vector512<int>>.Negate(Load<Vector512<int>>(ref values, inputStride, 5));
             buffer0[15] = Load<Vector512<int>>(ref values, inputStride, 10);
 
-            // Stage 2 rotates the second pair in each group of four while copying the first pair unchanged.
+            // Stage 2 rotates the second pair in each four-value group by pi/4 and copies the first pair.
             for (int group = 0; group < 16; group += 4)
             {
                 buffer1[group] = buffer0[group];
@@ -981,7 +981,7 @@ internal static partial class Av1ForwardTransformer
                 Butterfly(cospi[32], cospi[32], buffer0[group + 2], buffer0[group + 3], ref buffer1, group + 2, group + 3, cosBit, in rounding);
             }
 
-            // Stage 3 combines adjacent pairs within each group of four.
+            // Stage 3 adds and subtracts the two pairs within each four-value group.
             for (int group = 0; group < 16; group += 4)
             {
                 for (int i = 0; i < 2; i++)
@@ -994,7 +994,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 4 rotates the upper pair of each eight-value group by pi/8.
+            // Stage 4 rotates the upper four values of each eight-value group by pi/8 and copies the lower four values.
             for (int group = 0; group < 16; group += 8)
             {
                 for (int i = 0; i < 4; i++)
@@ -1015,7 +1015,7 @@ internal static partial class Av1ForwardTransformer
                     cospi[16], buffer0[group + 6], cospi[48], buffer0[group + 7], cosBit, in rounding);
             }
 
-            // Stage 5 combines the lower and upper quartets within each eight-value group.
+            // Stage 5 adds and subtracts the lower and upper four values within each eight-value group.
             for (int group = 0; group < 16; group += 8)
             {
                 for (int i = 0; i < 4; i++)
@@ -1028,7 +1028,7 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            // Stage 6 rotates the upper octet by pi/16 while retaining the completed lower octet.
+            // Stage 6 rotates the upper eight values by pi/16 and copies the completed lower eight values.
             for (int i = 0; i < 8; i++)
             {
                 buffer1[i] = buffer0[i];
@@ -1043,7 +1043,7 @@ internal static partial class Av1ForwardTransformer
             buffer1[14] = Av1ForwardTransformArithmetic<Vector512<int>>.HalfButterfly(-cospi[24], buffer0[14], cospi[40], buffer0[15], cosBit, in rounding);
             buffer1[15] = Av1ForwardTransformArithmetic<Vector512<int>>.HalfButterfly(cospi[40], buffer0[14], cospi[24], buffer0[15], cosBit, in rounding);
 
-            // Stage 7 creates the eight final butterfly pairs spanning both octets.
+            // Stage 7 adds and subtracts the lower and upper eight values to form the eight final butterfly pairs.
             for (int i = 0; i < 8; i++)
             {
                 Av1ForwardTransformArithmetic<Vector512<int>>.AddSubtract(buffer1[i], buffer1[i + 8], out buffer0[i], out buffer0[i + 8]);
@@ -1051,8 +1051,8 @@ internal static partial class Av1ForwardTransformer
 
             ReadOnlySpan<byte> finalWeights = FinalWeights;
 
-            // Stage 8 applies the final odd-angle rotations. The compact weight table preserves their normative order
-            // without allocating a per-call array or duplicating the complementary cosine-index calculation.
+            // Stage 8 applies the final odd-angle rotations. FinalWeights holds the first cosine index of each pair in static data.
+            // The second index is 64 minus the first because the two weights of each rotation are complementary angles.
             for (int pair = 0; pair < 8; pair++)
             {
                 int first = finalWeights[pair];

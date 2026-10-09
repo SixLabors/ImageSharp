@@ -8,18 +8,18 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
-/// <content>
-/// Defines the closed scalar/SIMD operator contract and traversal for AV1 palette prediction.
-/// </content>
+/// <summary>
+/// Defines the closed scalar and SIMD operator contract and the traversal for AV1 palette prediction.
+/// </summary>
 internal static class Av1PalettePredictor
 {
     /// <summary>
-    /// Multiplies a palette index by two to select the low byte of a high-bit-depth entry.
+    /// Multiplies a palette index by two in both bytes of a 16-bit lane. Both shuffle control bytes then select the low byte of the high-bit-depth entry.
     /// </summary>
     private const ushort PaletteByteOffsetMultiplier = 0x0202;
 
     /// <summary>
-    /// Adds one to each odd control byte so each shuffled high-bit-depth sample retains both bytes.
+    /// Adds one to the high control byte of each 16-bit lane. That byte then selects the high byte of the entry, so the shuffled sample keeps both bytes.
     /// </summary>
     private const ushort PaletteHighByteOffset = 0x0100;
 
@@ -96,6 +96,12 @@ internal static class Av1PalettePredictor
     /// <summary>
     /// Reconstructs an 8-bit palette-predicted block.
     /// </summary>
+    /// <param name="paletteColors">The palette colors, at most eight.</param>
+    /// <param name="colorIndexMap">The decoded palette index of each sample.</param>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The destination row stride in samples.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
     public static void Predict(
         ReadOnlySpan<ushort> paletteColors,
         Av1PlaneRegion<byte> colorIndexMap,
@@ -108,6 +114,12 @@ internal static class Av1PalettePredictor
     /// <summary>
     /// Reconstructs a high-bit-depth palette-predicted block.
     /// </summary>
+    /// <param name="paletteColors">The palette colors, at most eight.</param>
+    /// <param name="colorIndexMap">The decoded palette index of each sample.</param>
+    /// <param name="destination">The destination block origin.</param>
+    /// <param name="destinationStride">The destination row stride in samples.</param>
+    /// <param name="width">The block width in samples.</param>
+    /// <param name="height">The block height in samples.</param>
     public static void Predict(
         ReadOnlySpan<ushort> paletteColors,
         Av1PlaneRegion<byte> colorIndexMap,
@@ -183,6 +195,12 @@ internal static class Av1PalettePredictor
         /// <summary>
         /// Reconstructs an 8-bit palette block.
         /// </summary>
+        /// <param name="paletteColors">The palette colors, at most eight.</param>
+        /// <param name="colorIndexMap">The decoded palette index of each sample.</param>
+        /// <param name="destination">The destination block origin.</param>
+        /// <param name="destinationStride">The destination row stride in samples.</param>
+        /// <param name="width">The block width in samples.</param>
+        /// <param name="height">The block height in samples.</param>
         public static void Predict(
             ReadOnlySpan<ushort> paletteColors,
             Av1PlaneRegion<byte> colorIndexMap,
@@ -193,8 +211,8 @@ internal static class Av1PalettePredictor
         {
             ref byte destinationBase = ref MemoryMarshal.GetReference(destination);
 
-            // AV1 palettes contain at most eight colors. Repeating all eight entries in every 128-bit lane keeps native
-            // table lookup lane-local at every SIMD width and removes palette bounds work from the reconstruction loop.
+            // AV1 palettes contain at most eight colors. All eight entries repeat in every 128-bit lane. Thus the native table lookup stays inside each lane at
+            // every SIMD width, and the reconstruction loop does no palette bounds work.
             ulong packedPalette = 0;
             for (int index = 0; index < paletteColors.Length; index++)
             {
@@ -218,7 +236,7 @@ internal static class Av1PalettePredictor
 
                     if (vectorCount > 0)
                     {
-                        // Replicate the lookup table only when the row has a complete 64-lane batch.
+                        // The code replicates the lookup table only when the row has a complete batch of 64 lanes.
                         Vector256<byte> palette256 = Vector256.Create(palette128, palette128);
                         Vector512<byte> palette512 = Vector512.Create(palette256, palette256);
 
@@ -236,7 +254,7 @@ internal static class Av1PalettePredictor
 
                     if (vectorCount > 0)
                     {
-                        // The narrower table is likewise materialized only for a complete 32-lane remainder.
+                        // The code also creates the 256-bit table only when a complete batch of 32 lanes remains.
                         Vector256<byte> palette256 = Vector256.Create(palette128, palette128);
 
                         for (; vectorCount > 0; vectorCount--, column += Vector256<byte>.Count)
@@ -256,6 +274,7 @@ internal static class Av1PalettePredictor
                         TOperator.Predict(palette128, indices).StoreUnsafe(ref destinationRow, (nuint)column);
                     }
 
+                    // A remainder of eight or four indices uses the low lanes of one 128-bit lookup.
                     int remaining = width - column;
                     if (remaining >= 8)
                     {
@@ -285,6 +304,12 @@ internal static class Av1PalettePredictor
         /// <summary>
         /// Reconstructs a high-bit-depth palette block.
         /// </summary>
+        /// <param name="paletteColors">The palette colors, at most eight.</param>
+        /// <param name="colorIndexMap">The decoded palette index of each sample.</param>
+        /// <param name="destination">The destination block origin.</param>
+        /// <param name="destinationStride">The destination row stride in samples.</param>
+        /// <param name="width">The block width in samples.</param>
+        /// <param name="height">The block height in samples.</param>
         public static void Predict(
             ReadOnlySpan<ushort> paletteColors,
             Av1PlaneRegion<byte> colorIndexMap,
@@ -297,6 +322,7 @@ internal static class Av1PalettePredictor
             InlineArray8<ushort> paletteStorage = default;
             paletteColors.CopyTo(paletteStorage);
 
+            // Eight 16-bit entries fill one 128-bit lane exactly. Unused entries stay zero.
             ref ushort paletteBase = ref paletteStorage[0];
             Vector128<byte> palette128 = Vector128.LoadUnsafe(ref paletteBase).AsByte();
             ref byte mapBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(colorIndexMap.Samples), (nuint)colorIndexMap.Origin);
@@ -314,7 +340,8 @@ internal static class Av1PalettePredictor
 
                     if (vectorCount > 0)
                     {
-                        // High-bit-depth output has half as many lanes, so gate table replication with that lane count.
+                        // High-bit-depth output has half as many lanes per vector. Thus the 16-bit lane count controls the table replication. Each byte index
+                        // widens to a 16-bit lane to match the output samples.
                         Vector256<byte> palette256 = Vector256.Create(palette128, palette128);
                         Vector512<byte> palette512 = Vector512.Create(palette256, palette256);
 
@@ -333,7 +360,7 @@ internal static class Av1PalettePredictor
 
                     if (vectorCount > 0)
                     {
-                        // Avoid creating the 256-bit table when the remainder belongs entirely to narrower paths.
+                        // The code creates the 256-bit table only when a complete batch of 16 lanes remains.
                         Vector256<byte> palette256 = Vector256.Create(palette128, palette128);
 
                         for (; vectorCount > 0; vectorCount--, column += Vector256<short>.Count)

@@ -18,6 +18,19 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
     /// <summary>
     /// Blends two compound intermediates through a luma-resolution mask.
     /// </summary>
+    /// <param name="destination">The reconstructed 8-bit samples.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="first">The first compound intermediate.</param>
+    /// <param name="firstStride">The distance between first-intermediate rows in samples.</param>
+    /// <param name="second">The second compound intermediate.</param>
+    /// <param name="secondStride">The distance between second-intermediate rows in samples.</param>
+    /// <param name="mask">The luma-resolution weights of the first predictor, 0 through 64.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="width">The active block width in plane samples.</param>
+    /// <param name="height">The active block height in plane samples.</param>
+    /// <param name="subX">The horizontal subsampling shift of the plane: 0 or 1.</param>
+    /// <param name="subY">The vertical subsampling shift of the plane: 0 or 1.</param>
+    /// <param name="bitDepth">The decoded sample precision that produced the intermediates.</param>
     public static void BlendIntermediate(
         Span<byte> destination,
         int destinationStride,
@@ -51,6 +64,19 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
     /// Executes one closed alpha-blend compound-intermediate operator.
     /// </summary>
     /// <typeparam name="TOperator">The compound-intermediate operator.</typeparam>
+    /// <param name="destination">The reconstructed 8-bit samples.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="first">The first compound intermediate.</param>
+    /// <param name="firstStride">The distance between first-intermediate rows in samples.</param>
+    /// <param name="second">The second compound intermediate.</param>
+    /// <param name="secondStride">The distance between second-intermediate rows in samples.</param>
+    /// <param name="mask">The luma-resolution weights of the first predictor, 0 through 64.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="width">The active block width in plane samples.</param>
+    /// <param name="height">The active block height in plane samples.</param>
+    /// <param name="subX">The horizontal subsampling shift of the plane: 0 or 1.</param>
+    /// <param name="subY">The vertical subsampling shift of the plane: 0 or 1.</param>
+    /// <param name="bitDepth">The decoded sample precision that produced the intermediates.</param>
     private static void BlendIntermediate<TOperator>(
         Span<byte> destination,
         int destinationStride,
@@ -78,6 +104,8 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
             ref ushort secondReference = ref MemoryMarshal.GetReference(secondRow);
             int column = 0;
 
+            // The vector loops run only when the mask has the plane resolution. A subsampled plane uses the scalar loop, which averages the mask samples.
+            // Each step covers one byte vector of columns: one mask vector and two 16-bit vectors from each intermediate.
             if (Vector512.IsHardwareAccelerated && subX == 0 && subY == 0)
             {
                 ref byte maskReference = ref MemoryMarshal.GetReference(mask);
@@ -155,6 +183,19 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
     /// <summary>
     /// Blends two high-bit-depth compound intermediates through a luma-resolution mask.
     /// </summary>
+    /// <param name="destination">The reconstructed high-bit-depth samples.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="first">The first compound intermediate.</param>
+    /// <param name="firstStride">The distance between first-intermediate rows in samples.</param>
+    /// <param name="second">The second compound intermediate.</param>
+    /// <param name="secondStride">The distance between second-intermediate rows in samples.</param>
+    /// <param name="mask">The luma-resolution weights of the first predictor, 0 through 64.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="width">The active block width in plane samples.</param>
+    /// <param name="height">The active block height in plane samples.</param>
+    /// <param name="subX">The horizontal subsampling shift of the plane: 0 or 1.</param>
+    /// <param name="subY">The vertical subsampling shift of the plane: 0 or 1.</param>
+    /// <param name="bitDepth">The decoded sample precision.</param>
     public static void BlendIntermediate(
         Span<ushort> destination,
         int destinationStride,
@@ -188,6 +229,19 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
     /// Executes one closed high-bit-depth alpha-blend compound-intermediate operator.
     /// </summary>
     /// <typeparam name="TOperator">The compound-intermediate operator.</typeparam>
+    /// <param name="destination">The reconstructed high-bit-depth samples.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="first">The first compound intermediate.</param>
+    /// <param name="firstStride">The distance between first-intermediate rows in samples.</param>
+    /// <param name="second">The second compound intermediate.</param>
+    /// <param name="secondStride">The distance between second-intermediate rows in samples.</param>
+    /// <param name="mask">The luma-resolution weights of the first predictor, 0 through 64.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="width">The active block width in plane samples.</param>
+    /// <param name="height">The active block height in plane samples.</param>
+    /// <param name="subX">The horizontal subsampling shift of the plane: 0 or 1.</param>
+    /// <param name="subY">The vertical subsampling shift of the plane: 0 or 1.</param>
+    /// <param name="bitDepth">The decoded sample precision.</param>
     private static void BlendIntermediate<TOperator>(
         Span<ushort> destination,
         int destinationStride,
@@ -217,6 +271,8 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
             ref ushort secondReference = ref MemoryMarshal.GetReference(secondRow);
             int column = 0;
 
+            // The vector loops run only when the mask has the plane resolution. A subsampled plane uses the scalar loop, which averages the mask samples.
+            // Each step covers one byte vector of columns: one mask vector and two 16-bit vectors from each intermediate.
             if (Vector512.IsHardwareAccelerated && subX == 0 && subY == 0)
             {
                 ref byte maskReference = ref MemoryMarshal.GetReference(mask);
@@ -352,8 +408,15 @@ internal static partial class Av1CompoundIntermediateMaskBlendPredictor
     }
 
     /// <summary>
-    /// Gets the mask alpha for one plane sample, averaging its two or four luma samples when required.
+    /// Gets the mask alpha for one plane sample. For a subsampled plane, it is the rounded average of the two or four covered luma mask samples.
     /// </summary>
+    /// <param name="mask">The luma-resolution mask.</param>
+    /// <param name="maskStride">The distance between mask rows.</param>
+    /// <param name="row">The plane row of the sample.</param>
+    /// <param name="column">The plane column of the sample.</param>
+    /// <param name="subX">The horizontal subsampling shift of the plane: 0 or 1.</param>
+    /// <param name="subY">The vertical subsampling shift of the plane: 0 or 1.</param>
+    /// <returns>The mask alpha, 0 through 64.</returns>
     private static int GetSubsampledMaskAlpha(
         ReadOnlySpan<byte> mask,
         int maskStride,

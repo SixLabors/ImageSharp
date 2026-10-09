@@ -11,10 +11,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// Applies separable two-dimensional AV1 inverse transforms and reconstructs decoded samples.
 /// </summary>
 /// <remarks>
-/// Coefficients are transposed so that each SIMD lane represents an independent transform axis and each vector field
-/// represents one coefficient position. The column and row operators can then use the scalar stage graph without
-/// cross-lane permutations. Reconstruction adds the final residuals to their matching prediction lanes before
-/// narrowing to the decoded sample depth.
+/// Coefficients are transposed so that each SIMD lane holds an independent one-dimensional transform and each vector field holds one coefficient position. The
+/// column and row operators can then use the scalar stage graph without cross-lane permutations. Reconstruction adds the final residuals to their matching
+/// prediction lanes before narrowing to the decoded sample depth.
 /// </remarks>
 internal static partial class Av1Inverse2dTransformer
 {
@@ -22,7 +21,7 @@ internal static partial class Av1Inverse2dTransformer
     /// Reconstructs a DCT block whose only coded coefficient is DC, without traversing either full transform axis.
     /// </summary>
     /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
-    /// <typeparam name="TOutputOperator">The existing sample-depth reconstruction operator.</typeparam>
+    /// <typeparam name="TOutputOperator">The operator that adds and clips inverse residuals.</typeparam>
     /// <param name="dc">The dequantized DC coefficient.</param>
     /// <param name="prediction">The predicted samples.</param>
     /// <param name="predictionStride">The number of prediction samples between rows.</param>
@@ -41,9 +40,9 @@ internal static partial class Av1Inverse2dTransformer
         where TSample : unmanaged
         where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
     {
-        // A DC-only DCT produces one constant residual across the block. Each axis still requires its own cosine
-        // multiply and rounding; combining the two multiplies would change samples at the fixed-point boundaries.
-        // Cosine-table index 32 is cos(pi/4), the DC basis factor for every supported DCT length.
+        // A DC-only DCT produces one constant residual across the block. A 2:1 or 1:2 rectangle first scales the DC by 1/sqrt(2), as the full row input does.
+        // Each axis still needs its own cosine multiply, rounding shift, and clamp, because one combined multiply changes samples at the fixed-point
+        // boundaries. Cosine-table index 32 is cos(pi/4), the DC basis factor for every supported DCT length.
         if (Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1)
         {
             dc = Av1Math.RoundShift((long)dc * Av1InverseTransformMath.NewInverseSqrt2, Av1InverseTransformMath.NewSqrt2BitCount);
@@ -66,9 +65,9 @@ internal static partial class Av1Inverse2dTransformer
             ref TSample destinationBase = ref MemoryMarshal.GetReference(destinationRow);
             int x = 0;
 
-            // Every Int32 lane carries the same residual, while the output operator widens the corresponding packed
-            // prediction samples and clips before narrowing. Independent strides preserve both in-place and separate
-            // buffers. The vector counts cover active samples only, never row padding.
+            // Every Int32 lane carries the same residual, while the output operator widens the corresponding packed prediction samples and clips before
+            // narrowing. Separate read and write strides support both in-place and separate buffers. The vector counts cover active samples only, never row
+            // padding.
             if (Vector512.IsHardwareAccelerated)
             {
                 Vector512<int> residual = Vector512.Create(dc);
@@ -162,8 +161,18 @@ internal static partial class Av1Inverse2dTransformer
             8);
 
     /// <summary>
-    /// Initializes the transform ranges and selects the concrete column operator.
+    /// Checks the workspace length and selects the concrete column operator.
     /// </summary>
+    /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
+    /// <typeparam name="TOutputOperator">The operator that adds and clips inverse residuals.</typeparam>
+    /// <param name="input">The dequantized coefficients in raster order.</param>
+    /// <param name="outputForRead">The predicted samples read by reconstruction.</param>
+    /// <param name="strideForRead">The number of read samples between rows.</param>
+    /// <param name="outputForWrite">The destination reconstructed samples.</param>
+    /// <param name="strideForWrite">The number of destination samples between rows.</param>
+    /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
+    /// <param name="workspace">The reusable transform workspace.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
     private static void Transform2dAdd<TSample, TOutputOperator>(
         ReadOnlySpan<int> input,
         ReadOnlySpan<TSample> outputForRead,
@@ -310,8 +319,19 @@ internal static partial class Av1Inverse2dTransformer
     }
 
     /// <summary>
-    /// Selects the concrete row operator after the column operator has been specialized.
+    /// Selects the concrete row operator for a fixed column operator.
     /// </summary>
+    /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
+    /// <typeparam name="TOutputOperator">The operator that adds and clips inverse residuals.</typeparam>
+    /// <typeparam name="TColumnOperator">The one-dimensional operator applied down each column.</typeparam>
+    /// <param name="input">The dequantized coefficients in raster order.</param>
+    /// <param name="outputForRead">The predicted samples read by reconstruction.</param>
+    /// <param name="strideForRead">The number of read samples between rows.</param>
+    /// <param name="outputForWrite">The destination reconstructed samples.</param>
+    /// <param name="strideForWrite">The number of destination samples between rows.</param>
+    /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
+    /// <param name="workspace">The reusable transform workspace.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
     private static void DispatchRow<TSample, TOutputOperator, TColumnOperator>(
         ReadOnlySpan<int> input,
         ReadOnlySpan<TSample> outputForRead,
@@ -458,8 +478,23 @@ internal static partial class Av1Inverse2dTransformer
     }
 
     /// <summary>
-    /// Applies the specialized operator pair using the production lane width selected for the block and processor.
+    /// Applies the operator pair with the widest vector path that the block and the processor support.
     /// </summary>
+    /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
+    /// <typeparam name="TOutputOperator">The operator that adds and clips inverse residuals.</typeparam>
+    /// <typeparam name="TColumnOperator">The one-dimensional operator applied down each column.</typeparam>
+    /// <typeparam name="TRowOperator">The one-dimensional operator applied across each row.</typeparam>
+    /// <param name="input">The dequantized coefficients in raster order.</param>
+    /// <param name="outputForRead">The predicted samples read by reconstruction.</param>
+    /// <param name="strideForRead">The number of read samples between rows.</param>
+    /// <param name="outputForWrite">The destination reconstructed samples.</param>
+    /// <param name="strideForWrite">The number of destination samples between rows.</param>
+    /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
+    /// <param name="workspace">The reusable transform workspace.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <remarks>
+    /// The eight-lane path needs a width and a height of at least eight. Otherwise the four-lane path runs, and the scalar path runs without vector hardware.
+    /// </remarks>
     private static void Transform2d<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
         ReadOnlySpan<int> input,
         ReadOnlySpan<TSample> outputForRead,
@@ -542,9 +577,9 @@ internal static partial class Av1Inverse2dTransformer
         byte rowClampBits = (byte)(bitDepth + 8);
         byte columnClampBits = (byte)Math.Max(bitDepth + 6, 16);
 
-        // Input and stage storage share one vector: each operator finishes consuming coefficients before its first
-        // stage write. The second vector holds outputs, and the remaining raster stores completed first-axis rows.
-        // Each vector spans only the longer active axis; no fields beyond that transform length are accessed.
+        // Input and stage storage share one vector, because each operator reads all of its coefficients before its first stage write. The second vector holds
+        // outputs, and the remaining raster stores completed first-axis rows. Each vector spans only the longer active axis. No field past that transform
+        // length is read or written.
         ref int workspaceBase = ref MemoryMarshal.GetReference(workspace);
         ref Av1TransformVector<Vector256<int>> tempIn = ref Unsafe.As<int, Av1TransformVector<Vector256<int>>>(ref workspaceBase);
         ref Av1TransformVector<Vector256<int>> tempOut =
@@ -631,14 +666,14 @@ internal static partial class Av1Inverse2dTransformer
         ref TSample readBase = ref MemoryMarshal.GetReference(outputForRead);
         ref TSample writeBase = ref MemoryMarshal.GetReference(outputForWrite);
 
-        // The intermediate rows already contain contiguous column groups, avoiding a second transpose. Horizontal and
-        // vertical flips are folded into these loads and row selections so flipped transforms need no reversal pass.
+        // The intermediate rows already contain contiguous column groups, so the second axis needs no transpose. Horizontal and vertical flips are folded into
+        // these loads and row selections, so flipped transforms need no separate reversal pass.
         for (int column = 0; column < width; column += laneCount)
         {
             int sourceColumn = config.FlipLeftToRight ? width - column - laneCount : column;
 
-            // Sparse operators read only their declared input prefix. Complete operators still receive zeros for
-            // rows omitted by the first axis, including the uncoded half of a sixty-four-point transform.
+            // Sparse operators read only their declared input prefix. Complete operators still receive zeros for rows omitted by the first axis, including the
+            // uncoded half of a sixty-four-point transform.
             for (int row = 0; row < TColumnOperator.InputLength; row++)
             {
                 Vector256<int> value = row < rowCount
@@ -707,9 +742,9 @@ internal static partial class Av1Inverse2dTransformer
         byte rowClampBits = (byte)(bitDepth + 8);
         byte columnClampBits = (byte)Math.Max(bitDepth + 6, 16);
 
-        // Input and stage storage share one vector: each operator finishes consuming coefficients before its first
-        // stage write. The second vector holds outputs, and the remaining raster stores completed first-axis rows.
-        // Each vector spans only the longer active axis; no fields beyond that transform length are accessed.
+        // Input and stage storage share one vector, because each operator reads all of its coefficients before its first stage write. The second vector holds
+        // outputs, and the remaining raster stores completed first-axis rows. Each vector spans only the longer active axis. No field past that transform
+        // length is read or written.
         ref int workspaceBase = ref MemoryMarshal.GetReference(workspace);
         ref Av1TransformVector<Vector128<int>> tempIn = ref Unsafe.As<int, Av1TransformVector<Vector128<int>>>(ref workspaceBase);
         ref Av1TransformVector<Vector128<int>> tempOut =
@@ -720,8 +755,8 @@ internal static partial class Av1Inverse2dTransformer
         ref int inputBase = ref MemoryMarshal.GetReference(input);
         ref int bufferBase = ref MemoryMarshal.GetReference(buffer);
 
-        // A 4-by-4 transpose changes four raster rows into four coefficient-position vectors. Each lane then remains
-        // one independent row throughout the complete first-axis stage network.
+        // A 4-by-4 transpose changes four raster rows into four coefficient-position vectors. Each lane then remains one independent row throughout the
+        // complete first-axis stage network.
         for (int row = 0; row < rowCount; row += laneCount)
         {
             for (int column = 0; column < rowInputCount; column += laneCount)
@@ -773,14 +808,14 @@ internal static partial class Av1Inverse2dTransformer
         ref TSample readBase = ref MemoryMarshal.GetReference(outputForRead);
         ref TSample writeBase = ref MemoryMarshal.GetReference(outputForWrite);
 
-        // Contiguous four-column groups become the independent lanes for the second axis. Flip selection is applied
-        // while reading the intermediate block and selecting completed rows, avoiding any extra copy or reversal.
+        // Contiguous four-column groups become the independent lanes for the second axis. Flip selection happens while the loop reads the intermediate block
+        // and selects completed rows, so no extra copy or reversal pass is necessary.
         for (int column = 0; column < width; column += laneCount)
         {
             int sourceColumn = config.FlipLeftToRight ? width - column - laneCount : column;
 
-            // Sparse operators read only their declared input prefix. Complete operators still receive zeros for
-            // rows omitted by the first axis, including the uncoded half of a sixty-four-point transform.
+            // Sparse operators read only their declared input prefix. Complete operators still receive zeros for rows omitted by the first axis, including the
+            // uncoded half of a sixty-four-point transform.
             for (int row = 0; row < TColumnOperator.InputLength; row++)
             {
                 Vector128<int> value = row < rowCount
@@ -846,8 +881,8 @@ internal static partial class Av1Inverse2dTransformer
         byte rowClampBits = (byte)(bitDepth + 8);
         byte columnClampBits = (byte)Math.Max(bitDepth + 6, 16);
 
-        // Stage exchange starts after the operator consumes its input. Sharing those spans leaves only two active
-        // vectors before the raster intermediate, with no copy required between transform stages.
+        // Each operator reads all of its input before it writes a stage value, so the input and stage spans share memory. As a result, only two vectors come
+        // before the raster intermediate, and no copy is necessary between transform stages.
         Span<int> tempIn = workspace[..vectorLength];
         Span<int> tempOut = workspace.Slice(vectorLength, vectorLength);
         Span<int> step = tempIn;
@@ -882,8 +917,8 @@ internal static partial class Av1Inverse2dTransformer
         {
             int sourceColumn = config.FlipLeftToRight ? width - column - 1 : column;
 
-            // The first axis writes only potentially nonzero rows. Initialize every input consumed by the selected
-            // second-axis operator so a complete identity or DCT kernel cannot read prior-block workspace contents.
+            // The first axis writes only potentially nonzero rows. The loop sets every input that the second-axis operator reads, so a complete identity or DCT
+            // kernel cannot read workspace values from a previous block.
             for (int row = 0; row < TColumnOperator.InputLength; row++)
             {
                 tempIn[row] = row < config.NonzeroHeight
@@ -907,6 +942,10 @@ internal static partial class Av1Inverse2dTransformer
     /// <summary>
     /// Applies rectangular normalization and the row-input clamp to four coefficient lanes.
     /// </summary>
+    /// <param name="value">The four coefficients at one position of four rows.</param>
+    /// <param name="normalizeRectangle">Whether to multiply by 1/sqrt(2) with rounding, as a 2:1 or 1:2 transform requires.</param>
+    /// <param name="clampBits">The signed bit width of the row-input clamp.</param>
+    /// <returns>The prepared row-transform inputs.</returns>
     private static Vector128<int> PrepareInverseRow(Vector128<int> value, bool normalizeRectangle, byte clampBits)
     {
         if (normalizeRectangle)
@@ -920,6 +959,10 @@ internal static partial class Av1Inverse2dTransformer
     /// <summary>
     /// Applies rectangular normalization and the row-input clamp to eight coefficient lanes.
     /// </summary>
+    /// <param name="value">The eight coefficients at one position of eight rows.</param>
+    /// <param name="normalizeRectangle">Whether to multiply by 1/sqrt(2) with rounding, as a 2:1 or 1:2 transform requires.</param>
+    /// <param name="clampBits">The signed bit width of the row-input clamp.</param>
+    /// <returns>The prepared row-transform inputs.</returns>
     private static Vector256<int> PrepareInverseRow(Vector256<int> value, bool normalizeRectangle, byte clampBits)
     {
         if (normalizeRectangle)

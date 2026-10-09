@@ -14,19 +14,13 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The image pyramid that dense flow estimation walks is built by repeated halving, so only the factor-of-two path of
-/// the reference resizer is needed here.
+/// The image pyramid of dense flow estimation uses only repeated halving, so this class implements only the factor-of-two resize.
 /// </para>
 /// <para>
-/// Both passes are shaped so that one vector of lanes is one vector of outputs. The horizontal pass separates a row
-/// into its even-position and odd-position samples once, after which each of the eight taps is a plain shifted load
-/// of one of those two streams. The vertical pass combines eight whole rows, so it never gathers a column. Neither
-/// pass tests a boundary, because the clamping that the reference performs per sample is written into the padding of
-/// the prepared streams.
-/// </para>
-/// <para>
-/// Reference: av1_resize_plane_to_half, av1_resize_horz_dir_c, av1_resize_vert_dir_c and down2_symeven, with the
-/// separated layout of av1_resize_horz_dir_avx2 and the row-band layout of av1_resize_vert_dir_avx2.
+/// In both passes, one vector of lanes is one vector of outputs. The horizontal pass splits a row into its even-position and odd-position samples once.
+/// After that, each of the eight taps is a plain shifted load of one of those two streams.
+/// The vertical pass combines eight whole rows, so it never gathers a column.
+/// Neither pass tests a boundary per sample. The horizontal pass reads clamped padding, and the vertical pass clamps each row index once.
 /// </para>
 /// </remarks>
 internal static partial class Av1PlaneDownsampler
@@ -34,17 +28,15 @@ internal static partial class Av1PlaneDownsampler
     /// <summary>
     /// The fractional bits carried by the filter taps.
     /// </summary>
-    /// <remarks>Reference: FILTER_BITS.</remarks>
     private const int FilterBits = 7;
 
     /// <summary>
     /// The number of samples repeated at each end of a separated stream.
     /// </summary>
     /// <remarks>
-    /// Output <c>k</c> reads the even stream as far as <c>k + 2</c> and the odd stream as far back as
-    /// <c>k - 2</c>, so two repeated samples at each end cover every read of the first and last
-    /// outputs. Those repeats hold the first and last source sample, which is what the reference
-    /// reads when its kernel reaches past the end of a line.
+    /// Output <c>k</c> reads the even stream as far as <c>k + 2</c> and the odd stream as far back as <c>k - 2</c>.
+    /// Thus two repeated samples at each end cover every read of the first and last outputs.
+    /// The repeats hold the first and last source sample, which is the clamped value of a kernel read past the end of a line.
     /// </remarks>
     private const int SeparationPadding = 2;
 
@@ -53,8 +45,7 @@ internal static partial class Av1PlaneDownsampler
     /// </summary>
     /// <param name="length">The input extent.</param>
     /// <param name="halvedLength">The output extent.</param>
-    /// <returns>Whether the output extent is the halved input extent.</returns> <remarks>Reference: get_down2_length
-    /// and should_resize_by_half.</remarks>
+    /// <returns>Whether the output extent is the halved input extent.</returns>
     public static bool IsHalved(int length, int halvedLength)
         => (length + 1) >> 1 == halvedLength;
 
@@ -69,9 +60,8 @@ internal static partial class Av1PlaneDownsampler
     /// <param name="destination">The halved samples.</param>
     /// <param name="destinationStride">The destination row stride.</param>
     /// <remarks>
-    /// An odd extent produces one more output than half of it, and the extra output reads past the
-    /// end of the line. The clamped padding of each prepared stream covers that read, so both
-    /// parities take the same path.
+    /// An odd extent produces one more output than half of it, and the extra output reads past the end of the line.
+    /// The clamped padding of each prepared stream covers that read, so both parities take the same path.
     /// </remarks>
     public static void Halve(
         MemoryAllocator allocator,
@@ -85,8 +75,8 @@ internal static partial class Av1PlaneDownsampler
         int halvedWidth = (width + 1) >> 1;
         int halvedHeight = (height + 1) >> 1;
 
-        // The intermediate plane holds every source row at halved width. The two separated streams
-        // are reused by every row, so one pair of buffers is allocated beside it.
+        // The intermediate plane holds every source row at halved width.
+        // Every row reuses the two separated streams, so one allocation holds the plane and one pair of stream buffers.
         int separatedLength = halvedWidth + (2 * SeparationPadding);
         using IMemoryOwner<byte> scratchOwner = allocator.Allocate<byte>((halvedWidth * height) + (2 * separatedLength));
 
@@ -108,14 +98,13 @@ internal static partial class Av1PlaneDownsampler
     /// <param name="height">The source height.</param>
     /// <param name="halvedWidth">The halved width.</param>
     /// <param name="intermediate">The halved-width samples, at a stride of <paramref name="halvedWidth"/>.</param>
-    /// <param name="even">The scratch buffer of even-position samples.</param>
-    /// <param name="odd">The scratch buffer of odd-position samples.</param>
+    /// <param name="even">The buffer of even-position samples.</param>
+    /// <param name="odd">The buffer of odd-position samples.</param>
     /// <remarks>
     /// Output <c>k</c> is the weighted sum of source samples <c>2k - 3</c> through <c>2k + 4</c>.
-    /// With <c>E[k] = source[2k]</c> and <c>O[k] = source[2k + 1]</c>, the eight kernel positions are
-    /// <c>O[k-2]</c>, <c>E[k-1]</c>, <c>O[k-1]</c>, <c>E[k]</c>, <c>O[k]</c>, <c>E[k+1]</c>,
-    /// <c>O[k+1]</c> and <c>E[k+2]</c>. Every tap is therefore a shifted read of one of two streams,
-    /// and the accumulation needs no shuffle at all.
+    /// With <c>E[k] = source[2k]</c> and <c>O[k] = source[2k + 1]</c>, the eight kernel positions are <c>O[k-2]</c>, <c>E[k-1]</c>, <c>O[k-1]</c>,
+    /// <c>E[k]</c>, <c>O[k]</c>, <c>E[k+1]</c>, <c>O[k+1]</c> and <c>E[k+2]</c>.
+    /// Thus every tap is a shifted read of one of two streams, and the accumulation needs no shuffle.
     /// </remarks>
     private static void HalveRows(
         ReadOnlySpan<byte> source,
@@ -135,8 +124,7 @@ internal static partial class Av1PlaneDownsampler
         {
             Separate(source.Slice(row * sourceStride, width), halvedWidth, even, odd);
 
-            // The tap streams are named by their kernel position, so the two bases below are read in
-            // the order the operator expects rather than in the order the streams were built.
+            // The arguments follow the kernel positions, not the order in which the streams were built.
             Filter<SymmetricEvenOperator>.Apply(
                 ref Unsafe.Add(ref oddBase, SeparationPadding - 2),
                 ref Unsafe.Add(ref evenBase, SeparationPadding - 1),
@@ -161,10 +149,9 @@ internal static partial class Av1PlaneDownsampler
     /// <param name="destination">The halved samples.</param>
     /// <param name="destinationStride">The destination row stride.</param>
     /// <remarks>
-    /// The kernel runs along a column, but no column is ever gathered. Output row <c>r</c> samples
-    /// between source rows <c>2r</c> and <c>2r + 1</c>, so its eight tap streams are the eight whole
-    /// rows <c>2r - 3</c> through <c>2r + 4</c>, each clamped to the plane. Clamping a row index
-    /// repeats the first or last row, which is the clamping the reference performs per sample.
+    /// The kernel runs along a column, but the method never gathers a column. Output row <c>r</c> samples between source rows <c>2r</c> and <c>2r + 1</c>.
+    /// Thus its eight tap streams are the eight whole rows <c>2r - 3</c> through <c>2r + 4</c>, each clamped to the plane.
+    /// A clamped row index repeats the first or last row, which gives the same result as a clamp of each sample.
     /// </remarks>
     private static void HalveColumns(
         ReadOnlySpan<byte> intermediate,
@@ -201,7 +188,7 @@ internal static partial class Av1PlaneDownsampler
     /// </summary>
     /// <param name="intermediate">The first sample of the intermediate plane.</param>
     /// <param name="stride">The intermediate row stride.</param>
-    /// <param name="row">The requested row, which may lie outside the plane.</param>
+    /// <param name="row">The requested row, which can lie outside the plane.</param>
     /// <param name="last">The index of the final row.</param>
     /// <returns>The first sample of the clamped row.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -216,15 +203,15 @@ internal static partial class Av1PlaneDownsampler
     /// <param name="even">Receives the even-position samples at <see cref="SeparationPadding"/>.</param>
     /// <param name="odd">Receives the odd-position samples at <see cref="SeparationPadding"/>.</param>
     /// <remarks>
-    /// An odd source width leaves the final odd-position sample past the end of the row. It is
-    /// written as the final source sample, which is what the clamped reference kernel reads there.
+    /// An odd source width leaves the final odd-position sample past the end of the row.
+    /// The method writes the final source sample there, which is the clamped value of the kernel read.
     /// </remarks>
     private static void Separate(ReadOnlySpan<byte> source, int halvedWidth, Span<byte> even, Span<byte> odd)
     {
         int last = source.Length - 1;
 
-        // Only the final output of an odd row reads past the end, so the bulk separation covers
-        // every complete pair and the single trailing sample is written afterwards.
+        // An odd row ends with one sample after its last full pair. The bulk separation covers every full pair.
+        // Then the code writes that trailing sample to both streams. In the odd stream, it is the clamped value of the read past the end.
         int pairs = source.Length >> 1;
         SeparatePairs(source, pairs, even[SeparationPadding..], odd[SeparationPadding..]);
 
@@ -254,12 +241,10 @@ internal static partial class Av1PlaneDownsampler
     /// <param name="even">Receives the even-position samples.</param>
     /// <param name="odd">Receives the odd-position samples.</param>
     /// <remarks>
-    /// A pair of adjacent bytes is one sixteen-bit lane on a little-endian runtime, and narrowing
-    /// such a lane keeps its low byte. The even samples are therefore the narrowing of two loaded
-    /// vectors, and the odd samples are the narrowing of the same vectors shifted down by eight
-    /// bits. Each stage consumes two source vectors and writes one, so the byte counts differ
-    /// between the loads and the store. A runtime that is not little-endian takes the scalar loop,
-    /// where the pair order is explicit.
+    /// A pair of adjacent bytes is one sixteen-bit lane on a little-endian runtime, and a narrow of such a lane keeps its low byte.
+    /// Thus the even samples are the narrow of two loaded vectors. The odd samples are the narrow of the same vectors shifted down by eight bits.
+    /// Each stage reads two source vectors and writes one vector to each stream, so each store holds half the bytes of the loads.
+    /// A runtime that is not little-endian uses the scalar loop, where the pair order is explicit.
     /// </remarks>
     private static void SeparatePairs(ReadOnlySpan<byte> source, int pairs, Span<byte> even, Span<byte> odd)
     {
@@ -291,8 +276,8 @@ internal static partial class Av1PlaneDownsampler
                     Vector256<ushort> low = Vector256.LoadUnsafe(ref sourceBase, (nuint)(i * 2)).AsUInt16();
                     Vector256<ushort> high = Vector256.LoadUnsafe(ref sourceBase, (nuint)((i * 2) + Vector256<byte>.Count)).AsUInt16();
 
-                    // Vector256.Narrow interleaves its two 128-bit halves on x86, so the result is
-                    // permuted back into source order before it is stored.
+                    // Vector256.Narrow returns the lanes in source order.
+                    // The x86 pack instruction works per 128-bit half, and the runtime adds the permute that restores the order.
                     Vector256.Narrow(low, high).StoreUnsafe(ref evenBase, (nuint)i);
                     Vector256.Narrow(low >>> 8, high >>> 8).StoreUnsafe(ref oddBase, (nuint)i);
                 }

@@ -17,15 +17,13 @@ internal static partial class Av1ObmcSearch
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <remarks>
     /// <para>
-    /// One lane is one sample, widened to thirty-two bits because the weighted source and the mask are
-    /// thirty-two-bit arrays. A vector overload reads as many samples as its register has thirty-two-bit
-    /// lanes: four, eight or sixteen. The narrowest overload therefore covers the four-sample overlap of
-    /// an eight-sample block, and no OBMC row is left to the scalar overload.
+    /// One lane is one sample, widened to thirty-two bits because the weighted source and the mask are thirty-two-bit arrays.
+    /// A vector overload reads as many samples as its register has thirty-two-bit lanes: four, eight or sixteen.
+    /// The narrowest overload therefore covers the four-sample overlap of an eight-sample block, and no OBMC row is left to the scalar overload.
     /// </para>
     /// <para>
-    /// A measure returns a lane-shaped total, not a scalar one, so that the traversal reduces each
-    /// total once and never inside its loop. The spread of a total across the lanes is not defined.
-    /// Only the sum of all lanes is.
+    /// A measure returns a lane-shaped total, not a scalar one, so that the traversal reduces each total once and never inside its loop.
+    /// The spread of a total across the lanes is not defined. Only the sum of all lanes is.
     /// </para>
     /// </remarks>
     internal interface IObmcOperator<TSample>
@@ -505,9 +503,8 @@ internal static partial class Av1ObmcSearch
     /// Holds the OBMC lane arithmetic that both sample operators share once their samples are widened.
     /// </summary>
     /// <remarks>
-    /// Every lane is an independent sample, so each width repeats the arithmetic of the scalar form
-    /// lane by lane. The products fit a thirty-two-bit lane: a twelve-bit sample times a weight of at
-    /// most 64 * 64 is below 2^24.
+    /// Every lane is an independent sample, so each width repeats the arithmetic of the scalar form lane by lane.
+    /// The products fit a thirty-two-bit lane: a twelve-bit sample times a weight of at most 64 * 64 is below 2^24.
     /// </remarks>
     private static class ObmcLanes
     {
@@ -517,17 +514,17 @@ internal static partial class Av1ObmcSearch
         private const int DifferenceShift = 12;
 
         /// <summary>
-        /// The half of the rounding divisor.
+        /// Half of the rounding divisor. Added before the shift, it makes the shift round to the nearest value.
         /// </summary>
         private const int DifferenceBias = 1 << (DifferenceShift - 1);
 
         /// <summary>
-        /// The shift of the maximum blend weight, AOM_BLEND_A64_MAX_ALPHA.
+        /// The shift of the maximum blend weight.
         /// </summary>
         private const int AlphaShift = 6;
 
         /// <summary>
-        /// The maximum blend weight, AOM_BLEND_A64_MAX_ALPHA.
+        /// The maximum blend weight of a six-bit blend mask.
         /// </summary>
         private const int MaximumAlpha = 1 << AlphaShift;
 
@@ -540,8 +537,7 @@ internal static partial class Av1ObmcSearch
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<int> LoadBytes(ref byte source, Vector128<int> lanes)
         {
-            // Exactly four bytes are read, so the last group of a row never touches the row that
-            // follows it or the end of the plane.
+            // The load reads exactly four bytes. Thus the last group of a row never reads the next row or past the end of the plane.
             Vector128<byte> bytes = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<uint>(ref source)).AsByte();
             return Vector128.WidenLower(Vector128.WidenLower(bytes)).AsInt32();
         }
@@ -555,6 +551,7 @@ internal static partial class Av1ObmcSearch
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<int> LoadBytes(ref byte source, Vector256<int> lanes)
         {
+            // The load reads exactly eight bytes. The first widening makes eight words, and the second makes eight thirty-two-bit lanes.
             Vector128<ushort> words = Vector128.WidenLower(Vector64.LoadUnsafe(ref source).ToVector128());
             return Vector256.WidenLower(words.ToVector256Unsafe()).AsInt32();
         }
@@ -568,6 +565,7 @@ internal static partial class Av1ObmcSearch
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<int> LoadBytes(ref byte source, Vector512<int> lanes)
         {
+            // The load reads exactly sixteen bytes. The first widening makes sixteen words, and the second makes sixteen thirty-two-bit lanes.
             Vector256<ushort> words = Vector256.WidenLower(Vector128.LoadUnsafe(ref source).ToVector256Unsafe());
             return Vector512.WidenLower(words.ToVector512Unsafe()).AsInt32();
         }
@@ -603,7 +601,7 @@ internal static partial class Av1ObmcSearch
             => Vector512.WidenLower(Vector256.LoadUnsafe(ref source).ToVector512Unsafe()).AsInt32();
 
         /// <summary>
-        /// Adds the rounded absolute differences of four lanes. Reference: obmc_sad_w8n().
+        /// Adds the rounded absolute differences of four lanes.
         /// </summary>
         /// <param name="prediction">The widened prediction samples.</param>
         /// <param name="weightedSource">The weighted source values.</param>
@@ -613,14 +611,14 @@ internal static partial class Av1ObmcSearch
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<uint> AccumulateAbsoluteDifferences(Vector128<int> prediction, Vector128<int> weightedSource, Vector128<int> mask, Vector128<uint> total)
         {
-            // The absolute difference is below 2^24, so the biased value stays positive and the
-            // logical shift is the rounding of xx_roundn_epu32().
+            // The absolute difference is below 2^24, so the biased value stays far below 2^31.
+            // Thus the logical shift gives the same result as the signed shift of the scalar form and rounds half up.
             Vector128<uint> difference = Vector128.Abs(weightedSource - (prediction * mask)).AsUInt32();
             return total + Vector128.ShiftRightLogical(difference + Vector128.Create((uint)DifferenceBias), DifferenceShift);
         }
 
         /// <summary>
-        /// Adds the rounded absolute differences of eight lanes. Reference: obmc_sad_w8n().
+        /// Adds the rounded absolute differences of eight lanes.
         /// </summary>
         /// <param name="prediction">The widened prediction samples.</param>
         /// <param name="weightedSource">The weighted source values.</param>
@@ -635,7 +633,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Adds the rounded absolute differences of sixteen lanes. Reference: obmc_sad_w8n().
+        /// Adds the rounded absolute differences of sixteen lanes.
         /// </summary>
         /// <param name="prediction">The widened prediction samples.</param>
         /// <param name="weightedSource">The weighted source values.</param>
@@ -650,7 +648,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Adds the rounded absolute difference of one sample. Reference: obmc_sad().
+        /// Adds the rounded absolute difference of one sample.
         /// </summary>
         /// <param name="prediction">The prediction sample.</param>
         /// <param name="weightedSource">The weighted source value.</param>
@@ -662,7 +660,7 @@ internal static partial class Av1ObmcSearch
             => total + (uint)((Math.Abs(weightedSource - (prediction * mask)) + DifferenceBias) >> DifferenceShift);
 
         /// <summary>
-        /// Adds the rounded differences of four lanes and their squares. Reference: obmc_variance_w8n().
+        /// Adds the rounded differences of four lanes and their squares.
         /// </summary>
         /// <param name="prediction">The widened prediction samples.</param>
         /// <param name="weightedSource">The weighted source values.</param>
@@ -672,9 +670,8 @@ internal static partial class Av1ObmcSearch
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AccumulateMoments(Vector128<int> prediction, Vector128<int> weightedSource, Vector128<int> mask, ref Vector128<int> sum, ref Vector128<uint> squares)
         {
-            // The sign lane is -1 for a negative value, which lowers the bias by one. The arithmetic
-            // shift then rounds half away from zero, as ROUND_POWER_OF_TWO_SIGNED() does. This is the
-            // rounding of xx_roundn_epi32().
+            // The sign lane is -1 for a negative value, which lowers the bias by one.
+            // Then the arithmetic shift rounds half away from zero, the same as the signed rounding of the scalar form.
             Vector128<int> value = weightedSource - (prediction * mask);
             Vector128<int> difference = Vector128.ShiftRightArithmetic(
                 value + Vector128.Create(DifferenceBias) + Vector128.ShiftRightArithmetic(value, 31),
@@ -685,7 +682,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Adds the rounded differences of eight lanes and their squares. Reference: obmc_variance_w8n().
+        /// Adds the rounded differences of eight lanes and their squares.
         /// </summary>
         /// <param name="prediction">The widened prediction samples.</param>
         /// <param name="weightedSource">The weighted source values.</param>
@@ -705,7 +702,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Adds the rounded differences of sixteen lanes and their squares. Reference: obmc_variance_w8n().
+        /// Adds the rounded differences of sixteen lanes and their squares.
         /// </summary>
         /// <param name="prediction">The widened prediction samples.</param>
         /// <param name="weightedSource">The weighted source values.</param>
@@ -725,7 +722,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Adds the rounded difference of one sample and its square. Reference: obmc_variance().
+        /// Adds the rounded difference of one sample and its square.
         /// </summary>
         /// <param name="prediction">The prediction sample.</param>
         /// <param name="weightedSource">The weighted source value.</param>
@@ -742,7 +739,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Writes the above-neighbor term of four lanes. Reference: calc_target_weighted_pred_above().
+        /// Writes the above-neighbor term of four lanes.
         /// </summary>
         /// <param name="prediction">The widened above-neighbor prediction.</param>
         /// <param name="weight">The weight of the block's own prediction.</param>
@@ -756,7 +753,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Writes the above-neighbor term of eight lanes. Reference: calc_target_weighted_pred_above().
+        /// Writes the above-neighbor term of eight lanes.
         /// </summary>
         /// <param name="prediction">The widened above-neighbor prediction.</param>
         /// <param name="weight">The weight of the block's own prediction.</param>
@@ -770,7 +767,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Writes the above-neighbor term of sixteen lanes. Reference: calc_target_weighted_pred_above().
+        /// Writes the above-neighbor term of sixteen lanes.
         /// </summary>
         /// <param name="prediction">The widened above-neighbor prediction.</param>
         /// <param name="weight">The weight of the block's own prediction.</param>
@@ -784,7 +781,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Writes the above-neighbor term of one sample. Reference: calc_target_weighted_pred_above().
+        /// Writes the above-neighbor term of one sample.
         /// </summary>
         /// <param name="prediction">The above-neighbor prediction sample.</param>
         /// <param name="weight">The weight of the block's own prediction.</param>
@@ -798,7 +795,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Blends the left-neighbor term into four lanes. Reference: calc_target_weighted_pred_left().
+        /// Blends the left-neighbor term into four lanes.
         /// </summary>
         /// <param name="prediction">The widened left-neighbor prediction.</param>
         /// <param name="weight">The widened column weights of the block's own prediction.</param>
@@ -807,8 +804,8 @@ internal static partial class Av1ObmcSearch
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void WeightLeft(Vector128<int> prediction, Vector128<int> weight, ref int weightedSource, ref int mask)
         {
-            // The stored values already carry one factor of 64 from the scale pass. The shift removes
-            // it exactly, because the scale pass multiplied every value by 64.
+            // The stored values already carry one factor of 64 from the scale pass.
+            // The shift removes it exactly, because the scale pass multiplied every value by 64.
             Vector128<int> source = Vector128.LoadUnsafe(ref weightedSource);
             Vector128<int> weights = Vector128.LoadUnsafe(ref mask);
             ((Vector128.ShiftRightArithmetic(source, AlphaShift) * weight) +
@@ -818,7 +815,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Blends the left-neighbor term into eight lanes. Reference: calc_target_weighted_pred_left().
+        /// Blends the left-neighbor term into eight lanes.
         /// </summary>
         /// <param name="prediction">The widened left-neighbor prediction.</param>
         /// <param name="weight">The widened column weights of the block's own prediction.</param>
@@ -836,7 +833,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Blends the left-neighbor term into sixteen lanes. Reference: calc_target_weighted_pred_left().
+        /// Blends the left-neighbor term into sixteen lanes.
         /// </summary>
         /// <param name="prediction">The widened left-neighbor prediction.</param>
         /// <param name="weight">The widened column weights of the block's own prediction.</param>
@@ -854,7 +851,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Blends the left-neighbor term into one sample. Reference: calc_target_weighted_pred_left().
+        /// Blends the left-neighbor term into one sample.
         /// </summary>
         /// <param name="prediction">The left-neighbor prediction sample.</param>
         /// <param name="weight">The column weight of the block's own prediction.</param>
@@ -868,7 +865,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Scales four lanes by the maximum blend weight. Reference: calc_target_weighted_pred().
+        /// Scales four lanes by the maximum blend weight.
         /// </summary>
         /// <param name="weightedSource">The first weighted source value to update.</param>
         /// <param name="mask">The first prediction weight to update.</param>
@@ -882,7 +879,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Scales eight lanes by the maximum blend weight. Reference: calc_target_weighted_pred().
+        /// Scales eight lanes by the maximum blend weight.
         /// </summary>
         /// <param name="weightedSource">The first weighted source value to update.</param>
         /// <param name="mask">The first prediction weight to update.</param>
@@ -895,7 +892,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Scales sixteen lanes by the maximum blend weight. Reference: calc_target_weighted_pred().
+        /// Scales sixteen lanes by the maximum blend weight.
         /// </summary>
         /// <param name="weightedSource">The first weighted source value to update.</param>
         /// <param name="mask">The first prediction weight to update.</param>
@@ -908,7 +905,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Scales one value and weight by the maximum blend weight. Reference: calc_target_weighted_pred().
+        /// Scales one value and weight by the maximum blend weight.
         /// </summary>
         /// <param name="weightedSource">The weighted source value to update.</param>
         /// <param name="mask">The prediction weight to update.</param>
@@ -920,7 +917,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Replaces four neighbor terms with the scaled source minus the term. Reference: calc_target_weighted_pred().
+        /// Replaces four neighbor terms with the scaled source minus the term.
         /// </summary>
         /// <param name="source">The widened source samples.</param>
         /// <param name="weightedSource">The first weighted source value to update.</param>
@@ -929,7 +926,7 @@ internal static partial class Av1ObmcSearch
             => (Vector128.ShiftLeft(source, 2 * AlphaShift) - Vector128.LoadUnsafe(ref weightedSource)).StoreUnsafe(ref weightedSource);
 
         /// <summary>
-        /// Replaces eight neighbor terms with the scaled source minus the term. Reference: calc_target_weighted_pred().
+        /// Replaces eight neighbor terms with the scaled source minus the term.
         /// </summary>
         /// <param name="source">The widened source samples.</param>
         /// <param name="weightedSource">The first weighted source value to update.</param>
@@ -938,7 +935,7 @@ internal static partial class Av1ObmcSearch
             => (Vector256.ShiftLeft(source, 2 * AlphaShift) - Vector256.LoadUnsafe(ref weightedSource)).StoreUnsafe(ref weightedSource);
 
         /// <summary>
-        /// Replaces sixteen neighbor terms with the scaled source minus the term. Reference: calc_target_weighted_pred().
+        /// Replaces sixteen neighbor terms with the scaled source minus the term.
         /// </summary>
         /// <param name="source">The widened source samples.</param>
         /// <param name="weightedSource">The first weighted source value to update.</param>
@@ -947,7 +944,7 @@ internal static partial class Av1ObmcSearch
             => (Vector512.ShiftLeft(source, 2 * AlphaShift) - Vector512.LoadUnsafe(ref weightedSource)).StoreUnsafe(ref weightedSource);
 
         /// <summary>
-        /// Replaces one neighbor term with the scaled source minus the term. Reference: calc_target_weighted_pred().
+        /// Replaces one neighbor term with the scaled source minus the term.
         /// </summary>
         /// <param name="source">The source sample.</param>
         /// <param name="weightedSource">The weighted source value to update.</param>

@@ -226,8 +226,8 @@ internal static partial class Av1ScaledInterPredictor
         public static int Load<T>(ref T source, int index)
             where T : unmanaged
         {
-            // The only closed forms are byte and ushort. The JIT removes this storage choice from each specialization,
-            // leaving the shared variable-phase traversal free of duplicate 8-bit and high-bit-depth implementations.
+            // T is always byte or ushort. The JIT removes this type test from each specialization.
+            // Thus one variable-phase traversal serves both 8-bit and high-bit-depth samples.
             if (typeof(T) == typeof(byte))
             {
                 return Unsafe.Add(ref Unsafe.As<T, byte>(ref source), index);
@@ -412,8 +412,8 @@ internal static partial class Av1ScaledInterPredictor
         public static void Store<T>(ref T destination, int index, int value, int bitDepth)
             where T : unmanaged
         {
-            // Compound entry points close T as ushort. Their no-round values retain the positive convolution bias,
-            // so storing the normative unsigned intermediate needs neither pixel clipping nor a storage-type branch.
+            // The compound entry points close T as ushort. The intermediate values keep the positive convolution bias.
+            // Thus the store of the unsigned intermediate needs no clipping and no type test.
             Unsafe.Add(ref Unsafe.As<T, ushort>(ref destination), index) = (ushort)value;
         }
 

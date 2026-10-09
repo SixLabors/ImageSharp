@@ -82,8 +82,8 @@ internal static partial class Av1InverseTransformer
             Is16BitPipeline = false
         };
 
-        // Separate prediction and destination buffers require every sample to be copied or reconstructed. Restricting
-        // traversal to the coded coefficient end position would leave the untouched prediction region unwritten.
+        // With separate prediction and destination buffers, every sample must be copied or reconstructed. A traversal that stops at the coded coefficient end
+        // position leaves part of the destination unwritten.
         transformFunctionParameters.EndOfBuffer = Av1InverseTransformMath.GetMaxEndOfBuffer(transformSize);
 
         Av1InverseTransformerFactory.InverseTransformAdd(
@@ -109,7 +109,7 @@ internal static partial class Av1InverseTransformer
     /// <param name="isLossless">Whether the segment uses lossless transform rules.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
     /// <param name="workspace">The reusable transform workspace for the containing block decode.</param>
-    /// <remarks>Implements the reconstruction operation in AV1 section 7.11.2.</remarks>
+    /// <remarks>Implements the reconstruct process in section 7.12.3 of the AV1 specification.</remarks>
     public static void ReconstructHighBitDepth(
         ReadOnlySpan<int> coefficientsBuffer,
         Span<short> reconstructionBuffer,

@@ -16,10 +16,29 @@ internal readonly ref struct Av1MotionSearchSites
     /// </summary>
     public const int StorageLength = (22 * 17 * 2) + (22 * 2) + 2;
 
+    /// <summary>
+    /// The greatest number of stages in one configuration.
+    /// </summary>
     private const int StageCapacity = 22;
+
+    /// <summary>
+    /// The number of site slots in each stage, including the center site.
+    /// </summary>
     private const int SitesPerStage = 17;
+
+    /// <summary>
+    /// The number of integers that hold the sites. Each site takes two integers.
+    /// </summary>
     private const int SiteStorageLength = StageCapacity * SitesPerStage * 2;
+
+    /// <summary>
+    /// The index of the stage count. The configured stride follows it.
+    /// </summary>
     private const int StageCountOffset = SiteStorageLength + (StageCapacity * 2);
+
+    /// <summary>
+    /// The borrowed storage. It holds the sites, then the candidate count and radius of each stage, then the stage count and the stride.
+    /// </summary>
     private readonly Span<int> storage;
 
     /// <summary>
@@ -51,7 +70,7 @@ internal readonly ref struct Av1MotionSearchSites
     /// Gets the ordered candidate sites for a stage.
     /// </summary>
     /// <param name="stage">The stage, ordered from the smallest search radius.</param>
-    /// <returns>The fixed stage slot; only the configured candidate entries are populated.</returns>
+    /// <returns>The fixed stage slot. Only the configured candidate entries hold sites.</returns>
     public ReadOnlySpan<Site> GetSites(int stage)
         => MemoryMarshal.Cast<int, Site>(this.storage[..SiteStorageLength]).Slice(stage * SitesPerStage, SitesPerStage);
 
@@ -79,8 +98,8 @@ internal readonly ref struct Av1MotionSearchSites
             Span<Site> stageSites = sites.Slice(stage * SitesPerStage, SitesPerStage);
             if (diamond)
             {
-                // The clamped shape repeats its three outer stages at radius 256. Retaining those stages
-                // matters because a move at one stage permits another move at the same radius.
+                // The clamped shape repeats its three outer stages at radius 256.
+                // These stages stay, because a move at one stage permits another move at the same radius.
                 radius = 1 << Math.Min(stage, method == FullPixelSearchMethod.ClampedDiamond ? 8 : 10);
             }
             else if (!nStep)
@@ -111,7 +130,8 @@ internal readonly ref struct Av1MotionSearchSites
                     stageSites[12] = new Site(-tangent, -radius, stride);
                 }
 
-                // N-step radii grow by rounded halves through stage twelve, then retain the outer radius.
+                // Through stage twelve, each N-step radius grows by half, rounded to the nearest sample, and by at least one sample.
+                // Later stages keep the outer radius.
                 if (nStep && stage < 12)
                 {
                     radius = Math.Max(((3 * radius) + 1) / 2, radius + 1);
@@ -120,7 +140,7 @@ internal readonly ref struct Av1MotionSearchSites
             else
             {
                 // Pattern sites omit the center. Pairs are row then column, in traversal order.
-                // Beyond scale zero, multiply the half-radius by these integer coordinates.
+                // After stage zero, the code multiplies these integer coordinates by half the radius.
                 ReadOnlySpan<sbyte> coordinates;
                 int scale;
                 if (method == FullPixelSearchMethod.Hexagon)
@@ -153,13 +173,12 @@ internal readonly ref struct Av1MotionSearchSites
     }
 
     /// <summary>
-    /// Writes the first-pass site geometry: eleven stages whose radius doubles from one to 1024 samples, with
-    /// twelve sites per stage beyond the eight-site innermost stage.
+    /// Writes the first-pass site geometry. It has eleven stages whose radius doubles from one to 1024 samples.
+    /// The innermost stage has eight sites, and every other stage has twelve.
     /// </summary>
     /// <remarks>
-    /// The configuration is written unconditionally, because its stride slot cannot tell it apart from a
-    /// <see cref="Configure"/> result for the same stride; the owner must dedicate the storage to this geometry.
-    /// Reference: av1_init_motion_fpf().
+    /// The method always writes the configuration, because its stride slot cannot tell it apart from a <see cref="Configure"/> result for the same stride.
+    /// Thus the owner must use this storage only for this geometry.
     /// </remarks>
     /// <param name="stride">The reference plane stride in samples.</param>
     public void ConfigureFirstPass(int stride)
@@ -169,14 +188,14 @@ internal readonly ref struct Av1MotionSearchSites
         Span<int> counts = this.storage.Slice(SiteStorageLength, StageCapacity);
         Span<int> radii = this.storage.Slice(SiteStorageLength + StageCapacity, StageCapacity);
 
-        // The reference fills its stages from the outermost radius inward, so stage zero ends up holding the
-        // unit radius. Radii halve from 1024 exactly, so no two stages share a radius and none can be skipped.
+        // Stage zero holds the unit radius. Each later stage doubles the radius, up to 1024 samples at stage ten.
+        // No two stages share a radius, so no stage is a duplicate.
         for (int stage = 0; stage < stageCount; stage++)
         {
             int radius = 1 << stage;
 
-            // The tangent offset places the extra sites near 22.5 degrees. At the unit radius it rounds to the
-            // diagonal, and only the first eight sites are populated.
+            // The tangent offset places the extra sites near 22.5 degrees.
+            // At the unit radius it rounds to the diagonal, and only the first eight sites after the center hold values.
             int tangent = Math.Max((int)(0.41 * radius), 1);
             int count = radius == 1 ? 8 : 12;
             Span<Site> stageSites = sites.Slice(stage * SitesPerStage, SitesPerStage);
@@ -235,7 +254,7 @@ internal readonly ref struct Av1MotionSearchSites
         public short Column { get; }
 
         /// <summary>
-        /// Gets the signed displacement in reference-plane samples.
+        /// Gets the signed displacement as a sample index offset in the reference plane.
         /// </summary>
         public int Offset { get; }
     }

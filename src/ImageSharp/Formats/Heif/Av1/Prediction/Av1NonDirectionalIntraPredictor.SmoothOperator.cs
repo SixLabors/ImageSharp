@@ -15,9 +15,8 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
     /// Implements two-dimensional AV1 smooth intra prediction for scalar and SIMD lanes.
     /// </summary>
     /// <remarks>
-    /// Horizontal and vertical Q8 interpolations are accumulated before one Q9 rounding shift. Expanding each
-    /// complementary weight around 256 reduces the lane equation to two products and a shared endpoint bias while
-    /// preserving the normative result exactly.
+    /// The operator adds the horizontal and vertical Q8 interpolations, then applies one rounding shift by 9 bits. Each complementary weight expands as
+    /// a * w + b * (256 - w) = (a - b) * w + b * 256. Thus each lane needs two products and a shared endpoint bias, and the result stays exact.
     /// </remarks>
     internal readonly struct SmoothOperator : IAv1IntraPredictionOperator
     {
@@ -201,8 +200,8 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
             Vector128<int> endpointBias,
             int rowWeight)
         {
-            // Expanding the complementary weights gives the exact normative sum while reducing it to two vector
-            // multiplications: (top - bottom) * rowWeight + (left - right) * columnWeight + the endpoint bias.
+            // The expanded complementary weights give the exact sum with two vector multiplications:
+            // (top - bottomLeft) * rowWeight + (left - topRight) * columnWeight + endpointBias.
             return (((top - bottomLeft) * rowWeight) + (columnWeights * horizontalDelta) + endpointBias) >> 9;
         }
 

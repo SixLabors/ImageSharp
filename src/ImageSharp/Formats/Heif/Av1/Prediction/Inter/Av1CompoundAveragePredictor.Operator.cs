@@ -85,6 +85,7 @@ internal static partial class Av1CompoundAveragePredictor
 
     /// <summary>
     /// Implements equal-weight rounded averaging for scalar and SIMD lane groups.
+    /// The vector forms use <c>(a | b) - ((a ^ b) &gt;&gt; 1)</c>. This identity equals <c>(a + b + 1) &gt;&gt; 1</c> and cannot overflow an unsigned lane.
     /// </summary>
     private readonly struct CompoundAverageOperator : IAv1CompoundAverageOperator
     {
@@ -110,7 +111,7 @@ internal static partial class Av1CompoundAveragePredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<byte> Blend(Vector512<byte> first, Vector512<byte> second)
         {
-            // This identity is exactly (a + b + 1) >> 1 but cannot overflow unsigned lanes at any SIMD width.
+            // This identity equals (a + b + 1) >> 1 but cannot overflow an unsigned lane at any SIMD width.
             return (first | second) - ((first ^ second) >> 1);
         }
 

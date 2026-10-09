@@ -14,9 +14,8 @@ internal static partial class Av1Inverse2dTransformer
     /// Defines the scalar and SIMD arithmetic for one AV1 one-dimensional inverse transform.
     /// </summary>
     /// <remarks>
-    /// Each overload performs the same staged fixed-point transform. Vector fields identify coefficient positions,
-    /// while vector lanes identify independent rows or columns.
-    /// Input reads finish before the stage buffer is written, allowing input and stage storage to alias.
+    /// Each overload performs the same staged fixed-point transform. Vector fields identify coefficient positions. Vector lanes identify independent rows or
+    /// columns. Each overload reads all input values before it writes the stage buffer, so the input and stage storage can alias.
     /// </remarks>
     internal interface IAv1Transform1dOperator
     {

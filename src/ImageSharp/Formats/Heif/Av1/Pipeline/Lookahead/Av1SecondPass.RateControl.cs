@@ -1103,14 +1103,9 @@ internal sealed partial class Av1SecondPass
         }
         else if (projectedFrameSize > 2 * this.baseFrameTarget && projectedFrameSize > 2 * this.averageFrameBandwidth)
         {
-            // An extreme local overshoot raises the ceiling.
+            // An extreme local overshoot raises the ceiling. The first two branches take every running size that differs from the running
+            // target, so this branch runs only when the two are equal, and no branch unwinds the raise.
             ++this.extendMaximumQ;
-        }
-        else if (this.rollingTargetBits > this.rollingActualBits)
-        {
-            // Unwinds the extreme overshoot raise. The first branch already handles a running size below the running target, so this
-            // branch never runs.
-            --this.extendMaximumQ;
         }
 
         this.extendMinimumQ = Math.Clamp(this.extendMinimumQ, -minimumQAdjustmentLimit, minimumQAdjustmentLimit);

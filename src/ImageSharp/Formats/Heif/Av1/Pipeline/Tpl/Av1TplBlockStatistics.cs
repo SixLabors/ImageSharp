@@ -11,9 +11,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 /// </summary>
 internal struct Av1TplBlockStatistics
 {
-    /// <summary>The number of named inter references.</summary>
-    public const int ReferenceCount = 7;
-
     /// <summary>The prediction error of the winning mode against source references.</summary>
     public long SourceReferenceSse;
 
@@ -25,12 +22,6 @@ internal struct Av1TplBlockStatistics
 
     /// <summary>The reconstruction error of the winning mode against reconstructed references.</summary>
     public long ReconstructedReferenceDistortion;
-
-    /// <summary>The prediction error of the intra winner. This encoder does not measure it, so it stays zero.</summary>
-    public long IntraSse;
-
-    /// <summary>The reconstruction error of the intra winner. This encoder does not measure it, so it stays zero.</summary>
-    public long IntraDistortion;
 
     /// <summary>
     /// The compound reconstruction error with the first (index 0) or second (index 1) reference reconstructed and the
@@ -58,9 +49,6 @@ internal struct Av1TplBlockStatistics
 
     /// <summary>The coefficient rate of the winning mode against reconstructed references.</summary>
     public int ReconstructedReferenceRate;
-
-    /// <summary>The coefficient rate of the intra winner. This encoder does not measure it, so it stays zero.</summary>
-    public int IntraRate;
 
     /// <summary>The compound coefficient rates that match <see cref="CompoundReconstructedDistortion"/>.</summary>
     public InlineArray2<int> CompoundReconstructedRate;

@@ -149,7 +149,7 @@ internal static partial class Av1FrameEncoder
             private readonly Av1TplSetupInput<TSample> input = new();
             private readonly Av1LookaheadQueue<TSample> lookahead;
             private readonly Av1EncoderReferencePool<TSample> referencePool;
-            private readonly ILookaheadFilter<TSample>? filter;
+            private readonly ILookaheadFilter<TSample> filter;
             private readonly int width;
             private readonly int height;
             private Av1GopStructure group = new();
@@ -170,7 +170,7 @@ internal static partial class Av1FrameEncoder
             /// <param name="owner">The sequence encoder that codes the frames.</param>
             /// <param name="lookahead">The lookahead.</param>
             /// <param name="referencePool">The reconstructions in the reference slots.</param>
-            /// <param name="filter">The filtered frames, or <see langword="null"/> without temporal filtering.</param>
+            /// <param name="filter">The filtered frames.</param>
             /// <param name="width">The frame width.</param>
             /// <param name="height">The frame height.</param>
             /// <param name="colorFormat">The sampling layout.</param>
@@ -179,7 +179,7 @@ internal static partial class Av1FrameEncoder
                 SequenceEncoder owner,
                 Av1LookaheadQueue<TSample> lookahead,
                 Av1EncoderReferencePool<TSample> referencePool,
-                ILookaheadFilter<TSample>? filter,
+                ILookaheadFilter<TSample> filter,
                 int width,
                 int height,
                 Av1ColorFormat colorFormat,
@@ -210,14 +210,14 @@ internal static partial class Av1FrameEncoder
             public Av1MotionSearchSettings MotionSettings { get; set; }
 
             /// <inheritdoc/>
-            public void BeginGroup() => this.filter?.Reset();
+            public void BeginGroup() => this.filter.Reset();
 
             /// <inheritdoc/>
             public void BeginKeyFrameInterval() => this.model.ForgetPreviousGroupAlternate();
 
             /// <inheritdoc/>
             public void FilterGroup(Av1SecondPass secondPass)
-                => this.filter?.FilterGroup(
+                => this.filter.FilterGroup(
                     this.lookahead,
                     secondPass,
                     true,
@@ -261,7 +261,6 @@ internal static partial class Av1FrameEncoder
 
                 Av1GopStructure group = secondPass.Group;
                 bool allow = this.owner.Options.LagInFrames > 1 &&
-                    this.owner.Options.EnableTemporalModel &&
                     group.Size <= Av1TplModelConstants.FrameStatisticsLength &&
                     (frame.IsKeyFrame || frame.UpdateType is Av1FrameUpdateType.Alternate or Av1FrameUpdateType.Golden);
 
@@ -394,7 +393,7 @@ internal static partial class Av1FrameEncoder
                     tplGroup.QIndex[index] = group.QValues[index];
                     tplGroup.IsNonReference[index] = false;
                     tplGroup.DisplayIndex[index] = group.DisplayIndices[index];
-                    Av1EncoderFrame<TSample>? filtered = index < count ? this.filter?.GetFilteredFrame(index) : null;
+                    Av1EncoderFrame<TSample>? filtered = index < count ? this.filter.GetFilteredFrame(index) : null;
                     this.input.HasFilteredFrame[index] = filtered is not null;
                     if (filtered is not null)
                     {

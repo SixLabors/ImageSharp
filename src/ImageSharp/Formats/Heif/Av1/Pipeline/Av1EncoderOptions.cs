@@ -202,16 +202,6 @@ internal sealed class Av1EncoderOptions
     public int LagInFrames { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether a lookahead sequence runs the temporal dependency model. The default is on.
-    /// </summary>
-    public bool EnableTemporalModel { get; init; } = true;
-
-    /// <summary>
-    /// Gets a value indicating whether a lookahead sequence filters its alternate references and key frames. The default is on.
-    /// </summary>
-    public bool EnableTemporalFilter { get; init; } = true;
-
-    /// <summary>
     /// Gets the largest number of frames between key frames.
     /// </summary>
     public int KeyFrameMaximumDistance { get; init; } = DefaultKeyFrameMaximumDistance;

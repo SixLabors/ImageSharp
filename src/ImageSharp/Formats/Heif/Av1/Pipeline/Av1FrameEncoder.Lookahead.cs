@@ -66,13 +66,12 @@ internal static partial class Av1FrameEncoder
 
         /// <summary>
         /// Gets a value indicating whether the encoder replaces residuals outside the visible frame. Good-quality usage below speed 7 does this when
-        /// the delta-q mode is objective, the temporal dependency model is on, adaptive quantization is off, and the sharpness is not 3.
+        /// the delta-q mode is objective, adaptive quantization is off, and the sharpness is not 3.
         /// </summary>
         private protected bool UsesBorderPad =>
             !this.Options.IsAllIntra &&
             this.Options.Speed < HeifEncodingSpeed.Level7 &&
             this.Options.DeltaQMode == Av1DeltaQMode.Objective &&
-            this.Options.EnableTemporalModel &&
             this.Options.AdaptiveQuantizationMode == Av1AdaptiveQuantizationMode.None &&
             this.Options.Sharpness != 3;
 
@@ -476,16 +475,14 @@ internal static partial class Av1FrameEncoder
                 lookaheadStage: true,
                 tiles: this.FrameHeader.TilesInfo);
 
-            using LookaheadTemporalFilter<TSample, TFilterOperator, TSearchOperator>? filter =
-                this.Options.EnableTemporalFilter
-                    ? new(this.Configuration, image.Width, image.Height, bitDepth, colorFormat, lumaBorder, this.Options, this.ConstantQualityIndex)
-                    : null;
+            using LookaheadTemporalFilter<TSample, TFilterOperator, TSearchOperator> filter =
+                new(this.Configuration, image.Width, image.Height, bitDepth, colorFormat, lumaBorder, this.Options, this.ConstantQualityIndex);
 
             // Before the first frame, the filter and the model read the motion settings of a key frame without any quantizer-dependent update.
             // High precision vectors are always allowed.
             Av1MotionSearchSettings keyFrameMotionSettings = new(this.Options.Speed, false, image.Size, -1, true, false);
             using LookaheadTemporalModel<TSample, TSearchOperator, TTplOperator>? temporalModel =
-                this.Options.EnableTemporalModel && this.Options.LagInFrames > 1
+                this.Options.LagInFrames > 1
                     ? new(this, lookahead, coder.ReferencePool, filter, image.Width, image.Height, colorFormat, secondPass.LagInFrames) { MotionSettings = keyFrameMotionSettings }
                     : null;
 
@@ -543,7 +540,7 @@ internal static partial class Av1FrameEncoder
                             ? keyFrameMotionSettings
                             : this.PictureBuffer.Picture.Parent.MotionSearchSettings;
 
-                        if (filter is not null && frame.GroupIndex == 0)
+                        if (frame.GroupIndex == 0)
                         {
                             // With the model, the lookahead decisions discard the filtered frames of the previous group before the group length test
                             // filters the trial group. Without the model, this code discards them when a new group starts.
@@ -568,19 +565,16 @@ internal static partial class Av1FrameEncoder
                         secondPass.SetScreenContentType(isScreenContent);
 
                         // The filter picks the quantizer and the filtered source first.
-                        if (filter is not null)
-                        {
-                            source = filter.SelectSource(
-                                lookahead,
-                                secondPass,
-                                ref frame,
-                                source,
-                                true,
-                                this.FrameHeader.ForceIntegerMotionVector,
-                                this.SpeedFeatureScreenContentTools,
-                                motionSettings,
-                                isScreenContent);
-                        }
+                        source = filter.SelectSource(
+                            lookahead,
+                            secondPass,
+                            ref frame,
+                            source,
+                            true,
+                            this.FrameHeader.ForceIntegerMotionVector,
+                            this.SpeedFeatureScreenContentTools,
+                            motionSettings,
+                            isScreenContent);
 
                         // Then the encoder sets the motion search step of a key frame, an alternate reference or a golden frame once. The frame sets
                         // it again later for its own search.

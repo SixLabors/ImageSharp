@@ -9,16 +9,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 internal enum Av1GlobalMotionSearchType
 {
     /// <summary>
-    /// The search visits every reference.
-    /// </summary>
-    Full,
-
-    /// <summary>
-    /// The search visits every reference except LAST2 and LAST3.
-    /// </summary>
-    SkipLast2Last3,
-
-    /// <summary>
     /// The search visits every reference except LAST2, LAST3 and ALTREF2.
     /// </summary>
     SkipLast2Last3Alternate2,

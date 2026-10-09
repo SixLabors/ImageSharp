@@ -7530,35 +7530,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // A frame coded from the source of an alternate reference searches that reference alone. Without temporal filtering, it keeps
-            // the fixed-vector modes whose vector is the global one. The faster speeds search every mode of the reference.
+            // When the speed settings prune the alternate reference search, a frame coded from the source of an alternate reference searches
+            // every mode of that reference and no other reference. The temporal filter always runs, so the frame does not limit the alternate
+            // reference to the fixed-vector modes whose vector is the global one.
             int alternateSearchLevel = parent.SpeedSettings.AlternateReferenceSearchLevel;
             const int alternate = (int)Av1ReferenceFrameType.Alternate;
-            if (parent.IsSourceAlternateReference)
+            if (parent.IsSourceAlternateReference && alternateSearchLevel != 0 && (availableReferences & (1 << alternate)) != 0)
             {
-                if (!parent.EncoderOptions.EnableTemporalFilter)
-                {
-                    DisableReferencesExceptAlternate(masks);
-                    masks[alternate] = ~nearestNearZero;
-                    Av1MotionVector global = frameHeader.GetGlobalMotionParameters()[alternate - (int)Av1ReferenceFrameType.Last]
-                        .GetMotionVector(frameHeader.AllowHighPrecisionMotionVector, blockSize, position, frameHeader.ForceIntegerMotionVector);
-
-                    if (singleReferenceVectors[alternate].GetStackVector(1, global) != global)
-                    {
-                        masks[alternate] |= 1u << (int)Av1PredictionMode.NearMotionVector;
-                    }
-
-                    if (singleReferenceVectors[alternate].GetStackVector(0, global) != global)
-                    {
-                        masks[alternate] |= 1u << (int)Av1PredictionMode.NearestMotionVector;
-                    }
-                }
-
-                if (alternateSearchLevel != 0 && (availableReferences & (1 << alternate)) != 0)
-                {
-                    masks[alternate] = 0;
-                    DisableReferencesExceptAlternate(masks);
-                }
+                masks[alternate] = 0;
+                DisableReferencesExceptAlternate(masks);
             }
 
             // An unshown frame drops every mode of a later-type reference that lies in the past near LAST, when its predicted-vector SAD is

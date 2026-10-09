@@ -172,7 +172,6 @@ internal static partial class Av1FrameEncoder
     /// <returns><see langword="true"/> when the reference is searched.</returns>
     private static bool IsGlobalMotionSearched(Av1GlobalMotionSearchType searchType, int frame) => searchType switch
     {
-        Av1GlobalMotionSearchType.SkipLast2Last3 => frame is not ((int)Av1ReferenceFrameType.Last2 or (int)Av1ReferenceFrameType.Last3),
         Av1GlobalMotionSearchType.SkipLast2Last3Alternate2 =>
             frame is not ((int)Av1ReferenceFrameType.Last2 or (int)Av1ReferenceFrameType.Last3 or (int)Av1ReferenceFrameType.Alternate2),
         Av1GlobalMotionSearchType.Disabled => false,

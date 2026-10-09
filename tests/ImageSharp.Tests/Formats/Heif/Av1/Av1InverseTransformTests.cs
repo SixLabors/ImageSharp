@@ -29,6 +29,181 @@ public class Av1InverseTransformTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertTransformOperatorParity, TransformConfigurations);
 
     /// <summary>
+    /// Verifies the inverse transform and reconstruction of every supported transform type, size, and bit depth against an
+    /// independent transcription of the specification, with the vector paths and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void InverseTransformMatchesSpecification()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertSpecificationParity, TransformConfigurations);
+
+    /// <summary>
+    /// Verifies that the cosine table of the specification oracle holds 4096 * cos(angle * pi / 128) rounded to the nearest integer,
+    /// which is the definition that the specification gives for the table.
+    /// </summary>
+    [Fact]
+    public void SpecificationCosineTableMatchesDefinition()
+    {
+        for (int angle = 0; angle < 256; angle++)
+        {
+            Assert.Equal((long)Math.Round(4096 * Math.Cos(angle * Math.PI / 128)), Av1InverseTransformOracle.Cos128(angle));
+            Assert.Equal((long)Math.Round(4096 * Math.Sin(angle * Math.PI / 128)), Av1InverseTransformOracle.Sin128(angle));
+        }
+    }
+
+    /// <summary>
+    /// Compares the production inverse transform with the specification oracle for every supported transform type, size, and bit
+    /// depth under the hardware configuration selected by <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void AssertSpecificationParity()
+    {
+        Av1InverseTransformOracle oracle = new();
+        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
+        List<string> mismatches = [];
+        foreach (ITheoryDataRow row in Av1ForwardTransformTests.ValidTransformCases)
+        {
+            object[] values = row.GetData();
+            CompareWithSpecification(oracle, (Av1TransformType)(int)values[0], (Av1TransformSize)(int)values[1], (int)values[2], workspace, mismatches);
+        }
+
+        // All cases run before the test fails, so the message lists every case that differs from the specification. The message
+        // names the vector widths of the hardware configuration.
+        string tier = $"Vector128 {Vector128.IsHardwareAccelerated}, Vector256 {Vector256.IsHardwareAccelerated}, " +
+            $"Vector512 {Vector512.IsHardwareAccelerated}, {mismatches.Count} mismatches:";
+
+        Assert.True(mismatches.Count == 0, tier + Environment.NewLine + string.Join(Environment.NewLine, mismatches));
+    }
+
+    /// <summary>
+    /// Compares one transform type, size, and bit depth with the specification oracle at several end-of-block positions.
+    /// </summary>
+    /// <param name="oracle">The specification oracle.</param>
+    /// <param name="transformType">The transform type.</param>
+    /// <param name="transformSize">The transform size.</param>
+    /// <param name="bitDepth">The sample bit depth.</param>
+    /// <param name="workspace">The production transform workspace.</param>
+    /// <param name="mismatches">Receives a description of the first differing sample of each end-of-block position that differs.</param>
+    private static void CompareWithSpecification(
+        Av1InverseTransformOracle oracle,
+        Av1TransformType transformType,
+        Av1TransformSize transformSize,
+        int bitDepth,
+        int[] workspace,
+        List<string> mismatches)
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        Assert.Equal(width, 1 << Av1InverseTransformOracle.GetWidthLog2(transformSize));
+        Assert.Equal(height, 1 << Av1InverseTransformOracle.GetHeightLog2(transformSize));
+
+        int readStride = width + 3;
+        int writeStride = width + 7;
+        int maximum = (1 << bitDepth) - 1;
+        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
+        Random random = new(((((int)transformType * 19) + (int)transformSize) * 13) + bitDepth);
+
+        // Each sample of the prediction is random in the valid sample range, so the Clip1 clamp of reconstruction acts at both ends.
+        int[] prediction = new int[readStride * height];
+        for (int i = 0; i < prediction.Length; i++)
+        {
+            prediction[i] = random.Next(maximum + 1);
+        }
+
+        int[] coefficients = new int[Math.Min(32, width) * Math.Min(32, height)];
+        long[] residual = new long[width * height];
+        int[] expected = new int[writeStride * height];
+        int[] actual = new int[writeStride * height];
+        byte[] predictionBytes = new byte[prediction.Length];
+        short[] predictionShorts = new short[prediction.Length];
+        byte[] actualBytes = new byte[writeStride * height];
+        short[] actualShorts = new short[writeStride * height];
+        for (int i = 0; i < prediction.Length; i++)
+        {
+            predictionBytes[i] = (byte)prediction[i];
+            predictionShorts[i] = (short)prediction[i];
+        }
+
+        // The end-of-block positions cover a DC-only block, sparse prefixes in scan order, and the complete block, so the production
+        // code takes its DC-only, reduced-input, and complete paths.
+        foreach (int eob in new[] { 1, 2, 9, 33, 129, scan.Length })
+        {
+            if (eob > scan.Length)
+            {
+                continue;
+            }
+
+            // Dequant values lie in the 8 + BitDepth signed bits that the dequantization clamp allows. A block that breaks a
+            // conformance requirement of the transform is not valid input, so the coefficient magnitude halves until the block is
+            // valid. The first try uses the full range, so blocks that stay valid at the range limits are tested at those limits.
+            int amplitude = 1 << (7 + bitDepth);
+            while (true)
+            {
+                Array.Clear(coefficients);
+                for (int k = 0; k < eob; k++)
+                {
+                    coefficients[scan[k]] = random.Next(-amplitude, amplitude);
+                }
+
+                // The end of block follows the last nonzero coefficient in scan order.
+                if (coefficients[scan[eob - 1]] == 0)
+                {
+                    coefficients[scan[eob - 1]] = 1;
+                }
+
+                if (oracle.TryInverseTransform2d(coefficients, transformType, transformSize, bitDepth, residual))
+                {
+                    break;
+                }
+
+                amplitude >>= 1;
+            }
+
+            // The row padding past the block keeps its sentinel, which is the fill value of the production output buffer.
+            Array.Fill(expected, bitDepth == 8 ? byte.MaxValue : -1);
+            Av1InverseTransformOracle.Reconstruct(residual, transformType, transformSize, bitDepth, prediction, readStride, expected, writeStride);
+
+            Av1TransformFunctionParameters parameters = new()
+            {
+                TransformType = transformType,
+                TransformSize = transformSize,
+                BitDepth = bitDepth,
+                EndOfBuffer = eob,
+                Is16BitPipeline = bitDepth > 8,
+            };
+
+            if (bitDepth == 8)
+            {
+                Array.Fill(actualBytes, byte.MaxValue);
+                Av1InverseTransformerFactory.InverseTransformAdd(coefficients, predictionBytes, readStride, actualBytes, writeStride, parameters, workspace);
+                for (int i = 0; i < actual.Length; i++)
+                {
+                    actual[i] = actualBytes[i];
+                }
+            }
+            else
+            {
+                Array.Fill(actualShorts, (short)-1);
+                Av1InverseTransformerFactory.InverseTransformAdd(coefficients, predictionShorts, readStride, actualShorts, writeStride, parameters, workspace);
+                for (int i = 0; i < actual.Length; i++)
+                {
+                    actual[i] = actualShorts[i];
+                }
+            }
+
+            for (int i = 0; i < actual.Length; i++)
+            {
+                if (actual[i] != expected[i])
+                {
+                    mismatches.Add(
+                        $"{transformType} {transformSize} at {bitDepth} bits, end of block {eob}, amplitude {amplitude}: sample " +
+                        $"({i % writeStride}, {i / writeStride}) is {actual[i]}, the specification gives {expected[i]}.");
+
+                    break;
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Runs every one-dimensional and lossless operator comparison under the hardware configuration selected by
     /// <see cref="FeatureTestRunner"/>.
     /// </summary>

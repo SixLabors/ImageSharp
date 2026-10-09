@@ -166,15 +166,22 @@ internal static partial class Av1InverseTransformer
 
         // Lanes become vertical frequencies so the horizontal transform combines the eight column vectors.
         Av1TransformKernels.Transpose8x8(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7);
-        TRow.Transform(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, InverseCosBit);
-        r0 = Av1TransformKernels.RoundShiftRight(r0, 1);
-        r1 = Av1TransformKernels.RoundShiftRight(r1, 1);
-        r2 = Av1TransformKernels.RoundShiftRight(r2, 1);
-        r3 = Av1TransformKernels.RoundShiftRight(r3, 1);
-        r4 = Av1TransformKernels.RoundShiftRight(r4, 1);
-        r5 = Av1TransformKernels.RoundShiftRight(r5, 1);
-        r6 = Av1TransformKernels.RoundShiftRight(r6, 1);
-        r7 = Av1TransformKernels.RoundShiftRight(r7, 1);
+
+        // The identity row doubles each value and the row shift then halves it with rounding, so the pair leaves every
+        // value unchanged. Skipping both is exact. Doubling in sixteen-bit lanes would saturate coefficients above 16383,
+        // which an 8-bit stream can code, and the shift would then return 16383 instead of the coded value.
+        if (typeof(TRow) != typeof(Identity8InverseKernel))
+        {
+            TRow.Transform(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, InverseCosBit);
+            r0 = Av1TransformKernels.RoundShiftRight(r0, 1);
+            r1 = Av1TransformKernels.RoundShiftRight(r1, 1);
+            r2 = Av1TransformKernels.RoundShiftRight(r2, 1);
+            r3 = Av1TransformKernels.RoundShiftRight(r3, 1);
+            r4 = Av1TransformKernels.RoundShiftRight(r4, 1);
+            r5 = Av1TransformKernels.RoundShiftRight(r5, 1);
+            r6 = Av1TransformKernels.RoundShiftRight(r6, 1);
+            r7 = Av1TransformKernels.RoundShiftRight(r7, 1);
+        }
 
         // Each vector is now one spatial column. The reversed order mirrors the block horizontally.
         if (flipLeftToRight)

@@ -58,9 +58,9 @@ internal readonly struct Av1TemporalFilterSettings
     }
 
     /// <summary>
-    /// Gets the configured number of filter frames. A value of one disables filtering.
+    /// Gets the largest number of frames that the filter blends.
     /// </summary>
-    public int MaximumFrames { get; init; }
+    public int MaximumFrames { get; }
 
     /// <summary>
     /// Gets the configured filter strength, 0 to 6.

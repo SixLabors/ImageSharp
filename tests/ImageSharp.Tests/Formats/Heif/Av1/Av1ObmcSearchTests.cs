@@ -146,14 +146,7 @@ public class Av1ObmcSearchTests
                     expectedMask[x] = weights[x] * 64;
                 }
 
-                if (bitDepth == 8)
-                {
-                    Av1ObmcSearch.Scale<byte, Av1ObmcSearch.ByteOperator>(source, weights);
-                }
-                else
-                {
-                    Av1ObmcSearch.Scale<ushort, Av1ObmcSearch.UInt16Operator>(source, weights);
-                }
+                Av1ObmcSearch.Scale(source, weights);
 
                 Assert.Equal(expectedSource, source);
                 Assert.Equal(expectedMask, weights);

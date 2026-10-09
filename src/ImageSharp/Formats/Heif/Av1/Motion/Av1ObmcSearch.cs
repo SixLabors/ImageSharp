@@ -386,13 +386,9 @@ internal static partial class Av1ObmcSearch
     /// <summary>
     /// Scales the whole OBMC search target by the maximum blend weight between the above and the left neighbor passes.
     /// </summary>
-    /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The sample loads. The scale reads no samples, so it does not use them.</typeparam>
     /// <param name="weightedSource">The weighted source to update.</param>
     /// <param name="mask">The prediction weights to update.</param>
-    public static void Scale<TSample, TOperator>(Span<int> weightedSource, Span<int> mask)
-        where TSample : unmanaged
-        where TOperator : struct, IObmcOperator<TSample>
+    public static void Scale(Span<int> weightedSource, Span<int> mask)
     {
         int length = weightedSource.Length;
         ref int sourceBase = ref MemoryMarshal.GetReference(weightedSource);

@@ -611,7 +611,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            TOperator.ScaleObmcTarget(weightedSource, mask);
+            Av1ObmcSearch.Scale(weightedSource, mask);
 
             if (this.obmcLeftAvailable)
             {

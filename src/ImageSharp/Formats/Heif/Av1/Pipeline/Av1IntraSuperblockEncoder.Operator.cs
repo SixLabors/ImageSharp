@@ -504,13 +504,6 @@ internal static partial class Av1IntraSuperblockEncoder
         public static abstract void WeightObmcLeft(ReadOnlySpan<TSample> prediction, ReadOnlySpan<byte> weights, Span<int> weightedSource, Span<int> mask);
 
         /// <summary>
-        /// Scales the OBMC search target by the maximum blend weight.
-        /// </summary>
-        /// <param name="weightedSource">The weighted source to update.</param>
-        /// <param name="mask">The prediction weights to update.</param>
-        public static abstract void ScaleObmcTarget(Span<int> weightedSource, Span<int> mask);
-
-        /// <summary>
         /// Replaces one row of OBMC neighbor terms with the scaled source minus the term.
         /// </summary>
         /// <param name="source">The source row.</param>
@@ -1002,10 +995,6 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void WeightObmcLeft(ReadOnlySpan<byte> prediction, ReadOnlySpan<byte> weights, Span<int> weightedSource, Span<int> mask)
             => Av1ObmcSearch.WeightLeft<byte, Av1ObmcSearch.ByteOperator>(prediction, weights, weightedSource, mask);
-
-        /// <inheritdoc/>
-        public static void ScaleObmcTarget(Span<int> weightedSource, Span<int> mask)
-            => Av1ObmcSearch.Scale<byte, Av1ObmcSearch.ByteOperator>(weightedSource, mask);
 
         /// <inheritdoc/>
         public static void SubtractObmcSource(ReadOnlySpan<byte> source, Span<int> weightedSource)
@@ -1701,10 +1690,6 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static void WeightObmcLeft(ReadOnlySpan<ushort> prediction, ReadOnlySpan<byte> weights, Span<int> weightedSource, Span<int> mask)
             => Av1ObmcSearch.WeightLeft<ushort, Av1ObmcSearch.UInt16Operator>(prediction, weights, weightedSource, mask);
-
-        /// <inheritdoc/>
-        public static void ScaleObmcTarget(Span<int> weightedSource, Span<int> mask)
-            => Av1ObmcSearch.Scale<ushort, Av1ObmcSearch.UInt16Operator>(weightedSource, mask);
 
         /// <inheritdoc/>
         public static void SubtractObmcSource(ReadOnlySpan<ushort> source, Span<int> weightedSource)

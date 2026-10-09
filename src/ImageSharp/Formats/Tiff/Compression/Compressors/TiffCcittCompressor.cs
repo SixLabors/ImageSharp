@@ -543,10 +543,9 @@ internal abstract class TiffCcittCompressor : TiffBaseCompressor
     }
 
     /// <summary>
-    /// Gets the encoded strip buffer capacity in bits.
+    /// Gets an upper bound for the encoded strip length in bits.
     /// </summary>
     /// <param name="rowsPerStrip">The number of rows in the strip.</param>
-    /// <returns>The encoded strip buffer capacity.</returns>
-    protected virtual long GetMaximumEncodedBits(int rowsPerStrip) => (long)this.Width * rowsPerStrip * 8;
+    /// <returns>The maximum encoded length.</returns>
+    protected abstract long GetMaximumEncodedBits(int rowsPerStrip);
 }
-

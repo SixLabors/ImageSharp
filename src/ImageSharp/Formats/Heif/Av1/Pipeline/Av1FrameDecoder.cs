@@ -80,6 +80,12 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder
             paletteColorIndexMaps);
     }
 
+    /// <inheritdoc/>
+    public Span<short> Workspace => this.blockDecoder.Workspace;
+
+    /// <inheritdoc/>
+    public Span<byte> GetFramePlane(Av1Plane plane) => this.blockDecoder.GetFramePlane(plane);
+
     /// <summary>
     /// Applies the in-loop frame stages after every superblock has been reconstructed.
     /// </summary>
@@ -136,9 +142,19 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder
     /// Prepares a published coding block before its residual syntax is read.
     /// </summary>
     /// <param name="partitionInfo">The current block modes, geometry, and available neighbors.</param>
+    /// <param name="workspace">The inverse-transform and prediction storage, from <see cref="Workspace"/>.</param>
+    /// <param name="frameLuma">The luma samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
+    /// <param name="frameBlue">The blue-difference samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
+    /// <param name="frameRed">The red-difference samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
-    public void BeginBlock(ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
-        => this.blockDecoder.BeginBlock(ref partitionInfo, tileInfo);
+    public void BeginBlock(
+        ref Av1PartitionInfo partitionInfo,
+        Span<short> workspace,
+        Span<byte> frameLuma,
+        Span<byte> frameBlue,
+        Span<byte> frameRed,
+        Av1TileInfo tileInfo)
+        => this.blockDecoder.BeginBlock(ref partitionInfo, workspace, frameLuma, frameBlue, frameRed, tileInfo);
 
     /// <summary>
     /// Reconstructs a parsed transform before the following transform's coefficients are read.
@@ -146,10 +162,34 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder
     /// <param name="partitionInfo">The current block modes, geometry, and available neighbors.</param>
     /// <param name="plane">The zero-based color-plane index.</param>
     /// <param name="transformInfo">The parsed transform geometry and residual metadata.</param>
+    /// <param name="workspace">The inverse-transform and prediction storage, from <see cref="Workspace"/>.</param>
+    /// <param name="frameLuma">The luma samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
+    /// <param name="frameBlue">The blue-difference samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
+    /// <param name="frameRed">The red-difference samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
+    /// <param name="planeCoefficients">The coefficient scratch of the plane in the superblock, read once by the caller.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
-    public void DecodeTransform(ref Av1PartitionInfo partitionInfo, int plane, ref Av1TransformInfo transformInfo, Av1TileInfo tileInfo)
-        => this.blockDecoder.DecodeTransform(ref partitionInfo, plane, ref transformInfo, tileInfo);
+    public void DecodeTransform(
+        ref Av1PartitionInfo partitionInfo,
+        int plane,
+        ref Av1TransformInfo transformInfo,
+        Span<short> workspace,
+        Span<byte> frameLuma,
+        Span<byte> frameBlue,
+        Span<byte> frameRed,
+        Span<int> planeCoefficients,
+        Av1TileInfo tileInfo)
+        => this.blockDecoder.DecodeTransform(
+            ref partitionInfo,
+            plane,
+            ref transformInfo,
+            workspace,
+            frameLuma,
+            frameBlue,
+            frameRed,
+            planeCoefficients,
+            tileInfo);
 
     /// <inheritdoc/>
-    public void EndBlock(ref Av1PartitionInfo partitionInfo) => this.blockDecoder.EndBlock(ref partitionInfo);
+    public void EndBlock(ref Av1PartitionInfo partitionInfo, Span<short> workspace, Span<byte> frameLuma)
+        => this.blockDecoder.EndBlock(ref partitionInfo, workspace, frameLuma);
 }

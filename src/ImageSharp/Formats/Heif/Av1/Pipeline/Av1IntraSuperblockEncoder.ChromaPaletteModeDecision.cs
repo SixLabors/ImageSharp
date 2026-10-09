@@ -37,8 +37,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
@@ -66,8 +70,12 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -95,8 +103,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 in redCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
-                in sourcePlanes,
-                in reconstructionPlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
+                reconstructionLuma,
+                reconstructionBlue,
+                reconstructionRed,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
@@ -128,8 +140,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
@@ -157,8 +173,12 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -224,30 +244,31 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> redSource = this.source.GetPlane(Av1Plane.V);
 
             // Every palette size reads the same source and frame planes, so they are read once.
-            ReadOnlySpan<TSample> blueSourceSamples = sourcePlanes.GetPlane(Av1Plane.U);
-            ReadOnlySpan<TSample> redSourceSamples = sourcePlanes.GetPlane(Av1Plane.V);
-            Span<TSample> blueReconstructionSamples = reconstructionPlanes.GetPlane(Av1Plane.U);
-            Span<TSample> redReconstructionSamples = reconstructionPlanes.GetPlane(Av1Plane.V);
-            TOperator.CopyPaletteSamples(
-                blueSourceSamples[blueSource.GetOffset(chromaOrigin.X, chromaOrigin.Y)..], blueSource.Stride, rows, columns, blueSamples);
-
-            TOperator.CopyPaletteSamples(
-                redSourceSamples[redSource.GetOffset(chromaOrigin.X, chromaOrigin.Y)..], redSource.Stride, rows, columns, redSamples);
+            ReadOnlySpan<TSample> blueSourceSamples = sourceBlue;
+            ReadOnlySpan<TSample> redSourceSamples = sourceRed;
+            Span<TSample> blueReconstructionSamples = reconstructionBlue;
+            Span<TSample> redReconstructionSamples = reconstructionRed;
+            ReadOnlySpan<TSample> blueBlock = blueSourceSamples[blueSource.GetOffset(chromaOrigin.X, chromaOrigin.Y)..];
+            ReadOnlySpan<TSample> redBlock = redSourceSamples[redSource.GetOffset(chromaOrigin.X, chromaOrigin.Y)..];
 
             // Count native values for clustering, but count occupied 8-bit bins for deciding whether
             // palette is suitable. Binning controls the search only; centroids keep the full sample precision.
             Span<int> colorCounts = workspace.LumaColorCounts[..(1 << this.bitDepth.GetBitCount())];
             int uniqueBlueColorCount = this.CountPaletteColors(
-                blueSamples, colorCounts, out int blueColorBins, out short blueMinimum, out short blueMaximum);
+                blueBlock, blueSource.Stride, rows, columns, colorCounts, out int blueColorBins, out short blueMinimum, out short blueMaximum);
 
             int uniqueRedColorCount = this.CountPaletteColors(
-                redSamples, colorCounts, out int redColorBins, out short redMinimum, out short redMaximum);
+                redBlock, redSource.Stride, rows, columns, colorCounts, out int redColorBins, out short redMinimum, out short redMaximum);
 
             int colorBins = Math.Max(blueColorBins, redColorBins);
             if (colorBins <= 1 || colorBins > 64)
             {
                 return false;
             }
+
+            // Only a block that passes the color gate copies its samples for clustering.
+            TOperator.CopyPaletteSamples(blueBlock, blueSource.Stride, rows, columns, blueSamples);
+            TOperator.CopyPaletteSamples(redBlock, redSource.Stride, rows, columns, redSamples);
 
             int maximumColorCount = Math.Max(uniqueBlueColorCount, uniqueRedColorCount);
             int maximumPaletteSize = Math.Min(maximumColorCount, Av1Constants.PaletteMaxSize);
@@ -274,8 +295,17 @@ internal static partial class Av1IntraSuperblockEncoder
             int cacheThreshold = 4 << (this.bitDepth.GetBitCount() - 8);
             bool paletteSelected = false;
 
-            // Every palette size of the block reads the same mode rates.
+            // Every palette size of the block reads the same mode rates, and signals the same DC chroma mode.
             Av1ModeCosts modeCosts = tables.ModeCosts;
+            int dcModeRate = Av1TileWriter.GetChromaModeCost(
+                modeCosts,
+                this.picture.Parent.FrameHeader,
+                colorConfig,
+                modeInfo,
+                blockSize,
+                lumaMode,
+                Av1ChromaPredictionMode.DC,
+                0);
 
             // A paired centroid assigns one index to both components. Larger palettes are considered only
             // while their shared syntax can still beat the current complete chroma decision.
@@ -345,26 +375,17 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                 }
 
+                // The map is contiguous with a stride of the block width, so the indices of the visible samples go
+                // straight into it. The shared U/V map covers the complete declared chroma block even at visible frame
+                // edges, so a block at an edge then spreads them to the full block size in place.
                 Av1PaletteKMeans2D.AssignIndices(
                     blueSamples,
                     redSamples,
                     candidateBlueCentroids,
                     candidateRedCentroids,
-                    colorIndices);
+                    mapSamples.Slice(mapOrigin, rows * columns));
 
-                for (int row = 0; row < rows; row++)
-                {
-                    Span<byte> mapRow = mapSamples.Slice(mapOrigin + (row * mapStride), width);
-                    colorIndices.Slice(row * columns, columns).CopyTo(mapRow);
-                    mapRow[columns..].Fill(mapRow[columns - 1]);
-                }
-
-                // The shared U/V map covers the complete declared chroma block even at visible frame edges.
-                Span<byte> lastMapRow = mapSamples.Slice(mapOrigin + ((rows - 1) * mapStride), width);
-                for (int row = rows; row < height; row++)
-                {
-                    lastMapRow.CopyTo(mapSamples.Slice(mapOrigin + (row * mapStride), width));
-                }
+                ExtendPaletteColorMap(mapSamples[mapOrigin..], columns, rows, width, height);
 
                 Span<ushort> bluePaletteColors = bluePaletteColorStorage[..paletteSize];
                 Span<ushort> redPaletteColors = redPaletteColorStorage[..paletteSize];
@@ -374,16 +395,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     redPaletteColors[colorIndex] = (ushort)candidateRedCentroids[colorIndex];
                 }
 
-                int rate = Av1TileWriter.GetChromaModeCost(
-                    modeCosts,
-                    this.picture.Parent.FrameHeader,
-                    colorConfig,
-                    modeInfo,
-                    blockSize,
-                    lumaMode,
-                    Av1ChromaPredictionMode.DC,
-                    0);
-
+                int rate = dcModeRate;
                 rate += Av1SymbolEncoder.GetPaletteUvModeCost(modeCosts, true, hasLumaPalette);
                 rate += Av1SymbolEncoder.GetPaletteSizeCost(modeCosts, paletteSize, blockSizeContext, Av1PlaneType.Uv);
                 rate += Av1SymbolEncoder.GetPaletteUvColorCost(
@@ -553,17 +565,36 @@ internal static partial class Av1IntraSuperblockEncoder
         internal static bool ShouldPruneChromaPaletteByHeader(ObuFrameType frameType)
             => frameType is ObuFrameType.KeyFrame or ObuFrameType.IntraOnlyFrame;
 
+        /// <summary>
+        /// Counts the distinct values of a source block, straight from the source plane, before any copy of the samples.
+        /// </summary>
+        /// <param name="block">The source block, from its top-left sample.</param>
+        /// <param name="stride">The number of samples between rows of <paramref name="block"/>.</param>
+        /// <param name="rows">The active row count.</param>
+        /// <param name="columns">The active column count.</param>
+        /// <param name="counts">The histogram with one bin per sample value, which this method fills.</param>
+        /// <param name="occupiedBins">The number of occupied eight-bit bins, which gates the palette search.</param>
+        /// <param name="minimum">The smallest sample value.</param>
+        /// <param name="maximum">The largest sample value.</param>
+        /// <returns>The number of distinct sample values.</returns>
         private int CountPaletteColors(
-            ReadOnlySpan<short> samples,
+            ReadOnlySpan<TSample> block,
+            int stride,
+            int rows,
+            int columns,
             Span<int> counts,
             out int occupiedBins,
             out short minimum,
             out short maximum)
         {
+            // The block is read in place, so a block that the color gate rejects is never copied.
             counts.Clear();
-            foreach (short sample in samples)
+            for (int row = 0; row < rows; row++)
             {
-                counts[sample]++;
+                foreach (TSample sample in block.Slice(row * stride, columns))
+                {
+                    counts[TOperator.GetSampleValue(sample)]++;
+                }
             }
 
             // Scanning in sample-value order counts occupied bins without a second histogram. Frequencies

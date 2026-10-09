@@ -126,7 +126,9 @@ internal static partial class Av1CdefEncoder
         Span<ushort> borders = borderOwner.Memory.Span;
         Span<bool> leftFiltered = stackalloc bool[3];
         int shift = reconstruction.LumaBitDepth - 8;
-        Av1EncoderFrame<TSample>.PlanarSamples planes = reconstruction.CodedView.GetSamples();
+        Span<TSample> reconstructionLuma = reconstruction.CodedView.GetPlane(Av1Plane.Y).Samples;
+        Span<TSample> reconstructionBlue = reconstruction.CodedView.GetPlane(Av1Plane.U).Samples;
+        Span<TSample> reconstructionRed = reconstruction.CodedView.GetPlane(Av1Plane.V).Samples;
         ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
         ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
         int stride = picture.ModeInfoStride;
@@ -143,7 +145,7 @@ internal static partial class Av1CdefEncoder
                     int planeWidth = header.ModeInfoColumnCount << (2 - subX);
                     int row = ((unitRow + 16) << (2 - subY)) - VerticalBorder;
                     Av1PlaneRegion<TSample> plane = reconstruction.CodedView.GetPlane((Av1Plane)planeIndex);
-                    ReadOnlySpan<TSample> storage = planes.GetPlane((Av1Plane)planeIndex);
+                    ReadOnlySpan<TSample> storage = planeIndex == 0 ? reconstructionLuma : planeIndex == 1 ? reconstructionBlue : reconstructionRed;
                     int offset = ((plane.Bounds.Y + row) * plane.Stride) + plane.Bounds.X;
                     int lineOffset = lineOffsets[planeIndex] + ((rowIndex & 1) * VerticalBorder * planeWidth);
                     TOperator.Copy(storage[offset..], plane.Stride, borders[lineOffset..], planeWidth, planeWidth, VerticalBorder);
@@ -183,7 +185,7 @@ internal static partial class Av1CdefEncoder
                     int unitWidth = width << (2 - subX);
                     int unitHeight = height << (2 - subY);
                     Av1PlaneRegion<TSample> plane = reconstruction.CodedView.GetPlane((Av1Plane)planeIndex);
-                    Span<TSample> storage = planes.GetPlane((Av1Plane)planeIndex);
+                    Span<TSample> storage = planeIndex == 0 ? reconstructionLuma : planeIndex == 1 ? reconstructionBlue : reconstructionRed;
                     CopyUnit<TSample, TOperator>(plane, storage, x, y, unitWidth, unitHeight, planeWidth, planeHeight, input);
                     if (unitRow != 0)
                     {

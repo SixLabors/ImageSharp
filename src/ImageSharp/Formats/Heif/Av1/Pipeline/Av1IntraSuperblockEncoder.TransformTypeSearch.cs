@@ -770,12 +770,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     originContext.SkipContext,
                     componentType);
 
+                // A block with no coefficients publishes its prediction, so the winner reconstruction is not written.
                 best.Distortion = blockError;
-                for (int row = 0; row < transformHeight; row++)
-                {
-                    prediction.Slice(row * inputStride, transformWidth).CopyTo(bestReconstruction.Slice(row * transformWidth, transformWidth));
-                }
-
                 bestReconstructed = true;
             }
 

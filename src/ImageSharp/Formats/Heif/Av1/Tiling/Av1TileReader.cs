@@ -530,6 +530,19 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Span<byte> levelStorage = this.coefficientLevels.GetStorage();
         Span<byte> aboveContextStorage = this.aboveNeighborContext.GetStorage();
         Span<byte> leftContextStorage = this.leftNeighborContext.GetStorage();
+
+        // The coefficient and transform-information scratch is the same storage for every superblock of the tile.
+        Span<int> coefficientsY = this.FrameInfo.GetCoefficientsY();
+        Span<int> coefficientsU = this.FrameInfo.GetCoefficientsU();
+        Span<int> coefficientsV = this.FrameInfo.GetCoefficientsV();
+        Span<Av1TransformInfo> transformInfoY = this.FrameInfo.GetSuperblockTransformY();
+        Span<Av1TransformInfo> transformInfoUv = this.FrameInfo.GetSuperblockTransformUv();
+
+        // The frame decoder's inverse-transform and prediction storage serves every block of the tile.
+        Span<short> decoderWorkspace = this.FrameDecoder is null ? default : this.FrameDecoder.Workspace;
+        Span<byte> frameLuma = this.FrameDecoder is null ? default : this.FrameDecoder.GetFramePlane(Av1Plane.Y);
+        Span<byte> frameBlue = this.FrameDecoder is null ? default : this.FrameDecoder.GetFramePlane(Av1Plane.U);
+        Span<byte> frameRed = this.FrameDecoder is null ? default : this.FrameDecoder.GetFramePlane(Av1Plane.V);
         for (int row = modeInfoRowStart; row < modeInfoRowEnd; row += superBlock4x4Size)
         {
             int superBlockRow = (row << Av1Constants.ModeInfoSizeLog2) >> superBlockSizeLog2;
@@ -545,9 +558,9 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 {
                     // Syntax-only parsing retains coefficients for inspection and has no reconstruction stage to
                     // clear them. Full decoding clears each written coefficient region after its inverse transform.
-                    superblockInfo.CoefficientsY.Clear();
-                    superblockInfo.CoefficientsU.Clear();
-                    superblockInfo.CoefficientsV.Clear();
+                    coefficientsY.Clear();
+                    coefficientsU.Clear();
+                    coefficientsV.Clear();
                 }
 
                 this.FrameInfo.ClearCdef(superblockPosition);
@@ -561,6 +574,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     levelStorage,
                     aboveContextStorage,
                     leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
                     modeInfoPosition,
                     superBlockSize,
                     superblockInfo,
@@ -803,6 +825,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="levelStorage">The coefficient level storage of the tile, read once by the tile reader.</param>
     /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
     /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="coefficientsY">The luma coefficient scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="coefficientsU">The blue-difference coefficient scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="coefficientsV">The red-difference coefficient scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoY">The luma transform-information scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoUv">The chroma transform-information scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="decoderWorkspace">The inverse-transform and prediction storage of the frame decoder, read once by the tile reader.</param>
+    /// <param name="frameLuma">The luma samples of the reconstructed frame, read once by the tile reader.</param>
+    /// <param name="frameBlue">The blue-difference samples of the reconstructed frame, read once by the tile reader.</param>
+    /// <param name="frameRed">The red-difference samples of the reconstructed frame, read once by the tile reader.</param>
     /// <param name="modeInfoLocation">The parent block origin in 4x4 mode-information units.</param>
     /// <param name="blockSize">The parent block size.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
@@ -813,6 +844,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Span<byte> levelStorage,
         Span<byte> aboveContextStorage,
         Span<byte> leftContextStorage,
+        Span<int> coefficientsY,
+        Span<int> coefficientsU,
+        Span<int> coefficientsV,
+        Span<Av1TransformInfo> transformInfoY,
+        Span<Av1TransformInfo> transformInfoUv,
+        Span<short> decoderWorkspace,
+        Span<byte> frameLuma,
+        Span<byte> frameBlue,
+        Span<byte> frameRed,
         Point modeInfoLocation,
         Av1BlockSize blockSize,
         Av1SuperblockInfo superblockInfo,
@@ -873,10 +913,82 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 Point loc1 = new(modeInfoLocation.X + halfBlock4x4Size, modeInfoLocation.Y);
                 Point loc2 = new(modeInfoLocation.X, modeInfoLocation.Y + halfBlock4x4Size);
                 Point loc3 = new(modeInfoLocation.X + halfBlock4x4Size, modeInfoLocation.Y + halfBlock4x4Size);
-                this.ParsePartition(ref reader, levelStorage, aboveContextStorage, leftContextStorage, modeInfoLocation, subSize, superblockInfo, tileInfo);
-                this.ParsePartition(ref reader, levelStorage, aboveContextStorage, leftContextStorage, loc1, subSize, superblockInfo, tileInfo);
-                this.ParsePartition(ref reader, levelStorage, aboveContextStorage, leftContextStorage, loc2, subSize, superblockInfo, tileInfo);
-                this.ParsePartition(ref reader, levelStorage, aboveContextStorage, leftContextStorage, loc3, subSize, superblockInfo, tileInfo);
+                this.ParsePartition(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
+                    modeInfoLocation,
+                    subSize,
+                    superblockInfo,
+                    tileInfo);
+
+                this.ParsePartition(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
+                    loc1,
+                    subSize,
+                    superblockInfo,
+                    tileInfo);
+
+                this.ParsePartition(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
+                    loc2,
+                    subSize,
+                    superblockInfo,
+                    tileInfo);
+
+                this.ParsePartition(
+                    ref reader,
+                    levelStorage,
+                    aboveContextStorage,
+                    leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
+                    loc3,
+                    subSize,
+                    superblockInfo,
+                    tileInfo);
+
                 break;
             case Av1PartitionType.None:
                 this.ParseBlock(
@@ -884,6 +996,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     levelStorage,
                     aboveContextStorage,
                     leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
                     modeInfoLocation,
                     subSize,
                     superblockInfo,
@@ -897,6 +1018,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     levelStorage,
                     aboveContextStorage,
                     leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
                     modeInfoLocation,
                     subSize,
                     superblockInfo,
@@ -911,6 +1041,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                         levelStorage,
                         aboveContextStorage,
                         leftContextStorage,
+                        coefficientsY,
+                        coefficientsU,
+                        coefficientsV,
+                        transformInfoY,
+                        transformInfoUv,
+                        decoderWorkspace,
+                        frameLuma,
+                        frameBlue,
+                        frameRed,
                         halfLocation,
                         subSize,
                         superblockInfo,
@@ -925,6 +1064,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     levelStorage,
                     aboveContextStorage,
                     leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
                     modeInfoLocation,
                     subSize,
                     superblockInfo,
@@ -939,6 +1087,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                         levelStorage,
                         aboveContextStorage,
                         leftContextStorage,
+                        coefficientsY,
+                        coefficientsU,
+                        coefficientsV,
+                        transformInfoY,
+                        transformInfoUv,
+                        decoderWorkspace,
+                        frameLuma,
+                        frameBlue,
+                        frameRed,
                         halfLocation,
                         subSize,
                         superblockInfo,
@@ -953,6 +1110,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     levelStorage,
                     aboveContextStorage,
                     leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
                     modeInfoLocation,
                     splitSize,
                     superblockInfo,
@@ -964,6 +1130,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     levelStorage,
                     aboveContextStorage,
                     leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
                     new Point(columnIndex + halfBlock4x4Size, rowIndex),
                     splitSize,
                     superblockInfo,
@@ -975,6 +1150,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     levelStorage,
                     aboveContextStorage,
                     leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
                     new Point(columnIndex, rowIndex + halfBlock4x4Size),
                     subSize,
                     superblockInfo,
@@ -988,6 +1172,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     levelStorage,
                     aboveContextStorage,
                     leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
                     modeInfoLocation,
                     subSize,
                     superblockInfo,
@@ -999,6 +1192,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     levelStorage,
                     aboveContextStorage,
                     leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
                     new Point(columnIndex, rowIndex + halfBlock4x4Size),
                     splitSize,
                     superblockInfo,
@@ -1010,6 +1212,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     levelStorage,
                     aboveContextStorage,
                     leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
                     new Point(columnIndex + halfBlock4x4Size, rowIndex + halfBlock4x4Size),
                     splitSize,
                     superblockInfo,
@@ -1023,6 +1234,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     levelStorage,
                     aboveContextStorage,
                     leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
                     modeInfoLocation,
                     splitSize,
                     superblockInfo,
@@ -1034,6 +1254,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     levelStorage,
                     aboveContextStorage,
                     leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
                     new Point(columnIndex, rowIndex + halfBlock4x4Size),
                     splitSize,
                     superblockInfo,
@@ -1045,6 +1274,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     levelStorage,
                     aboveContextStorage,
                     leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
                     new Point(columnIndex + halfBlock4x4Size, rowIndex),
                     subSize,
                     superblockInfo,
@@ -1058,6 +1296,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     levelStorage,
                     aboveContextStorage,
                     leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
                     modeInfoLocation,
                     subSize,
                     superblockInfo,
@@ -1069,6 +1316,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     levelStorage,
                     aboveContextStorage,
                     leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
                     new Point(columnIndex + halfBlock4x4Size, rowIndex),
                     splitSize,
                     superblockInfo,
@@ -1080,6 +1336,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     levelStorage,
                     aboveContextStorage,
                     leftContextStorage,
+                    coefficientsY,
+                    coefficientsU,
+                    coefficientsV,
+                    transformInfoY,
+                    transformInfoUv,
+                    decoderWorkspace,
+                    frameLuma,
+                    frameBlue,
+                    frameRed,
                     new Point(columnIndex + halfBlock4x4Size, rowIndex + halfBlock4x4Size),
                     splitSize,
                     superblockInfo,
@@ -1101,6 +1366,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                         levelStorage,
                         aboveContextStorage,
                         leftContextStorage,
+                        coefficientsY,
+                        coefficientsU,
+                        coefficientsV,
+                        transformInfoY,
+                        transformInfoUv,
+                        decoderWorkspace,
+                        frameLuma,
+                        frameBlue,
+                        frameRed,
                         new Point(modeInfoLocation.X, currentBlockRow),
                         subSize,
                         superblockInfo,
@@ -1123,6 +1397,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                         levelStorage,
                         aboveContextStorage,
                         leftContextStorage,
+                        coefficientsY,
+                        coefficientsU,
+                        coefficientsV,
+                        transformInfoY,
+                        transformInfoUv,
+                        decoderWorkspace,
+                        frameLuma,
+                        frameBlue,
+                        frameRed,
                         new Point(currentBlockColumn, modeInfoLocation.Y),
                         subSize,
                         superblockInfo,
@@ -1146,6 +1429,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="levelStorage">The coefficient level storage of the tile, read once by the tile reader.</param>
     /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
     /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="coefficientsY">The luma coefficient scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="coefficientsU">The blue-difference coefficient scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="coefficientsV">The red-difference coefficient scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoY">The luma transform-information scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoUv">The chroma transform-information scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="decoderWorkspace">The inverse-transform and prediction storage of the frame decoder, read once by the tile reader.</param>
+    /// <param name="frameLuma">The luma samples of the reconstructed frame, read once by the tile reader.</param>
+    /// <param name="frameBlue">The blue-difference samples of the reconstructed frame, read once by the tile reader.</param>
+    /// <param name="frameRed">The red-difference samples of the reconstructed frame, read once by the tile reader.</param>
     /// <param name="modeInfoLocation">The block origin in 4x4 mode-information units.</param>
     /// <param name="blockSize">The final block size.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
@@ -1156,6 +1448,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Span<byte> levelStorage,
         Span<byte> aboveContextStorage,
         Span<byte> leftContextStorage,
+        Span<int> coefficientsY,
+        Span<int> coefficientsU,
+        Span<int> coefficientsV,
+        Span<Av1TransformInfo> transformInfoY,
+        Span<Av1TransformInfo> transformInfoUv,
+        Span<short> decoderWorkspace,
+        Span<byte> frameLuma,
+        Span<byte> frameBlue,
+        Span<byte> frameRed,
         Point modeInfoLocation,
         Av1BlockSize blockSize,
         Av1SuperblockInfo superblockInfo,
@@ -1195,7 +1496,16 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         this.ReadModeInfo(ref reader, ref partitionInfo, tileInfo);
 
         this.ReadPaletteTokens(ref reader, ref partitionInfo);
-        this.ReadBlockTransformSize(ref reader, aboveContextStorage, leftContextStorage, modeInfoLocation, ref partitionInfo, superblockInfo, tileInfo);
+        this.ReadBlockTransformSize(
+            ref reader,
+            aboveContextStorage,
+            leftContextStorage,
+            transformInfoY,
+            transformInfoUv,
+            modeInfoLocation,
+            ref partitionInfo,
+            superblockInfo,
+            tileInfo);
 
         if (partitionInfo.ModeInfo.Skip)
         {
@@ -1209,10 +1519,28 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         // inter prediction can resolve its own chroma cells and preceding neighbors through the frame map.
         ref Av1BlockModeInfo publishedModeInfo = ref this.FrameInfo.UpdateModeInfo(partitionInfo.ModeInfo, superblockInfo);
         partitionInfo.ModeInfo.ModeInfoIndex = publishedModeInfo.ModeInfoIndex;
-        this.FrameDecoder?.BeginBlock(ref partitionInfo, tileInfo);
+        this.FrameDecoder?.BeginBlock(ref partitionInfo, decoderWorkspace, frameLuma, frameBlue, frameRed, tileInfo);
 
-        this.Residual(ref reader, levelStorage, aboveContextStorage, leftContextStorage, ref partitionInfo, superblockInfo, tileInfo, blockSize);
-        this.FrameDecoder?.EndBlock(ref partitionInfo);
+        this.Residual(
+            ref reader,
+            levelStorage,
+            aboveContextStorage,
+            leftContextStorage,
+            coefficientsY,
+            coefficientsU,
+            coefficientsV,
+            transformInfoY,
+            transformInfoUv,
+            decoderWorkspace,
+            frameLuma,
+            frameBlue,
+            frameRed,
+            ref partitionInfo,
+            superblockInfo,
+            tileInfo,
+            blockSize);
+
+        this.FrameDecoder?.EndBlock(ref partitionInfo, decoderWorkspace, frameLuma);
 
         if (this.FrameDecoder is not null)
         {
@@ -1258,6 +1586,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="levelStorage">The coefficient level storage of the tile, read once by the tile reader.</param>
     /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
     /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="coefficientsY">The luma coefficient scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="coefficientsU">The blue-difference coefficient scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="coefficientsV">The red-difference coefficient scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoY">The luma transform-information scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoUv">The chroma transform-information scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="decoderWorkspace">The inverse-transform and prediction storage of the frame decoder, read once by the tile reader.</param>
+    /// <param name="frameLuma">The luma samples of the reconstructed frame, read once by the tile reader.</param>
+    /// <param name="frameBlue">The blue-difference samples of the reconstructed frame, read once by the tile reader.</param>
+    /// <param name="frameRed">The red-difference samples of the reconstructed frame, read once by the tile reader.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="superblockInfo">The containing superblock and coefficient storage.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
@@ -1268,6 +1605,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Span<byte> levelStorage,
         Span<byte> aboveContextStorage,
         Span<byte> leftContextStorage,
+        Span<int> coefficientsY,
+        Span<int> coefficientsU,
+        Span<int> coefficientsV,
+        Span<Av1TransformInfo> transformInfoY,
+        Span<Av1TransformInfo> transformInfoUv,
+        Span<short> decoderWorkspace,
+        Span<byte> frameLuma,
+        Span<byte> frameBlue,
+        Span<byte> frameRed,
         ref Av1PartitionInfo partitionInfo,
         Av1SuperblockInfo superblockInfo,
         Av1TileInfo tileInfo,
@@ -1321,7 +1667,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                         continue;
                     }
 
-                    Span<Av1TransformInfo> transformInfoSpan = (plane == 0) ? superblockInfo.GetTransformInfoY() : superblockInfo.GetTransformInfoUv();
+                    Span<Av1TransformInfo> transformInfoSpan = (plane == 0) ? transformInfoY : transformInfoUv;
+                    Span<int> planeCoefficients = plane == 0 ? coefficientsY : plane == 1 ? coefficientsU : coefficientsV;
                     if (isLosslessBlock)
                     {
                         // Lossless coding fixes transforms at 4x4, so count each clipped 4x4 unit
@@ -1367,7 +1714,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
                         if (!partitionInfo.ModeInfo.Skip)
                         {
-                            Span<int> coefficientBuffer = superblockInfo.GetCoefficients((Av1Plane)plane)[coefficientIndex..];
+                            Span<int> coefficientBuffer = planeCoefficients[coefficientIndex..];
                             endOfBlock = this.ParseTransformBlock(
                                 ref reader,
                                 levelStorage,
@@ -1398,7 +1745,16 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
                         // Intra prediction consumes the previous transform's reconstructed edge. Complete
                         // prediction, inverse reconstruction, and coefficient clearing before another TU is read.
-                        this.FrameDecoder?.DecodeTransform(ref partitionInfo, plane, ref transformInfo, tileInfo);
+                        this.FrameDecoder?.DecodeTransform(
+                            ref partitionInfo,
+                            plane,
+                            ref transformInfo,
+                            decoderWorkspace,
+                            frameLuma,
+                            frameBlue,
+                            frameRed,
+                            planeCoefficients,
+                            tileInfo);
 
                         transformInfoIndex++;
                     }
@@ -1863,6 +2219,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
     /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="transformInfoY">The luma transform-information scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoUv">The chroma transform-information scratch of the superblock, read once by the tile reader.</param>
     /// <param name="modeInfoLocation">The block origin in 4x4 mode-information units.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
@@ -1871,6 +2229,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         ref Av1SymbolDecoder reader,
         Span<byte> aboveContextStorage,
         Span<byte> leftContextStorage,
+        Span<Av1TransformInfo> transformInfoY,
+        Span<Av1TransformInfo> transformInfoUv,
         Point modeInfoLocation,
         ref Av1PartitionInfo partitionInfo,
         Av1SuperblockInfo superblockInfo,
@@ -1893,7 +2253,16 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             blockSize > Av1BlockSize.Block4x4 &&
             !this.FrameHeader.LosslessArray[modeInfo.SegmentId])
         {
-            this.ReadVariableTransformInfo(ref reader, aboveContextStorage, leftContextStorage, modeInfoLocation, ref partitionInfo, superblockInfo, tileInfo);
+            this.ReadVariableTransformInfo(
+                ref reader,
+                aboveContextStorage,
+                leftContextStorage,
+                transformInfoY,
+                transformInfoUv,
+                modeInfoLocation,
+                ref partitionInfo,
+                superblockInfo,
+                tileInfo);
 
             return;
         }
@@ -1919,7 +2288,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         bool skippedInterBlock = usesInterTransformSyntax && modeInfo.Skip;
         this.aboveNeighborContext.UpdateTransformation(aboveContextStorage, modeInfoLocation, tileInfo, transformSize, blockSize, skippedInterBlock);
         this.leftNeighborContext.UpdateTransformation(leftContextStorage, modeInfoLocation, superblockInfo, transformSize, blockSize, skippedInterBlock);
-        this.UpdateTransformInfo(ref partitionInfo, superblockInfo, blockSize, transformSize);
+        this.UpdateTransformInfo(ref partitionInfo, superblockInfo, transformInfoY, transformInfoUv, blockSize, transformSize);
     }
 
     /// <summary>
@@ -1928,6 +2297,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
     /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="transformInfoY">The luma transform-information scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoUv">The chroma transform-information scratch of the superblock, read once by the tile reader.</param>
     /// <param name="modeInfoLocation">The coding-block origin in frame mode-information units.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
@@ -1936,6 +2307,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         ref Av1SymbolDecoder reader,
         Span<byte> aboveContextStorage,
         Span<byte> leftContextStorage,
+        Span<Av1TransformInfo> transformInfoY,
+        Span<Av1TransformInfo> transformInfoUv,
         Point modeInfoLocation,
         ref Av1PartitionInfo partitionInfo,
         Av1SuperblockInfo superblockInfo,
@@ -1962,6 +2335,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     ref reader,
                     aboveContextStorage,
                     leftContextStorage,
+                    transformInfoY,
                     modeInfoLocation,
                     ref partitionInfo,
                     superblockInfo,
@@ -1981,6 +2355,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         this.UpdateTransformInfo(
             ref partitionInfo,
             superblockInfo,
+            transformInfoY,
+            transformInfoUv,
             blockSize,
             maximumTransformSize,
             preserveLuma: true,
@@ -1993,6 +2369,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="aboveContextStorage">The above-neighbor context storage, read once by the tile reader.</param>
     /// <param name="leftContextStorage">The left-neighbor context storage, read once by the tile reader.</param>
+    /// <param name="transformInfoY">The luma transform-information scratch of the superblock, read once by the tile reader.</param>
     /// <param name="modeInfoLocation">The coding-block origin in frame mode-information units.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
@@ -2007,6 +2384,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         ref Av1SymbolDecoder reader,
         Span<byte> aboveContextStorage,
         Span<byte> leftContextStorage,
+        Span<Av1TransformInfo> transformInfoY,
         Point modeInfoLocation,
         ref Av1PartitionInfo partitionInfo,
         Av1SuperblockInfo superblockInfo,
@@ -2066,6 +2444,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                         ref reader,
                         aboveContextStorage,
                         leftContextStorage,
+                        transformInfoY,
                         modeInfoLocation,
                         ref partitionInfo,
                         superblockInfo,
@@ -2094,7 +2473,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             }
         }
 
-        Span<Av1TransformInfo> transformInfo = superblockInfo.GetTransformInfoY();
+        Span<Av1TransformInfo> transformInfo = transformInfoY;
         transformInfo[transformInfoIndex] = new Av1TransformInfo(transformSize, blockColumn, blockRow);
         transformInfoIndex++;
         transformUnitCount++;
@@ -2110,6 +2489,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="superblockInfo">The containing superblock and transform storage.</param>
+    /// <param name="transformInfoY">The luma transform-information scratch of the superblock, read once by the tile reader.</param>
+    /// <param name="transformInfoUv">The chroma transform-information scratch of the superblock, read once by the tile reader.</param>
     /// <param name="blockSize">The coding block size.</param>
     /// <param name="transformSize">The selected luma transform size.</param>
     /// <param name="preserveLuma">Indicates whether variable-transform traversal already populated luma descriptors.</param>
@@ -2117,6 +2498,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     private unsafe void UpdateTransformInfo(
         ref Av1PartitionInfo partitionInfo,
         Av1SuperblockInfo superblockInfo,
+        Span<Av1TransformInfo> transformInfoY,
+        Span<Av1TransformInfo> transformInfoUv,
         Av1BlockSize blockSize,
         Av1TransformSize transformSize,
         bool preserveLuma = false,
@@ -2124,8 +2507,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     {
         int transformInfoYIndex = partitionInfo.ModeInfo.GetFirstTransformLocation(Av1PlaneType.Y);
         int transformInfoUvIndex = partitionInfo.ModeInfo.GetFirstTransformLocation(Av1PlaneType.Uv);
-        Span<Av1TransformInfo> lumaTransformInfo = superblockInfo.GetTransformInfoY();
-        Span<Av1TransformInfo> chromaTransformInfo = superblockInfo.GetTransformInfoUv();
+        Span<Av1TransformInfo> lumaTransformInfo = transformInfoY;
+        Span<Av1TransformInfo> chromaTransformInfo = transformInfoUv;
         int totalLumaTransformUnitCount = existingLumaTransformUnitCount;
         int totalChromaTransformUnitCount = 0;
         int forceSplitCount = 0;

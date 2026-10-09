@@ -599,8 +599,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Combines completed child costs, selected geometry, and motion residuals into a stopping decision.
         /// </summary>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
         /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
@@ -614,8 +618,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns><see langword="true"/> when the remaining partition searches stop.</returns>
         private bool ShouldTerminateAfterSplit(
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Span<TSample> motionSearchPrediction,
             Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
@@ -712,8 +720,12 @@ internal static partial class Av1IntraSuperblockEncoder
 
             this.CollectSimpleMotionFeatures(
                 workspaceStorage,
-                in sourcePlanes,
-                in reconstructionPlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
+                reconstructionLuma,
+                reconstructionBlue,
+                reconstructionRed,
                 motionSearchPrediction,
                 filterRows,
                 in motionVectorCosts,

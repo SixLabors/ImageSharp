@@ -188,7 +188,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Predicts one plane block from a reference of another size than the current frame into a packed
         /// destination, and subtracts it from the source.
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="referenceFrame">The scaled reference type.</param>
         /// <param name="plane">The plane.</param>
         /// <param name="planeOrigin">The block origin in plane samples.</param>
@@ -202,7 +204,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="residual">The packed source-minus-prediction destination.</param>
         /// <param name="filterRows">The intermediate storage of the two-dimensional convolution.</param>
         private readonly void PrepareScaledInterPrediction(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Av1ReferenceFrameType referenceFrame,
             Av1Plane plane,
             Point planeOrigin,
@@ -236,7 +240,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
             TOperator.SubtractPrediction(
-                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(plane), sourcePlane, planeOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                 sourcePlane.Stride,
                 prediction[..sampleCount],
                 residual[..sampleCount],

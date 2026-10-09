@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
@@ -166,14 +167,11 @@ internal static partial class Av1NzMap
         /// <param name="total">The sums, each at most fifteen.</param>
         /// <returns>The halved sums.</returns>
         /// <remarks>
-        /// No instruction set shifts byte lanes, so the shift runs on sixteen-bit lanes instead.
-        /// That carries the low bit of each odd byte into the top bit of the byte below it, and the
-        /// mask clears those carried bits. Every other bit is the byte-lane result, because a sum of
-        /// at most sixteen leaves the upper bits of its byte clear.
+        /// The rounding average of a sum and zero is the sum plus one, halved, in one instruction per vector.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<byte> Halve(Vector128<byte> total)
-            => ((total + Vector128<byte>.One).AsUInt16() >>> 1).AsByte() & Vector128.Create((byte)0x7F);
+            => Vector128_.Average(total, Vector128<byte>.Zero);
 
         /// <summary>
         /// Halves thirty-two byte lanes with rounding.
@@ -182,7 +180,7 @@ internal static partial class Av1NzMap
         /// <returns>The halved sums.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector256<byte> Halve(Vector256<byte> total)
-            => ((total + Vector256<byte>.One).AsUInt16() >>> 1).AsByte() & Vector256.Create((byte)0x7F);
+            => Vector256_.Average(total, Vector256<byte>.Zero);
 
         /// <summary>
         /// Halves sixty-four byte lanes with rounding.
@@ -191,6 +189,6 @@ internal static partial class Av1NzMap
         /// <returns>The halved sums.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector512<byte> Halve(Vector512<byte> total)
-            => ((total + Vector512<byte>.One).AsUInt16() >>> 1).AsByte() & Vector512.Create((byte)0x7F);
+            => Vector512_.Average(total, Vector512<byte>.Zero);
     }
 }

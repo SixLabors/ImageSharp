@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -12,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 internal sealed partial class Av1LevelBuffer
 {
     /// <summary>
-    /// Reduces a coefficient to the saturated magnitude that entropy contexts read.
+    /// Reduces coefficients to the saturated magnitudes that entropy contexts read.
     /// </summary>
     /// <remarks>
     /// Every overload describes the same lane-wise reduction. A context never distinguishes
@@ -29,32 +30,26 @@ internal sealed partial class Av1LevelBuffer
         public static abstract byte Saturate(int value);
 
         /// <summary>
-        /// Reduces four coefficients.
+        /// Reduces sixteen consecutive coefficients to sixteen bytes in the same order.
         /// </summary>
-        /// <param name="values">The signed coefficients.</param>
-        /// <returns>The saturated magnitudes, each still in a thirty-two bit lane.</returns>
-        public static abstract Vector128<int> Saturate(Vector128<int> values);
+        /// <param name="source">The first coefficient.</param>
+        /// <returns>The saturated magnitudes.</returns>
+        public static abstract Vector128<byte> Pack16(ref int source);
 
         /// <summary>
-        /// Reduces eight coefficients.
+        /// Reduces thirty-two consecutive coefficients to thirty-two bytes in the same order.
         /// </summary>
-        /// <param name="values">The signed coefficients.</param>
-        /// <returns>The saturated magnitudes, each still in a thirty-two bit lane.</returns>
-        public static abstract Vector256<int> Saturate(Vector256<int> values);
-
-        /// <summary>
-        /// Reduces sixteen coefficients.
-        /// </summary>
-        /// <param name="values">The signed coefficients.</param>
-        /// <returns>The saturated magnitudes, each still in a thirty-two bit lane.</returns>
-        public static abstract Vector512<int> Saturate(Vector512<int> values);
+        /// <param name="source">The first coefficient.</param>
+        /// <returns>The saturated magnitudes.</returns>
+        public static abstract Vector256<byte> Pack32(ref int source);
     }
 
     /// <summary>
     /// Takes the magnitude of a coefficient and clamps it to the largest signed byte.
     /// </summary>
     /// <remarks>
-    /// Reference: av1_txb_init_levels_c().
+    /// The vector forms clamp with two saturating packs, from thirty-two bits to sixteen and from sixteen to eight,
+    /// with the magnitude taken between them, so no separate minimum is needed.
     /// </remarks>
     private readonly struct LevelOperator : IAv1LevelOperator
     {
@@ -64,18 +59,43 @@ internal sealed partial class Av1LevelBuffer
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<int> Saturate(Vector128<int> values)
-            => Vector128.Min(Vector128.Abs(values), Vector128.Create((int)sbyte.MaxValue));
+        public static Vector128<byte> Pack16(ref int source)
+        {
+            // The 128-bit packs keep the lane order, so the sixteen bytes come out in coefficient order. The magnitude of
+            // a lane that saturated to -32768 wraps to itself, so an unsigned minimum clamps every magnitude to 127
+            // before the second pack, as the scalar form does.
+            Vector128<ushort> limit = Vector128.Create((ushort)sbyte.MaxValue);
+            Vector128<short> first = Vector128.Min(
+                Vector128.Abs(Vector128_.PackSignedSaturate(Vector128.LoadUnsafe(ref source), Vector128.LoadUnsafe(ref source, 4))).AsUInt16(),
+                limit).AsInt16();
+
+            Vector128<short> second = Vector128.Min(
+                Vector128.Abs(Vector128_.PackSignedSaturate(Vector128.LoadUnsafe(ref source, 8), Vector128.LoadUnsafe(ref source, 12))).AsUInt16(),
+                limit).AsInt16();
+
+            return Vector128_.PackSignedSaturate(first, second).AsByte();
+        }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<int> Saturate(Vector256<int> values)
-            => Vector256.Min(Vector256.Abs(values), Vector256.Create((int)sbyte.MaxValue));
+        public static Vector256<byte> Pack32(ref int source)
+        {
+            // The 256-bit packs work within each 128-bit lane. With the coefficients as eight groups of four, A0 A1
+            // to D0 D1, the two packs leave the groups in the order A0 B0 C0 D0 A1 B1 C1 D1. One permute of the
+            // four-byte groups restores A0 A1 B0 B1 C0 C1 D0 D1. The unsigned minimum clamps every magnitude to 127, as
+            // in the 128-bit form.
+            Vector256<ushort> limit = Vector256.Create((ushort)sbyte.MaxValue);
+            Vector256<short> first = Vector256.Min(
+                Vector256.Abs(Vector256_.PackSignedSaturate(Vector256.LoadUnsafe(ref source), Vector256.LoadUnsafe(ref source, 8))).AsUInt16(),
+                limit).AsInt16();
 
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<int> Saturate(Vector512<int> values)
-            => Vector512.Min(Vector512.Abs(values), Vector512.Create((int)sbyte.MaxValue));
+            Vector256<short> second = Vector256.Min(
+                Vector256.Abs(Vector256_.PackSignedSaturate(Vector256.LoadUnsafe(ref source, 16), Vector256.LoadUnsafe(ref source, 24))).AsUInt16(),
+                limit).AsInt16();
+
+            Vector256<int> packed = Vector256_.PackSignedSaturate(first, second).AsInt32();
+            return Vector256.Shuffle(packed, Vector256.Create(0, 4, 1, 5, 2, 6, 3, 7)).AsByte();
+        }
     }
 
     /// <summary>
@@ -83,98 +103,119 @@ internal sealed partial class Av1LevelBuffer
     /// </summary>
     /// <typeparam name="TOperator">The lane-wise reduction.</typeparam>
     /// <remarks>
-    /// One lane is one coefficient in row order, so each stage reduces one vector of coefficients
-    /// and stores a quarter as many bytes. The magnitudes are below 128 when they are narrowed, so
-    /// narrowing against a zero vector and keeping the lowest lanes is exact rather than a
-    /// truncation of larger values.
+    /// Each padded row is the row's levels followed by four zero bytes, the right-hand neighbors of its last columns.
+    /// One step reduces thirty-two coefficients, or sixteen without 256-bit vectors, and writes as many rows as they
+    /// cover, so a narrow transform writes several rows per step.
     /// </remarks>
     private static class Levels<TOperator>
         where TOperator : struct, IAv1LevelOperator
     {
         /// <summary>
-        /// Fills the level plane of a transform four coefficients wide, four rows at a time, with the four padding
-        /// bytes after each row.
+        /// Fills the level plane of a transform and the padding after each row.
         /// </summary>
-        /// <remarks>
-        /// A padded row is four levels followed by four zero bytes, eight bytes in all. Four rows of four coefficients
-        /// narrow to one vector of sixteen bytes. A byte shuffle then puts four zero bytes after each row, which
-        /// gives two vectors of sixteen bytes that hold four padded rows. An index of 0xFF in the shuffle gives a
-        /// zero byte.
-        /// </remarks>
         /// <param name="source">The first coefficient of the transform, in raster order.</param>
         /// <param name="destination">The first level of the first row.</param>
-        /// <param name="height">The number of rows, a multiple of four.</param>
-        public static void FillFourWide(ref int source, ref byte destination, int height)
+        /// <param name="width">The number of coefficients in a row: 4, 8, 16 or 32.</param>
+        /// <param name="widthLog2">The base-two logarithm of <paramref name="width"/>.</param>
+        /// <param name="height">The number of rows: 4, 8, 16 or 32.</param>
+        public static void Fill(ref int source, ref byte destination, int width, int widthLog2, int height)
         {
-            // Rows 0 and 1, then rows 2 and 3, each with four zero bytes after the row.
-            Vector128<byte> firstRows = Vector128.Create(0, 1, 2, 3, 0xFF, 0xFF, 0xFF, 0xFF, 4, 5, 6, 7, 0xFF, 0xFF, 0xFF, (byte)0xFF);
-            Vector128<byte> lastRows = Vector128.Create(8, 9, 10, 11, 0xFF, 0xFF, 0xFF, 0xFF, 12, 13, 14, 15, 0xFF, 0xFF, 0xFF, (byte)0xFF);
-            nuint rows = (nuint)height;
-            for (nuint row = 0; row < rows; row += 4)
+            nuint stride = (nuint)(width + Av1Constants.TransformPadHorizontal);
+            nuint rowLength = (nuint)width;
+            nuint count = (nuint)(width * height);
+
+            // A 4x4 transform holds sixteen coefficients, fewer than one 256-bit step, so it takes the 128-bit path.
+            if (Vector256.IsHardwareAccelerated && count >= 32)
             {
-                // Each group of four rows is 16 coefficients in and 32 padded bytes out.
-                ref int rowSource = ref Unsafe.Add(ref source, row * 4);
-                Vector128<int> row0 = TOperator.Saturate(Vector128.LoadUnsafe(ref rowSource));
-                Vector128<int> row1 = TOperator.Saturate(Vector128.LoadUnsafe(ref rowSource, 4));
-                Vector128<int> row2 = TOperator.Saturate(Vector128.LoadUnsafe(ref rowSource, 8));
-                Vector128<int> row3 = TOperator.Saturate(Vector128.LoadUnsafe(ref rowSource, 12));
-
-                // Every level is at most 127, so the narrowing keeps each value.
-                Vector128<byte> levels = Vector128.Narrow(Vector128.Narrow(row0, row1), Vector128.Narrow(row2, row3)).AsByte();
-                Vector128.Shuffle(levels, firstRows).StoreUnsafe(ref destination, row * 8);
-                Vector128.Shuffle(levels, lastRows).StoreUnsafe(ref destination, (row * 8) + 16);
-            }
-        }
-
-        /// <summary>
-        /// Fills one row of the level plane.
-        /// </summary>
-        /// <param name="source">The first coefficient of the row.</param>
-        /// <param name="destination">The first level of the row.</param>
-        /// <param name="width">The number of coefficients in the row.</param>
-        public static void FillRow(ref int source, ref byte destination, int width)
-        {
-            int x = 0;
-
-            // Descending widths share one column offset. A coded transform is 4, 8, 16 or 32
-            // coefficients wide, so every width reaches at least the narrowest vector stage.
-            if (Vector512.IsHardwareAccelerated)
-            {
-                for (; x <= width - Vector512<int>.Count; x += Vector512<int>.Count)
+                // Thirty-two coefficients are one row of 32, two rows of 16, four rows of 8 or eight rows of 4. The
+                // lower sixteen levels cover the first half of those rows and the upper sixteen the second half.
+                nuint upperRowOffset = (nuint)(16 >> widthLog2) * stride;
+                for (nuint i = 0; i < count; i += 32)
                 {
-                    Vector512<int> values = TOperator.Saturate(Vector512.LoadUnsafe(ref source, (nuint)x));
-                    Vector512<short> narrowed = Vector512.Narrow(values, Vector512<int>.Zero);
-                    Vector512.Narrow(narrowed, Vector512<short>.Zero).GetLower().GetLower().AsByte()
-                        .StoreUnsafe(ref destination, (nuint)x);
+                    Vector256<byte> levels = TOperator.Pack32(ref Unsafe.Add(ref source, i));
+                    ref byte rowDestination = ref Unsafe.Add(ref destination, (i >> widthLog2) * stride);
+                    if (rowLength == 32)
+                    {
+                        levels.StoreUnsafe(ref rowDestination);
+                        Unsafe.WriteUnaligned(ref Unsafe.Add(ref rowDestination, (nuint)32), 0u);
+                    }
+                    else
+                    {
+                        StoreRows(levels.GetLower(), ref rowDestination, rowLength, stride);
+                        StoreRows(levels.GetUpper(), ref Unsafe.Add(ref rowDestination, upperRowOffset), rowLength, stride);
+                    }
                 }
-            }
 
-            if (Vector256.IsHardwareAccelerated)
-            {
-                for (; x <= width - Vector256<int>.Count; x += Vector256<int>.Count)
-                {
-                    Vector256<int> values = TOperator.Saturate(Vector256.LoadUnsafe(ref source, (nuint)x));
-                    Vector256<short> narrowed = Vector256.Narrow(values, Vector256<int>.Zero);
-                    Vector256.Narrow(narrowed, Vector256<short>.Zero).GetLower().GetLower().AsByte()
-                        .StoreUnsafe(ref destination, (nuint)x);
-                }
+                return;
             }
 
             if (Vector128.IsHardwareAccelerated)
             {
-                for (; x <= width - Vector128<int>.Count; x += Vector128<int>.Count)
+                // Sixteen coefficients are half a row of 32, one row of 16, two rows of 8 or four rows of 4.
+                for (nuint i = 0; i < count; i += 16)
                 {
-                    Vector128<int> values = TOperator.Saturate(Vector128.LoadUnsafe(ref source, (nuint)x));
-                    Vector128<short> narrowed = Vector128.Narrow(values, Vector128<int>.Zero);
-                    Unsafe.WriteUnaligned(
-                        ref Unsafe.Add(ref destination, x),
-                        Vector128.Narrow(narrowed, Vector128<short>.Zero).AsUInt32().ToScalar());
+                    Vector128<byte> levels = TOperator.Pack16(ref Unsafe.Add(ref source, i));
+                    nuint column = i & (rowLength - 1);
+                    ref byte rowDestination = ref Unsafe.Add(ref destination, ((i >> widthLog2) * stride) + column);
+                    if (rowLength == 32)
+                    {
+                        // The padding follows the second half of the row.
+                        levels.StoreUnsafe(ref rowDestination);
+                        if (column != 0)
+                        {
+                            Unsafe.WriteUnaligned(ref Unsafe.Add(ref rowDestination, (nuint)16), 0u);
+                        }
+                    }
+                    else
+                    {
+                        StoreRows(levels, ref rowDestination, rowLength, stride);
+                    }
                 }
+
+                return;
             }
 
-            for (; x < width; x++)
+            for (nuint row = 0; row < (nuint)height; row++)
             {
-                Unsafe.Add(ref destination, x) = TOperator.Saturate(Unsafe.Add(ref source, x));
+                ref byte rowDestination = ref Unsafe.Add(ref destination, row * stride);
+                for (nuint column = 0; column < rowLength; column++)
+                {
+                    Unsafe.Add(ref rowDestination, column) = TOperator.Saturate(Unsafe.Add(ref source, (row * rowLength) + column));
+                }
+
+                Unsafe.WriteUnaligned(ref Unsafe.Add(ref rowDestination, rowLength), 0u);
+            }
+        }
+
+        /// <summary>
+        /// Stores sixteen levels as the one, two or four rows they cover, each row followed by its four zero padding bytes.
+        /// </summary>
+        /// <param name="levels">Sixteen levels in raster order.</param>
+        /// <param name="destination">The first level of the first row they cover.</param>
+        /// <param name="rowLength">The number of coefficients in a row: 4, 8 or 16.</param>
+        /// <param name="stride">The number of bytes between rows of the plane.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void StoreRows(Vector128<byte> levels, ref byte destination, nuint rowLength, nuint stride)
+        {
+            switch (rowLength)
+            {
+                case 4:
+                    // Four rows of four levels, with a stride of eight. Zero-extending each four-byte row to eight bytes
+                    // appends its padding, so the four padded rows are two contiguous vectors.
+                    Vector128.WidenLower(levels.AsUInt32()).AsByte().StoreUnsafe(ref destination);
+                    Vector128.WidenUpper(levels.AsUInt32()).AsByte().StoreUnsafe(ref destination, (nuint)16);
+                    break;
+                case 8:
+                    // Two rows of eight levels, each followed by four zero bytes.
+                    Unsafe.WriteUnaligned(ref destination, levels.AsUInt64().ToScalar());
+                    Unsafe.WriteUnaligned(ref Unsafe.Add(ref destination, (nuint)8), 0u);
+                    Unsafe.WriteUnaligned(ref Unsafe.Add(ref destination, stride), levels.AsUInt64().GetElement(1));
+                    Unsafe.WriteUnaligned(ref Unsafe.Add(ref destination, stride + 8), 0u);
+                    break;
+                default:
+                    levels.StoreUnsafe(ref destination);
+                    Unsafe.WriteUnaligned(ref Unsafe.Add(ref destination, (nuint)16), 0u);
+                    break;
             }
         }
     }

@@ -88,10 +88,33 @@ internal static partial class Av1ForwardTransformer
         Span<int> coefficients,
         Span<int> workspace)
     {
+        // The quadrants of a larger block are transformed without their own sums; the combined block is summed once.
+        TransformHadamard(residual, stride, size, highBitDepth, coefficients, workspace);
+        return TensorPrimitives.SumOfMagnitudes<int>(coefficients[..(size * size)]);
+    }
+
+    /// <summary>
+    /// Computes the quick Hadamard transform of a square residual block, building a 16- or 32-point block from its
+    /// four quadrant transforms.
+    /// </summary>
+    /// <param name="residual">The residual samples.</param>
+    /// <param name="stride">The residual row stride.</param>
+    /// <param name="size">The block width and height: 4, 8, 16 or 32.</param>
+    /// <param name="highBitDepth">Whether the residual comes from samples above eight bits.</param>
+    /// <param name="coefficients">Receives the transform coefficients.</param>
+    /// <param name="workspace">The intermediate buffer of the transforms.</param>
+    private static void TransformHadamard(
+        ReadOnlySpan<short> residual,
+        int stride,
+        int size,
+        bool highBitDepth,
+        Span<int> coefficients,
+        Span<int> workspace)
+    {
         if (size == 4)
         {
             Hadamard4x4(residual, stride, coefficients);
-            return TensorPrimitives.SumOfMagnitudes<int>(coefficients[..16]);
+            return;
         }
 
         if (size == 8)
@@ -106,7 +129,7 @@ internal static partial class Av1ForwardTransformer
 
                 _ = GetHadamard8x8Cost(packed, workspace);
                 workspace.Slice(64, 64).CopyTo(coefficients);
-                return TensorPrimitives.SumOfMagnitudes<int>(coefficients[..64]);
+                return;
             }
 
             TransformForModeEstimation(
@@ -117,7 +140,7 @@ internal static partial class Av1ForwardTransformer
                 workspace,
                 highBitDepth);
 
-            return TensorPrimitives.SumOfMagnitudes<int>(coefficients[..64]);
+            return;
         }
 
         int half = size >> 1;
@@ -126,7 +149,7 @@ internal static partial class Av1ForwardTransformer
         {
             int rowOffset = (quadrant >> 1) * half;
             int columnOffset = (quadrant & 1) * half;
-            GetHadamardCost(
+            TransformHadamard(
                 residual[((rowOffset * stride) + columnOffset)..],
                 stride,
                 half,
@@ -136,7 +159,6 @@ internal static partial class Av1ForwardTransformer
         }
 
         CombineHadamardQuadrants(coefficients, quadrantLength, size == 32 ? 2 : 1);
-        return TensorPrimitives.SumOfMagnitudes<int>(coefficients[..(size * size)]);
     }
 
     /// <summary>
@@ -330,9 +352,51 @@ internal static partial class Av1ForwardTransformer
                 return;
             }
 
+            if (transformSize == Av1TransformSize.Size8x4)
+            {
+                Transform8x4(input, stride, transformType, coefficients);
+                return;
+            }
+
+            if (transformSize == Av1TransformSize.Size4x8)
+            {
+                Transform4x8(input, stride, transformType, coefficients);
+                return;
+            }
+
             if (transformSize == Av1TransformSize.Size16x16 && WideKernelsSupported)
             {
                 Transform16x16(input, stride, transformType, coefficients);
+                return;
+            }
+
+            if (transformSize == Av1TransformSize.Size16x8 && WideKernelsSupported)
+            {
+                Transform16x8(input, stride, transformType, coefficients);
+                return;
+            }
+
+            if (transformSize == Av1TransformSize.Size8x16 && WideKernelsSupported)
+            {
+                Transform8x16(input, stride, transformType, coefficients);
+                return;
+            }
+
+            if (transformSize == Av1TransformSize.Size32x32 && WideKernelsSupported)
+            {
+                Transform32x32(input, stride, transformType, coefficients);
+                return;
+            }
+
+            if (transformSize == Av1TransformSize.Size32x16 && WideKernelsSupported)
+            {
+                Transform32x16(input, stride, transformType, coefficients);
+                return;
+            }
+
+            if (transformSize == Av1TransformSize.Size16x32 && WideKernelsSupported)
+            {
+                Transform16x32(input, stride, transformType, coefficients);
                 return;
             }
         }

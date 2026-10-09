@@ -93,6 +93,10 @@ internal static partial class Av1ForwardQuantizer
         ref int quantizedBase = ref MemoryMarshal.GetReference(quantizedCoefficients);
         ref int dequantizedBase = ref MemoryMarshal.GetReference(dequantizedCoefficients);
 
+        // Coding and reconstruction retain raster order. Only the end position is reduced in scan order: each vector
+        // raises a per-lane maximum of the one-based scan position of its nonzero coefficients, in the same pass.
+        ref short inverseScanBase = ref MemoryMarshal.GetReference(Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).InverseScan);
+
         // Every coded transform has a multiple of 16 coefficients, so the widest vector covers the whole block with
         // no remainder. Raster coefficient zero is the only DC coefficient. The first vector carries the DC
         // constants in lane zero and the AC constants in every other lane, so the DC coefficient needs no separate
@@ -106,6 +110,7 @@ internal static partial class Av1ForwardQuantizer
             Vector512<int> quantizer = Vector512.Create(acQuantizer).WithElement(0, dcQuantizer);
             Vector512<int> shift = Vector512.Create(acShift).WithElement(0, dcShift);
             Vector512<int> dequantizer = Vector512.Create(acDequantizer).WithElement(0, dcDequantizer);
+            Vector512<int> maximum = Vector512<int>.Zero;
             for (nuint index = 0; index < length; index += (nuint)Vector512<int>.Count)
             {
                 Vector512<int> quantized = TOperator.Quantize(
@@ -113,6 +118,7 @@ internal static partial class Av1ForwardQuantizer
 
                 quantized.StoreUnsafe(ref quantizedBase, index);
                 dequantized.StoreUnsafe(ref dequantizedBase, index);
+                maximum = Av1CoefficientMeasures.CoefficientMeasureOperator.AccumulateEndOfBlock(quantized, ref inverseScanBase, index, maximum);
 
                 // Lane zero of the first vector was the DC coefficient. The rest of the block is AC.
                 zeroBin = Vector512.Create(acZeroBin);
@@ -121,6 +127,9 @@ internal static partial class Av1ForwardQuantizer
                 shift = Vector512.Create(acShift);
                 dequantizer = Vector512.Create(acDequantizer);
             }
+
+            Vector256<int> halves = Vector256.Max(maximum.GetLower(), maximum.GetUpper());
+            return (ushort)GetLaneMaximum(Vector128.Max(halves.GetLower(), halves.GetUpper()));
         }
         else if (Vector256.IsHardwareAccelerated)
         {
@@ -129,6 +138,7 @@ internal static partial class Av1ForwardQuantizer
             Vector256<int> quantizer = Vector256.Create(acQuantizer).WithElement(0, dcQuantizer);
             Vector256<int> shift = Vector256.Create(acShift).WithElement(0, dcShift);
             Vector256<int> dequantizer = Vector256.Create(acDequantizer).WithElement(0, dcDequantizer);
+            Vector256<int> maximum = Vector256<int>.Zero;
             for (nuint index = 0; index < length; index += (nuint)Vector256<int>.Count)
             {
                 Vector256<int> quantized = TOperator.Quantize(
@@ -136,6 +146,7 @@ internal static partial class Av1ForwardQuantizer
 
                 quantized.StoreUnsafe(ref quantizedBase, index);
                 dequantized.StoreUnsafe(ref dequantizedBase, index);
+                maximum = Av1CoefficientMeasures.CoefficientMeasureOperator.AccumulateEndOfBlock(quantized, ref inverseScanBase, index, maximum);
 
                 // Lane zero of the first vector was the DC coefficient. The rest of the block is AC.
                 zeroBin = Vector256.Create(acZeroBin);
@@ -144,6 +155,8 @@ internal static partial class Av1ForwardQuantizer
                 shift = Vector256.Create(acShift);
                 dequantizer = Vector256.Create(acDequantizer);
             }
+
+            return (ushort)GetLaneMaximum(Vector128.Max(maximum.GetLower(), maximum.GetUpper()));
         }
         else if (Vector128.IsHardwareAccelerated)
         {
@@ -152,6 +165,7 @@ internal static partial class Av1ForwardQuantizer
             Vector128<int> quantizer = Vector128.Create(acQuantizer).WithElement(0, dcQuantizer);
             Vector128<int> shift = Vector128.Create(acShift).WithElement(0, dcShift);
             Vector128<int> dequantizer = Vector128.Create(acDequantizer).WithElement(0, dcDequantizer);
+            Vector128<int> maximum = Vector128<int>.Zero;
             for (nuint index = 0; index < length; index += (nuint)Vector128<int>.Count)
             {
                 Vector128<int> quantized = TOperator.Quantize(
@@ -159,6 +173,7 @@ internal static partial class Av1ForwardQuantizer
 
                 quantized.StoreUnsafe(ref quantizedBase, index);
                 dequantized.StoreUnsafe(ref dequantizedBase, index);
+                maximum = Av1CoefficientMeasures.CoefficientMeasureOperator.AccumulateEndOfBlock(quantized, ref inverseScanBase, index, maximum);
 
                 // Lane zero of the first vector was the DC coefficient. The rest of the block is AC.
                 zeroBin = Vector128.Create(acZeroBin);
@@ -167,6 +182,8 @@ internal static partial class Av1ForwardQuantizer
                 shift = Vector128.Create(acShift);
                 dequantizer = Vector128.Create(acDequantizer);
             }
+
+            return (ushort)GetLaneMaximum(maximum);
         }
         else
         {
@@ -188,7 +205,6 @@ internal static partial class Av1ForwardQuantizer
             }
         }
 
-        // Coding and reconstruction retain raster order. Only the end position is reduced in scan order.
         return GetEndOfBlock(
             quantizedCoefficients[..count],
             Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).InverseScan);

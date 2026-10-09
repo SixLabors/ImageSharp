@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
@@ -18,9 +19,10 @@ internal static partial class Av1PaletteKMeans2D
     /// <para>
     /// A squared distance reaches about 33 million for twelve-bit samples, so the comparison runs
     /// on thirty-two bit lanes. The samples arrive as sixteen-bit lanes, so each vector overload
-    /// widens its difference into a lower half and an upper half and searches the two halves side
-    /// by side. The index lanes stay sixteen bits wide, because a palette holds at most eight
-    /// colors, and the traversal narrows them to bytes.
+    /// interleaves the two plane differences into a lower half and an upper half, squares and adds
+    /// each pair with one multiply-add, and searches the two halves side by side. The index lanes
+    /// stay sixteen bits wide, because a palette holds at most eight colors, and the traversal
+    /// narrows them to bytes.
     /// </para>
     /// <para>
     /// The comparison is strict, so a pair equally close to two colors keeps the first of them,
@@ -86,15 +88,15 @@ internal static partial class Av1PaletteKMeans2D
                 // the color already held and matches the scalar comparison.
                 Vector128<int> replaceLower = Vector128.LessThan(currentLower, lower);
                 Vector128<int> replaceUpper = Vector128.LessThan(currentUpper, upper);
-                lower = Vector128.ConditionalSelect(replaceLower, currentLower, lower);
-                upper = Vector128.ConditionalSelect(replaceUpper, currentUpper, upper);
+                lower = Vector128.Min(lower, currentLower);
+                upper = Vector128.Min(upper, currentUpper);
                 indexLower = Vector128.ConditionalSelect(replaceLower, Vector128.Create(candidate), indexLower);
                 indexUpper = Vector128.ConditionalSelect(replaceUpper, Vector128.Create(candidate), indexUpper);
             }
 
-            // The indices are below eight, so narrowing the two halves back into one vector of
-            // sixteen-bit lanes restores the lane order of the samples exactly.
-            return Vector128.Narrow(indexLower, indexUpper);
+            // The indices are below eight, so packing the two halves back into one vector of sixteen-bit lanes undoes
+            // the interleave of the distance step and restores the lane order of the samples exactly.
+            return Vector128_.PackSignedSaturate(indexLower, indexUpper);
         }
 
         /// <inheritdoc/>
@@ -124,13 +126,13 @@ internal static partial class Av1PaletteKMeans2D
 
                 Vector256<int> replaceLower = Vector256.LessThan(currentLower, lower);
                 Vector256<int> replaceUpper = Vector256.LessThan(currentUpper, upper);
-                lower = Vector256.ConditionalSelect(replaceLower, currentLower, lower);
-                upper = Vector256.ConditionalSelect(replaceUpper, currentUpper, upper);
+                lower = Vector256.Min(lower, currentLower);
+                upper = Vector256.Min(upper, currentUpper);
                 indexLower = Vector256.ConditionalSelect(replaceLower, Vector256.Create(candidate), indexLower);
                 indexUpper = Vector256.ConditionalSelect(replaceUpper, Vector256.Create(candidate), indexUpper);
             }
 
-            return Vector256.Narrow(indexLower, indexUpper);
+            return Vector256_.PackSignedSaturate(indexLower, indexUpper);
         }
 
         /// <inheritdoc/>
@@ -161,13 +163,13 @@ internal static partial class Av1PaletteKMeans2D
 
                 Vector512<int> replaceLower = Vector512.LessThan(currentLower, lower);
                 Vector512<int> replaceUpper = Vector512.LessThan(currentUpper, upper);
-                lower = Vector512.ConditionalSelect(replaceLower, currentLower, lower);
-                upper = Vector512.ConditionalSelect(replaceUpper, currentUpper, upper);
+                lower = Vector512.Min(lower, currentLower);
+                upper = Vector512.Min(upper, currentUpper);
                 indexLower = Vector512.ConditionalSelect(replaceLower, Vector512.Create(candidate), indexLower);
                 indexUpper = Vector512.ConditionalSelect(replaceUpper, Vector512.Create(candidate), indexUpper);
             }
 
-            return Vector512.Narrow(indexLower, indexUpper);
+            return Vector512_.PackSignedSaturate(indexLower, indexUpper);
         }
 
         /// <summary>
@@ -180,8 +182,10 @@ internal static partial class Av1PaletteKMeans2D
         /// <param name="lower">Receives the squared distances of the first four pairs.</param>
         /// <param name="upper">Receives the squared distances of the second four pairs.</param>
         /// <remarks>
-        /// The difference of two twelve-bit samples fits a sixteen-bit lane, so it is taken before
-        /// the widening and only the square needs the wider lanes.
+        /// The difference of two twelve-bit samples fits a sixteen-bit lane. Interleaving the two plane differences puts
+        /// each pair side by side, so one multiply-add of the interleaved vector with itself gives the squared distance of
+        /// each pair in a thirty-two-bit lane. The low interleave holds the first four pairs and the high one the last
+        /// four; a signed pack of the two halves restores the sample order.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void Distance(
@@ -192,10 +196,12 @@ internal static partial class Av1PaletteKMeans2D
             out Vector128<int> lower,
             out Vector128<int> upper)
         {
-            (Vector128<int> firstLower, Vector128<int> firstUpper) = Vector128.Widen(first - Vector128.Create(firstCentroid));
-            (Vector128<int> secondLower, Vector128<int> secondUpper) = Vector128.Widen(second - Vector128.Create(secondCentroid));
-            lower = (firstLower * firstLower) + (secondLower * secondLower);
-            upper = (firstUpper * firstUpper) + (secondUpper * secondUpper);
+            Vector128<short> firstDifference = first - Vector128.Create(firstCentroid);
+            Vector128<short> secondDifference = second - Vector128.Create(secondCentroid);
+            Vector128<short> pairsLower = Vector128_.UnpackLow(firstDifference, secondDifference);
+            Vector128<short> pairsUpper = Vector128_.UnpackHigh(firstDifference, secondDifference);
+            lower = Vector128_.MultiplyAddAdjacent(pairsLower, pairsLower);
+            upper = Vector128_.MultiplyAddAdjacent(pairsUpper, pairsUpper);
         }
 
         /// <summary>
@@ -205,8 +211,12 @@ internal static partial class Av1PaletteKMeans2D
         /// <param name="second">The second-plane samples.</param>
         /// <param name="firstCentroid">The first-plane color.</param>
         /// <param name="secondCentroid">The second-plane color.</param>
-        /// <param name="lower">Receives the squared distances of the first eight pairs.</param>
-        /// <param name="upper">Receives the squared distances of the second eight pairs.</param>
+        /// <param name="lower">Receives the squared distances of the low four pairs of each 128-bit lane.</param>
+        /// <param name="upper">Receives the squared distances of the high four pairs of each 128-bit lane.</param>
+        /// <remarks>
+        /// The interleave and the later signed pack both work within each 128-bit lane, so the pack restores the
+        /// sample order of the 128-bit overload in each lane.
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void Distance(
             Vector256<short> first,
@@ -216,10 +226,12 @@ internal static partial class Av1PaletteKMeans2D
             out Vector256<int> lower,
             out Vector256<int> upper)
         {
-            (Vector256<int> firstLower, Vector256<int> firstUpper) = Vector256.Widen(first - Vector256.Create(firstCentroid));
-            (Vector256<int> secondLower, Vector256<int> secondUpper) = Vector256.Widen(second - Vector256.Create(secondCentroid));
-            lower = (firstLower * firstLower) + (secondLower * secondLower);
-            upper = (firstUpper * firstUpper) + (secondUpper * secondUpper);
+            Vector256<short> firstDifference = first - Vector256.Create(firstCentroid);
+            Vector256<short> secondDifference = second - Vector256.Create(secondCentroid);
+            Vector256<short> pairsLower = Vector256_.UnpackLow(firstDifference, secondDifference);
+            Vector256<short> pairsUpper = Vector256_.UnpackHigh(firstDifference, secondDifference);
+            lower = Vector256_.MultiplyAddAdjacent(pairsLower, pairsLower);
+            upper = Vector256_.MultiplyAddAdjacent(pairsUpper, pairsUpper);
         }
 
         /// <summary>
@@ -229,8 +241,8 @@ internal static partial class Av1PaletteKMeans2D
         /// <param name="second">The second-plane samples.</param>
         /// <param name="firstCentroid">The first-plane color.</param>
         /// <param name="secondCentroid">The second-plane color.</param>
-        /// <param name="lower">Receives the squared distances of the first sixteen pairs.</param>
-        /// <param name="upper">Receives the squared distances of the second sixteen pairs.</param>
+        /// <param name="lower">Receives the squared distances of the low four pairs of each 128-bit lane.</param>
+        /// <param name="upper">Receives the squared distances of the high four pairs of each 128-bit lane.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void Distance(
             Vector512<short> first,
@@ -240,10 +252,12 @@ internal static partial class Av1PaletteKMeans2D
             out Vector512<int> lower,
             out Vector512<int> upper)
         {
-            (Vector512<int> firstLower, Vector512<int> firstUpper) = Vector512.Widen(first - Vector512.Create(firstCentroid));
-            (Vector512<int> secondLower, Vector512<int> secondUpper) = Vector512.Widen(second - Vector512.Create(secondCentroid));
-            lower = (firstLower * firstLower) + (secondLower * secondLower);
-            upper = (firstUpper * firstUpper) + (secondUpper * secondUpper);
+            Vector512<short> firstDifference = first - Vector512.Create(firstCentroid);
+            Vector512<short> secondDifference = second - Vector512.Create(secondCentroid);
+            Vector512<short> pairsLower = Vector512_.UnpackLow(firstDifference, secondDifference);
+            Vector512<short> pairsUpper = Vector512_.UnpackHigh(firstDifference, secondDifference);
+            lower = Vector512_.MultiplyAddAdjacent(pairsLower, pairsLower);
+            upper = Vector512_.MultiplyAddAdjacent(pairsUpper, pairsUpper);
         }
     }
 }

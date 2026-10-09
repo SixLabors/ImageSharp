@@ -26,6 +26,60 @@ public class Av1PaletteKMeansTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateAssignment, Configurations);
 
     /// <summary>
+    /// Verifies the per-color counts and component sums of the centroid update for one and two components, every
+    /// palette size, and lengths that end inside a vector.
+    /// </summary>
+    [Fact]
+    public void SumByIndexMatchesDefinitionAtEveryIntrinsicTier()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSums, Configurations);
+
+    /// <summary>
+    /// Compares the counts and sums with a direct tally of every sample.
+    /// </summary>
+    private static void ValidateSums()
+    {
+        foreach (int sampleCount in new[] { 7, 16, 95, 4096 })
+        {
+            short[] first = new short[sampleCount];
+            short[] second = new short[sampleCount];
+            byte[] indices = new byte[sampleCount];
+            for (int colorCount = 2; colorCount <= 8; colorCount++)
+            {
+                for (int index = 0; index < sampleCount; index++)
+                {
+                    first[index] = (short)(((index * 977) + (index * index * 17)) & 4095);
+                    second[index] = (short)((index * 131) & 4095);
+                    indices[index] = (byte)(((index * 7) + (index >> 3)) % colorCount);
+                }
+
+                int[] expectedCounts = new int[colorCount];
+                int[] expectedFirst = new int[colorCount];
+                int[] expectedSecond = new int[colorCount];
+                for (int index = 0; index < sampleCount; index++)
+                {
+                    expectedCounts[indices[index]]++;
+                    expectedFirst[indices[index]] += first[index];
+                    expectedSecond[indices[index]] += second[index];
+                }
+
+                int[] counts = new int[colorCount];
+                int[] firstSums = new int[colorCount];
+                int[] secondSums = new int[colorCount];
+                Av1PaletteKMeans.SumByIndex(first, second, indices, counts, firstSums, secondSums);
+                Assert.Equal(expectedCounts, counts);
+                Assert.Equal(expectedFirst, firstSums);
+                Assert.Equal(expectedSecond, secondSums);
+
+                Array.Clear(counts);
+                Array.Clear(firstSums);
+                Av1PaletteKMeans.SumByIndex(first, default, indices, counts, firstSums, default);
+                Assert.Equal(expectedCounts, counts);
+                Assert.Equal(expectedFirst, firstSums);
+            }
+        }
+    }
+
+    /// <summary>
     /// Compares production assignment with a scalar equation over a length that exercises every available remainder path.
     /// </summary>
     private static void ValidateAssignment()

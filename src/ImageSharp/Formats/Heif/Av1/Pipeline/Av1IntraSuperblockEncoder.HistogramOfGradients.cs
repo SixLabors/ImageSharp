@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -59,6 +61,115 @@ internal static partial class Av1IntraSuperblockEncoder
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
         /// <summary>
+        /// Computes the gradients of the current superblock once for every block of its partition search, when the
+        /// search prunes directional modes with gradient histograms. The partition search reads each sample in many
+        /// blocks, so one pass per superblock removes the repeated gradient work.
+        /// </summary>
+        /// <param name="modeWorkspace">The mode decision buffers, which hold the gradient cache.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="superblockOrigin">The luma origin of the superblock.</param>
+        public void PrepareGradientCache(
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            Point superblockOrigin)
+        {
+            this.lumaGradientsCached = false;
+            this.chromaGradientsCached = false;
+            this.gradientSuperblockOrigin = superblockOrigin;
+
+            // Caching pays only when the full partition search visits each sample many times. Inter frames gate
+            // intra early, and a given partition searches few blocks, so both compute the gradients per block.
+            Av1EncoderSpeedSettings speedSettings = this.picture.Parent.SpeedSettings;
+            if (!this.picture.Parent.FrameHeader.IsIntra || UsesGivenPartition(this.picture))
+            {
+                return;
+            }
+
+            // The blocks read the gradients inside the coded image only, which ends at the mode information grid.
+            int superblockSize = 1 << this.picture.Sequence.SequenceHeader.SuperblockSizeLog2;
+            int lumaRows = Math.Min(superblockSize, (this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2) - superblockOrigin.Y);
+            int lumaColumns = Math.Min(superblockSize, (this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) - superblockOrigin.X);
+            if (speedSettings.IntraHogPruningLevel != 0)
+            {
+                CacheSuperblockGradients(
+                    this.source.GetPlane(Av1Plane.Y),
+                    sourceLuma,
+                    superblockOrigin,
+                    lumaRows,
+                    lumaColumns,
+                    modeWorkspace.GetGradientMagnitudes(Av1PlaneType.Y),
+                    modeWorkspace.GetGradientBins(Av1PlaneType.Y));
+
+                this.lumaGradientsCached = true;
+            }
+
+            ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
+            if (speedSettings.ChromaHogPruningLevel != 0 && !colorConfig.IsMonochrome)
+            {
+                int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
+                int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
+                CacheSuperblockGradients(
+                    this.source.GetPlane(Av1Plane.U),
+                    sourceBlue,
+                    new Point(superblockOrigin.X >> subsamplingX, superblockOrigin.Y >> subsamplingY),
+                    lumaRows >> subsamplingY,
+                    lumaColumns >> subsamplingX,
+                    modeWorkspace.GetGradientMagnitudes(Av1PlaneType.Uv),
+                    modeWorkspace.GetGradientBins(Av1PlaneType.Uv));
+
+                this.chromaGradientsCached = true;
+            }
+        }
+
+        /// <summary>
+        /// Computes the directional-mode skip mask of a block, from the gradient cache of its superblock when the
+        /// superblock cached that plane type, else from its source samples. Both paths give the same mask.
+        /// </summary>
+        /// <param name="modeWorkspace">The mode decision buffers, which hold the gradient cache.</param>
+        /// <param name="planeType">The luma or chroma plane type.</param>
+        /// <param name="source">The source component plane.</param>
+        /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
+        /// <param name="origin">The visible block origin in the plane.</param>
+        /// <param name="rows">The visible row count.</param>
+        /// <param name="columns">The visible column count.</param>
+        /// <param name="histogramScale">The chroma subsampling area factor, or one for luma.</param>
+        /// <param name="threshold">The speed-dependent neural score threshold.</param>
+        /// <returns>A bit mask whose eight bits correspond to the contiguous directional prediction modes.</returns>
+        private readonly byte GetBlockDirectionalModeSkipMask(
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
+            Av1PlaneType planeType,
+            Av1PlaneRegion<TSample> source,
+            ReadOnlySpan<TSample> sourceSamples,
+            Point origin,
+            int rows,
+            int columns,
+            int histogramScale,
+            float threshold)
+        {
+            bool cached = planeType == Av1PlaneType.Y ? this.lumaGradientsCached : this.chromaGradientsCached;
+            if (!cached)
+            {
+                return GetDirectionalModeSkipMask(source, sourceSamples, origin, rows, columns, histogramScale, threshold);
+            }
+
+            // The block origin relative to the superblock origin in the same plane locates the block in the cache.
+            int subsamplingX = planeType == Av1PlaneType.Y || !this.picture.Sequence.SequenceHeader.ColorConfig.SubSamplingX ? 0 : 1;
+            int subsamplingY = planeType == Av1PlaneType.Y || !this.picture.Sequence.SequenceHeader.ColorConfig.SubSamplingY ? 0 : 1;
+            int offsetX = origin.X - (this.gradientSuperblockOrigin.X >> subsamplingX);
+            int offsetY = origin.Y - (this.gradientSuperblockOrigin.Y >> subsamplingY);
+            return GetCachedDirectionalModeSkipMask(
+                modeWorkspace.GetGradientMagnitudes(planeType),
+                modeWorkspace.GetGradientBins(planeType),
+                (offsetY * Av1EncoderModeDecisionWorkspace<TSample>.MaximumBlockDimension) + offsetX,
+                rows,
+                columns,
+                histogramScale,
+                threshold);
+        }
+
+        /// <summary>
         /// Computes the directional-mode skip mask from a source block's Sobel histogram.
         /// </summary>
         /// <param name="source">The source component plane.</param>
@@ -94,10 +205,25 @@ internal static partial class Av1IntraSuperblockEncoder
                 Span<short> horizontal = stackalloc short[128];
                 Span<short> vertical = stackalloc short[128];
                 int interior = columns - 2;
+
+                // The window is a ring of three rows: each step widens only the new row below, into the slot of the row
+                // that left the window, so each source row is widened once.
+                ReadOnlySpan<TSample> blockSamples = sourceSamples[source.GetOffset(origin.X, origin.Y)..];
+                TOperator.CopyPaletteSamples(blockSamples, source.Stride, 2, columns, window);
                 for (int row = 1; row < rows - 1; row++)
                 {
-                    TOperator.CopyPaletteSamples(sourceSamples[source.GetOffset(origin.X, origin.Y + row - 1)..], source.Stride, 3, columns, window);
-                    Av1GradientHistogram.ComputeRow(window, columns, 1, magnitudes, bins, horizontal, vertical);
+                    Span<short> belowRow = window.Slice(((row + 1) % 3) * columns, columns);
+                    TOperator.CopyPaletteSamples(blockSamples[((row + 1) * source.Stride)..], source.Stride, 1, columns, belowRow);
+                    Av1GradientHistogram.ComputeRow(
+                        window.Slice(((row - 1) % 3) * columns, columns),
+                        window.Slice((row % 3) * columns, columns),
+                        belowRow,
+                        columns,
+                        magnitudes,
+                        bins,
+                        horizontal,
+                        vertical);
+
                     for (int column = 0; column < interior; column++)
                     {
                         int magnitude = magnitudes[column];
@@ -120,6 +246,147 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
+            return ScoreDirectionalModes(histogram, total, histogramScale, threshold);
+        }
+
+        /// <summary>
+        /// Computes the directional-mode skip mask of a block from the gradients cached for its superblock.
+        /// This avoids a second gradient pass over samples that the superblock pass already processed.
+        /// </summary>
+        /// <param name="magnitudes">The cached gradient magnitudes of the plane type, see <see cref="CacheSuperblockGradients"/>.</param>
+        /// <param name="bins">The cached histogram bins of the plane type.</param>
+        /// <param name="blockOffset">The cache index of the block origin.</param>
+        /// <param name="rows">The visible row count.</param>
+        /// <param name="columns">The visible column count.</param>
+        /// <param name="histogramScale">The chroma subsampling area factor, or one for luma.</param>
+        /// <param name="threshold">The speed-dependent neural score threshold.</param>
+        /// <returns>A bit mask whose eight bits correspond to the contiguous directional prediction modes.</returns>
+        internal static byte GetCachedDirectionalModeSkipMask(
+            ReadOnlySpan<short> magnitudes,
+            ReadOnlySpan<sbyte> bins,
+            int blockOffset,
+            int rows,
+            int columns,
+            int histogramScale,
+            float threshold)
+        {
+            Span<float> histogram = stackalloc float[GradientBinCount];
+            histogram.Clear();
+            float total = 0.1F;
+
+            // The cache holds the same gradient as the block's own Sobel window at every interior sample, because
+            // each gradient reads only its 3x3 neighbors, and those lie inside the block. The histogram adds them
+            // in the same row order, so the float sums are the same as those of the uncached path.
+            const int Stride = Av1EncoderModeDecisionWorkspace<TSample>.MaximumBlockDimension;
+            for (int row = 1; row < rows - 1; row++)
+            {
+                int rowOffset = blockOffset + (row * Stride);
+                for (int column = 1; column < columns - 1; column++)
+                {
+                    int magnitude = magnitudes[rowOffset + column];
+                    if (magnitude == 0)
+                    {
+                        continue;
+                    }
+
+                    total += magnitude;
+                    int bin = bins[rowOffset + column];
+                    if (bin == Av1GradientHistogram.VerticalBin)
+                    {
+                        histogram[0] += magnitude >> 1;
+                        histogram[^1] += magnitude >> 1;
+                        continue;
+                    }
+
+                    histogram[bin] += magnitude;
+                }
+            }
+
+            return ScoreDirectionalModes(histogram, total, histogramScale, threshold);
+        }
+
+        /// <summary>
+        /// Computes the gradient magnitude and histogram bin of every interior sample of a superblock region, so that
+        /// the blocks of the superblock read them instead of computing them again.
+        /// Each sample depth is first copied to 16-bit rows, so one row kernel serves both depths.
+        /// </summary>
+        /// <param name="source">The source component plane.</param>
+        /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
+        /// <param name="origin">The superblock origin in the plane.</param>
+        /// <param name="rows">The number of superblock rows inside the coded image.</param>
+        /// <param name="columns">The number of superblock columns inside the coded image.</param>
+        /// <param name="magnitudes">Receives |dx| + |dy| of each interior sample, one cache row per superblock row.</param>
+        /// <param name="bins">Receives the histogram bin of each interior sample.</param>
+        internal static void CacheSuperblockGradients(
+            Av1PlaneRegion<TSample> source,
+            ReadOnlySpan<TSample> sourceSamples,
+            Point origin,
+            int rows,
+            int columns,
+            Span<short> magnitudes,
+            Span<sbyte> bins)
+        {
+            if (rows <= 2 || columns <= 2)
+            {
+                return;
+            }
+
+            // The same vector row kernel as the uncached path fills one cache row at a time from a three-row window.
+            const int Stride = Av1EncoderModeDecisionWorkspace<TSample>.MaximumBlockDimension;
+            Span<short> window = stackalloc short[3 * Stride];
+            Span<short> rowMagnitudes = stackalloc short[Stride];
+            Span<int> rowBins = stackalloc int[Stride];
+            Span<short> horizontal = stackalloc short[Stride];
+            Span<short> vertical = stackalloc short[Stride];
+            int interior = columns - 2;
+
+            // The window is a ring of three rows: each step widens only the new row below, into the slot of the row that
+            // left the window, so each source row is widened once.
+            ReadOnlySpan<TSample> blockSamples = sourceSamples[source.GetOffset(origin.X, origin.Y)..];
+            TOperator.CopyPaletteSamples(blockSamples, source.Stride, 2, columns, window);
+            for (int row = 1; row < rows - 1; row++)
+            {
+                Span<short> belowRow = window.Slice(((row + 1) % 3) * columns, columns);
+                TOperator.CopyPaletteSamples(blockSamples[((row + 1) * source.Stride)..], source.Stride, 1, columns, belowRow);
+                Av1GradientHistogram.ComputeRow(
+                    window.Slice(((row - 1) % 3) * columns, columns),
+                    window.Slice((row % 3) * columns, columns),
+                    belowRow,
+                    columns,
+                    rowMagnitudes,
+                    rowBins,
+                    horizontal,
+                    vertical);
+
+                int rowOffset = (row * Stride) + 1;
+                rowMagnitudes[..interior].CopyTo(magnitudes.Slice(rowOffset, interior));
+                Span<sbyte> binRow = bins.Slice(rowOffset, interior);
+                for (int column = 0; column < interior; column++)
+                {
+                    binRow[column] = (sbyte)rowBins[column];
+                }
+            }
+        }
+
+        /// <summary>
+        /// Scores the eight directional modes with the gradient model and marks the modes whose score is at most the
+        /// threshold. The intra mode search skips each marked mode.
+        /// </summary>
+        /// <param name="histogram">The gradient histogram of the block.</param>
+        /// <param name="total">The sum of the gradient magnitudes plus the 0.1 bias.</param>
+        /// <param name="histogramScale">The chroma subsampling area factor, or one for luma.</param>
+        /// <param name="threshold">The speed-dependent neural score threshold.</param>
+        /// <returns>A bit mask whose eight bits correspond to the contiguous directional prediction modes.</returns>
+        private static byte ScoreDirectionalModes(ReadOnlySpan<float> histogram, float total, int histogramScale, float threshold)
+        {
+            // The histogram is normalized and scaled once, then every mode weighs the same values.
+            InlineArray32<float> featureStorage = default;
+            Span<float> features = featureStorage;
+            for (int bin = 0; bin < GradientBinCount; bin++)
+            {
+                features[bin] = (histogram[bin] / total) * histogramScale;
+            }
+
             byte mask = 0;
             ReadOnlySpan<float> weights = GradientModelWeights;
             ReadOnlySpan<float> bias = GradientModelBias;
@@ -129,7 +396,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int weightOffset = mode * GradientBinCount;
                 for (int bin = 0; bin < GradientBinCount; bin++)
                 {
-                    score += weights[weightOffset + bin] * ((histogram[bin] / total) * histogramScale);
+                    score += weights[weightOffset + bin] * features[bin];
                 }
 
                 // Reduce neural outputs to Q9 before comparing the speed-dependent threshold.

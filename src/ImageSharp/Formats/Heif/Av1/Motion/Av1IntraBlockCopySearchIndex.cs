@@ -24,25 +24,34 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     private const int MinimumFullPixelMotionVector = -(1 << 11) + 1;
     private const int MaximumFullPixelMotionVector = (1 << 11) - 1;
     private readonly int maximumHashBlockSize;
-    private readonly Memory<byte> storage;
+
+    /// <summary>
+    /// The storage of each square block size, from 4x4 at index 0 up to 128x128 at index 5. Each size has its own
+    /// buffer, so no single buffer grows past the pool block size until the picture is large.
+    /// </summary>
+    private readonly InlineArray6<Memory<byte>> levels;
+
     private readonly int width;
     private readonly int height;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1IntraBlockCopySearchIndex"/> struct over picture-lifetime storage.
     /// </summary>
-    /// <param name="storage">The packed per-size hashes, links, and bucket storage.</param>
+    /// <param name="levels">
+    /// The hashes, links, and bucket storage of each square block size, from 4x4 at index 0. Each buffer has the
+    /// length that <see cref="GetLevelStorageLength"/> returns for its size.
+    /// </param>
     /// <param name="width">The visible luma width.</param>
     /// <param name="height">The visible luma height.</param>
     /// <param name="maximumHashBlockSize">The largest square block represented by the index.</param>
-    public Av1IntraBlockCopySearchIndex(Memory<byte> storage, int width, int height, int maximumHashBlockSize)
+    public Av1IntraBlockCopySearchIndex(InlineArray6<Memory<byte>> levels, int width, int height, int maximumHashBlockSize)
     {
         this.maximumHashBlockSize = maximumHashBlockSize;
         this.width = width;
         this.height = height;
         this.OriginWidth = Math.Max(0, width - BlockSize + 1);
         this.OriginHeight = Math.Max(0, height - BlockSize + 1);
-        this.storage = storage;
+        this.levels = levels;
     }
 
     /// <summary>
@@ -126,26 +135,31 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     public int OriginHeight { get; }
 
     /// <summary>
-    /// Gets the packed storage length required for a visible frame.
+    /// Gets the largest square block size that the index stores for a visible frame.
     /// </summary>
     /// <param name="width">The visible luma width.</param>
     /// <param name="height">The visible luma height.</param>
-    /// <param name="maximumHashBlockSize">The largest square block represented by the index.</param>
-    /// <returns>The required byte length.</returns>
-    public static int GetStorageLength(int width, int height, int maximumHashBlockSize)
-    {
-        int length = 0;
-        int maximumSize = Math.Min(maximumHashBlockSize, Math.Min(width, height));
-        for (int size = 4; size <= maximumSize; size <<= 1)
-        {
-            int origins = checked((width - size + 1) * (height - size + 1));
-            length = checked(length + (2 * origins * sizeof(uint)) +
-                (MaximumBucketCount * ((2 * sizeof(int)) + sizeof(ushort))));
-        }
+    /// <param name="maximumHashBlockSize">The largest square block eligible for the index.</param>
+    /// <returns>The largest stored size. A value less than 4 means that the index stores no size.</returns>
+    public static int GetMaximumStoredSize(int width, int height, int maximumHashBlockSize)
+        => Math.Min(maximumHashBlockSize, Math.Min(width, height));
 
-        // The first reduction borrows the not-yet-populated index for its 2x2 seeds. Very narrow
-        // pictures can need more seed storage than retained entries, so reserve the larger live extent.
-        return maximumSize < 4 ? 0 : Math.Max(length, checked((width - 1) * (height - 1) * sizeof(uint)));
+    /// <summary>
+    /// Gets the storage length of one square block size for a visible frame.
+    /// </summary>
+    /// <param name="width">The visible luma width.</param>
+    /// <param name="height">The visible luma height.</param>
+    /// <param name="size">The square block size, a power of two from 4 to 128.</param>
+    /// <returns>The required byte length.</returns>
+    public static int GetLevelStorageLength(int width, int height, int size)
+    {
+        // Each origin has one hash and one link. Each bucket has a head, a tail, and a count.
+        int origins = checked((width - size + 1) * (height - size + 1));
+        int length = checked((2 * origins * sizeof(uint)) + (MaximumBucketCount * ((2 * sizeof(int)) + sizeof(ushort))));
+
+        // The first reduction writes the 4x4 hashes over the 2x2 seeds in the 4x4 storage. Very narrow pictures can
+        // need more seed storage than 4x4 entries, so the 4x4 storage reserves the larger extent.
+        return size == 4 ? Math.Max(length, checked((width - 1) * (height - 1) * sizeof(uint))) : length;
     }
 
     /// <summary>
@@ -158,14 +172,14 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         where TSample : unmanaged
         where TOperation : struct, ISearchOperation<TSample>
     {
-        int maximumSize = Math.Min(this.maximumHashBlockSize, Math.Min(this.width, this.height));
+        int maximumSize = GetMaximumStoredSize(this.width, this.height, this.maximumHashBlockSize);
         if (maximumSize < 4)
         {
             return;
         }
 
         int sourceWidth = this.width - 1;
-        Span<uint> previous = MemoryMarshal.Cast<byte, uint>(this.storage.Span)[..(sourceWidth * (this.height - 1))];
+        Span<uint> previous = MemoryMarshal.Cast<byte, uint>(this.levels[0].Span)[..(sourceWidth * (this.height - 1))];
         ReadOnlySpan<TSample> sourceSamples = source.Samples;
         int sourceOffset = source.Origin;
         for (int y = 0; y < this.height - 1; y++)
@@ -770,16 +784,9 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         out Span<int> tails,
         out Span<ushort> counts)
     {
-        int offset = 0;
-        for (int previousSize = 4; previousSize < size; previousSize <<= 1)
-        {
-            int previousCount = (this.width - previousSize + 1) * (this.height - previousSize + 1);
-            offset += (2 * previousCount * sizeof(uint)) +
-                (MaximumBucketCount * ((2 * sizeof(int)) + sizeof(ushort)));
-        }
-
+        // Size 4 is level 0 and each doubling of the size is the next level.
         int originCount = (this.width - size + 1) * (this.height - size + 1);
-        Span<byte> data = this.storage.Span[offset..];
+        Span<byte> data = this.levels[BitOperations.Log2((uint)size) - 2].Span;
         int hashLength = originCount * sizeof(uint);
         int bucketLength = MaximumBucketCount * sizeof(int);
         hashes = MemoryMarshal.Cast<byte, uint>(data[..hashLength]);

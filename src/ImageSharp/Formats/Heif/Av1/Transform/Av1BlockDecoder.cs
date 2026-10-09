@@ -54,6 +54,16 @@ internal sealed class Av1BlockDecoder
     private readonly int predictorWorkingLength;
 
     /// <summary>
+    /// The offset of the predictor portion in <see cref="workspace"/>, in signed-short storage elements.
+    /// </summary>
+    private readonly int predictorWorkingOffset;
+
+    /// <summary>
+    /// The offset of the chroma-from-luma Q3 buffer in <see cref="workspace"/>, in signed-short storage elements.
+    /// </summary>
+    private readonly int chromaFromLumaBufferOffset;
+
+    /// <summary>
     /// Reconstructs intra-predicted blocks using the frame-owned prediction workspace.
     /// </summary>
     private readonly Av1PredictionDecoder predictionDecoder;
@@ -103,16 +113,28 @@ internal sealed class Av1BlockDecoder
         // frame-local views supply prediction and CfL contexts without transferring ownership.
         Memory<short> predictionScratch = workspace[this.predictionScratchOffset..];
         this.predictorWorkingLength = predictorWorkingLength;
-        this.predictionDecoder = new(
-            sequenceHeader,
-            frameHeader,
-            predictionScratch.Slice(predictorWorkingOffset, predictorWorkingLength),
-            paletteColorIndexMaps);
+        this.predictorWorkingOffset = this.predictionScratchOffset + predictorWorkingOffset;
+        this.chromaFromLumaBufferOffset = this.predictionScratchOffset + chromaFromLumaOffset;
+        this.predictionDecoder = new(sequenceHeader, frameHeader, paletteColorIndexMaps);
 
         this.chromaFromLumaContext = new(
             sequenceHeader.ColorConfig,
             predictionScratch.Slice(chromaFromLumaOffset, Av1ChromaFromLumaContext.BufferLength));
     }
+
+    /// <summary>
+    /// Gets the inverse-transform and prediction storage. A caller reads it once per tile and passes it to
+    /// <see cref="BeginBlock"/> and <see cref="DecodeTransform"/>.
+    /// </summary>
+    public Span<short> Workspace => this.workspace.Span;
+
+    /// <summary>
+    /// Gets the samples of one plane of the reconstructed frame. A caller reads each plane once per tile and passes it to
+    /// <see cref="BeginBlock"/>, <see cref="DecodeTransform"/> and <see cref="EndBlock"/>.
+    /// </summary>
+    /// <param name="plane">The plane.</param>
+    /// <returns>The plane samples, or an empty span for a chroma plane of a monochrome frame.</returns>
+    public Span<byte> GetFramePlane(Av1Plane plane) => this.frameBuffer.GetPlaneSamples(plane);
 
     /// <summary>
     /// Gets the number of signed-short elements required for block reconstruction.
@@ -194,7 +216,11 @@ internal sealed class Av1BlockDecoder
 
         partitionInfo.PopulateModeInfoNeighbors(colorConfig);
 
-        this.BeginBlock(ref partitionInfo, tileInfo);
+        Span<short> workspace = this.workspace.Span;
+        Span<byte> frameLuma = this.frameBuffer.GetPlaneSamples(Av1Plane.Y);
+        Span<byte> frameBlue = this.frameBuffer.GetPlaneSamples(Av1Plane.U);
+        Span<byte> frameRed = this.frameBuffer.GetPlaneSamples(Av1Plane.V);
+        this.BeginBlock(ref partitionInfo, workspace, frameLuma, frameBlue, frameRed, tileInfo);
 
         int maxBlocksWide = partitionInfo.GetMaxBlockWide(blockSize, false);
         int maxBlocksHigh = partitionInfo.GetMaxBlockHigh(blockSize, false);
@@ -239,21 +265,32 @@ internal sealed class Av1BlockDecoder
 
             Guard.IsFalse(transformUnitCount == 0, nameof(transformUnitCount), "Must have at least a single transform unit to decode.");
 
+            Span<int> planeCoefficients = superblockInfo.GetCoefficients((Av1Plane)plane);
             for (int tu = 0; tu < transformUnitCount; tu++)
             {
-                this.DecodeTransform(ref partitionInfo, plane, ref transformInfo[tu], tileInfo);
+                this.DecodeTransform(ref partitionInfo, plane, ref transformInfo[tu], workspace, frameLuma, frameBlue, frameRed, planeCoefficients, tileInfo);
             }
         }
 
-        this.EndBlock(ref partitionInfo);
+        this.EndBlock(ref partitionInfo, workspace, frameLuma);
     }
 
     /// <summary>
     /// Prepares block prediction before its transform coefficients are read.
     /// </summary>
     /// <param name="partitionInfo">The published block modes, geometry, and available neighbors.</param>
+    /// <param name="workspace">The inverse-transform and prediction storage, from <see cref="Workspace"/>.</param>
+    /// <param name="frameLuma">The luma samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
+    /// <param name="frameBlue">The blue-difference samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
+    /// <param name="frameRed">The red-difference samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
-    public void BeginBlock(ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
+    public void BeginBlock(
+        ref Av1PartitionInfo partitionInfo,
+        Span<short> workspace,
+        Span<byte> frameLuma,
+        Span<byte> frameBlue,
+        Span<byte> frameRed,
+        Av1TileInfo tileInfo)
     {
         partitionInfo.ChromaFromLumaContext = this.chromaFromLumaContext;
         ref Av1BlockModeInfo modeInfo = ref partitionInfo.ModeInfo;
@@ -299,9 +336,11 @@ internal sealed class Av1BlockDecoder
         }
 
         bool highBitDepth = this.frameBuffer.BytesPerSample == 2;
-        Span<short> predictionStorage = this.workspace.Span[this.predictionScratchOffset..];
+        Span<short> predictionStorage = workspace[this.predictionScratchOffset..];
+        Span<short> predictorScratch = workspace.Slice(this.predictorWorkingOffset, this.predictorWorkingLength);
         for (int plane = 0; plane < colorConfig.PlaneCount; plane++)
         {
+            Span<byte> framePlane = plane == 0 ? frameLuma : plane == 1 ? frameBlue : frameRed;
             int subX = (plane > 0) && colorConfig.SubSamplingX ? 1 : 0;
             int subY = (plane > 0) && colorConfig.SubSamplingY ? 1 : 0;
 
@@ -323,6 +362,7 @@ internal sealed class Av1BlockDecoder
             if (highBitDepth)
             {
                 highBitDepthBlockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer16(
+                    framePlane,
                     (Av1Plane)plane,
                     pixelPosition,
                     subX,
@@ -331,7 +371,13 @@ internal sealed class Av1BlockDecoder
             }
             else
             {
-                blockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer((Av1Plane)plane, pixelPosition, subX, subY, out reconstructionStride);
+                blockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer(
+                    framePlane,
+                    (Av1Plane)plane,
+                    pixelPosition,
+                    subX,
+                    subY,
+                    out reconstructionStride);
             }
 
             if (modeInfo.UseIntraBlockCopy)
@@ -358,6 +404,7 @@ internal sealed class Av1BlockDecoder
                 if (highBitDepth)
                 {
                     Span<short> source = this.frameBuffer.DeriveBlockPointer16(
+                        framePlane,
                         (Av1Plane)plane,
                         sourcePixelPosition,
                         subX,
@@ -377,6 +424,7 @@ internal sealed class Av1BlockDecoder
                 else
                 {
                     Span<byte> source = this.frameBuffer.DeriveBlockPointer(
+                        framePlane,
                         (Av1Plane)plane,
                         sourcePixelPosition,
                         subX,
@@ -1170,6 +1218,7 @@ internal sealed class Av1BlockDecoder
                     if (highBitDepth)
                     {
                         this.predictionDecoder.DecodeInterIntra(
+                            predictorScratch,
                             ref partitionInfo,
                             (Av1Plane)plane,
                             tileInfo,
@@ -1215,6 +1264,7 @@ internal sealed class Av1BlockDecoder
                     else
                     {
                         this.predictionDecoder.DecodeInterIntra(
+                            predictorScratch,
                             ref partitionInfo,
                             (Av1Plane)plane,
                             tileInfo,
@@ -1285,8 +1335,22 @@ internal sealed class Av1BlockDecoder
     /// <param name="partitionInfo">The current block modes, geometry, and available neighbors.</param>
     /// <param name="plane">The zero-based color-plane index.</param>
     /// <param name="transformInfo">The parsed transform geometry and residual metadata.</param>
+    /// <param name="workspace">The inverse-transform and prediction storage, from <see cref="Workspace"/>.</param>
+    /// <param name="frameLuma">The luma samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
+    /// <param name="frameBlue">The blue-difference samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
+    /// <param name="frameRed">The red-difference samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
+    /// <param name="planeCoefficients">The coefficient scratch of the plane in the superblock, read once by the caller.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
-    public void DecodeTransform(ref Av1PartitionInfo partitionInfo, int plane, ref Av1TransformInfo transformInfo, Av1TileInfo tileInfo)
+    public void DecodeTransform(
+        ref Av1PartitionInfo partitionInfo,
+        int plane,
+        ref Av1TransformInfo transformInfo,
+        Span<short> workspace,
+        Span<byte> frameLuma,
+        Span<byte> frameBlue,
+        Span<byte> frameRed,
+        Span<int> planeCoefficients,
+        Av1TileInfo tileInfo)
     {
         ref Av1BlockModeInfo modeInfo = ref partitionInfo.ModeInfo;
         Av1SuperblockInfo superblockInfo = partitionInfo.SuperblockInfo;
@@ -1296,11 +1360,13 @@ internal sealed class Av1BlockDecoder
         int subX = plane > 0 && colorConfig.SubSamplingX ? 1 : 0;
         int subY = plane > 0 && colorConfig.SubSamplingY ? 1 : 0;
         bool highBitDepth = this.frameBuffer.BytesPerSample == 2;
+        Span<byte> framePlane = plane == 0 ? frameLuma : plane == 1 ? frameBlue : frameRed;
+        Span<short> chromaFromLumaBuffer = workspace.Slice(this.chromaFromLumaBufferOffset, Av1ChromaFromLumaContext.BufferLength);
         bool isInterBlock = modeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Last;
         bool isLossless = this.frameHeader.LosslessArray[modeInfo.SegmentId];
         Av1TransformSize transformSize = transformInfo.Size;
         Span<int> transformWorkspace = MemoryMarshal.Cast<short, int>(
-            this.workspace.Span[..(Av1TransformWorkspace.InverseMaximumLength * 2)]);
+            workspace[..(Av1TransformWorkspace.InverseMaximumLength * 2)]);
 
         Point pixelPosition = new(
             (modeInfoPosition.X >> subX) << Av1Constants.ModeInfoSizeLog2,
@@ -1315,6 +1381,7 @@ internal sealed class Av1BlockDecoder
         if (highBitDepth)
         {
             highBitDepthBlockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer16(
+                framePlane,
                 (Av1Plane)plane,
                 pixelPosition,
                 subX,
@@ -1323,12 +1390,12 @@ internal sealed class Av1BlockDecoder
         }
         else
         {
-            blockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer((Av1Plane)plane, pixelPosition, subX, subY, out reconstructionStride);
+            blockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer(framePlane, (Av1Plane)plane, pixelPosition, subX, subY, out reconstructionStride);
         }
 
         Span<byte> transformBlockReconstructionBuffer = default;
         Span<short> highBitDepthTransformBlockReconstructionBuffer = default;
-        Span<int> coefficients = superblockInfo.GetCoefficients((Av1Plane)plane)[this.currentCoefficientIndex[plane]..];
+        Span<int> coefficients = planeCoefficients[this.currentCoefficientIndex[plane]..];
 
         // Transform offsets are stored in mode-info units. Reconstruction strides are expressed in logical
         // samples for both storage pipelines, so no byte scaling is applied to the high-bit-depth offset.
@@ -1349,6 +1416,8 @@ internal sealed class Av1BlockDecoder
             if (highBitDepth)
             {
                 this.predictionDecoder.Decode(
+                    workspace.Slice(this.predictorWorkingOffset, this.predictorWorkingLength),
+                    chromaFromLumaBuffer,
                     ref partitionInfo,
                     (Av1Plane)plane,
                     transformSize,
@@ -1362,6 +1431,8 @@ internal sealed class Av1BlockDecoder
             else
             {
                 this.predictionDecoder.Decode(
+                    workspace.Slice(this.predictorWorkingOffset, this.predictorWorkingLength),
+                    chromaFromLumaBuffer,
                     ref partitionInfo,
                     (Av1Plane)plane,
                     transformSize,
@@ -1423,6 +1494,7 @@ internal sealed class Av1BlockDecoder
             if (highBitDepth)
             {
                 this.chromaFromLumaContext.Store(
+                    chromaFromLumaBuffer,
                     highBitDepthTransformBlockReconstructionBuffer[reconstructionStride..],
                     reconstructionStride,
                     transformInfo.OffsetY,
@@ -1435,6 +1507,7 @@ internal sealed class Av1BlockDecoder
             else
             {
                 this.chromaFromLumaContext.Store(
+                    chromaFromLumaBuffer,
                     transformBlockReconstructionBuffer[reconstructionStride..],
                     reconstructionStride,
                     transformInfo.OffsetY,
@@ -1451,7 +1524,9 @@ internal sealed class Av1BlockDecoder
     /// Completes reconstruction of a coding block.
     /// </summary>
     /// <param name="partitionInfo">The reconstructed block modes and geometry.</param>
-    public void EndBlock(ref Av1PartitionInfo partitionInfo)
+    /// <param name="workspace">The inverse-transform and prediction storage, from <see cref="Workspace"/>.</param>
+    /// <param name="frameLuma">The luma samples of the reconstructed frame, from <see cref="GetFramePlane"/>.</param>
+    public void EndBlock(ref Av1PartitionInfo partitionInfo, Span<short> workspace, Span<byte> frameLuma)
     {
         ref Av1BlockModeInfo modeInfo = ref partitionInfo.ModeInfo;
         bool isInterBlock = modeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Last || modeInfo.UseIntraBlockCopy;
@@ -1478,15 +1553,33 @@ internal sealed class Av1BlockDecoder
             // both branches pass logical sample strides to the shared Q3 storage kernel.
             if (this.frameBuffer.BytesPerSample == 2)
             {
-                Span<short> samples = this.frameBuffer.DeriveBlockPointer16(Av1Plane.Y, pixelPosition, 0, 0, out int stride);
+                Span<short> samples = this.frameBuffer.DeriveBlockPointer16(frameLuma, Av1Plane.Y, pixelPosition, 0, 0, out int stride);
                 this.chromaFromLumaContext.Store(
-                    samples[stride..], stride, 0, 0, width, height, blockSize, partitionInfo.RowIndex, partitionInfo.ColumnIndex);
+                    workspace.Slice(this.chromaFromLumaBufferOffset, Av1ChromaFromLumaContext.BufferLength),
+                    samples[stride..],
+                    stride,
+                    0,
+                    0,
+                    width,
+                    height,
+                    blockSize,
+                    partitionInfo.RowIndex,
+                    partitionInfo.ColumnIndex);
             }
             else
             {
-                Span<byte> samples = this.frameBuffer.DeriveBlockPointer(Av1Plane.Y, pixelPosition, 0, 0, out int stride);
+                Span<byte> samples = this.frameBuffer.DeriveBlockPointer(frameLuma, Av1Plane.Y, pixelPosition, 0, 0, out int stride);
                 this.chromaFromLumaContext.Store(
-                    samples[stride..], stride, 0, 0, width, height, blockSize, partitionInfo.RowIndex, partitionInfo.ColumnIndex);
+                    workspace.Slice(this.chromaFromLumaBufferOffset, Av1ChromaFromLumaContext.BufferLength),
+                    samples[stride..],
+                    stride,
+                    0,
+                    0,
+                    width,
+                    height,
+                    blockSize,
+                    partitionInfo.RowIndex,
+                    partitionInfo.ColumnIndex);
             }
         }
     }

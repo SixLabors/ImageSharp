@@ -22,6 +22,12 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
     /// </summary>
     private readonly Memory<byte> stateMemory;
 
+    /// <summary>
+    /// The owner of the intra-block-copy search buffer of each square block size, from 4x4 at index 0. A size without
+    /// a buffer has no owner.
+    /// </summary>
+    private InlineArray6<IMemoryOwner<byte>> intraBlockCopySearchStorage;
+
     private readonly ByteMemoryManager<Av1PartitionContext> partitionContextMemory;
     private readonly Av1NeighborArrayUnit<Av1PartitionContext>[] partitionContexts;
     private readonly Av1NeighborArrayUnit<byte>[] lumaCoefficientContexts;
@@ -168,18 +174,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 displacementVectorLength * Unsafe.SizeOf<Av1EncoderReferenceContext>());
 
             int referenceContextStorageEnd = checked(displacementVectorStorageEnd + referenceContextStorageLength);
-            int intraBlockCopySearchStorageOffset = allocateIntraBlockCopySearch
-                ? Av1Math.AlignPowerOf2(referenceContextStorageEnd, 2)
-                : referenceContextStorageEnd;
-
-            int intraBlockCopySearchStorageLength = allocateIntraBlockCopySearch
-                ? Av1IntraBlockCopySearchIndex.GetStorageLength(width, height, maximumHashBlockSize)
-                : 0;
-
-            int intraBlockCopySearchStorageEnd = checked(
-                intraBlockCopySearchStorageOffset + intraBlockCopySearchStorageLength);
-
-            int tileStateStorageOffset = Av1Math.AlignPowerOf2(intraBlockCopySearchStorageEnd, 2);
+            int tileStateStorageOffset = Av1Math.AlignPowerOf2(referenceContextStorageEnd, 2);
             int cdefPresetLength = tileCount * Av1Constants.CdefUnitsPerSuperblock;
             int tileStateLength = cdefPresetLength + (2 * tileCount);
             int tileStateStorageLength = tileStateLength * sizeof(int);
@@ -273,13 +268,20 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             Av1IntraBlockCopySearchIndex intraBlockCopySearch = default;
             if (allocateIntraBlockCopySearch)
             {
-                // The search index casts its packed workspace to 32-bit links, so its non-owning region begins at
-                // a four-byte boundary inside the existing picture-state rent.
-                intraBlockCopySearch = new Av1IntraBlockCopySearchIndex(
-                    stateStorage.Slice(intraBlockCopySearchStorageOffset, intraBlockCopySearchStorageLength),
-                    width,
-                    height,
-                    maximumHashBlockSize);
+                // Each block size has its own buffer outside the packed picture state. One buffer for all sizes grows
+                // past the pool block size on small pictures. A larger buffer comes from native memory, and its memory
+                // pressure starts a full collection for each picture. The index writes every value that it reads
+                // before each frame, so the buffers need no clear.
+                InlineArray6<Memory<byte>> levels = default;
+                int maximumStoredSize = Av1IntraBlockCopySearchIndex.GetMaximumStoredSize(width, height, maximumHashBlockSize);
+                for (int size = 4, level = 0; size <= maximumStoredSize; size <<= 1, level++)
+                {
+                    int length = Av1IntraBlockCopySearchIndex.GetLevelStorageLength(width, height, size);
+                    this.intraBlockCopySearchStorage[level] = configuration.MemoryAllocator.Allocate<byte>(length);
+                    levels[level] = this.intraBlockCopySearchStorage[level].Memory[..length];
+                }
+
+                intraBlockCopySearch = new Av1IntraBlockCopySearchIndex(levels, width, height, maximumHashBlockSize);
             }
 
             ByteMemoryManager<int> tileStateMemory = new(
@@ -420,9 +422,10 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         }
         catch
         {
-            // The context objects only borrow these two owners. A failed constructor must release the
+            // The context objects only borrow these owners. A failed constructor must release the
             // completed allocations itself because the enclosing sequence never receives this picture.
             this.stateStorage?.Dispose();
+            this.DisposeIntraBlockCopySearchStorage();
             this.modeInfo.Dispose();
             throw;
         }
@@ -491,6 +494,19 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         }
 
         this.stateStorage.Dispose();
+        this.DisposeIntraBlockCopySearchStorage();
         this.modeInfo.Dispose();
+    }
+
+    /// <summary>
+    /// Returns the allocated intra-block-copy search buffers to the configured allocator.
+    /// </summary>
+    private void DisposeIntraBlockCopySearchStorage()
+    {
+        // Sizes larger than the picture, and every size when the search is not allocated, have no owner.
+        foreach (IMemoryOwner<byte> owner in this.intraBlockCopySearchStorage)
+        {
+            owner?.Dispose();
+        }
     }
 }

@@ -30,12 +30,12 @@ public class Av1ChromaFromLumaTests
         ObuColorConfig colorConfig = new() { SubSamplingX = true, SubSamplingY = true };
         Av1ChromaFromLumaContext context = new(colorConfig);
 
-        context.Store(Enumerable.Repeat((byte)10, 16).ToArray(), 4, 0, 0, Av1TransformSize.Size4x4, Av1BlockSize.Block4x4, 0, 0);
-        context.Store(Enumerable.Repeat((byte)20, 16).ToArray(), 4, 0, 0, Av1TransformSize.Size4x4, Av1BlockSize.Block4x4, 0, 1);
-        context.Store(Enumerable.Repeat((byte)30, 16).ToArray(), 4, 0, 0, Av1TransformSize.Size4x4, Av1BlockSize.Block4x4, 1, 0);
-        context.Store(Enumerable.Repeat((byte)40, 16).ToArray(), 4, 0, 0, Av1TransformSize.Size4x4, Av1BlockSize.Block4x4, 1, 1);
+        context.Store(context.Q3Buffer, Enumerable.Repeat((byte)10, 16).ToArray(), 4, 0, 0, Av1TransformSize.Size4x4, Av1BlockSize.Block4x4, 0, 0);
+        context.Store(context.Q3Buffer, Enumerable.Repeat((byte)20, 16).ToArray(), 4, 0, 0, Av1TransformSize.Size4x4, Av1BlockSize.Block4x4, 0, 1);
+        context.Store(context.Q3Buffer, Enumerable.Repeat((byte)30, 16).ToArray(), 4, 0, 0, Av1TransformSize.Size4x4, Av1BlockSize.Block4x4, 1, 0);
+        context.Store(context.Q3Buffer, Enumerable.Repeat((byte)40, 16).ToArray(), 4, 0, 0, Av1TransformSize.Size4x4, Av1BlockSize.Block4x4, 1, 1);
 
-        context.ComputeParameters(Av1TransformSize.Size4x4);
+        context.ComputeParameters(context.Q3Buffer, Av1TransformSize.Size4x4);
 
         short[] expected =
         [
@@ -125,16 +125,16 @@ public class Av1ChromaFromLumaTests
                 short[] expected = CreateStoredReference(input, stride, sourceSize, subX, subY);
                 PadAndSubtractAverage(expected, activeWidth, activeHeight, targetWidth, targetHeight);
                 Av1ChromaFromLumaContext context = new(colorConfig);
-                context.Store(input, stride, 0, 0, sourceTransform, sourceTransform.ToBlockSize(), 0, 0);
-                context.ComputeParameters(targetTransform);
+                context.Store(context.Q3Buffer, input, stride, 0, 0, sourceTransform, sourceTransform.ToBlockSize(), 0, 0);
+                context.ComputeParameters(context.Q3Buffer, targetTransform);
                 Assert.Equal(expected, context.Q3Buffer.ToArray());
 
                 short[] highInput = CreateHighBitDepthInput(stride, sourceSize);
                 expected = CreateStoredReference(highInput, stride, sourceSize, subX, subY);
                 PadAndSubtractAverage(expected, activeWidth, activeHeight, targetWidth, targetHeight);
                 context = new Av1ChromaFromLumaContext(colorConfig);
-                context.Store(highInput, stride, 0, 0, sourceTransform, sourceTransform.ToBlockSize(), 0, 0);
-                context.ComputeParameters(targetTransform);
+                context.Store(context.Q3Buffer, highInput, stride, 0, 0, sourceTransform, sourceTransform.ToBlockSize(), 0, 0);
+                context.ComputeParameters(context.Q3Buffer, targetTransform);
                 Assert.Equal(expected, context.Q3Buffer.ToArray());
             }
         }

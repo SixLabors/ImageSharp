@@ -151,6 +151,20 @@ internal readonly ref struct Av1CoefficientCosts
         => this.costs[EndOfBlockOffset + (((((size * PlaneCount) + plane) * EndOfBlockClassCount) + cls) * EndOfBlockAlphabetSize) + symbol];
 
     /// <summary>
+    /// Gets the end-of-block token rates of one transform area, plane and class, so that a caller that prices many end
+    /// positions of one block looks the row up once.
+    /// </summary>
+    /// <param name="size">The transform area context.</param>
+    /// <param name="plane">The luma or chroma plane index.</param>
+    /// <param name="cls">The transform class context.</param>
+    /// <returns>The rate of each token symbol in 1/512-bit units.</returns>
+    public ReadOnlySpan<int> GetEndOfBlockRow(int size, int plane, int cls)
+    {
+        int row = (((size * PlaneCount) + plane) * EndOfBlockClassCount) + cls;
+        return this.costs.Slice(EndOfBlockOffset + (row * EndOfBlockAlphabetSize), EndOfBlockAlphabetSize);
+    }
+
+    /// <summary>
     /// Gets a skip rate.
     /// </summary>
     /// <param name="plane">The coefficient rate entries.</param>

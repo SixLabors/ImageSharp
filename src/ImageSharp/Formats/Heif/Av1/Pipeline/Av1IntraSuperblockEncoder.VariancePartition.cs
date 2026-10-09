@@ -212,7 +212,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Builds temporal partition moments and selects square or rectangular leaves in coding order.
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The containing tile and frame boundaries.</param>
         /// <param name="superblockOrigin">The origin of the supplied prediction.</param>
         /// <param name="blockOrigin">The current square's luma origin.</param>
@@ -223,7 +225,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="thresholds">The four square-size variance thresholds.</param>
         /// <param name="nodes">Scratch moments retained until low-variance flags have been derived.</param>
         private void BuildInterVariancePartitions(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Av1MacroBlockD macroBlock,
             Point superblockOrigin,
             Point blockOrigin,
@@ -245,7 +249,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     int x = blockOrigin.X - superblockOrigin.X;
                     int y = blockOrigin.Y - superblockOrigin.Y;
                     int sourceAverage = TOperator.GetAverage8x8(
-                        Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin), sourcePlane.Stride);
+                        Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin), sourcePlane.Stride);
 
                     int predictionAverage = TOperator.GetAverage8x8(prediction[((y * predictionStride) + x)..], predictionStride);
                     node.Sum = sourceAverage - predictionAverage;
@@ -266,7 +270,9 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 Point childOrigin = blockOrigin + new Size((child & 1) * half, (child >> 1) * half);
                 this.BuildInterVariancePartitions(
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     macroBlock,
                     superblockOrigin,
                     childOrigin,
@@ -571,7 +577,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The superblock's neighboring syntax and frame edges.</param>
         /// <param name="origin">The superblock's luma origin.</param>
         /// <param name="predictionStride">The row stride of the returned luma prediction.</param>
@@ -587,7 +595,9 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Av1MacroBlockD macroBlock,
             Point origin,
             out int predictionStride,
@@ -599,12 +609,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Size frameSize = new(parent.FrameHeader.FrameSize.FrameWidth, parent.FrameHeader.FrameSize.FrameHeight);
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             Av1PlaneRegion<TSample> lastPlane = this.reference.GetPlane(Av1Plane.Y);
-            ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, origin);
+            ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, origin);
             ReadOnlySpan<TSample> lastStorage = lastPlane.Samples;
             int lastOrigin = ((lastPlane.Bounds.Y + origin.Y) * lastPlane.Stride) + lastPlane.Bounds.X + origin.X;
             int precisionShift = this.bitDepth.GetBitCount() - 8;
             uint spatialVariance = this.sourceSadLevel > Av1SourceSadLevel.Low ? (uint)this.GetSourceVariance(
-                in sourcePlanes, midpoint, origin, blockSize) : uint.MaxValue;
+                sourceLuma, sourceBlue, sourceRed, midpoint, origin, blockSize) : uint.MaxValue;
 
             uint goldenSad = uint.MaxValue;
             if (this.hasDistinctGoldenReference && this.sourceSadLevel != Av1SourceSadLevel.Zero)
@@ -825,7 +835,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         displacementVectors,
-                        in sourcePlanes);
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed);
                 }
             }
 
@@ -857,7 +869,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     Av1Plane plane = index == 0 ? Av1Plane.U : Av1Plane.V;
                     Av1PlaneRegion<TSample> chromaSource = this.source.GetPlane(plane);
-                    ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(plane), chromaSource, chromaOrigin);
+                    ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(
+                        SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), chromaSource, chromaOrigin);
 
                     // chroma_check() measures zero motion against LAST, whichever reference the partition chose:
                     // pre[0] when that is LAST, otherwise the LAST buffer through setup_pred_plane().
@@ -926,14 +939,18 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The superblock's already-encoded neighbors.</param>
         /// <param name="origin">The superblock's luma origin.</param>
         private void FilterTemporalSource(
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            Span<TSample> sourceLuma,
+            Span<TSample> sourceBlue,
+            Span<TSample> sourceRed,
             Av1MacroBlockD macroBlock,
             Point origin)
         {
@@ -964,7 +981,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> luma = this.source.GetPlane(Av1Plane.Y);
             Av1PlaneRegion<byte> previousLuma = parent.PreviousSource.GetPlane(Av1Plane.Y);
             ReadOnlySpan<byte> source = MemoryMarshal.Cast<TSample, byte>(
-                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), luma, origin));
+                Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, luma, origin));
 
             ReadOnlySpan<byte> previous = previousLuma.Samples;
             int previousOffset = ((previousLuma.Bounds.Y + origin.Y) * previousLuma.Stride) + previousLuma.Bounds.X + origin.X;
@@ -1001,7 +1018,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1PlaneRegion<TSample> currentPlane = this.source.GetPlane((Av1Plane)index);
                 Av1PlaneRegion<byte> previousPlane = parent.PreviousSource.GetPlane((Av1Plane)index);
                 Span<byte> currentSamples = MemoryMarshal.Cast<TSample, byte>(
-                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane((Av1Plane)index), currentPlane, planeOrigin));
+                    Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane((Av1Plane)index, sourceLuma, sourceBlue, sourceRed), currentPlane, planeOrigin));
 
                 ReadOnlySpan<byte> previousSamples = Av1TransformBlockEncoder.GetPlaneSpan(previousPlane, planeOrigin);
                 int width = side >> subX;
@@ -1080,7 +1097,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the superblock.</param>
         /// <param name="superblockOrigin">The luma superblock origin.</param>
         private void PrepareVariancePartitions(
@@ -1096,7 +1115,9 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<byte> encoderSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            Span<TSample> sourceLuma,
+            Span<TSample> sourceBlue,
+            Span<TSample> sourceRed,
             Av1MacroBlockD macroBlock,
             Point superblockOrigin)
         {
@@ -1104,7 +1125,8 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 if (this.filterTemporalSource)
                 {
-                    this.FilterTemporalSource(modeInfoGrid, modeInfoAllocation, displacementVectors, in sourcePlanes, macroBlock, superblockOrigin);
+                    this.FilterTemporalSource(
+                        modeInfoGrid, modeInfoAllocation, displacementVectors, sourceLuma, sourceBlue, sourceRed, macroBlock, superblockOrigin);
                 }
 
                 Av1PictureParentControlSet parent = this.picture.Parent;
@@ -1140,7 +1162,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     macroBlock,
                     superblockOrigin,
                     out int predictionStride,
@@ -1177,7 +1201,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1EncoderBlockWorkspace.GetPartitionAnalysisScratch(workspaceStorage));
 
                 this.BuildInterVariancePartitions(
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     macroBlock,
                     superblockOrigin,
                     superblockOrigin,
@@ -1222,7 +1248,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 MemoryMarshal.Cast<int, VariancePartitionNode>(Av1EncoderBlockWorkspace.GetPartitionAnalysisScratch(workspaceStorage));
 
             this.BuildVariancePartitions(
-                in sourcePlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
                 this.source.GetPlane(Av1Plane.Y),
                 macroBlock.Tile,
                 superblockOrigin,
@@ -1238,7 +1266,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Measures the source variance of a block and its descendants, and records the partition to search at each
         /// node of the variance tree.
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="sourcePlane">The source luma plane.</param>
         /// <param name="tile">The tile that holds the block.</param>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
@@ -1249,7 +1279,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="threshold16">The variance above which a 16x16 block splits.</param>
         /// <param name="pruneSixteenSplit">Whether a 16x16 block with similar child variances searches only the unsplit partition.</param>
         private void BuildVariancePartitions(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Av1PlaneRegion<TSample> sourcePlane,
             Av1TileInfo tile,
             Point blockOrigin,
@@ -1267,7 +1299,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 // Each four-by-four average is one variance sample. Positions outside the coded frame
                 // contribute zero moments, while present blocks retain their complete padded samples.
-                ReadOnlySpan<TSample> sourceSamples = sourcePlanes.GetPlane(Av1Plane.Y);
+                ReadOnlySpan<TSample> sourceSamples = sourceLuma;
                 for (int y = 0; y < 8; y += 4)
                 {
                     for (int x = 0; x < 8; x += 4)
@@ -1294,7 +1326,9 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 Point childOrigin = blockOrigin + new Size((child & 1) * halfWidth, (child >> 1) * halfWidth);
                 this.BuildVariancePartitions(
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     sourcePlane,
                     tile,
                     childOrigin,

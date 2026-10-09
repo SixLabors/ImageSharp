@@ -83,6 +83,7 @@ internal sealed partial class Av1ChromaFromLumaContext
     /// Stores one reconstructed luma transform region in the chroma-resolution Q3 predictor buffer.
     /// </summary>
     /// <typeparam name="T">The integer sample type of the reconstructed luma plane.</typeparam>
+    /// <param name="q3Buffer">The fixed-stride Q3 predictor surface, which the caller reads once.</param>
     /// <param name="input">The reconstructed luma samples for the transform region.</param>
     /// <param name="inputStride">The distance, in samples, between consecutive input rows.</param>
     /// <param name="row">The transform row relative to the chroma-from-luma block, in mode-info units.</param>
@@ -92,6 +93,7 @@ internal sealed partial class Av1ChromaFromLumaContext
     /// <param name="modeInfoRow">The frame-relative luma row in 4x4 mode-info units.</param>
     /// <param name="modeInfoColumn">The frame-relative luma column in 4x4 mode-info units.</param>
     public void Store<T>(
+        Span<short> q3Buffer,
         Span<T> input,
         int inputStride,
         int row,
@@ -101,12 +103,13 @@ internal sealed partial class Av1ChromaFromLumaContext
         int modeInfoRow,
         int modeInfoColumn)
         where T : unmanaged, IBinaryInteger<T>
-        => this.Store(input, inputStride, row, column, transformSize.GetWidth(), transformSize.GetHeight(), blockSize, modeInfoRow, modeInfoColumn);
+        => this.Store(q3Buffer, input, inputStride, row, column, transformSize.GetWidth(), transformSize.GetHeight(), blockSize, modeInfoRow, modeInfoColumn);
 
     /// <summary>
     /// Stores a reconstructed luma region in the chroma-resolution Q3 predictor buffer.
     /// </summary>
     /// <typeparam name="T">The integer sample type of the reconstructed luma plane.</typeparam>
+    /// <param name="q3Buffer">The fixed-stride Q3 predictor surface, which the caller reads once.</param>
     /// <param name="input">The reconstructed luma samples for the region.</param>
     /// <param name="inputStride">The distance, in samples, between consecutive input rows.</param>
     /// <param name="row">The region row relative to the chroma-from-luma block, in mode-info units.</param>
@@ -117,6 +120,7 @@ internal sealed partial class Av1ChromaFromLumaContext
     /// <param name="modeInfoRow">The frame-relative luma row in 4x4 mode-info units.</param>
     /// <param name="modeInfoColumn">The frame-relative luma column in 4x4 mode-info units.</param>
     public void Store<T>(
+        Span<short> q3Buffer,
         Span<T> input,
         int inputStride,
         int row,
@@ -175,7 +179,7 @@ internal sealed partial class Av1ChromaFromLumaContext
                 outputOffset,
                 width,
                 height,
-                this.Q3Buffer,
+                q3Buffer,
                 this.subX,
                 this.subY);
         }
@@ -187,7 +191,7 @@ internal sealed partial class Av1ChromaFromLumaContext
                 outputOffset,
                 width,
                 height,
-                this.Q3Buffer,
+                q3Buffer,
                 this.subX,
                 this.subY);
         }
@@ -196,23 +200,25 @@ internal sealed partial class Av1ChromaFromLumaContext
     /// <summary>
     /// Pads the populated predictor extent to the transform dimensions and subtracts its rounded mean.
     /// </summary>
+    /// <param name="q3Buffer">The fixed-stride Q3 predictor surface, which the caller reads once.</param>
     /// <param name="transformSize">The chroma prediction transform dimensions.</param>
-    public void ComputeParameters(Av1TransformSize transformSize)
+    public void ComputeParameters(Span<short> q3Buffer, Av1TransformSize transformSize)
     {
         Guard.IsFalse(this.AreParametersComputed, nameof(this.AreParametersComputed), "Do not call cfl_compute_parameters multiple time on the same values.");
-        this.Pad(transformSize.GetWidth(), transformSize.GetHeight());
-        SubtractAverage(this.Q3Buffer, transformSize);
+        this.Pad(q3Buffer, transformSize.GetWidth(), transformSize.GetHeight());
+        SubtractAverage(q3Buffer, transformSize);
         this.AreParametersComputed = true;
     }
 
     /// <summary>
     /// Extends the last initialized column and row to cover the requested predictor dimensions.
     /// </summary>
+    /// <param name="q3Buffer">The fixed-stride Q3 predictor surface, which the caller reads once.</param>
     /// <param name="width">The required predictor width in chroma samples.</param>
     /// <param name="height">The required predictor height in chroma samples.</param>
-    private void Pad(int width, int height)
+    private void Pad(Span<short> q3Buffer, int width, int height)
     {
-        Pad(this.Q3Buffer, this.bufferWidth, this.bufferHeight, width, height);
+        Pad(q3Buffer, this.bufferWidth, this.bufferHeight, width, height);
         this.bufferWidth = Math.Max(this.bufferWidth, width);
         this.bufferHeight = Math.Max(this.bufferHeight, height);
     }

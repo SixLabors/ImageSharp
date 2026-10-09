@@ -1477,6 +1477,13 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
 
         Av1SymbolContextHelper.GetNzMapContexts(levels, activeLevels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
         int limitedTransformSizeContext = Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
+
+        // The distributions of this transform size and component are fixed for the block, so the loops below index
+        // only the context. Selecting the rows once here keeps the outer table lookups out of the coefficient loop.
+        Av1Distribution[] baseEndOfBlockDistributions = this.coefficientsBaseEndOfBlock[(int)transformSizeContext][(int)componentType];
+        Av1Distribution[] baseDistributions = this.coefficientsBase[(int)transformSizeContext][(int)componentType];
+        Av1Distribution[] baseRangeDistributions = this.coefficientsBaseRange[limitedTransformSizeContext][(int)componentType];
+        Av1Distribution dcSignDistribution = this.dcSign[(int)componentType][transformBlockContext.DcSignContext];
         ref Av1SymbolWriter w = ref this.writer;
         ref byte levelBase = ref MemoryMarshal.GetReference(activeLevels);
         int levelStride = levels.Stride;
@@ -1494,7 +1501,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
                     ref w,
                     ref output,
                     Math.Min(level, 3) - 1,
-                    this.coefficientsBaseEndOfBlock[(int)transformSizeContext][(int)componentType][coefficientContext]);
+                    baseEndOfBlockDistributions[coefficientContext]);
             }
             else
             {
@@ -1502,7 +1509,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
                     ref w,
                     ref output,
                     Math.Min(level, 3),
-                    this.coefficientsBase[(int)transformSizeContext][(int)componentType][coefficientContext]);
+                    baseDistributions[coefficientContext]);
             }
 
             if (level > Av1Constants.BaseLevelsCount)
@@ -1523,7 +1530,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
                         ref w,
                         ref output,
                         symbol,
-                        this.coefficientsBaseRange[limitedTransformSizeContext][(int)componentType][baseRangeContext]);
+                        baseRangeDistributions[baseRangeContext]);
 
                     if (symbol < Av1Constants.BaseRangeSizeMinus1)
                     {
@@ -1551,7 +1558,7 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
                         ref w,
                         ref output,
                         (int)sign,
-                        this.dcSign[(int)componentType][transformBlockContext.DcSignContext]);
+                        dcSignDistribution);
                 }
                 else
                 {

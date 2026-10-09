@@ -71,8 +71,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions of the winner.</param>
@@ -97,8 +101,12 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<int> superblockCoefficients,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1MacroBlockModeInfo modeInfo,
@@ -164,7 +172,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     Span<TSample> left = modeWorkspace.GetReferenceSamples(1);
                     this.PrepareTransformReferenceSamples(
-                        Av1TransformBlockEncoder.GetPlaneSpan(reconstructionPlanes.GetPlane(plane), reconstruction, origin),
+                        Av1TransformBlockEncoder.GetPlaneSpan(
+                            SelectPlane(plane, reconstructionLuma, reconstructionBlue, reconstructionRed), reconstruction, origin),
                         reconstruction.Stride,
                         blockOrigin,
                         blockSize,
@@ -179,6 +188,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         samples,
                         above,
                         left,
+                        true,
                         out bool hasLeft,
                         out bool hasAbove);
 
@@ -227,14 +237,14 @@ internal static partial class Av1IntraSuperblockEncoder
                         origin,
                         transformSize,
                         source,
-                        sourcePlanes.GetPlane(plane),
+                        SelectPlane(plane, sourceLuma, sourceBlue, sourceRed),
                         dc,
                         context,
                         lumaQ3,
                         alpha,
                         samples,
                         reconstruction,
-                        reconstructionPlanes.GetPlane(plane),
+                        SelectPlane(plane, reconstructionLuma, reconstructionBlue, reconstructionRed),
                         coefficients,
                         ref states[0],
                         out planeRate);
@@ -274,9 +284,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv],
                         plane,
                         source,
-                        sourcePlanes.GetPlane(plane),
+                        SelectPlane(plane, sourceLuma, sourceBlue, sourceRed),
                         reconstruction,
-                        reconstructionPlanes.GetPlane(plane),
+                        SelectPlane(plane, reconstructionLuma, reconstructionBlue, reconstructionRed),
                         colors,
                         map,
                         samples,
@@ -329,8 +339,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
@@ -363,8 +377,12 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -397,8 +415,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 in redCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
-                in sourcePlanes,
-                in reconstructionPlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
+                reconstructionLuma,
+                reconstructionBlue,
+                reconstructionRed,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
@@ -434,8 +456,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
@@ -468,8 +494,12 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -501,8 +531,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 in redCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
-                in sourcePlanes,
-                in reconstructionPlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
+                reconstructionLuma,
+                reconstructionBlue,
+                reconstructionRed,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
@@ -537,8 +571,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     in redCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     modeInfo,
                     lumaOrigin,
@@ -594,8 +632,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
@@ -627,8 +669,12 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -660,8 +706,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 in redCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
-                in sourcePlanes,
-                in reconstructionPlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
+                reconstructionLuma,
+                reconstructionBlue,
+                reconstructionRed,
                 macroBlock,
                 modeInfo,
                 lumaOrigin,
@@ -697,8 +747,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
@@ -730,8 +784,12 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -774,8 +832,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     in redCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     modeInfo,
                     lumaOrigin,
@@ -858,10 +920,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
 
             // Every chroma candidate reads the same source blocks and writes the same frame planes, so they are read once.
-            ReadOnlySpan<TSample> blueSourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.U), blueSource, chromaOrigin);
-            ReadOnlySpan<TSample> redSourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.V), redSource, chromaOrigin);
-            Span<TSample> blueFrame = reconstructionPlanes.GetPlane(Av1Plane.U);
-            Span<TSample> redFrame = reconstructionPlanes.GetPlane(Av1Plane.V);
+            ReadOnlySpan<TSample> blueSourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourceBlue, blueSource, chromaOrigin);
+            ReadOnlySpan<TSample> redSourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourceRed, redSource, chromaOrigin);
+            Span<TSample> blueFrame = reconstructionBlue;
+            Span<TSample> redFrame = reconstructionRed;
             bool smoothChromaEdges = this.UseSmoothIntraEdges(modeInfoGrid, modeInfoAllocation, macroBlock, lumaOrigin, blockSize, Av1Plane.U);
             Span<TSample> blueAboveStorage = modeWorkspace.GetReferenceSamples(0);
             Span<TSample> blueLeftStorage = modeWorkspace.GetReferenceSamples(1);
@@ -926,21 +988,17 @@ internal static partial class Av1IntraSuperblockEncoder
             // Directional evidence excludes the replicated border, unlike block variance. Chroma's
             // normalized histogram is scaled by its sample area before evaluating the directional scores.
             byte directionalModeSkipMask = hogLevel != 0
-                ? GetDirectionalModeSkipMask(
+                ? this.GetBlockDirectionalModeSkipMask(
+                    in modeWorkspace,
+                    Av1PlaneType.Uv,
                     blueSource,
-                    sourcePlanes.GetPlane(Av1Plane.U),
+                    sourceBlue,
                     chromaOrigin,
                     (blockSize.GetHeight() + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subsamplingY,
                     (blockSize.GetWidth() + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subsamplingX,
                     (1 + subsamplingX) * (1 + subsamplingY),
                     hogThreshold)
                 : (byte)0;
-
-            // Suppress smooth prediction only when both chroma planes have per-pixel variance below 20.
-            // Variance is normalized to eight-bit precision after accumulating the full-precision differences.
-            bool pruneSmooth = speedSettings.PruneChromaSmoothByVariance &&
-                GetSourceVariance(blueSource, sourcePlanes.GetPlane(Av1Plane.U), chromaOrigin, width, height, this.bitDepth) < 20 &&
-                GetSourceVariance(redSource, sourcePlanes.GetPlane(Av1Plane.V), chromaOrigin, width, height, this.bitDepth) < 20;
 
             Av1ModeCosts modeCosts = tables.ModeCosts;
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
@@ -1048,7 +1106,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         // the bottom-right ownership point for subsampled 4x4 luma leaves.
                         Av1PlaneRegion<TSample> lumaReconstruction = this.reconstruction.GetPlane(Av1Plane.Y);
                         TOperator.PrepareChromaFromLuma(
-                            Av1TransformBlockEncoder.GetPlaneSpan(reconstructionPlanes.GetPlane(Av1Plane.Y), lumaReconstruction, chromaLumaOrigin),
+                            Av1TransformBlockEncoder.GetPlaneSpan(reconstructionLuma, lumaReconstruction, chromaLumaOrigin),
                             lumaReconstruction.Stride,
                             lumaQ3,
                             transformSize,
@@ -1092,7 +1150,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             this.blockWorkspace,
                             Av1Plane.U,
                             blueSource,
-                            sourcePlanes.GetPlane(Av1Plane.U),
+                            sourceBlue,
                             chromaOrigin,
                             blueDc,
                             lumaQ3,
@@ -1111,7 +1169,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             this.blockWorkspace,
                             Av1Plane.V,
                             redSource,
-                            sourcePlanes.GetPlane(Av1Plane.V),
+                            sourceRed,
                             chromaOrigin,
                             redDc,
                             lumaQ3,
@@ -1154,7 +1212,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         int lastRedCandidate = Math.Min(Av1ChromaFromLumaMath.AlphaCandidateCount, estimatedRedCandidate + radius + 1);
 
                         // Each plane codes the estimate first, then the candidates above it, then the candidates below it.
-                        // Each trial writes its prediction into the frame in that order. Reference: cfl_pick_plane_rd().
+                        // Each trial writes its prediction into the frame in that order. The candidate buffers and the
+                        // state keep the last trial of each plane, which the winner reuses when it is that candidate.
+                        int lastCodedBlueCandidate = -1;
+                        int lastCodedRedCandidate = -1;
+                        Av1EncoderTransformBlockState candidateBlueState = default;
+                        Av1EncoderTransformBlockState candidateRedState = default;
                         for (int order = 0; evaluateAlpha && order <= 2 * radius; order++)
                         {
                             int alphaCandidateIndex = order <= radius ? estimatedBlueCandidate + order : estimatedBlueCandidate - (order - radius);
@@ -1163,7 +1226,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                 continue;
                             }
 
-                            Av1EncoderTransformBlockState candidateBlueState = default;
+                            candidateBlueState = default;
+                            lastCodedBlueCandidate = alphaCandidateIndex;
                             blueDistortions[alphaCandidateIndex] = this.GetChromaFromLumaPlaneCost(
                                 writer,
                                 in tables,
@@ -1180,7 +1244,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 chromaOrigin,
                                 transformSize,
                                 blueSource,
-                                sourcePlanes.GetPlane(Av1Plane.U),
+                                sourceBlue,
                                 blueDc,
                                 blueContext,
                                 lumaQ3,
@@ -1201,7 +1265,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                 continue;
                             }
 
-                            Av1EncoderTransformBlockState candidateRedState = default;
+                            candidateRedState = default;
+                            lastCodedRedCandidate = alphaCandidateIndex;
                             redDistortions[alphaCandidateIndex] = this.GetChromaFromLumaPlaneCost(
                                 writer,
                                 in tables,
@@ -1218,7 +1283,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 chromaOrigin,
                                 transformSize,
                                 redSource,
-                                sourcePlanes.GetPlane(Av1Plane.V),
+                                sourceRed,
                                 redDc,
                                 redContext,
                                 lumaQ3,
@@ -1317,67 +1382,74 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         if (chromaFromLumaSelected)
                         {
-                            // The alpha tables keep only rate and distortion. Code the two selected planes again here to get
-                            // their coefficients. This is not a libaom trial, so it does not write the frame.
-                            Av1EncoderTransformBlockState candidateBlueState = default;
-                            _ = this.GetChromaFromLumaPlaneCost(
-                                writer,
-                                in tables,
-                                transformCoefficients,
-                                dequantizedCoefficients,
-                                searchDequantizedCoefficients,
-                                transformWorkspace,
-                                transformTypeProbabilities,
-                                blockResidual,
-                                searchCoefficients,
-                                searchReconstructions,
-                                lumaMode,
-                                Av1Plane.U,
-                                chromaOrigin,
-                                transformSize,
-                                blueSource,
-                                sourcePlanes.GetPlane(Av1Plane.U),
-                                blueDc,
-                                blueContext,
-                                lumaQ3,
-                                Av1ChromaFromLumaMath.CandidateIndexToAlpha(selectedBlueCandidateIndex),
-                                candidateBlueReconstruction[..sampleCount],
-                                default,
-                                default,
-                                candidateBlueCoefficients[..sampleCount],
-                                ref candidateBlueState,
-                                out _);
+                            // The alpha tables keep only rate and distortion. A selected candidate that is not the last trial
+                            // of its plane is coded again here to get its coefficients. That is not a trial, so it does not
+                            // write the frame. The last trial left its own state and buffers, so it needs no second coding.
+                            if (selectedBlueCandidateIndex != lastCodedBlueCandidate)
+                            {
+                                candidateBlueState = default;
+                                _ = this.GetChromaFromLumaPlaneCost(
+                                    writer,
+                                    in tables,
+                                    transformCoefficients,
+                                    dequantizedCoefficients,
+                                    searchDequantizedCoefficients,
+                                    transformWorkspace,
+                                    transformTypeProbabilities,
+                                    blockResidual,
+                                    searchCoefficients,
+                                    searchReconstructions,
+                                    lumaMode,
+                                    Av1Plane.U,
+                                    chromaOrigin,
+                                    transformSize,
+                                    blueSource,
+                                    sourceBlue,
+                                    blueDc,
+                                    blueContext,
+                                    lumaQ3,
+                                    Av1ChromaFromLumaMath.CandidateIndexToAlpha(selectedBlueCandidateIndex),
+                                    candidateBlueReconstruction[..sampleCount],
+                                    default,
+                                    default,
+                                    candidateBlueCoefficients[..sampleCount],
+                                    ref candidateBlueState,
+                                    out _);
+                            }
 
                             retainedBlueStates[0] = candidateBlueState;
 
-                            Av1EncoderTransformBlockState candidateRedState = default;
-                            _ = this.GetChromaFromLumaPlaneCost(
-                                writer,
-                                in tables,
-                                transformCoefficients,
-                                dequantizedCoefficients,
-                                searchDequantizedCoefficients,
-                                transformWorkspace,
-                                transformTypeProbabilities,
-                                blockResidual,
-                                searchCoefficients,
-                                searchReconstructions,
-                                lumaMode,
-                                Av1Plane.V,
-                                chromaOrigin,
-                                transformSize,
-                                redSource,
-                                sourcePlanes.GetPlane(Av1Plane.V),
-                                redDc,
-                                redContext,
-                                lumaQ3,
-                                Av1ChromaFromLumaMath.CandidateIndexToAlpha(selectedRedCandidateIndex),
-                                candidateRedReconstruction[..sampleCount],
-                                default,
-                                default,
-                                candidateRedCoefficients[..sampleCount],
-                                ref candidateRedState,
-                                out _);
+                            if (selectedRedCandidateIndex != lastCodedRedCandidate)
+                            {
+                                candidateRedState = default;
+                                _ = this.GetChromaFromLumaPlaneCost(
+                                    writer,
+                                    in tables,
+                                    transformCoefficients,
+                                    dequantizedCoefficients,
+                                    searchDequantizedCoefficients,
+                                    transformWorkspace,
+                                    transformTypeProbabilities,
+                                    blockResidual,
+                                    searchCoefficients,
+                                    searchReconstructions,
+                                    lumaMode,
+                                    Av1Plane.V,
+                                    chromaOrigin,
+                                    transformSize,
+                                    redSource,
+                                    sourceRed,
+                                    redDc,
+                                    redContext,
+                                    lumaQ3,
+                                    Av1ChromaFromLumaMath.CandidateIndexToAlpha(selectedRedCandidateIndex),
+                                    candidateRedReconstruction[..sampleCount],
+                                    default,
+                                    default,
+                                    candidateRedCoefficients[..sampleCount],
+                                    ref candidateRedState,
+                                    out _);
+                            }
 
                             retainedRedStates[0] = candidateRedState;
                         }
@@ -1392,7 +1464,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
-                if (chromaMode == Av1ChromaPredictionMode.Smooth && pruneSmooth)
+                // Suppress smooth prediction only when both chroma planes have per-pixel variance below 20. Variance is
+                // normalized to eight-bit precision after accumulating the full-precision differences. Only the smooth
+                // mode reads it, so the planes are measured only when that mode is reached.
+                if (chromaMode == Av1ChromaPredictionMode.Smooth &&
+                    speedSettings.PruneChromaSmoothByVariance &&
+                    GetSourceVariance(blueSource, sourceBlue, chromaOrigin, width, height, this.bitDepth) < 20 &&
+                    GetSourceVariance(redSource, sourceRed, chromaOrigin, width, height, this.bitDepth) < 20)
                 {
                     continue;
                 }
@@ -1494,8 +1572,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="modeInfo">The block decisions, with the selected luma mode.</param>
         /// <param name="lumaOrigin">The block origin in luma samples.</param>
@@ -1527,8 +1609,12 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
@@ -1597,10 +1683,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> redSource = this.source.GetPlane(Av1Plane.V);
             Av1PlaneRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
             Av1PlaneRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
-            ReadOnlySpan<TSample> blueSourceSamples = sourcePlanes.GetPlane(Av1Plane.U);
-            ReadOnlySpan<TSample> redSourceSamples = sourcePlanes.GetPlane(Av1Plane.V);
-            Span<TSample> blueReconstructionSamples = reconstructionPlanes.GetPlane(Av1Plane.U);
-            Span<TSample> redReconstructionSamples = reconstructionPlanes.GetPlane(Av1Plane.V);
+            ReadOnlySpan<TSample> blueSourceSamples = sourceBlue;
+            ReadOnlySpan<TSample> redSourceSamples = sourceRed;
+            Span<TSample> blueReconstructionSamples = reconstructionBlue;
+            Span<TSample> redReconstructionSamples = reconstructionRed;
             Av1EncoderSpeedSettings speedSettings = this.picture.Parent.SpeedSettings;
             int hogLevel = speedSettings.ChromaHogPruningLevel;
             float hogThreshold = this.picture.Parent.FrameHeader.IsIntra
@@ -1611,7 +1697,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockSize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY));
 
             byte directionalModeSkipMask = hogLevel != 0
-                ? GetDirectionalModeSkipMask(
+                ? this.GetBlockDirectionalModeSkipMask(
+                    in modeWorkspace,
+                    Av1PlaneType.Uv,
                     blueSource,
                     blueSourceSamples,
                     chromaOrigin,
@@ -1620,10 +1708,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     (1 + subsamplingX) * (1 + subsamplingY),
                     hogThreshold)
                 : (byte)0;
-
-            bool pruneSmooth = speedSettings.PruneChromaSmoothByVariance &&
-                GetSourceVariance(blueSource, blueSourceSamples, chromaOrigin, blockWidth, blockHeight, this.bitDepth) < 20 &&
-                GetSourceVariance(redSource, redSourceSamples, chromaOrigin, blockWidth, blockHeight, this.bitDepth) < 20;
 
             Av1ModeCosts modeCosts = tables.ModeCosts;
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
@@ -1650,7 +1734,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
-                if (chromaMode == Av1ChromaPredictionMode.Smooth && pruneSmooth)
+                // Only the smooth mode reads the variance prune, so the planes are measured only when it is reached.
+                if (chromaMode == Av1ChromaPredictionMode.Smooth &&
+                    speedSettings.PruneChromaSmoothByVariance &&
+                    GetSourceVariance(blueSource, blueSourceSamples, chromaOrigin, blockWidth, blockHeight, this.bitDepth) < 20 &&
+                    GetSourceVariance(redSource, redSourceSamples, chromaOrigin, blockWidth, blockHeight, this.bitDepth) < 20)
                 {
                     continue;
                 }
@@ -2076,6 +2164,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                     candidateReconstruction,
                                     aboveStorage,
                                     leftStorage,
+                                    true,
                                     out bool hasLeft,
                                     out bool hasAbove);
 
@@ -2212,16 +2301,11 @@ internal static partial class Av1IntraSuperblockEncoder
                                 return long.MaxValue;
                             }
 
-                            byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
-                                bestTransformCoefficients,
-                                transformSize,
-                                transformType,
-                                state.EndOfBlock);
-
+                            // The transform search kept the coefficient context of the winning type with its state.
                             Av1TileWriter.UpdateCoefficientContexts(
                                 topContexts.Slice(transformColumn * transformWidth4x4, transformWidth4x4),
                                 leftContexts.Slice(transformRow * transformHeight4x4, transformHeight4x4),
-                                coefficientContext,
+                                state.CoefficientContext,
                                 transformOrigin,
                                 frameContextSize);
                         }

@@ -25,6 +25,10 @@ internal class Av1FrameDecoderStub : IAv1FrameDecoder
 
     public int SuperblockCount => this.superblocks.Count;
 
+    public Span<short> Workspace => default;
+
+    public Span<byte> GetFramePlane(Av1Plane plane) => default;
+
     public void BeginSuperblock(Av1SuperblockInfo superblockInfo)
     {
         Assert.Equal(0, this.RemainingTransforms);
@@ -33,7 +37,13 @@ internal class Av1FrameDecoderStub : IAv1FrameDecoder
         this.superblocks.Add(superblockInfo);
     }
 
-    public void BeginBlock(ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
+    public void BeginBlock(
+        ref Av1PartitionInfo partitionInfo,
+        Span<short> workspace,
+        Span<byte> frameLuma,
+        Span<byte> frameBlue,
+        Span<byte> frameRed,
+        Av1TileInfo tileInfo)
     {
         Assert.Equal(0, this.RemainingTransforms);
         Av1SuperblockInfo superblockInfo = partitionInfo.SuperblockInfo;
@@ -71,9 +81,18 @@ internal class Av1FrameDecoderStub : IAv1FrameDecoder
         }
     }
 
-    public void EndBlock(ref Av1PartitionInfo partitionInfo) => Assert.Equal(0, this.RemainingTransforms);
+    public void EndBlock(ref Av1PartitionInfo partitionInfo, Span<short> workspace, Span<byte> frameLuma) => Assert.Equal(0, this.RemainingTransforms);
 
-    public void DecodeTransform(ref Av1PartitionInfo partitionInfo, int plane, ref Av1TransformInfo transformInfo, Av1TileInfo tileInfo)
+    public void DecodeTransform(
+        ref Av1PartitionInfo partitionInfo,
+        int plane,
+        ref Av1TransformInfo transformInfo,
+        Span<short> workspace,
+        Span<byte> frameLuma,
+        Span<byte> frameBlue,
+        Span<byte> frameRed,
+        Span<int> planeCoefficients,
+        Av1TileInfo tileInfo)
     {
         Assert.NotEqual(ushort.MaxValue, transformInfo.EndOfBlock);
         Av1TransformInfo expected = partitionInfo.SuperblockInfo.GetTransformInfo(plane)[this.nextTransform[plane]];

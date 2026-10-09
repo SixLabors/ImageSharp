@@ -467,6 +467,76 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     }
 
     /// <summary>
+    /// Gets the samples of a complete plane allocation, or an empty span for a chroma plane of a monochrome frame. A caller
+    /// that addresses many blocks reads them once and passes them to the block pointer overloads that take plane samples.
+    /// </summary>
+    /// <param name="plane">The luma or chroma plane.</param>
+    /// <returns>The plane samples, including decoder padding.</returns>
+    public Span<T> GetPlaneSamples(Av1Plane plane)
+    {
+        FramePlanes? ownedPlanes = this.planes;
+        ObjectDisposedException.ThrowIf(ownedPlanes is null, this);
+
+        FramePlanes activePlanes = ownedPlanes.Value;
+        Av1PlaneRegion<T>? region = plane switch
+        {
+            Av1Plane.Y => activePlanes.Luma,
+            Av1Plane.U => activePlanes.Blue,
+            _ => activePlanes.Red
+        };
+
+        return region is null ? default : region.Value.Samples;
+    }
+
+    /// <summary>
+    /// Gets a span beginning one logical row before a block, from plane samples that the caller read once with
+    /// <see cref="GetPlaneSamples"/>.
+    /// </summary>
+    /// <param name="planeSamples">The samples of <paramref name="plane"/>, from <see cref="GetPlaneSamples"/>.</param>
+    /// <param name="plane">The luma or chroma plane.</param>
+    /// <param name="locationInPixels">The block origin in plane samples.</param>
+    /// <param name="subX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subY">The vertical chroma subsampling shift.</param>
+    /// <param name="stride">Receives the logical samples between adjacent rows.</param>
+    /// <returns>The span beginning one logical row before the block.</returns>
+    public Span<T> DeriveBlockPointer(Span<T> planeSamples, Av1Plane plane, Point locationInPixels, int subX, int subY, out int stride)
+    {
+        this.GetPlaneLayout(plane, subX, subY, out Av1PlaneRegion<T> buffer, out int originX, out int originY, out _, out _);
+        int elementStride = buffer.Stride;
+        stride = elementStride / this.storageElementsPerSample;
+        int blockOffset = (((originY + locationInPixels.Y) * stride) + originX + locationInPixels.X) *
+            this.storageElementsPerSample;
+
+        // Intra prediction addresses above neighbors relative to the destination span, so index zero is the previous row.
+        blockOffset -= elementStride;
+        Guard.MustBeGreaterThanOrEqualTo(blockOffset, 0, nameof(blockOffset));
+
+        return planeSamples[blockOffset..];
+    }
+
+    /// <summary>
+    /// Gets a native 16-bit sample span beginning one logical row before a block, from plane samples that the caller read
+    /// once with <see cref="GetPlaneSamples"/>.
+    /// </summary>
+    /// <param name="planeSamples">The samples of <paramref name="plane"/>, from <see cref="GetPlaneSamples"/>.</param>
+    /// <param name="plane">The luma or chroma plane.</param>
+    /// <param name="locationInPixels">The block origin in plane samples.</param>
+    /// <param name="subX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subY">The vertical chroma subsampling shift.</param>
+    /// <param name="stride">Receives the logical samples between adjacent rows.</param>
+    /// <returns>The 16-bit span beginning one logical row before the block.</returns>
+    public Span<short> DeriveBlockPointer16(Span<T> planeSamples, Av1Plane plane, Point locationInPixels, int subX, int subY, out int stride)
+    {
+        this.GetPlaneLayout(plane, subX, subY, out Av1PlaneRegion<T> buffer, out int originX, out int originY, out _, out _);
+        stride = buffer.Stride / this.storageElementsPerSample;
+        int blockOffset = ((originY + locationInPixels.Y - 1) * stride) + originX + locationInPixels.X;
+        Guard.MustBeGreaterThanOrEqualTo(blockOffset, 0, nameof(blockOffset));
+
+        // High-bit-depth reconstruction uses native 16-bit samples in the byte-backed frame planes.
+        return MemoryMarshal.Cast<T, short>(planeSamples)[blockOffset..];
+    }
+
+    /// <summary>
     /// Gets a native 16-bit sample span beginning one logical row before a block.
     /// </summary>
     /// <param name="plane">The luma or chroma plane.</param>

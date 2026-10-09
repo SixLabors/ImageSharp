@@ -33,7 +33,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="referenceFrame">The reference of the block.</param>
@@ -49,7 +51,9 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Point blockOrigin,
             Av1BlockSize blockSize,
             Av1ReferenceFrameType referenceFrame,
@@ -61,7 +65,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int height = blockSize.GetHeight();
             Span<int> weightedSource = this.blockWorkspace.ObmcWeightedSource.AsSpan(0, width * height);
             Span<int> mask = this.blockWorkspace.ObmcMask.AsSpan(0, width * height);
-            this.CalculateObmcTarget(blockSize, weightedSource, mask, filterRows, modeInfoGrid, modeInfoAllocation, displacementVectors, in sourcePlanes);
+            this.CalculateObmcTarget(
+                blockSize, weightedSource, mask, filterRows, modeInfoGrid, modeInfoAllocation, displacementVectors, sourceLuma, sourceBlue, sourceRed);
 
             // The full-sample search reads a reference of another size through its copy resized to the frame size, and
             // the fractional search the reference itself. Reference: the scaled_ref_frame of
@@ -783,7 +788,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         private void CalculateObmcTarget(
             Av1BlockSize blockSize,
             Span<int> weightedSource,
@@ -792,7 +799,9 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes)
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed)
         {
             ReadOnlySpan<int> maximumNeighbors = [0, 1, 2, 3, 4, 4];
             int width = blockSize.GetWidth();
@@ -913,7 +922,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            ReadOnlySpan<TSample> sourceSamples = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, this.obmcBlockOrigin);
+            ReadOnlySpan<TSample> sourceSamples = Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, this.obmcBlockOrigin);
             for (int row = 0; row < height; row++)
             {
                 TOperator.SubtractObmcSource(sourceSamples[(row * sourcePlane.Stride)..], weightedSource.Slice(row * width, width));

@@ -191,8 +191,16 @@ internal static partial class Av1ForwardQuantizer
         ref byte weightBase = ref MemoryMarshal.GetReference(weights);
         ref byte inverseWeightBase = ref MemoryMarshal.GetReference(inverseWeights);
 
+        // Each step also raises a maximum of the one-based scan position of its nonzero coefficients, so the end of
+        // block comes out of the same pass with no second read of the block.
+        ref short inverseScanBase = ref MemoryMarshal.GetReference(Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).InverseScan);
+        Vector512<int> maximum512 = Vector512<int>.Zero;
+        Vector256<int> maximum256 = Vector256<int>.Zero;
+        Vector128<int> maximum128 = Vector128<int>.Zero;
+
         // The DC coefficient has its own constants, so the AC traversal needs no lane masks.
         quantizedBase = TOperator.Quantize(sourceBase, weightBase, inverseWeightBase, in dc, out dequantizedBase);
+        int endOfBlock = Av1CoefficientMeasures.CoefficientMeasureOperator.AccumulateEndOfBlock(quantizedBase, inverseScanBase, 0);
 
         int index = 1;
         if (Vector512.IsHardwareAccelerated)
@@ -208,6 +216,8 @@ internal static partial class Av1ForwardQuantizer
 
                 quantized.StoreUnsafe(ref quantizedBase, (nuint)index);
                 dequantized.StoreUnsafe(ref dequantizedBase, (nuint)index);
+                maximum512 = Av1CoefficientMeasures.CoefficientMeasureOperator.AccumulateEndOfBlock(
+                    quantized, ref inverseScanBase, (nuint)index, maximum512);
             }
         }
 
@@ -224,6 +234,8 @@ internal static partial class Av1ForwardQuantizer
 
                 quantized.StoreUnsafe(ref quantizedBase, (nuint)index);
                 dequantized.StoreUnsafe(ref dequantizedBase, (nuint)index);
+                maximum256 = Av1CoefficientMeasures.CoefficientMeasureOperator.AccumulateEndOfBlock(
+                    quantized, ref inverseScanBase, (nuint)index, maximum256);
             }
         }
 
@@ -240,21 +252,29 @@ internal static partial class Av1ForwardQuantizer
 
                 quantized.StoreUnsafe(ref quantizedBase, (nuint)index);
                 dequantized.StoreUnsafe(ref dequantizedBase, (nuint)index);
+                maximum128 = Av1CoefficientMeasures.CoefficientMeasureOperator.AccumulateEndOfBlock(
+                    quantized, ref inverseScanBase, (nuint)index, maximum128);
             }
         }
 
         for (; index < count; index++)
         {
-            Unsafe.Add(ref quantizedBase, index) = TOperator.Quantize(
+            int quantized = TOperator.Quantize(
                 Unsafe.Add(ref sourceBase, index),
                 Unsafe.Add(ref weightBase, index),
                 Unsafe.Add(ref inverseWeightBase, index),
                 in ac,
                 out Unsafe.Add(ref dequantizedBase, index));
+
+            Unsafe.Add(ref quantizedBase, (nuint)index) = quantized;
+            endOfBlock = Av1CoefficientMeasures.CoefficientMeasureOperator.AccumulateEndOfBlock(
+                quantized, Unsafe.Add(ref inverseScanBase, (nuint)index), endOfBlock);
         }
 
-        ReadOnlySpan<short> inverseScan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).InverseScan;
-        return GetEndOfBlock(quantizedCoefficients[..count], inverseScan);
+        // The vector widths each covered a different part of the block, so their maxima fold together.
+        maximum256 = Vector256.Max(maximum256, Vector256.Max(maximum512.GetLower(), maximum512.GetUpper()));
+        maximum128 = Vector128.Max(maximum128, Vector128.Max(maximum256.GetLower(), maximum256.GetUpper()));
+        return (ushort)Math.Max(endOfBlock, GetLaneMaximum(maximum128));
     }
 
     /// <summary>

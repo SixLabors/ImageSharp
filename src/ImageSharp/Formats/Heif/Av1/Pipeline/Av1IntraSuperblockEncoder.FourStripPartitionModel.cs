@@ -898,7 +898,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Resolves horizontal and vertical four-strip candidates using the configured texture classifier.
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="midpoint">Storage for one row of mid-gray samples of the source variance.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -911,7 +913,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="currentMask">The four-strip partitions that are still allowed.</param>
         /// <returns>The four-strip partitions that stay allowed.</returns>
         private int ClassifyFourStripPartitions(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Span<TSample> midpoint,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -952,10 +956,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 Point horizontalOrigin = new(blockOrigin.X, blockOrigin.Y + (strip * horizontalSize.GetHeight()));
                 Point verticalOrigin = new(blockOrigin.X + (strip * verticalSize.GetWidth()), blockOrigin.Y);
                 features[10 + strip] = Math.Clamp(
-                    (this.GetSourceVariance(in sourcePlanes, midpoint, horizontalOrigin, horizontalSize) + 1) / denominator, 0.1F, 10F);
+                    (this.GetSourceVariance(sourceLuma, sourceBlue, sourceRed, midpoint, horizontalOrigin, horizontalSize) + 1) / denominator, 0.1F, 10F);
 
                 features[14 + strip] = Math.Clamp(
-                    (this.GetSourceVariance(in sourcePlanes, midpoint, verticalOrigin, verticalSize) + 1) / denominator, 0.1F, 10F);
+                    (this.GetSourceVariance(sourceLuma, sourceBlue, sourceRed, midpoint, verticalOrigin, verticalSize) + 1) / denominator, 0.1F, 10F);
             }
 
             ReadOnlySpan<float> weights;

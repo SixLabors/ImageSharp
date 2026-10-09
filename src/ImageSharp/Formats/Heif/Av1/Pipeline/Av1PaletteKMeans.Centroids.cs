@@ -9,129 +9,160 @@ using SixLabors.ImageSharp.Common.Helpers;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <content>
-/// Sums the samples assigned to each palette color. Reference: the accumulation loop of calc_centroids().
+/// Counts the samples of each palette color and sums their components, for the centroid update of the clustering.
 /// </content>
 internal static partial class Av1PaletteKMeans
 {
     /// <summary>
-    /// Sums the samples and, when requested, counts the samples assigned to each palette color.
+    /// Counts the samples assigned to each palette color and sums their first and, when present, second components.
     /// </summary>
     /// <remarks>
-    /// Each palette color is compared with a whole vector of indices, and its lanes add the samples that the
-    /// comparison selects, so the sums stay in lanes until the end. A block holds at most 4096 samples of at most
-    /// twelve bits, so a 32-bit sum and a 16-bit count per lane cannot overflow.
+    /// <para>
+    /// The colors are taken one at a time over the whole block, which stays in the first-level cache. For one color,
+    /// a vector of indices compares with the color once, and that mask selects the samples of both components and
+    /// counts them, so the three accumulators stay in registers for the whole pass and no lane depends on another.
+    /// </para>
+    /// <para>
+    /// A sum of two adjacent masked samples is formed with one multiply-add by ones, so the sums use thirty-two-bit
+    /// lanes. A count lane subtracts the all-ones mask, which adds one per selected sample. A block holds at most
+    /// 4096 samples of at most twelve bits, so neither a sixteen-bit count lane nor a thirty-two-bit sum lane can
+    /// overflow.
+    /// </para>
     /// </remarks>
-    /// <param name="samples">The block samples.</param>
-    /// <param name="indices">The palette index of each sample.</param>
-    /// <param name="sums">Receives the sum of each color's samples.</param>
-    /// <param name="counts">Receives the number of each color's samples, or is empty to skip counting.</param>
-    internal static void SumByIndex(ReadOnlySpan<short> samples, ReadOnlySpan<byte> indices, Span<int> sums, Span<int> counts)
+    /// <param name="first">The first component of each sample.</param>
+    /// <param name="second">The second component of each sample, or empty for a one-component palette.</param>
+    /// <param name="indices">The palette index of each sample, each below the palette size.</param>
+    /// <param name="counts">Receives the number of samples of each color. Its length is the palette size.</param>
+    /// <param name="firstSums">Receives the sum of the first component of each color.</param>
+    /// <param name="secondSums">Receives the sum of the second component of each color, when it is present.</param>
+    internal static void SumByIndex(
+        ReadOnlySpan<short> first,
+        ReadOnlySpan<short> second,
+        ReadOnlySpan<byte> indices,
+        Span<int> counts,
+        Span<int> firstSums,
+        Span<int> secondSums)
     {
-        int colorCount = sums.Length;
-        bool counting = !counts.IsEmpty;
-        sums.Clear();
-        counts.Clear();
-        ref short sampleBase = ref MemoryMarshal.GetReference(samples);
+        bool hasSecond = !second.IsEmpty;
+        ref short firstBase = ref MemoryMarshal.GetReference(first);
+        ref short secondBase = ref MemoryMarshal.GetReference(second);
         ref byte indexBase = ref MemoryMarshal.GetReference(indices);
-        int offset = 0;
+        int length = first.Length;
 
+        // The widest vector covers the bulk of the block. The rest, fewer samples than one vector, is added by the
+        // scalar loop at the end, so every width shares one tail.
+        int vectorLength = 0;
         if (Vector512.IsHardwareAccelerated)
         {
-            // The lanes are taken as spans once, outside the loops, rather than through the inline array indexer.
-            InlineArray8<Vector512<int>> laneSumStorage = default;
-            InlineArray8<Vector512<short>> laneCountStorage = default;
-            Span<Vector512<int>> laneSums = laneSumStorage;
-            Span<Vector512<short>> laneCounts = laneCountStorage;
-            Vector512<short> ones = Vector512.Create((short)1);
-            for (; offset <= samples.Length - Vector512<short>.Count; offset += Vector512<short>.Count)
+            vectorLength = length & ~(Vector512<short>.Count - 1);
+        }
+        else if (Vector256.IsHardwareAccelerated)
+        {
+            vectorLength = length & ~(Vector256<short>.Count - 1);
+        }
+        else if (Vector128.IsHardwareAccelerated)
+        {
+            vectorLength = length & ~(Vector128<short>.Count - 1);
+        }
+
+        for (int color = 0; color < counts.Length; color++)
+        {
+            int count = 0;
+            int firstSum = 0;
+            int secondSum = 0;
+
+            if (Vector512.IsHardwareAccelerated)
             {
-                Vector512<short> sample = Vector512.LoadUnsafe(ref sampleBase, (nuint)offset);
-                Vector512<short> index = Vector512_.Widen(Vector256.LoadUnsafe(ref indexBase, (nuint)offset));
-                for (int color = 0; color < colorCount; color++)
+                Vector512<short> target = Vector512.Create((short)color);
+                Vector512<short> ones = Vector512<short>.One;
+                Vector512<short> countLanes = Vector512<short>.Zero;
+                Vector512<int> firstLanes = Vector512<int>.Zero;
+                Vector512<int> secondLanes = Vector512<int>.Zero;
+                for (int i = 0; i < vectorLength; i += Vector512<short>.Count)
                 {
-                    Vector512<short> selected = Vector512.Equals(index, Vector512.Create((short)color));
-                    laneSums[color] += Vector512_.MultiplyAddAdjacent(sample & selected, ones);
-                    laneCounts[color] -= selected;
+                    // Thirty-two index bytes widen to the sixteen-bit lanes of the samples they belong to.
+                    Vector512<short> index = Vector512_.Widen(Vector256.LoadUnsafe(ref indexBase, (nuint)i));
+                    Vector512<short> selected = Vector512.Equals(index, target);
+                    countLanes -= selected;
+                    firstLanes += Vector512_.MultiplyAddAdjacent(Vector512.LoadUnsafe(ref firstBase, (nuint)i) & selected, ones);
+                    if (hasSecond)
+                    {
+                        secondLanes += Vector512_.MultiplyAddAdjacent(Vector512.LoadUnsafe(ref secondBase, (nuint)i) & selected, ones);
+                    }
                 }
+
+                count = Vector512.Sum(Vector512_.MultiplyAddAdjacent(countLanes, ones));
+                firstSum = Vector512.Sum(firstLanes);
+                secondSum = Vector512.Sum(secondLanes);
+            }
+            else if (Vector256.IsHardwareAccelerated)
+            {
+                Vector256<short> target = Vector256.Create((short)color);
+                Vector256<short> ones = Vector256<short>.One;
+                Vector256<short> countLanes = Vector256<short>.Zero;
+                Vector256<int> firstLanes = Vector256<int>.Zero;
+                Vector256<int> secondLanes = Vector256<int>.Zero;
+                for (int i = 0; i < vectorLength; i += Vector256<short>.Count)
+                {
+                    // Sixteen index bytes widen to the sixteen-bit lanes of the samples they belong to.
+                    Vector256<short> index = Vector256_.Widen(Vector128.LoadUnsafe(ref indexBase, (nuint)i));
+                    Vector256<short> selected = Vector256.Equals(index, target);
+                    countLanes -= selected;
+                    firstLanes += Vector256_.MultiplyAddAdjacent(Vector256.LoadUnsafe(ref firstBase, (nuint)i) & selected, ones);
+                    if (hasSecond)
+                    {
+                        secondLanes += Vector256_.MultiplyAddAdjacent(Vector256.LoadUnsafe(ref secondBase, (nuint)i) & selected, ones);
+                    }
+                }
+
+                count = Vector256.Sum(Vector256_.MultiplyAddAdjacent(countLanes, ones));
+                firstSum = Vector256.Sum(firstLanes);
+                secondSum = Vector256.Sum(secondLanes);
+            }
+            else if (Vector128.IsHardwareAccelerated)
+            {
+                Vector128<short> target = Vector128.Create((short)color);
+                Vector128<short> ones = Vector128<short>.One;
+                Vector128<short> countLanes = Vector128<short>.Zero;
+                Vector128<int> firstLanes = Vector128<int>.Zero;
+                Vector128<int> secondLanes = Vector128<int>.Zero;
+                for (int i = 0; i < vectorLength; i += Vector128<short>.Count)
+                {
+                    // Eight index bytes widen to the sixteen-bit lanes of the samples they belong to.
+                    Vector128<short> index = Vector128.WidenLower(
+                        Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref indexBase, (nuint)i))).AsByte()).AsInt16();
+
+                    Vector128<short> selected = Vector128.Equals(index, target);
+                    countLanes -= selected;
+                    firstLanes += Vector128_.MultiplyAddAdjacent(Vector128.LoadUnsafe(ref firstBase, (nuint)i) & selected, ones);
+                    if (hasSecond)
+                    {
+                        secondLanes += Vector128_.MultiplyAddAdjacent(Vector128.LoadUnsafe(ref secondBase, (nuint)i) & selected, ones);
+                    }
+                }
+
+                count = Vector128.Sum(Vector128_.MultiplyAddAdjacent(countLanes, ones));
+                firstSum = Vector128.Sum(firstLanes);
+                secondSum = Vector128.Sum(secondLanes);
             }
 
-            for (int color = 0; color < colorCount; color++)
+            counts[color] = count;
+            firstSums[color] = firstSum;
+            if (hasSecond)
             {
-                sums[color] += Vector512.Sum(laneSums[color]);
-                if (counting)
-                {
-                    counts[color] += Vector512.Sum(Vector512_.MultiplyAddAdjacent(laneCounts[color], ones));
-                }
+                secondSums[color] = secondSum;
             }
         }
 
-        if (Vector256.IsHardwareAccelerated)
+        // The samples past the last whole vector.
+        for (int i = vectorLength; i < length; i++)
         {
-            InlineArray8<Vector256<int>> laneSumStorage = default;
-            InlineArray8<Vector256<short>> laneCountStorage = default;
-            Span<Vector256<int>> laneSums = laneSumStorage;
-            Span<Vector256<short>> laneCounts = laneCountStorage;
-            Vector256<short> ones = Vector256.Create((short)1);
-            for (; offset <= samples.Length - Vector256<short>.Count; offset += Vector256<short>.Count)
+            int color = Unsafe.Add(ref indexBase, (nuint)i);
+            counts[color]++;
+            firstSums[color] += Unsafe.Add(ref firstBase, (nuint)i);
+            if (hasSecond)
             {
-                Vector256<short> sample = Vector256.LoadUnsafe(ref sampleBase, (nuint)offset);
-                Vector256<short> index = Vector256_.Widen(Vector128.LoadUnsafe(ref indexBase, (nuint)offset));
-                for (int color = 0; color < colorCount; color++)
-                {
-                    Vector256<short> selected = Vector256.Equals(index, Vector256.Create((short)color));
-                    laneSums[color] += Vector256_.MultiplyAddAdjacent(sample & selected, ones);
-                    laneCounts[color] -= selected;
-                }
-            }
-
-            for (int color = 0; color < colorCount; color++)
-            {
-                sums[color] += Vector256.Sum(laneSums[color]);
-                if (counting)
-                {
-                    counts[color] += Vector256.Sum(Vector256_.MultiplyAddAdjacent(laneCounts[color], ones));
-                }
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            InlineArray8<Vector128<int>> laneSumStorage = default;
-            InlineArray8<Vector128<short>> laneCountStorage = default;
-            Span<Vector128<int>> laneSums = laneSumStorage;
-            Span<Vector128<short>> laneCounts = laneCountStorage;
-            Vector128<short> ones = Vector128.Create((short)1);
-            for (; offset <= samples.Length - Vector128<short>.Count; offset += Vector128<short>.Count)
-            {
-                Vector128<short> sample = Vector128.LoadUnsafe(ref sampleBase, (nuint)offset);
-                Vector128<short> index = Vector128.WidenLower(
-                    Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref indexBase, offset))).AsByte()).AsInt16();
-
-                for (int color = 0; color < colorCount; color++)
-                {
-                    Vector128<short> selected = Vector128.Equals(index, Vector128.Create((short)color));
-                    laneSums[color] += Vector128_.MultiplyAddAdjacent(sample & selected, ones);
-                    laneCounts[color] -= selected;
-                }
-            }
-
-            for (int color = 0; color < colorCount; color++)
-            {
-                sums[color] += Vector128.Sum(laneSums[color]);
-                if (counting)
-                {
-                    counts[color] += Vector128.Sum(Vector128_.MultiplyAddAdjacent(laneCounts[color], ones));
-                }
-            }
-        }
-
-        for (; offset < samples.Length; offset++)
-        {
-            int color = indices[offset];
-            sums[color] += samples[offset];
-            if (counting)
-            {
-                counts[color]++;
+                secondSums[color] += Unsafe.Add(ref secondBase, (nuint)i);
             }
         }
     }

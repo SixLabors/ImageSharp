@@ -68,7 +68,14 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     private const int WinnerPaletteStorageOffset = TransformContextStorageOffset + TransformContextStorageLength;
     private const int WinnerPaletteSampleCount = Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize;
     private const int WinnerPaletteStorageLength = 3 * WinnerPaletteSampleCount / sizeof(int);
-    private const int TransientStorageOffset = WinnerPaletteStorageOffset + WinnerPaletteStorageLength;
+
+    // The superblock gradient cache keeps one gradient magnitude and one histogram bin for each sample of the largest
+    // superblock, once for luma and once for chroma. It lives outside the transient region, so the mode searches of
+    // the superblock that reuse that region never overwrite it.
+    private const int GradientStorageOffset = WinnerPaletteStorageOffset + WinnerPaletteStorageLength;
+    private const int GradientMagnitudeStorageLength = 2 * MaximumSampleCount * sizeof(short) / sizeof(int);
+    private const int GradientBinStorageLength = 2 * MaximumSampleCount * sizeof(sbyte) / sizeof(int);
+    private const int TransientStorageOffset = GradientStorageOffset + GradientMagnitudeStorageLength + GradientBinStorageLength;
     private const int ChromaFromLumaSampleCount = Av1ChromaFromLumaContext.BufferLength;
 
     private const int ChromaFromLumaSampleStorageLength = ChromaFromLumaSampleCount * sizeof(short) / sizeof(int);
@@ -140,6 +147,28 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     public Span<byte> GetWinnerPaletteMap(int index)
         => MemoryMarshal.AsBytes(this.storage.Slice(WinnerPaletteStorageOffset, WinnerPaletteStorageLength))
             .Slice(index * WinnerPaletteSampleCount, WinnerPaletteSampleCount);
+
+    /// <summary>
+    /// Gets the cached gradient magnitudes |dx| + |dy| of one plane type of the current superblock, one row of
+    /// <see cref="MaximumBlockDimension"/> values for each superblock row.
+    /// </summary>
+    /// <param name="planeType">The luma or chroma plane type.</param>
+    /// <returns>The magnitude cache of the plane type.</returns>
+    public Span<short> GetGradientMagnitudes(Av1PlaneType planeType)
+        => MemoryMarshal.Cast<int, short>(this.storage.Slice(GradientStorageOffset, GradientMagnitudeStorageLength))
+            .Slice((int)planeType * MaximumSampleCount, MaximumSampleCount);
+
+    /// <summary>
+    /// Gets the cached histogram bins of one plane type of the current superblock, laid out like
+    /// <see cref="GetGradientMagnitudes"/>. A bin of <see cref="Av1GradientHistogram.VerticalBin"/> marks a zero
+    /// horizontal gradient.
+    /// </summary>
+    /// <param name="planeType">The luma or chroma plane type.</param>
+    /// <returns>The bin cache of the plane type.</returns>
+    public Span<sbyte> GetGradientBins(Av1PlaneType planeType)
+        => MemoryMarshal.Cast<int, sbyte>(
+            this.storage.Slice(GradientStorageOffset + GradientMagnitudeStorageLength, GradientBinStorageLength))
+            .Slice((int)planeType * MaximumSampleCount, MaximumSampleCount);
 
     /// <summary>
     /// Gets one reference edge including its common-corner prefix.

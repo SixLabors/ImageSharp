@@ -118,8 +118,12 @@ internal static partial class Av1CdefEncoder
             Span<ulong> chromaErrors = errors.Slice(errorLength, errorLength);
             Span<int> indices = indexOwner.Memory.Span[..capacity];
             int count = 0;
-            Av1EncoderFrame<TSample>.PlanarSamples sourceSamples = source.CodedView.GetSamples();
-            Av1EncoderFrame<TSample>.PlanarSamples reconstructionSamples = reconstruction.CodedView.GetSamples();
+            ReadOnlySpan<TSample> sourceLuma = source.CodedView.GetPlane(Av1Plane.Y).Samples;
+            ReadOnlySpan<TSample> sourceBlue = source.CodedView.GetPlane(Av1Plane.U).Samples;
+            ReadOnlySpan<TSample> sourceRed = source.CodedView.GetPlane(Av1Plane.V).Samples;
+            ReadOnlySpan<TSample> reconstructionLuma = reconstruction.CodedView.GetPlane(Av1Plane.Y).Samples;
+            ReadOnlySpan<TSample> reconstructionBlue = reconstruction.CodedView.GetPlane(Av1Plane.U).Samples;
+            ReadOnlySpan<TSample> reconstructionRed = reconstruction.CodedView.GetPlane(Av1Plane.V).Samples;
             ReadOnlySpan<int> grid = picture.ModeInfoGrid.Span;
             ReadOnlySpan<Av1MacroBlockModeInfo> allocation = picture.ModeInfoAllocation.Span;
             int stride = picture.ModeInfoStride;
@@ -149,8 +153,12 @@ internal static partial class Av1CdefEncoder
                         picture,
                         source,
                         reconstruction,
-                        sourceSamples,
-                        reconstructionSamples,
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
+                        reconstructionLuma,
+                        reconstructionBlue,
+                        reconstructionRed,
                         position,
                         width,
                         height,
@@ -247,8 +255,12 @@ internal static partial class Av1CdefEncoder
     /// <param name="picture">The frame parameters.</param>
     /// <param name="source">The original component planes.</param>
     /// <param name="reconstruction">The deblocked component planes.</param>
-    /// <param name="sourceSamples">The samples of <paramref name="source"/>, read once before the unit loop.</param>
-    /// <param name="reconstructionSamples">The samples of <paramref name="reconstruction"/>, read once before the unit loop.</param>
+    /// <param name="sourceLuma">The luma samples of <paramref name="source"/>, read once before the unit loop.</param>
+    /// <param name="sourceBlue">The blue-difference samples of <paramref name="source"/>, read once before the unit loop.</param>
+    /// <param name="sourceRed">The red-difference samples of <paramref name="source"/>, read once before the unit loop.</param>
+    /// <param name="reconstructionLuma">The luma samples of <paramref name="reconstruction"/>, read once before the unit loop.</param>
+    /// <param name="reconstructionBlue">The blue-difference samples of <paramref name="reconstruction"/>, read once before the unit loop.</param>
+    /// <param name="reconstructionRed">The red-difference samples of <paramref name="reconstruction"/>, read once before the unit loop.</param>
     /// <param name="position">The unit origin in mode units.</param>
     /// <param name="width">The unit width in mode units.</param>
     /// <param name="height">The unit height in mode units.</param>
@@ -264,8 +276,12 @@ internal static partial class Av1CdefEncoder
         Av1PictureControlSet picture,
         Av1EncoderFrame<TSample> source,
         Av1EncoderFrame<TSample> reconstruction,
-        Av1EncoderFrame<TSample>.PlanarSamples sourceSamples,
-        Av1EncoderFrame<TSample>.PlanarSamples reconstructionSamples,
+        ReadOnlySpan<TSample> sourceLuma,
+        ReadOnlySpan<TSample> sourceBlue,
+        ReadOnlySpan<TSample> sourceRed,
+        ReadOnlySpan<TSample> reconstructionLuma,
+        ReadOnlySpan<TSample> reconstructionBlue,
+        ReadOnlySpan<TSample> reconstructionRed,
         Point position,
         int width,
         int height,
@@ -303,22 +319,48 @@ internal static partial class Av1CdefEncoder
             int unitHeight = height << (2 - subY);
             Av1PlaneRegion<TSample> samples = reconstruction.CodedView.GetPlane(plane);
             Av1PlaneRegion<TSample> original = source.CodedView.GetPlane(plane);
-            CopyUnit<TSample, TOperator>(samples, reconstructionSamples.GetPlane(plane), x, y, unitWidth, unitHeight, planeWidth, planeHeight, input);
+            ReadOnlySpan<TSample> reconstructionStorage = planeIndex == 0 ? reconstructionLuma : planeIndex == 1 ? reconstructionBlue : reconstructionRed;
+            CopyUnit<TSample, TOperator>(samples, reconstructionStorage, x, y, unitWidth, unitHeight, planeWidth, planeHeight, input);
             if (planeIndex == 0)
             {
                 FindDirections(input, blocks, directions, variances, shift);
                 directions.CopyTo(chromaDirections);
             }
 
-            ReadOnlySpan<TSample> originalStorage = sourceSamples.GetPlane(plane);
+            ReadOnlySpan<TSample> originalStorage = planeIndex == 0 ? sourceLuma : planeIndex == 1 ? sourceBlue : sourceRed;
             int originalOffset = ((original.Bounds.Y + y) * original.Stride) + original.Bounds.X + x;
+            int reconstructionOffset = ((samples.Bounds.Y + y) * samples.Stride) + samples.Bounds.X + x;
             int blockWidth = 8 >> subX;
             int blockHeight = 8 >> subY;
             Span<ulong> errors = planeIndex == 0 ? lumaErrors : chromaErrors;
             for (int candidate = 0; candidate < candidates.Length; candidate++)
             {
                 int strength = candidates[candidate];
-                if (convertsChroma && planeIndex == 1 && strength != 0)
+                if (strength == 0)
+                {
+                    // The zero strength leaves the reconstruction unfiltered, so its error is measured against the
+                    // reconstruction itself, without a filter pass. A zero primary and a zero secondary strength change no
+                    // sample, so the filter pass would only copy its input.
+                    long unfilteredError = 0;
+                    foreach (ushort block in blocks)
+                    {
+                        int blockX = (block & 15) * blockWidth;
+                        int blockY = (block >> 4) * blockHeight;
+                        unfilteredError += TOperator.GetError(
+                            originalStorage[(originalOffset + (blockY * original.Stride) + blockX)..],
+                            original.Stride,
+                            reconstructionStorage[(reconstructionOffset + (blockY * samples.Stride) + blockX)..],
+                            samples.Stride,
+                            blockWidth,
+                            blockHeight);
+                    }
+
+                    ulong normalizedUnfilteredError = (ulong)(unfilteredError >> (2 * shift));
+                    errors[candidate] = planeIndex == 2 ? errors[candidate] + normalizedUnfilteredError : normalizedUnfilteredError;
+                    continue;
+                }
+
+                if (convertsChroma && planeIndex == 1)
                 {
                     for (int index = 0; index < blocks.Length; index++)
                     {

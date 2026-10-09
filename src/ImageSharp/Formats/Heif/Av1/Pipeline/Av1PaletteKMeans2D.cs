@@ -138,14 +138,14 @@ internal static partial class Av1PaletteKMeans2D
         Span<short> firstCentroids,
         Span<short> secondCentroids)
     {
-        Span<int> counts = stackalloc int[Av1Constants.PaletteMaxSize];
-        Span<int> firstSums = stackalloc int[Av1Constants.PaletteMaxSize];
-        Span<int> secondSums = stackalloc int[Av1Constants.PaletteMaxSize];
-        counts = counts[..firstCentroids.Length];
-        firstSums = firstSums[..firstCentroids.Length];
-        secondSums = secondSums[..secondCentroids.Length];
-        Av1PaletteKMeans.SumByIndex(firstSamples, indices, firstSums, counts);
-        Av1PaletteKMeans.SumByIndex(secondSamples, indices, secondSums, Span<int>.Empty);
+        // One pass per color counts it and sums both of its components with the same index comparison.
+        InlineArray8<int> countStorage = default;
+        InlineArray8<int> firstSumStorage = default;
+        InlineArray8<int> secondSumStorage = default;
+        Span<int> counts = ((Span<int>)countStorage)[..firstCentroids.Length];
+        Span<int> firstSums = ((Span<int>)firstSumStorage)[..firstCentroids.Length];
+        Span<int> secondSums = ((Span<int>)secondSumStorage)[..firstCentroids.Length];
+        Av1PaletteKMeans.SumByIndex(firstSamples, secondSamples, indices, counts, firstSums, secondSums);
 
         uint randomState = (uint)firstSamples[0];
         for (int centroidIndex = 0; centroidIndex < firstCentroids.Length; centroidIndex++)

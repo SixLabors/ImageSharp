@@ -206,6 +206,55 @@ internal static class Av1TransformKernels
     }
 
     /// <summary>
+    /// Transposes sixteen consecutive vectors of sixteen sixteen-bit values into sixteen consecutive vectors, as
+    /// <c>transpose_16bit_16x16_avx2</c> does with separate input and output buffers.
+    /// </summary>
+    /// <remarks>
+    /// All sixteen rows are read before any output is written, so the source and the destination may be the same.
+    /// </remarks>
+    /// <param name="source">The first of the sixteen rows.</param>
+    /// <param name="destination">The first of the sixteen transposed rows.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Transpose16x16(ref Vector256<short> source, ref Vector256<short> destination)
+    {
+        Vector256<short> r0 = source;
+        Vector256<short> r1 = Unsafe.Add(ref source, (nuint)1);
+        Vector256<short> r2 = Unsafe.Add(ref source, (nuint)2);
+        Vector256<short> r3 = Unsafe.Add(ref source, (nuint)3);
+        Vector256<short> r4 = Unsafe.Add(ref source, (nuint)4);
+        Vector256<short> r5 = Unsafe.Add(ref source, (nuint)5);
+        Vector256<short> r6 = Unsafe.Add(ref source, (nuint)6);
+        Vector256<short> r7 = Unsafe.Add(ref source, (nuint)7);
+        Vector256<short> r8 = Unsafe.Add(ref source, (nuint)8);
+        Vector256<short> r9 = Unsafe.Add(ref source, (nuint)9);
+        Vector256<short> r10 = Unsafe.Add(ref source, (nuint)10);
+        Vector256<short> r11 = Unsafe.Add(ref source, (nuint)11);
+        Vector256<short> r12 = Unsafe.Add(ref source, (nuint)12);
+        Vector256<short> r13 = Unsafe.Add(ref source, (nuint)13);
+        Vector256<short> r14 = Unsafe.Add(ref source, (nuint)14);
+        Vector256<short> r15 = Unsafe.Add(ref source, (nuint)15);
+
+        Transpose16x16(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15);
+
+        destination = r0;
+        Unsafe.Add(ref destination, (nuint)1) = r1;
+        Unsafe.Add(ref destination, (nuint)2) = r2;
+        Unsafe.Add(ref destination, (nuint)3) = r3;
+        Unsafe.Add(ref destination, (nuint)4) = r4;
+        Unsafe.Add(ref destination, (nuint)5) = r5;
+        Unsafe.Add(ref destination, (nuint)6) = r6;
+        Unsafe.Add(ref destination, (nuint)7) = r7;
+        Unsafe.Add(ref destination, (nuint)8) = r8;
+        Unsafe.Add(ref destination, (nuint)9) = r9;
+        Unsafe.Add(ref destination, (nuint)10) = r10;
+        Unsafe.Add(ref destination, (nuint)11) = r11;
+        Unsafe.Add(ref destination, (nuint)12) = r12;
+        Unsafe.Add(ref destination, (nuint)13) = r13;
+        Unsafe.Add(ref destination, (nuint)14) = r14;
+        Unsafe.Add(ref destination, (nuint)15) = r15;
+    }
+
+    /// <summary>
     /// Scales one vector by two rounded fixed-point weights, as <c>btf_16_w16_0_avx2</c> does.
     /// </summary>
     /// <param name="weight0">The first weight, with twelve fractional bits.</param>

@@ -72,14 +72,19 @@ public class Av1CompoundBlockDecoderTests
             workspace.Memory);
 
         decoder.UpdateSuperblock(superblockInfo);
-        decoder.BeginBlock(ref partitionInfo, tileInfo);
+        Span<short> decoderWorkspace = decoder.Workspace;
+        Span<byte> frameLuma = decoder.GetFramePlane(Av1Plane.Y);
+        Span<byte> frameBlue = decoder.GetFramePlane(Av1Plane.U);
+        Span<byte> frameRed = decoder.GetFramePlane(Av1Plane.V);
+        decoder.BeginBlock(ref partitionInfo, decoderWorkspace, frameLuma, frameBlue, frameRed, tileInfo);
         var chromaFromLumaContext = partitionInfo.ChromaFromLumaContext;
         Assert.NotNull(chromaFromLumaContext);
         chromaFromLumaContext.Q3Buffer.Fill(short.MinValue);
 
+        Span<int> lumaCoefficients = superblockInfo.CoefficientsY;
         for (int i = 0; i < transformCount; i++)
         {
-            decoder.DecodeTransform(ref partitionInfo, 0, ref transforms[i], tileInfo);
+            decoder.DecodeTransform(ref partitionInfo, 0, ref transforms[i], decoderWorkspace, frameLuma, frameBlue, frameRed, lumaCoefficients, tileInfo);
         }
 
         foreach (short value in chromaFromLumaContext.Q3Buffer)
@@ -87,7 +92,7 @@ public class Av1CompoundBlockDecoderTests
             Assert.Equal(short.MinValue, value);
         }
 
-        decoder.EndBlock(ref partitionInfo);
+        decoder.EndBlock(ref partitionInfo, decoderWorkspace, frameLuma);
 
         int subY = colorFormat == Av1ColorFormat.Yuv420 ? 1 : 0;
         int storedHeight = (largeTransform ? 16 : 8) >> subY;

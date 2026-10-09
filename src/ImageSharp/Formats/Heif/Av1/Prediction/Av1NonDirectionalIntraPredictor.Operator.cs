@@ -222,6 +222,15 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
             byte bottomLeft = usesBottomLeft ? Unsafe.Add(ref leftBase, height - 1) : default;
             int processedColumns = 0;
 
+            // A row of four or eight samples is narrower than a vector, so an operator without smooth weights packs four
+            // or two rows into one vector instead of taking the scalar path. Its lanes then repeat the top row and hold
+            // each packed row's left sample, so the same lane-wise arithmetic predicts every packed row at once.
+            if (Vector128.IsHardwareAccelerated && width < Vector128<byte>.Count && !usesColumnWeight && !usesRowWeight)
+            {
+                PredictPacked(ref destinationBase, destinationStride, ref topBase, ref leftBase, topLeft, width, height, usesTop, usesLeft, usesTopLeft);
+                return;
+            }
+
             // Widths are cumulative rather than mutually exclusive. A wide vector advances the row prefix, then the
             // narrower paths consume any complete vectors left before the scalar tail handles the final columns.
             if (Vector512.IsHardwareAccelerated)
@@ -326,6 +335,71 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
                     int columnWeight = usesColumnWeight ? Unsafe.Add(ref columnWeightBase, column) : 0;
                     Unsafe.Add(ref destinationRow, column) = TOperator.Predict(top, leftSample, topLeft, topRight, bottomLeft, columnWeight, rowWeight);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Predicts a block four or eight samples wide with four or two rows packed into each 128-bit vector.
+        /// </summary>
+        /// <param name="destinationBase">The first predicted sample.</param>
+        /// <param name="destinationStride">The number of samples between destination rows.</param>
+        /// <param name="topBase">The first sample of the top edge.</param>
+        /// <param name="leftBase">The first sample of the left edge.</param>
+        /// <param name="topLeft">The corner sample.</param>
+        /// <param name="width">The block width, four or eight.</param>
+        /// <param name="height">The block height, a multiple of four.</param>
+        /// <param name="usesTop">Whether the operator reads the top edge.</param>
+        /// <param name="usesLeft">Whether the operator reads the left edge.</param>
+        /// <param name="usesTopLeft">Whether the operator reads the corner sample.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void PredictPacked(
+            ref byte destinationBase,
+            int destinationStride,
+            ref byte topBase,
+            ref byte leftBase,
+            byte topLeft,
+            int width,
+            int height,
+            bool usesTop,
+            bool usesLeft,
+            bool usesTopLeft)
+        {
+            Vector128<byte> topLeftVector = usesTopLeft ? Vector128.Create(topLeft) : default;
+            nuint stride = (nuint)destinationStride;
+            if (width == 4)
+            {
+                // Lane groups of four hold rows 0 to 3: the top row repeats in each group, and the left sample of the
+                // group's row fills it.
+                Vector128<byte> top = usesTop ? Vector128.Create(Unsafe.ReadUnaligned<uint>(ref topBase)).AsByte() : default;
+                Vector128<byte> rowOfLane = Vector128.Create((byte)0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3);
+                for (int row = 0; row < height; row += 4)
+                {
+                    uint leftSamples = usesLeft ? Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref leftBase, (nuint)row)) : 0;
+                    Vector128<byte> leftVector = usesLeft ? Vector128.Shuffle(Vector128.CreateScalarUnsafe(leftSamples).AsByte(), rowOfLane) : default;
+
+                    Vector128<uint> rows = TOperator.Predict(top, leftVector, topLeftVector, default, default, ref Unsafe.NullRef<int>(), 0).AsUInt32();
+                    ref byte destinationRow = ref Unsafe.Add(ref destinationBase, (nuint)row * stride);
+                    Unsafe.WriteUnaligned(ref destinationRow, rows.ToScalar());
+                    Unsafe.WriteUnaligned(ref Unsafe.Add(ref destinationRow, stride), rows.GetElement(1));
+                    Unsafe.WriteUnaligned(ref Unsafe.Add(ref destinationRow, 2 * stride), rows.GetElement(2));
+                    Unsafe.WriteUnaligned(ref Unsafe.Add(ref destinationRow, 3 * stride), rows.GetElement(3));
+                }
+
+                return;
+            }
+
+            // Lane groups of eight hold rows 0 and 1, in the same way.
+            Vector128<byte> topRow = usesTop ? Vector128.Create(Unsafe.ReadUnaligned<ulong>(ref topBase)).AsByte() : default;
+            Vector128<byte> rowOfLane8 = Vector128.Create((byte)0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1);
+            for (int row = 0; row < height; row += 2)
+            {
+                ushort leftSamples = usesLeft ? Unsafe.ReadUnaligned<ushort>(ref Unsafe.Add(ref leftBase, (nuint)row)) : (ushort)0;
+                Vector128<byte> leftVector = usesLeft ? Vector128.Shuffle(Vector128.CreateScalarUnsafe(leftSamples).AsByte(), rowOfLane8) : default;
+
+                Vector128<ulong> rows = TOperator.Predict(topRow, leftVector, topLeftVector, default, default, ref Unsafe.NullRef<int>(), 0).AsUInt64();
+                ref byte destinationRow = ref Unsafe.Add(ref destinationBase, (nuint)row * stride);
+                Unsafe.WriteUnaligned(ref destinationRow, rows.ToScalar());
+                Unsafe.WriteUnaligned(ref Unsafe.Add(ref destinationRow, stride), rows.GetElement(1));
             }
         }
 

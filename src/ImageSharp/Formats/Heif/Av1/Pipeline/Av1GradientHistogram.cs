@@ -48,11 +48,42 @@ internal static class Av1GradientHistogram
         Span<int> bins,
         Span<short> horizontal,
         Span<short> vertical)
+        => ComputeRow(
+            block.Slice((row - 1) * stride, stride),
+            block.Slice(row * stride, stride),
+            block.Slice((row + 1) * stride, stride),
+            stride,
+            magnitudes,
+            bins,
+            horizontal,
+            vertical);
+
+    /// <summary>
+    /// Computes the gradient magnitude and histogram bin of every interior sample of one row from the row and the rows
+    /// above and below it, which need not be adjacent in memory.
+    /// </summary>
+    /// <param name="aboveRow">The row above.</param>
+    /// <param name="currentRow">The row whose interior samples are measured.</param>
+    /// <param name="belowRow">The row below.</param>
+    /// <param name="width">The number of samples in each row.</param>
+    /// <param name="magnitudes">Receives |dx| + |dy| of each of the width minus two interior samples.</param>
+    /// <param name="bins">Receives each interior sample's bin, or <see cref="VerticalBin"/> when dx is zero.</param>
+    /// <param name="horizontal">Scratch for the horizontal gradients.</param>
+    /// <param name="vertical">Scratch for the vertical gradients.</param>
+    public static void ComputeRow(
+        ReadOnlySpan<short> aboveRow,
+        ReadOnlySpan<short> currentRow,
+        ReadOnlySpan<short> belowRow,
+        int width,
+        Span<short> magnitudes,
+        Span<int> bins,
+        Span<short> horizontal,
+        Span<short> vertical)
     {
-        int count = stride - 2;
-        ref short above = ref Unsafe.Add(ref MemoryMarshal.GetReference(block), (row - 1) * stride);
-        ref short current = ref Unsafe.Add(ref above, stride);
-        ref short below = ref Unsafe.Add(ref current, stride);
+        int count = width - 2;
+        ref short above = ref MemoryMarshal.GetReference(aboveRow);
+        ref short current = ref MemoryMarshal.GetReference(currentRow);
+        ref short below = ref MemoryMarshal.GetReference(belowRow);
         ref short magnitudeBase = ref MemoryMarshal.GetReference(magnitudes);
         ref short horizontalBase = ref MemoryMarshal.GetReference(horizontal);
         ref short verticalBase = ref MemoryMarshal.GetReference(vertical);

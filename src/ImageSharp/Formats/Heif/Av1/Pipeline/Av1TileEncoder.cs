@@ -1285,8 +1285,12 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Span<int> workspaceStorage = blockWorkspace.Storage;
 
         // The mode decision reads the coded views of the source and the reconstruction, so their samples are read once here.
-        Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes = source.CodedView.GetSamples();
-        Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes = reconstruction.CodedView.GetSamples();
+        Span<TSample> sourceLuma = source.CodedView.GetPlane(Av1Plane.Y).Samples;
+        Span<TSample> sourceBlue = source.CodedView.GetPlane(Av1Plane.U).Samples;
+        Span<TSample> sourceRed = source.CodedView.GetPlane(Av1Plane.V).Samples;
+        Span<TSample> reconstructionLuma = reconstruction.CodedView.GetPlane(Av1Plane.Y).Samples;
+        Span<TSample> reconstructionBlue = reconstruction.CodedView.GetPlane(Av1Plane.U).Samples;
+        Span<TSample> reconstructionRed = reconstruction.CodedView.GetPlane(Av1Plane.V).Samples;
 
         // The mode information and the retained block decisions of the picture serve every block of the frame pass,
         // so they are read once here.
@@ -1443,8 +1447,12 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 previousSegmentMap,
                                 superblockCoefficients,
                                 workspaceStorage,
-                                in sourcePlanes,
-                                in reconstructionPlanes,
+                                sourceLuma,
+                                sourceBlue,
+                                sourceRed,
+                                reconstructionLuma,
+                                reconstructionBlue,
+                                reconstructionRed,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,
@@ -1496,6 +1504,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 coefficientBuffer,
                                 blockWorkspace);
 
+                            blockEncoder.PrepareGradientCache(in modeWorkspace, sourceLuma, sourceBlue, entropyContext.SuperblockOrigin);
+
                             Av1TileWriter.WriteSuperblock<TSymbolOperation, Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator>, TSample>(
                                 ref output,
                                 picture,
@@ -1545,8 +1555,12 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 previousSegmentMap,
                                 superblockCoefficients,
                                 workspaceStorage,
-                                in sourcePlanes,
-                                in reconstructionPlanes,
+                                sourceLuma,
+                                sourceBlue,
+                                sourceRed,
+                                reconstructionLuma,
+                                reconstructionBlue,
+                                reconstructionRed,
                                 superblock,
                                 coefficientBuffer,
                                 (ushort)tileIndex,

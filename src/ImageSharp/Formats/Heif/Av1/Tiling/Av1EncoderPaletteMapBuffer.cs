@@ -18,8 +18,15 @@ internal sealed class Av1EncoderPaletteMapBuffer
     /// </summary>
     public const int StorageLength = 2 * MapLength * MapLength;
 
-    private readonly Av1PlaneRegion<byte> luma;
-    private readonly Av1PlaneRegion<byte> chroma;
+    /// <summary>
+    /// The storage of the luma map.
+    /// </summary>
+    private readonly Memory<byte> luma;
+
+    /// <summary>
+    /// The storage of the shared chroma map.
+    /// </summary>
+    private readonly Memory<byte> chroma;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1EncoderPaletteMapBuffer"/> class.
@@ -28,18 +35,21 @@ internal sealed class Av1EncoderPaletteMapBuffer
     public Av1EncoderPaletteMapBuffer(Memory<byte> storage)
     {
         int mapArea = MapLength * MapLength;
-        Rectangle bounds = new(0, 0, MapLength, MapLength);
-        this.luma = new Av1PlaneRegion<byte>(storage[..mapArea], MapLength, bounds);
-        this.chroma = new Av1PlaneRegion<byte>(storage.Slice(mapArea, mapArea), MapLength, bounds);
+        this.luma = storage[..mapArea];
+        this.chroma = storage.Slice(mapArea, mapArea);
     }
 
     /// <summary>
     /// Gets a block-sized view of the luma or shared chroma color-index map.
     /// </summary>
+    /// <remarks>
+    /// The view is contiguous, with a stride of the block width, so that the nearest-color search writes the indices
+    /// of a block that is wholly inside the frame straight into the map.
+    /// </remarks>
     /// <param name="planeType">The luma or shared chroma plane class.</param>
     /// <param name="width">The padded plane-block width.</param>
     /// <param name="height">The padded plane-block height.</param>
     /// <returns>The reusable map region beginning at the workspace origin.</returns>
     public Av1PlaneRegion<byte> GetMap(Av1PlaneType planeType, int width, int height)
-        => (planeType == Av1PlaneType.Y ? this.luma : this.chroma).GetSubRegion(0, 0, width, height);
+        => new(planeType == Av1PlaneType.Y ? this.luma : this.chroma, width, new Rectangle(0, 0, width, height));
 }

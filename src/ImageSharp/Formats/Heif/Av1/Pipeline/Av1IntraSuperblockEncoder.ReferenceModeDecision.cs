@@ -131,8 +131,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="regularStatistics">The rate and distortion of the intra winner.</param>
@@ -167,8 +171,12 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1RateDistortionStatistics regularStatistics,
@@ -255,8 +263,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     workspaceStorage,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -353,8 +365,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     encoderSegmentMap,
                     previousSegmentMap,
                     superblockCoefficients,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     blockOrigin,
                     modeInfo,
@@ -374,14 +390,18 @@ internal static partial class Av1IntraSuperblockEncoder
         /// its prediction error exceeds that of the best new vectors of the references, by a quarter at level one.
         /// A compound mode compares the sums over both references. Reference: prune_zero_mv_with_sse().
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="primaryReference">The first reference.</param>
         /// <param name="secondaryReference">The second reference, or <see cref="Av1ReferenceFrameType.None"/>.</param>
         /// <returns><see langword="true"/> when the mode is dropped.</returns>
         private readonly bool PrunesZeroVectorWithSse(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Point blockOrigin,
             Av1BlockSize blockSize,
             Av1ReferenceFrameType primaryReference,
@@ -412,7 +432,7 @@ internal static partial class Av1IntraSuperblockEncoder
             uint sseSum = 0;
             uint bestSseSum = 0;
             ReadOnlySpan<Av1EncoderFrame<TSample>> references = this.references.Span;
-            ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin);
+            ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin);
             for (int index = 0; index < referenceCount; index++)
             {
                 Av1ReferenceFrameType reference = index == 0 ? primaryReference : secondaryReference;
@@ -464,8 +484,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -501,8 +525,12 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             ReadOnlySpan<Av1EncoderReferenceContext> referenceContexts,
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -601,7 +629,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             this.skipReferenceFrameMask = this.GetSkipReferenceFrameMask(blockOrigin, blockSize, initialModeInfo.Block.PartitionType);
-            this.SetInterModeSkipMasks(in sourcePlanes, blockOrigin, blockSize, singleReferenceVectors[..]);
+            this.SetInterModeSkipMasks(sourceLuma, sourceBlue, sourceRed, blockOrigin, blockSize, singleReferenceVectors[..]);
             this.PrepareTplInterModePruning(workspaceStorage, blockOrigin, blockSize);
 
             // Search the same syntax mode across the available references before advancing to the
@@ -747,7 +775,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         }
                     }
 
-                    if (mode == Av1PredictionMode.GlobalMotionVector && this.PrunesZeroVectorWithSse(in sourcePlanes, blockOrigin, blockSize, reference))
+                    if (mode == Av1PredictionMode.GlobalMotionVector &&
+                        this.PrunesZeroVectorWithSse(sourceLuma, sourceBlue, sourceRed, blockOrigin, blockSize, reference))
                     {
                         continue;
                     }
@@ -791,8 +820,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoAllocation,
                         displacementVectors,
                         workspaceStorage,
-                        in sourcePlanes,
-                        in reconstructionPlanes,
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
+                        reconstructionLuma,
+                        reconstructionBlue,
+                        reconstructionRed,
                         macroBlock,
                         blockOrigin,
                         Math.Min(this.blockCostLimit, selectedStatistics.Cost),
@@ -925,8 +958,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         displacementVectors,
                         referenceContexts,
                         workspaceStorage,
-                        in sourcePlanes,
-                        in reconstructionPlanes,
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
+                        reconstructionLuma,
+                        reconstructionBlue,
+                        reconstructionRed,
                         macroBlock,
                         blockOrigin,
                         compoundReferences[pairIndex * 2],
@@ -973,8 +1010,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoAllocation,
                 displacementVectors,
                 workspaceStorage,
-                in sourcePlanes,
-                in reconstructionPlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
+                reconstructionLuma,
+                reconstructionBlue,
+                reconstructionRed,
                 macroBlock,
                 blockOrigin,
                 singleReferenceVectors[..],
@@ -1013,8 +1054,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     workspaceStorage,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     blockOrigin,
                     ref modeInfo,
@@ -1181,8 +1226,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="motionMode">The motion mode to evaluate.</param>
@@ -1229,8 +1278,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1MotionMode motionMode,
@@ -1302,7 +1355,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoAllocation,
                         displacementVectors,
                         workspaceStorage,
-                        in sourcePlanes,
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
                         blockOrigin,
                         blockSize,
                         candidate.ReferenceFrame,
@@ -1357,7 +1412,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     Av1MotionVector referenceVector = referenceMotionVectors.GetNewReference(referenceIndex);
                     vector = this.RefineWarpedVector(
-                        in sourcePlanes, in interWorkspace, in motionVectorCosts, macroBlock, blockOrigin, candidate, vector, referenceVector);
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
+                        in interWorkspace,
+                        in motionVectorCosts,
+                        macroBlock,
+                        blockOrigin,
+                        candidate,
+                        vector,
+                        referenceVector);
 
                     // A new vector equal to its reference codes no difference. Reference: av1_check_newmv_joint_nonzero().
                     if (vector == referenceVector)
@@ -1394,8 +1458,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoAllocation,
                 displacementVectors,
                 workspaceStorage,
-                in sourcePlanes,
-                in reconstructionPlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
+                reconstructionLuma,
+                reconstructionBlue,
+                reconstructionRed,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -1498,8 +1566,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="singleReferenceVectors">The reference vector lists of the single references.</param>
@@ -1532,8 +1604,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ReadOnlySpan<Av1ReferenceMotionVectors> singleReferenceVectors,
@@ -1627,8 +1703,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoAllocation,
                         displacementVectors,
                         workspaceStorage,
-                        in sourcePlanes,
-                        in reconstructionPlanes,
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
+                        reconstructionLuma,
+                        reconstructionBlue,
+                        reconstructionRed,
                         macroBlock,
                         blockOrigin,
                         motionMode,
@@ -1694,7 +1774,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// keeping the vector with the smallest luma variance plus vector cost. The retained model is left in
         /// <see cref="warpedModel"/>. Reference: av1_refine_warped_mv() with compute_motion_cost().
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
@@ -1704,7 +1786,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="referenceVector">The reference of the new vector.</param>
         /// <returns>The refined vector.</returns>
         private Av1MotionVector RefineWarpedVector(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             in Av1MotionVectorCosts motionVectorCosts,
             Av1MacroBlockD macroBlock,
@@ -1744,7 +1828,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Av1GlobalMotionParameters bestModel = this.warpedModel;
             long bestCost = this.GetWarpedMotionCost(
-                in sourcePlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
                 in interWorkspace,
                 in motionVectorCosts,
                 blockOrigin,
@@ -1780,7 +1866,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     this.warpedModel = model;
                     long cost = this.GetWarpedMotionCost(
-                        in sourcePlanes,
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
                         in interWorkspace,
                         in motionVectorCosts,
                         blockOrigin,
@@ -1814,7 +1902,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Measures the luma variance of the current warped prediction plus the cost of its vector.
         /// Reference: compute_motion_cost().
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -1824,7 +1914,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="referenceVector">The reference of the new vector.</param>
         /// <returns>The luma variance plus the vector cost.</returns>
         private long GetWarpedMotionCost(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             in Av1MotionVectorCosts motionVectorCosts,
             Point blockOrigin,
@@ -1857,7 +1949,7 @@ internal static partial class Av1IntraSuperblockEncoder
             TOperator.GetMoments(
                 prediction,
                 width,
-                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin),
                 sourcePlane.Stride,
                 width,
                 height,
@@ -1902,8 +1994,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor context of the block.</param>
         /// <param name="blockOrigin">The luma origin of the block.</param>
         /// <param name="modeInfo">The block decisions, which receive the winner.</param>
@@ -1939,8 +2035,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -1950,7 +2050,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out InlineArray128<Av1EncoderTransformBlockState> selectedStates,
             out long lumaThreshold)
         {
-            Span<TSample> lumaFrame = reconstructionPlanes.GetPlane(Av1Plane.Y);
+            Span<TSample> lumaFrame = reconstructionLuma;
             lumaThreshold = long.MaxValue;
             long bestPartitionCost = long.MaxValue;
             this.estimateInterCandidates = false;
@@ -2006,8 +2106,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         compoundMask,
                         modeInfoGrid,
                         modeInfoAllocation,
-                        in sourcePlanes,
-                        in reconstructionPlanes,
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
+                        reconstructionLuma,
+                        reconstructionBlue,
+                        reconstructionRed,
                         macroBlock,
                         blockOrigin,
                         predictionModeInfo.BlockSize,
@@ -2068,7 +2172,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             modeInfoGrid,
                             modeInfoAllocation,
                             displacementVectors,
-                            in sourcePlanes);
+                            sourceLuma,
+                            sourceBlue,
+                            sourceRed);
                     }
 
                     // The rebuilt luma goes into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in
@@ -2106,7 +2212,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     workspaceStorage,
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     macroBlock,
                     blockOrigin,
                     Math.Min(this.blockCostLimit, selected.Cost),
@@ -2207,8 +2315,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -2240,8 +2352,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1MacroBlockModeInfo modeInfo,
@@ -2291,8 +2407,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     workspaceStorage,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     blockOrigin,
                     modeInfo.Block.BlockSize,
@@ -2322,8 +2442,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     blockOrigin,
                     candidateModeInfo,
@@ -2349,7 +2473,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 in lumaCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
-                in sourcePlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
                 macroBlock,
                 blockOrigin,
                 ref candidateModeInfo.Block,
@@ -2382,7 +2508,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoGrid,
                 modeInfoAllocation,
                 displacementVectors,
-                in sourcePlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
                 macroBlock,
                 blockOrigin,
                 candidateModeInfo,
@@ -2413,7 +2541,9 @@ internal static partial class Av1IntraSuperblockEncoder
             if (this.UsesHighBitDepthSharpness)
             {
                 this.PenalizeTransformSkip(
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     blockOrigin,
                     modeInfo.Block.BlockSize,
                     interWorkspace.LumaPrediction,
@@ -2469,7 +2599,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 bool refinedSkip = modeInfo.Block.Skip || skip;
                 this.ChargeRefinedInterTextureLoss(
-                    in sourcePlanes, ref refinedStatistics, blockOrigin, modeInfo.Block, vector, interWorkspace.LumaPrediction, refinedSkip);
+                    sourceLuma, sourceBlue, sourceRed, ref refinedStatistics, blockOrigin, modeInfo.Block, vector, interWorkspace.LumaPrediction, refinedSkip);
             }
 
             // The winner is priced again from its rate and distortion, which drops the cost bias of the image tune but
@@ -2496,7 +2626,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// A refined winner with a cost of zero always replaces the selection.
         /// Reference: the tmp_rd_stats branch of refine_winner_mode_tx(). Its av1_init_rd_stats() sets rdcost to zero before adjust_rdcost().
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="statistics">The refined statistics.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="block">The mode information of the winner.</param>
@@ -2504,7 +2636,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="prediction">The luma prediction of the winner.</param>
         /// <param name="skip">True when the winner or its refinement skips the transform.</param>
         private readonly void ChargeRefinedInterTextureLoss(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             ref Av1RateDistortionStatistics statistics,
             Point blockOrigin,
             Av1EncoderBlockModeInfo block,
@@ -2527,10 +2661,18 @@ internal static partial class Av1IntraSuperblockEncoder
             bool compound = block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra;
             bool interIntra = block.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra;
             this.GetVarianceStatistics(
-                in sourcePlanes, blockOrigin, block.BlockSize, prediction, block.BlockSize.GetWidth(), out long sourceVariance, out long sampleVariance);
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
+                blockOrigin,
+                block.BlockSize,
+                prediction,
+                block.BlockSize.GetWidth(),
+                out long sourceVariance,
+                out long sampleVariance);
 
             long offset = GetTextureLossOffset(sourceVariance, sampleVariance, block.BlockSize, skip, compound || interIntra, !compound, vector);
-            this.ChargeTextureLoss(in sourcePlanes, ref statistics, 0, offset, blockOrigin, block.BlockSize, true, compound, false);
+            this.ChargeTextureLoss(sourceLuma, sourceBlue, sourceRed, ref statistics, 0, offset, blockOrigin, block.BlockSize, true, compound, false);
         }
 
         /// <summary>
@@ -2539,15 +2681,23 @@ internal static partial class Av1IntraSuperblockEncoder
         /// The measure reads the frame luma that the last transform trial of the refinement left. An intra mode never skips.
         /// Reference: the tmp_rd_stats branch of refine_winner_mode_tx() with is_inter_mode() false.
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="statistics">The refined statistics.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="mode">The refined luma mode.</param>
         private readonly void ChargeRefinedIntraTextureLoss(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             ref Av1RateDistortionStatistics statistics,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -2561,12 +2711,12 @@ internal static partial class Av1IntraSuperblockEncoder
 
             bool smoothMode = IsSmoothTextureMode(mode);
             Av1PlaneRegion<TSample> lumaFrame = this.reconstruction.GetPlane(Av1Plane.Y);
-            ReadOnlySpan<TSample> lumaFrameBlock = Av1TransformBlockEncoder.GetPlaneSpan(reconstructionPlanes.GetPlane(Av1Plane.Y), lumaFrame, blockOrigin);
+            ReadOnlySpan<TSample> lumaFrameBlock = Av1TransformBlockEncoder.GetPlaneSpan(reconstructionLuma, lumaFrame, blockOrigin);
             this.GetVarianceStatistics(
-                in sourcePlanes, blockOrigin, blockSize, lumaFrameBlock, lumaFrame.Stride, out long sourceVariance, out long sampleVariance);
+                sourceLuma, sourceBlue, sourceRed, blockOrigin, blockSize, lumaFrameBlock, lumaFrame.Stride, out long sourceVariance, out long sampleVariance);
 
             long offset = GetTextureLossOffset(sourceVariance, sampleVariance, blockSize, false, smoothMode, false, default);
-            this.ChargeTextureLoss(in sourcePlanes, ref statistics, 0, offset, blockOrigin, blockSize, false, false, smoothMode);
+            this.ChargeTextureLoss(sourceLuma, sourceBlue, sourceRed, ref statistics, 0, offset, blockOrigin, blockSize, false, false, smoothMode);
         }
 
         /// <summary>
@@ -2588,7 +2738,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The coded block and its frame-edge geometry.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The selected prediction mode.</param>
@@ -2616,7 +2768,9 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1MacroBlockModeInfo modeInfo,
@@ -2655,7 +2809,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     macroBlock,
                     long.MaxValue,
                     blockOrigin,
@@ -2718,8 +2874,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -2738,8 +2898,12 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1MacroBlockModeInfo modeInfo,
@@ -2747,7 +2911,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MotionVector vector,
             Av1MotionVector secondaryVector)
         {
-            Span<TSample> lumaFrame = reconstructionPlanes.GetPlane(Av1Plane.Y);
+            Span<TSample> lumaFrame = reconstructionLuma;
             if (modeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra)
             {
                 this.PrepareInterIntraPrediction(
@@ -2759,8 +2923,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     compoundMask,
                     modeInfoGrid,
                     modeInfoAllocation,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     blockOrigin,
                     modeInfo.Block.BlockSize,
@@ -2828,7 +2996,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int secondaryRowQ4 = (blockOrigin.Y << 4) + (secondaryVector.Row << 1);
                 TOperator.PrepareCompoundInterPrediction(
                     this.source.GetPlane(Av1Plane.Y),
-                    sourcePlanes.GetPlane(Av1Plane.Y),
+                    sourceLuma,
                     blockOrigin,
                     primaryPlane,
                     primaryPlane.Samples,
@@ -2902,7 +3070,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
                 TOperator.SubtractPrediction(
-                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), lumaSource, blockOrigin),
+                    Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, lumaSource, blockOrigin),
                     lumaSource.Stride,
                     prediction[..(width * height)],
                     residual[..(width * height)],
@@ -2922,7 +3090,9 @@ internal static partial class Av1IntraSuperblockEncoder
             if (this.IsScaledReference(modeInfo.Block.ReferenceFrame))
             {
                 this.PrepareScaledInterPrediction(
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     modeInfo.Block.ReferenceFrame,
                     Av1Plane.Y,
                     blockOrigin,
@@ -2942,7 +3112,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int rowQ4 = (blockOrigin.Y << 4) + (vector.Row << 1);
                 TOperator.PrepareTranslationalInterPrediction(
                     this.source.GetPlane(Av1Plane.Y),
-                    sourcePlanes.GetPlane(Av1Plane.Y),
+                    sourceLuma,
                     blockOrigin,
                     reference.GetPlane(Av1Plane.Y),
                     reference.GetPlane(Av1Plane.Y).Samples,
@@ -2970,7 +3140,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
-                    in sourcePlanes);
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed);
 
                 return;
             }
@@ -2998,7 +3170,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighborhood of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The mode information of the block, which gets the transform sizes.</param>
@@ -3020,7 +3194,9 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1EncoderBlockModeInfo modeInfo,
@@ -3034,7 +3210,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1BlockSize blockSize = modeInfo.BlockSize;
                 ReadOnlySpan<TSample> prediction = interWorkspace.LumaPrediction;
                 this.GetVarianceStatistics(
-                    in sourcePlanes, blockOrigin, blockSize, prediction, blockSize.GetWidth(), out long sourceVariance, out long sampleVariance);
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    blockOrigin,
+                    blockSize,
+                    prediction,
+                    blockSize.GetWidth(),
+                    out long sourceVariance,
+                    out long sampleVariance);
 
                 noisePattern = sourceVariance > sampleVariance && sourceVariance / (blockSize.GetWidth() * blockSize.GetHeight()) < 64;
             }
@@ -3055,7 +3239,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     in lumaCoefficientEdges,
                     modeInfoGrid,
                     modeInfoAllocation,
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     macroBlock,
                     blockOrigin,
                     ref modeInfo,
@@ -3083,7 +3269,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighborhood of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The mode information of the block, which gets the transform sizes.</param>
@@ -3105,7 +3293,9 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ref Av1EncoderBlockModeInfo modeInfo,
@@ -3144,7 +3334,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.Parent.SpeedSettings.GetModelBasedTransformPruneLevel(this.picture.Parent.FrameUpdateType) != 0)
             {
                 TOperator.SubtractPrediction(
-                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), lumaSource, blockOrigin),
+                    Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, lumaSource, blockOrigin),
                     lumaSource.Stride,
                     interWorkspace.LumaPrediction,
                     residual,
@@ -3171,7 +3361,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (!residualPrepared)
                 {
                     TOperator.SubtractPrediction(
-                        Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), lumaSource, blockOrigin),
+                        Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, lumaSource, blockOrigin),
                         lumaSource.Stride,
                         interWorkspace.LumaPrediction,
                         residual,
@@ -3198,7 +3388,9 @@ internal static partial class Av1IntraSuperblockEncoder
             int skipPredictionLevel = this.GetSkipPredictionLevel();
             if (skipPredictionLevel != 0 && !this.picture.Parent.FrameHeader.CodedLossless &&
                 this.PredictSkipTransform(
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     transformCoefficients,
                     transformWorkspace,
                     in interWorkspace,
@@ -3283,7 +3475,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         : costLimit - (uniformSearch ? uniformCurrentCost : Math.Min(skipCost, codedCost));
 
                     Av1RateDistortionStatistics rootStatistics = this.SelectInterTransformNode(
-                        in sourcePlanes,
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
                         writer,
                         in tables,
                         transformCoefficients,
@@ -3354,7 +3548,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (this.UsesHighBitDepthSharpness)
                 {
                     this.PenalizeTransformSkip(
-                        in sourcePlanes, blockOrigin, modeInfo.BlockSize, interWorkspace.LumaPrediction, ref codedDistortion, ref skipDistortion);
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
+                        blockOrigin,
+                        modeInfo.BlockSize,
+                        interWorkspace.LumaPrediction,
+                        ref codedDistortion,
+                        ref skipDistortion);
                 }
 
                 long forcedSkipCost = Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, skipDistortion);
@@ -3387,7 +3588,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Predicts whether the whole luma residual of an inter or copied block quantizes to nothing.
         /// Reference: predict_skip_txfm().
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="interWorkspace">The inter prediction buffers of the block, whose luma prediction is current.</param>
@@ -3398,7 +3601,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="distortion">The distortion of the skipped residual.</param>
         /// <returns><see langword="true"/> when the residual is predicted to quantize to nothing.</returns>
         private bool PredictSkipTransform(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Span<int> transformCoefficients,
             Span<int> transformWorkspace,
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
@@ -3416,7 +3621,15 @@ internal static partial class Av1IntraSuperblockEncoder
             if (this.PenalizesHighBitDepthSkip)
             {
                 this.GetVarianceStatistics(
-                    in sourcePlanes, blockOrigin, blockSize, interWorkspace.LumaPrediction, width, out long sourceVariance, out long sampleVariance);
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    blockOrigin,
+                    blockSize,
+                    interWorkspace.LumaPrediction,
+                    width,
+                    out long sourceVariance,
+                    out long sampleVariance);
 
                 if (sourceVariance > sampleVariance && sourceVariance / (width * height) < 64)
                 {
@@ -3428,7 +3641,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> residual = interWorkspace.Residual[..(width * height)];
             Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
             TOperator.SubtractPrediction(
-                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), lumaSource, blockOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, lumaSource, blockOrigin),
                 lumaSource.Stride,
                 interWorkspace.LumaPrediction,
                 residual,
@@ -3593,7 +3806,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Selects a transform node and its children while keeping trial entropy contexts local.
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="writer">The tile symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the root of the tree reads once.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
@@ -3627,7 +3842,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="rootIndex">The index of the root transform that holds this node.</param>
         /// <returns>The statistics of the best choice for this node, or invalid statistics when the limit stopped it.</returns>
         private Av1RateDistortionStatistics SelectInterTransformNode(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             Span<int> transformCoefficients,
@@ -3696,7 +3913,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point origin = blockOrigin + new Size(column << 2, row << 2);
             Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
             TOperator.SubtractPrediction(
-                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), lumaSource, origin),
+                Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, lumaSource, origin),
                 lumaSource.Stride,
                 transformPrediction,
                 residual,
@@ -3792,7 +4009,9 @@ internal static partial class Av1IntraSuperblockEncoder
             if (tryNoSplit)
             {
                 this.EvaluateInterTransform(
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     writer,
                     in tables,
                     transformCoefficients,
@@ -3957,7 +4176,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     for (int x = 0; x < width4 && column + x < visibleWidth4; x += childWidth4)
                     {
                         Av1RateDistortionStatistics child = this.SelectInterTransformNode(
-                            in sourcePlanes,
+                            sourceLuma,
+                            sourceBlue,
+                            sourceRed,
                             writer,
                             in tables,
                             transformCoefficients,
@@ -4129,8 +4350,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor context of the block.</param>
         /// <param name="blockOrigin">The luma origin of the block.</param>
         /// <param name="skipModeContext">The skip mode symbol context.</param>
@@ -4151,8 +4376,12 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             ReadOnlySpan<Av1EncoderReferenceContext> referenceContexts,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             int skipModeContext,
@@ -4164,7 +4393,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1MotionVector selectedSecondaryVector,
             ref InlineArray128<Av1EncoderTransformBlockState> selectedStates)
         {
-            Span<TSample> lumaFrame = reconstructionPlanes.GetPlane(Av1Plane.Y);
+            Span<TSample> lumaFrame = reconstructionLuma;
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             Av1ReferenceFrameType primaryReference = frameHeader.SkipModeParameters.FirstReferenceFrame;
@@ -4266,7 +4495,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
-                    in sourcePlanes);
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed);
 
                 // The luma prediction goes into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in skip_mode_rd().
                 if (plane == Av1Plane.Y)
@@ -4369,8 +4600,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="bestCost">The cost of the best block result so far.</param>
@@ -4412,8 +4647,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             long bestCost,
@@ -4429,7 +4668,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref InlineArray3<Av1MotionVector> searchedNewVectors,
             ref byte searchedNewVectorMask)
         {
-            Span<TSample> lumaFrame = reconstructionPlanes.GetPlane(Av1Plane.Y);
+            Span<TSample> lumaFrame = reconstructionLuma;
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
             Av1TransformSize lumaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
                 ? Av1TransformSize.Size4x4
@@ -4601,7 +4840,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // Frame owners provide contiguous padded planes. Borrow those spans without copying source blocks
             // or reconstructing border samples, and keep the search scratch disjoint from retained inter winners.
             Av1MotionSearchBase.SingleReferenceSearch<TSample, TOperator> motionSearch = new(
-                sourcePlanes.GetPlane(Av1Plane.Y)[sourceOrigin..],
+                sourceLuma[sourceOrigin..],
                 sourcePlane.Stride,
                 referencePlane.Samples,
                 referencePlane.Stride,
@@ -4741,7 +4980,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             modeInfoGrid,
                             modeInfoAllocation,
                             displacementVectors,
-                            in sourcePlanes,
+                            sourceLuma,
+                            sourceBlue,
+                            sourceRed,
                             candidateVectors[index],
                             default,
                             modeInfo.Block,
@@ -5082,8 +5323,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoAllocation,
                         displacementVectors,
                         workspaceStorage,
-                        in sourcePlanes,
-                        in reconstructionPlanes,
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
+                        reconstructionLuma,
+                        reconstructionBlue,
+                        reconstructionRed,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -5209,8 +5454,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoAllocation,
                         displacementVectors,
                         workspaceStorage,
-                        in sourcePlanes,
-                        in reconstructionPlanes,
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
+                        reconstructionLuma,
+                        reconstructionBlue,
+                        reconstructionRed,
                         macroBlock,
                         blockOrigin,
                         blockSize,
@@ -5372,8 +5621,12 @@ internal static partial class Av1IntraSuperblockEncoder
                             modeInfoAllocation,
                             displacementVectors,
                             workspaceStorage,
-                            in sourcePlanes,
-                            in reconstructionPlanes,
+                            sourceLuma,
+                            sourceBlue,
+                            sourceRed,
+                            reconstructionLuma,
+                            reconstructionBlue,
+                            reconstructionRed,
                             macroBlock,
                             blockOrigin,
                             motionMode,
@@ -5513,8 +5766,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     workspaceStorage,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -5552,8 +5809,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     compoundMask,
                     modeInfoGrid,
                     modeInfoAllocation,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -5592,8 +5853,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     workspaceStorage,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -5782,8 +6047,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -5818,8 +6087,12 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -5837,7 +6110,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out bool selectedWedge,
             out int selectedWedgeIndex)
         {
-            Span<TSample> lumaFrame = reconstructionPlanes.GetPlane(Av1Plane.Y);
+            Span<TSample> lumaFrame = reconstructionLuma;
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
             Av1ModeCosts modeCosts = tables.ModeCosts;
             int width = blockSize.GetWidth();
@@ -5854,7 +6127,9 @@ internal static partial class Av1IntraSuperblockEncoder
             // the scaled_ref_frame of av1_compound_single_motion_search().
             Av1PlaneRegion<TSample> referencePlane = this.searchReferences.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
             this.PrepareSingleInterPrediction(
-                in sourcePlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
                 predictionMode,
                 referenceFrame,
                 blockSize,
@@ -5895,8 +6170,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     interIntraLeft,
                     modeInfoGrid,
                     modeInfoAllocation,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -5912,7 +6191,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // av1_handle_inter_intra_mode().
                 this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, blendedPrediction);
                 TOperator.GetMoments(
-                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin),
+                    Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin),
                     sourcePlane.Stride,
                     blendedPrediction,
                     width,
@@ -5961,8 +6240,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 interIntraLeft,
                 modeInfoGrid,
                 modeInfoAllocation,
-                in sourcePlanes,
-                in reconstructionPlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
+                reconstructionLuma,
+                reconstructionBlue,
+                reconstructionRed,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -5989,7 +6272,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 in lumaCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
-                in sourcePlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -6024,8 +6309,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     interIntraLeft,
                     modeInfoGrid,
                     modeInfoAllocation,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -6087,8 +6376,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 interIntraLeft,
                 modeInfoGrid,
                 modeInfoAllocation,
-                in sourcePlanes,
-                in reconstructionPlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
+                reconstructionLuma,
+                reconstructionBlue,
+                reconstructionRed,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -6108,6 +6401,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1MotionSearchSettings motionSettings = this.picture.Parent.MotionSearchSettings;
                 int sourceOrigin = ((sourcePlane.Bounds.Y + blockOrigin.Y) * sourcePlane.Stride) + sourcePlane.Bounds.X + blockOrigin.X;
                 int referenceOrigin = ((referencePlane.Bounds.Y + blockOrigin.Y) * referencePlane.Stride) + referencePlane.Bounds.X + blockOrigin.X;
+                ReadOnlySpan<TSample> referenceSamples = referencePlane.Samples;
                 Size size = new(width, height);
                 Size frameSize = new(
                     this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
@@ -6118,9 +6412,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Av1MotionSearchSettings.FullPixelSearchMethod method = motionSettings.GetFullPixelMethod(blockSize);
                 Av1MotionSearchBase.FullPixelSearch<TSample, TOperator> fullSearch = new(
-                    sourcePlanes.GetPlane(Av1Plane.Y)[sourceOrigin..],
+                    sourceLuma[sourceOrigin..],
                     sourcePlane.Stride,
-                    referencePlane.Samples,
+                    referenceSamples,
                     referencePlane.Stride,
                     referenceOrigin,
                     size,
@@ -6151,9 +6445,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (!this.picture.Parent.FrameHeader.ForceIntegerMotionVector)
                 {
                     Av1MotionSearchBase.FractionalSearch<TSample, TOperator> fractionalSearch = new(
-                        sourcePlanes.GetPlane(Av1Plane.Y)[sourceOrigin..],
+                        sourceLuma[sourceOrigin..],
                         sourcePlane.Stride,
-                        referencePlane.Samples,
+                        referenceSamples,
                         referencePlane.Stride,
                         referenceOrigin,
                         interWorkspace.BluePrediction,
@@ -6187,7 +6481,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     if (this.IsScaledReference(referenceFrame))
                     {
                         this.PrepareScaledInterPrediction(
-                            in sourcePlanes,
+                            sourceLuma,
+                            sourceBlue,
+                            sourceRed,
                             referenceFrame,
                             Av1Plane.Y,
                             blockOrigin,
@@ -6207,10 +6503,10 @@ internal static partial class Av1IntraSuperblockEncoder
                         int trialRowQ4 = (blockOrigin.Y << 4) + (trialVector.Row << 1);
                         TOperator.PrepareTranslationalInterPrediction(
                             sourcePlane,
-                            sourcePlanes.GetPlane(Av1Plane.Y),
+                            sourceLuma,
                             blockOrigin,
                             referencePlane,
-                            referencePlane.Samples,
+                            referenceSamples,
                             new Point(trialColumnQ4 >> 4, trialRowQ4 >> 4),
                             horizontalFilter,
                             verticalFilter,
@@ -6229,7 +6525,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     // and av1_combine_interintra() after av1_compound_single_motion_search() in handle_wedge_inter_intra_mode().
                     this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, blendedPrediction);
                     TOperator.GetMoments(
-                        Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin),
+                        Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin),
                         sourcePlane.Stride,
                         blendedPrediction,
                         width,
@@ -6291,7 +6587,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 in lumaCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
-                in sourcePlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
                 macroBlock,
                 blockOrigin,
                 blockSize,
@@ -6323,7 +6621,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -6342,7 +6642,9 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -6360,7 +6662,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height = blockSize.GetHeight();
             Av1PlaneRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
             TOperator.SubtractPrediction(
-                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), lumaSource, blockOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, lumaSource, blockOrigin),
                 lumaSource.Stride,
                 interWorkspace.LumaPrediction,
                 interWorkspace.Residual,
@@ -6445,8 +6747,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="interIntraLeft">The storage of the extended left edge.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -6461,8 +6767,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> interIntraLeft,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -6550,7 +6860,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // the edge the predictor reads, extending it where a neighbor is missing.
             PrepareReferenceSamples(
                 this.reconstruction.GetPlane(plane),
-                reconstructionPlanes.GetPlane(plane),
+                SelectPlane(plane, reconstructionLuma, reconstructionBlue, reconstructionRed),
                 planeOrigin,
                 planeBlockSize.GetWidth(),
                 planeBlockSize.GetHeight(),
@@ -6565,7 +6875,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
             TOperator.PrepareIntra(
                 transformWorkspace,
-                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(plane), sourcePlane, planeOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                 sourcePlane.Stride,
                 transformPrediction,
                 width,
@@ -6595,8 +6905,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="compoundMask">The blend mask storage.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -6618,8 +6932,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> compoundMask,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -6633,7 +6951,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool useWedge,
             int wedgeIndex)
         {
-            Span<TSample> lumaFrame = reconstructionPlanes.GetPlane(Av1Plane.Y);
+            Span<TSample> lumaFrame = reconstructionLuma;
             int planeCount = hasChroma ? 3 : 1;
             for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
             {
@@ -6654,7 +6972,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 };
 
                 this.PrepareSingleInterPrediction(
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     mode,
                     referenceFrame,
                     blockSize,
@@ -6678,8 +6998,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     interIntraLeft,
                     modeInfoGrid,
                     modeInfoAllocation,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -7198,12 +7522,16 @@ internal static partial class Av1IntraSuperblockEncoder
         /// loses every single-reference mode. Reference: av1_mv_pred() in setup_buffer_ref_mvs_inter(), then
         /// init_mode_skip_mask().
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="singleReferenceVectors">The reference vector stacks, indexed by reference type.</param>
         private void SetInterModeSkipMasks(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Point blockOrigin,
             Av1BlockSize blockSize,
             ReadOnlySpan<Av1ReferenceMotionVectors> singleReferenceVectors)
@@ -7235,7 +7563,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
 
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin);
+            ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin);
 
             Span<int> sads = stackalloc int[Av1Constants.ReferenceFrameCount + 1];
             sads.Fill(int.MaxValue);
@@ -7672,8 +8000,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="referenceContexts">The motion vector reference contexts of the picture, one per allocation entry.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="primaryReference">The first reference of the pair.</param>
@@ -7717,8 +8049,12 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             ReadOnlySpan<Av1EncoderReferenceContext> referenceContexts,
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1ReferenceFrameType primaryReference,
@@ -7740,7 +8076,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1MotionVector selectedSecondaryVector,
             ref InlineArray128<Av1EncoderTransformBlockState> selectedStates)
         {
-            Span<TSample> lumaFrame = reconstructionPlanes.GetPlane(Av1Plane.Y);
+            Span<TSample> lumaFrame = reconstructionLuma;
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
             if ((this.picture.Parent.AvailableReferenceMask & (1 << (int)primaryReference)) == 0 ||
@@ -8142,7 +8478,9 @@ internal static partial class Av1IntraSuperblockEncoder
                                     modeInfoGrid,
                                     modeInfoAllocation,
                                     displacementVectors,
-                                    in sourcePlanes,
+                                    sourceLuma,
+                                    sourceBlue,
+                                    sourceRed,
                                     translationPrimary,
                                     translationSecondary,
                                     prediction,
@@ -8273,7 +8611,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 if (mode == Av1PredictionMode.GlobalGlobalMotionVector &&
-                    this.PrunesZeroVectorWithSse(in sourcePlanes, blockOrigin, blockSize, primaryReference, secondaryReference))
+                    this.PrunesZeroVectorWithSse(sourceLuma, sourceBlue, sourceRed, blockOrigin, blockSize, primaryReference, secondaryReference))
                 {
                     continue;
                 }
@@ -8295,8 +8633,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     workspaceStorage,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -8371,8 +8713,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     workspaceStorage,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -8429,8 +8775,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoAllocation,
                     displacementVectors,
                     workspaceStorage,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     blockOrigin,
                     blockSize,
@@ -8516,21 +8866,29 @@ internal static partial class Av1IntraSuperblockEncoder
         /// reads. Reference: the sharpness return of search_intra_modes_in_interframe(), the has_rows and has_cols
         /// partition rules, and pd->dst in get_variance_stats().
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="samples">The candidate's luma samples at the block origin.</param>
         /// <param name="stride">The row stride of the samples.</param>
         /// <returns>The distortion offset.</returns>
         private readonly long GetIntraSmoothingOffset(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes, Point blockOrigin, Av1BlockSize blockSize, ReadOnlySpan<TSample> samples, int stride)
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            ReadOnlySpan<TSample> samples,
+            int stride)
         {
             Debug.Assert(
                 this.blockWorkspace.GetVisibleSize(Av1Plane.Y, blockOrigin, blockSize.GetWidth(), blockSize.GetHeight()) ==
                     new Size(blockSize.GetWidth(), blockSize.GetHeight()),
                 "An intra candidate charged at sharpness 3 lies inside the coded frame.");
 
-            return this.GetSmoothingOffset(in sourcePlanes, blockOrigin, blockSize, samples, stride);
+            return this.GetSmoothingOffset(sourceLuma, sourceBlue, sourceRed, blockOrigin, blockSize, samples, stride);
         }
 
         /// <summary>
@@ -8540,16 +8898,26 @@ internal static partial class Av1IntraSuperblockEncoder
         /// reference's extended source border does. Reference: get_variance_stats() and the var_offset of
         /// adjust_rdcost() and adjust_cost().
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="samples">The luma samples of the whole block that its destination holds, at the block origin.</param>
         /// <param name="stride">The row stride of the samples.</param>
         /// <returns>The distortion offset.</returns>
         private readonly long GetSmoothingOffset(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes, Point blockOrigin, Av1BlockSize blockSize, ReadOnlySpan<TSample> samples, int stride)
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            ReadOnlySpan<TSample> samples,
+            int stride)
         {
-            this.GetVarianceStatistics(in sourcePlanes, blockOrigin, blockSize, samples, stride, out long sourceVariance, out long sampleVariance);
+            this.GetVarianceStatistics(
+                sourceLuma, sourceBlue, sourceRed, blockOrigin, blockSize, samples, stride, out long sourceVariance, out long sampleVariance);
+
             return Math.Max(sourceVariance - sampleVariance, 0);
         }
 
@@ -8559,7 +8927,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Past the coded frame, the source repeats its edge, as the extended source border of the reference does.
         /// Reference: av1_get_variance_stats().
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="samples">The luma samples of the whole block in its destination, at the block origin.</param>
@@ -8567,7 +8937,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="sourceVariance">Gets the source measure.</param>
         /// <param name="sampleVariance">Gets the measure of the samples.</param>
         private readonly void GetVarianceStatistics(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Point blockOrigin,
             Av1BlockSize blockSize,
             ReadOnlySpan<TSample> samples,
@@ -8582,7 +8954,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // Each block origin is inside this boundary.
             Size visible = this.blockWorkspace.GetVisibleSize(Av1Plane.Y, blockOrigin, width, height);
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin);
+            ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin);
             sourceVariance = TOperator.GetVarianceStatistic(sourceBlock, sourcePlane.Stride, width, height, visible.Width, visible.Height);
             sampleVariance = TOperator.GetVarianceStatistic(samples, stride, width, height, width, height);
 
@@ -8639,11 +9011,18 @@ internal static partial class Av1IntraSuperblockEncoder
         /// The result is kept with its block size. A later block of the same size gets the same result at any position, as the cache of the reference does.
         /// Reference: get_sub_block_energy_diff().
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <returns>The energy difference.</returns>
-        private readonly int GetSubBlockEnergyDifference(in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes, Point blockOrigin, Av1BlockSize blockSize)
+        private readonly int GetSubBlockEnergyDifference(
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Point blockOrigin,
+            Av1BlockSize blockSize)
         {
             if (this.blockWorkspace.SubBlockEnergyBlockSize == blockSize)
             {
@@ -8666,7 +9045,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     for (int column = 0; column < width; column += 8)
                     {
                         ReadOnlySpan<TSample> subBlock = Av1TransformBlockEncoder.GetPlaneSpan(
-                            sourcePlanes.GetPlane(Av1Plane.Y), luma, new Point(blockOrigin.X + column, blockOrigin.Y + row));
+                            sourceLuma, luma, new Point(blockOrigin.X + column, blockOrigin.Y + row));
 
                         TOperator.GetMoments(subBlock, luma.Stride, zeros, 0, 8, 8, out int sum, out long squares);
 
@@ -8702,14 +9081,18 @@ internal static partial class Av1IntraSuperblockEncoder
         /// The skip distortion also gets the difference, four times for a source with low detail.
         /// Reference: av1_get_tx_skip_dist().
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="prediction">The luma prediction of the block, which its destination holds.</param>
         /// <param name="codedDistortion">The distortion when the residual is coded.</param>
         /// <param name="skipDistortion">The distortion when the residual is skipped.</param>
         private readonly void PenalizeTransformSkip(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Point blockOrigin,
             Av1BlockSize blockSize,
             ReadOnlySpan<TSample> prediction,
@@ -8722,7 +9105,9 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             int width = blockSize.GetWidth();
-            this.GetVarianceStatistics(in sourcePlanes, blockOrigin, blockSize, prediction, width, out long sourceVariance, out long sampleVariance);
+            this.GetVarianceStatistics(
+                sourceLuma, sourceBlue, sourceRed, blockOrigin, blockSize, prediction, width, out long sourceVariance, out long sampleVariance);
+
             if (sourceVariance <= sampleVariance)
             {
                 return;
@@ -8747,7 +9132,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Adds the texture-loss charge of high bit depth sharpness 3 to an inter trial, on a valid luma cost and on the trial statistics.
         /// Reference: the adjust_cost() of this_yrd and the adjust_rdcost() of rd_stats in motion_mode_rd().
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="statistics">The statistics of the trial.</param>
         /// <param name="currentCost">The cost of the trial statistics before the charge.</param>
         /// <param name="sourceVariance">The source measure from <see cref="GetVarianceStatistics"/>.</param>
@@ -8759,7 +9146,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="isInterIntra">True when the trial is an inter-intra blend.</param>
         /// <param name="vector">The first motion vector of the trial.</param>
         private readonly void ChargeInterTextureLoss(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             ref Av1RateDistortionStatistics statistics,
             long currentCost,
             long sourceVariance,
@@ -8774,10 +9163,11 @@ internal static partial class Av1IntraSuperblockEncoder
             long offset = GetTextureLossOffset(sourceVariance, sampleVariance, blockSize, skip, isCompound || isInterIntra, !isCompound, vector);
             if (statistics.LumaCost != long.MaxValue)
             {
-                statistics.LumaCost = this.ChargeTextureLossCost(in sourcePlanes, statistics.LumaCost, offset, blockOrigin, blockSize, true, isCompound, false);
+                statistics.LumaCost = this.ChargeTextureLossCost(
+                    sourceLuma, sourceBlue, sourceRed, statistics.LumaCost, offset, blockOrigin, blockSize, true, isCompound, false);
             }
 
-            this.ChargeTextureLoss(in sourcePlanes, ref statistics, currentCost, offset, blockOrigin, blockSize, true, isCompound, false);
+            this.ChargeTextureLoss(sourceLuma, sourceBlue, sourceRed, ref statistics, currentCost, offset, blockOrigin, blockSize, true, isCompound, false);
         }
 
         /// <summary>
@@ -8786,7 +9176,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// A smooth intra mode pays the full difference, and another intra mode pays one quarter of it. A compound pays one quarter of its cost.
         /// A single reference pays nothing more. Reference: the high bit depth branch of adjust_rdcost().
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="statistics">The statistics that get the charge.</param>
         /// <param name="currentCost">The cost of the statistics before the charge. The extra cost scales this cost.</param>
         /// <param name="offset">The texture-loss offset.</param>
@@ -8796,7 +9188,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="isCompound">True for a compound inter prediction.</param>
         /// <param name="smoothIntra">True for the DC, smooth or Paeth intra modes.</param>
         private readonly void ChargeTextureLoss(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             ref Av1RateDistortionStatistics statistics,
             long currentCost,
             long offset,
@@ -8817,7 +9211,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
-            int difference = this.GetSubBlockEnergyDifference(in sourcePlanes, blockOrigin, blockSize);
+            int difference = this.GetSubBlockEnergyDifference(sourceLuma, sourceBlue, sourceRed, blockOrigin, blockSize);
             if (difference <= 0)
             {
                 return;
@@ -8835,7 +9229,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Then a block of 16x16 or larger with an energy difference gets a multiple of the cost, by the same rules as <see cref="ChargeTextureLoss"/>.
         /// Reference: the high bit depth branch of adjust_cost().
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="cost">The luma cost that gets the charge.</param>
         /// <param name="offset">The texture-loss offset.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -8845,7 +9241,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="smoothIntra">True for the DC, smooth or Paeth intra modes.</param>
         /// <returns>The cost with the charge.</returns>
         private readonly long ChargeTextureLossCost(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             long cost,
             long offset,
             Point blockOrigin,
@@ -8864,7 +9262,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return cost;
             }
 
-            int difference = this.GetSubBlockEnergyDifference(in sourcePlanes, blockOrigin, blockSize);
+            int difference = this.GetSubBlockEnergyDifference(sourceLuma, sourceBlue, sourceRed, blockOrigin, blockSize);
             if (difference <= 0)
             {
                 return cost;
@@ -8892,8 +9290,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -8933,8 +9335,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -8957,7 +9363,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out Av1DifferenceWeightedMaskType selectedMaskType,
             out int selectedTypeRate)
         {
-            Span<TSample> lumaFrame = reconstructionPlanes.GetPlane(Av1Plane.Y);
+            Span<TSample> lumaFrame = reconstructionLuma;
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             int width = blockSize.GetWidth();
@@ -9162,7 +9568,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         displacementVectors,
-                        in sourcePlanes);
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed);
 
                     this.PrepareInterPlanePrediction(
                         initialSecondary,
@@ -9193,7 +9601,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         displacementVectors,
-                        in sourcePlanes);
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed);
 
                     predictorsReady = true;
                 }
@@ -9217,7 +9627,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     maskModel = this.SelectCompoundMask(
-                        in sourcePlanes,
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
                         in tables,
                         in interWorkspace,
                         compoundMask,
@@ -9355,7 +9767,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         this.RefineCompoundVectors(
                             workspaceStorage,
-                            in sourcePlanes,
+                            sourceLuma,
+                            sourceBlue,
+                            sourceRed,
                             in interWorkspace,
                             in motionVectorCosts,
                             blockOrigin,
@@ -9407,7 +9821,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             modeInfoGrid,
                             modeInfoAllocation,
                             displacementVectors,
-                            in sourcePlanes);
+                            sourceLuma,
+                            sourceBlue,
+                            sourceRed);
                     }
                     else
                     {
@@ -9429,7 +9845,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     long model = this.GetCompoundPredictionModelCost(
-                        in sourcePlanes,
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
                         in interWorkspace,
                         blockOrigin,
                         blockSize,
@@ -9495,7 +9913,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             in lumaCoefficientEdges,
                             modeInfoGrid,
                             modeInfoAllocation,
-                            in sourcePlanes,
+                            sourceLuma,
+                            sourceBlue,
+                            sourceRed,
                             macroBlock,
                             blockOrigin,
                             blockSize,
@@ -9636,7 +10056,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Estimates the wedge sign of all masks from the errors of the two predictions over opposite quadrants.
         /// Reference: estimate_wedge_sign().
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="sourcePlane">The luma source plane.</param>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="firstPrediction">The first prediction, packed at the block width.</param>
@@ -9645,7 +10067,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="height">The block height.</param>
         /// <returns><see langword="true"/> when the first prediction fits the bottom-right side better.</returns>
         private readonly bool EstimateWedgeSign(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Av1PlaneRegion<TSample> sourcePlane,
             Point blockOrigin,
             ReadOnlySpan<TSample> firstPrediction,
@@ -9656,7 +10080,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // A wedge divides the block, so the sign says which reference fills which side. The squared
             // errors of the top-left and bottom-right quadrants come from the variance function of the
             // quadrant size, which rounds each one to eight-bit precision on its own.
-            ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin);
+            ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin);
             int stride = sourcePlane.Stride;
             int halfWidth = width >> 1;
             int halfHeight = height >> 1;
@@ -9698,7 +10122,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Selects a mask from rounded single predictors while retaining six-bit blend precision in its error estimate.
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="tables">The rate tables of the tile.</param>
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
         /// <param name="compoundMask">The blend mask destination.</param>
@@ -9713,7 +10139,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="selectedError">The prediction error of the selected mask.</param>
         /// <returns>The modeled cost of the selected mask.</returns>
         private long SelectCompoundMask(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             in Av1CoefficientTables tables,
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             Span<byte> compoundMask,
@@ -9736,7 +10164,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> difference = interWorkspace.Residual[..count];
             Span<byte> mask = compoundMask[..count];
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin);
+            ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin);
             TOperator.SubtractPrediction(sourceBlock, sourcePlane.Stride, firstPrediction, firstResidual, width, height);
             TOperator.SubtractPrediction(sourceBlock, sourcePlane.Stride, secondPrediction, secondResidual, width, height);
 
@@ -9750,7 +10178,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int shift = (this.bitDepth.GetBitCount() - 8) * 2;
             if (compoundType == Av1CompoundType.Wedge && fastSign)
             {
-                fixedSign = this.EstimateWedgeSign(in sourcePlanes, sourcePlane, blockOrigin, firstPrediction, secondPrediction, width, height);
+                fixedSign = this.EstimateWedgeSign(
+                    sourceLuma, sourceBlue, sourceRed, sourcePlane, blockOrigin, firstPrediction, secondPrediction, width, height);
             }
             else if (compoundType == Av1CompoundType.Wedge)
             {
@@ -9849,7 +10278,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Measures a rounded luma predictor in the curve-fit model's normalized error domain.
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="interWorkspace">The inter prediction buffers of the block, whose luma prediction is current.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -9859,7 +10290,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="distortion">The modeled residual distortion.</param>
         /// <returns>The modeled cost of the candidate.</returns>
         private long GetCompoundPredictionModelCost(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -9871,7 +10304,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             Size visible = this.GetPredictionModelSize(blockOrigin, blockSize, 0, 0);
             TOperator.GetMoments(
-                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin),
                 sourcePlane.Stride,
                 interWorkspace.LumaPrediction,
                 blockSize.GetWidth(),
@@ -9906,7 +10339,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Refines the searched components of a compound predictor while holding its blend mask fixed.
         /// </summary>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
         /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -9922,7 +10357,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="secondary">The second vector, which the search may change.</param>
         private void RefineCompoundVectors(
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             in Av1MotionVectorCosts motionVectorCosts,
             Point blockOrigin,
@@ -9955,11 +10392,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
 
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(Av1Plane.Y), sourcePlane, blockOrigin);
+            ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin);
             int stackIndex = mode is Av1PredictionMode.NearNewMotionVector or Av1PredictionMode.NewNearMotionVector
                 ? referenceIndex + 1 : referenceIndex;
 
             ReadOnlySpan<Av1EncoderFrame<TSample>> references = this.references.Span;
+
+            // The two references stay the same through the iterations, so their samples are read once here.
+            ReadOnlySpan<TSample> primarySamples = references[(int)primaryReference].CodedView.GetPlane(Av1Plane.Y).Samples;
+            ReadOnlySpan<TSample> secondarySamples = references[(int)secondaryReference].CodedView.GetPlane(Av1Plane.Y).Samples;
             for (int iteration = 0; iteration < iterations; iteration++)
             {
                 int component = joint ? iteration & 1 : primaryNew ? 0 : 1;
@@ -9975,15 +10416,17 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Av1PlaneRegion<TSample> movingPlane = references[(int)(component == 0 ? primaryReference : secondaryReference)].CodedView.GetPlane(Av1Plane.Y);
                 Av1PlaneRegion<TSample> fixedPlane = references[(int)(component == 0 ? secondaryReference : primaryReference)].CodedView.GetPlane(Av1Plane.Y);
+                ReadOnlySpan<TSample> movingSamples = component == 0 ? primarySamples : secondarySamples;
+                ReadOnlySpan<TSample> fixedSamples = component == 0 ? secondarySamples : primarySamples;
                 Av1MotionVector referenceVector = referenceMotionVectors.GetCompoundNewReference(stackIndex, component);
                 int columnQ4 = (blockOrigin.X << 4) + (other.Column << 1);
                 int rowQ4 = (blockOrigin.Y << 4) + (other.Row << 1);
                 TOperator.PrepareTranslationalInterPrediction(
                     sourcePlane,
-                    sourcePlanes.GetPlane(Av1Plane.Y),
+                    sourceLuma,
                     blockOrigin,
                     fixedPlane,
-                    fixedPlane.Samples,
+                    fixedSamples,
                     new Point(columnQ4 >> 4, rowQ4 >> 4),
                     Av1InterpolationFilter.Regular,
                     Av1InterpolationFilter.Regular,
@@ -10009,7 +10452,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1MotionSearchBase.FullPixelSearch<TSample, TOperator> fullSearch = new(
                     source,
                     sourcePlane.Stride,
-                    movingPlane.Samples,
+                    movingSamples,
                     movingPlane.Stride,
                     referenceOrigin,
                     size,
@@ -10058,7 +10501,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1MotionSearchBase.FractionalSearch<TSample, TOperator> fractionalSearch = new(
                         source,
                         sourcePlane.Stride,
-                        movingPlane.Samples,
+                        movingSamples,
                         movingPlane.Stride,
                         referenceOrigin,
                         interWorkspace.RedPrediction,
@@ -10162,8 +10605,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="encoderSegmentMap">The segment identifiers that the encoder keeps for the frame.</param>
         /// <param name="previousSegmentMap">The segment map of the primary reference frame, or an empty map.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The block geometry and neighboring transform contexts.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="modeInfo">The selected prediction and interpolation syntax.</param>
@@ -10197,8 +10644,12 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<byte> encoderSegmentMap,
             ReadOnlySpan<byte> previousSegmentMap,
             Span<int> superblockCoefficients,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1MacroBlockModeInfo modeInfo,
@@ -10207,7 +10658,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MotionVector secondaryVector,
             ReadOnlySpan<Av1EncoderTransformBlockState> states)
         {
-            Span<TSample> lumaFrame = reconstructionPlanes.GetPlane(Av1Plane.Y);
+            Span<TSample> lumaFrame = reconstructionLuma;
             this.SetCodedBlockSegment(encoderSegmentMap, previousSegmentMap, blockOrigin, modeInfo.Block.BlockSize, modeInfo.Block.SegmentId);
             bool isInterIntra = modeInfo.Block.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra;
             if (isInterIntra)
@@ -10221,8 +10672,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     compoundMask,
                     modeInfoGrid,
                     modeInfoAllocation,
-                    in sourcePlanes,
-                    in reconstructionPlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
                     macroBlock,
                     blockOrigin,
                     modeInfo.Block.BlockSize,
@@ -10318,7 +10773,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
-                    in sourcePlanes);
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed);
 
                 // The whole luma prediction goes into the frame before the transform blocks, also past the coded area.
                 // Reference: av1_enc_build_inter_predictor() into pd->dst in encode_superblock(), before av1_encode_sb().
@@ -10397,8 +10854,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     this.ReconstructSelectedTransform(
-                        in sourcePlanes,
-                        in reconstructionPlanes,
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
+                        reconstructionLuma,
+                        reconstructionBlue,
+                        reconstructionRed,
                         writer,
                         in tables,
                         transformCoefficients,
@@ -10549,8 +11010,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -10573,8 +11038,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -10587,7 +11056,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out int filterRate,
             out long modelCost)
         {
-            Span<TSample> lumaFrame = reconstructionPlanes.GetPlane(Av1Plane.Y);
+            Span<TSample> lumaFrame = reconstructionLuma;
             Av1ModeCosts modeCosts = tables.ModeCosts;
             Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
             bool winnerSearch = settings.UseWinnerInterpolation && this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Winner;
@@ -10810,7 +11279,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoGrid,
                 modeInfoAllocation,
                 displacementVectors,
-                in sourcePlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
                 primary,
                 secondary,
                 modeInfo,
@@ -10899,7 +11370,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     primary,
                     secondary,
                     modeInfo,
@@ -11049,7 +11522,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         displacementVectors,
-                        in sourcePlanes);
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed);
 
                     // A difference-weighted blend predicts luma into pd->dst again. Reference: the av1_enc_build_inter_predictor()
                     // call after av1_interpolation_filter_search() in handle_inter_mode().
@@ -11094,7 +11569,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="vector">The motion vector.</param>
         /// <param name="secondaryVector">The second motion vector of a compound prediction.</param>
         /// <param name="modeInfo">The block decisions.</param>
@@ -11121,7 +11598,9 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Av1MotionVector vector,
             Av1MotionVector secondaryVector,
             Av1EncoderBlockModeInfo modeInfo,
@@ -11201,7 +11680,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
-                    in sourcePlanes);
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed);
 
                 Size visible = simpleModel ? new Size(width, height) : this.GetPredictionModelSize(blockOrigin, blockSize, subsamplingX, subsamplingY);
                 int visibleWidth = visible.Width;
@@ -11282,8 +11763,12 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
-        /// <param name="reconstructionPlanes">The samples of the reconstructed frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -11343,8 +11828,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
-            in Av1EncoderFrame<TSample>.PlanarSamples reconstructionPlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -11382,7 +11871,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out InlineArray16<Av1EncoderTransformBlockState> blueState,
             out InlineArray16<Av1EncoderTransformBlockState> redState)
         {
-            Span<TSample> lumaFrame = reconstructionPlanes.GetPlane(Av1Plane.Y);
+            Span<TSample> lumaFrame = reconstructionLuma;
             bool isCompound = secondaryReferenceFrame > Av1ReferenceFrameType.Intra;
             this.lumaSearchFailed = false;
             this.unbiasedInterTrialCost = long.MaxValue;
@@ -11512,7 +12001,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
-                    in sourcePlanes);
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed);
 
                 if (measurePrediction)
                 {
@@ -11528,7 +12019,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             : new Size(planeSize.GetWidth(), planeSize.GetHeight());
 
                     TOperator.GetMoments(
-                        Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(plane), sourcePlane, planeOrigin),
+                        Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                         sourcePlane.Stride,
                         prediction,
                         planeSize.GetWidth(),
@@ -11584,7 +12075,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // pd->dst in adjust_rdcost() of motion_mode_rd().
             bool chargesPrediction = referenceFrame != Av1ReferenceFrameType.Intra && !this.BiasesInterCosts && this.ChargesSmoothing;
             long predictionSmoothingOffset = chargesPrediction
-                ? this.GetSmoothingOffset(in sourcePlanes, blockOrigin, blockSize, interWorkspace.LumaPrediction, blockSize.GetWidth())
+                ? this.GetSmoothingOffset(sourceLuma, sourceBlue, sourceRed, blockOrigin, blockSize, interWorkspace.LumaPrediction, blockSize.GetWidth())
                 : 0;
 
             // High bit depth sharpness 3 measures the same prediction. It sets the charge when the skip is known.
@@ -11595,7 +12086,9 @@ internal static partial class Av1IntraSuperblockEncoder
             if (chargesTextureLoss)
             {
                 this.GetVarianceStatistics(
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     blockOrigin,
                     blockSize,
                     interWorkspace.LumaPrediction,
@@ -11653,7 +12146,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     // An estimate never skips, and its cost is the estimated cost.
                     // Reference: the rd_stats->rdcost = est_rd and rd_stats->skip_txfm = 0 of the !do_tx_search branch of motion_mode_rd().
                     this.ChargeInterTextureLoss(
-                        in sourcePlanes,
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
                         ref estimate,
                         estimate.Cost,
                         predictionSourceVariance,
@@ -11695,7 +12190,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoAllocation,
                 displacementVectors,
                 workspaceStorage,
-                in sourcePlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
                 macroBlock,
                 blockOrigin,
                 bestCost,
@@ -11731,7 +12228,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 // So the extra cost scales zero, unless the offset sets the cost first.
                 // Reference: the av1_init_rd_stats() of av1_txfm_search(), which sets rd_stats->rdcost to zero.
                 this.ChargeInterTextureLoss(
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     ref statistics,
                     0,
                     predictionSourceVariance,
@@ -11815,7 +12314,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="bestCost">The cost above which the evaluation stops.</param>
@@ -11854,7 +12355,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
             Span<int> workspaceStorage,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             long bestCost,
@@ -11935,7 +12438,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 in lumaCoefficientEdges,
                 modeInfoGrid,
                 modeInfoAllocation,
-                in sourcePlanes,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
                 macroBlock,
                 blockOrigin,
                 ref lumaModeInfo,
@@ -11996,7 +12501,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     macroBlock,
                     chromaCostLimit,
                     blockOrigin,
@@ -12059,7 +12566,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     macroBlock,
                     redCostLimit,
                     blockOrigin,
@@ -12140,7 +12649,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (!skippable && this.UsesHighBitDepthSharpness)
                 {
                     this.PenalizeTransformSkip(
-                        in sourcePlanes, blockOrigin, blockSize, interWorkspace.LumaPrediction, ref comparedCodedDistortion, ref comparedSkipDistortion);
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
+                        blockOrigin,
+                        blockSize,
+                        interWorkspace.LumaPrediction,
+                        ref comparedCodedDistortion,
+                        ref comparedSkipDistortion);
                 }
 
                 skip = skippable ||
@@ -12457,7 +12973,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="costLimit">The cost above which the evaluation stops.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -12502,7 +13020,9 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Av1MacroBlockD macroBlock,
             long costLimit,
             Point blockOrigin,
@@ -12590,7 +13110,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoGrid,
                 modeInfoAllocation,
                 displacementVectors,
-                in sourcePlanes);
+                sourceLuma,
+                sourceBlue,
+                sourceRed);
 
             // Coefficient coding reads the neighboring contexts of this plane, and the search
             // changes them as it prices each transform. Taking a copy leaves the tile contexts
@@ -12683,7 +13205,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     int coefficientOffset = transformIndex * sampleCount;
                     Span<int> coefficients = selectedCoefficients.Slice(coefficientOffset, sampleCount);
                     this.EvaluateInterTransform(
-                        in sourcePlanes,
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
                         writer,
                         in tables,
                         transformCoefficients,
@@ -12760,7 +13284,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         private void ApplyObmcPrediction(
             Av1Plane plane,
             int subsamplingX,
@@ -12771,7 +13297,9 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes)
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed)
         {
             ReadOnlySpan<int> maximumNeighbors = [0, 1, 2, 3, 4, 4];
             Av1BlockSize blockSize = this.obmcBlockSize;
@@ -12896,7 +13424,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int sampleCount = planeWidth * planeHeight;
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
             TOperator.SubtractPrediction(
-                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(plane), sourcePlane, planeOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                 sourcePlane.Stride,
                 prediction[..sampleCount],
                 residual[..sampleCount],
@@ -12998,7 +13526,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <returns><see langword="true"/> when the prediction was built.</returns>
         private bool TryPrepareSubEightInterPrediction(
             Av1MotionVector vector,
@@ -13017,7 +13547,9 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes)
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed)
         {
             bool subFourX = blockSize.GetWidth() == 4 && subsamplingX != 0;
             bool subFourY = blockSize.GetHeight() == 4 && subsamplingY != 0;
@@ -13062,6 +13594,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Point planeOrigin = new(lumaOrigin.X >> subsamplingX, lumaOrigin.Y >> subsamplingY);
             int modeRow = rowStart;
             ReadOnlySpan<Av1EncoderFrame<TSample>> references = this.references.Span;
+
+            // The current block's reference is read once here. A covered neighbor block reads its own reference.
+            ReadOnlySpan<TSample> referenceSamples = referencePlane.Samples;
             for (int y = 0; y < planeHeight; y += subHeight, modeRow++)
             {
                 int modeColumn = columnStart;
@@ -13070,6 +13605,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1MotionVector subVector = vector;
                     Av1ReferenceFrameType subReferenceFrame = referenceFrame;
                     Av1PlaneRegion<TSample> subReference = referencePlane;
+                    ReadOnlySpan<TSample> subReferenceSamples = referenceSamples;
                     Av1InterpolationFilter subHorizontal = horizontalFilter;
                     Av1InterpolationFilter subVertical = verticalFilter;
                     if (modeRow != 0 || modeColumn != 0)
@@ -13079,6 +13615,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         subVector = new Av1MotionVector(displacementVectors[coveredIndex].Row, displacementVectors[coveredIndex].Column);
                         subReferenceFrame = covered.ReferenceFrame;
                         subReference = references[(int)covered.ReferenceFrame].CodedView.GetPlane(plane);
+                        subReferenceSamples = subReference.Samples;
                         subHorizontal = covered.HorizontalInterpolationFilter;
                         subVertical = covered.VerticalInterpolationFilter;
                     }
@@ -13110,7 +13647,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     int rowQ4 = ((planeOrigin.Y + y) << 4) + (subVector.Row << (1 - subsamplingY));
                     TOperator.PredictTranslationalInter(
                         subReference,
-                        subReference.Samples,
+                        subReferenceSamples,
                         new Point(columnQ4 >> 4, rowQ4 >> 4),
                         subHorizontal,
                         subVertical,
@@ -13128,7 +13665,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int sampleCount = planeWidth * planeHeight;
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
             TOperator.SubtractPrediction(
-                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(plane), sourcePlane, planeOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                 sourcePlane.Stride,
                 prediction[..sampleCount],
                 residual[..sampleCount],
@@ -13229,7 +13766,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// translates. Reference: av1_init_warp_params() for the inter predictor that
         /// av1_build_interintra_predictor() blends.
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="mode">The prediction mode.</param>
         /// <param name="referenceFrame">The reference of the prediction.</param>
         /// <param name="blockSize">The luma block size.</param>
@@ -13245,7 +13784,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="residual">The contiguous residual destination.</param>
         /// <param name="filterRows">The intermediate rows of the interpolation and warp filters.</param>
         private void PrepareSingleInterPrediction(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Av1PredictionMode mode,
             Av1ReferenceFrameType referenceFrame,
             Av1BlockSize blockSize,
@@ -13285,7 +13826,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.bitDepth);
 
                 TOperator.SubtractPrediction(
-                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(plane), sourcePlane, planeOrigin),
+                    Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                     sourcePlane.Stride,
                     prediction[..sampleCount],
                     residual[..sampleCount],
@@ -13298,7 +13839,9 @@ internal static partial class Av1IntraSuperblockEncoder
             if (this.IsScaledReference(referenceFrame))
             {
                 this.PrepareScaledInterPrediction(
-                    in sourcePlanes,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
                     referenceFrame,
                     plane,
                     planeOrigin,
@@ -13319,7 +13862,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int rowQ4 = (planeOrigin.Y << 4) + (vector.Row << (1 - subsamplingY));
             TOperator.PrepareTranslationalInterPrediction(
                 sourcePlane,
-                sourcePlanes.GetPlane(plane),
+                SelectPlane(plane, sourceLuma, sourceBlue, sourceRed),
                 planeOrigin,
                 referencePlane,
                 referencePlane.Samples,
@@ -13384,7 +13927,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         private void PrepareInterPlanePrediction(
             Av1MotionVector vector,
             Av1MotionVector secondaryVector,
@@ -13414,7 +13959,9 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<int> modeInfoGrid,
             ReadOnlySpan<Av1MacroBlockModeInfo> modeInfoAllocation,
             ReadOnlySpan<Av1EncoderDisplacementVector> displacementVectors,
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes)
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed)
         {
             // A chroma block of a block four samples wide or high starts at the first luma block it covers.
             // Reference: the odd mi_row and mi_col adjustment of setup_pred_plane().
@@ -13434,7 +13981,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (usePreparedPrediction)
             {
                 TOperator.SubtractPrediction(
-                    Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(plane), sourcePlane, planeOrigin),
+                    Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                     sourcePlane.Stride,
                     prediction[..sampleCount],
                     residual[..sampleCount],
@@ -13490,7 +14037,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 TOperator.PrepareCompoundInterPrediction(
                     sourcePlane,
-                    sourcePlanes.GetPlane(plane),
+                    SelectPlane(plane, sourceLuma, sourceBlue, sourceRed),
                     planeOrigin,
                     referencePlane,
                     referencePlane.Samples,
@@ -13544,7 +14091,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoGrid,
                     modeInfoAllocation,
                     displacementVectors,
-                    in sourcePlanes))
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed))
                 {
                     return;
                 }
@@ -13580,7 +14129,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.bitDepth);
 
                     TOperator.SubtractPrediction(
-                        Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(plane), sourcePlane, planeOrigin),
+                        Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                         sourcePlane.Stride,
                         prediction[..sampleCount],
                         residual[..sampleCount],
@@ -13595,7 +14144,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (this.IsScaledReference(primaryReferenceFrame))
                 {
                     this.PrepareScaledInterPrediction(
-                        in sourcePlanes,
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed,
                         primaryReferenceFrame,
                         plane,
                         planeOrigin,
@@ -13613,7 +14164,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     TOperator.PrepareTranslationalInterPrediction(
                         sourcePlane,
-                        sourcePlanes.GetPlane(plane),
+                        SelectPlane(plane, sourceLuma, sourceBlue, sourceRed),
                         planeOrigin,
                         referencePlane,
                         referencePlane.Samples,
@@ -13641,7 +14192,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         modeInfoGrid,
                         modeInfoAllocation,
                         displacementVectors,
-                        in sourcePlanes);
+                        sourceLuma,
+                        sourceBlue,
+                        sourceRed);
                 }
             }
             else
@@ -13649,7 +14202,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // Intra-block copy has its own bilinear half-sample rules and reads the current reconstruction.
                 TOperator.PrepareIntraBlockCopyPrediction(
                     sourcePlane,
-                    sourcePlanes.GetPlane(plane),
+                    SelectPlane(plane, sourceLuma, sourceBlue, sourceRed),
                     planeOrigin,
                     referencePlane,
                     referencePlane.Samples,
@@ -13665,7 +14218,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Evaluates transform types over strided prediction and residual samples at one transform origin.
         /// </summary>
-        /// <param name="sourcePlanes">The samples of the source frame planes, read once per frame pass.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="writer">The tile symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
@@ -13693,7 +14248,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="selectedDistortion">The distortion of the winner.</param>
         /// <param name="predictionDistortion">The distortion of the prediction alone.</param>
         private void EvaluateInterTransform(
-            in Av1EncoderFrame<TSample>.PlanarSamples sourcePlanes,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             Span<int> transformCoefficients,
@@ -13743,7 +14300,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 true,
                 blockContext,
                 originContext,
-                Av1TransformBlockEncoder.GetPlaneSpan(sourcePlanes.GetPlane(plane), sourcePlane, planeOrigin),
+                Av1TransformBlockEncoder.GetPlaneSpan(SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), sourcePlane, planeOrigin),
                 sourcePlane.Stride,
                 planeOrigin,
                 transformSize,

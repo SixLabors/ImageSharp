@@ -199,7 +199,8 @@ internal static partial class Av1TransformBlockEncoder
             // The reference stores DCT_DCT for a predicted luma block. Chroma keeps the type derived from
             // the prediction mode, because no chroma transform type is signaled for a decoder to read.
             state.TransformType = plane == Av1Plane.Y ? Av1TransformType.DctDct : transformType;
-            quantizedCoefficients[..transformSize.GetAdjusted().GetSize2d()].Clear();
+
+            // Only the end of block is set: every reader of the coefficients stops at it, so the buffer is not cleared.
             return residualEnergy;
         }
 
@@ -624,7 +625,8 @@ internal static partial class Av1TransformBlockEncoder
             // The reference stores DCT_DCT for a predicted luma block. Chroma keeps the type derived from
             // the prediction mode, because no chroma transform type is signaled for a decoder to read.
             state.TransformType = plane == Av1Plane.Y ? Av1TransformType.DctDct : transformType;
-            quantizedCoefficients[..transformSize.GetAdjusted().GetSize2d()].Clear();
+
+            // Only the end of block is set: every reader of the coefficients stops at it, so the buffer is not cleared.
             return residualEnergy;
         }
 

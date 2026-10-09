@@ -14,9 +14,20 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 internal static partial class Av1NzMap
 {
     /// <summary>
-    /// The largest coded transform extent, which bounds every scratch buffer here.
+    /// Gets the one-dimensional positional offset of every index up to the largest extent, the values of
+    /// <see cref="GetOneDimensionalOffsetByte"/>, so that a row of them is one load from static data.
     /// </summary>
-    private const int MaximumExtent = 64;
+    private static ReadOnlySpan<byte> OneDimensionalOffsets =>
+    [
+        NzMapContext0, NzMapContext5, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10,
+        NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10,
+        NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10,
+        NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10,
+        NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10,
+        NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10,
+        NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10,
+        NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10
+    ];
 
     /// <summary>
     /// Gets the two-dimensional positional offsets of a transform size as bytes.
@@ -218,18 +229,8 @@ internal static partial class Av1NzMap
         {
             ref byte tableBase = ref MemoryMarshal.GetReference(table);
 
-            // The horizontal class gives every row the same offsets, so one row of them is built
-            // once and then read by every row of the block.
-            Span<byte> horizontal = stackalloc byte[MaximumExtent];
-            if (transformClass == Av1TransformClass.ClassHorizontal)
-            {
-                for (int column = 0; column < width; column++)
-                {
-                    horizontal[column] = GetOneDimensionalOffsetByte(column);
-                }
-            }
-
-            ref byte horizontalBase = ref MemoryMarshal.GetReference(horizontal);
+            // The horizontal class gives every row the same offsets, which the static row of offsets holds.
+            ref byte horizontalBase = ref MemoryMarshal.GetReference(OneDimensionalOffsets);
 
             for (int row = 0; row < height; row++)
             {
@@ -342,10 +343,21 @@ internal static partial class Av1NzMap
             ref byte tableBase = ref MemoryMarshal.GetReference(table);
             int rows = Vector128<byte>.Count / width;
 
-            // The offsets of the packed rows are rebuilt for each group. The group is sixteen bytes,
-            // so this costs one small fill against five loads and the whole reduction.
+            // The one-dimensional offsets of a group depend only on the column, for the horizontal class, or on the
+            // row, for the vertical class. Every row from the third on has the same offset, so only the first group of
+            // a vertical block differs from the rest. Both patterns are built once, before the loop.
             Span<byte> positionBytes = stackalloc byte[Vector128<byte>.Count];
-            ref byte positionBase = ref MemoryMarshal.GetReference(positionBytes);
+            for (int lane = 0; lane < Vector128<byte>.Count; lane++)
+            {
+                positionBytes[lane] = transformClass == Av1TransformClass.ClassHorizontal
+                    ? GetOneDimensionalOffsetByte(lane % width)
+                    : GetOneDimensionalOffsetByte(lane / width);
+            }
+
+            Vector128<byte> firstPositions = Vector128.Create((ReadOnlySpan<byte>)positionBytes);
+            Vector128<byte> laterPositions = transformClass == Av1TransformClass.ClassHorizontal
+                ? firstPositions
+                : Vector128.Create((byte)NzMapContext10);
 
             for (int row = 0; row < height; row += rows)
             {
@@ -366,14 +378,7 @@ internal static partial class Av1NzMap
                 }
                 else
                 {
-                    for (int lane = 0; lane < Vector128<byte>.Count; lane++)
-                    {
-                        positionBytes[lane] = transformClass == Av1TransformClass.ClassHorizontal
-                            ? GetOneDimensionalOffsetByte(lane % width)
-                            : GetOneDimensionalOffsetByte(row + (lane / width));
-                    }
-
-                    positions = Vector128.LoadUnsafe(ref positionBase);
+                    positions = row == 0 ? firstPositions : laterPositions;
                 }
 
                 (count + positions).AsSByte()

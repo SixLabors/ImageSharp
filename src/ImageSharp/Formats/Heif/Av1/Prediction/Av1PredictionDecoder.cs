@@ -49,11 +49,6 @@ internal sealed class Av1PredictionDecoder
     private readonly ObuFrameHeader frameHeader;
 
     /// <summary>
-    /// The frame-owned workspace shared by directional and filter-intra predictors.
-    /// </summary>
-    private readonly Memory<short> predictorScratch;
-
-    /// <summary>
     /// The complete decoder-session palette color-index map state, when supplied by a decoder session.
     /// </summary>
     private readonly Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps;
@@ -63,23 +58,22 @@ internal sealed class Av1PredictionDecoder
     /// </summary>
     /// <param name="sequenceHeader">The decoded sequence header for the current image.</param>
     /// <param name="frameHeader">The decoded frame header for the current image.</param>
-    /// <param name="predictorScratch">The reusable predictor workspace owned by the containing block decoder.</param>
     /// <param name="paletteColorIndexMaps">The complete decoder-session palette map state.</param>
     public Av1PredictionDecoder(
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
-        Memory<short> predictorScratch,
         Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps = null)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
-        this.predictorScratch = predictorScratch;
         this.paletteColorIndexMaps = paletteColorIndexMaps;
     }
 
     /// <summary>
     /// Reconstructs an 8-bit intra-predicted transform block.
     /// </summary>
+    /// <param name="predictorScratch">The predictor scratch of the block decoder workspace, read once by the tile reader.</param>
+    /// <param name="chromaFromLumaBuffer">The chroma-from-luma Q3 buffer of the block decoder workspace, read once by the tile reader.</param>
     /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
     /// <param name="plane">The color plane being reconstructed.</param>
     /// <param name="transformSize">The dimensions of the transform block.</param>
@@ -90,6 +84,8 @@ internal sealed class Av1PredictionDecoder
     /// <param name="blockModeInfoColumnOffset">The transform block's horizontal offset within the mode-information block.</param>
     /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
     public void Decode(
+        Span<short> predictorScratch,
+        Span<short> chromaFromLumaBuffer,
         ref Av1PartitionInfo partitionInfo,
         Av1Plane plane,
         Av1TransformSize transformSize,
@@ -100,6 +96,8 @@ internal sealed class Av1PredictionDecoder
         int blockModeInfoColumnOffset,
         int blockModeInfoRowOffset)
         => this.DecodeCore(
+            predictorScratch,
+            chromaFromLumaBuffer,
             ref partitionInfo,
             plane,
             transformSize,
@@ -113,7 +111,17 @@ internal sealed class Av1PredictionDecoder
     /// <summary>
     /// Builds the intra predictor for an 8-bit inter-intra plane block in separate caller-owned storage.
     /// </summary>
+    /// <param name="predictorScratch">The predictor scratch of the block decoder workspace, read once by the tile reader.</param>
+    /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
+    /// <param name="plane">The color plane being predicted.</param>
+    /// <param name="tileInfo">The tile boundaries used to determine neighboring-sample availability.</param>
+    /// <param name="referenceBuffer">The reconstructed frame samples from the row above the block, which supply the edge samples.</param>
+    /// <param name="referenceStride">The distance, in samples, between rows of <paramref name="referenceBuffer"/>.</param>
+    /// <param name="destination">The caller-owned storage that receives the intra predictor.</param>
+    /// <param name="destinationStride">The distance, in samples, between rows of <paramref name="destination"/>.</param>
+    /// <param name="bitDepth">The bit depth of the samples.</param>
     public void DecodeInterIntra(
+        Span<short> predictorScratch,
         ref Av1PartitionInfo partitionInfo,
         Av1Plane plane,
         Av1TileInfo tileInfo,
@@ -123,6 +131,7 @@ internal sealed class Av1PredictionDecoder
         int destinationStride,
         Av1BitDepth bitDepth)
         => this.DecodeInterIntraCore(
+            predictorScratch,
             ref partitionInfo,
             plane,
             tileInfo,
@@ -135,7 +144,17 @@ internal sealed class Av1PredictionDecoder
     /// <summary>
     /// Builds the intra predictor for a high-bit-depth inter-intra plane block in separate caller-owned storage.
     /// </summary>
+    /// <param name="predictorScratch">The predictor scratch of the block decoder workspace, read once by the tile reader.</param>
+    /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
+    /// <param name="plane">The color plane being predicted.</param>
+    /// <param name="tileInfo">The tile boundaries used to determine neighboring-sample availability.</param>
+    /// <param name="referenceBuffer">The reconstructed frame samples from the row above the block, which supply the edge samples.</param>
+    /// <param name="referenceStride">The distance, in samples, between rows of <paramref name="referenceBuffer"/>.</param>
+    /// <param name="destination">The caller-owned storage that receives the intra predictor.</param>
+    /// <param name="destinationStride">The distance, in samples, between rows of <paramref name="destination"/>.</param>
+    /// <param name="bitDepth">The bit depth of the samples.</param>
     public void DecodeInterIntra(
+        Span<short> predictorScratch,
         ref Av1PartitionInfo partitionInfo,
         Av1Plane plane,
         Av1TileInfo tileInfo,
@@ -145,6 +164,7 @@ internal sealed class Av1PredictionDecoder
         int destinationStride,
         Av1BitDepth bitDepth)
         => this.DecodeInterIntraCore(
+            predictorScratch,
             ref partitionInfo,
             plane,
             tileInfo,
@@ -157,7 +177,18 @@ internal sealed class Av1PredictionDecoder
     /// <summary>
     /// Builds an inter-intra predictor from reconstructed frame neighbors without replacing those references.
     /// </summary>
+    /// <typeparam name="T">The sample storage type.</typeparam>
+    /// <param name="predictorScratch">The predictor scratch of the block decoder workspace, read once by the tile reader.</param>
+    /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
+    /// <param name="plane">The color plane being predicted.</param>
+    /// <param name="tileInfo">The tile boundaries used to determine neighboring-sample availability.</param>
+    /// <param name="referenceBuffer">The reconstructed frame samples from the row above the block, which supply the edge samples.</param>
+    /// <param name="referenceStride">The distance, in samples, between rows of <paramref name="referenceBuffer"/>.</param>
+    /// <param name="destination">The caller-owned storage that receives the intra predictor.</param>
+    /// <param name="destinationStride">The distance, in samples, between rows of <paramref name="destination"/>.</param>
+    /// <param name="bitDepth">The bit depth of the samples.</param>
     private void DecodeInterIntraCore<T>(
+        Span<short> predictorScratch,
         ref Av1PartitionInfo partitionInfo,
         Av1Plane plane,
         Av1TileInfo tileInfo,
@@ -187,6 +218,7 @@ internal sealed class Av1PredictionDecoder
         // The reference decoder predicts one maximum-transform-sized plane block for inter-intra. Destination storage is separate
         // because the inter predictor must remain intact until the final mask blend consumes both complete blocks.
         this.PredictIntraBlock(
+            predictorScratch,
             ref partitionInfo,
             plane,
             transformSize,
@@ -205,6 +237,8 @@ internal sealed class Av1PredictionDecoder
     /// <summary>
     /// Reconstructs a 10-bit or 12-bit intra-predicted transform block.
     /// </summary>
+    /// <param name="predictorScratch">The predictor scratch of the block decoder workspace, read once by the tile reader.</param>
+    /// <param name="chromaFromLumaBuffer">The chroma-from-luma Q3 buffer of the block decoder workspace, read once by the tile reader.</param>
     /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
     /// <param name="plane">The color plane being reconstructed.</param>
     /// <param name="transformSize">The dimensions of the transform block.</param>
@@ -216,6 +250,8 @@ internal sealed class Av1PredictionDecoder
     /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
     /// <remarks>Implements the intra prediction portion of section 7.11.2 of the AV1 specification.</remarks>
     public void Decode(
+        Span<short> predictorScratch,
+        Span<short> chromaFromLumaBuffer,
         ref Av1PartitionInfo partitionInfo,
         Av1Plane plane,
         Av1TransformSize transformSize,
@@ -226,6 +262,8 @@ internal sealed class Av1PredictionDecoder
         int blockModeInfoColumnOffset,
         int blockModeInfoRowOffset)
         => this.DecodeCore(
+            predictorScratch,
+            chromaFromLumaBuffer,
             ref partitionInfo,
             plane,
             transformSize,
@@ -240,6 +278,8 @@ internal sealed class Av1PredictionDecoder
     /// Reconstructs an intra-predicted transform block in its native sample representation.
     /// </summary>
     /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
+    /// <param name="predictorScratch">The predictor scratch of the block decoder workspace, read once by the tile reader.</param>
+    /// <param name="chromaFromLumaBuffer">The chroma-from-luma Q3 buffer of the block decoder workspace, read once by the tile reader.</param>
     /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
     /// <param name="plane">The color plane being reconstructed.</param>
     /// <param name="transformSize">The dimensions of the transform block.</param>
@@ -250,6 +290,8 @@ internal sealed class Av1PredictionDecoder
     /// <param name="blockModeInfoColumnOffset">The transform block's horizontal offset within the mode-information block.</param>
     /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
     private void DecodeCore<T>(
+        Span<short> predictorScratch,
+        Span<short> chromaFromLumaBuffer,
         ref Av1PartitionInfo partitionInfo,
         Av1Plane plane,
         Av1TransformSize transformSize,
@@ -273,6 +315,7 @@ internal sealed class Av1PredictionDecoder
         if (plane != Av1Plane.Y && partitionInfo.ModeInfo.UvMode == Av1ChromaPredictionMode.ChromaFromLuma)
         {
             this.PredictIntraBlock(
+                predictorScratch,
                 ref partitionInfo,
                 plane,
                 transformSize,
@@ -288,6 +331,7 @@ internal sealed class Av1PredictionDecoder
                 bitDepth);
 
             this.PredictChromaFromLumaBlock(
+                chromaFromLumaBuffer,
                 ref partitionInfo,
                 partitionInfo.ChromaFromLumaContext,
                 startOfPixels,
@@ -306,6 +350,7 @@ internal sealed class Av1PredictionDecoder
         }
 
         this.PredictIntraBlock(
+            predictorScratch,
             ref partitionInfo,
             plane,
             transformSize,
@@ -325,6 +370,7 @@ internal sealed class Av1PredictionDecoder
     /// Applies chroma-from-luma scaling to the DC prediction for one chroma transform block.
     /// </summary>
     /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
+    /// <param name="chromaFromLumaBuffer">The chroma-from-luma Q3 buffer, which the caller reads once.</param>
     /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
     /// <param name="chromaFromLumaContext">The block-level luma prediction context shared by the chroma planes.</param>
     /// <param name="pixelBuffer">The DC-predicted chroma samples that receive the luma-derived adjustment.</param>
@@ -332,6 +378,7 @@ internal sealed class Av1PredictionDecoder
     /// <param name="transformSize">The dimensions of the chroma transform block.</param>
     /// <param name="plane">The U or V plane being reconstructed.</param>
     private void PredictChromaFromLumaBlock<T>(
+        Span<short> chromaFromLumaBuffer,
         ref Av1PartitionInfo partitionInfo,
         Av1ChromaFromLumaContext? chromaFromLumaContext,
         Span<T> pixelBuffer,
@@ -359,7 +406,7 @@ internal sealed class Av1PredictionDecoder
         // same block because both chroma planes have identical sampling geometry.
         if (!chromaFromLumaContext.AreParametersComputed)
         {
-            chromaFromLumaContext.ComputeParameters(transformSize);
+            chromaFromLumaContext.ComputeParameters(chromaFromLumaBuffer, transformSize);
         }
 
         int alphaQ3 = ChromaFromLumaIndexToAlpha(modeInfo.ChromaFromLumaAlphaIndex, modeInfo.ChromaFromLumaAlphaSign, plane);
@@ -370,11 +417,18 @@ internal sealed class Av1PredictionDecoder
 
         if (typeof(T) == typeof(byte))
         {
-            Av1ChromaFromLumaPredictor.Predict(chromaFromLumaContext.Q3Buffer, MemoryMarshal.Cast<T, byte>(pixelBuffer), stride, alphaQ3, width, height);
+            Av1ChromaFromLumaPredictor.Predict(chromaFromLumaBuffer, MemoryMarshal.Cast<T, byte>(pixelBuffer), stride, alphaQ3, width, height);
         }
         else
         {
-            Av1ChromaFromLumaPredictor.Predict(chromaFromLumaContext.Q3Buffer, MemoryMarshal.Cast<T, short>(pixelBuffer), stride, alphaQ3, bitDepth.GetBitCount(), width, height);
+            Av1ChromaFromLumaPredictor.Predict(
+                chromaFromLumaBuffer,
+                MemoryMarshal.Cast<T, short>(pixelBuffer),
+                stride,
+                alphaQ3,
+                bitDepth.GetBitCount(),
+                width,
+                height);
         }
     }
 
@@ -401,6 +455,7 @@ internal sealed class Av1PredictionDecoder
     /// Determines available reference samples and dispatches prediction for one transform block.
     /// </summary>
     /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
+    /// <param name="predictorScratch">The predictor scratch of the block decoder workspace, read once by the tile reader.</param>
     /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
     /// <param name="plane">The color plane being reconstructed.</param>
     /// <param name="transformSize">The dimensions of the transform block.</param>
@@ -415,6 +470,7 @@ internal sealed class Av1PredictionDecoder
     /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
     /// <param name="bitDepth">The bit depth of the reconstructed samples.</param>
     private void PredictIntraBlock<T>(
+        Span<short> predictorScratch,
         ref Av1PartitionInfo partitionInfo,
         Av1Plane plane,
         Av1TransformSize transformSize,
@@ -541,7 +597,8 @@ internal sealed class Av1PredictionDecoder
         bool disableEdgeFilter = !this.sequenceHeader.EnableIntraEdgeFilter;
 
         // Calling all other intra predictors except CFL and palette.
-        this.DecodeBuildIntraPredictors(
+        DecodeBuildIntraPredictors(
+            predictorScratch,
             ref partitionInfo,
             topNeighbor,
             leftNeighbor,
@@ -565,6 +622,7 @@ internal sealed class Av1PredictionDecoder
     /// Prepares normative reference-edge samples and runs the selected intra predictor.
     /// </summary>
     /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
+    /// <param name="predictorScratch">The predictor scratch of the block decoder workspace, read once by the tile reader.</param>
     /// <param name="partitionInfo">The decoded partition and neighboring mode state.</param>
     /// <param name="aboveNeighbor">The reconstructed top and top-right reference samples.</param>
     /// <param name="leftNeighbor">The reconstructed left and bottom-left reference samples.</param>
@@ -582,7 +640,8 @@ internal sealed class Av1PredictionDecoder
     /// <param name="bottomLeftPixelCount">The number of available bottom-left extension samples.</param>
     /// <param name="plane">The color plane being reconstructed.</param>
     /// <param name="bitDepth">The number of bits used to represent each sample.</param>
-    private void DecodeBuildIntraPredictors<T>(
+    private static void DecodeBuildIntraPredictors<T>(
+        Span<short> predictorScratch,
         ref Av1PartitionInfo partitionInfo,
         Span<T> aboveNeighbor,
         ReadOnlySpan<T> leftNeighbor,
@@ -606,7 +665,7 @@ internal sealed class Av1PredictionDecoder
 
         // The frame-owned allocation is sized in high-bit-depth samples. Reinterpreting it as T gives the byte
         // path additional capacity while preserving the same sample offsets for the larger short representation.
-        Span<T> scratch = MemoryMarshal.Cast<short, T>(this.predictorScratch.Span);
+        Span<T> scratch = MemoryMarshal.Cast<short, T>(predictorScratch);
         Span<T> aboveData = scratch.Slice(Av1DirectionalIntraPredictor.ScratchLength, ReferenceBufferLength);
         Span<T> leftData = scratch.Slice(Av1DirectionalIntraPredictor.ScratchLength + ReferenceBufferLength, ReferenceBufferLength);
         Span<T> edgeScratch = scratch.Slice(Av1DirectionalIntraPredictor.ScratchLength + (2 * ReferenceBufferLength), EdgeScratchLength);
@@ -807,7 +866,7 @@ internal sealed class Av1PredictionDecoder
 
         if (useFilterIntra)
         {
-            this.FilterIntraPredictor(destination, destinationStride, transformSize, aboveRow, leftColumn, filterIntraMode, bitDepth);
+            FilterIntraPredictor(predictorScratch, destination, destinationStride, transformSize, aboveRow, leftColumn, filterIntraMode, bitDepth);
             return;
         }
 
@@ -832,7 +891,7 @@ internal sealed class Av1PredictionDecoder
                     out upsampleLeft);
             }
 
-            this.DirectionalPredictor(destination, destinationStride, transformSize, aboveRow, leftColumn, upsampleAbove, upsampleLeft, angle);
+            DirectionalPredictor(predictorScratch, destination, destinationStride, transformSize, aboveRow, leftColumn, upsampleAbove, upsampleLeft, angle);
             return;
         }
 
@@ -936,6 +995,7 @@ internal sealed class Av1PredictionDecoder
     /// Dispatches directional prediction to the 8-bit or high-bit-depth implementation.
     /// </summary>
     /// <typeparam name="T">The byte or 16-bit sample type.</typeparam>
+    /// <param name="predictorScratch">The predictor scratch of the block decoder workspace, read once by the tile reader.</param>
     /// <param name="destination">The buffer that receives the predicted samples.</param>
     /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
     /// <param name="transformSize">The dimensions of the prediction block.</param>
@@ -944,12 +1004,21 @@ internal sealed class Av1PredictionDecoder
     /// <param name="upsampleAbove">A value indicating whether the top edge was upsampled.</param>
     /// <param name="upsampleLeft">A value indicating whether the left edge was upsampled.</param>
     /// <param name="angle">The adjusted prediction angle in degrees.</param>
-    private void DirectionalPredictor<T>(Span<T> destination, nuint destinationStride, Av1TransformSize transformSize, Span<T> above, Span<T> left, bool upsampleAbove, bool upsampleLeft, int angle)
+    private static void DirectionalPredictor<T>(
+        Span<short> predictorScratch,
+        Span<T> destination,
+        nuint destinationStride,
+        Av1TransformSize transformSize,
+        Span<T> above,
+        Span<T> left,
+        bool upsampleAbove,
+        bool upsampleLeft,
+        int angle)
         where T : unmanaged
     {
         if (typeof(T) == typeof(byte))
         {
-            Span<byte> scratch = MemoryMarshal.AsBytes(this.predictorScratch.Span)[..Av1DirectionalIntraPredictor.ScratchLength];
+            Span<byte> scratch = MemoryMarshal.AsBytes(predictorScratch)[..Av1DirectionalIntraPredictor.ScratchLength];
             Av1DirectionalIntraPredictor.Predict(
                 MemoryMarshal.Cast<T, byte>(destination),
                 (int)destinationStride,
@@ -972,7 +1041,7 @@ internal sealed class Av1PredictionDecoder
                 upsampleAbove,
                 upsampleLeft,
                 angle,
-                this.predictorScratch.Span);
+                predictorScratch);
         }
     }
 
@@ -980,6 +1049,7 @@ internal sealed class Av1PredictionDecoder
     /// Dispatches filter intra prediction to the 8-bit or high-bit-depth implementation.
     /// </summary>
     /// <typeparam name="T">The byte or 16-bit sample type.</typeparam>
+    /// <param name="predictorScratch">The predictor scratch of the block decoder workspace, read once by the tile reader.</param>
     /// <param name="destination">The buffer that receives the predicted samples.</param>
     /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
     /// <param name="transformSize">The dimensions of the prediction block.</param>
@@ -987,7 +1057,15 @@ internal sealed class Av1PredictionDecoder
     /// <param name="left">The prepared left reference samples.</param>
     /// <param name="mode">The filter intra mode whose coefficient set is applied.</param>
     /// <param name="bitDepth">The number of bits used to represent each sample.</param>
-    private void FilterIntraPredictor<T>(Span<T> destination, nuint destinationStride, Av1TransformSize transformSize, Span<T> above, Span<T> left, Av1FilterIntraMode mode, int bitDepth)
+    private static void FilterIntraPredictor<T>(
+        Span<short> predictorScratch,
+        Span<T> destination,
+        nuint destinationStride,
+        Av1TransformSize transformSize,
+        Span<T> above,
+        Span<T> left,
+        Av1FilterIntraMode mode,
+        int bitDepth)
         where T : unmanaged
     {
         int width = transformSize.GetWidth();
@@ -996,7 +1074,7 @@ internal sealed class Av1PredictionDecoder
 
         if (typeof(T) == typeof(byte))
         {
-            Span<byte> scratch = MemoryMarshal.AsBytes(this.predictorScratch.Span)[..Av1FilterIntraPredictorBase.ScratchLength];
+            Span<byte> scratch = MemoryMarshal.AsBytes(predictorScratch)[..Av1FilterIntraPredictorBase.ScratchLength];
             predictor.Predict(
                 MemoryMarshal.Cast<T, byte>(destination),
                 (int)destinationStride,
@@ -1016,7 +1094,7 @@ internal sealed class Av1PredictionDecoder
                 width,
                 height,
                 bitDepth,
-                this.predictorScratch.Span[..Av1FilterIntraPredictorBase.ScratchLength]);
+                predictorScratch[..Av1FilterIntraPredictorBase.ScratchLength]);
         }
     }
 

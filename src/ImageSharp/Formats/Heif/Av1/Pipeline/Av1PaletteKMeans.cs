@@ -101,11 +101,11 @@ internal static partial class Av1PaletteKMeans
         ReadOnlySpan<byte> indices,
         Span<short> centroids)
     {
-        Span<int> counts = stackalloc int[Av1Constants.PaletteMaxSize];
-        Span<int> sums = stackalloc int[Av1Constants.PaletteMaxSize];
-        counts = counts[..centroids.Length];
-        sums = sums[..centroids.Length];
-        SumByIndex(samples, indices, sums, counts);
+        InlineArray8<int> countStorage = default;
+        InlineArray8<int> sumStorage = default;
+        Span<int> counts = ((Span<int>)countStorage)[..centroids.Length];
+        Span<int> sums = ((Span<int>)sumStorage)[..centroids.Length];
+        SumByIndex(samples, default, indices, counts, sums, default);
 
         uint randomState = (uint)samples[0];
         for (int centroidIndex = 0; centroidIndex < centroids.Length; centroidIndex++)

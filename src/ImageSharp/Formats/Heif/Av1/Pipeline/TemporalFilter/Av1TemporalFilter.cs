@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Memory;
 using static SixLabors.ImageSharp.Formats.Heif.Av1.Motion.Av1MotionSearchBase;
@@ -219,7 +220,7 @@ internal static partial class Av1TemporalFilter
         in Av1TemporalFilterFrameParameters parameters,
         ReadOnlySpan<double> correlationCoefficients,
         int statisticsPosition,
-        IAv1ArfBoostSource arfBoost,
+        Av1SecondPass arfBoost,
         Av1EncoderFrame<TSample> output)
         where TSample : unmanaged
         where TOperator : struct, ITemporalFilterOperator<TSample>, ISharpPredictionOperator<TSample>
@@ -291,7 +292,7 @@ internal static partial class Av1TemporalFilter
         in Av1TemporalFilterFrameParameters parameters,
         ReadOnlySpan<double> correlationCoefficients,
         int statisticsPosition,
-        IAv1ArfBoostSource arfBoost,
+        Av1SecondPass arfBoost,
         int qFactor,
         Span<double> noiseLevels)
         where TSample : unmanaged

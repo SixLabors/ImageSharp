@@ -429,7 +429,7 @@ internal static partial class Av1FrameEncoder
         /// <param name="syncSamples">Receives whether each sample holds a shown key frame.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         private protected void EncodeLagged<TPixel, TSample, TStorer, TFirstPassOperator, TFilterOperator, TSearchOperator, TTplOperator>(
-            ILaggedFrameCoder<TSample> coder,
+            ILaggedFrameCoder<TSample, TFilterOperator, TSearchOperator, TTplOperator> coder,
             Image<TPixel> image,
             int firstFrameIndex,
             int frameCount,
@@ -481,7 +481,7 @@ internal static partial class Av1FrameEncoder
             // Before the first frame, the filter and the model read the motion settings of a key frame without any quantizer-dependent update.
             // High precision vectors are always allowed.
             Av1MotionSearchSettings keyFrameMotionSettings = new(this.Options.Speed, false, image.Size, -1, true, false);
-            using LookaheadTemporalModel<TSample, TSearchOperator, TTplOperator>? temporalModel =
+            using LookaheadTemporalModel<TSample, TFilterOperator, TSearchOperator, TTplOperator>? temporalModel =
                 this.Options.LagInFrames > 1
                     ? new(this, lookahead, coder.ReferencePool, filter, image.Width, image.Height, colorFormat, secondPass.LagInFrames) { MotionSettings = keyFrameMotionSettings }
                     : null;
@@ -821,7 +821,8 @@ internal static partial class Av1FrameEncoder
         }
     }
 
-    private sealed partial class ByteSequenceEncoder : SequenceEncoder.ILaggedFrameCoder<byte>
+    private sealed partial class ByteSequenceEncoder
+        : SequenceEncoder.ILaggedFrameCoder<byte, Av1TemporalFilter.ByteOperator, Av1MotionSearchBase.ByteOperator, Av1TplByteOperator>
     {
         /// <inheritdoc/>
         public Av1EncoderReferencePool<byte> ReferencePool => this.referencePool;
@@ -857,7 +858,7 @@ internal static partial class Av1FrameEncoder
             Av1SecondPass secondPass,
             Stream stream,
             bool writeTemporalDelimiter,
-            ILaggedTemporalModel<byte>? temporalModel,
+            LookaheadTemporalModel<byte, Av1TemporalFilter.ByteOperator, Av1MotionSearchBase.ByteOperator, Av1TplByteOperator>? temporalModel,
             Av1EncoderFrameBuffer<byte>? lastSource)
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
@@ -1000,7 +1001,8 @@ internal static partial class Av1FrameEncoder
         }
     }
 
-    private sealed partial class HighBitDepthSequenceEncoder : SequenceEncoder.ILaggedFrameCoder<ushort>
+    private sealed partial class HighBitDepthSequenceEncoder
+        : SequenceEncoder.ILaggedFrameCoder<ushort, Av1TemporalFilter.UInt16Operator, Av1MotionSearchBase.UInt16Operator, Av1TplUInt16Operator>
     {
         /// <inheritdoc/>
         public Av1EncoderReferencePool<ushort> ReferencePool => this.referencePool;
@@ -1036,7 +1038,7 @@ internal static partial class Av1FrameEncoder
             Av1SecondPass secondPass,
             Stream stream,
             bool writeTemporalDelimiter,
-            ILaggedTemporalModel<ushort>? temporalModel,
+            LookaheadTemporalModel<ushort, Av1TemporalFilter.UInt16Operator, Av1MotionSearchBase.UInt16Operator, Av1TplUInt16Operator>? temporalModel,
             Av1EncoderFrameBuffer<ushort>? lastSource)
         {
             ObuFrameHeader frameHeader = this.FrameHeader;

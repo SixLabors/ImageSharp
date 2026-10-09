@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -14,86 +15,20 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// </content>
 internal static partial class Av1FrameEncoder
 {
-    /// <summary>
-    /// The filtered key frames and alternate references of the current golden group.
-    /// </summary>
-    /// <typeparam name="TSample">The sample type.</typeparam>
-    internal interface ILookaheadFilter<TSample>
-        where TSample : unmanaged
-    {
-        /// <summary>
-        /// Discards the filtered frames of the previous group.
-        /// </summary>
-        public void Reset();
-
-        /// <summary>
-        /// Filters the key frame and alternate reference of a golden group that are not filtered yet.
-        /// </summary>
-        /// <param name="lookahead">The lookahead.</param>
-        /// <param name="secondPass">The frame-level decisions.</param>
-        /// <param name="allowHighPrecisionMotion">The high precision flag the encoder holds.</param>
-        /// <param name="forceIntegerMotion">The integer motion flag of the last coded frame.</param>
-        /// <param name="allowScreenContentTools">The screen content flag the encoder holds.</param>
-        /// <param name="motionSettings">The motion search settings the encoder holds.</param>
-        public void FilterGroup(
-            Av1LookaheadQueue<TSample> lookahead,
-            Av1SecondPass secondPass,
-            bool allowHighPrecisionMotion,
-            bool forceIntegerMotion,
-            bool allowScreenContentTools,
-            Av1MotionSearchSettings motionSettings);
-
-        /// <summary>
-        /// Returns the filtered frame of a group entry, or <see langword="null"/> when the entry has none.
-        /// </summary>
-        /// <param name="groupIndex">The group index of the entry.</param>
-        /// <returns>The filtered frame.</returns>
-        public Av1EncoderFrame<TSample>? GetFilteredFrame(int groupIndex);
-    }
-
     internal abstract partial class SequenceEncoder
     {
-        /// <summary>
-        /// Hands a coded frame of a lookahead sequence the statistics of the temporal dependency model.
-        /// </summary>
-        /// <typeparam name="TSample">The sample type.</typeparam>
-        internal interface ILaggedTemporalModel<TSample>
-            where TSample : unmanaged
-        {
-            /// <summary>
-            /// Hands a frame the statistics of its group entry and returns the inputs of its quantizer choice.
-            /// </summary>
-            /// <param name="parent">The frame state.</param>
-            /// <param name="groupIndex">The group index of the frame.</param>
-            /// <param name="qStepRatio">Receives the quantizer step ratio of the frame.</param>
-            /// <param name="frameValid">
-            /// Receives whether the statistics entry of the frame is valid, ready or not. This value gates the quantizer replacement.
-            /// </param>
-            /// <returns>Whether the frame has ready and valid statistics.</returns>
-            public bool ApplyToFrame(Av1PictureParentControlSet parent, int groupIndex, out double qStepRatio, out bool frameValid);
-
-            /// <summary>
-            /// Records the state a coded frame leaves for the next model run.
-            /// </summary>
-            /// <param name="frame">The decisions of the coded frame.</param>
-            /// <param name="source">The source the frame was coded from.</param>
-            /// <param name="picture">The coded picture.</param>
-            /// <param name="context">The entropy context the frame ended with.</param>
-            /// <param name="qIndex">The base quantizer of the frame.</param>
-            public void CompleteFrame(
-                in Av1SecondPassFrame frame,
-                Av1EncoderFrame<TSample> source,
-                Av1PictureControlSet picture,
-                Av1FrameEntropyContext context,
-                int qIndex);
-        }
-
         /// <summary>
         /// Codes one frame of a lookahead golden group at one sample type.
         /// </summary>
         /// <typeparam name="TSample">The sample type.</typeparam>
-        internal interface ILaggedFrameCoder<TSample>
+        /// <typeparam name="TFilterOperator">The temporal filter arithmetic.</typeparam>
+        /// <typeparam name="TSearchOperator">The motion search arithmetic.</typeparam>
+        /// <typeparam name="TTplOperator">The temporal dependency model arithmetic.</typeparam>
+        internal interface ILaggedFrameCoder<TSample, TFilterOperator, TSearchOperator, TTplOperator>
             where TSample : unmanaged
+            where TFilterOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>, Av1TemporalFilter.ISharpPredictionOperator<TSample>
+            where TSearchOperator : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
+            where TTplOperator : struct, IAv1TplSampleOperator<TSample>
         {
             /// <summary>
             /// Gets the reconstructions in the reference slots.
@@ -127,7 +62,7 @@ internal static partial class Av1FrameEncoder
                 Av1SecondPass secondPass,
                 Stream stream,
                 bool writeTemporalDelimiter,
-                ILaggedTemporalModel<TSample>? temporalModel,
+                LookaheadTemporalModel<TSample, TFilterOperator, TSearchOperator, TTplOperator>? temporalModel,
                 Av1EncoderFrameBuffer<TSample>? lastSource);
         }
 
@@ -136,11 +71,13 @@ internal static partial class Av1FrameEncoder
         /// lookahead decisions, and hands each frame its statistics.
         /// </summary>
         /// <typeparam name="TSample">The sample type.</typeparam>
+        /// <typeparam name="TFilterOperator">The temporal filter arithmetic.</typeparam>
         /// <typeparam name="TSearchOperator">The motion search arithmetic.</typeparam>
         /// <typeparam name="TTplOperator">The model sample arithmetic.</typeparam>
-        private protected sealed class LookaheadTemporalModel<TSample, TSearchOperator, TTplOperator>
-            : Av1SecondPass.IGopLengthEvaluator, IAv1TplReferenceMapper, ILaggedTemporalModel<TSample>, IDisposable
+        internal sealed class LookaheadTemporalModel<TSample, TFilterOperator, TSearchOperator, TTplOperator>
+            : Av1SecondPass.IGopLengthEvaluator, IAv1TplReferenceMapper, IDisposable
             where TSample : unmanaged
+            where TFilterOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>, Av1TemporalFilter.ISharpPredictionOperator<TSample>
             where TSearchOperator : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
             where TTplOperator : struct, IAv1TplSampleOperator<TSample>
         {
@@ -149,7 +86,7 @@ internal static partial class Av1FrameEncoder
             private readonly Av1TplSetupInput<TSample> input = new();
             private readonly Av1LookaheadQueue<TSample> lookahead;
             private readonly Av1EncoderReferencePool<TSample> referencePool;
-            private readonly ILookaheadFilter<TSample> filter;
+            private readonly LookaheadTemporalFilter<TSample, TFilterOperator, TSearchOperator> filter;
             private readonly int width;
             private readonly int height;
             private Av1GopStructure group = new();
@@ -165,7 +102,7 @@ internal static partial class Av1FrameEncoder
             private bool statisticsReadyBeforeCoding;
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="LookaheadTemporalModel{TSample, TSearchOperator, TTplOperator}"/> class.
+            /// Initializes a new instance of the <see cref="LookaheadTemporalModel{TSample, TFilterOperator, TSearchOperator, TTplOperator}"/> class.
             /// </summary>
             /// <param name="owner">The sequence encoder that codes the frames.</param>
             /// <param name="lookahead">The lookahead.</param>
@@ -179,7 +116,7 @@ internal static partial class Av1FrameEncoder
                 SequenceEncoder owner,
                 Av1LookaheadQueue<TSample> lookahead,
                 Av1EncoderReferencePool<TSample> referencePool,
-                ILookaheadFilter<TSample> filter,
+                LookaheadTemporalFilter<TSample, TFilterOperator, TSearchOperator> filter,
                 int width,
                 int height,
                 Av1ColorFormat colorFormat,

@@ -2195,7 +2195,7 @@ internal static partial class Av1FrameEncoder
     /// <summary>
     /// Retains the reconstructed reference state shared by the samples of one AV1 sequence track.
     /// </summary>
-    internal abstract partial class SequenceEncoder : IDisposable, IAv1ReferenceRefreshControl
+    internal abstract partial class SequenceEncoder : IDisposable
     {
         /// <summary>
         /// The number of rotating slots that hold LAST and ALTREF.
@@ -3515,7 +3515,7 @@ internal static partial class Av1FrameEncoder
         /// are updated.
         /// </summary>
         /// <param name="parent">The frame state, with the motion statistics of the coded frame.</param>
-        void IAv1ReferenceRefreshControl.AdjustRefresh(Av1PictureParentControlSet parent)
+        public void AdjustRefresh(Av1PictureParentControlSet parent)
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
 

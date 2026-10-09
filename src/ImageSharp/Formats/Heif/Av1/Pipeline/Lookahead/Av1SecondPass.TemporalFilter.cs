@@ -1,14 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 
 /// <content>
 /// Exposes the rate-control state that the temporal filter reads for the frame being coded.
 /// </content>
-internal sealed partial class Av1SecondPass : IAv1ArfBoostSource
+internal sealed partial class Av1SecondPass
 {
     /// <summary>
     /// Gets the number of frames to the next key frame.
@@ -52,7 +50,15 @@ internal sealed partial class Av1SecondPass : IAv1ArfBoostSource
         }
     }
 
-    /// <inheritdoc/>
-    int IAv1ArfBoostSource.CalculateArfBoost(int offset, int forwardFrames, int backwardFrames)
+    /// <summary>
+    /// Returns the boost of the frame at a look-ahead offset from the first-pass statistics of the frames around it. The temporal filter
+    /// uses it to limit the number of frames it filters for an alternate reference. The boost uses the good-quality scale limit and no
+    /// projected group boost.
+    /// </summary>
+    /// <param name="offset">The look-ahead index of the frame.</param>
+    /// <param name="forwardFrames">The number of later frames to read.</param>
+    /// <param name="backwardFrames">The number of earlier frames to read.</param>
+    /// <returns>The boost.</returns>
+    public int CalculateArfBoost(int offset, int forwardFrames, int backwardFrames)
         => this.CalculateArfBoost(this.statisticsPosition, offset, forwardFrames, backwardFrames, false, true);
 }

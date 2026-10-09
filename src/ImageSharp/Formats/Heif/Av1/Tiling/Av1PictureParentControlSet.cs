@@ -400,9 +400,9 @@ internal class Av1PictureParentControlSet
     public bool BorderPad { get; set; }
 
     /// <summary>
-    /// Gets or sets the control that adjusts the refreshed slots after the frame is coded, or <see langword="null"/> to keep them.
+    /// Gets or sets the sequence encoder that adjusts the refreshed slots after the frame is coded, or <see langword="null"/> to keep them.
     /// </summary>
-    public IAv1ReferenceRefreshControl? ReferenceRefreshControl { get; set; }
+    public Av1FrameEncoder.SequenceEncoder? ReferenceRefreshControl { get; set; }
 
     /// <summary>
     /// Gets or sets the resolved motion-search policy for the current frame.

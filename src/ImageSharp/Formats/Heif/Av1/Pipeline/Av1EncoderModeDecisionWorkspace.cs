@@ -87,9 +87,6 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     private const int ChromaFromLumaDistortionStorageLength =
         Av1ChromaFromLumaMath.AlphaCandidateCount * sizeof(long) / sizeof(int);
 
-    private const int ChromaFromLumaRedDistortionOffset =
-        ChromaFromLumaBlueDistortionOffset + ChromaFromLumaDistortionStorageLength;
-
     private readonly Span<int> storage;
 
     /// <summary>

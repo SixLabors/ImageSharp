@@ -19,11 +19,6 @@ internal static partial class Av1TemporalFilter
     internal const int SubblockCount = 16;
 
     /// <summary>
-    /// The largest component magnitude of a full-pixel motion vector.
-    /// </summary>
-    private const int MaximumFullPixelComponent = 1023;
-
-    /// <summary>
     /// Fills the motion-vector rate storage so that the rate of a full-pixel vector is its L1 norm in whole samples.
     /// </summary>
     /// <param name="storage">The <see cref="Av1MotionVectorCosts.IntegerStorageLength"/> values of an integer-precision

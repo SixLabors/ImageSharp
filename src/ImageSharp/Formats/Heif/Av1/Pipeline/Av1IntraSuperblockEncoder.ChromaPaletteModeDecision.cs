@@ -455,9 +455,6 @@ internal static partial class Av1IntraSuperblockEncoder
             return paletteSelected;
         }
 
-        internal static bool ShouldPruneChromaPaletteByHeader(ObuFrameType frameType)
-            => frameType is ObuFrameType.KeyFrame or ObuFrameType.IntraOnlyFrame;
-
         /// <summary>
         /// Counts the distinct values of a source block, straight from the source plane, before any copy of the samples.
         /// </summary>

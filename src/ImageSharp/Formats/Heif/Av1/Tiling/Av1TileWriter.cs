@@ -5270,29 +5270,6 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// Selects block skip when it is cheaper than retaining empty transform syntax.
-    /// </summary>
-    /// <param name="writer">The live tile symbol encoder.</param>
-    /// <param name="skipContext">The neighboring block skip context.</param>
-    /// <param name="emptyTransformRate">The complete coefficient rate for the empty transforms.</param>
-    /// <returns>
-    /// <see langword="true"/> when block skip has a strictly lower rate; otherwise, <see langword="false"/>.
-    /// </returns>
-    public static bool ShouldSkipCoefficients(
-        Av1SymbolEncoder writer,
-        int skipContext,
-        int emptyTransformRate)
-    {
-        Av1ModeCosts modeCosts = writer.ModeCosts;
-        int skipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext);
-        int nonSkipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext) + emptyTransformRate;
-
-        // Empty transforms give the same decoded block for both choices, so the code selects skip only when its complete live rate is strictly
-        // lower.
-        return skipRate < nonSkipRate;
-    }
-
-    /// <summary>
     /// Writes the block skip flag using the sum of available above and left skip states as its context.
     /// </summary>
     /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>

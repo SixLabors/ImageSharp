@@ -29,16 +29,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 internal sealed partial class Av1SecondPass
 {
     /// <summary>
-    /// The default key frame boost.
-    /// </summary>
-    private const int DefaultKeyFrameBoost = 2300;
-
-    /// <summary>
-    /// The default golden boost.
-    /// </summary>
-    private const int DefaultGoldenBoost = 2000;
-
-    /// <summary>
     /// The largest golden interval.
     /// </summary>
     private const int MaximumGoldenInterval = 32;

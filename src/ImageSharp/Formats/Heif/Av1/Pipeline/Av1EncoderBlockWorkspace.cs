@@ -308,19 +308,9 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public Span<int> Storage => this.owner.Memory.Span;
 
     /// <summary>
-    /// Gets the four convolution outputs retained throughout a 64x64 partition search.
-    /// </summary>
-    public Span<float> IntraPartitionFeatures => this.GetIntraPartitionFeatures(this.owner.Memory.Span);
-
-    /// <summary>
     /// Gets the source log variances for the current superblock's 4x4 cells.
     /// </summary>
     public Span<double> SourceLogVariances => this.GetSourceLogVariances(this.owner.Memory.Span);
-
-    /// <summary>
-    /// Gets temporary storage for the 65x65 normalized input and the first 20-channel 16x16 layer.
-    /// </summary>
-    public Span<float> IntraPartitionScratch => GetIntraPartitionScratch(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets frame-role probabilities retained for the sequence's lifetime.
@@ -335,34 +325,9 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         this.transformProbabilityStorageOffset + Av1TransformTypeProbabilities.StorageLength, Av1TransformTypeProbabilities.FrameLength);
 
     /// <summary>
-    /// Gets the prediction records retained until the block's transform search finishes.
-    /// </summary>
-    public Span<Av1InterModeCandidate> InterModeCandidates => this.GetInterModeCandidates(this.owner.Memory.Span);
-
-    /// <summary>
     /// Gets the residual estimates for each block geometry in the current tile.
     /// </summary>
     public Span<Av1InterModeRateDistortionModel> InterModeModels => this.GetInterModeModels(this.owner.Memory.Span);
-
-    /// <summary>
-    /// Gets the predictor-pair estimates retained until the current block search ends.
-    /// </summary>
-    public Span<Av1CompoundSearchRecord> CompoundSearchRecords => this.GetCompoundSearchRecords(this.owner.Memory.Span);
-
-    /// <summary>
-    /// Gets the interpolation decisions retained for the current block.
-    /// </summary>
-    public Span<Av1InterpolationSearchRecord> InterpolationSearchRecords => this.GetInterpolationSearchRecords(this.owner.Memory.Span);
-
-    /// <summary>
-    /// Gets modeled interpolation costs in single-reference mode, dynamic-reference index, and reference order.
-    /// </summary>
-    public Span<long> SingleReferenceFilterCosts => this.GetSingleReferenceFilterCosts(this.owner.Memory.Span);
-
-    /// <summary>
-    /// Gets translation costs in single-reference mode, dynamic-reference index, and reference order.
-    /// </summary>
-    public Span<long> SingleReferenceSimpleCosts => this.GetSingleReferenceSimpleCosts(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets interpolation probabilities by frame role and entropy context.
@@ -521,11 +486,6 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public bool LumaNoisePattern { get; set; }
 
     /// <summary>
-    /// Gets the worker's motion-feature nodes in breadth-first quadtree order.
-    /// </summary>
-    public Span<Av1SimpleMotionData> SimpleMotionData => this.GetSimpleMotionData(this.owner.Memory.Span);
-
-    /// <summary>
     /// Gets the allocator used by frame-scoped encoder stages.
     /// </summary>
     public MemoryAllocator MemoryAllocator => this.Configuration.MemoryAllocator;
@@ -603,13 +563,6 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// </summary>
     public Span<int> TransformCoefficients
         => this.owner.Memory.Span.Slice(TransformCoefficientOffset, MaximumCoefficientCount);
-
-    /// <summary>
-    /// Gets the scratch storage of partition analysis, which completes before any transform of the superblock.
-    /// It spans the forward and dequantized coefficient workspaces, enough for the moment tree of a 128x128
-    /// superblock down to 8x8.
-    /// </summary>
-    public Span<int> PartitionAnalysisScratch => GetPartitionAnalysisScratch(this.owner.Memory.Span);
 
     /// <summary>
     /// Gets the coefficients of one row of mode-estimation transforms across the widest block, eight 16x16 transforms of a 128-sample row.
@@ -821,12 +774,6 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         => new(this.owner.Memory.Span.Slice(StorageLength, Av1MotionVectorCosts.StorageLength), precision);
 
     /// <summary>
-    /// Borrows the integer rates retained by a worker with intra-block-copy capacity.
-    /// </summary>
-    /// <returns>The worker's displacement-rate view.</returns>
-    public Av1MotionVectorCosts GetDisplacementVectorCosts() => this.GetDisplacementVectorCosts(this.owner.Memory.Span);
-
-    /// <summary>
     /// Borrows the integer rates retained by a worker with intra-block-copy capacity from the workspace storage.
     /// </summary>
     /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
@@ -932,13 +879,6 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     }
 
     /// <summary>
-    /// Gets the disjoint edge snapshot used to restore one square partition-search level.
-    /// </summary>
-    /// <param name="blockSize">The square partition node being evaluated.</param>
-    /// <returns>The maximum-size byte view reserved for that node depth.</returns>
-    public Span<byte> GetPartitionContextStorage(Av1BlockSize blockSize) => GetPartitionContextStorage(this.owner.Memory.Span, blockSize);
-
-    /// <summary>
     /// Gets the disjoint edge snapshot used to restore one square partition-search level from the workspace storage.
     /// </summary>
     /// <param name="storage">The storage of the workspace, from <see cref="Storage"/>.</param>
@@ -1001,13 +941,6 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
 
         return new Av1EncoderInterPredictionWorkspace<TSample>(sampleStorage, residualStorage, filterRowStorage, coefficientStorage);
     }
-
-    /// <summary>
-    /// Gets the intra winner retained while a later palette candidate reuses prediction scratch.
-    /// </summary>
-    /// <param name="planeCount">The number of component planes in this block.</param>
-    /// <returns>The block-local syntax, transform-state, and palette storage.</returns>
-    public Av1EncoderPartitionTree.ModeContext GetIntraWinnerContext(int planeCount) => GetIntraWinnerContext(this.owner.Memory.Span, planeCount);
 
     /// <summary>
     /// Gets the intra winner retained while a later palette candidate reuses prediction scratch, from the workspace storage.

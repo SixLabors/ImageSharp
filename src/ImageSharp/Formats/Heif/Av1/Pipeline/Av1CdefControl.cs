@@ -19,11 +19,6 @@ internal enum Av1CdefControl
     All,
 
     /// <summary>
-    /// The encoder enables CDEF for reference frames only.
-    /// </summary>
-    Reference,
-
-    /// <summary>
     /// The CDEF strength adapts to the frame quantizer.
     /// </summary>
     Adaptive,

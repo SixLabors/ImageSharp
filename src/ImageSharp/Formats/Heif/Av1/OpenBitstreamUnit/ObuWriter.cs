@@ -55,13 +55,6 @@ internal sealed class ObuWriter : IDisposable
     }
 
     /// <summary>
-    /// Writes an empty temporal-delimiter OBU.
-    /// </summary>
-    /// <param name="stream">The destination stream.</param>
-    public static void WriteTemporalDelimiter(Stream stream)
-        => WriteObuHeaderAndSize(stream, ObuType.TemporalDelimiter, []);
-
-    /// <summary>
     /// Writes a temporal delimiter followed by one sequence-header OBU.
     /// </summary>
     /// <param name="configuration">The configuration used to allocate temporary encoding memory.</param>

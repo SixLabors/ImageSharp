@@ -215,14 +215,4 @@ internal static class Av1GlobalMotionEstimator
         public static int Fill(Av1ImagePyramid pyramid, ReadOnlySpan<byte> source, int stride, int bitDepth, int levels)
             => pyramid.Fill(source, stride, levels);
     }
-
-    /// <summary>
-    /// Fills a pyramid from a high-bit-depth frame, dropping the low bits of every sample.
-    /// </summary>
-    internal readonly struct UInt16FillOperator : IAv1PyramidFillOperator<ushort>
-    {
-        /// <inheritdoc/>
-        public static int Fill(Av1ImagePyramid pyramid, ReadOnlySpan<ushort> source, int stride, int bitDepth, int levels)
-            => pyramid.Fill(source, stride, bitDepth, levels);
-    }
 }

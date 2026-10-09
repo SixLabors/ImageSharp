@@ -71,18 +71,6 @@ internal static class Av1BlockSizeExtensions
         [4, 5, 5, 6, 7, 7, 8, 9, 9, 10, 11, 11, 12, 13, 13, 14, 6, 6, 8, 8, 10, 10];
 
     /// <summary>
-    /// Maps dimension logarithms to an AV1 block size. Each row holds one block width and each column holds one block height.
-    /// </summary>
-    private static readonly Av1BlockSize[][] HeightWidthToSize = [
-        [Av1BlockSize.Block4x4, Av1BlockSize.Block4x8, Av1BlockSize.Block4x16, Av1BlockSize.Invalid, Av1BlockSize.Invalid, Av1BlockSize.Invalid],
-        [Av1BlockSize.Block8x4, Av1BlockSize.Block8x8, Av1BlockSize.Block8x16, Av1BlockSize.Block8x32, Av1BlockSize.Invalid, Av1BlockSize.Invalid],
-        [Av1BlockSize.Block16x4, Av1BlockSize.Block16x8, Av1BlockSize.Block16x16, Av1BlockSize.Block16x32, Av1BlockSize.Block16x64, Av1BlockSize.Invalid],
-        [Av1BlockSize.Invalid, Av1BlockSize.Block32x8, Av1BlockSize.Block32x16, Av1BlockSize.Block32x32, Av1BlockSize.Block32x64, Av1BlockSize.Invalid],
-        [Av1BlockSize.Invalid, Av1BlockSize.Invalid, Av1BlockSize.Block64x16, Av1BlockSize.Block64x32, Av1BlockSize.Block64x64, Av1BlockSize.Block64x128],
-        [Av1BlockSize.Invalid, Av1BlockSize.Invalid, Av1BlockSize.Invalid, Av1BlockSize.Invalid, Av1BlockSize.Block128x64, Av1BlockSize.Block128x128]
-    ];
-
-    /// <summary>
     /// Gets the block width in units of four samples.
     /// </summary>
     /// <param name="blockSize">The block size.</param>
@@ -95,20 +83,6 @@ internal static class Av1BlockSizeExtensions
     /// <param name="blockSize">The block size.</param>
     /// <returns>The number of four-sample rows.</returns>
     public static int Get4x4HighCount(this Av1BlockSize blockSize) => SizeHigh[(int)blockSize];
-
-    /// <summary>
-    /// Gets the block size from two dimension logarithms, where zero represents four samples. The lookup is transposed: the block width comes from
-    /// <paramref name="heightLog2"/> and the block height comes from <paramref name="widthLog2"/>.
-    /// </summary>
-    /// <param name="widthLog2">The base-two logarithm minus two of the block height.</param>
-    /// <param name="heightLog2">The base-two logarithm minus two of the block width.</param>
-    /// <returns>The matching block size, or <see cref="Av1BlockSize.Invalid"/> for unsupported dimensions.</returns>
-    public static Av1BlockSize FromWidthAndHeight(uint widthLog2, uint heightLog2)
-    {
-        // The table rows hold block widths, and the lookup indexes the rows with heightLog2. This keeps the transposed axis order of the mode-decision
-        // geometry.
-        return HeightWidthToSize[heightLog2][widthLog2];
-    }
 
     /// <summary>
     /// Gets the block width in samples.

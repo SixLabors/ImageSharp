@@ -765,22 +765,6 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the current fixed-point cost of a palette color-order index.
-    /// </summary>
-    /// <param name="modeCosts">The mode rate tables of the tile.</param>
-    /// <param name="colorOrderIndex">The index in the context-specific palette color order.</param>
-    /// <param name="paletteSize">The number of colors in the palette.</param>
-    /// <param name="colorContext">The color-index context derived from preceding spatial indices.</param>
-    /// <param name="planeType">The luma or chroma plane class.</param>
-    /// <returns>The rate cost in 1/512-bit units.</returns>
-    public static int GetPaletteColorIndexCost(Av1ModeCosts modeCosts, int colorOrderIndex, int paletteSize, int colorContext, Av1PlaneType planeType)
-    {
-        return planeType == Av1PlaneType.Y
-            ? modeCosts.GetPaletteYColorIndex(paletteSize - 2, colorContext, colorOrderIndex)
-            : modeCosts.GetPaletteUvColorIndex(paletteSize - 2, colorContext, colorOrderIndex);
-    }
-
-    /// <summary>
     /// Writes a palette color-order index.
     /// </summary>
     /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
@@ -1562,53 +1546,6 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Completes the rate of a refined transform block from the coefficient rate that the trellis accumulated.
-    /// </summary>
-    /// <remarks>
-    /// The method adds the skip flag rate to the accumulated coefficient rate. For a coded luma block, it also adds the transform type rate.
-    /// </remarks>
-    /// <param name="transformSize">The signaled transform size.</param>
-    /// <param name="transformType">The transform type.</param>
-    /// <param name="intraDirection">The block's intra prediction mode.</param>
-    /// <param name="componentType">The luma or chroma component category.</param>
-    /// <param name="transformBlockContext">The neighboring skip and DC sign contexts.</param>
-    /// <param name="endOfBlock">The refined one-based final nonzero scan position, or zero for an empty block.</param>
-    /// <param name="coefficientRate">The accumulated coefficient rate, excluding the skip flag and transform type.</param>
-    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
-    /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
-    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
-    /// <param name="lossless">Indicates whether the segment of the block codes losslessly, which charges no transform type rate.</param>
-    /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetOptimizedCoefficientCost(
-        Av1TransformSize transformSize,
-        Av1TransformType transformType,
-        Av1PredictionMode intraDirection,
-        Av1ComponentType componentType,
-        Av1TransformBlockContext transformBlockContext,
-        ushort endOfBlock,
-        int coefficientRate,
-        bool useReducedTransformSet,
-        Av1FilterIntraMode filterIntraMode,
-        bool usesInterTransformSet,
-        bool lossless)
-    {
-        Av1CoefficientTables tables = this.GetCoefficientTables();
-        return GetOptimizedCoefficientCost(
-            in tables,
-            transformSize,
-            transformType,
-            intraDirection,
-            componentType,
-            transformBlockContext,
-            endOfBlock,
-            coefficientRate,
-            useReducedTransformSet,
-            filterIntraMode,
-            usesInterTransformSet,
-            lossless);
-    }
-
-    /// <summary>
     /// Gets the complete rate of a transform block whose coefficient rate the trellis already measured. It uses the rate tables that the caller
     /// read once for its search loop.
     /// </summary>
@@ -1664,50 +1601,6 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         }
 
         return rate + coefficientRate;
-    }
-
-    /// <summary>
-    /// Gets the current fixed-point rate cost of one transform block's complete coefficient syntax.
-    /// </summary>
-    /// <param name="transformSize">The signaled transform size.</param>
-    /// <param name="transformType">The transform type selecting the scan and context class.</param>
-    /// <param name="intraDirection">The block's intra prediction mode.</param>
-    /// <param name="coefficientBuffer">The raster-ordered signed coefficient levels.</param>
-    /// <param name="componentType">The luma or chroma component category.</param>
-    /// <param name="transformBlockContext">The neighboring skip and DC sign contexts.</param>
-    /// <param name="endOfBlock">The one-based final nonzero scan position, or zero for an empty block.</param>
-    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
-    /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
-    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
-    /// <param name="lossless">Indicates whether the segment of the block codes losslessly, which charges no transform type rate.</param>
-    /// <returns>The rate cost in 1/512-bit units.</returns>
-    public int GetCoefficientCost(
-        Av1TransformSize transformSize,
-        Av1TransformType transformType,
-        Av1PredictionMode intraDirection,
-        ReadOnlySpan<int> coefficientBuffer,
-        Av1ComponentType componentType,
-        Av1TransformBlockContext transformBlockContext,
-        ushort endOfBlock,
-        bool useReducedTransformSet,
-        Av1FilterIntraMode filterIntraMode,
-        bool usesInterTransformSet,
-        bool lossless)
-    {
-        Av1CoefficientTables tables = this.GetCoefficientTables();
-        return this.GetCoefficientCost(
-            in tables,
-            transformSize,
-            transformType,
-            intraDirection,
-            coefficientBuffer,
-            componentType,
-            transformBlockContext,
-            endOfBlock,
-            useReducedTransformSet,
-            filterIntraMode,
-            usesInterTransformSet,
-            lossless);
     }
 
     /// <summary>
@@ -1918,22 +1811,6 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
     public Av1CoefficientTables GetCoefficientTables() => new(this.entropyWorkspace.Memory.Span, this.levels.GetStorage());
 
     /// <summary>
-    /// Selects the active size of the level plane and gets the context scratch of one transform block.
-    /// </summary>
-    /// <param name="width">The coded transform width.</param>
-    /// <param name="height">The coded transform height.</param>
-    /// <param name="coefficientContexts">The context scratch of the block.</param>
-    /// <returns>The level buffer with its new active size.</returns>
-    private Av1LevelBuffer PrepareCoefficientScratch(
-        int width,
-        int height,
-        out Span<sbyte> coefficientContexts)
-    {
-        Av1CoefficientTables tables = this.GetCoefficientTables();
-        return this.PrepareCoefficientScratch(tables, width, height, out coefficientContexts);
-    }
-
-    /// <summary>
     /// Selects the active size of the level plane and gets the context scratch of one transform block from tables
     /// that the caller read once.
     /// </summary>
@@ -1954,34 +1831,6 @@ internal sealed partial class Av1SymbolEncoder : IDisposable
         this.levels.Reset(new Size(width, height), clear: false);
         coefficientContexts = tables.Contexts[..(width * height)];
         return this.levels;
-    }
-
-    /// <summary>
-    /// Writes an end-of-block token and its context-coded and literal suffix bits.
-    /// </summary>
-    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
-    /// <param name="endOfBlock">The one-based final nonzero scan position.</param>
-    /// <param name="componentType">The luma or chroma component category.</param>
-    /// <param name="transformClass">The transform direction class.</param>
-    /// <param name="transformSize">The signaled transform size selecting the token alphabet.</param>
-    /// <param name="transformSizeContext">The square transform-size probability context.</param>
-    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
-    public void WriteEndOfBlockPosition<TOperation>(
-        ref Span<byte> output,
-        ushort endOfBlock,
-        Av1ComponentType componentType,
-        Av1TransformClass transformClass,
-        Av1TransformSize transformSize,
-        Av1TransformSize transformSizeContext)
-        where TOperation : struct, ISymbolOperation
-    {
-        _ = this.ProcessEndOfBlockPosition<TOperation>(
-            ref output,
-            endOfBlock,
-            componentType,
-            transformClass,
-            transformSize,
-            transformSizeContext);
     }
 
     /// <summary>

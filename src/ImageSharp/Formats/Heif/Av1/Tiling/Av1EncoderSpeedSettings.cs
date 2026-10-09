@@ -892,11 +892,6 @@ internal readonly struct Av1EncoderSpeedSettings
     public bool UseEstimatedCompound => this.realtime && (this.Speed < HeifEncodingSpeed.Level9 || this.minimumDimension >= 360);
 
     /// <summary>
-    /// Gets a value indicating whether compound search uses only global motion pairs.
-    /// </summary>
-    public bool EstimatedCompoundGlobalOnly => this.Speed >= HeifEncodingSpeed.Level9;
-
-    /// <summary>
     /// Gets a value indicating whether low-resolution mode rejection uses its stronger threshold.
     /// </summary>
     public bool AggressiveEstimatedModeSkip => this.Speed >= HeifEncodingSpeed.Level9 && this.minimumDimension < 360;
@@ -906,11 +901,6 @@ internal readonly struct Av1EncoderSpeedSettings
     /// </summary>
     public bool UseEstimatedAlternateReference => this.Speed < HeifEncodingSpeed.Level8
         || (this.Speed == HeifEncodingSpeed.Level8 && this.minimumDimension >= 360);
-
-    /// <summary>
-    /// Gets a value indicating whether compound candidates use single-mode variance rejection.
-    /// </summary>
-    public bool PruneEstimatedCompoundBySingleVariance => this.Speed < HeifEncodingSpeed.Level8;
 
     /// <summary>
     /// Gets the level for omitting intra prediction after an initially skippable inter winner.

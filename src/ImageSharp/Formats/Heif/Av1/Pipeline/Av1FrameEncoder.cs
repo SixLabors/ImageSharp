@@ -53,11 +53,6 @@ internal static partial class Av1FrameEncoder
     private const int CenteredChromaSamplePosition = 1;
 
     /// <summary>
-    /// The number of step sizes that the warp refinement tries. Each step is half of the step before it.
-    /// </summary>
-    private const int GlobalMotionRefinementCount = 5;
-
-    /// <summary>
     /// The default constant-quality level on the zero-through-63 quantizer scale. The encoder keeps this level when the caller does not set one.
     /// </summary>
     private const int DefaultConstantQualityLevel = 10;

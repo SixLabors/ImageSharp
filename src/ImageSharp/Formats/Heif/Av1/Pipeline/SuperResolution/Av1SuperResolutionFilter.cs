@@ -398,50 +398,6 @@ internal static class Av1SuperResolutionFilter
     }
 
     /// <summary>
-    /// Evaluates one eight-bit source position for the scalar remainder.
-    /// </summary>
-    /// <param name="source">The first sample in the replicated-edge source row.</param>
-    /// <param name="sourcePosition">The fixed-point source position.</param>
-    /// <param name="maximum">The largest permitted output sample.</param>
-    /// <returns>The rounded and clipped output sample.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int FilterOne(ref byte source, int sourcePosition, int maximum)
-    {
-        GetOffsets(sourcePosition, out int sourceOffset, out int filterOffset);
-
-        ref short filter = ref MemoryMarshal.GetReference(Filters);
-        int sum = 0;
-        for (int tap = 0; tap < TapCount; tap++)
-        {
-            sum += Unsafe.Add(ref source, sourceOffset + tap) * Unsafe.Add(ref filter, filterOffset + tap);
-        }
-
-        return Av1Math.Clip3(0, maximum, (sum + FilterRounding) >> FilterBits);
-    }
-
-    /// <summary>
-    /// Evaluates one high-bit-depth source position for the scalar remainder.
-    /// </summary>
-    /// <param name="source">The first sample in the replicated-edge source row.</param>
-    /// <param name="sourcePosition">The fixed-point source position.</param>
-    /// <param name="maximum">The largest permitted output sample.</param>
-    /// <returns>The rounded and clipped output sample.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int FilterOne(ref ushort source, int sourcePosition, int maximum)
-    {
-        GetOffsets(sourcePosition, out int sourceOffset, out int filterOffset);
-
-        ref short filter = ref MemoryMarshal.GetReference(Filters);
-        int sum = 0;
-        for (int tap = 0; tap < TapCount; tap++)
-        {
-            sum += Unsafe.Add(ref source, sourceOffset + tap) * Unsafe.Add(ref filter, filterOffset + tap);
-        }
-
-        return Av1Math.Clip3(0, maximum, (sum + FilterRounding) >> FilterBits);
-    }
-
-    /// <summary>
     /// Resolves the source and filter-table offsets for one fixed-point position.
     /// </summary>
     /// <param name="sourcePosition">The fixed-point source position.</param>

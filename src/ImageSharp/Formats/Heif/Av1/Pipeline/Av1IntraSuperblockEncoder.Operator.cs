@@ -741,22 +741,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderTransformBlockState state);
     }
 
-    private static int GetNormalizedVariance(int sum, int sumOfSquares, Av1BitDepth bitDepth)
-    {
-        int coefficientShift = bitDepth.GetBitCount() - 8;
-        if (coefficientShift > 0)
-        {
-            // Normalize both moments before subtracting them so high-bit-depth motion search uses the
-            // same eight-bit distortion scale as the encoder's other rate-distortion comparisons.
-            int squareShift = coefficientShift * 2;
-            sumOfSquares = (sumOfSquares + (1 << (squareShift - 1))) >> squareShift;
-            sum = (sum + (1 << (coefficientShift - 1))) >> coefficientShift;
-        }
-
-        long variance = sumOfSquares - (((long)sum * sum) / 64);
-        return (int)Math.Max(variance, 0);
-    }
-
     /// <summary>
     /// Encodes blocks stored as eight-bit samples.
     /// </summary>

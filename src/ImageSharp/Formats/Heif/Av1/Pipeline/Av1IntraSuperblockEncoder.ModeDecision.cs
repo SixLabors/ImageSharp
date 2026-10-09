@@ -3231,6 +3231,8 @@ internal static partial class Av1IntraSuperblockEncoder
             sourceVariance = (sourceVariance / cells) + 0.000001D;
             reconstructionVariance = (reconstructionVariance / cells) + 0.000001D;
 
+            // A loss of detail in a flat reconstruction gets a larger penalty than added variation. The small offset keeps the ratio of a
+            // flat source block finite. The cap limits the influence of such blocks.
             double difference = sourceVariance - reconstructionVariance;
             double factor = 1D;
             if (difference > 0.5D && reconstructionVariance < threshold)
@@ -3258,71 +3260,6 @@ internal static partial class Av1IntraSuperblockEncoder
             squares = (squares + ((1L << squareShift) >> 1)) >> squareShift;
             long variance = Math.Max(0, squares - (((long)sum * sum) >> 4));
             return double.LogP1(variance / 16D);
-        }
-
-        /// <summary>
-        /// Scales a predictor's cost by how far the reconstruction of the frame drifts from the source in log variance.
-        /// </summary>
-        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
-        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
-        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
-        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
-        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
-        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
-        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
-        /// <param name="origin">The luma block origin, in samples.</param>
-        /// <param name="blockSize">The block size.</param>
-        /// <returns>The cost factor, from one to three.</returns>
-        private double GetIntraVarianceFactor(
-            Span<int> workspaceStorage,
-            ReadOnlySpan<TSample> sourceLuma,
-            ReadOnlySpan<TSample> sourceBlue,
-            ReadOnlySpan<TSample> sourceRed,
-            ReadOnlySpan<TSample> reconstructionLuma,
-            Span<TSample> reconstructionBlue,
-            Span<TSample> reconstructionRed,
-            Point origin,
-            Av1BlockSize blockSize)
-        {
-            double threshold = 1D - (0.25D * (int)this.picture.Parent.EncodingSpeed);
-            if (threshold <= 0)
-            {
-                return 1D;
-            }
-
-            int right = Math.Min(origin.X + blockSize.GetWidth(), this.picture.Parent.Common.ModeInfoColumnCount << 2);
-            int bottom = Math.Min(origin.Y + blockSize.GetHeight(), this.picture.Parent.Common.ModeInfoRowCount << 2);
-            Av1PlaneRegion<TSample> plane = this.reconstruction.GetPlane(Av1Plane.Y);
-            double sourceVariance = 0;
-            double reconstructionVariance = 0;
-            for (int y = origin.Y; y < bottom; y += 4)
-            {
-                for (int x = origin.X; x < right; x += 4)
-                {
-                    Point cell = new(x, y);
-                    sourceVariance += this.GetSourceLogVariance(workspaceStorage, sourceLuma, sourceBlue, sourceRed, cell);
-                    reconstructionVariance += this.GetLogVariance(plane, reconstructionLuma, cell);
-                }
-            }
-
-            int cells = (right - origin.X) * (bottom - origin.Y) / 16;
-            sourceVariance = (sourceVariance / cells) + 0.000001D;
-            reconstructionVariance = (reconstructionVariance / cells) + 0.000001D;
-
-            // A loss of detail in a flat reconstruction gets a larger penalty than added variation. The small offset keeps the ratio of a
-            // flat source block finite. The cap limits the influence of such blocks.
-            double difference = sourceVariance - reconstructionVariance;
-            double factor = 1D;
-            if (difference > 0.5D && reconstructionVariance < threshold)
-            {
-                factor += 2D * difference / sourceVariance;
-            }
-            else if (difference < -0.5D && sourceVariance < threshold)
-            {
-                factor -= difference / (2D * sourceVariance);
-            }
-
-            return Math.Min(3D, factor);
         }
 
         /// <summary>

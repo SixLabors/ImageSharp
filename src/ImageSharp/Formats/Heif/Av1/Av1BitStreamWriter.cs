@@ -9,11 +9,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 internal ref struct Av1BitStreamWriter
 {
     /// <summary>
-    /// The number of bits in one output byte.
-    /// </summary>
-    private const int WordSize = 8;
-
-    /// <summary>
     /// The writable output buffer.
     /// </summary>
     private readonly Span<byte> span;
@@ -38,11 +33,6 @@ internal ref struct Av1BitStreamWriter
     public int BitPosition { get; private set; } = 0;
 
     /// <summary>
-    /// Gets the current output capacity in bytes.
-    /// </summary>
-    public readonly int Capacity => this.span.Length;
-
-    /// <summary>
     /// Encodes an unsigned 32-bit value using little-endian base-128 bytes.
     /// </summary>
     /// <param name="value">The value to encode.</param>
@@ -65,23 +55,6 @@ internal ref struct Av1BitStreamWriter
         while (value != 0);
 
         return length;
-    }
-
-    /// <summary>
-    /// Adds <paramref name="bitCount"/> to the bit position. While the position is 8 or more, the method subtracts 8 and stores the current byte.
-    /// </summary>
-    /// <remarks>
-    /// The subtraction makes the position relative, but <see cref="WriteBit(byte)"/> and <see cref="Flush"/> use it as an absolute position.
-    /// </remarks>
-    /// <param name="bitCount">The number of bits to skip.</param>
-    public void Skip(int bitCount)
-    {
-        this.BitPosition += bitCount;
-        while (this.BitPosition >= WordSize)
-        {
-            this.BitPosition -= WordSize;
-            this.WriteBuffer();
-        }
     }
 
     /// <summary>
@@ -134,17 +107,6 @@ internal ref struct Av1BitStreamWriter
         }
 
         this.WriteLiteral((uint)value, n);
-    }
-
-    /// <summary>
-    /// Writes an unsigned 32-bit value using little-endian base-128 bytes.
-    /// </summary>
-    /// <param name="value">The value to write.</param>
-    public void WriteLittleEndianBytes128(uint value)
-    {
-        int wordPosition = this.BitPosition >> 3;
-        int bytesWritten = GetLittleEndianBytes128(value, this.span[wordPosition..]);
-        this.BitPosition += bytesWritten << 3;
     }
 
     /// <summary>
@@ -281,36 +243,6 @@ internal ref struct Av1BitStreamWriter
         }
 
         this.BitPosition++;
-    }
-
-    /// <summary>
-    /// Writes an unsigned integer with its least-significant byte first.
-    /// </summary>
-    /// <param name="value">The value to write.</param>
-    /// <param name="n">The number of bytes to write.</param>
-    public void WriteLittleEndian(uint value, int n)
-    {
-        DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Writing of Little Endian value only allowed on byte alignment");
-
-        uint t = value;
-        for (int i = 0; i < n; i++)
-        {
-            this.WriteLiteral(t & 0xff, 8);
-            t >>= 8;
-        }
-    }
-
-    /// <summary>
-    /// Writes a byte-aligned entropy-coded tile payload.
-    /// </summary>
-    /// <param name="tileData">The tile payload.</param>
-    public void WriteBlob(ReadOnlySpan<byte> tileData)
-    {
-        DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Writing of Tile Data only allowed on byte alignment");
-
-        int wordPosition = this.BitPosition >> 3;
-        tileData.CopyTo(this.span[wordPosition..]);
-        this.BitPosition += tileData.Length << 3;
     }
 
     /// <summary>

@@ -11,9 +11,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// </summary>
 internal struct Av1MotionModeWinner
 {
-    /// <summary>The largest number of retained winners.</summary>
-    public const int Capacity = 10;
-
     /// <summary>The rate-distortion cost of the simple-translation result.</summary>
     public long Cost;
 

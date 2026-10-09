@@ -478,16 +478,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     public IAv1FrameDecoder? FrameDecoder { get; set; }
 
     /// <summary>
-    /// Gets the completed frame entropy context selected by the context-update tile.
-    /// </summary>
-    /// <remarks>
-    /// The context contains either normative defaults or the selected primary-reference state until the signaled
-    /// update tile has decoded successfully. Callers that retain it beyond this reader's frame lifecycle must copy it
-    /// through <see cref="Av1FrameEntropyContext.SnapshotTo"/>.
-    /// </remarks>
-    public Av1FrameEntropyContext FrameEntropyContext => this.entropyContexts.Published;
-
-    /// <summary>
     /// Gets the decoder-session entropy owner that publishes the completed frame context.
     /// </summary>
     public Av1FrameEntropyContexts EntropyContexts => this.entropyContexts;

@@ -172,12 +172,6 @@ internal sealed partial class Av1LevelBuffer : IDisposable
     }
 
     /// <summary>
-    /// Selects new active coefficient dimensions and clears their padded context storage.
-    /// </summary>
-    /// <param name="size">The unpadded coefficient dimensions.</param>
-    public void Reset(Size size) => this.Reset(size, this.GetStorage());
-
-    /// <summary>
     /// Selects new active coefficient dimensions and clears their padded context storage, in storage that the caller
     /// read once with <see cref="GetStorage"/>.
     /// </summary>
@@ -210,14 +204,5 @@ internal sealed partial class Av1LevelBuffer : IDisposable
         this.Size = size;
         this.WidthLog2 = BitOperations.Log2((uint)size.Width);
         this.Stride = Av1Constants.TransformPadHorizontal + size.Width;
-    }
-
-    /// <summary>
-    /// Clears all coefficient levels and context padding.
-    /// </summary>
-    public void Clear()
-    {
-        ObjectDisposedException.ThrowIf(this.memory == null, this);
-        this.memory.Memory.Span.Clear();
     }
 }

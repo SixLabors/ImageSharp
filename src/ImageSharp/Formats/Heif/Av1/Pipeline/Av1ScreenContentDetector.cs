@@ -53,32 +53,6 @@ internal static partial class Av1ScreenContentDetector
     }
 
     /// <summary>
-    /// Detects palette and intra-block-copy content in an eight-bit source frame.
-    /// </summary>
-    /// <param name="source">The converted source frame.</param>
-    /// <param name="allowScreenContentTools">Receives whether to enable palette syntax.</param>
-    /// <param name="allowIntraBlockCopy">Receives whether to enable intra-block copy.</param>
-    /// <returns>Whether the encoder decisions treat the frame as screen content.</returns>
-    public static bool Detect(
-        Av1EncoderFrame<byte> source,
-        out bool allowScreenContentTools,
-        out bool allowIntraBlockCopy)
-        => Detect<byte, ByteSampleOperator>(source, out allowScreenContentTools, out allowIntraBlockCopy);
-
-    /// <summary>
-    /// Detects palette and intra-block-copy content in a high-bit-depth source frame.
-    /// </summary>
-    /// <param name="source">The converted source frame.</param>
-    /// <param name="allowScreenContentTools">Receives whether to enable palette syntax.</param>
-    /// <param name="allowIntraBlockCopy">Receives whether to enable intra-block copy.</param>
-    /// <returns>Whether the encoder decisions treat the frame as screen content.</returns>
-    public static bool Detect(
-        Av1EncoderFrame<ushort> source,
-        out bool allowScreenContentTools,
-        out bool allowIntraBlockCopy)
-        => Detect<ushort, UShortSampleOperator>(source, out allowScreenContentTools, out allowIntraBlockCopy);
-
-    /// <summary>
     /// Detects palette and intra-block-copy content with the palette color count detection.
     /// </summary>
     /// <remarks>

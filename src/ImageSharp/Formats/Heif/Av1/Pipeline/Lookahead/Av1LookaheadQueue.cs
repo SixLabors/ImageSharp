@@ -17,7 +17,6 @@ internal sealed class Av1LookaheadQueue<TSample> : IDisposable
     private const int PreviousFrameCount = 1;
 
     private readonly Av1EncoderFrameBuffer<TSample>[] buffers;
-    private readonly int[] displayIndices;
     private int readIndex;
     private int writeIndex;
 
@@ -47,7 +46,6 @@ internal sealed class Av1LookaheadQueue<TSample> : IDisposable
         this.PopSize = Math.Max(depth, 1);
         int capacity = this.PopSize + PreviousFrameCount;
         this.buffers = new Av1EncoderFrameBuffer<TSample>[capacity];
-        this.displayIndices = new int[capacity];
         try
         {
             for (int i = 0; i < capacity; i++)
@@ -86,11 +84,6 @@ internal sealed class Av1LookaheadQueue<TSample> : IDisposable
     public int PushCount { get; private set; }
 
     /// <summary>
-    /// Gets a value indicating whether the queue holds as many frames as the encode stage waits for.
-    /// </summary>
-    public bool IsFull => this.Count >= this.PopSize;
-
-    /// <summary>
     /// Returns the buffer that receives the next source frame. The frame joins the queue with <see cref="EndPush"/>.
     /// </summary>
     /// <returns>The buffer to fill.</returns>
@@ -109,7 +102,6 @@ internal sealed class Av1LookaheadQueue<TSample> : IDisposable
     /// </summary>
     public void EndPush()
     {
-        this.displayIndices[this.writeIndex] = this.PushCount;
         this.writeIndex = this.Next(this.writeIndex);
         this.PushCount++;
         this.Count++;
@@ -150,22 +142,6 @@ internal sealed class Av1LookaheadQueue<TSample> : IDisposable
         }
 
         return this.buffers[index];
-    }
-
-    /// <summary>
-    /// Returns the display index of a queued frame.
-    /// </summary>
-    /// <param name="index">The position after the first queued frame.</param>
-    /// <returns>The display index of the frame.</returns>
-    public int GetDisplayIndex(int index)
-    {
-        index += this.readIndex;
-        if (index >= this.buffers.Length)
-        {
-            index -= this.buffers.Length;
-        }
-
-        return this.displayIndices[index];
     }
 
     /// <summary>

@@ -174,16 +174,6 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     public Av1PlaneRegion<T>? BufferY => this.planes?.Luma;
 
     /// <summary>
-    /// Gets the complete padded blue-difference plane, or <see langword="null"/> for monochrome or after disposal.
-    /// </summary>
-    public Av1PlaneRegion<T>? BufferCb => this.planes?.Blue;
-
-    /// <summary>
-    /// Gets the complete padded red-difference plane, or <see langword="null"/> for monochrome or after disposal.
-    /// </summary>
-    public Av1PlaneRegion<T>? BufferCr => this.planes?.Red;
-
-    /// <summary>
     /// Gets or sets the horizontal padding distance.
     /// </summary>
     public int OriginX { get; set; }

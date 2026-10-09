@@ -41,15 +41,6 @@ internal static partial class Av1PlaneDownsampler
     private const int SeparationPadding = 2;
 
     /// <summary>
-    /// Gets whether one output extent is exactly half of its input extent.
-    /// </summary>
-    /// <param name="length">The input extent.</param>
-    /// <param name="halvedLength">The output extent.</param>
-    /// <returns>Whether the output extent is the halved input extent.</returns>
-    public static bool IsHalved(int length, int halvedLength)
-        => (length + 1) >> 1 == halvedLength;
-
-    /// <summary>
     /// Halves both axes of one eight-bit plane.
     /// </summary>
     /// <param name="allocator">The allocator of the intermediate plane.</param>

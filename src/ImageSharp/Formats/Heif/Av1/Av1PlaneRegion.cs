@@ -173,35 +173,4 @@ internal readonly struct Av1PlaneRegion<TSample>
             source.Slice(y * width, width).CopyTo(samples.Slice(offset, width));
         }
     }
-
-    /// <summary>
-    /// Sets every sample of the rectangle to zero.
-    /// </summary>
-    public void Clear()
-    {
-        // The plane is resolved once. Each row is a slice of it.
-        Span<TSample> samples = this.plane.Span;
-        int offset = this.Origin;
-        int width = this.Bounds.Width;
-        for (int y = 0; y < this.Bounds.Height; y++, offset += this.Stride)
-        {
-            samples.Slice(offset, width).Clear();
-        }
-    }
-
-    /// <summary>
-    /// Sets every sample of the rectangle to one value.
-    /// </summary>
-    /// <param name="value">The sample value.</param>
-    public void Fill(TSample value)
-    {
-        // The plane is resolved once. Each row is a slice of it.
-        Span<TSample> samples = this.plane.Span;
-        int offset = this.Origin;
-        int width = this.Bounds.Width;
-        for (int y = 0; y < this.Bounds.Height; y++, offset += this.Stride)
-        {
-            samples.Slice(offset, width).Fill(value);
-        }
-    }
 }

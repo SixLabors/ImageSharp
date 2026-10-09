@@ -14,9 +14,4 @@ internal class Av1SequenceControlSet
     /// Gets or sets the sequence header that governs encoded pictures.
     /// </summary>
     public required ObuSequenceHeader SequenceHeader { get; set; }
-
-    /// <summary>
-    /// Gets or sets the maximum number of encoded blocks allocated for a picture.
-    /// </summary>
-    public int MaxBlockCount { get; set; }
 }

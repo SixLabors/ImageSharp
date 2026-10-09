@@ -28,11 +28,6 @@ internal readonly ref struct Av1CoefficientOptimizationWeights
     }
 
     /// <summary>
-    /// Gets the weights of the default configuration. The sharpness is zero, the shift and the cutoff are 5, and the matrices are flat.
-    /// </summary>
-    public static Av1CoefficientOptimizationWeights Default => new(0, 5, 5, default, default);
-
-    /// <summary>
     /// Gets the last scan position that sharpness protects. Up to this position, sharpness keeps a level above two and keeps the end of block.
     /// </summary>
     public int EndOfBlockCutoff { get; }

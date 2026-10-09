@@ -753,14 +753,6 @@ internal static class Av1SymbolContextHelper
     public static int GetExtendedTransformTypeCount(Av1TransformSetType setType) => ExtendedTransformTypeCounts[(int)setType];
 
     /// <summary>
-    /// Gets the entropy-distribution index for an intra transform set.
-    /// </summary>
-    /// <param name="setType">The transform set.</param>
-    /// <returns>The distribution index, or <c>-1</c> for an inter-only set.</returns>
-    public static int GetExtendedTransformSet(Av1TransformSetType setType)
-        => GetExtendedTransformSet(setType, false);
-
-    /// <summary>
     /// Gets the entropy-distribution index for a transform set and prediction class.
     /// </summary>
     /// <param name="setType">The transform set.</param>
@@ -856,16 +848,6 @@ internal static class Av1SymbolContextHelper
         extra = endOfBlock - EndOfBlockGroupStart[t];
         return t;
     }
-
-    /// <summary>
-    /// Gets the decoded segment identifier at one spatial-neighbor position.
-    /// </summary>
-    /// <param name="segmentIds">The row-major decoded segment map.</param>
-    /// <param name="rowIndex">The mode-info row.</param>
-    /// <param name="columnIndex">The mode-info column.</param>
-    /// <returns>The segment identifier stored at the requested position.</returns>
-    public static int GetSegmentId(int[][] segmentIds, int rowIndex, int columnIndex)
-        => segmentIds[rowIndex][columnIndex];
 
     /// <summary>
     /// Gets the intra/inter prediction context from the immediately above and left blocks.

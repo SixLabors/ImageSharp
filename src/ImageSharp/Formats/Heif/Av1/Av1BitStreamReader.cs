@@ -30,11 +30,6 @@ internal ref struct Av1BitStreamReader
     public readonly int Length => this.data.Length;
 
     /// <summary>
-    /// Moves the next read position to the beginning of the buffer.
-    /// </summary>
-    public void Reset() => this.BitPosition = 0;
-
-    /// <summary>
     /// Advances the read position without interpreting the skipped bits.
     /// </summary>
     /// <param name="bitCount">The number of bits to skip.</param>

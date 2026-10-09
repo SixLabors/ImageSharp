@@ -265,11 +265,6 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     }
 
     /// <summary>
-    /// Gets the number of frames processed so far, which is the display index of the next frame.
-    /// </summary>
-    public int FrameNumber => this.frameNumber;
-
-    /// <summary>
     /// Measures one source frame and advances the stage references.
     /// </summary>
     /// <param name="source">The source frame, with its coded padding and border replicated from the visible edges.</param>

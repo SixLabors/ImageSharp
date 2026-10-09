@@ -102,20 +102,6 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
     }
 
     /// <summary>
-    /// Gets the left-neighbor unit index for a sample position.
-    /// </summary>
-    /// <param name="loc">The sample position.</param>
-    /// <returns>The left-neighbor unit index.</returns>
-    public int GetLeftIndex(Point loc) => loc.Y >> this.GranularityNormalLog2;
-
-    /// <summary>
-    /// Gets the top-neighbor unit index for a sample position.
-    /// </summary>
-    /// <param name="loc">The sample position.</param>
-    /// <returns>The top-neighbor unit index.</returns>
-    public int GetTopIndex(Point loc) => loc.X >> this.GranularityNormalLog2;
-
-    /// <summary>
     /// Clears both edges, as the start of a tile requires.
     /// </summary>
     public void Clear()

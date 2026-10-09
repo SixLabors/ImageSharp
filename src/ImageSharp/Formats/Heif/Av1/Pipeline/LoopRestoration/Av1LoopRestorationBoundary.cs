@@ -431,28 +431,6 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
     }
 
     /// <summary>
-    /// Gets one preserved row above a restoration processing stripe.
-    /// </summary>
-    /// <param name="plane">The zero-based color-plane index.</param>
-    /// <param name="stripe">The frame-relative processing-stripe index.</param>
-    /// <param name="contextRow">The first or second preserved context row.</param>
-    /// <returns>The preserved upscaled row.</returns>
-    public ReadOnlySpan<byte> GetRowAbove(int plane, int stripe, int contextRow)
-        => this.GetBoundaryRow(this.rowsAbove, plane, stripe, contextRow)
-            .Slice(HorizontalBorder * this.bytesPerSample, this.planeWidths[plane] * this.bytesPerSample);
-
-    /// <summary>
-    /// Gets one preserved row below a restoration processing stripe.
-    /// </summary>
-    /// <param name="plane">The zero-based color-plane index.</param>
-    /// <param name="stripe">The frame-relative processing-stripe index.</param>
-    /// <param name="contextRow">The first or second preserved context row.</param>
-    /// <returns>The preserved upscaled row.</returns>
-    public ReadOnlySpan<byte> GetRowBelow(int plane, int stripe, int contextRow)
-        => this.GetBoundaryRow(this.rowsBelow, plane, stripe, contextRow)
-            .Slice(HorizontalBorder * this.bytesPerSample, this.planeWidths[plane] * this.bytesPerSample);
-
-    /// <summary>
     /// Gets one preserved row above a stripe, including its replicated horizontal context.
     /// </summary>
     /// <param name="plane">The zero-based plane index.</param>

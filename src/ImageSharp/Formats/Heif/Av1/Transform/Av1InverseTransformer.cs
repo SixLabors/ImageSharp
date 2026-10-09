@@ -46,57 +46,6 @@ internal static partial class Av1InverseTransformer
     }
 
     /// <summary>
-    /// Reconstructs an eight-bit transform block from a separate prediction buffer.
-    /// </summary>
-    /// <param name="coefficientsBuffer">The dequantized transform coefficients.</param>
-    /// <param name="reconstructionBufferRead">The predicted samples read by reconstruction.</param>
-    /// <param name="reconstructionReadStride">The number of prediction samples between rows.</param>
-    /// <param name="reconstructionBufferWrite">The destination reconstructed samples.</param>
-    /// <param name="reconstructionWriteStride">The number of destination samples between rows.</param>
-    /// <param name="transformSize">The transform-block dimensions.</param>
-    /// <param name="transformType">The compound transform type.</param>
-    /// <param name="plane">The zero-based Y, U, or V plane index.</param>
-    /// <param name="numberOfCoefficients">The decoded coefficient end position.</param>
-    /// <param name="isLossless">Whether the segment uses lossless transform rules.</param>
-    /// <param name="workspace">The reusable transform workspace for the containing block decode.</param>
-    public static void Reconstruct8Bit(
-        ReadOnlySpan<int> coefficientsBuffer,
-        Span<byte> reconstructionBufferRead,
-        int reconstructionReadStride,
-        Span<byte> reconstructionBufferWrite,
-        int reconstructionWriteStride,
-        Av1TransformSize transformSize,
-        Av1TransformType transformType,
-        int plane,
-        int numberOfCoefficients,
-        bool isLossless,
-        Span<int> workspace)
-    {
-        Av1TransformFunctionParameters transformFunctionParameters = new()
-        {
-            TransformType = transformType,
-            TransformSize = transformSize,
-            EndOfBuffer = numberOfCoefficients,
-            IsLossless = isLossless,
-            BitDepth = 8,
-            Is16BitPipeline = false
-        };
-
-        // With separate prediction and destination buffers, every sample must be copied or reconstructed. A traversal that stops at the coded coefficient end
-        // position leaves part of the destination unwritten.
-        transformFunctionParameters.EndOfBuffer = Av1InverseTransformMath.GetMaxEndOfBuffer(transformSize);
-
-        Av1InverseTransformerFactory.InverseTransformAdd(
-            coefficientsBuffer,
-            reconstructionBufferRead,
-            reconstructionReadStride,
-            reconstructionBufferWrite,
-            reconstructionWriteStride,
-            transformFunctionParameters,
-            workspace);
-    }
-
-    /// <summary>
     /// Reconstructs a high-bit-depth transform block in place by adding its inverse-transform residual.
     /// </summary>
     /// <param name="coefficientsBuffer">The dequantized transform coefficients.</param>

@@ -367,16 +367,6 @@ internal sealed class Av1MotionVectorContext
         }
 
         /// <summary>
-        /// Writes one signed motion-vector component.
-        /// </summary>
-        /// <param name="writer">The tile range encoder.</param>
-        /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
-        /// <param name="value">The nonzero component in one-eighth-sample units.</param>
-        /// <param name="precision">The fractional precision selected by the frame header.</param>
-        public void Write(Av1SymbolWriter writer, ref Span<byte> output, int value, Av1MotionVectorPrecision precision)
-            => _ = this.Process<MotionVectorWriteOperation<Av1SymbolEncoder.SymbolWriteOperation>>(writer, ref output, value, precision);
-
-        /// <summary>
         /// Processes one nonzero signed component through the shared motion-vector symbol operation.
         /// </summary>
         /// <typeparam name="TOperation">The operation applied to each motion-vector symbol.</typeparam>

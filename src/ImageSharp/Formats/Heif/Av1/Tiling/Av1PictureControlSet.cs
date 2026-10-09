@@ -228,14 +228,6 @@ internal class Av1PictureControlSet
 #pragma warning restore CA1517
 
     /// <summary>
-    /// Gets the macroblock mode information allocated at a block origin.
-    /// </summary>
-    /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
-    /// <returns>A reference to the macroblock mode information at the origin.</returns>
-    public ref Av1MacroBlockModeInfo GetMacroBlockModeInfo(Point modeInfoPosition)
-        => ref this.GetMacroBlockModeInfo(this.ModeInfoAllocation.Span, modeInfoPosition);
-
-    /// <summary>
     /// Gets the macroblock mode information allocated at a block origin from the allocation, which the caller read once.
     /// </summary>
     /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>

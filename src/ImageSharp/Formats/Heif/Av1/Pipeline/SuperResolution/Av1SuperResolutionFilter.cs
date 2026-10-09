@@ -145,16 +145,6 @@ internal static class Av1SuperResolutionFilter
         => UpscaleRowCore(source, destination, step, initialSubpixel, byte.MaxValue);
 
     /// <summary>
-    /// Upscales one replicated-edge eight-bit source row into 16-bit output storage.
-    /// </summary>
-    /// <param name="source">The coded row with <see cref="SourceBorder"/> replicated samples on each edge.</param>
-    /// <param name="destination">The upscaled destination row.</param>
-    /// <param name="step">The fixed-point source-position increment.</param>
-    /// <param name="initialSubpixel">The initial fixed-point source position.</param>
-    public static void UpscaleRow(ReadOnlySpan<byte> source, Span<ushort> destination, int step, int initialSubpixel)
-        => UpscaleRowCore(source, destination, step, initialSubpixel, byte.MaxValue);
-
-    /// <summary>
     /// Upscales one replicated-edge high-bit-depth source row into 16-bit output storage.
     /// </summary>
     /// <param name="source">The coded row with <see cref="SourceBorder"/> replicated samples on each edge.</param>

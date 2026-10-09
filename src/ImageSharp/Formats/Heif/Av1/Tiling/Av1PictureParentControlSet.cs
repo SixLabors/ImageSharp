@@ -123,11 +123,6 @@ internal class Av1PictureParentControlSet
     public Av1ReferenceFrameType NearestFutureReference { get; set; }
 
     /// <summary>
-    /// Gets or sets the encoder palette-search level.
-    /// </summary>
-    public int PaletteLevel { get; set; }
-
-    /// <summary>
     /// Gets or sets the native-valued encoding speed.
     /// </summary>
     public HeifEncodingSpeed EncodingSpeed { get; set; }

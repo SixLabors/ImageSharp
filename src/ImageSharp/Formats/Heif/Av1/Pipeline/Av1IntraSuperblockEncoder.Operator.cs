@@ -32,14 +32,6 @@ internal static partial class Av1IntraSuperblockEncoder
         where TSample : unmanaged
     {
         /// <summary>
-        /// Gets temporary contiguous storage for left reference samples.
-        /// </summary>
-        /// <param name="residual">The reusable residual workspace.</param>
-        /// <param name="length">The number of reference samples.</param>
-        /// <returns>The writable reference span.</returns>
-        public static abstract Span<TSample> GetLeftReference(Span<short> residual, int length);
-
-        /// <summary>
         /// Converts a valid sample value to the native plane storage type.
         /// </summary>
         /// <param name="value">The sample value.</param>
@@ -268,49 +260,6 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<byte> mask,
             int width,
             int height);
-
-        /// <summary>
-        /// Encodes and reconstructs one DC intra transform block.
-        /// </summary>
-        /// <param name="blockWorkspace">The reusable block workspace.</param>
-        /// <param name="source">The coded source plane.</param>
-        /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
-        /// <param name="reconstruction">The coded reconstruction plane.</param>
-        /// <param name="reconstructionSamples">The samples of the complete reconstruction plane, read once by the caller.</param>
-        /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
-        /// <param name="above">The top reference samples.</param>
-        /// <param name="left">The left reference samples.</param>
-        /// <param name="hasLeft">Whether the left reference is available.</param>
-        /// <param name="hasAbove">Whether the top reference is available.</param>
-        /// <param name="quantizedCoefficients">The retained entropy-coding coefficients.</param>
-        /// <param name="transformSize">The transform dimensions.</param>
-        /// <param name="qIndex">The effective segment quantizer index.</param>
-        /// <param name="lossless">Whether the segment of the block codes losslessly.</param>
-        /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
-        /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
-        /// <param name="plane">The component plane containing the block.</param>
-        /// <param name="bitDepth">The coded sample bit depth.</param>
-        /// <param name="state">The retained transform state.</param>
-        public static abstract void Encode(
-            Av1EncoderBlockWorkspace blockWorkspace,
-            Av1PlaneRegion<TSample> source,
-            ReadOnlySpan<TSample> sourceSamples,
-            Av1PlaneRegion<TSample> reconstruction,
-            Span<TSample> reconstructionSamples,
-            Point blockOrigin,
-            ReadOnlySpan<TSample> above,
-            ReadOnlySpan<TSample> left,
-            bool hasLeft,
-            bool hasAbove,
-            Span<int> quantizedCoefficients,
-            Av1TransformSize transformSize,
-            int qIndex,
-            bool lossless,
-            int dcDeltaQ,
-            int acDeltaQ,
-            Av1Plane plane,
-            Av1BitDepth bitDepth,
-            ref Av1EncoderTransformBlockState state);
 
         /// <summary>
         /// Encodes one intra candidate. Its prediction goes into the frame, which keeps it.
@@ -958,10 +907,6 @@ internal static partial class Av1IntraSuperblockEncoder
             => Av1MotionSearchBase.ByteOperator.SubtractObmcSource(source, weightedSource);
 
         /// <inheritdoc/>
-        public static Span<byte> GetLeftReference(Span<short> residual, int length)
-            => MemoryMarshal.AsBytes(residual)[..length];
-
-        /// <inheritdoc/>
         public static byte CreateSample(int value) => (byte)value;
 
         /// <inheritdoc/>
@@ -1204,48 +1149,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 width,
                 transformSize.GetHeight());
         }
-
-        /// <inheritdoc/>
-        public static void Encode(
-            Av1EncoderBlockWorkspace blockWorkspace,
-            Av1PlaneRegion<byte> source,
-            ReadOnlySpan<byte> sourceSamples,
-            Av1PlaneRegion<byte> reconstruction,
-            Span<byte> reconstructionSamples,
-            Point blockOrigin,
-            ReadOnlySpan<byte> above,
-            ReadOnlySpan<byte> left,
-            bool hasLeft,
-            bool hasAbove,
-            Span<int> quantizedCoefficients,
-            Av1TransformSize transformSize,
-            int qIndex,
-            bool lossless,
-            int dcDeltaQ,
-            int acDeltaQ,
-            Av1Plane plane,
-            Av1BitDepth bitDepth,
-            ref Av1EncoderTransformBlockState state)
-            => Av1TransformBlockEncoder.EncodeIntraDcLossy(
-                blockWorkspace,
-                source,
-                sourceSamples,
-                reconstruction,
-                reconstructionSamples,
-                blockOrigin,
-                above,
-                left,
-                hasLeft,
-                hasAbove,
-                quantizedCoefficients,
-                transformSize,
-                Av1TransformType.DctDct,
-                qIndex,
-                lossless,
-                dcDeltaQ,
-                acDeltaQ,
-                plane,
-                ref state);
 
         /// <inheritdoc/>
         public static long EncodeCandidate(
@@ -2095,10 +1998,6 @@ internal static partial class Av1IntraSuperblockEncoder
             => Av1MotionSearchBase.UInt16Operator.SubtractObmcSource(source, weightedSource);
 
         /// <inheritdoc/>
-        public static Span<ushort> GetLeftReference(Span<short> residual, int length)
-            => MemoryMarshal.Cast<short, ushort>(residual)[..length];
-
-        /// <inheritdoc/>
         public static ushort CreateSample(int value) => (ushort)value;
 
         /// <inheritdoc/>
@@ -2323,49 +2222,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformSize.GetHeight(),
                 bitDepth.GetBitCount());
         }
-
-        /// <inheritdoc/>
-        public static void Encode(
-            Av1EncoderBlockWorkspace blockWorkspace,
-            Av1PlaneRegion<ushort> source,
-            ReadOnlySpan<ushort> sourceSamples,
-            Av1PlaneRegion<ushort> reconstruction,
-            Span<ushort> reconstructionSamples,
-            Point blockOrigin,
-            ReadOnlySpan<ushort> above,
-            ReadOnlySpan<ushort> left,
-            bool hasLeft,
-            bool hasAbove,
-            Span<int> quantizedCoefficients,
-            Av1TransformSize transformSize,
-            int qIndex,
-            bool lossless,
-            int dcDeltaQ,
-            int acDeltaQ,
-            Av1Plane plane,
-            Av1BitDepth bitDepth,
-            ref Av1EncoderTransformBlockState state)
-            => Av1TransformBlockEncoder.EncodeIntraDcLossy(
-                blockWorkspace,
-                source,
-                sourceSamples,
-                reconstruction,
-                reconstructionSamples,
-                blockOrigin,
-                above,
-                left,
-                hasLeft,
-                hasAbove,
-                quantizedCoefficients,
-                transformSize,
-                Av1TransformType.DctDct,
-                qIndex,
-                lossless,
-                dcDeltaQ,
-                acDeltaQ,
-                plane,
-                bitDepth,
-                ref state);
 
         /// <inheritdoc/>
         public static long EncodeCandidate(

@@ -108,62 +108,6 @@ internal static class Av1ForwardTransformArithmetic<TValue>
     }
 
     /// <summary>
-    /// Subtracts one transform value from another using the lane arithmetic required by the selected sample type.
-    /// </summary>
-    /// <param name="left">The left operand.</param>
-    /// <param name="right">The right operand.</param>
-    /// <returns>The lane-wise difference.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TValue Subtract(TValue left, TValue right)
-    {
-        if (typeof(TValue) == typeof(short))
-        {
-            int resultValue = As<TValue, short>(left) - As<TValue, short>(right);
-            short result = (short)Math.Clamp(resultValue, short.MinValue, short.MaxValue);
-            return As<short, TValue>(result);
-        }
-
-        if (typeof(TValue) == typeof(int))
-        {
-            int result = As<TValue, int>(left) - As<TValue, int>(right);
-            return As<int, TValue>(result);
-        }
-
-        if (typeof(TValue) == typeof(Vector128<short>))
-        {
-            Vector128<short> result = Vector128.SubtractSaturate(As<TValue, Vector128<short>>(left), As<TValue, Vector128<short>>(right));
-            return As<Vector128<short>, TValue>(result);
-        }
-
-        if (typeof(TValue) == typeof(Vector128<int>))
-        {
-            Vector128<int> result = As<TValue, Vector128<int>>(left) - As<TValue, Vector128<int>>(right);
-            return As<Vector128<int>, TValue>(result);
-        }
-
-        if (typeof(TValue) == typeof(Vector256<short>))
-        {
-            Vector256<short> result = Vector256.SubtractSaturate(As<TValue, Vector256<short>>(left), As<TValue, Vector256<short>>(right));
-            return As<Vector256<short>, TValue>(result);
-        }
-
-        if (typeof(TValue) == typeof(Vector256<int>))
-        {
-            Vector256<int> result = As<TValue, Vector256<int>>(left) - As<TValue, Vector256<int>>(right);
-            return As<Vector256<int>, TValue>(result);
-        }
-
-        if (typeof(TValue) == typeof(Vector512<short>))
-        {
-            Vector512<short> result = Vector512.SubtractSaturate(As<TValue, Vector512<short>>(left), As<TValue, Vector512<short>>(right));
-            return As<Vector512<short>, TValue>(result);
-        }
-
-        Vector512<int> vector = As<TValue, Vector512<int>>(left) - As<TValue, Vector512<int>>(right);
-        return As<Vector512<int>, TValue>(vector);
-    }
-
-    /// <summary>
     /// Negates a transform value using wrapping lane arithmetic.
     /// </summary>
     /// <param name="value">The value to negate.</param>

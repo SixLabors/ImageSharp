@@ -171,31 +171,6 @@ internal static partial class Av1FrameEncoder
     /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
     /// <param name="colorConfig">The resolved native color and precision configuration.</param>
     /// <param name="qIndex">The frame quantizer index.</param>
-    /// <param name="speed">The encoding speed tier. The encoding uses the default tuning.</param>
-    /// <returns>The sequence header describing the encoded payload.</returns>
-    public static ObuSequenceHeader EncodeGridCell<TPixel>(
-        Configuration configuration,
-        ImageFrame<TPixel> image,
-        Rectangle sourceRectangle,
-        Size cellSize,
-        Stream stream,
-        ObuColorConfig colorConfig,
-        int qIndex,
-        HeifEncodingSpeed speed)
-        where TPixel : unmanaged, IPixel<TPixel>
-        => EncodeGridCell(configuration, image, sourceRectangle, cellSize, stream, colorConfig, qIndex, Av1EncoderOptions.Create(speed));
-
-    /// <summary>
-    /// Encodes one grid cell as a reduced-still-picture AV1 frame in a low-overhead OBU stream.
-    /// </summary>
-    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
-    /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
-    /// <param name="image">The packed source frame.</param>
-    /// <param name="sourceRectangle">The source region copied into the top-left of the encoded cell.</param>
-    /// <param name="cellSize">The encoded cell dimensions, including any required edge padding.</param>
-    /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
-    /// <param name="colorConfig">The resolved native color and precision configuration.</param>
-    /// <param name="qIndex">The frame quantizer index.</param>
     /// <param name="options">The encoding options used to select frame and block search policies.</param>
     /// <returns>The sequence header describing the encoded payload.</returns>
     public static ObuSequenceHeader EncodeGridCell<TPixel>(
@@ -272,31 +247,6 @@ internal static partial class Av1FrameEncoder
             options,
             FrameEncodingKind.StillAlpha);
     }
-
-    /// <summary>
-    /// Encodes one packed alpha grid cell as a reduced-still-picture monochrome AV1 frame.
-    /// </summary>
-    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
-    /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
-    /// <param name="image">The packed source frame.</param>
-    /// <param name="sourceRectangle">The source region copied into the top-left of the encoded cell.</param>
-    /// <param name="cellSize">The encoded cell dimensions, including any required edge padding.</param>
-    /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
-    /// <param name="colorConfig">The resolved monochrome precision configuration.</param>
-    /// <param name="qIndex">The frame quantizer index.</param>
-    /// <param name="speed">The encoding speed tier. The encoding uses the default tuning.</param>
-    /// <returns>The sequence header describing the encoded payload.</returns>
-    public static ObuSequenceHeader EncodeAlphaGridCell<TPixel>(
-        Configuration configuration,
-        ImageFrame<TPixel> image,
-        Rectangle sourceRectangle,
-        Size cellSize,
-        Stream stream,
-        ObuColorConfig colorConfig,
-        int qIndex,
-        HeifEncodingSpeed speed)
-        where TPixel : unmanaged, IPixel<TPixel>
-        => EncodeAlphaGridCell(configuration, image, sourceRectangle, cellSize, stream, colorConfig, qIndex, Av1EncoderOptions.Create(speed));
 
     /// <summary>
     /// Encodes one packed alpha grid cell as a reduced-still-picture monochrome AV1 frame.

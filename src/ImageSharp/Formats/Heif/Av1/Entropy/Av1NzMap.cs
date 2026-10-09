@@ -477,20 +477,6 @@ internal static partial class Av1NzMap
     /// Combines a neighboring-level statistic with the coefficient's transform-class-specific position band.
     /// </summary>
     /// <param name="stats">The clipped sum of the applicable forward-neighbor magnitudes.</param>
-    /// <param name="position">The coefficient position.</param>
-    /// <param name="transformSize">The coded transform size selecting the positional table.</param>
-    /// <param name="transformClass">The transform direction class.</param>
-    /// <returns>The nonzero-map probability context.</returns>
-    public static int GetNzMapContextFromStats(int stats, Point position, Av1TransformSize transformSize, Av1TransformClass transformClass)
-    {
-        int widthLog2 = BitOperations.Log2((uint)transformSize.GetAdjusted().GetWidth());
-        return GetNzMapContextFromStats(stats, (position.Y << widthLog2) + position.X, widthLog2, transformSize, transformClass);
-    }
-
-    /// <summary>
-    /// Combines a neighboring-level statistic with the coefficient's transform-class-specific position band.
-    /// </summary>
-    /// <param name="stats">The clipped sum of the applicable forward-neighbor magnitudes.</param>
     /// <param name="coefficientIndex">The row-major coefficient index in the coded transform region.</param>
     /// <param name="widthLog2">The base-two logarithm of the coded transform width.</param>
     /// <param name="transformSize">The coded transform size selecting the positional table.</param>
@@ -528,28 +514,6 @@ internal static partial class Av1NzMap
 
         return 0;
     }
-
-    /// <summary>
-    /// Gets the two-dimensional positional context offset for a coefficient position.
-    /// </summary>
-    /// <param name="transformSize">The coded transform size.</param>
-    /// <param name="position">The coefficient position.</param>
-    /// <returns>The positional context offset.</returns>
-    public static int GetNzMapContext(Av1TransformSize transformSize, Point position)
-    {
-        // AV1 codes only the low-frequency 32-sample region of a 64-point transform dimension. The table still
-        // uses the signaled shape to select tall or wide bands, but its row-major stride follows the coded region.
-        int codedWidth = transformSize.GetAdjusted().GetWidth();
-        return GetNzMapContext(transformSize, position.X + (position.Y * codedWidth));
-    }
-
-    /// <summary>
-    /// Gets the two-dimensional positional context offset for a row-major coefficient index.
-    /// </summary>
-    /// <param name="transformSize">The coded transform size.</param>
-    /// <param name="position">The row-major coefficient index.</param>
-    /// <returns>The positional context offset.</returns>
-    public static int GetNzMapContext(Av1TransformSize transformSize, int position) => NzMapContextOffset[(int)transformSize][position];
 
     /// <summary>
     /// Clips a coefficient magnitude to the maximum contribution allowed per neighbor.

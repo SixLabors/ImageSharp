@@ -106,20 +106,6 @@ internal static partial class Av1DirectionalIntraPredictor
     }
 
     /// <summary>
-    /// Gets the horizontal Q6 projection derivative for an adjusted angle.
-    /// </summary>
-    /// <param name="angle">The adjusted prediction angle.</param>
-    /// <returns>The horizontal derivative, or one when the selected zone does not consume it.</returns>
-    public static int GetDeltaX(int angle) => Predictor<DirectionalOperator>.GetDeltaX(angle);
-
-    /// <summary>
-    /// Gets the vertical Q6 projection derivative for an adjusted angle.
-    /// </summary>
-    /// <param name="angle">The adjusted prediction angle.</param>
-    /// <returns>The vertical derivative, or one when the selected zone does not consume it.</returns>
-    public static int GetDeltaY(int angle) => Predictor<DirectionalOperator>.GetDeltaY(angle);
-
-    /// <summary>
     /// Predicts an 8-bit directional block.
     /// </summary>
     /// <param name="destination">The destination block origin.</param>

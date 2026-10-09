@@ -212,11 +212,6 @@ internal static class Av1Constants
     public const int MaxTransformCategories = 4;
 
     /// <summary>
-    /// The number of cumulative coefficient-level magnitude contexts.
-    /// </summary>
-    public const int CoefficientContextCount = 6;
-
-    /// <summary>
     /// The number of coefficient magnitudes represented by base symbols before base-range coding.
     /// </summary>
     public const int BaseLevelsCount = 2;
@@ -257,21 +252,6 @@ internal static class Av1Constants
     public const int TransformPadHorizontal = 1 << TransformPadHorizontalLog2;
 
     /// <summary>
-    /// The total vertical coefficient-context padding in rows.
-    /// </summary>
-    public const int TransformPadVertical = 6;
-
-    /// <summary>
-    /// The trailing coefficient-context padding in elements.
-    /// </summary>
-    public const int TransformPadEnd = 16;
-
-    /// <summary>
-    /// The maximum padded two-dimensional coefficient-context allocation size.
-    /// </summary>
-    public const int TransformPad2d = ((MaxTransformSize + TransformPadHorizontal) * (MaxTransformSize + TransformPadVertical)) + TransformPadEnd;
-
-    /// <summary>
     /// The coefficient-context padding above a transform.
     /// </summary>
     public const int TransformPadTop = 2;
@@ -287,19 +267,9 @@ internal static class Av1Constants
     public const int BaseRangeSizeMinus1 = 3;
 
     /// <summary>
-    /// The largest coefficient magnitude represented before Golomb coding.
-    /// </summary>
-    public const int MaxBaseRange = 15;
-
-    /// <summary>
     /// The base-two logarithm of the chroma-from-luma alpha alphabet size.
     /// </summary>
     public const int ChromaFromLumaAlphabetSizeLog2 = 4;
-
-    /// <summary>
-    /// The number of quantization-matrix levels.
-    /// </summary>
-    public const int QuantificationMatrixLevelCount = 1 << 4;
 
     /// <summary>
     /// The fixed-point precision of each quantization-matrix element.
@@ -310,11 +280,6 @@ internal static class Av1Constants
     /// The directional intra-prediction angle increment in degrees.
     /// </summary>
     public const int AngleStep = 3;
-
-    /// <summary>
-    /// The maximum number of stages in a one-dimensional transform function.
-    /// </summary>
-    public const int MaxTransformStageNumber = 12;
 
     /// <summary>
     /// The number of partition contexts per block-size logarithm.
@@ -330,11 +295,6 @@ internal static class Av1Constants
     /// The highest variable-transform depth index.
     /// </summary>
     public const int MaxVarTransform = 2;
-
-    /// <summary>
-    /// The number of items in the <see cref="Av1PlaneType"/> enumeration.
-    /// </summary>
-    public const int PlaneTypeCount = 2;
 
     /// <summary>
     /// Gets the number of payload bits used by each segmentation feature.

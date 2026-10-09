@@ -84,11 +84,6 @@ internal sealed class Av1TplFrameStatistics
     public int[] ReferenceMapIndex { get; }
 
     /// <summary>
-    /// Gets a value indicating whether block statistics storage is attached.
-    /// </summary>
-    public bool HasStatistics => !this.statistics.IsEmpty;
-
-    /// <summary>
     /// Gets the block statistics in raster order of 16x16 blocks.
     /// </summary>
     public Span<Av1TplBlockStatistics> Statistics => this.statistics.Span;

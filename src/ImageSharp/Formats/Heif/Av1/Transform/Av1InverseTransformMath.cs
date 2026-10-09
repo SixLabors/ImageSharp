@@ -194,44 +194,6 @@ internal static class Av1InverseTransformMath
     }
 
     /// <summary>
-    /// Adds an inverse-transform residual to an eight-bit predicted sample and clips the result.
-    /// </summary>
-    /// <param name="dest">The predicted sample.</param>
-    /// <param name="trans">The inverse-transform residual.</param>
-    /// <returns>The reconstructed eight-bit sample.</returns>
-    public static byte ClipPixelAdd(byte dest, long trans)
-    {
-        trans = CheckRange(trans, 8);
-        return (byte)ClipPixelHighBitDepth(dest + trans, 8);
-    }
-
-    /// <summary>
-    /// Adds an inverse-transform residual to a high-bit-depth predicted sample and clips the result.
-    /// </summary>
-    /// <param name="dest">The predicted sample stored in the signed transform representation.</param>
-    /// <param name="trans">The inverse-transform residual.</param>
-    /// <param name="bitDepth">The coded sample bit depth.</param>
-    /// <returns>The reconstructed sample stored in the signed transform representation.</returns>
-    public static short ClipPixelAdd(short dest, long trans, int bitDepth)
-    {
-        trans = CheckRange(trans, bitDepth);
-        return ClipPixelHighBitDepth(dest + trans, bitDepth);
-    }
-
-    /// <summary>
-    /// Clips a reconstructed sample to the unsigned range selected by its bit depth.
-    /// </summary>
-    /// <param name="val">The unclipped reconstructed sample.</param>
-    /// <param name="bd">The coded sample bit depth.</param>
-    /// <returns>The clipped sample stored in the signed transform representation.</returns>
-    private static short ClipPixelHighBitDepth(long val, int bd) => bd switch
-    {
-        10 => (short)Av1Math.Clamp(val, 0, 1023),
-        12 => (short)Av1Math.Clamp(val, 0, 4095),
-        _ => (short)Av1Math.Clamp(val, 0, 255),
-    };
-
-    /// <summary>
     /// Applies a signed fixed-point shift to the requested prefix of an integer buffer.
     /// </summary>
     /// <param name="arr">The transform-stage values.</param>
@@ -261,41 +223,5 @@ internal static class Av1InverseTransformMath
                 }
             }
         }
-    }
-
-    /// <summary>
-    /// Restricts an inverse-transform residual to the intermediate range permitted for the sample bit depth.
-    /// </summary>
-    /// <param name="input">The inverse-transform residual.</param>
-    /// <param name="bd">The coded sample bit depth.</param>
-    /// <returns>The range-limited residual.</returns>
-    private static long CheckRange(long input, int bd)
-    {
-        // The base range is a signed (bd + 8)-bit integer: 16 bits for 8-bit, 18 bits for 10-bit, and 20 bits for 12-bit samples. The bound adds the maximum
-        // quantization error 1828 << (bd - 8), written here as 914 << (bd - 7).
-        int maximum = (1 << (7 + bd)) - 1 + (914 << (bd - 7));
-        int minimum = -maximum - 1;
-        return Av1Math.Clamp(input, minimum, maximum);
-    }
-
-    /// <summary>
-    /// Gets the maximum coded coefficient count retained for a transform size.
-    /// </summary>
-    /// <param name="transformSize">The signaled transform size.</param>
-    /// <returns>The maximum coefficient end position represented by AV1 syntax.</returns>
-    public static int GetMaxEndOfBuffer(Av1TransformSize transformSize)
-    {
-        // A 64-point axis codes only its first 32 coefficients, so these sizes carry at most a 32-by-32 or 16-by-32 coefficient block.
-        if (transformSize is Av1TransformSize.Size64x64 or Av1TransformSize.Size64x32 or Av1TransformSize.Size32x64)
-        {
-            return 1024;
-        }
-
-        if (transformSize is Av1TransformSize.Size16x64 or Av1TransformSize.Size64x16)
-        {
-            return 512;
-        }
-
-        return transformSize.GetSize2d();
     }
 }

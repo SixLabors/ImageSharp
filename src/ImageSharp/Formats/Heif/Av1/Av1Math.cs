@@ -103,24 +103,6 @@ internal static class Av1Math
     }
 
     /// <summary>
-    /// Clips an unsigned sample to the range represented by a bit depth.
-    /// </summary>
-    /// <param name="value">The sample value.</param>
-    /// <param name="bitDepth">The number of sample bits.</param>
-    /// <returns>The clipped sample.</returns>
-    public static uint Clip1(uint value, int bitDepth) =>
-        Clip3(0, (1U << bitDepth) - 1, value);
-
-    /// <summary>
-    /// Clips an unsigned value to an inclusive range.
-    /// </summary>
-    /// <param name="min">The inclusive lower bound.</param>
-    /// <param name="max">The inclusive upper bound.</param>
-    /// <param name="value">The value to clip.</param>
-    /// <returns>The clipped value.</returns>
-    public static uint Clip3(uint min, uint max, uint value) => Math.Max(min, Math.Min(max, value));
-
-    /// <summary>
     /// Clips a signed value to an inclusive range.
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
@@ -128,38 +110,6 @@ internal static class Av1Math
     /// <param name="value">The value to clip.</param>
     /// <returns>The clipped value.</returns>
     public static int Clip3(int min, int max, int value) => Math.Max(min, Math.Min(max, value));
-
-    /// <summary>
-    /// Divides an unsigned value by a power of two with nearest-integer rounding.
-    /// </summary>
-    /// <param name="value">The value.</param>
-    /// <param name="n">The base-two divisor exponent.</param>
-    /// <returns>The rounded quotient.</returns>
-    public static uint Round2(uint value, int n)
-    {
-        if (n == 0)
-        {
-            return value;
-        }
-
-        return (uint)((value + (1 << (n - 1))) >> n);
-    }
-
-    /// <summary>
-    /// Divides the absolute magnitude of a signed value by a power of two with nearest-integer rounding.
-    /// </summary>
-    /// <param name="value">The signed value.</param>
-    /// <param name="n">The base-two divisor exponent.</param>
-    /// <returns>The rounded nonnegative magnitude.</returns>
-    public static int Round2(int value, int n)
-    {
-        if (value < 0)
-        {
-            value = -value;
-        }
-
-        return (int)Round2((uint)value, n);
-    }
 
     /// <summary>
     /// Aligns a value upward to a multiple of a power of two.
@@ -192,25 +142,6 @@ internal static class Av1Math
         => Math.Max(low, Math.Min(high, value));
 
     /// <summary>
-    /// Clamps a signed long integer to an inclusive range.
-    /// </summary>
-    /// <param name="value">The value to clamp.</param>
-    /// <param name="low">The inclusive lower bound.</param>
-    /// <param name="high">The inclusive upper bound.</param>
-    /// <returns>The clamped value.</returns>
-    public static long Clamp(long value, long low, long high)
-        => Math.Max(low, Math.Min(high, value));
-
-    /// <summary>
-    /// Divides a value by a power of two with floor rounding.
-    /// </summary>
-    /// <param name="value">The value.</param>
-    /// <param name="n">The base-two divisor exponent.</param>
-    /// <returns>The floor-rounded quotient.</returns>
-    public static int DivideLog2Floor(int value, int n)
-        => value >> n;
-
-    /// <summary>
     /// Divides a nonnegative value by a power of two with ceiling rounding.
     /// </summary>
     /// <param name="value">The value.</param>
@@ -218,15 +149,6 @@ internal static class Av1Math
     /// <returns>The ceiling-rounded quotient.</returns>
     public static int DivideLog2Ceiling(int value, int n)
         => (value + (1 << n) - 1) >> n;
-
-    /// <summary>
-    /// Divides a value by a power of two with nearest-integer rounding.
-    /// </summary>
-    /// <param name="value">The value.</param>
-    /// <param name="bitCount">The base-two divisor exponent.</param>
-    /// <returns>The rounded quotient.</returns>
-    public static int DivideRound(int value, int bitCount)
-        => (value + (1 << (bitCount - 1))) >> bitCount;
 
     /// <summary>
     /// Gets the nonnegative remainder after division by eight.
@@ -269,14 +191,6 @@ internal static class Av1Math
     }
 
     /// <summary>
-    /// Evaluates logical implication from one Boolean condition to another.
-    /// </summary>
-    /// <param name="a">The antecedent.</param>
-    /// <param name="b">The consequent.</param>
-    /// <returns><see langword="false"/> only when <paramref name="a"/> is true and <paramref name="b"/> is false.</returns>
-    public static bool Implies(bool a, bool b) => !a || b;
-
-    /// <summary>
     /// Gets one bit from an integer value.
     /// </summary>
     /// <param name="value">The value.</param>
@@ -292,12 +206,4 @@ internal static class Av1Math
     /// <param name="n">The zero-based bit position.</param>
     public static void SetBit(ref int endOfBlockExtra, int n)
         => endOfBlockExtra |= 1 << n;
-
-    /// <summary>
-    /// Gets the absolute difference between two integers.
-    /// </summary>
-    /// <param name="a">The first value.</param>
-    /// <param name="b">The second value.</param>
-    /// <returns>The nonnegative absolute difference.</returns>
-    public static int AbsoluteDifference(int a, int b) => (a > b) ? a - b : b - a;
 }

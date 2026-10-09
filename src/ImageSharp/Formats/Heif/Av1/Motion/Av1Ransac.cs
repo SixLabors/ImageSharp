@@ -454,61 +454,6 @@ internal static class Av1Ransac
     }
 
     /// <summary>
-    /// Fits a full affine model, whose two axes scale and shear on their own.
-    /// </summary>
-    public readonly struct AffineModel : IAv1RansacModel
-    {
-        /// <inheritdoc/>
-        public static int MinimumPoints => 3;
-
-        /// <inheritdoc/>
-        /// <remarks>
-        /// The six parameters split into three for the horizontal output and three for the vertical output.
-        /// Neither group appears in the other equation. Thus two separate solves are exact and cost less than one six-parameter solve.
-        /// </remarks>
-        public static bool FindTransformation(
-            ReadOnlySpan<Av1Correspondence> points, ReadOnlySpan<int> indices, int indexCount, Span<double> parameters)
-        {
-            const int Size = 3;
-            Span<double> horizontalMatrix = stackalloc double[Size * Size];
-            Span<double> verticalMatrix = stackalloc double[Size * Size];
-            Span<double> horizontalVector = stackalloc double[Size];
-            Span<double> verticalVector = stackalloc double[Size];
-            Span<double> row = stackalloc double[Size];
-            Span<double> horizontalResult = stackalloc double[Size];
-            Span<double> verticalResult = stackalloc double[Size];
-            horizontalMatrix.Clear();
-            verticalMatrix.Clear();
-            horizontalVector.Clear();
-            verticalVector.Clear();
-
-            for (int i = 0; i < indexCount; i++)
-            {
-                Av1Correspondence point = points[indices[i]];
-                row[0] = 1;
-                row[1] = point.X;
-                row[2] = point.Y;
-                Accumulate(horizontalMatrix, horizontalVector, row, point.ReferenceX, Size);
-                Accumulate(verticalMatrix, verticalVector, row, point.ReferenceY, Size);
-            }
-
-            if (!Solve(Size, horizontalMatrix, horizontalVector, horizontalResult) ||
-                !Solve(Size, verticalMatrix, verticalVector, verticalResult))
-            {
-                return false;
-            }
-
-            parameters[0] = horizontalResult[0];
-            parameters[1] = verticalResult[0];
-            parameters[2] = horizontalResult[1];
-            parameters[3] = horizontalResult[2];
-            parameters[4] = verticalResult[1];
-            parameters[5] = verticalResult[2];
-            return true;
-        }
-    }
-
-    /// <summary>
     /// Holds what one fitted model achieved, and where its agreeing points are stored.
     /// </summary>
     private struct Trial

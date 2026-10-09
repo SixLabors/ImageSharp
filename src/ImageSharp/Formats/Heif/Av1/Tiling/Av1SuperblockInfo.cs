@@ -40,11 +40,6 @@ internal readonly struct Av1SuperblockInfo
     public ref int SuperblockQuantizerIndex => ref this.frameInfo.GetQuantizerIndex(this.Position);
 
     /// <summary>
-    /// Gets the mode information that covers the superblock origin.
-    /// </summary>
-    public Av1BlockModeInfo SuperblockModeInfo => this.GetModeInfo(new Point(0, 0));
-
-    /// <summary>
     /// Gets the luma coefficients of the current superblock.
     /// </summary>
     public Span<int> CoefficientsY => this.frameInfo.GetCoefficientsY();
@@ -81,31 +76,11 @@ internal readonly struct Av1SuperblockInfo
     public Span<Av1TransformInfo> GetTransformInfoY() => this.frameInfo.GetSuperblockTransformY();
 
     /// <summary>
-    /// Gets the shared chroma transform information of the current superblock.
-    /// </summary>
-    /// <returns>The current-superblock chroma transform-information span.</returns>
-    public Span<Av1TransformInfo> GetTransformInfoUv() => this.frameInfo.GetSuperblockTransformUv();
-
-    /// <summary>
     /// Gets the transform-information storage for the specified color plane.
     /// </summary>
     /// <param name="plane">The zero-based color-plane index.</param>
     /// <returns>The transform-information span for the plane.</returns>
     public Span<Av1TransformInfo> GetTransformInfo(int plane) => this.frameInfo.GetSuperblockTransform(plane);
-
-    /// <summary>
-    /// Gets the mode information records parsed for this superblock in bitstream order.
-    /// </summary>
-    /// <returns>The mode information records for the superblock.</returns>
-    public Av1FrameInfo.ModeInfoCollection GetModeInfos() =>
-        this.frameInfo.GetModeInfos(this.Position, this.BlockCount);
-
-    /// <summary>
-    /// Gets the mode information covering a position relative to this superblock.
-    /// </summary>
-    /// <param name="index">The position in 4x4 mode-information units relative to the superblock.</param>
-    /// <returns>The mode information covering the position.</returns>
-    public Av1BlockModeInfo GetModeInfo(Point index) => this.frameInfo.GetModeInfo(this.Position, index);
 
     /// <summary>
     /// Gets the mode information covering a frame-relative position.

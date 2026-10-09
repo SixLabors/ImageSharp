@@ -338,11 +338,6 @@ internal sealed partial class Av1FrameInfo : IDisposable
     }
 
     /// <summary>
-    /// Gets the total mode-information capacity allocated for the frame.
-    /// </summary>
-    public int ModeInfoCount => checked((int)this.modeInfos.TotalLength);
-
-    /// <summary>
     /// Gets the width or height of one square superblock in 4x4 mode-information units.
     /// </summary>
     public int SuperblockModeInfoSize => this.modeInfoSizePerSuperblock;
@@ -606,25 +601,6 @@ internal sealed partial class Av1FrameInfo : IDisposable
     }
 
     /// <summary>
-    /// Gets the mode information covering the origin of a specified superblock.
-    /// </summary>
-    /// <param name="superblockIndex">The position in the frame superblock grid.</param>
-    /// <returns>The mode information covering the superblock origin.</returns>
-    public Av1BlockModeInfo GetModeInfo(Point superblockIndex) => this.GetModeInfo(superblockIndex, Point.Empty);
-
-    /// <summary>
-    /// Gets the mode information covering a position relative to a specified superblock.
-    /// </summary>
-    /// <param name="superblockIndex">The position in the frame superblock grid.</param>
-    /// <param name="modeInfoIndex">The position within the superblock in 4x4 mode-information units.</param>
-    /// <returns>The mode information covering the position.</returns>
-    public Av1BlockModeInfo GetModeInfo(Point superblockIndex, Point modeInfoIndex)
-    {
-        Point location = this.GetModeInfoPosition(superblockIndex, modeInfoIndex);
-        return this.GetModeInfoByStorageIndex(this.modeInfoMap[location]);
-    }
-
-    /// <summary>
     /// Gets the mode information record covering the specified frame-relative mode information position.
     /// </summary>
     /// <param name="modeInfoPosition">The frame-relative position in 4x4 mode-information units.</param>
@@ -844,13 +820,6 @@ internal sealed partial class Av1FrameInfo : IDisposable
         /// Gets the number of records in the view.
         /// </summary>
         public int Length { get; }
-
-        /// <summary>
-        /// Gets a reference to the record at the specified traversal index.
-        /// </summary>
-        /// <param name="index">The zero-based traversal index.</param>
-        public ref Av1BlockModeInfo this[int index] =>
-            ref this.owner.GetModeInfoByStorageIndex(this.startIndex + index);
 
         /// <summary>
         /// Creates a reference-preserving enumerator over the records.

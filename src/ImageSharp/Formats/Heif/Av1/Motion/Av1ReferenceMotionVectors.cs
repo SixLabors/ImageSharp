@@ -86,12 +86,6 @@ internal struct Av1ReferenceMotionVectors
     public ReadOnlySpan<Av1MotionVector> Candidates => this.candidates[..this.Count];
 
     /// <summary>
-    /// Gets the secondary vectors corresponding to <see cref="Candidates"/> for a compound block.
-    /// </summary>
-    [UnscopedRef]
-    public ReadOnlySpan<Av1MotionVector> CompoundCandidates => this.compoundCandidates[..this.Count];
-
-    /// <summary>
     /// Gets the accumulated weight corresponding to each entry in <see cref="Candidates"/>.
     /// </summary>
     [UnscopedRef]

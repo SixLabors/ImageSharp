@@ -74,31 +74,6 @@ internal readonly struct HeifPixelTransform
     }
 
     /// <summary>
-    /// Writes a converted source row into its destination coordinates.
-    /// </summary>
-    /// <typeparam name="TPixel">The packed pixel type.</typeparam>
-    /// <param name="row">The converted source row.</param>
-    /// <param name="y">The source row index relative to the crop.</param>
-    /// <param name="matrix">The matrix resolved once for the source region.</param>
-    /// <param name="destination">The exact destination region.</param>
-    public static void WriteRow<TPixel>(ReadOnlySpan<TPixel> row, int y, Matrix3x2 matrix, Buffer2DRegion<TPixel> destination)
-        where TPixel : unmanaged
-    {
-        // The matrix's first basis vector is the integer destination step for one source column.
-        // Quarter turns and mirrors require no matrix operations inside the pixel loop.
-        Point first = Transform(0, y, matrix);
-        int stepX = (int)matrix.M11;
-        int stepY = (int)matrix.M12;
-
-        for (int x = 0; x < row.Length; x++)
-        {
-            destination.DangerousGetRowSpan(first.Y)[first.X] = row[x];
-            first.X += stepX;
-            first.Y += stepY;
-        }
-    }
-
-    /// <summary>
     /// Gets the transform translated into the positive destination bounds.
     /// </summary>
     /// <param name="sourceSize">The source extent.</param>

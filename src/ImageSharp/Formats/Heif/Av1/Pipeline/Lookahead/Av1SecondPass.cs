@@ -338,11 +338,6 @@ internal sealed partial class Av1SecondPass
     public Av1GopStructure Group => this.group;
 
     /// <summary>
-    /// Gets the decisions of the frame being coded.
-    /// </summary>
-    public Av1SecondPassFrame Current => this.current;
-
-    /// <summary>
     /// Sets a value indicating whether the overlay of the current alternate reference repeats the filtered
     /// alternate reference. The temporal filter decides it when the alternate reference is coded.
     /// </summary>

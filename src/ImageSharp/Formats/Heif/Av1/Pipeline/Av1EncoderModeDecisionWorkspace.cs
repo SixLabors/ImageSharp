@@ -32,11 +32,6 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
         Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize;
 
     /// <summary>
-    /// The number of 4x4 transform blocks covering one 8x8 coding block.
-    /// </summary>
-    public const int CandidateTransformBlockCount = 4;
-
-    /// <summary>
     /// The maximum number of transform states needed while evaluating both chroma planes of one 128x128 block.
     /// </summary>
     public const int MaximumCandidateTransformBlockCount =
@@ -94,12 +89,6 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     /// </summary>
     /// <param name="storage">The reusable aligned decision storage.</param>
     public Av1EncoderModeDecisionWorkspace(Span<int> storage) => this.storage = storage;
-
-    /// <summary>
-    /// Gets the temporary prediction span shared by mutually exclusive mode searches.
-    /// </summary>
-    public Span<TSample> Prediction
-        => MemoryMarshal.Cast<int, TSample>(this.storage[TransientStorageOffset..])[..MaximumTransformSampleCount];
 
     /// <summary>
     /// Gets the temporary residual span shared by mutually exclusive mode searches.
@@ -304,17 +293,6 @@ internal readonly ref struct Av1EncoderPaletteWorkspace<TSample>
     public Span<short> GetSamples(int planeIndex)
         => MemoryMarshal.Cast<int, short>(
             this.storage.Slice(FirstSampleOffset + (planeIndex * PlaneShortStorageLength), PlaneShortStorageLength));
-
-    /// <summary>
-    /// Gets one plane's palette prediction.
-    /// </summary>
-    /// <param name="planeIndex">The zero-based plane index.</param>
-    /// <returns>The maximum-size prediction span.</returns>
-    public Span<TSample> GetPrediction(int planeIndex)
-        => MemoryMarshal.Cast<int, TSample>(
-            this.storage.Slice(
-                FirstPredictionOffset + (planeIndex * PlaneSampleStorageLength),
-                PlaneSampleStorageLength))[..MaximumSampleCount];
 
     /// <summary>
     /// Gets one plane's palette residual.

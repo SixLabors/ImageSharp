@@ -83,23 +83,6 @@ internal static class Av1SinusConstants
         ];
 
     /// <summary>
-    /// One quadrant of the 12-bit cosine table used by the butterfly functions of the AV1 specification.
-    /// </summary>
-    /// <remarks>
-    /// Entry <c>i</c> is <c>round(4096 * cos(i * pi / 128))</c> for <c>i</c> from 0 to 64.
-    /// </remarks>
-    private static readonly int[] Cosinus128Lookup = [
-        4096, 4095, 4091, 4085, 4076, 4065, 4052, 4036,
-        4017, 3996, 3973, 3948, 3920, 3889, 3857, 3822,
-        3784, 3745, 3703, 3659, 3612, 3564, 3513, 3461,
-        3406, 3349, 3290, 3229, 3166, 3102, 3035, 2967,
-        2896, 2824, 2751, 2675, 2598, 2520, 2440, 2359,
-        2276, 2191, 2106, 2019, 1931, 1842, 1751, 1660,
-        1567, 1474, 1380, 1285, 1189, 1092, 995, 897,
-        799, 700, 601, 501, 401, 301, 201, 101, 0
-        ];
-
-    /// <summary>
     /// Gets the transform cosine table for a fixed-point precision.
     /// </summary>
     /// <param name="n">The number of fractional bits.</param>
@@ -112,44 +95,4 @@ internal static class Av1SinusConstants
     /// <param name="n">The number of fractional bits.</param>
     /// <returns>The sine table for the requested precision.</returns>
     public static Span<int> SinusPi(int n) => SinusPiArray[n - MinimumCosinusBit];
-
-    /// <summary>
-    /// Gets the 12-bit fixed-point sine of an angle in units of <c>pi / 128</c>.
-    /// </summary>
-    /// <remarks>
-    /// The AV1 specification defines this function in section 7.13.2.1, Butterfly functions.
-    /// </remarks>
-    /// <param name="angle">The signed angle in units of <c>pi / 128</c>.</param>
-    /// <returns>The value <c>round(4096 * sin(angle * pi / 128))</c>.</returns>
-    public static int Sinus128(int angle) => Cosinus128(angle - 64);
-
-    /// <summary>
-    /// Gets the 12-bit fixed-point cosine of an angle in units of <c>pi / 128</c>.
-    /// </summary>
-    /// <remarks>
-    /// The AV1 specification defines this function in section 7.13.2.1, Butterfly functions.
-    /// </remarks>
-    /// <param name="angle">The signed angle in units of <c>pi / 128</c>.</param>
-    /// <returns>The value <c>round(4096 * cos(angle * pi / 128))</c>.</returns>
-    public static int Cosinus128(int angle)
-    {
-        // A full turn is 256 units. The lookup holds the first quadrant, and the cosine symmetries map the other three quadrants onto it.
-        int angle2 = angle & 255;
-        if (angle2 is >= 0 and <= 64)
-        {
-            return Cosinus128Lookup[angle2];
-        }
-
-        if (angle2 <= 128)
-        {
-            return -Cosinus128Lookup[128 - angle2];
-        }
-
-        if (angle2 <= 192)
-        {
-            return -Cosinus128Lookup[angle2 - 128];
-        }
-
-        return Cosinus128Lookup[256 - angle2];
-    }
 }

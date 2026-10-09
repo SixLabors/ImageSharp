@@ -11,11 +11,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 internal static class Av1FilmGrainPresets
 {
     /// <summary>
-    /// The number of presets.
-    /// </summary>
-    public const int Count = 16;
-
-    /// <summary>
     /// Loads a preset into a film grain parameter set.
     /// </summary>
     /// <param name="preset">The preset, from 1 to 16.</param>

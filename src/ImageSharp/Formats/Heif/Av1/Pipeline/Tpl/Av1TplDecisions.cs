@@ -162,68 +162,6 @@ internal static class Av1TplDecisions
     }
 
     /// <summary>
-    /// Returns the quantizer of a frame from its importance. The DC step of the leaf quantizer scales by the inverse square
-    /// root of the importance. Without ready statistics the result is the leaf quantizer. In constant quality mode the
-    /// encoder clamps the result to the allowed range and uses it for every frame whose statistics are valid. An alternate
-    /// reference records it as its quantizer.
-    /// </summary>
-    /// <param name="statisticsReady">
-    /// Whether the statistics of the frame are ready, as
-    /// <see cref="Av1TplModel{TSample, TSearchOperator, TSampleOperator}.IsStatisticsReady"/> reports.
-    /// </param>
-    /// <param name="frame">The statistics of the frame.</param>
-    /// <param name="leafQIndex">The leaf quantizer: the active worst quality of the rate control.</param>
-    /// <param name="bitDepth">The sample precision.</param>
-    /// <returns>The quantizer index.</returns>
-    public static int GetQIndex(bool statisticsReady, Av1TplFrameStatistics frame, int leafQIndex, Av1BitDepth bitDepth)
-    {
-        double ratio = 1;
-        if (statisticsReady)
-        {
-            ratio = Math.Sqrt(1 / GetFrameImportance(frame));
-        }
-
-        return GetQIndexFromQStepRatio(leafQIndex, ratio, bitDepth);
-    }
-
-    /// <summary>
-    /// Returns the quantizer whose DC step first reaches a ratio of the step of the leaf quantizer. The search goes down
-    /// for a ratio below one and up otherwise.
-    /// </summary>
-    /// <param name="leafQIndex">The leaf quantizer.</param>
-    /// <param name="qStepRatio">The step ratio.</param>
-    /// <param name="bitDepth">The sample precision.</param>
-    /// <returns>The quantizer index.</returns>
-    public static int GetQIndexFromQStepRatio(int leafQIndex, double qStepRatio, Av1BitDepth bitDepth)
-    {
-        double leafStep = Av1QuantizationLookup.GetDcQuant(leafQIndex, 0, bitDepth);
-        double targetStep = leafStep * qStepRatio;
-        int qIndex;
-        if (qStepRatio < 1.0)
-        {
-            for (qIndex = leafQIndex; qIndex > 0; qIndex--)
-            {
-                if (Av1QuantizationLookup.GetDcQuant(qIndex, 0, bitDepth) <= targetStep)
-                {
-                    break;
-                }
-            }
-        }
-        else
-        {
-            for (qIndex = leafQIndex; qIndex < Av1Constants.MaxQ; qIndex++)
-            {
-                if (Av1QuantizationLookup.GetDcQuant(qIndex, 0, bitDepth) >= targetStep)
-                {
-                    break;
-                }
-            }
-        }
-
-        return qIndex;
-    }
-
-    /// <summary>
     /// Returns the objective quantizer of a superblock. It moves the frame quantizer by the offset whose DC step scales by
     /// the inverse square root of r0 over the importance of the superblock. The offset is limited to nine resolution steps.
     /// It also returns the regularized importance that the coding-block rate multiplier divides by. On request it returns

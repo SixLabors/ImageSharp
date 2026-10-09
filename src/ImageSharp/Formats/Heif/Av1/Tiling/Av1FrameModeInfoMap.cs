@@ -99,14 +99,6 @@ internal partial class Av1FrameInfo
             this.NextIndex++;
         }
 
-        /// <summary>
-        /// Maps every 4x4 location covered by a decoded block to its traversal-order index.
-        /// </summary>
-        /// <param name="modeInfoLocation">The block origin in 4x4 mode-information units.</param>
-        /// <param name="blockSize">The decoded block size.</param>
-        public void Update(Point modeInfoLocation, Av1BlockSize blockSize)
-            => this.Update(modeInfoLocation, blockSize, this.NextIndex);
-
         /// <inheritdoc/>
         public void Dispose() => this.offsets.Dispose();
     }

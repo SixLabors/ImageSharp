@@ -1795,14 +1795,6 @@ internal static partial class Av1TransformBlockEncoder
     }
 
     /// <summary>
-    /// Gets the transform-domain distortion policy of the current mode evaluation stage.
-    /// </summary>
-    /// <param name="workspace">The workspace holding the speed settings and the evaluation stage.</param>
-    /// <returns>The distortion type and its mean-error threshold.</returns>
-    public static (int Type, uint Threshold) GetDistortionPolicy(Av1EncoderBlockWorkspace workspace)
-        => GetDistortionPolicy(workspace, workspace.SpeedSettings);
-
-    /// <summary>
     /// Gets the transform-domain distortion policy of the active evaluation stage. The QM-PSNR metric always measures in the
     /// transform domain.
     /// </summary>

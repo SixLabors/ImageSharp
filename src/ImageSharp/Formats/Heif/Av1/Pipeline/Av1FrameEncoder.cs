@@ -9,9 +9,14 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Resize;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -559,7 +564,8 @@ internal static partial class Av1FrameEncoder
             ObuFrameType.KeyFrame);
 
         return colorConfig.BitDepth == Av1BitDepth.EightBit
-            ? EncodeByte(
+            ? EncodeStill<TPixel, byte, HeifByteSampleConverter, Av1IntraSuperblockEncoder.ByteOperator,
+                Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator, Av1CdefEncoder.ByteOperator>(
                 configuration,
                 image,
                 sourceRectangle,
@@ -570,7 +576,8 @@ internal static partial class Av1FrameEncoder
                 colorFormat,
                 options,
                 encodingKind)
-            : EncodeHighBitDepth(
+            : EncodeStill<TPixel, ushort, HeifUShortSampleConverter, Av1IntraSuperblockEncoder.UInt16Operator,
+                Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator, Av1CdefEncoder.UInt16Operator>(
                 configuration,
                 image,
                 sourceRectangle,
@@ -593,7 +600,7 @@ internal static partial class Av1FrameEncoder
     /// <param name="qIndex">The frame quantizer index.</param>
     /// <param name="options">The encoding options used to select frame and block search policies.</param>
     /// <param name="encodeAlpha">Whether the sequence codes the alpha channel instead of the color channels.</param>
-    /// <returns>A byte sequence encoder for 8-bit samples, otherwise a high bit depth sequence encoder.</returns>
+    /// <returns>A sequence encoder with byte samples for 8-bit samples, otherwise a sequence encoder with 16-bit samples.</returns>
     private static SequenceEncoder CreateSequenceEncoder(
         Configuration configuration,
         int width,
@@ -605,10 +612,34 @@ internal static partial class Av1FrameEncoder
     {
         if (colorConfig.BitDepth == Av1BitDepth.EightBit)
         {
-            return new ByteSequenceEncoder(configuration, width, height, colorConfig, qIndex, options, encodeAlpha);
+            return new SampleSequenceEncoder<
+                byte,
+                HeifByteSampleConverter,
+                Av1FirstPassOperator.ByteOperator,
+                Av1TemporalFilter.ByteOperator,
+                Av1MotionSearchBase.ByteOperator,
+                Av1TplByteOperator,
+                Av1IntraSuperblockEncoder.ByteOperator,
+                ByteGlobalMotionSearchOperator,
+                Av1MotionVectorStatistics.ByteTextureOperator,
+                Av1DeblockingFilter.VerticalByteEdgeOperator,
+                Av1DeblockingFilter.HorizontalByteEdgeOperator,
+                Av1CdefEncoder.ByteOperator>(configuration, width, height, colorConfig, qIndex, options, encodeAlpha);
         }
 
-        return new HighBitDepthSequenceEncoder(configuration, width, height, colorConfig, qIndex, options, encodeAlpha);
+        return new SampleSequenceEncoder<
+            ushort,
+            HeifUShortSampleConverter,
+            Av1FirstPassOperator.UInt16Operator,
+            Av1TemporalFilter.UInt16Operator,
+            Av1MotionSearchBase.UInt16Operator,
+            Av1TplUInt16Operator,
+            Av1IntraSuperblockEncoder.UInt16Operator,
+            UInt16GlobalMotionSearchOperator,
+            Av1MotionVectorStatistics.UInt16TextureOperator,
+            Av1DeblockingFilter.VerticalUInt16EdgeOperator,
+            Av1DeblockingFilter.HorizontalUInt16EdgeOperator,
+            Av1CdefEncoder.UInt16Operator>(configuration, width, height, colorConfig, qIndex, options, encodeAlpha);
     }
 
     /// <summary>
@@ -1005,9 +1036,15 @@ internal static partial class Av1FrameEncoder
     }
 
     /// <summary>
-    /// Encodes one eight-bit still frame, or writes nothing for the opaque alpha of a single image.
+    /// Encodes one still frame, or writes nothing for the opaque alpha of a single image.
     /// </summary>
     /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <typeparam name="TSample">The native sample storage type.</typeparam>
+    /// <typeparam name="TStorer">The converter that stores normalized components as native samples.</typeparam>
+    /// <typeparam name="TBlockOperator">The block encoding operations for the sample type.</typeparam>
+    /// <typeparam name="TVerticalEdgeOperator">The deblocking operations of vertical edges.</typeparam>
+    /// <typeparam name="THorizontalEdgeOperator">The deblocking operations of horizontal edges.</typeparam>
+    /// <typeparam name="TCdefOperator">The CDEF search and filter operations.</typeparam>
     /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
     /// <param name="image">The packed source frame.</param>
     /// <param name="sourceRectangle">The source region copied into the top-left of the encoded frame.</param>
@@ -1019,7 +1056,7 @@ internal static partial class Av1FrameEncoder
     /// <param name="options">The encoding options.</param>
     /// <param name="encodingKind">Whether the frame codes color, alpha, or the alpha of a single image.</param>
     /// <returns><see langword="false"/> when the alpha of a single image is opaque and nothing was written.</returns>
-    private static bool EncodeByte<TPixel>(
+    private static bool EncodeStill<TPixel, TSample, TStorer, TBlockOperator, TVerticalEdgeOperator, THorizontalEdgeOperator, TCdefOperator>(
         Configuration configuration,
         ImageFrame<TPixel> image,
         Rectangle sourceRectangle,
@@ -1031,156 +1068,15 @@ internal static partial class Av1FrameEncoder
         Av1EncoderOptions options,
         FrameEncodingKind encodingKind)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using Av1EncoderFrameBuffer<byte> source = new(
-            configuration,
-            frameSize.Width,
-            frameSize.Height,
-            ByteSampleBitDepth,
-            colorFormat,
-            chromaPositionX: CenteredChromaSamplePosition,
-            chromaPositionY: CenteredChromaSamplePosition,
-            lumaBorder: Av1EncoderFrame<byte>.LumaBorder);
-
-        PrepareSource<TPixel, byte, HeifByteSampleConverter>(
-            configuration, image, sourceRectangle, source.Frame, sequenceHeader.ColorConfig, encodingKind != FrameEncodingKind.StillColor);
-
-        // A single image whose converted alpha samples are all opaque gets no alpha item.
-        if (encodingKind == FrameEncodingKind.SingleImageAlpha && IsOpaque(source.Frame, sourceRectangle.Size, byte.MaxValue))
-        {
-            return false;
-        }
-
-        using Av1EncoderFrameBuffer<byte> reconstruction = new(
-            configuration,
-            frameSize.Width,
-            frameSize.Height,
-            ByteSampleBitDepth,
-            colorFormat,
-            chromaPositionX: CenteredChromaSamplePosition,
-            chromaPositionY: CenteredChromaSamplePosition,
-            lumaBorder: Av1EncoderFrame<byte>.LumaBorder);
-
-        using Av1EncoderCoefficientBuffer coefficients = new(
-            configuration,
-            sequenceHeader,
-            frameSize.Width,
-            frameSize.Height);
-
-        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(configuration);
-
-        Av1EncoderTileWorkspace tileWorkspace = new(frameHeader, superblockWorkspace);
-        using ObuWriter obuWriter = new(configuration);
-
-        // The frame starts at the requested quantizer. A bit budget can replace it after the screen content decision.
-        int requestedQIndex = frameHeader.QuantizationParameters.BaseQIndex;
-        ScreenContentDecision decision = default;
-        bool isScreenContent = ConfigureFrameTools(
-            configuration,
-            source.Frame,
-            reconstruction.Frame,
-            sequenceHeader,
-            frameHeader,
-            options,
-            ref decision);
-
-        // The coefficient contexts start from the final quantizer.
-        using Av1SymbolEncoder symbolEncoder = new(
-            configuration,
-            frameHeader.QuantizationParameters.BaseQIndex,
-            updateCdf: !frameHeader.DisableCdfUpdate);
-
-        using Av1EncoderBlockWorkspace blockWorkspace = new(
-            configuration,
-            allocateInterMotionCosts: false,
-            allocateDisplacementCosts: frameHeader.AllowIntraBlockCopy,
-            sequenceHeader.SuperblockSize);
-
-        Av1EncoderSpeedSettings speedSettings = new(
-            options.Speed,
-            options.IsAllIntra,
-            frameHeader.IsIntra,
-            Av1FrameUpdateType.Key,
-            frameHeader.QuantizationParameters.BaseQIndex,
-            frameSize);
-
-        Av1MotionSearchSettings motionSettings = new(
-            options.Speed,
-            options.IsAllIntra,
-            frameSize,
-            frameHeader.QuantizationParameters.BaseQIndex,
-            frameHeader.IsIntra,
-            frameHeader.AllowScreenContentTools,
-            options.Tuning);
-
-        int maximumHashBlockSize = motionSettings.LimitIntraBlockCopyHashBlockSize ? 8 : 1 << sequenceHeader.SuperblockSizeLog2;
-
-        using Av1EncoderPictureBuffer picture = new(
-            configuration,
-            sequenceHeader,
-            frameHeader,
-            source.Frame.Width,
-            source.Frame.Height,
-            maximumHashBlockSize,
-            disallow4x4AllFrames: !frameHeader.CodedLossless && speedSettings.MinimumPartitionSize >= Av1BlockSize.Block8x8);
-
-        picture.Picture.Parent.IsScreenContent = isScreenContent;
-        picture.Picture.Parent.EncodingSpeed = options.Speed;
-        picture.Picture.Parent.EncoderOptions = options;
-        picture.Picture.Parent.ConstantQualityIndex = GetConstantQualityLevel(options, requestedQIndex);
-        picture.Picture.Parent.SpeedSettings = speedSettings;
-
-        // Every still image uses time stamp 0.
-        Av1FilmGrainState.Create(options.FilmGrainPreset, options.FilmGrainTable, sequenceHeader.ColorConfig)?.PrepareFrame(frameHeader, 0);
-        Encode(
-            obuWriter,
-            stream,
-            sequenceHeader,
-            frameHeader,
-            picture.Picture,
-            source,
-            default,
-            default,
-            reconstruction,
-            coefficients,
-            tileWorkspace,
-            blockWorkspace,
-            symbolEncoder,
-            true);
-
-        return true;
-    }
-
-    /// <summary>
-    /// Encodes one high-bit-depth still frame, or writes nothing for the opaque alpha of a single image.
-    /// </summary>
-    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
-    /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
-    /// <param name="image">The packed source frame.</param>
-    /// <param name="sourceRectangle">The source region copied into the top-left of the encoded frame.</param>
-    /// <param name="frameSize">The encoded frame dimensions.</param>
-    /// <param name="stream">The destination receiving the AV1 payload.</param>
-    /// <param name="sequenceHeader">The sequence header.</param>
-    /// <param name="frameHeader">The frame header.</param>
-    /// <param name="colorFormat">The coded color format.</param>
-    /// <param name="options">The encoding options.</param>
-    /// <param name="encodingKind">Whether the frame codes color, alpha, or the alpha of a single image.</param>
-    /// <returns><see langword="false"/> when the alpha of a single image is opaque and nothing was written.</returns>
-    private static bool EncodeHighBitDepth<TPixel>(
-        Configuration configuration,
-        ImageFrame<TPixel> image,
-        Rectangle sourceRectangle,
-        Size frameSize,
-        Stream stream,
-        ObuSequenceHeader sequenceHeader,
-        ObuFrameHeader frameHeader,
-        Av1ColorFormat colorFormat,
-        Av1EncoderOptions options,
-        FrameEncodingKind encodingKind)
-        where TPixel : unmanaged, IPixel<TPixel>
+        where TSample : unmanaged, IBinaryInteger<TSample>
+        where TStorer : struct, IHeifSampleConverter<TSample>
+        where TBlockOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TVerticalEdgeOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
+        where THorizontalEdgeOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
+        where TCdefOperator : struct, Av1CdefEncoder.IEncodingOperator<TSample>
     {
         int bitDepth = sequenceHeader.ColorConfig.BitDepth.GetBitCount();
-        using Av1EncoderFrameBuffer<ushort> source = new(
+        using Av1EncoderFrameBuffer<TSample> source = new(
             configuration,
             frameSize.Width,
             frameSize.Height,
@@ -1188,18 +1084,18 @@ internal static partial class Av1FrameEncoder
             colorFormat,
             chromaPositionX: CenteredChromaSamplePosition,
             chromaPositionY: CenteredChromaSamplePosition,
-            lumaBorder: Av1EncoderFrame<ushort>.LumaBorder);
+            lumaBorder: Av1EncoderFrame<TSample>.LumaBorder);
 
-        PrepareSource<TPixel, ushort, HeifUShortSampleConverter>(
+        PrepareSource<TPixel, TSample, TStorer>(
             configuration, image, sourceRectangle, source.Frame, sequenceHeader.ColorConfig, encodingKind != FrameEncodingKind.StillColor);
 
-        // A single image whose converted alpha samples are all opaque gets no alpha item.
-        if (encodingKind == FrameEncodingKind.SingleImageAlpha && IsOpaque(source.Frame, sourceRectangle.Size, (ushort)((1 << bitDepth) - 1)))
+        // A single image whose converted alpha samples are all opaque gets no alpha item. The opaque value is the largest value of the coded depth.
+        if (encodingKind == FrameEncodingKind.SingleImageAlpha && IsOpaque(source.Frame, sourceRectangle.Size, TSample.CreateTruncating((1 << bitDepth) - 1)))
         {
             return false;
         }
 
-        using Av1EncoderFrameBuffer<ushort> reconstruction = new(
+        using Av1EncoderFrameBuffer<TSample> reconstruction = new(
             configuration,
             frameSize.Width,
             frameSize.Height,
@@ -1207,7 +1103,7 @@ internal static partial class Av1FrameEncoder
             colorFormat,
             chromaPositionX: CenteredChromaSamplePosition,
             chromaPositionY: CenteredChromaSamplePosition,
-            lumaBorder: Av1EncoderFrame<ushort>.LumaBorder);
+            lumaBorder: Av1EncoderFrame<TSample>.LumaBorder);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             configuration,
@@ -1280,7 +1176,7 @@ internal static partial class Av1FrameEncoder
 
         // Every still image uses time stamp 0.
         Av1FilmGrainState.Create(options.FilmGrainPreset, options.FilmGrainTable, sequenceHeader.ColorConfig)?.PrepareFrame(frameHeader, 0);
-        Encode(
+        Encode<TSample, TBlockOperator, TVerticalEdgeOperator, THorizontalEdgeOperator, TCdefOperator>(
             obuWriter,
             stream,
             sequenceHeader,
@@ -1323,9 +1219,11 @@ internal static partial class Av1FrameEncoder
     }
 
     /// <summary>
-    /// Converts one eight-bit sequence sample through its retained row workspace, then resolves the frame coding tools.
+    /// Converts one sequence sample through its retained row workspace, then resolves the frame coding tools.
     /// </summary>
     /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <typeparam name="TSample">The native sample storage type.</typeparam>
+    /// <typeparam name="TStorer">The converter that stores normalized components as native samples.</typeparam>
     /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
     /// <param name="image">The packed source frame.</param>
     /// <param name="sourceRectangle">The source region copied into the top-left of the encoded frame.</param>
@@ -1337,20 +1235,22 @@ internal static partial class Av1FrameEncoder
     /// <param name="conversionWorkspace">The retained row workspace for the pixel conversion.</param>
     /// <param name="decision">The screen content decision. Intra frames replace it. Inter frames keep it.</param>
     /// <returns><see langword="true"/> when the frame codes as screen content.</returns>
-    private static bool PrepareFrame<TPixel>(
+    private static bool PrepareFrame<TPixel, TSample, TStorer>(
         Configuration configuration,
         ImageFrame<TPixel> image,
         Rectangle sourceRectangle,
-        Av1EncoderFrame<byte> source,
-        Av1EncoderFrame<byte> reference,
+        Av1EncoderFrame<TSample> source,
+        Av1EncoderFrame<TSample> reference,
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1EncoderOptions options,
         Av1EncoderConversionWorkspace conversionWorkspace,
         ref ScreenContentDecision decision)
         where TPixel : unmanaged, IPixel<TPixel>
+        where TSample : unmanaged
+        where TStorer : struct, IHeifSampleConverter<TSample>
     {
-        PrepareSource<TPixel, byte, HeifByteSampleConverter>(
+        PrepareSource<TPixel, TSample, TStorer>(
             configuration,
             image,
             sourceRectangle,
@@ -1368,8 +1268,9 @@ internal static partial class Av1FrameEncoder
     }
 
     /// <summary>
-    /// Resolves the eight-bit frame tools whose syntax depends on the converted source samples.
+    /// Resolves the frame tools whose syntax depends on the converted source samples.
     /// </summary>
+    /// <typeparam name="TSample">The native sample storage type.</typeparam>
     /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
     /// <param name="source">The converted source frame.</param>
     /// <param name="reference">The reconstructed reference frame.</param>
@@ -1378,14 +1279,15 @@ internal static partial class Av1FrameEncoder
     /// <param name="options">The encoding options.</param>
     /// <param name="decision">The screen content decision. Intra frames replace it. Inter frames keep it.</param>
     /// <returns><see langword="true"/> when the frame codes as screen content.</returns>
-    private static bool ConfigureFrameTools(
+    private static bool ConfigureFrameTools<TSample>(
         Configuration configuration,
-        Av1EncoderFrame<byte> source,
-        Av1EncoderFrame<byte> reference,
+        Av1EncoderFrame<TSample> source,
+        Av1EncoderFrame<TSample> reference,
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1EncoderOptions options,
         ref ScreenContentDecision decision)
+        where TSample : unmanaged
     {
         if (frameHeader.IsIntra)
         {
@@ -1398,25 +1300,38 @@ internal static partial class Av1FrameEncoder
     }
 
     /// <summary>
-    /// Classifies the unfiltered eight-bit source of an intra frame as screen content or not. Inter frames keep the decision of the last intra frame.
+    /// Classifies the unfiltered source of an intra frame as screen content or not. Inter frames keep the decision of the last intra frame.
     /// </summary>
+    /// <typeparam name="TSample">The native sample storage type, <see cref="byte"/> or <see cref="ushort"/>.</typeparam>
     /// <param name="source">The unfiltered source frame.</param>
     /// <param name="sequenceHeader">The sequence header.</param>
     /// <param name="options">The encoder options.</param>
     /// <param name="decision">Receives the decision.</param>
-    private static void DecideScreenContent(
-        Av1EncoderFrame<byte> source,
+    private static void DecideScreenContent<TSample>(
+        Av1EncoderFrame<TSample> source,
         ObuSequenceHeader sequenceHeader,
         Av1EncoderOptions options,
         ref ScreenContentDecision decision)
+        where TSample : unmanaged
     {
-        decision.IsScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
-            source,
-            options.IsAllIntra,
-            options.Speed,
-            options.Tuning,
-            out bool allowScreenContentTools,
-            out bool allowIntraBlockCopy);
+        // The closed generic path fixes the sample type, so the test folds to one direct call. The reinterpretation is between identical types.
+        bool allowScreenContentTools;
+        bool allowIntraBlockCopy;
+        decision.IsScreenContent = typeof(TSample) == typeof(byte)
+            ? Av1ScreenContentDetector.SetScreenContentOptions(
+                Unsafe.As<Av1EncoderFrame<TSample>, Av1EncoderFrame<byte>>(ref source),
+                options.IsAllIntra,
+                options.Speed,
+                options.Tuning,
+                out allowScreenContentTools,
+                out allowIntraBlockCopy)
+            : Av1ScreenContentDetector.SetScreenContentOptions(
+                Unsafe.As<Av1EncoderFrame<TSample>, Av1EncoderFrame<ushort>>(ref source),
+                options.IsAllIntra,
+                options.Speed,
+                options.Tuning,
+                out allowScreenContentTools,
+                out allowIntraBlockCopy);
 
         decision.AllowScreenContentTools = allowScreenContentTools;
         decision.AllowIntraBlockCopy = allowIntraBlockCopy;
@@ -1504,108 +1419,13 @@ internal static partial class Av1FrameEncoder
     }
 
     /// <summary>
-    /// Converts one high-bit-depth sequence sample through its retained row workspace, then resolves the frame coding tools.
+    /// Codes one frame and writes its OBUs.
     /// </summary>
-    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
-    /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
-    /// <param name="image">The packed source frame.</param>
-    /// <param name="sourceRectangle">The source region copied into the top-left of the encoded frame.</param>
-    /// <param name="source">The source frame that receives the converted samples.</param>
-    /// <param name="reference">The reconstructed reference frame.</param>
-    /// <param name="sequenceHeader">The sequence header.</param>
-    /// <param name="frameHeader">The frame header that receives the frame tools.</param>
-    /// <param name="options">The encoding options.</param>
-    /// <param name="conversionWorkspace">The retained row workspace for the pixel conversion.</param>
-    /// <param name="decision">The screen content decision. Intra frames replace it. Inter frames keep it.</param>
-    /// <returns><see langword="true"/> when the frame codes as screen content.</returns>
-    private static bool PrepareFrame<TPixel>(
-        Configuration configuration,
-        ImageFrame<TPixel> image,
-        Rectangle sourceRectangle,
-        Av1EncoderFrame<ushort> source,
-        Av1EncoderFrame<ushort> reference,
-        ObuSequenceHeader sequenceHeader,
-        ObuFrameHeader frameHeader,
-        Av1EncoderOptions options,
-        Av1EncoderConversionWorkspace conversionWorkspace,
-        ref ScreenContentDecision decision)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        PrepareSource<TPixel, ushort, HeifUShortSampleConverter>(
-            configuration,
-            image,
-            sourceRectangle,
-            source,
-            conversionWorkspace);
-
-        return ConfigureFrameTools(
-            configuration,
-            source,
-            reference,
-            sequenceHeader,
-            frameHeader,
-            options,
-            ref decision);
-    }
-
-    /// <summary>
-    /// Resolves the high-bit-depth frame tools whose syntax depends on the converted source samples.
-    /// </summary>
-    /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
-    /// <param name="source">The converted source frame.</param>
-    /// <param name="reference">The reconstructed reference frame.</param>
-    /// <param name="sequenceHeader">The sequence header.</param>
-    /// <param name="frameHeader">The frame header that receives the quantizer and the screen content tools.</param>
-    /// <param name="options">The encoding options.</param>
-    /// <param name="decision">The screen content decision. Intra frames replace it. Inter frames keep it.</param>
-    /// <returns><see langword="true"/> when the frame codes as screen content.</returns>
-    private static bool ConfigureFrameTools(
-        Configuration configuration,
-        Av1EncoderFrame<ushort> source,
-        Av1EncoderFrame<ushort> reference,
-        ObuSequenceHeader sequenceHeader,
-        ObuFrameHeader frameHeader,
-        Av1EncoderOptions options,
-        ref ScreenContentDecision decision)
-    {
-        if (frameHeader.IsIntra)
-        {
-            DecideScreenContent(source, sequenceHeader, options, ref decision);
-        }
-
-        SelectStillImageQuantizer(sequenceHeader, frameHeader, options, decision);
-        ApplyScreenContentTools(sequenceHeader, frameHeader, options, new Size(source.Width, source.Height), decision);
-        return decision.IsScreenContent;
-    }
-
-    /// <summary>
-    /// Classifies the unfiltered high-bit-depth source of an intra frame as screen content or not.
-    /// </summary>
-    /// <param name="source">The unfiltered source frame.</param>
-    /// <param name="sequenceHeader">The sequence header.</param>
-    /// <param name="options">The encoder options.</param>
-    /// <param name="decision">Receives the decision.</param>
-    private static void DecideScreenContent(
-        Av1EncoderFrame<ushort> source,
-        ObuSequenceHeader sequenceHeader,
-        Av1EncoderOptions options,
-        ref ScreenContentDecision decision)
-    {
-        decision.IsScreenContent = Av1ScreenContentDetector.SetScreenContentOptions(
-            source,
-            options.IsAllIntra,
-            options.Speed,
-            options.Tuning,
-            out bool allowScreenContentTools,
-            out bool allowIntraBlockCopy);
-
-        decision.AllowScreenContentTools = allowScreenContentTools;
-        decision.AllowIntraBlockCopy = allowIntraBlockCopy;
-    }
-
-    /// <summary>
-    /// Codes one eight-bit frame and writes its OBUs.
-    /// </summary>
+    /// <typeparam name="TSample">The native sample storage type.</typeparam>
+    /// <typeparam name="TBlockOperator">The block encoding operations for the sample type.</typeparam>
+    /// <typeparam name="TVerticalEdgeOperator">The deblocking operations of vertical edges.</typeparam>
+    /// <typeparam name="THorizontalEdgeOperator">The deblocking operations of horizontal edges.</typeparam>
+    /// <typeparam name="TCdefOperator">The CDEF search and filter operations.</typeparam>
     /// <param name="obuWriter">The OBU writer.</param>
     /// <param name="stream">The destination stream.</param>
     /// <param name="sequenceHeader">The sequence header.</param>
@@ -1624,24 +1444,34 @@ internal static partial class Av1FrameEncoder
     /// <param name="symbolEncoder">The symbol encoder of the frame.</param>
     /// <param name="writeSequenceHeader">Whether a sequence header OBU precedes the frame.</param>
     /// <param name="writeTemporalDelimiter">Whether a temporal delimiter OBU precedes the frame.</param>
-    private static void Encode(
+    private static void Encode<TSample, TBlockOperator, TVerticalEdgeOperator, THorizontalEdgeOperator, TCdefOperator>(
         ObuWriter obuWriter,
         Stream stream,
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1PictureControlSet picture,
-        Av1EncoderFrameBuffer<byte> source,
-        ReadOnlyMemory<Av1EncoderFrame<byte>> references,
-        ReadOnlyMemory<Av1EncoderFrame<byte>> searchReferences,
-        Av1EncoderFrameBuffer<byte> reconstruction,
+        Av1EncoderFrameBuffer<TSample> source,
+        ReadOnlyMemory<Av1EncoderFrame<TSample>> references,
+        ReadOnlyMemory<Av1EncoderFrame<TSample>> searchReferences,
+        Av1EncoderFrameBuffer<TSample> reconstruction,
         Av1EncoderCoefficientBuffer coefficients,
         Av1EncoderTileWorkspace tileWorkspace,
         Av1EncoderBlockWorkspace blockWorkspace,
         Av1SymbolEncoder symbolEncoder,
         bool writeSequenceHeader,
         bool writeTemporalDelimiter = true)
+        where TSample : unmanaged
+        where TBlockOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TVerticalEdgeOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
+        where THorizontalEdgeOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
+        where TCdefOperator : struct, Av1CdefEncoder.IEncodingOperator<TSample>
     {
-        Av1TileEncoder tileWriter = new(
+        // The analysis decides and reconstructs every block. The completion filters the reconstruction and packs the tiles that the frame
+        // write then reads from the symbol encoder.
+        bool switchableBeforeFix = Av1TileEncoder.AnalyzeFrame<TSample, TBlockOperator>(
+            symbolEncoder, source.Frame, references, searchReferences, reconstruction.Frame, picture, coefficients, tileWorkspace, blockWorkspace);
+
+        Av1TileEncoder.CompleteFrame<TSample, TBlockOperator, TVerticalEdgeOperator, THorizontalEdgeOperator, TCdefOperator>(
             symbolEncoder,
             source.Frame,
             references,
@@ -1650,71 +1480,10 @@ internal static partial class Av1FrameEncoder
             picture,
             coefficients,
             tileWorkspace,
-            blockWorkspace);
+            blockWorkspace,
+            switchableBeforeFix);
 
-        if (writeSequenceHeader)
-        {
-            obuWriter.WriteSequenceFrame(stream, sequenceHeader, frameHeader, tileWriter);
-        }
-        else if (writeTemporalDelimiter)
-        {
-            obuWriter.WriteFrame(stream, sequenceHeader, frameHeader, tileWriter);
-        }
-        else
-        {
-            obuWriter.WriteFrameWithoutDelimiter(stream, sequenceHeader, frameHeader, tileWriter);
-        }
-    }
-
-    /// <summary>
-    /// Codes one frame of more than eight bits and writes its OBUs.
-    /// </summary>
-    /// <param name="obuWriter">The OBU writer.</param>
-    /// <param name="stream">The destination stream.</param>
-    /// <param name="sequenceHeader">The sequence header.</param>
-    /// <param name="frameHeader">The frame header.</param>
-    /// <param name="picture">The frame coding and mode-information state.</param>
-    /// <param name="source">The coded source frame.</param>
-    /// <param name="references">The retained frames indexed by prediction reference identifier.</param>
-    /// <param name="searchReferences">
-    /// The frames that the motion search reads, indexed by prediction reference identifier. Each entry is the reference, or its copy resized to the
-    /// size of the coded frame.
-    /// </param>
-    /// <param name="reconstruction">The reconstructed frame updated during encoding.</param>
-    /// <param name="coefficients">The frame-owned quantized coefficient and transform state.</param>
-    /// <param name="tileWorkspace">The retained tile, superblock, and entropy cursor graph.</param>
-    /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
-    /// <param name="symbolEncoder">The symbol encoder of the frame.</param>
-    /// <param name="writeSequenceHeader">Whether a sequence header OBU precedes the frame.</param>
-    /// <param name="writeTemporalDelimiter">Whether a temporal delimiter OBU precedes the frame.</param>
-    private static void Encode(
-        ObuWriter obuWriter,
-        Stream stream,
-        ObuSequenceHeader sequenceHeader,
-        ObuFrameHeader frameHeader,
-        Av1PictureControlSet picture,
-        Av1EncoderFrameBuffer<ushort> source,
-        ReadOnlyMemory<Av1EncoderFrame<ushort>> references,
-        ReadOnlyMemory<Av1EncoderFrame<ushort>> searchReferences,
-        Av1EncoderFrameBuffer<ushort> reconstruction,
-        Av1EncoderCoefficientBuffer coefficients,
-        Av1EncoderTileWorkspace tileWorkspace,
-        Av1EncoderBlockWorkspace blockWorkspace,
-        Av1SymbolEncoder symbolEncoder,
-        bool writeSequenceHeader,
-        bool writeTemporalDelimiter = true)
-    {
-        Av1TileEncoder tileWriter = new(
-            symbolEncoder,
-            source.Frame,
-            references,
-            searchReferences,
-            reconstruction.Frame,
-            picture,
-            coefficients,
-            tileWorkspace,
-            blockWorkspace);
-
+        Av1TileEncoder tileWriter = Av1TileEncoder.FromPackedTiles(picture, symbolEncoder);
         if (writeSequenceHeader)
         {
             obuWriter.WriteSequenceFrame(stream, sequenceHeader, frameHeader, tileWriter);
@@ -4085,446 +3854,67 @@ internal static partial class Av1FrameEncoder
         }
     }
 
-    private sealed partial class ByteSequenceEncoder : SequenceEncoder
+    /// <summary>
+    /// Codes the samples of one sequence track with native samples of one storage type. Byte samples hold 8-bit depths. 16-bit samples hold the
+    /// higher depths.
+    /// </summary>
+    /// <typeparam name="TSample">The native sample storage type, <see cref="byte"/> or <see cref="ushort"/>.</typeparam>
+    /// <typeparam name="TStorer">The converter that stores normalized components as native samples.</typeparam>
+    /// <typeparam name="TFirstPassOperator">The first pass statistics operations.</typeparam>
+    /// <typeparam name="TFilterOperator">The temporal filter operations.</typeparam>
+    /// <typeparam name="TSearchOperator">The motion search error operations.</typeparam>
+    /// <typeparam name="TTplOperator">The temporal dependency model sample operations.</typeparam>
+    /// <typeparam name="TBlockOperator">The block encoding operations.</typeparam>
+    /// <typeparam name="TGlobalMotionOperator">The global motion search operations.</typeparam>
+    /// <typeparam name="TTextureOperator">The motion vector statistics texture operations.</typeparam>
+    /// <typeparam name="TVerticalEdgeOperator">The deblocking operations of vertical edges.</typeparam>
+    /// <typeparam name="THorizontalEdgeOperator">The deblocking operations of horizontal edges.</typeparam>
+    /// <typeparam name="TCdefOperator">The CDEF search and filter operations.</typeparam>
+    private sealed partial class SampleSequenceEncoder<
+        TSample,
+        TStorer,
+        TFirstPassOperator,
+        TFilterOperator,
+        TSearchOperator,
+        TTplOperator,
+        TBlockOperator,
+        TGlobalMotionOperator,
+        TTextureOperator,
+        TVerticalEdgeOperator,
+        THorizontalEdgeOperator,
+        TCdefOperator> : SequenceEncoder
+        where TSample : unmanaged
+        where TStorer : struct, IHeifSampleConverter<TSample>
+        where TFirstPassOperator : struct, Av1FirstPassOperator.IOperator<TSample>
+        where TFilterOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>, Av1TemporalFilter.ISharpPredictionOperator<TSample>
+        where TSearchOperator : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
+        where TTplOperator : struct, IAv1TplSampleOperator<TSample>
+        where TBlockOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TGlobalMotionOperator : struct, IGlobalMotionSearchOperator<TSample>
+        where TTextureOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
+        where TVerticalEdgeOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
+        where THorizontalEdgeOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
+        where TCdefOperator : struct, Av1CdefEncoder.IEncodingOperator<TSample>
     {
-        private Av1EncoderFrameBuffer<byte> source;
-        private Av1EncoderFrameBuffer<byte>? previousSource;
+        /// <summary>
+        /// The source of the current frame at the size of the image.
+        /// </summary>
+        private Av1EncoderFrameBuffer<TSample> source;
+
+        /// <summary>
+        /// The source of the previous frame at the size of the image. It swaps with <see cref="source"/> after each frame.
+        /// </summary>
+        private Av1EncoderFrameBuffer<TSample>? previousSource;
 
         /// <summary>
         /// The source resized to the size of a scaled layer, or <see langword="null"/> before any scaled layer.
         /// </summary>
-        private Av1EncoderFrameBuffer<byte>? scaledSource;
+        private Av1EncoderFrameBuffer<TSample>? scaledSource;
 
         /// <summary>
         /// The previous source resized to the size of a scaled layer, or <see langword="null"/> before any scaled layer.
         /// </summary>
-        private Av1EncoderFrameBuffer<byte>? scaledPreviousSource;
-
-        /// <summary>
-        /// The border of every frame buffer, in luma samples.
-        /// </summary>
-        private readonly int lumaBorder;
-
-        /// <summary>
-        /// The sampling layout of every frame buffer.
-        /// </summary>
-        private readonly Av1ColorFormat colorFormat;
-        private readonly IMemoryOwner<ulong>? sourceBlockSad;
-        private ulong averageSourceSad;
-        private int framesSinceKey;
-        private readonly Av1EncoderFrame<byte>[] references = new Av1EncoderFrame<byte>[Av1Constants.ReferenceFrameCount];
-
-        /// <summary>
-        /// The frame that the motion search reads for each reference type. This is the reference itself, or its copy resized to the size of the
-        /// current frame.
-        /// </summary>
-        private readonly Av1EncoderFrame<byte>[] searchReferences = new Av1EncoderFrame<byte>[Av1Constants.ReferenceFrameCount];
-
-        /// <summary>
-        /// The resized copy of each reference type, or <see langword="null"/> before a reference of another size.
-        /// </summary>
-        private readonly Av1EncoderFrameBuffer<byte>?[] scaledReferences = new Av1EncoderFrameBuffer<byte>?[Av1Constants.ReferenceFrameCount];
-
-        /// <summary>
-        /// The copy of each reference type that is larger than the current frame, with the border of scaled prediction. The entry is
-        /// <see langword="null"/> before such a reference.
-        /// </summary>
-        private readonly Av1EncoderFrameBuffer<byte>?[] borderedReferences = new Av1EncoderFrameBuffer<byte>?[Av1Constants.ReferenceFrameCount];
-        private readonly int[] referenceBufferIds = new int[Av1Constants.ReferenceFrameCount];
-        private readonly Av1EncoderMotionField.SavedMotionField?[] referenceMotionFields =
-            new Av1EncoderMotionField.SavedMotionField?[Av1Constants.ReferenceFrameCount];
-
-        private Av1EncoderReferencePool<byte> referencePool;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ByteSequenceEncoder"/> class.
-        /// </summary>
-        /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
-        /// <param name="width">The sequence width, in samples.</param>
-        /// <param name="height">The sequence height, in samples.</param>
-        /// <param name="colorConfig">The resolved color and precision configuration.</param>
-        /// <param name="qIndex">The requested quantizer index.</param>
-        /// <param name="options">The encoding options used to select frame and block search policies.</param>
-        /// <param name="encodeAlpha">Whether the sequence codes the alpha channel instead of the color channels.</param>
-        public ByteSequenceEncoder(
-            Configuration configuration,
-            int width,
-            int height,
-            ObuColorConfig colorConfig,
-            int qIndex,
-            Av1EncoderOptions options,
-            bool encodeAlpha)
-            : base(
-                configuration,
-                width,
-                height,
-                colorConfig,
-                qIndex,
-                options,
-                encodeAlpha,
-                usesHighBitDepth: false)
-        {
-            try
-            {
-                Av1ColorFormat colorFormat = colorConfig.GetColorFormat();
-
-                // Inter prediction needs a complete superblock beyond the image plus interpolation and alignment margins.
-                int lumaBorder = (this.SequenceHeader.Use128x128Superblock ? 128 : 64) + 32;
-                this.lumaBorder = lumaBorder;
-                this.colorFormat = colorFormat;
-
-                this.source = new(
-                    configuration,
-                    width,
-                    height,
-                    ByteSampleBitDepth,
-                    colorFormat,
-                    CenteredChromaSamplePosition,
-                    CenteredChromaSamplePosition,
-                    lumaBorder);
-
-                if (options.Speed >= HeifEncodingSpeed.Level7)
-                {
-                    this.sourceBlockSad = configuration.MemoryAllocator.Allocate<ulong>(((width + 63) >> 6) * ((height + 63) >> 6));
-                }
-
-                // The source owners swap after each frame, so the temporal analysis and the integer vector decision read the uncompressed previous
-                // source without a frame copy. The padding also supplies complete edge superblocks.
-                this.previousSource = new(
-                    configuration,
-                    width,
-                    height,
-                    ByteSampleBitDepth,
-                    colorFormat,
-                    CenteredChromaSamplePosition,
-                    CenteredChromaSamplePosition,
-                    lumaBorder);
-
-                // Reconstructed frames live in the reference slots, and a slot keeps its frame until a later frame
-                // refreshes it.
-                this.referencePool = new(
-                    configuration,
-                    width,
-                    height,
-                    ByteSampleBitDepth,
-                    colorFormat,
-                    CenteredChromaSamplePosition,
-                    CenteredChromaSamplePosition,
-                    lumaBorder,
-                    qIndex,
-                    this.MotionField);
-            }
-            catch
-            {
-                // The common state already exists, and every earlier frame allocation must also be returned.
-                this.Dispose();
-                throw;
-            }
-        }
-
-        /// <inheritdoc/>
-        internal override ushort[] CopySlotLuma(int slot)
-            => CopyLuma(this.referencePool.GetSlot(slot)!.Buffer.Frame);
-
-        /// <inheritdoc/>
-        protected override void DisposeFrames()
-        {
-            // A derived constructor can fail before all frame owners exist.
-            this.referencePool?.Dispose();
-            this.source?.Dispose();
-            this.previousSource?.Dispose();
-            this.scaledSource?.Dispose();
-            this.scaledPreviousSource?.Dispose();
-            DisposeBuffers(this.scaledReferences);
-            DisposeBuffers(this.borderedReferences);
-            this.sourceBlockSad?.Dispose();
-        }
-
-        /// <inheritdoc/>
-        protected override void EncodeFrame<TPixel>(
-            ImageFrame<TPixel> image,
-            Stream stream,
-            ObuFrameType frameType,
-            bool writeSequenceHeader)
-        {
-            ObuFrameHeader frameHeader = this.FrameHeader;
-            this.ConfigureFrameHeader(frameType);
-
-            Rectangle sourceRectangle = new(0, 0, image.Width, image.Height);
-            Av1EncoderReferencePool<byte>.Entry current = this.referencePool.Acquire(this.FrameSize.Width, this.FrameSize.Height);
-            Av1EncoderReferencePool<byte>.Entry? last = frameHeader.IsIntra ? null : this.referencePool.GetSlot(this.GetLastSlot());
-
-            // Screen content detection reads the unfiltered source at the size of the image, before the source is resized.
-            bool isScreenContent = PrepareFrame(
-                this.Configuration,
-                image,
-                sourceRectangle,
-                this.source.Frame,
-                (last ?? current).Buffer.Frame,
-                this.SequenceHeader,
-                frameHeader,
-                this.Options,
-                this.ConversionWorkspace,
-                ref this.ScreenContent);
-
-            // A scaled layer codes the source and the previous source resized to its size.
-            Av1EncoderFrameBuffer<byte> frameSource = this.ScaleToFrame(this.source, ref this.scaledSource);
-            Av1EncoderFrameBuffer<byte>? framePreviousSource = this.previousSource is null
-                ? null
-                : this.ScaleToFrame(this.previousSource, ref this.scaledPreviousSource);
-
-            // The integer vector decision compares the source and the previous source at the size of the image, before the encoder resizes them.
-            this.DecideIntegerMotionVectors<byte, Av1IntraSuperblockEncoder.ByteOperator>(this.source.Frame, this.previousSource?.Frame);
-
-            this.PictureBuffer.Reset(frameHeader);
-            Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
-            parent.PreviousSource = this.sourceBlockSad is not null && framePreviousSource is not null ? framePreviousSource.Frame.CodedView : default;
-
-            // When scene detection does not run, the frame keeps the source changes of the previous frame.
-            bool detectsScene = this.DetectsScene();
-            parent.SourceBlockSad = this.sourceBlockSad is not null && detectsScene && this.KeepsSceneBlockErrors()
-                ? this.sourceBlockSad.Memory
-                : default;
-
-            if (detectsScene)
-            {
-                parent.HighSourceSad = false;
-                parent.FrameSourceSad = 0;
-            }
-
-            ulong previousAverageSourceSad = this.averageSourceSad;
-            if (this.sourceBlockSad is not null && this.previousSource is not null && this.framesSinceKey != 0 && detectsScene)
-            {
-                AnalyzeTemporalSource<byte, Av1MotionSearchBase.ByteOperator>(
-                    this.source.Frame.CodedView,
-                    this.previousSource.Frame.CodedView,
-                    this.GetSceneDetectionSize(),
-                    parent,
-                    this.framesSinceKey,
-                    ref this.averageSourceSad);
-            }
-
-            if (frameHeader.IsIntra)
-            {
-                this.framesSinceKey = 0;
-            }
-
-            parent.FramesSinceKey = this.framesSinceKey;
-            parent.FramesSinceGolden = this.FramesSinceGolden;
-            parent.IsScreenContent = isScreenContent;
-
-            // The quantizer and the speed features follow the update type that the reference structure selects, so the structure comes first.
-            this.ConfigureReferenceStructure(parent, this.averageSourceSad);
-            this.SelectFrameQuantizer<byte, Av1MotionSearchBase.ByteOperator, Av1IntraSuperblockEncoder.ByteOperator>(
-                parent,
-                this.source.Frame.CodedView.GetPlane(Av1Plane.Y),
-                last is null ? default : last.Buffer.Frame.CodedView.GetPlane(Av1Plane.Y),
-                this.averageSourceSad,
-                previousAverageSourceSad);
-
-            parent.EncoderOptions = this.Options;
-            parent.EncoderBorder = this.GetEncoderBorder();
-            parent.ConstantQualityIndex = GetConstantQualityLevel(this.Options, this.ConstantQualityIndex);
-            parent.SpeedSettings = new(
-                this.Options.Speed,
-                this.Options.IsAllIntra,
-                frameHeader.IsIntra,
-                parent.FrameUpdateType,
-                this.QIndex,
-                this.FrameSize,
-                sharpness: this.Options.Sharpness,
-                tuning: this.Options.Tuning);
-
-            // Good-quality coding with the default objective delta-q mode and the temporal model on pads the border. Real-time coding does not.
-            parent.BorderPad = this.UsesBorderPad;
-
-            this.ConfigureReferenceTools(parent);
-            this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
-            this.SearchGlobalMotion<byte, ByteGlobalMotionSearchOperator>(frameSource.Frame, this.references, parent);
-            this.UpdateNoiseEstimate(
-                parent,
-                frameSource.Frame.CodedView.GetPlane(Av1Plane.Y),
-                framePreviousSource is null ? default : framePreviousSource.Frame.CodedView.GetPlane(Av1Plane.Y),
-                framePreviousSource is not null);
-
-            this.BeginCyclicRefreshSegmentation(this.referencePool, current, parent);
-            this.PrepareFilmGrain();
-            this.PrepareSsimRateMultiplierFactors<byte, Av1IntraSuperblockEncoder.ByteOperator>(this.source.Frame, parent);
-            this.RecordFrameSize();
-
-            long frameStart = stream.Length;
-            Encode(
-                this.ObuWriter,
-                stream,
-                this.SequenceHeader,
-                frameHeader,
-                this.PictureBuffer.Picture,
-                frameSource,
-                this.references,
-                this.searchReferences,
-                current.Buffer,
-                this.Coefficients,
-                this.TileWorkspace,
-                this.BlockWorkspace,
-                this.SymbolEncoder,
-                writeSequenceHeader,
-                this.StartsTemporalUnit);
-
-            // A temporal delimiter precedes each temporal unit. The rate model counts the frame bytes without the delimiter.
-            this.CompleteRateControl(parent, (int)(stream.Length - frameStart) - (this.StartsTemporalUnit ? TemporalDelimiterLength : 0));
-            this.CompleteCyclicRefreshSegmentation(current, this.PictureBuffer.Picture);
-
-            this.SymbolEncoder.SnapshotTo(current.Context);
-            this.MotionField.SaveFrameMotionVectors(this.PictureBuffer.Picture, current.MotionField);
-            this.CompleteFrameHeader();
-            this.CompleteReferenceStructure();
-
-            this.framesSinceKey++;
-            if (this.previousSource is not null)
-            {
-                (this.source, this.previousSource) = (this.previousSource, this.source);
-            }
-
-            current.Buffer.Frame.ExtendBorders();
-            this.referencePool.Refresh(current, frameHeader.RefreshFrameFlags);
-            this.RefreshFilmGrain();
-        }
-
-        /// <summary>
-        /// Returns the source at the size of the current frame. This is the source itself, or a copy resized to the size of a scaled layer with the
-        /// kernel and phase of the encoder.
-        /// </summary>
-        /// <param name="unscaled">The source at the size of the image.</param>
-        /// <param name="scaled">The buffer of the resized copy, which is reallocated when the frame size changes.</param>
-        /// <returns>The source at the frame size.</returns>
-        private Av1EncoderFrameBuffer<byte> ScaleToFrame(Av1EncoderFrameBuffer<byte> unscaled, ref Av1EncoderFrameBuffer<byte>? scaled)
-        {
-            if (!this.IsScaledFrame)
-            {
-                return unscaled;
-            }
-
-            Av1EncoderFrameBuffer<byte> destination = this.GetBuffer(ref scaled, this.FrameSize, this.lumaBorder);
-            (Av1InterpolationFilter filter, int phase) = Av1FrameResizer.GetFrameScaler(this.FrameSize, new Size(unscaled.Frame.Width, unscaled.Frame.Height));
-            Av1FrameResizer.ResizeFrame(this.Configuration.MemoryAllocator, unscaled.Frame, destination.Frame, filter, phase);
-            return destination;
-        }
-
-        /// <summary>
-        /// Returns a buffer of a size, and replaces the buffer when its size differs.
-        /// </summary>
-        /// <param name="buffer">The buffer to reuse, which receives the replacement.</param>
-        /// <param name="size">The frame size of the buffer.</param>
-        /// <param name="border">The luma border of a new buffer.</param>
-        /// <returns>The buffer of the size.</returns>
-        private Av1EncoderFrameBuffer<byte> GetBuffer(ref Av1EncoderFrameBuffer<byte>? buffer, Size size, int border)
-        {
-            if (buffer is null || buffer.Frame.Width != size.Width || buffer.Frame.Height != size.Height)
-            {
-                buffer?.Dispose();
-                buffer = new(
-                    this.Configuration,
-                    size.Width,
-                    size.Height,
-                    ByteSampleBitDepth,
-                    this.colorFormat,
-                    CenteredChromaSamplePosition,
-                    CenteredChromaSamplePosition,
-                    border);
-            }
-
-            return buffer;
-        }
-
-        /// <summary>
-        /// Prepares each available reference of another size than the current frame. A larger reference predicts from a copy with the wider border
-        /// of scaled prediction. The motion search reads a copy resized to the size of the frame with the kernel and phase that resize the source.
-        /// The search reads every other reference in place. Coding is one pass without recode, so the references are always resized here.
-        /// </summary>
-        /// <param name="availableReferenceMask">The available references, one bit for each reference type.</param>
-        private void ScaleReferences(int availableReferenceMask)
-        {
-            Size size = this.FrameSize;
-            (Av1InterpolationFilter filter, int phase) = Av1FrameResizer.GetFrameScaler(size, new Size(this.source.Frame.Width, this.source.Frame.Height));
-            for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
-            {
-                Av1EncoderFrame<byte> frame = this.references[reference];
-                this.searchReferences[reference] = frame;
-                if ((availableReferenceMask & (1 << reference)) == 0 || (frame.Width == size.Width && frame.Height == size.Height))
-                {
-                    continue;
-                }
-
-                // A larger reference scales a vector up, which can reach past the normal border. A smaller reference scales it down, so its reads
-                // stay within the normal border.
-                if (frame.Width > size.Width || frame.Height > size.Height)
-                {
-                    Av1EncoderFrameBuffer<byte> bordered = this.GetBuffer(
-                        ref this.borderedReferences[reference], new Size(frame.Width, frame.Height), ScaledReferenceBorder);
-
-                    CopyVisibleFrame(frame, bordered.Frame);
-                    this.references[reference] = bordered.Frame;
-                }
-
-                Av1EncoderFrameBuffer<byte> scaled = this.GetBuffer(ref this.scaledReferences[reference], size, ScaledReferenceBorder);
-                Av1FrameResizer.ResizeFrame(this.Configuration.MemoryAllocator, frame, scaled.Frame, filter, phase);
-                this.searchReferences[reference] = scaled.Frame;
-            }
-        }
-
-        /// <inheritdoc/>
-        private protected override Av1FrameEntropyContext? BindReferences(Av1PictureParentControlSet parent)
-        {
-            ObuFrameHeader frameHeader = this.FrameHeader;
-            ReadOnlySpan<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
-            for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
-            {
-                this.referenceMotionFields[reference] = this.referencePool.GetSlot((int)referenceFrameIndices[reference - 1])?.MotionField;
-            }
-
-            this.MotionField.Setup(this.SequenceHeader, frameHeader, this.referenceMotionFields);
-            parent.AvailableReferenceMask = 0;
-            if (frameHeader.IsIntra)
-            {
-                return null;
-            }
-
-            for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
-            {
-                Av1EncoderReferencePool<byte>.Entry entry = this.referencePool.GetSlot((int)referenceFrameIndices[reference - 1])!;
-                this.references[reference] = entry.Buffer.Frame;
-                this.referenceBufferIds[reference] = entry.Id;
-            }
-
-            parent.AvailableReferenceMask = EnforceMaximumReferenceFrames(
-                this.SequenceHeader,
-                frameHeader,
-                GetReferenceFrameFlags(this.referenceBufferIds, parent.SpeedSettings, this.UsesLayerFlags),
-                parent.SpeedSettings);
-
-            parent.AvailableReferenceMask = (byte)this.DisableResizedReferences(parent.AvailableReferenceMask, this.references);
-            this.ScaleReferences(parent.AvailableReferenceMask);
-            CheckSkipModeEnabled(this.SequenceHeader, frameHeader, parent.AvailableReferenceMask, this.HasOnlyPastReferencesWithLag());
-            return frameHeader.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone
-                ? null
-                : this.referencePool.GetSlot((int)referenceFrameIndices[(int)frameHeader.PrimaryReferenceFrame])!.Context;
-        }
-    }
-
-    private sealed partial class HighBitDepthSequenceEncoder : SequenceEncoder
-    {
-        private Av1EncoderFrameBuffer<ushort> source;
-        private Av1EncoderFrameBuffer<ushort>? previousSource;
-
-        /// <summary>
-        /// The source resized to the size of a scaled layer, or <see langword="null"/> before any scaled layer.
-        /// </summary>
-        private Av1EncoderFrameBuffer<ushort>? scaledSource;
-
-        /// <summary>
-        /// The previous source resized to the size of a scaled layer, or <see langword="null"/> before any scaled layer.
-        /// </summary>
-        private Av1EncoderFrameBuffer<ushort>? scaledPreviousSource;
+        private Av1EncoderFrameBuffer<TSample>? scaledPreviousSource;
 
         /// <summary>
         /// The border of every frame buffer, in luma samples.
@@ -4540,35 +3930,63 @@ internal static partial class Av1FrameEncoder
         /// The sample bit depth of every frame buffer.
         /// </summary>
         private readonly int bitDepth;
+
+        /// <summary>
+        /// The source change of each 64x64 block of the last scene detection, or <see langword="null"/> below speed 7.
+        /// </summary>
         private readonly IMemoryOwner<ulong>? sourceBlockSad;
+
+        /// <summary>
+        /// The running average of source changes.
+        /// </summary>
         private ulong averageSourceSad;
+
+        /// <summary>
+        /// The number of completed frames since the last key frame.
+        /// </summary>
         private int framesSinceKey;
-        private readonly Av1EncoderFrame<ushort>[] references = new Av1EncoderFrame<ushort>[Av1Constants.ReferenceFrameCount];
+
+        /// <summary>
+        /// The frame that each reference type predicts from.
+        /// </summary>
+        private readonly Av1EncoderFrame<TSample>[] references = new Av1EncoderFrame<TSample>[Av1Constants.ReferenceFrameCount];
 
         /// <summary>
         /// The frame that the motion search reads for each reference type. This is the reference itself, or its copy resized to the size of the
         /// current frame.
         /// </summary>
-        private readonly Av1EncoderFrame<ushort>[] searchReferences = new Av1EncoderFrame<ushort>[Av1Constants.ReferenceFrameCount];
+        private readonly Av1EncoderFrame<TSample>[] searchReferences = new Av1EncoderFrame<TSample>[Av1Constants.ReferenceFrameCount];
 
         /// <summary>
         /// The resized copy of each reference type, or <see langword="null"/> before a reference of another size.
         /// </summary>
-        private readonly Av1EncoderFrameBuffer<ushort>?[] scaledReferences = new Av1EncoderFrameBuffer<ushort>?[Av1Constants.ReferenceFrameCount];
+        private readonly Av1EncoderFrameBuffer<TSample>?[] scaledReferences = new Av1EncoderFrameBuffer<TSample>?[Av1Constants.ReferenceFrameCount];
 
         /// <summary>
         /// The copy of each reference type that is larger than the current frame, with the border of scaled prediction. The entry is
         /// <see langword="null"/> before such a reference.
         /// </summary>
-        private readonly Av1EncoderFrameBuffer<ushort>?[] borderedReferences = new Av1EncoderFrameBuffer<ushort>?[Av1Constants.ReferenceFrameCount];
+        private readonly Av1EncoderFrameBuffer<TSample>?[] borderedReferences = new Av1EncoderFrameBuffer<TSample>?[Av1Constants.ReferenceFrameCount];
+
+        /// <summary>
+        /// The buffer identifier of the frame that each reference type predicts from.
+        /// </summary>
         private readonly int[] referenceBufferIds = new int[Av1Constants.ReferenceFrameCount];
+
+        /// <summary>
+        /// The saved motion field of each reference type, or <see langword="null"/> for an empty slot.
+        /// </summary>
         private readonly Av1EncoderMotionField.SavedMotionField?[] referenceMotionFields =
             new Av1EncoderMotionField.SavedMotionField?[Av1Constants.ReferenceFrameCount];
 
-        private Av1EncoderReferencePool<ushort> referencePool;
+        /// <summary>
+        /// The reconstructed frames of the reference slots.
+        /// </summary>
+        private Av1EncoderReferencePool<TSample> referencePool;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="HighBitDepthSequenceEncoder"/> class.
+        /// Initializes a new instance of the <see cref="SampleSequenceEncoder{TSample, TStorer, TFirstPassOperator, TFilterOperator, TSearchOperator,
+        /// TTplOperator, TBlockOperator, TGlobalMotionOperator, TTextureOperator, TVerticalEdgeOperator, THorizontalEdgeOperator, TCdefOperator}"/> class.
         /// </summary>
         /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
         /// <param name="width">The sequence width, in samples.</param>
@@ -4577,7 +3995,7 @@ internal static partial class Av1FrameEncoder
         /// <param name="qIndex">The requested quantizer index.</param>
         /// <param name="options">The encoding options used to select frame and block search policies.</param>
         /// <param name="encodeAlpha">Whether the sequence codes the alpha channel instead of the color channels.</param>
-        public HighBitDepthSequenceEncoder(
+        public SampleSequenceEncoder(
             Configuration configuration,
             int width,
             int height,
@@ -4593,7 +4011,7 @@ internal static partial class Av1FrameEncoder
                 qIndex,
                 options,
                 encodeAlpha,
-                usesHighBitDepth: true)
+                usesHighBitDepth: typeof(TSample) == typeof(ushort))
         {
             try
             {
@@ -4657,7 +4075,13 @@ internal static partial class Av1FrameEncoder
 
         /// <inheritdoc/>
         internal override ushort[] CopySlotLuma(int slot)
-            => CopyLuma(this.referencePool.GetSlot(slot)!.Buffer.Frame);
+        {
+            // The closed generic type fixes the sample type, so the test folds to one direct call. The reinterpretation is between identical types.
+            Av1EncoderFrame<TSample> frame = this.referencePool.GetSlot(slot)!.Buffer.Frame;
+            return typeof(TSample) == typeof(byte)
+                ? CopyLuma(Unsafe.As<Av1EncoderFrame<TSample>, Av1EncoderFrame<byte>>(ref frame))
+                : CopyLuma(Unsafe.As<Av1EncoderFrame<TSample>, Av1EncoderFrame<ushort>>(ref frame));
+        }
 
         /// <inheritdoc/>
         protected override void DisposeFrames()
@@ -4684,11 +4108,11 @@ internal static partial class Av1FrameEncoder
             this.ConfigureFrameHeader(frameType);
 
             Rectangle sourceRectangle = new(0, 0, image.Width, image.Height);
-            Av1EncoderReferencePool<ushort>.Entry current = this.referencePool.Acquire(this.FrameSize.Width, this.FrameSize.Height);
-            Av1EncoderReferencePool<ushort>.Entry? last = frameHeader.IsIntra ? null : this.referencePool.GetSlot(this.GetLastSlot());
+            Av1EncoderReferencePool<TSample>.Entry current = this.referencePool.Acquire(this.FrameSize.Width, this.FrameSize.Height);
+            Av1EncoderReferencePool<TSample>.Entry? last = frameHeader.IsIntra ? null : this.referencePool.GetSlot(this.GetLastSlot());
 
             // Screen content detection reads the unfiltered source at the size of the image, before the source is resized.
-            bool isScreenContent = PrepareFrame(
+            bool isScreenContent = PrepareFrame<TPixel, TSample, TStorer>(
                 this.Configuration,
                 image,
                 sourceRectangle,
@@ -4701,19 +4125,27 @@ internal static partial class Av1FrameEncoder
                 ref this.ScreenContent);
 
             // A scaled layer codes the source and the previous source resized to its size.
-            Av1EncoderFrameBuffer<ushort> frameSource = this.ScaleToFrame(this.source, ref this.scaledSource);
-            Av1EncoderFrameBuffer<ushort>? framePreviousSource = this.previousSource is null
+            Av1EncoderFrameBuffer<TSample> frameSource = this.ScaleToFrame(this.source, ref this.scaledSource);
+            Av1EncoderFrameBuffer<TSample>? framePreviousSource = this.previousSource is null
                 ? null
                 : this.ScaleToFrame(this.previousSource, ref this.scaledPreviousSource);
 
             // The integer vector decision compares the source and the previous source at the size of the image, before the encoder resizes them.
-            this.DecideIntegerMotionVectors<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(this.source.Frame, this.previousSource?.Frame);
+            this.DecideIntegerMotionVectors<TSample, TBlockOperator>(this.source.Frame, this.previousSource?.Frame);
 
             this.PictureBuffer.Reset(frameHeader);
             Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
-            parent.IsScreenContent = isScreenContent;
-            parent.EncoderOptions = this.Options;
-            parent.EncoderBorder = this.GetEncoderBorder();
+
+            // Only 8-bit samples compare each superblock with the previous source. A high-bit-depth frame turns the source comparison off, so it
+            // keeps the empty previous source. The closed generic type fixes the sample type, so the test folds away.
+            if (typeof(TSample) == typeof(byte))
+            {
+                Av1EncoderFrame<TSample>.PlanarView previousView = this.sourceBlockSad is not null && framePreviousSource is not null
+                    ? framePreviousSource.Frame.CodedView
+                    : default;
+
+                parent.PreviousSource = Unsafe.As<Av1EncoderFrame<TSample>.PlanarView, Av1EncoderFrame<byte>.PlanarView>(ref previousView);
+            }
 
             // When scene detection does not run, the frame keeps the source changes of the previous frame.
             bool detectsScene = this.DetectsScene();
@@ -4730,7 +4162,7 @@ internal static partial class Av1FrameEncoder
             ulong previousAverageSourceSad = this.averageSourceSad;
             if (this.sourceBlockSad is not null && this.previousSource is not null && this.framesSinceKey != 0 && detectsScene)
             {
-                AnalyzeTemporalSource<ushort, Av1MotionSearchBase.UInt16Operator>(
+                AnalyzeTemporalSource<TSample, TSearchOperator>(
                     this.source.Frame.CodedView,
                     this.previousSource.Frame.CodedView,
                     this.GetSceneDetectionSize(),
@@ -4746,16 +4178,19 @@ internal static partial class Av1FrameEncoder
 
             parent.FramesSinceKey = this.framesSinceKey;
             parent.FramesSinceGolden = this.FramesSinceGolden;
+            parent.IsScreenContent = isScreenContent;
 
             // The quantizer and the speed features follow the update type that the reference structure selects, so the structure comes first.
             this.ConfigureReferenceStructure(parent, this.averageSourceSad);
-            this.SelectFrameQuantizer<ushort, Av1MotionSearchBase.UInt16Operator, Av1IntraSuperblockEncoder.UInt16Operator>(
+            this.SelectFrameQuantizer<TSample, TSearchOperator, TBlockOperator>(
                 parent,
                 this.source.Frame.CodedView.GetPlane(Av1Plane.Y),
                 last is null ? default : last.Buffer.Frame.CodedView.GetPlane(Av1Plane.Y),
                 this.averageSourceSad,
                 previousAverageSourceSad);
 
+            parent.EncoderOptions = this.Options;
+            parent.EncoderBorder = this.GetEncoderBorder();
             parent.ConstantQualityIndex = GetConstantQualityLevel(this.Options, this.ConstantQualityIndex);
             parent.SpeedSettings = new(
                 this.Options.Speed,
@@ -4772,17 +4207,28 @@ internal static partial class Av1FrameEncoder
 
             this.ConfigureReferenceTools(parent);
             this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
-            this.SearchGlobalMotion<ushort, UInt16GlobalMotionSearchOperator>(frameSource.Frame, this.references, parent);
+            this.SearchGlobalMotion<TSample, TGlobalMotionOperator>(frameSource.Frame, this.references, parent);
 
-            // The 8-bit encoder also sets the previous source and updates the noise estimate here. A high-bit-depth frame needs neither: the
-            // superblock comparison with the previous source and the noise estimate run only for 8-bit samples.
+            // Only 8-bit samples update the noise estimate. A high-bit-depth frame turns the noise estimate off. The closed generic type fixes the
+            // sample type, so the test folds away. The reinterpretation is between identical types.
+            if (typeof(TSample) == typeof(byte))
+            {
+                Av1PlaneRegion<TSample> sourcePlane = frameSource.Frame.CodedView.GetPlane(Av1Plane.Y);
+                Av1PlaneRegion<TSample> previousSourcePlane = framePreviousSource is null ? default : framePreviousSource.Frame.CodedView.GetPlane(Av1Plane.Y);
+                this.UpdateNoiseEstimate(
+                    parent,
+                    Unsafe.As<Av1PlaneRegion<TSample>, Av1PlaneRegion<byte>>(ref sourcePlane),
+                    Unsafe.As<Av1PlaneRegion<TSample>, Av1PlaneRegion<byte>>(ref previousSourcePlane),
+                    framePreviousSource is not null);
+            }
+
             this.BeginCyclicRefreshSegmentation(this.referencePool, current, parent);
             this.PrepareFilmGrain();
-            this.PrepareSsimRateMultiplierFactors<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(this.source.Frame, parent);
+            this.PrepareSsimRateMultiplierFactors<TSample, TBlockOperator>(this.source.Frame, parent);
             this.RecordFrameSize();
 
             long frameStart = stream.Length;
-            Encode(
+            Encode<TSample, TBlockOperator, TVerticalEdgeOperator, THorizontalEdgeOperator, TCdefOperator>(
                 this.ObuWriter,
                 stream,
                 this.SequenceHeader,
@@ -4807,8 +4253,8 @@ internal static partial class Av1FrameEncoder
             this.MotionField.SaveFrameMotionVectors(this.PictureBuffer.Picture, current.MotionField);
             this.CompleteFrameHeader();
             this.CompleteReferenceStructure();
-            this.framesSinceKey++;
 
+            this.framesSinceKey++;
             if (this.previousSource is not null)
             {
                 (this.source, this.previousSource) = (this.previousSource, this.source);
@@ -4821,21 +4267,51 @@ internal static partial class Av1FrameEncoder
 
         /// <summary>
         /// Returns the source at the size of the current frame. This is the source itself, or a copy resized to the size of a scaled layer.
-        /// Frames of more than eight bits always use the nonnormative resizer.
         /// </summary>
         /// <param name="unscaled">The source at the size of the image.</param>
         /// <param name="scaled">The buffer of the resized copy, which is reallocated when the frame size changes.</param>
         /// <returns>The source at the frame size.</returns>
-        private Av1EncoderFrameBuffer<ushort> ScaleToFrame(Av1EncoderFrameBuffer<ushort> unscaled, ref Av1EncoderFrameBuffer<ushort>? scaled)
+        private Av1EncoderFrameBuffer<TSample> ScaleToFrame(Av1EncoderFrameBuffer<TSample> unscaled, ref Av1EncoderFrameBuffer<TSample>? scaled)
         {
             if (!this.IsScaledFrame)
             {
                 return unscaled;
             }
 
-            Av1EncoderFrameBuffer<ushort> destination = this.GetBuffer(ref scaled, this.FrameSize, this.lumaBorder);
-            Av1FrameResizer.ResizeFrame(this.Configuration.MemoryAllocator, unscaled.Frame, destination.Frame, this.bitDepth);
+            Av1EncoderFrameBuffer<TSample> destination = this.GetBuffer(ref scaled, this.FrameSize, this.lumaBorder);
+            this.ResizeFrame(unscaled.Frame, destination.Frame);
             return destination;
+        }
+
+        /// <summary>
+        /// Resizes a source or a reference to the size of the current frame. An 8-bit frame uses the kernel and phase that the ratio of the frame
+        /// size to the image size selects. A frame of more than eight bits always uses the nonnormative resizer.
+        /// </summary>
+        /// <param name="source">The frame to resize.</param>
+        /// <param name="destination">The frame that receives the resized samples, at the size of the current frame.</param>
+        private void ResizeFrame(Av1EncoderFrame<TSample> source, Av1EncoderFrame<TSample> destination)
+        {
+            // The closed generic type fixes the sample type, so the test folds to one direct call. The reinterpretation is between identical types.
+            if (typeof(TSample) == typeof(byte))
+            {
+                (Av1InterpolationFilter filter, int phase) = Av1FrameResizer.GetFrameScaler(
+                    this.FrameSize, new Size(this.source.Frame.Width, this.source.Frame.Height));
+
+                Av1FrameResizer.ResizeFrame(
+                    this.Configuration.MemoryAllocator,
+                    Unsafe.As<Av1EncoderFrame<TSample>, Av1EncoderFrame<byte>>(ref source),
+                    Unsafe.As<Av1EncoderFrame<TSample>, Av1EncoderFrame<byte>>(ref destination),
+                    filter,
+                    phase);
+
+                return;
+            }
+
+            Av1FrameResizer.ResizeFrame(
+                this.Configuration.MemoryAllocator,
+                Unsafe.As<Av1EncoderFrame<TSample>, Av1EncoderFrame<ushort>>(ref source),
+                Unsafe.As<Av1EncoderFrame<TSample>, Av1EncoderFrame<ushort>>(ref destination),
+                this.bitDepth);
         }
 
         /// <summary>
@@ -4845,7 +4321,7 @@ internal static partial class Av1FrameEncoder
         /// <param name="size">The frame size of the buffer.</param>
         /// <param name="border">The luma border of a new buffer.</param>
         /// <returns>The buffer of the size.</returns>
-        private Av1EncoderFrameBuffer<ushort> GetBuffer(ref Av1EncoderFrameBuffer<ushort>? buffer, Size size, int border)
+        private Av1EncoderFrameBuffer<TSample> GetBuffer(ref Av1EncoderFrameBuffer<TSample>? buffer, Size size, int border)
         {
             if (buffer is null || buffer.Frame.Width != size.Width || buffer.Frame.Height != size.Height)
             {
@@ -4866,8 +4342,8 @@ internal static partial class Av1FrameEncoder
 
         /// <summary>
         /// Prepares each available reference of another size than the current frame. A larger reference predicts from a copy with the wider border
-        /// of scaled prediction. The motion search reads a copy resized to the size of the frame with the nonnormative resizer, which every frame
-        /// of more than eight bits uses. The search reads every other reference in place.
+        /// of scaled prediction. The motion search reads a copy resized to the size of the frame with the resizer that resizes the source.
+        /// The search reads every other reference in place. Coding is one pass without recode, so the references are always resized here.
         /// </summary>
         /// <param name="availableReferenceMask">The available references, one bit for each reference type.</param>
         private void ScaleReferences(int availableReferenceMask)
@@ -4875,7 +4351,7 @@ internal static partial class Av1FrameEncoder
             Size size = this.FrameSize;
             for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
             {
-                Av1EncoderFrame<ushort> frame = this.references[reference];
+                Av1EncoderFrame<TSample> frame = this.references[reference];
                 this.searchReferences[reference] = frame;
                 if ((availableReferenceMask & (1 << reference)) == 0 || (frame.Width == size.Width && frame.Height == size.Height))
                 {
@@ -4886,15 +4362,15 @@ internal static partial class Av1FrameEncoder
                 // stay within the normal border.
                 if (frame.Width > size.Width || frame.Height > size.Height)
                 {
-                    Av1EncoderFrameBuffer<ushort> bordered = this.GetBuffer(
+                    Av1EncoderFrameBuffer<TSample> bordered = this.GetBuffer(
                         ref this.borderedReferences[reference], new Size(frame.Width, frame.Height), ScaledReferenceBorder);
 
                     CopyVisibleFrame(frame, bordered.Frame);
                     this.references[reference] = bordered.Frame;
                 }
 
-                Av1EncoderFrameBuffer<ushort> scaled = this.GetBuffer(ref this.scaledReferences[reference], size, ScaledReferenceBorder);
-                Av1FrameResizer.ResizeFrame(this.Configuration.MemoryAllocator, frame, scaled.Frame, this.bitDepth);
+                Av1EncoderFrameBuffer<TSample> scaled = this.GetBuffer(ref this.scaledReferences[reference], size, ScaledReferenceBorder);
+                this.ResizeFrame(frame, scaled.Frame);
                 this.searchReferences[reference] = scaled.Frame;
             }
         }
@@ -4918,7 +4394,7 @@ internal static partial class Av1FrameEncoder
 
             for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
             {
-                Av1EncoderReferencePool<ushort>.Entry entry = this.referencePool.GetSlot((int)referenceFrameIndices[reference - 1])!;
+                Av1EncoderReferencePool<TSample>.Entry entry = this.referencePool.GetSlot((int)referenceFrameIndices[reference - 1])!;
                 this.references[reference] = entry.Buffer.Frame;
                 this.referenceBufferIds[reference] = entry.Id;
             }

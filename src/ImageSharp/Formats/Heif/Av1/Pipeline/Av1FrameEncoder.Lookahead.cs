@@ -4,9 +4,7 @@
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
@@ -821,11 +819,22 @@ internal static partial class Av1FrameEncoder
         }
     }
 
-    private sealed partial class ByteSequenceEncoder
-        : SequenceEncoder.ILaggedFrameCoder<byte, Av1TemporalFilter.ByteOperator, Av1MotionSearchBase.ByteOperator, Av1TplByteOperator>
+    private sealed partial class SampleSequenceEncoder<
+        TSample,
+        TStorer,
+        TFirstPassOperator,
+        TFilterOperator,
+        TSearchOperator,
+        TTplOperator,
+        TBlockOperator,
+        TGlobalMotionOperator,
+        TTextureOperator,
+        TVerticalEdgeOperator,
+        THorizontalEdgeOperator,
+        TCdefOperator> : SequenceEncoder.ILaggedFrameCoder<TSample, TFilterOperator, TSearchOperator, TTplOperator>
     {
         /// <inheritdoc/>
-        public Av1EncoderReferencePool<byte> ReferencePool => this.referencePool;
+        public Av1EncoderReferencePool<TSample> ReferencePool => this.referencePool;
 
         /// <inheritdoc/>
         public override void EncodeWithLookahead<TPixel>(
@@ -837,11 +846,11 @@ internal static partial class Av1FrameEncoder
             Span<long> sampleEnds,
             Span<bool> syncSamples,
             CancellationToken cancellationToken)
-            => this.EncodeLagged<TPixel, byte, HeifByteSampleConverter, Av1FirstPassOperator.ByteOperator, Av1TemporalFilter.ByteOperator, Av1MotionSearchBase.ByteOperator, Av1TplByteOperator>(
+            => this.EncodeLagged<TPixel, TSample, TStorer, TFirstPassOperator, TFilterOperator, TSearchOperator, TTplOperator>(
                 this, image, firstFrameIndex, frameCount, frameDurationTicks, stream, sampleEnds, syncSamples, cancellationToken);
 
         /// <inheritdoc/>
-        public bool DecideLaggedScreenContent(Av1EncoderFrameBuffer<byte> unfilteredSource, bool isKeyFrame)
+        public bool DecideLaggedScreenContent(Av1EncoderFrameBuffer<TSample> unfilteredSource, bool isKeyFrame)
         {
             if (isKeyFrame)
             {
@@ -853,24 +862,24 @@ internal static partial class Av1FrameEncoder
 
         /// <inheritdoc/>
         public void EncodeLaggedFrame(
-            Av1EncoderFrameBuffer<byte> source,
+            Av1EncoderFrameBuffer<TSample> source,
             in Av1SecondPassFrame frame,
             Av1SecondPass secondPass,
             Stream stream,
             bool writeTemporalDelimiter,
-            LookaheadTemporalModel<byte, Av1TemporalFilter.ByteOperator, Av1MotionSearchBase.ByteOperator, Av1TplByteOperator>? temporalModel,
-            Av1EncoderFrameBuffer<byte>? lastSource)
+            LookaheadTemporalModel<TSample, TFilterOperator, TSearchOperator, TTplOperator>? temporalModel,
+            Av1EncoderFrameBuffer<TSample>? lastSource)
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
             this.ConfigureLaggedFrameHeader(in frame);
 
-            Av1EncoderReferencePool<byte>.Entry current = this.referencePool.Acquire();
+            Av1EncoderReferencePool<TSample>.Entry current = this.referencePool.Acquire();
             ApplyScreenContentTools(
                 this.SequenceHeader, frameHeader, this.Options, new Size(source.Frame.Width, source.Frame.Height), this.ScreenContent);
 
             bool isScreenContent = this.ScreenContent.IsScreenContent;
 
-            this.DecideIntegerMotionVectors<byte, Av1IntraSuperblockEncoder.ByteOperator>(source.Frame, lastSource?.Frame);
+            this.DecideIntegerMotionVectors<TSample, TBlockOperator>(source.Frame, lastSource?.Frame);
 
             this.PictureBuffer.Reset(frameHeader);
             Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
@@ -931,7 +940,7 @@ internal static partial class Av1FrameEncoder
             this.ResetIntraSegmentation();
 
             // A lookahead sequence has statistics that allow recoding. Thus a key frame can test the screen content tools with two trial encodes.
-            isScreenContent = this.DetermineScreenContentWithEncoding<byte, Av1IntraSuperblockEncoder.ByteOperator>(
+            isScreenContent = this.DetermineScreenContentWithEncoding<TSample, TBlockOperator>(
                 source.Frame,
                 current.Buffer.Frame,
                 qIndex,
@@ -942,7 +951,7 @@ internal static partial class Av1FrameEncoder
             this.CommonBaseQIndex = frameHeader.QuantizationParameters.BaseQIndex;
             this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
             this.BeginLaggedGlobalMotion(in frame, secondPass.Group);
-            this.SearchGlobalMotion<byte, ByteGlobalMotionSearchOperator>(source.Frame, this.references, parent);
+            this.SearchGlobalMotion<TSample, TGlobalMotionOperator>(source.Frame, this.references, parent);
             this.BeginSegmentation(
                 this.referencePool,
                 current,
@@ -955,7 +964,7 @@ internal static partial class Av1FrameEncoder
 
             bool writeSequenceHeader = frameHeader.FrameType == ObuFrameType.KeyFrame && frameHeader.ShowFrame;
             Av1PictureControlSet picture = this.PictureBuffer.Picture;
-            qIndex = this.AnalyzeLaggedFrame<byte, Av1IntraSuperblockEncoder.ByteOperator, Av1MotionVectorStatistics.ByteTextureOperator, ByteGlobalMotionSearchOperator>(
+            qIndex = this.AnalyzeLaggedFrame<TSample, TBlockOperator, TTextureOperator, TGlobalMotionOperator>(
                 secondPass,
                 in frame,
                 parent,
@@ -969,8 +978,7 @@ internal static partial class Av1FrameEncoder
                 out bool switchableBeforeFix);
 
             this.PrepareFilmGrain();
-            Av1TileEncoder.CompleteFrame<byte, Av1IntraSuperblockEncoder.ByteOperator,
-                Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator, Av1CdefEncoder.ByteOperator>(
+            Av1TileEncoder.CompleteFrame<TSample, TBlockOperator, TVerticalEdgeOperator, THorizontalEdgeOperator, TCdefOperator>(
                 this.SymbolEncoder,
                 source.Frame,
                 this.references,
@@ -987,187 +995,7 @@ internal static partial class Av1FrameEncoder
             this.RecordCodedLoopFilterLevels();
             this.CompleteLaggedGlobalMotion(frame.UpdateType);
             this.CompleteSegmentation(current, picture);
-            this.CompleteLaggedMotionVectorStatistics<byte, Av1MotionVectorStatistics.ByteTextureOperator>(parent, source.Frame);
-            this.SymbolEncoder.SnapshotTo(current.Context);
-            this.MotionField.SaveFrameMotionVectors(picture, current.MotionField);
-            this.CompleteFrameHeader();
-            this.CompleteReferenceStructure();
-            secondPass.CompleteFrame(qIndex, GetLaggedFrameBits(stream, start, writeTemporalDelimiter));
-            temporalModel?.CompleteFrame(in frame, source.Frame, picture, current.Context, qIndex);
-
-            current.Buffer.Frame.ExtendBorders();
-            this.referencePool.Refresh(current, frameHeader.RefreshFrameFlags);
-            this.RefreshFilmGrain();
-        }
-    }
-
-    private sealed partial class HighBitDepthSequenceEncoder
-        : SequenceEncoder.ILaggedFrameCoder<ushort, Av1TemporalFilter.UInt16Operator, Av1MotionSearchBase.UInt16Operator, Av1TplUInt16Operator>
-    {
-        /// <inheritdoc/>
-        public Av1EncoderReferencePool<ushort> ReferencePool => this.referencePool;
-
-        /// <inheritdoc/>
-        public override void EncodeWithLookahead<TPixel>(
-            Image<TPixel> image,
-            int firstFrameIndex,
-            int frameCount,
-            long frameDurationTicks,
-            Stream stream,
-            Span<long> sampleEnds,
-            Span<bool> syncSamples,
-            CancellationToken cancellationToken)
-            => this.EncodeLagged<TPixel, ushort, HeifUShortSampleConverter, Av1FirstPassOperator.UInt16Operator, Av1TemporalFilter.UInt16Operator, Av1MotionSearchBase.UInt16Operator, Av1TplUInt16Operator>(
-                this, image, firstFrameIndex, frameCount, frameDurationTicks, stream, sampleEnds, syncSamples, cancellationToken);
-
-        /// <inheritdoc/>
-        public bool DecideLaggedScreenContent(Av1EncoderFrameBuffer<ushort> unfilteredSource, bool isKeyFrame)
-        {
-            if (isKeyFrame)
-            {
-                DecideScreenContent(unfilteredSource.Frame, this.SequenceHeader, this.Options, ref this.ScreenContent);
-            }
-
-            return this.ScreenContent.IsScreenContent;
-        }
-
-        /// <inheritdoc/>
-        public void EncodeLaggedFrame(
-            Av1EncoderFrameBuffer<ushort> source,
-            in Av1SecondPassFrame frame,
-            Av1SecondPass secondPass,
-            Stream stream,
-            bool writeTemporalDelimiter,
-            LookaheadTemporalModel<ushort, Av1TemporalFilter.UInt16Operator, Av1MotionSearchBase.UInt16Operator, Av1TplUInt16Operator>? temporalModel,
-            Av1EncoderFrameBuffer<ushort>? lastSource)
-        {
-            ObuFrameHeader frameHeader = this.FrameHeader;
-            this.ConfigureLaggedFrameHeader(in frame);
-
-            Av1EncoderReferencePool<ushort>.Entry current = this.referencePool.Acquire();
-            ApplyScreenContentTools(
-                this.SequenceHeader, frameHeader, this.Options, new Size(source.Frame.Width, source.Frame.Height), this.ScreenContent);
-
-            bool isScreenContent = this.ScreenContent.IsScreenContent;
-
-            this.DecideIntegerMotionVectors<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(source.Frame, lastSource?.Frame);
-
-            this.PictureBuffer.Reset(frameHeader);
-            Av1PictureParentControlSet parent = this.PictureBuffer.Picture.Parent;
-            parent.RecodesFrame = false;
-            parent.PreviousSource = default;
-            parent.SourceBlockSad = default;
-            parent.HighSourceSad = false;
-            parent.FrameSourceSad = 0;
-
-            // The rate control keeps the counters of frames since the last key frame and since the last golden frame.
-            parent.FramesSinceKey = secondPass.FramesSinceKey;
-            parent.FramesSinceGolden = secondPass.FramesSinceGolden;
-            parent.IsScreenContent = isScreenContent;
-            parent.IsGraphicsAnimation = frame.IsGraphicsAnimation;
-
-            this.ConfigureLaggedReferenceStructure(parent, in frame);
-
-            // Reference distances follow display order. A hidden frame keeps the count of the frames shown before it.
-            this.BlockWorkspace.EncodedFrameCount = frame.DisplayOrder;
-            this.BlockWorkspace.FrameNumber = frame.DisplayOrder - frame.SourceOffset;
-
-            // The model statistics of the frame feed its quantizer choice, so the frame takes them first.
-            double qStepRatio = 1;
-            bool tplFrameValid = false;
-            bool tplReady = temporalModel?.ApplyToFrame(parent, frame.GroupIndex, out qStepRatio, out tplFrameValid) ?? false;
-            if (temporalModel is null)
-            {
-                parent.TplFrame = null;
-                parent.TplStatisticsReady = false;
-            }
-
-            int qIndex = secondPass.ChooseBaseQIndex(isScreenContent, tplReady, tplFrameValid, parent.TplImportance, qStepRatio);
-            this.ApplyLaggedQuantizer(qIndex);
-
-            // The lookahead makes this a statistics-consuming stage. Thus inter frames scale the rate multiplier by their layer depth and the golden
-            // boost.
-            parent.IsStatConsumptionStage = true;
-            parent.LayerDepth = frame.LayerDepth;
-            parent.GoldenBoost = secondPass.GoldenBoost;
-
-            parent.EncoderOptions = this.Options;
-            parent.EncoderBorder = this.GetEncoderBorder();
-            parent.ConstantQualityIndex = GetConstantQualityLevel(this.Options, this.ConstantQualityIndex);
-            parent.SpeedSettings = new(
-                this.Options.Speed,
-                this.Options.IsAllIntra,
-                frameHeader.IsIntra,
-                parent.FrameUpdateType,
-                this.QIndex,
-                new Size(source.Frame.Width, source.Frame.Height),
-                sharpness: this.Options.Sharpness,
-                tuning: this.Options.Tuning);
-
-            parent.BorderPad = this.UsesBorderPad;
-            this.BeginLaggedMotionVectorStatistics(in frame, parent, new Size(source.Frame.Width, source.Frame.Height));
-
-            this.ConfigureReferenceTools(parent);
-            this.ResetIntraSegmentation();
-
-            // A lookahead sequence has statistics that allow recoding. Thus a key frame can test the screen content tools with two trial encodes.
-            isScreenContent = this.DetermineScreenContentWithEncoding<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(
-                source.Frame,
-                current.Buffer.Frame,
-                qIndex,
-                secondPass.BestQuality == 0 && secondPass.WorstQuality == 0,
-                isScreenContent);
-
-            parent.IsScreenContent = isScreenContent;
-            this.CommonBaseQIndex = frameHeader.QuantizationParameters.BaseQIndex;
-            this.SymbolEncoder.BeginFrame(this.BindReferences(parent), frameHeader.QuantizationParameters.BaseQIndex);
-            this.BeginLaggedGlobalMotion(in frame, secondPass.Group);
-            this.SearchGlobalMotion<ushort, UInt16GlobalMotionSearchOperator>(source.Frame, this.references, parent);
-            this.BeginSegmentation(
-                this.referencePool,
-                current,
-                parent,
-                allowsRecode: true,
-                frame.MacroblockAverageEnergy,
-                secondPass.BestQuality,
-                secondPass.WorstQuality,
-                Av1RateControl.GetSuperblockTargetRate(secondPass.FrameTarget, source.Frame.Width, source.Frame.Height));
-
-            bool writeSequenceHeader = frameHeader.FrameType == ObuFrameType.KeyFrame && frameHeader.ShowFrame;
-            Av1PictureControlSet picture = this.PictureBuffer.Picture;
-            qIndex = this.AnalyzeLaggedFrame<ushort, Av1IntraSuperblockEncoder.UInt16Operator, Av1MotionVectorStatistics.UInt16TextureOperator, UInt16GlobalMotionSearchOperator>(
-                secondPass,
-                in frame,
-                parent,
-                source.Frame,
-                this.references,
-                this.searchReferences,
-                this.referencePool,
-                current,
-                writeSequenceHeader,
-                qIndex,
-                out bool switchableBeforeFix);
-
-            this.PrepareFilmGrain();
-            Av1TileEncoder.CompleteFrame<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
-                Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator, Av1CdefEncoder.UInt16Operator>(
-                this.SymbolEncoder,
-                source.Frame,
-                this.references,
-                this.searchReferences,
-                current.Buffer.Frame,
-                picture,
-                this.Coefficients,
-                this.TileWorkspace,
-                this.BlockWorkspace,
-                switchableBeforeFix);
-
-            long start = stream.Length;
-            this.WriteLaggedFrame(stream, Av1TileEncoder.FromPackedTiles(picture, this.SymbolEncoder), writeSequenceHeader, writeTemporalDelimiter);
-            this.RecordCodedLoopFilterLevels();
-            this.CompleteLaggedGlobalMotion(frame.UpdateType);
-            this.CompleteSegmentation(current, picture);
-            this.CompleteLaggedMotionVectorStatistics<ushort, Av1MotionVectorStatistics.UInt16TextureOperator>(parent, source.Frame);
+            this.CompleteLaggedMotionVectorStatistics<TSample, TTextureOperator>(parent, source.Frame);
             this.SymbolEncoder.SnapshotTo(current.Context);
             this.MotionField.SaveFrameMotionVectors(picture, current.MotionField);
             this.CompleteFrameHeader();

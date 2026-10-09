@@ -52,8 +52,7 @@ internal static partial class Av1IntraSuperblockEncoder
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
         /// <summary>
-        /// Refines coefficients for the selected UV predictor without repeating mode or alpha search.
-        /// Reference: the av1_txfm_uvrd() call of refine_winner_mode_tx() for an intra winner.
+        /// Refines the coefficients of the selected UV predictor of an intra winner. The mode search and the alpha search do not run again.
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
@@ -134,14 +133,12 @@ internal static partial class Av1IntraSuperblockEncoder
             int transformCount = sampleCount / transformSize.GetSize2d();
             bool usesChromaFromLuma = modeInfo.Block.UvMode == Av1ChromaPredictionMode.ChromaFromLuma;
 
-            // Chroma-from-luma predicts from the luma of the chroma mode search, not from the refined luma: the
-            // reference stores luma for it only before that search. Reference: refine_winner_mode_tx(), whose
-            // av1_txfm_uvrd() predicts from the stored chroma-from-luma buffer.
+            // Chroma-from-luma predicts from the luma of the chroma mode search, not from the refined luma. The luma for CfL is stored
+            // only before that search.
             ReadOnlySpan<short> lumaQ3 = usesChromaFromLuma ? this.blockWorkspace.ChromaFromLumaSearchSamples : default;
 
-            // The refined rate replaces the searched chroma rate, alpha included, by the coefficient rate alone.
-            // Reference: the winner_rate_uv that refine_winner_mode_tx() removes is the token-only rate of
-            // av1_rd_pick_intra_sbuv_mode(), which counts the alpha cost, and av1_txfm_uvrd() counts coefficients only.
+            // The refined rate replaces the searched chroma residual rate, which includes the alpha cost, by the coefficient rate alone.
+            // As a result, a refined CfL winner loses its alpha cost.
             int rate = previousStatistics.Rate - previousStatistics.ResidualRate;
             int residualRate = 0;
 
@@ -166,8 +163,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 int planeRate;
                 if (usesChromaFromLuma)
                 {
-                    // CfL is a single chroma transform. Its centered luma remains in transient storage;
-                    // DC prediction uses candidate pixels so it cannot overwrite those luma samples.
+                    // CfL is a single chroma transform. Its centered luma stays in transient storage. The DC prediction uses the candidate
+                    // samples, so it cannot overwrite those luma samples.
                     Span<TSample> above = modeWorkspace.GetReferenceSamples(0);
 
                     Span<TSample> left = modeWorkspace.GetReferenceSamples(1);
@@ -594,8 +591,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 selectedChromaFromLumaSigns = 0;
             }
 
-            // Retained states use one entry per 4x4 coefficient slot. Only each transform's first
-            // entry is live; inspect those entries so unused slots cannot mark an empty residual as coded.
+            // The kept states use one entry for each 4x4 coefficient slot. Only the first entry of each transform is live. The loop reads
+            // only those entries, so an unused slot cannot mark an empty residual as coded.
             if (selectedStatistics.Cost != long.MaxValue)
             {
                 int subX = this.source.ChromaSubsamplingX;
@@ -1327,14 +1324,14 @@ internal static partial class Av1IntraSuperblockEncoder
                                 int jointSign = Av1ChromaFromLumaMath.JointSign(signU, signV);
                                 int packedIndex = Av1ChromaFromLumaMath.PackIndices(indexU, indexV);
 
-                                // Alpha syntax is part of the CfL residual decision; the UV mode symbol is separate.
+                                // The alpha syntax is part of the CfL residual decision. The UV mode symbol is separate.
                                 int residualRate = blueRates[blueCandidateIndex] + redRates[redCandidateIndex] +
                                     Av1SymbolEncoder.GetChromaFromLumaCost(modeCosts, packedIndex, jointSign);
 
                                 long distortion = blueDistortions[blueCandidateIndex] + redDistortions[redCandidateIndex];
 
-                                // The alpha pair is chosen on its own cost, without the UV mode symbol, so rounding
-                                // ties resolve as in libaom. Reference: the joint loop of cfl_rd_pick_alpha().
+                                // The alpha pair is chosen on its own cost, without the UV mode symbol. The cost rounds without the mode rate,
+                                // so this choice decides the rounding ties.
                                 Av1RateDistortionStatistics alphaStatistics = new(this.rateMultiplier, residualRate, distortion);
                                 if (alphaStatistics.Cost < bestAlphaStatistics.Cost)
                                 {
@@ -1347,9 +1344,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             }
                         }
 
-                        // The best pair must beat the best mode before the mode symbol is added. Reference: the
-                        // ref_best_rd test at the end of cfl_rd_pick_alpha(), then the this_rd test of
-                        // av1_rd_pick_intra_sbuv_mode().
+                        // The best pair must beat the best mode before the mode symbol is added. Then the pair with the mode symbol must beat
+                        // the best mode again.
                         if (bestAlphaStatistics.Cost < bestStatistics.Cost)
                         {
                             Av1RateDistortionStatistics candidateStatistics = new(
@@ -1841,10 +1837,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         out long bluePredictionDistortion,
                         out int blueRate);
 
-                    // Inside a plane, block_rd_txfm scores an intra transform with its coefficient rate and
-                    // distortion alone and stops the plane once the running cost passes the reference. After the
-                    // plane, the running totals pass when either the coded cost or the cost of leaving the
-                    // residual uncoded stays within the bound. Reference: av1_txfm_uvrd().
+                    // Inside a plane, each intra transform is scored with its coefficient rate and distortion alone. The plane stops when the
+                    // running cost passes the bound. After the plane, the running totals pass when either the coded cost or the cost of
+                    // leaving the residual uncoded stays within the bound.
                     if (blueRate == int.MaxValue ||
                         Math.Min(
                             Av1RateDistortion.GetCost(this.rateMultiplier, blueRate, distortion),
@@ -1963,7 +1958,6 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Adds one quarter to the cost of a valid smooth chroma candidate at high bit depth sharpness 3, in all frame types.
         /// The higher cost decides the comparison and limits the later candidates. The rate and distortion do not change.
-        /// Reference: is_smooth_uv_mode in av1_rd_pick_intra_sbuv_mode().
         /// </summary>
         /// <param name="statistics">The candidate statistics.</param>
         /// <param name="chromaMode">The candidate chroma mode.</param>
@@ -2001,11 +1995,9 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Codes one plane of an intra or palette candidate, one transform block at a time, in coding order.
-        /// Each transform block predicts straight into the frame, and then gets its reconstruction there when a later
-        /// transform block predicts from it. The edges inside the block come from the frame, which holds the earlier
-        /// transform blocks of the candidate.
-        /// Reference: av1_txfm_rd_in_plane() and block_rd_txfm() for an intra block.
+        /// Codes one plane of an intra or palette candidate, one transform block at a time, in coding order. Each transform block predicts
+        /// straight into the frame. When a later transform block predicts from it, the frame then gets its reconstruction. The edges
+        /// inside the block come from the frame, which holds the earlier transform blocks of the candidate.
         /// </summary>
         /// <param name="writer">The coefficient entropy costs.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
@@ -2034,10 +2026,10 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="plane">The plane.</param>
         /// <param name="source">The source plane.</param>
         /// <param name="sourceSamples">The samples of <paramref name="source"/>, which the caller reads once outside its loops.</param>
-        /// <param name="reconstruction">The frame plane. It gives the edge samples and gets each trial write, as libaom pd->dst.</param>
+        /// <param name="reconstruction">The frame plane. It gives the edge samples and gets each trial write.</param>
         /// <param name="reconstructionSamples">The samples of <paramref name="reconstruction"/>, which the caller reads once outside its loops.</param>
-        /// <param name="paletteColors">The palette colors; empty for an intra candidate.</param>
-        /// <param name="colorIndexMap">The palette color index map; empty for an intra candidate.</param>
+        /// <param name="paletteColors">The palette colors, or empty for an intra candidate.</param>
+        /// <param name="colorIndexMap">The palette color index map, or empty for an intra candidate.</param>
         /// <param name="candidateCoefficients">The storage that the type search quantizes each candidate into.</param>
         /// <param name="candidateStates">The candidate transform states.</param>
         /// <param name="topContexts">The top coefficient contexts of the plane block.</param>
@@ -2130,8 +2122,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> typeWinnerReconstruction =
                 Av1EncoderBlockWorkspace.GetSearchReconstruction<TSample>(searchReconstructions, 1)[..transformSampleCount];
 
-            // A predicted empty block is priced with the contexts at the block origin, before any transform block
-            // of this plane updates them. Reference: av1_get_entropy_contexts() in predict_dc_only_block().
+            // A predicted empty block is priced with the contexts at the block origin, before any transform block of this plane updates them.
             Av1TransformBlockContext originContext = Av1TileWriter.GetTransformBlockContexts(
                 componentType,
                 topContexts[..transformWidth4x4],
@@ -2145,8 +2136,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int frameStride = reconstruction.Stride;
             Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, 0).Block.PartitionType;
 
-            // Residual syntax completes each bounded 64x64 luma region, scaled for chroma, before
-            // moving to the next region. Candidate coefficients and states must retain that exact order.
+            // The residual syntax completes each bounded 64x64 luma region, scaled for chroma, before it moves to the next region. The
+            // candidate coefficients and states must keep that exact order.
             for (int regionRow = 0; regionRow < codedExtent.Height; regionRow += maximumUnitHeight)
             {
                 int unitBottom = Math.Min(regionRow + maximumUnitHeight, codedExtent.Height);
@@ -2207,8 +2198,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             }
                             else
                             {
-                                // Each residual transform borrows exactly its part of the block's index map.
-                                // Palette prediction needs no neighboring reconstructed reference samples.
+                                // Each residual transform borrows exactly its part of the index map of the block. The palette prediction needs
+                                // no reconstructed neighbor samples.
                                 TOperator.PreparePalette(
                                     sourceSamples[source.GetOffset(transformOrigin.X, transformOrigin.Y)..],
                                     source.Stride,
@@ -2227,8 +2218,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                 chromaBlockSize,
                                 transformSize);
 
-                            // The type search swaps its candidate and winner coefficients. Neither is kept after the
-                            // context update: as in libaom, the block encode quantizes the selected mode again.
+                            // The type search swaps its candidate and winner coefficients. Neither is kept after the context update, because the
+                            // block encode quantizes the selected mode again.
                             Span<TSample> candidateTransformReconstruction = typeCandidateReconstruction;
                             Span<TSample> bestTransformReconstruction = typeWinnerReconstruction;
                             Span<int> candidateTransformCoefficients = candidateCoefficients[..transformSampleCount];
@@ -2236,12 +2227,10 @@ internal static partial class Av1IntraSuperblockEncoder
                             Span<int> candidateDequantized = dequantizedCoefficients;
                             Span<int> bestDequantized = searchDequantizedCoefficients;
 
-                            // A later transform block of the plane block predicts from this one unless this one is the last.
-                            // Reference: the position test of recon_intra().
+                            // A later transform block of the plane block predicts from this one, unless this one is the last.
                             bool lastTransformBlock = (rowOffset + transformHeight) >= blockHeight && (columnOffset + transformWidth) >= blockWidth;
 
                             // A chroma block of an intra mode searches the one type that it derives from its mode.
-                            // Reference: the uv_tx_type of get_tx_mask(), from av1_get_tx_type().
                             TransformTypeSearchResult searchResult = this.SearchTransformType(
                                 writer,
                                 in tables,
@@ -2273,11 +2262,10 @@ internal static partial class Av1IntraSuperblockEncoder
                                 ref candidateDequantized,
                                 ref bestDequantized);
 
-                            // The frame gets the reconstruction only when the block has coefficients and is not the last
-                            // transform block of the plane block. Otherwise it keeps the prediction, which is also the reconstruction
-                            // of an empty block. Reference: the end of block and position tests of recon_intra(), which writes pd->dst.
-                            // The search reconstructed such a winner in the frame already, unless it measured the winner in pixels
-                            // during the type loop. That reconstruction is copied, because it costs less than a second inverse transform.
+                            // The frame gets the reconstruction only when the block has coefficients and is not the last transform block of the
+                            // plane block. Otherwise the frame keeps the prediction, which is also the reconstruction of an empty block. The
+                            // search already reconstructed such a winner in the frame, unless it measured the winner in pixels during the type
+                            // loop. In that case, this code copies the reconstruction, because a copy costs less than a second inverse transform.
                             bool publishReconstruction = searchResult.State.EndOfBlock != 0 && !lastTransformBlock;
                             if (publishReconstruction && !searchResult.WinnerInDestination)
                             {
@@ -2295,8 +2283,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             state = searchResult.State;
                             long transformDistortion = searchResult.Distortion;
 
-                            // The uncoded cost uses the energy the transform search reports, which is measured in
-                            // the transform domain whenever the distortion is. Reference: the sse of search_tx_type().
+                            // The uncoded cost uses the energy that the transform search reports. That energy is in the transform domain
+                            // whenever the distortion is.
                             predictionDistortion += searchResult.Sse;
                             int transformRate = searchResult.Rate;
 
@@ -2304,8 +2292,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             distortion += transformDistortion;
                             accumulatedCost += Av1RateDistortion.GetCost(this.rateMultiplier, transformRate, transformDistortion);
 
-                            // The block that takes the running cost over the bound invalidates the plane, even
-                            // when it is the last. Reference: the exit_early test of block_rd_txfm().
+                            // The block that takes the running cost over the bound makes the plane invalid, even when it is the last block.
                             if (accumulatedCost > costLimit)
                             {
                                 rate = int.MaxValue;
@@ -2328,9 +2315,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Keeps the transform states of a new best candidate that has many transform blocks.
-        /// The frame samples and the coefficients do not change: libaom keeps a winner only in its mode info and
-        /// transform type map, pd->dst keeps what the last trial wrote, and the block encode quantizes the winner again.
+        /// Keeps the transform states of a new best candidate that has many transform blocks. The frame samples and the coefficients do
+        /// not change. The frame keeps what the last trial wrote, and the block encode quantizes the winner again.
         /// </summary>
         /// <param name="candidateStates">The candidate transform states, one for each transform block.</param>
         /// <param name="codedExtent">The coded part of the plane block.</param>
@@ -2352,8 +2338,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Codes one chroma-from-luma alpha for one chroma plane, as one transform block at the block origin.
-        /// Reference: cfl_compute_rd() with full transform search.
+        /// Codes one chroma-from-luma alpha for one chroma plane, as one transform block at the block origin, with a full transform search.
         /// </summary>
         /// <param name="writer">The tile symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
@@ -2431,8 +2416,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> candidateDequantized = dequantizedCoefficients;
             Span<int> bestDequantized = searchDequantizedCoefficients;
 
-            // A CfL block is one transform at the block origin, and searches the DCT_DCT that its chroma mode
-            // derives. Reference: av1_txfm_rd_in_plane() of cfl_compute_rd().
+            // A CfL block is one transform at the block origin. It searches the DCT_DCT type that its chroma mode derives.
             TransformTypeSearchResult result = this.SearchTransformType(
                 writer,
                 in tables,
@@ -2464,7 +2448,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref candidateDequantized,
                 ref bestDequantized);
 
-            // The winner keeps its state only: as in libaom, the block encode quantizes the selected mode again.
+            // The winner keeps only its state, because the block encode quantizes the selected mode again.
             state = result.State;
             rate = result.Rate;
             return result.Distortion;
@@ -2472,7 +2456,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Estimates the best chroma-from-luma alpha of one plane from the transform energy of each prediction.
-        /// Reference: cfl_pick_plane_parameter() with intra_model_rd().
         /// </summary>
         /// <param name="blockWorkspace">The block workspace.</param>
         /// <param name="plane">The chroma plane.</param>
@@ -2581,7 +2564,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     TOperator.SubtractPrediction(
                         sourceBlock, source.Stride, frameBlock, frameStride, residual, transformSize.GetWidth(), transformSize.GetHeight());
 
-                    // intra_model_rd() subtracts with the border padding of the picture.
+                    // The model estimate subtracts with the border padding of the picture, so the residual past the visible edge is padded too.
                     Av1TransformBlockEncoder.PadBorderResidual(
                         blockWorkspace,
                         plane,
@@ -2651,8 +2634,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 hasAbove = row - 1 > macroBlock.Tile.ModeInfoRowStart;
             }
 
-            // Chroma may cover several luma units. Its neighbors are the bottom-right luma units in the
-            // adjacent chroma regions, measured from the top-left unit covered by the current chroma block.
+            // Chroma can cover several luma units. Its neighbors are the bottom-right luma units in the adjacent chroma regions, measured
+            // from the top-left unit that the current chroma block covers.
             int baseOffset = -((row & subY) * macroBlock.ModeInfoStride) - (column & subX);
             if (hasAbove && IsSmoothIntraNeighbor(
                 macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, baseOffset - macroBlock.ModeInfoStride + subX).Block, plane))
@@ -2667,6 +2650,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Determines whether a neighboring block supplies the smooth edge-filter class.
         /// </summary>
+        /// <param name="modeInfo">The mode information of the neighbor.</param>
+        /// <param name="plane">The plane whose prediction mode the test reads.</param>
+        /// <returns><see langword="true"/> when the neighbor uses a smooth prediction mode in the plane.</returns>
         private static bool IsSmoothIntraNeighbor(Av1EncoderBlockModeInfo modeInfo, Av1Plane plane)
         {
             if (plane == Av1Plane.Y)
@@ -2674,8 +2660,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 return modeInfo.Mode is Av1PredictionMode.Smooth or Av1PredictionMode.SmoothVertical or Av1PredictionMode.SmoothHorizontal;
             }
 
-            // An inter winner can retain the preceding intra trial's UV field. That field has no inter
-            // meaning, so only an ordinary intra neighbor can select chroma smooth-edge thresholds.
+            // An inter winner can keep the UV field of the preceding intra trial. That field has no inter meaning, so only an ordinary intra
+            // neighbor can select the chroma smooth-edge thresholds.
             return !modeInfo.UseIntraBlockCopy && modeInfo.Mode < Av1PredictionMode.InterModeStart
                 && modeInfo.UvMode is Av1ChromaPredictionMode.Smooth or Av1ChromaPredictionMode.SmoothVertical or Av1ChromaPredictionMode.SmoothHorizontal;
         }
@@ -2746,8 +2732,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PredictionMode predictionMode = chromaMode.ToLumaMode();
             Av1TransformSize transformSize = blue.TransformSize;
 
-            // Intra chroma derives one transform type from the shared UV prediction mode. The type is not
-            // signaled independently for either chroma plane, so U and V must use the same legal fallback.
+            // Intra chroma derives one transform type from the shared UV prediction mode. The type is not signaled separately for each
+            // chroma plane, so U and V must use the same legal fallback.
             Av1TransformType transformType = this.BlockLossless
                 ? Av1TransformType.DctDct
                 : Av1SymbolContextHelper.GetDefaultIntraTransformType(
@@ -2770,12 +2756,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 usesInterTransformSet: false,
                 blue.Lossless);
 
-            // The uncoded cost uses the energy the transform search reports, which is measured in the transform
-            // domain whenever the distortion is. Reference: the sse of search_tx_type().
+            // The uncoded cost uses the energy that the transform search reports. That energy is in the transform domain whenever the
+            // distortion is.
             long predictionDistortion = blueSse;
 
-            // An intra plane whose transform blocks exceed the bound is invalid before the uncoded cost is
-            // considered. Reference: the exit_early test of block_rd_txfm() within av1_txfm_rd_in_plane().
+            // An intra plane whose transform blocks exceed the bound is invalid before the uncoded cost is considered.
             long blueCost = Av1RateDistortion.GetCost(this.rateMultiplier, blueRate, distortion);
             if (blueCost > costLimit)
             {
@@ -2793,8 +2778,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             predictionDistortion += redSse;
 
-            // The mode and angle are written once for the UV pair; coefficient syntax remains independent
-            // because each plane has its own EOB, scan values, and neighboring coefficient context.
+            // The mode and angle are written once for the UV pair. The coefficient syntax stays separate, because each plane has its own
+            // end of block, scan values, and neighbor coefficient context.
             int rate = Av1TileWriter.GetChromaModeCost(
                 blue.Tables.ModeCosts,
                 this.picture.Parent.FrameHeader,
@@ -2831,9 +2816,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             distortion += redDistortion;
 
-            // Each plane is checked on the running totals of both planes, and a total passes when either its
-            // coded cost or the cost of leaving its residual uncoded stays within the bound.
-            // Reference: the AOMMIN(this_rd, skip_txfm_rd) test of av1_txfm_uvrd().
+            // Each plane is tested on the running totals of both planes. A total passes when either its coded cost or the cost of leaving
+            // its residual uncoded stays within the bound.
             if (Math.Min(
                 Av1RateDistortion.GetCost(this.rateMultiplier, blueRate + redRate, distortion),
                 Av1RateDistortion.GetCost(this.rateMultiplier, 0, predictionDistortion)) > costLimit)
@@ -2878,8 +2862,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> aboveStorage,
             Span<TSample> leftStorage)
         {
-            // A directional ray can reach width + height - 1 on either edge, including on rectangles.
-            // Only one adjacent block supplies extension samples; the rest repeat its final sample.
+            // A directional ray can reach width + height - 1 on either edge, also on rectangles. Only one adjacent block supplies the
+            // extension samples. The rest repeat its final sample.
             Span<TSample> above = aboveStorage.Slice(1, width + height);
             Span<TSample> left = leftStorage.Slice(1, width + height);
 

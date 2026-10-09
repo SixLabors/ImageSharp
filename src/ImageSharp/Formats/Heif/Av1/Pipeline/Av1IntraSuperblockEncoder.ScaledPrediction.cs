@@ -13,8 +13,7 @@ internal static partial class Av1IntraSuperblockEncoder
     internal partial struct ModeDecision<TSample, TOperator>
     {
         /// <summary>
-        /// Returns the available references whose frame has another size than the current frame. An intra frame has
-        /// none.
+        /// Returns the available references whose frame has another size than the current frame. An intra frame has none.
         /// </summary>
         /// <param name="references">The frame of each reference type.</param>
         /// <param name="parent">The frame state with the available references and the frame size.</param>
@@ -51,8 +50,8 @@ internal static partial class Av1IntraSuperblockEncoder
             => referenceFrame > Av1ReferenceFrameType.Intra && (this.scaledReferenceMask & (1 << (int)referenceFrame)) != 0;
 
         /// <summary>
-        /// Gets a value indicating whether the prediction from a reference scales: the reference has another size
-        /// than the current frame, and the estimated real-time search is not predicting from the resized copy.
+        /// Gets a value indicating whether the prediction from a reference scales. This is true when the reference has another size than
+        /// the current frame and the estimated real-time search does not predict from the resized copy.
         /// </summary>
         /// <param name="referenceFrame">The reference type.</param>
         /// <returns><see langword="true"/> when the prediction from the reference scales.</returns>
@@ -60,9 +59,9 @@ internal static partial class Av1IntraSuperblockEncoder
             => !this.predictsFromSearchReferences && this.IsResizedReference(referenceFrame);
 
         /// <summary>
-        /// Returns the reference from which a rate-distortion motion search predicts its fractional candidates: the
-        /// luma plane of a reference whose prediction scales, or the default value for a reference of the frame size.
-        /// Reference: the buffers that av1_single_motion_search() swaps back before the subpel search.
+        /// Returns the reference from which a rate-distortion motion search predicts its fractional candidates. For a reference whose
+        /// prediction scales, this is its luma plane. For a reference of the frame size, this is the default value. The full-sample
+        /// search reads the resized copy, but the fractional search predicts from the original reference.
         /// </summary>
         /// <param name="referenceFrame">The reference type.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -92,10 +91,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns the luma position at which a block reads a reference without a vector: the block position, or, for
-        /// a reference whose prediction scales, the block position scaled into the reference.
-        /// Reference: scaled_buffer_offset() in setup_pred_plane(), with which av1_setup_pred_block() points the
-        /// prediction buffers of a block.
+        /// Returns the luma position at which a block reads a reference without a vector. For a reference whose prediction scales, this is
+        /// the block position scaled into the reference. For other references, this is the block position.
         /// </summary>
         /// <param name="referenceFrame">The reference type.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -111,18 +108,16 @@ internal static partial class Av1IntraSuperblockEncoder
             ObuFrameSize frameSize = this.picture.Parent.FrameHeader.FrameSize;
             Av1ReferenceScale scale = new(reference.Width, reference.Height, frameSize.FrameWidth, frameSize.FrameHeight);
 
-            // The scale functions take sixteenth samples, but the offset passes whole samples and drops the extra
-            // precision of the result. Reference: the SCALE_EXTRA_BITS shift of scaled_buffer_offset().
+            // The scale functions expect sixteenth samples, but this offset passes whole samples. The shift drops the extra precision of
+            // the result, so the position stays in whole samples.
             const int extraBits = Av1ReferenceScale.SubpixelBits - 4;
             return new Point(scale.ScaleHorizontal(blockOrigin.X) >> extraBits, scale.ScaleVertical(blockOrigin.Y) >> extraBits);
         }
 
         /// <summary>
-        /// Predicts one plane rectangle from a reference of another size than the current frame. The block position
-        /// plus the vector maps into the reference through its scale factors, clamps to the reference border, and
-        /// the convolution then steps through the reference by the scale of each axis. Reference:
-        /// init_subpel_params() with av1_scaled_x() and av1_scaled_y(), then the scaled branch of
-        /// av1_make_inter_predictor().
+        /// Predicts one plane rectangle from a reference of another size than the current frame. The block position plus the vector maps
+        /// into the reference through its scale factors and clamps to the reference border. Then the convolution steps through the
+        /// reference by the scale of each axis.
         /// </summary>
         /// <param name="referenceFrame">The scaled reference type.</param>
         /// <param name="plane">The plane.</param>
@@ -156,8 +151,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ObuFrameSize frameSize = this.picture.Parent.FrameHeader.FrameSize;
             Av1ReferenceScale scale = new(reference.Width, reference.Height, frameSize.FrameWidth, frameSize.FrameHeight);
 
-            // The position is in sixteenth samples of the current plane, and scales to 1/1024 samples of the
-            // reference plane.
+            // The position is in sixteenth samples of the current plane. A luma vector in eighth samples becomes sixteenth samples of a
+            // plane without subsampling. The position scales to 1/1024 samples of the reference plane.
             Point position = scale.ScalePosition(
                 (planeOrigin.X << 4) + (vector.Column << (1 - subsamplingX)),
                 (planeOrigin.Y << 4) + (vector.Row << (1 - subsamplingY)),

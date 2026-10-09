@@ -1004,7 +1004,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // The normalized models have three outputs; the unnormalized models encode four masks.
+            // The normalized models have three outputs. The unnormalized models encode four masks.
             InlineArray4<float> scoreStorage = default;
             Span<float> scores = scoreStorage;
             Av1NeuralNetwork.Predict(features, weights, biases, outputWeights, outputBiases, scores);

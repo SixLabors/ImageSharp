@@ -12,9 +12,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal static partial class Av1IntraSuperblockEncoder
 {
     /// <summary>
-    /// Measures the rate multiplier scaling factor of every 16x16 luma block of a frame: the mean per-sample
-    /// variance of its 8x8 blocks, mapped through a fitted exponential curve and divided by the geometric mean of
-    /// the frame. Reference: av1_set_mb_ssim_rdmult_scaling().
+    /// Measures the rate multiplier scaling factor of every 16x16 luma block of a frame. The factor is the mean per-sample variance of
+    /// the 8x8 blocks, mapped through a fitted exponential curve and divided by the geometric mean of the frame.
     /// </summary>
     /// <typeparam name="TSample">The sample storage type.</typeparam>
     /// <typeparam name="TOperator">The closed sample operations.</typeparam>
@@ -39,18 +38,17 @@ internal static partial class Av1IntraSuperblockEncoder
     }
 
     /// <summary>
-    /// Measures the rate multiplier scaling factor of every 16x16 luma block of a grid of the given size, from the
-    /// top-left corner of a source, into the front of a factor array laid out with the column count of that grid.
-    /// libaom measures before it sets the size of the frame, so a frame whose size differs from the frame before it
-    /// measures over the grid of that earlier frame, and looks the factors up with its own grid. Reference:
-    /// av1_set_mb_ssim_rdmult_scaling(), which encode_frame_to_data_rate() calls before encode_without_recode().
+    /// Measures the rate multiplier scaling factor of every 16x16 luma block in a grid of the given size. It reads from the top-left
+    /// corner of the source and writes to the front of the factor array, in rows of the grid column count. The encoder measures before
+    /// it sets the new frame size. As a result, a frame with a new size uses the factors of the earlier grid, but looks them up with
+    /// its own grid.
     /// </summary>
     /// <typeparam name="TSample">The sample storage type.</typeparam>
     /// <typeparam name="TOperator">The closed sample operations.</typeparam>
-    /// <param name="factors">The factor array, which keeps the entries beyond the grid. Reference: cpi->ssim_rdmult_scaling_factors.</param>
+    /// <param name="factors">The factor array. The entries beyond the grid keep their values.</param>
     /// <param name="source">The source frame, at least as large as the grid.</param>
-    /// <param name="modeInfoColumns">The column count of the grid, in 4x4 units. Reference: mi_params->mi_cols.</param>
-    /// <param name="modeInfoRows">The row count of the grid, in 4x4 units. Reference: mi_params->mi_rows.</param>
+    /// <param name="modeInfoColumns">The column count of the grid, in 4x4 units.</param>
+    /// <param name="modeInfoRows">The row count of the grid, in 4x4 units.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
     public static void SetSsimRateMultiplierScaling<TSample, TOperator>(
         double[] factors,
@@ -79,7 +77,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     for (int modeInfoColumn = column * 4; modeInfoColumn < modeInfoColumns && modeInfoColumn < (column + 1) * 4; modeInfoColumn += 2)
                     {
-                        // Reference: av1_get_perpixel_variance_facade() for an 8x8 luma block.
+                        // Measures the sum and the sum of squares of an 8x8 luma block relative to a flat midpoint block.
+                        // The variance below does not change with that offset.
                         TOperator.GetMoments(
                             lumaSamples[luma.GetOffset(modeInfoColumn << 2, modeInfoRow << 2)..],
                             luma.Stride,
@@ -90,6 +89,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             out int sum,
                             out long squares);
 
+                        // Rounds the moments of a high bit depth block to the 8-bit scale, so the curve below applies to every bit depth.
                         long normalizedSum = sum;
                         long normalizedSquares = squares;
                         if (shift > 0)
@@ -125,8 +125,7 @@ internal static partial class Av1IntraSuperblockEncoder
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
         /// <summary>
-        /// Scales a rate multiplier by the geometric mean of the factors of the 16x16 blocks a block covers.
-        /// Reference: av1_set_ssim_rdmult().
+        /// Scales a rate multiplier by the geometric mean of the factors of the 16x16 blocks that a block covers.
         /// </summary>
         /// <param name="rateMultiplier">The rate multiplier.</param>
         /// <param name="blockOrigin">The block origin in luma samples.</param>
@@ -146,7 +145,7 @@ internal static partial class Av1IntraSuperblockEncoder
             double count = 0.0;
             double product = 1.0;
 
-            // The reference steps rows by the 16x16 width and columns by its height; both are four here.
+            // Each step moves one 16x16 block, which is four 4x4 units on each axis.
             for (int row = modeInfoRow / 4; row < rows && row < (modeInfoRow / 4) + blockRows; row++)
             {
                 for (int column = modeInfoColumn / 4; column < columns && column < (modeInfoColumn / 4) + blockColumns; column++)

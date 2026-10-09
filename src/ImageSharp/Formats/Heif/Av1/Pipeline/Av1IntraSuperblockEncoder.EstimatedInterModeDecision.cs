@@ -379,9 +379,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (winner.ReferenceFrame > Av1ReferenceFrameType.Intra)
             {
-                // The intra estimate borrows storage that holds the inter search prediction, so the winner's
-                // prediction is built again. The reference builds it again as well: it keeps no search
-                // prediction while warped motion is enabled (reuse_inter_pred_nonrd).
+                // The intra estimate borrows the storage that holds the inter search prediction, so the prediction of the winner is built
+                // again.
                 Av1ReferenceFrameType secondaryReferenceFrame = winner.SecondaryReferenceFrame;
                 bool compoundWinner = secondaryReferenceFrame > Av1ReferenceFrameType.Intra;
                 Av1EncoderFrame<TSample>.PlanarView primaryPlanes = this.searchReferences.Span[(int)winner.ReferenceFrame].CodedView;
@@ -452,10 +451,8 @@ internal static partial class Av1IntraSuperblockEncoder
             this.predictsFromSearchReferences = false;
             modeInfo.Block = winner;
 
-            // The selected block updates its cyclic refresh segment, which sets the quantizer it is coded with, and an
-            // output encode prices its segment syntax. The estimated search never sets the skip flag that
-            // av1_update_state() tests, so every output block is priced. Reference: av1_update_state() in
-            // encode_b_nonrd().
+            // The selected block updates its cyclic refresh segment, which sets the quantizer that codes it. An output encode prices its
+            // segment syntax. The estimated search never sets the skip flag that the state update tests, so every output block is priced.
             Av1RateDistortionStatistics selectedStatistics = state.BestStatistics;
             bool cyclicRefreshEncode = this.UpdatesCyclicRefreshSegment(selectedStatistics, out bool countSegments);
             if (cyclicRefreshEncode)
@@ -473,9 +470,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // Filter intra and the dynamic-reference-list entry share one packed byte, so only an
-            // intra winner may carry the filter-intra sentinel. An inter winner of this path always
-            // takes the first list entry.
+            // Filter intra and the dynamic reference list entry share one packed byte, so only an intra winner can carry the filter-intra
+            // sentinel. An inter winner of this path always takes the first list entry.
             block.ReferenceMotionVectorIndex = 0;
             if (winner.ReferenceFrame <= Av1ReferenceFrameType.Intra)
             {
@@ -537,10 +533,9 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else
             {
-                // Final intra prediction consumes reconstructed neighbors. The prediction-only candidate
-                // must not be copied here, because each transform now contributes its selected residual.
-                // An intra block never signals skip: pick_sb_modes_nonrd() clears mbmi->skip_txfm before the
-                // search, and neither the search nor encode_superblock() sets it for an intra winner.
+                // The final intra prediction reads reconstructed neighbors. The prediction-only candidate must not be copied here, because
+                // each transform now adds its selected residual. An intra block never signals skip. The flag is clear before the search,
+                // and neither the search nor the block encode sets it for an intra winner.
                 modeInfo.Block.Skip = false;
                 this.EncodeSelectedIntraPlane(
                     writer,
@@ -873,9 +868,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     prediction = previous;
                 }
 
-                // A compound candidate always follows the single modes, so an early-terminating best mode ends the
-                // search unless the superblock motion is still untested. Reference: the best_early_term exit of
-                // handle_inter_mode_nonrd().
+                // A compound candidate always follows the single modes. Thus a best mode with early termination ends the search, unless
+                // the superblock motion is still untested.
                 if (state.BestEarlyTermination && (!useSuperblockMotion || state.SuperblockMotionTested))
                 {
                     state.EndSearch = true;
@@ -965,9 +959,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformSize transformSize = winner.TransformSize;
             Av1RateDistortionStatistics paletteStatistics = state.BestStatistics;
 
-            // The estimated search runs its palette through the complete search at the default stage,
-            // with the transform size searched as the default stage sets it. Reference: the
-            // set_mode_eval_params(DEFAULT_EVAL) that opens av1_nonrd_use_partition().
+            // The estimated search runs its palette through the complete search at the default stage. The transform size search uses the
+            // settings of the default stage.
             Av1EncoderEvaluationStage previousStage = this.blockWorkspace.EvaluationStage;
             this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Default;
             Av1ModeCosts modeCosts = tables.ModeCosts;
@@ -1073,10 +1066,8 @@ internal static partial class Av1IntraSuperblockEncoder
             const int lowVarianceSadThreshold = 100;
             const int sadThreshold = 40;
 
-            // These activity thresholds are expressed per 4x4 unit, rather than per pixel.
-            // Keep the same scale for luma and subsampled chroma before comparing their errors.
-            // Only a low noise level keeps the chroma check off. Reference: the noise_level test of
-            // set_color_sensitivity().
+            // These activity thresholds are per 4x4 unit, not per sample. Luma and subsampled chroma use the same scale before their errors
+            // are compared. The first test turns the chroma check off, but only at a low noise level.
             int normalizedLumaSad = lumaSad >> (BitOperations.Log2((uint)(blockSize.GetWidth() * blockSize.GetHeight())) - 4);
             if (parent.RunningNoiseLevel == Av1NoiseEstimate.LowLevel &&
                 this.interSourceVariance > (frameWidth > 1920 ? 5000 : 1000) && normalizedLumaSad < 50)
@@ -1407,9 +1398,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockSize">The coding-block geometry.</param>
         /// <param name="mode">The luma prediction mode.</param>
         /// <param name="chromaMode">
-        /// The chroma prediction mode: the mode of the best intra candidate so far, or DC. Reference:
-        /// av1_estimate_block_intra() predicts chroma from mi->uv_mode, which av1_estimate_intra_mode() sets only when
-        /// a mode becomes the best, after init_mbmi_nonrd() set UV_DC_PRED.
+        /// The chroma prediction mode. This is the mode of the best intra candidate so far, or DC before any mode becomes the best.
         /// </param>
         /// <param name="transformSize">The luma residual estimation size.</param>
         /// <param name="evaluateBlue">Whether blue-difference distortion participates in selection.</param>
@@ -1560,8 +1549,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                     int acStep = Av1QuantizationLookup.GetAcQuant(
                                         this.blockQIndex, this.quantization.DeltaQAc[planeIndex], this.bitDepth) >> 3;
 
-                                    // Chroma is modeled per prediction unit. Summing its moments across
-                                    // units first would change the DC energy and the skip comparison.
+                                    // Chroma is modeled per prediction unit. A sum of its moments across units first changes the DC energy and
+                                    // the skip comparison.
                                     Av1RateDistortion.EstimateLaplacian(
                                         squares - variance, countLog2, dcStep, out int dcRate, out long dcDistortion);
 
@@ -1609,7 +1598,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         out long lumaDistortion,
                         out skip);
 
-                    // Each addition stays below the invalid-rate value. Reference: the INT_MAX / 2 clamp of av1_estimate_block_intra().
+                    // Each addition clamps at half of the maximum integer, so it stays below the invalid-rate value.
                     rate = (int)Math.Min((long)rate + lumaRate, int.MaxValue / 2);
                     distortion += lumaDistortion;
                 }
@@ -1695,10 +1684,8 @@ internal static partial class Av1IntraSuperblockEncoder
             modeInfo.InterTransformSizes.Fill(modeInfo.TransformSize);
             int planeCount = block.HasChroma ? 3 : 1;
 
-            // The search predicted a reference of another size from its resized copy and keeps no prediction of it, so
-            // the luma prediction is built again from the reference itself. Reference: the reuse_inter_pred that
-            // av1_nonrd_pick_inter_mode_sb() clears for use_scaled_ref_frame, and the start_plane of
-            // encode_superblock().
+            // The search predicted a reference of another size from its resized copy and keeps no prediction of it. Thus the luma
+            // prediction is built again from the original reference.
             if (this.IsScaledReference(modeInfo.ReferenceFrame) || this.IsScaledReference(modeInfo.SecondaryReferenceFrame))
             {
                 Span<TSample> rebuilt = interWorkspace.SpareLumaReconstruction;
@@ -1830,10 +1817,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.picture.Parent.FrameHeader.ModeInfoColumnCount >> subX,
                     this.picture.Parent.FrameHeader.ModeInfoRowCount >> subY);
 
-                // Prediction stays in block coordinates while coefficients follow transform coding
-                // order, including the separate 64x64 regions of a larger coding block. A lossless block codes its
-                // 4x4 transforms in raster order, without the luma transform tree. Reference: the TX_4X4 that
-                // get_vartx_max_txsize() returns for a lossless segment.
+                // The prediction stays in block coordinates, but the coefficients follow the transform coding order. That order includes the
+                // separate 64x64 regions of a larger coding block. A lossless block codes its 4x4 transforms in raster order, without the
+                // luma transform tree, because the largest transform of a lossless segment is 4x4.
                 Av1TransformSize rootSize = planeIndex == 0 && !lossless ? planeBlock.GetMaximumTransformSize() : transformSize;
                 int count = stride * planeBlock.GetHeight() / sampleCount;
                 for (int index = 0; index < count; index++)
@@ -1924,9 +1910,8 @@ internal static partial class Av1IntraSuperblockEncoder
             modeInfo.Skip = !lossless && allTransformsEmpty;
             if (modeInfo.Skip)
             {
-                // A skipped inter block codes the largest transform, which also sets how many coefficient
-                // positions it owns where the frame edge crosses it. Reference: the tx_size of a skipped inter
-                // block in encode_superblock(), tx_size_from_tx_mode().
+                // A skipped inter block codes the largest transform. This size also sets how many coefficient positions the block owns where
+                // the frame edge crosses it.
                 modeInfo.TransformSize = modeInfo.BlockSize.GetMaximumTransformSize();
                 modeInfo.InterTransformSizes.Fill(modeInfo.TransformSize);
             }
@@ -2224,8 +2209,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 state.ModeCosts[index][slot] = Av1SymbolEncoder.GetInterModeCost(tables.ModeCosts, mode, referenceVectors.ModeContext);
             }
 
-            // A reference of another size measures no predictor error. Reference: the !ref_is_scaled test of
-            // find_predictors().
+            // A reference of another size measures no predictor error.
             if (!measureSad || this.IsResizedReference(reference))
             {
                 return;
@@ -2397,9 +2381,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 ObuFrameHeader header = this.picture.Parent.FrameHeader;
                 int skipContext = Av1TileWriter.GetSkipContext(modeInfoGrid, modeInfoAllocation, macroBlock);
 
-                // The estimated motion entry measures prediction error and vector rate only. Coefficient
-                // edges are unused here; residual modeling follows the final motion/filter selection.
-                // The non-RD path gives no frame, so this search does not write the frame.
+                // The estimated motion entry measures only the prediction error and the vector rate. The coefficient edges are not used
+                // here. The residual model runs after the final motion and filter selection. The estimated path gives no frame, so this
+                // search does not write the frame.
                 Av1ModeCosts modeCosts = tables.ModeCosts;
                 Av1MotionSearchBase.SingleReferenceSearch<TSample, TOperator> motionSearch = new(
                     Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin),
@@ -2434,9 +2418,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1MotionSearchBase.FractionalResult result;
                 if (this.UsesProjectionMotionSearch(modeInfo.ReferenceFrame))
                 {
-                    // search_new_mv() estimates GOLDEN and ALTREF motion from row and column projections in
-                    // constant-bitrate usage, gives up below 16x16 or when the projection error exceeds LAST's
-                    // predicted-vector error, and refines the estimate to fractional precision.
+                    // In constant-bitrate usage, the motion of GOLDEN and ALTREF comes from row and column projections. The search stops
+                    // below 16x16, or when the projection error is more than the predicted-vector error of LAST. Otherwise it refines the
+                    // estimate to fractional precision.
                     if (blockSize < Av1BlockSize.Block16x16)
                     {
                         return Av1RateDistortionStatistics.Invalid;
@@ -2468,7 +2452,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                     else
                     {
-                        // av1_int_pro_motion_estimation() keeps zero motion above 8 bits.
+                        // Above 8 bits, the projection search keeps zero motion.
                         projectionSad = (uint)TOperator.SumAbsoluteDifferences(
                             sourceBlock,
                             sourcePlane.Stride,
@@ -2563,8 +2547,8 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 if (searchMotionMode)
                 {
-                    // search_motion_mode() evaluates simple translation with the regular filter. Warped motion is
-                    // pruned (extra_prune_warped), so that is its only candidate.
+                    // The motion-mode search evaluates simple translation with the regular filter. The search prunes warped motion, so
+                    // simple translation is its only candidate.
                     modeInfo.HorizontalInterpolationFilter = Av1InterpolationFilter.Regular;
                     modeInfo.VerticalInterpolationFilter = Av1InterpolationFilter.Regular;
                 }
@@ -2620,8 +2604,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 squaredError = (uint)((error + ((1L << (2 * shift)) >> 1)) >> (2 * shift));
                 variance = (uint)Math.Max(0, squaredError - (((long)sum * sum) >> BitOperations.Log2((uint)(width * height))));
 
-                // handle_inter_mode_nonrd() drops a compound candidate of the large-block model whose variance
-                // exceeds that of either single-reference mode; model_skip_for_sb_y_large() returns before its tests.
+                // The search drops a compound candidate of the large-block model when its variance is more than the variance of either
+                // single-reference mode. The large-block skip test does not run for that candidate.
                 if (modeInfo.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra &&
                     this.picture.Parent.SpeedSettings.PrunesCompoundBySingleVariance &&
                     this.UsesLargeBlockModel(blockSize) &&
@@ -2637,8 +2621,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (this.UsesLargeBlockModel(blockSize))
                 {
-                    // model_skip_for_sb_y_large(): a forced skip ends the candidate. Otherwise the unit test decides,
-                    // unless the default path (calculate_rd 0) already fails the SSE early termination.
+                    // A forced skip ends the candidate. Otherwise the unit test decides. On the default path, the unit test does not run when
+                    // the squared error already rejects the candidate.
                     modelEarlyTermination = forceSkip;
                     if (!forceSkip &&
                         (searchMotionMode || !searchState.SkipByPredictionError(this.picture.Parent.EncodingSpeed, blockSize, squaredError)))
@@ -2691,8 +2675,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 return Av1RateDistortionStatistics.Invalid;
             }
 
-            // Prediction-error rejection precedes chroma work. Only color-sensitive planes need
-            // predictors for this estimate; final reconstruction still writes every coded plane.
+            // The prediction error test runs before the chroma work. Only color-sensitive planes need predictors for this estimate. The
+            // final reconstruction still writes every coded plane.
             if (!modelEarlyTermination)
             {
                 for (int planeIndex = 1; planeIndex <= 2; planeIndex++)
@@ -2766,15 +2750,13 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns whether a single-reference candidate is predicted by the motion-mode search rather than by the
-        /// default path. Reference: the branch of handle_inter_mode_nonrd() that calls search_motion_mode() for NEWMV
-        /// when the motion vector does not reach the filter search and warped motion is enabled in the encoder
-        /// configuration, which is its default.
+        /// Returns whether the motion-mode search predicts a single-reference candidate, and not the default path. This applies to a
+        /// NEWMV candidate whose vector does not reach the filter search. Warped motion is enabled by default, so this test does not read it.
         /// </summary>
         /// <param name="modeInfo">The candidate syntax.</param>
         /// <param name="vector">The candidate motion vector.</param>
         /// <param name="searchFilters">Whether the filter search is enabled for the candidate.</param>
-        /// <returns><see langword="true"/> when search_motion_mode() predicts the candidate.</returns>
+        /// <returns><see langword="true"/> when the motion-mode search predicts the candidate.</returns>
         private static bool UsesMotionModeSearch(Av1EncoderBlockModeInfo modeInfo, Av1MotionVector vector, bool searchFilters)
             => modeInfo.Mode == Av1PredictionMode.NewMotionVector &&
                 modeInfo.SecondaryReferenceFrame == Av1ReferenceFrameType.None &&
@@ -2857,8 +2839,8 @@ internal static partial class Av1IntraSuperblockEncoder
             variance = 0;
             squaredError = 0;
 
-            // search_filter_ref() tries the first FILTER_SEARCH_SIZE filters, regular and smooth, in both directions.
-            // Without dual filtering only the equal pairs remain.
+            // The filter search tries the first two filters, regular and smooth, in both directions. Without dual filtering, only the
+            // equal pairs remain.
             ReadOnlySpan<Av1InterpolationFilter> filters =
             [
                 Av1InterpolationFilter.Regular,
@@ -2916,8 +2898,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1TransformSize transformSize = this.SelectEstimatedInterTransformSize(
                     blockSize, currentVariance, (uint)error, evaluateBlue, evaluateRed, this.IsCyclicRefreshBoosted, out bool forceSkip);
 
-                // search_filter_ref() models a large block with model_skip_for_sb_y_large() and calculate_rd 1, so a
-                // passing unit test ends the filter's residual estimate as a forced skip does.
+                // The filter search models a large block with the large-block skip test. A passing unit test ends the residual estimate of
+                // the filter, as a forced skip does.
                 bool filterEarlyTermination = false;
                 if (largeBlockModel)
                 {
@@ -3020,15 +3002,14 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Gets the first vector of the above or left block, or <see langword="null"/> when that block is unavailable
-        /// or intra coded. Reference: the INVALID_MV test on xd->above_mbmi and xd->left_mbmi in newmv_diff_bias().
+        /// Gets the first vector of the above or left block, or <see langword="null"/> when that block is unavailable or intra coded.
         /// </summary>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
         /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="macroBlock">The coding-block neighbors.</param>
         /// <param name="origin">The luma block origin.</param>
-        /// <param name="above"><see langword="true"/> for the above block; otherwise, the left block.</param>
+        /// <param name="above"><see langword="true"/> for the above block, or <see langword="false"/> for the left block.</param>
         /// <returns>The first vector of the neighbor, or <see langword="null"/>.</returns>
         private Av1MotionVector? GetNeighborMotionVector(
             ReadOnlySpan<int> modeInfoGrid,
@@ -3054,9 +3035,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns whether NEWMV motion for a reference comes from the projection search. Reference: the
-        /// constant-bitrate condition of search_new_mv(): a reference after LAST in constant-bitrate coding while LAST
-        /// is available, at the same scale as LAST and without lag.
+        /// Returns whether the NEWMV motion of a reference comes from the projection search. This is true for a reference after LAST in
+        /// real-time constant-bitrate coding, while LAST is available.
         /// </summary>
         /// <param name="reference">The candidate reference.</param>
         /// <returns><see langword="true"/> when the projection search estimates the motion.</returns>
@@ -3067,8 +3047,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 (this.picture.Parent.AvailableReferenceMask & (1 << (int)Av1ReferenceFrameType.Last)) != 0;
 
         /// <summary>
-        /// Returns whether a candidate uses the large-block model, which can end the mode search early.
-        /// Reference: get_model_rd_flag(), for constant-bitrate real-time usage at 8 bits.
+        /// Returns whether a candidate uses the large-block model, which can end the mode search early. The model applies only to
+        /// real-time constant-bitrate coding at 8 bits.
         /// </summary>
         /// <param name="blockSize">The coding-block geometry.</param>
         /// <returns>
@@ -3084,9 +3064,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.bitDepth == Av1BitDepth.EightBit;
 
         /// <summary>
-        /// Tests whether every luma test unit and the color-sensitive chroma planes of a candidate quantize to zero,
-        /// which ends the candidate's residual estimate. Reference: the skip test of model_skip_for_sb_y_large()
-        /// and model_skip_for_sb_y_large_64(), which is set_early_term_based_on_uv_plane().
+        /// Tests whether every luma test unit and the color-sensitive chroma planes of a candidate quantize to zero. If they do, the
+        /// residual estimate of the candidate ends.
         /// </summary>
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
         /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
@@ -3146,7 +3125,7 @@ internal static partial class Av1IntraSuperblockEncoder
             long dcThreshold = (dcQuant * dcQuant) >> 6;
             long acThreshold = (acQuant * acQuant) >> 6;
 
-            // ac_thr_factor()
+            // At speed 8 and faster, a block with a small mean error raises the AC threshold. The increase is larger at 640x480 and below.
             int normalizedSum = Math.Abs(sum) >> sizeLog2;
             ObuFrameSize frameSize = this.picture.Parent.FrameHeader.FrameSize;
             if (this.picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level8 && normalizedSum < 5)
@@ -3325,8 +3304,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     out int sum,
                     out long squaredError);
 
-                // Normalize moments independently before removing the mean. The coded block includes
-                // its extended edge samples; using only the visible rectangle would change the model.
+                // The moments are normalized separately before the mean is removed. The coded block includes its extended edge samples.
+                // A model of only the visible rectangle gives other results.
                 sum = (sum + ((1 << normalizationShift) >> 1)) >> normalizationShift;
                 squaredError = (squaredError + ((1L << (2 * normalizationShift)) >> 1)) >> (2 * normalizationShift);
                 long variance = Math.Max(0, squaredError - (((long)sum * sum) >> sampleCountLog2));

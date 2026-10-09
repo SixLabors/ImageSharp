@@ -86,9 +86,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MotionSearchSites sites = this.blockWorkspace.GetMotionSearchSites(workspaceStorage, method, referencePlane.Stride);
             int step = Math.Min(this.picture.Parent.MotionSearchStepParameter + this.picture.Parent.SpeedSettings.SimpleMotionStepReduction, 9);
 
-            // The search prices vectors with the error per bit set last, which the partition search does not set
-            // for itself. Reference: x->errorperbit in av1_make_default_fullpel_ms_params() and
-            // av1_make_default_subpel_ms_params().
+            // The search prices vectors with the error per bit that the last block set. The partition search does not set its own value.
             int errorPerBitRateMultiplier = this.blockWorkspace.ErrorPerBitRateMultiplier;
             Av1MotionSearchBase.FullPixelSearch<TSample, TOperator> fullSearch = new(
                 source,
@@ -124,9 +122,8 @@ internal static partial class Av1IntraSuperblockEncoder
             if (useSubpixel && full.Cost < int.MaxValue && !frameHeader.ForceIntegerMotionVector &&
                 settings.SimpleMotionPrecision != Av1MotionSearchSettings.SearchPrecision.Integer)
             {
-                // The fractional search and the final prediction of a reference of another size read the reference
-                // itself with its scale factors. Reference: the buffer that av1_simple_motion_search() swaps back
-                // before the subpel search.
+                // For a reference of another size, the fractional search and the final prediction read the original reference with its
+                // scale factors, not the resized copy.
                 Av1MotionSearchBase.ScaledReference<TSample> scaledReference =
                     this.GetScaledSearchReference(this.simpleMotionReference, blockOrigin, filterRows);
 
@@ -161,8 +158,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 vector = fractional.Vector;
 
-                // Fractional search may use short filters and different intermediate rounding.
-                // Rebuild its winner with the final regular predictor before collecting model features.
+                // The fractional search can use short filters and another intermediate rounding. As a result, the code predicts the winner again
+                // with the regular filter before it measures the model features.
                 if (scaledReference.IsScaled)
                 {
                     scaledReference.Predict<TOperator>(vector, motionSearchPrediction, size, this.bitDepth.GetBitCount());
@@ -184,8 +181,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.bitDepth.GetBitCount());
                 }
 
-                // The prediction goes into pd->dst, which is the frame at this block. Reference: av1_enc_build_inter_predictor() in
-                // av1_simple_motion_search().
+                // The prediction also goes into the reconstructed frame at this block. Later reads of the frame at this position see it.
                 Av1PlaneRegion<TSample> luma = this.reconstruction.GetPlane(Av1Plane.Y);
                 Av1TransformBlockEncoder.WriteFrameSamples(
                     luma, reconstructionLuma, blockOrigin, motionSearchPrediction, size.Width, size.Width, size.Height);

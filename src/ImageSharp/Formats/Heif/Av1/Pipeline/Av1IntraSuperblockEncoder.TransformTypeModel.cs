@@ -718,7 +718,7 @@ internal static partial class Av1IntraSuperblockEncoder
         Span<float> verticalFeatures = verticalFeatureStorage;
         GetEnergyDistribution(residual, stride, width, height, horizontalFeatures, verticalFeatures);
 
-        // The last feature of each axis is the correlation of adjacent residuals; a constant signal gives one.
+        // The last feature of each axis is the correlation of adjacent residuals. A constant signal gives one.
         Av1ResidualBuilder.GetHorizontalVerticalCorrelation(
             residual, stride, width, height, out horizontalFeatures[energyWidth - 1], out verticalFeatures[energyHeight - 1]);
 
@@ -741,11 +741,10 @@ internal static partial class Av1IntraSuperblockEncoder
             }
         }
 
-        // Approximate exponentials through the IEEE exponent field after subtracting the
-        // maximum. The correction calibrates this approximation; clamping prevents underflow.
-        // The x64 reference rounds the scaled value to the nearest integer, ties to even, and sums the sixteen values
-        // in four lanes: lane j adds values j, j + 4, j + 8 and j + 12 in turn, then lanes 0 and 2 and lanes 1 and 3
-        // add before the two sums add.
+        // The loop approximates each exponential through the IEEE exponent field, after it subtracts the maximum. The correction
+        // calibrates this approximation. The clamp at -10 prevents underflow. The scaled value rounds to the nearest integer, ties to
+        // even. The sixteen values sum in four lanes: lane j adds values j, j + 4, j + 8 and j + 12 in turn. Then lanes 0 and 2 and
+        // lanes 1 and 3 add before the two sums add. This order gives the same float sum as a four-lane vector sum on x64.
         const float exponentScale = (1 << 23) / 0.69314718056F;
         const int exponentBias = 127 << 23;
         const int exponentialCorrection = 60801;
@@ -854,10 +853,9 @@ internal static partial class Av1IntraSuperblockEncoder
     }
 
     /// <summary>
-    /// Computes the normalized horizontal and vertical energy projections of a residual block. The residual is
-    /// downscaled to at most an 8x8 grid of squared-sample sums, which stay integers, and the projections sum the
-    /// grid as floats in the reference order: each horizontal feature adds the rows top to bottom and each
-    /// vertical feature adds the columns left to right. Reference: get_energy_distribution_finer().
+    /// Computes the normalized horizontal and vertical energy projections of a residual block. The residual is downscaled to at most
+    /// an 8x8 grid of squared-sample sums, which stay integers. The projections sum the grid as floats in a fixed order. Each horizontal
+    /// feature adds the rows top to bottom, and each vertical feature adds the columns left to right.
     /// </summary>
     /// <param name="residual">The residual samples.</param>
     /// <param name="stride">The residual row stride.</param>
@@ -877,7 +875,7 @@ internal static partial class Av1IntraSuperblockEncoder
         int energyWidth = width <= 8 ? width : width >> 1;
         int energyHeight = height >> heightShift;
 
-        // Each grid row is one eight-lane vector; lanes past the grid width stay zero. A cell holds at most four
+        // Each grid row is one eight-lane vector. Lanes past the grid width stay zero. A cell holds at most four
         // squared twelve-bit samples, so the 32-bit lanes cannot overflow.
         InlineArray8<Vector256<int>> grid = default;
         ref short residualBase = ref MemoryMarshal.GetReference(residual);

@@ -58,8 +58,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int frameQuantizer = this.quantization.QIndex[0];
             long basis = Av1QuantizationLookup.GetAcQuant(quantizer, 0, this.bitDepth);
 
-            // A noisy source that changed little raises the base threshold. Reference: the noise level step of
-            // tune_base_thresh_content().
+            // A noisy source that changed little raises the base threshold.
             if (parent.NoiseEstimate is { Enabled: true } && this.sourceLowSumDifference && pixels > resolution480 &&
                 this.blockWorkspace.EncodedFrameCount > 60)
             {
@@ -315,7 +314,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else if (width == 64)
             {
-                // Reference: check_noise_lvl, with the noise level of the running estimate.
+                // The noise test uses the noise level of the running estimate.
                 bool checkNoiseLevel = parent.RunningNoiseLevel >= Av1NoiseEstimate.MediumLevel || preference != 0;
                 node.ForceParentSplit |= checkNoiseLevel && maximum - minimum > 3 * (threshold >> 3) && maximum > (threshold >> 1);
             }
@@ -616,8 +615,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     source, sourcePlane.Stride, Av1TransformBlockEncoder.GetPlaneSpan(golden, origin), golden.Stride, side, side, 1) >> precisionShift;
             }
 
-            // ALTREF takes part when the non-RD search uses it, alone or in the LAST_ALTREF compound pair.
-            // Reference: use_alt_ref in setup_planes().
+            // ALTREF takes part when the estimated mode search uses it, alone or in the LAST_ALTREF compound pair.
             uint alternateSad = uint.MaxValue;
             bool useAlternate = parent.SpeedSettings.UseEstimatedAlternateReference || parent.SpeedSettings.UseEstimatedCompound;
             if (useAlternate && (parent.AvailableReferenceMask & (1 << (int)Av1ReferenceFrameType.Alternate)) != 0 &&
@@ -657,8 +655,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     verticalRange <<= 1;
                 }
 
-                // The search range keeps to the border of the encoder configuration, not to the border of the buffer
-                // it reads. Reference: cpi->oxcf.border_in_pixels in av1_int_pro_motion_estimation().
+                // The search range keeps to the border of the encoder configuration, not to the border of the buffer that it reads.
                 lastSad = Av1MotionSearchBase.SearchProjection(
                     MemoryMarshal.Cast<TSample, byte>(source),
                     sourcePlane.Stride,
@@ -723,7 +720,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     Point neighborPosition = position + (index == 0 ? new Size(0, -1) : new Size(-1, 0));
 
-                    // get_fullmv_from_mv() rounds the clamped vector to the nearest full sample (GET_MV_RAWPEL).
+                    // The clamped vector rounds to the nearest full sample. A tie rounds away from zero.
                     Av1MotionVector motion = this.picture.GetDisplacementVector(modeInfoGrid, displacementVectors, neighborPosition);
                     int row = Math.Clamp(motion.Row, fractionalBounds.Top, fractionalBounds.Bottom - 1);
                     int column = Math.Clamp(motion.Column, fractionalBounds.Left, fractionalBounds.Right - 1);
@@ -759,8 +756,7 @@ internal static partial class Av1IntraSuperblockEncoder
             this.partitionReference = Av1ReferenceFrameType.Last;
             this.estimatedReferencePruning = parent.SpeedSettings.GetEstimatedReferencePruningLevel();
 
-            // set_ref_frame_for_partition(): GOLDEN or ALTREF, whichever has the lower error, replaces LAST when
-            // its error is below 0.9 of LAST's.
+            // GOLDEN or ALTREF, whichever has the lower error, replaces LAST when its error is less than 0.9 of the LAST error.
             if (goldenSad < 0.9 * lastSad && goldenSad < alternateSad)
             {
                 this.partitionReference = Av1ReferenceFrameType.Golden;
@@ -836,8 +832,8 @@ internal static partial class Av1IntraSuperblockEncoder
             this.alternateColorSensitivity[..].Clear();
             if (!this.source.IsMonochrome)
             {
-                // The screen branches of chroma_check() test the screen tune content, which libavif never sets,
-                // not the detected screen content. Reference: tune_cfg.content == AOM_CONTENT_SCREEN.
+                // The chroma check has no screen content branch. Those branches depend on a screen content tune that the encoder never
+                // sets, not on the detected screen content.
                 int upperShift = 1;
                 int lowerShift = 3;
                 long pixels = (long)frameSize.Width * frameSize.Height;
@@ -861,8 +857,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(
                         SelectPlane(plane, sourceLuma, sourceBlue, sourceRed), chromaSource, chromaOrigin);
 
-                    // chroma_check() measures zero motion against LAST, whichever reference the partition chose:
-                    // pre[0] when that is LAST, otherwise the LAST buffer through setup_pred_plane().
+                    // The chroma check measures zero motion against LAST, whichever reference the partition chose.
                     Av1PlaneRegion<TSample> chromaReference = searchReferences[(int)Av1ReferenceFrameType.Last].CodedView.GetPlane(plane);
                     ReadOnlySpan<TSample> prediction = zeroMotion
                         ? Av1TransformBlockEncoder.GetPlaneSpan(chromaReference, chromaOrigin)
@@ -974,8 +969,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<byte> previous = previousLuma.Samples;
             int previousOffset = ((previousLuma.Bounds.Y + origin.Y) * previousLuma.Stride) + previousLuma.Bounds.X + origin.X;
 
-            // Without the block errors of scene detection the superblock measures its own. Reference: the NULL
-            // src_sad_blk_64x64 branch of fast_detect_non_zero_motion().
+            // When scene detection did not keep the 64x64 block errors, the superblock measures its own error.
             int columns = (parent.FrameHeader.ModeInfoColumnCount + 15) >> 4;
             uint stationarySad = parent.SourceBlockSad.IsEmpty
                 ? (uint)Av1MotionSearchBase.ByteOperator.SumAbsoluteDifferences(
@@ -995,8 +989,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // The source owner is rotated only after the frame finishes. The preceding source stays
-            // read-only throughout this pass; averaging changes the current planes without an extra frame.
+            // The source owner rotates the frames only after the frame finishes. The preceding source stays read-only during this pass.
+            // The average changes the current planes in place, so no extra frame is necessary.
             int planeCount = this.source.IsMonochrome ? 1 : 3;
             for (int index = 0; index < planeCount; index++)
             {
@@ -1119,16 +1113,14 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Av1PictureParentControlSet parent = this.picture.Parent;
 
-                // A frame without the block errors of scene detection takes zero. Reference: the NULL
-                // src_sad_blk_64x64 test of av1_choose_var_based_partitioning().
+                // When scene detection did not keep the 64x64 block errors, the source error is zero.
                 int columns = (parent.FrameHeader.FrameSize.FrameWidth + 63) >> 6;
                 ulong sourceSad = parent.SourceBlockSad.IsEmpty
                     ? 0
                     : parent.SourceBlockSad.Span[((superblockOrigin.Y >> 6) * columns) + (superblockOrigin.X >> 6)];
 
-                // The superblock takes its segment from the map. A boosted cyclic refresh superblock splits at the
-                // thresholds of its segment quantizer. Reference: the av1_set_offsets() call of encode_nonrd_sb(), and
-                // is_segment_id_boosted with the qindex of av1_choose_var_based_partitioning().
+                // The superblock takes its segment from the map. A boosted cyclic refresh superblock splits at the thresholds of its segment
+                // quantizer.
                 this.SetBlockSegment(encoderSegmentMap, previousSegmentMap, superblockOrigin, this.picture.Sequence.SequenceHeader.SuperblockSize);
                 bool boostedSegment = this.IsCyclicRefreshBoosted;
                 int partitionQIndex = boostedSegment
@@ -1201,8 +1193,8 @@ internal static partial class Av1IntraSuperblockEncoder
             long threshold32 = smallFrame ? threshold / 3 : threshold >> largeFrameShift;
             long threshold16 = threshold >> (smallFrame ? 1 : largeFrameShift);
 
-            // Partition analysis precedes residual coding. Its compact moment tree borrows coefficient scratch
-            // only for this pass; the selected partition bytes survive after transform trials reuse that storage.
+            // The partition analysis runs before residual coding. Its compact moment tree borrows the coefficient storage for this pass
+            // only. The selected partition bytes stay valid after the transform trials use that storage again.
             Span<VariancePartitionNode> nodes =
                 MemoryMarshal.Cast<int, VariancePartitionNode>(Av1EncoderBlockWorkspace.GetPartitionAnalysisScratch(workspaceStorage));
 
@@ -1354,11 +1346,9 @@ internal static partial class Av1IntraSuperblockEncoder
             bool fitsRows = row + rowsRequired <= tile.ModeInfoRowEnd;
             Av1PartitionType partition = Av1PartitionType.Split;
 
-            // Similar child variances permit one sixteen-by-sixteen block even when its own variance
-            // is high. Its parent must still split, as recorded independently above. When the block does
-            // not fit, the shape evaluation continues, unless the variance is very high for a key frame.
-            // Reference: get_part_eval_based_on_sub_blk_var(), and the PART_EVAL_ONLY_NONE path through
-            // set_vt_partitioning().
+            // Similar child variances permit one 16x16 block even when its own variance is high. Its parent must still split, as recorded
+            // above. When the block does not fit, the shape evaluation continues, unless the variance is very high. This pruning applies
+            // only to all-intra frames.
             bool onlyNone = width == 16 && aboveThreshold && pruneSixteenSplit &&
                 maximumVariance - minimumVariance <= (threshold16 << 2);
 

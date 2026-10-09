@@ -27,7 +27,7 @@ internal static partial class Av1IntraSuperblockEncoder
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
         /// <summary>
-        /// Gets the transform that predicts a skipped block, per block size. Reference: max_predict_sf_tx_size.
+        /// Gets the transform that predicts a skipped block, per block size. The size is at most 16x16.
         /// </summary>
         private static ReadOnlySpan<Av1TransformSize> PredictSkipTransformSizes =>
         [
@@ -41,7 +41,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Gets the coefficient thresholds of a predicted skip, per bit depth and block size.
-        /// Reference: skip_pred_threshold.
         /// </summary>
         private static uint[][] SkipPredictionThresholds { get; } =
         [
@@ -51,54 +50,47 @@ internal static partial class Av1IntraSuperblockEncoder
         ];
 
         /// <summary>
-        /// Gets a value indicating whether the image tune biases inter costs toward intra prediction. Reference: the
-        /// AOM_TUNE_IQ test of adjust_rdcost() and adjust_cost().
+        /// Gets a value indicating whether the image tune biases inter costs toward intra prediction.
         /// </summary>
         private readonly bool BiasesInterCosts => this.blockWorkspace.EncoderOptions.Tuning.IsImageTuning();
 
         /// <summary>
-        /// Gets a value indicating whether 8-bit sharpness 3 adds a charge to a block that is smoother than its source.
-        /// A high bit depth uses different rules. Intra frames, golden frames and alternate reference frames get no charge.
-        /// Reference: the sharpness and frame_is_kf_gf_arf() tests of adjust_rdcost() and adjust_cost(), after their high bit depth branch.
+        /// Gets a value indicating whether 8-bit sharpness 3 adds a charge to a block that is smoother than its source. A high bit depth
+        /// uses other rules. Intra frames, golden frames and alternate reference frames get no charge.
         /// </summary>
         private readonly bool ChargesSmoothing =>
             this.blockWorkspace.EncoderOptions.Sharpness == 3 && !this.UsesHighBitDepthSharpness && !this.picture.Parent.FrameHeader.IsIntra &&
             this.picture.Parent.FrameUpdateType is not (Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate);
 
         /// <summary>
-        /// Gets a value indicating whether the high bit depth sharpness 3 rules apply.
-        /// Reference: the xd->bd &gt; 8 &amp;&amp; sharpness == 3 tests of adjust_rdcost(), adjust_cost(), av1_get_tx_skip_dist() and their callers.
+        /// Gets a value indicating whether the high bit depth sharpness 3 rules apply: a bit depth above 8 with sharpness 3.
         /// </summary>
         private readonly bool UsesHighBitDepthSharpness => this.bitDepth.GetBitCount() > 8 && this.blockWorkspace.EncoderOptions.Sharpness == 3;
 
         /// <summary>
-        /// Gets a value indicating whether high bit depth sharpness 3 adds a texture-loss charge to a block cost.
-        /// Only intra frames get no charge. Golden frames and alternate reference frames get the charge.
-        /// Reference: the frame_is_intra_only() return of the high bit depth branch of adjust_rdcost() and adjust_cost().
+        /// Gets a value indicating whether high bit depth sharpness 3 adds a texture-loss charge to a block cost. Only intra frames get no
+        /// charge. Golden frames and alternate reference frames get the charge.
         /// </summary>
         private readonly bool ChargesHighBitDepthTextureLoss => this.UsesHighBitDepthSharpness && !this.picture.Parent.FrameHeader.IsIntra;
 
         /// <summary>
-        /// Gets a value indicating whether high bit depth sharpness 3 adds a penalty to a skipped transform.
-        /// Intra frames, golden frames and alternate reference frames get no penalty.
-        /// Reference: the frame_is_kf_gf_arf() tests of av1_is_skip_txfm_penalized() and av1_get_tx_skip_dist().
+        /// Gets a value indicating whether high bit depth sharpness 3 adds a penalty to a skipped transform. Intra frames, golden frames
+        /// and alternate reference frames get no penalty.
         /// </summary>
         private readonly bool PenalizesHighBitDepthSkip =>
             this.UsesHighBitDepthSharpness && !this.picture.Parent.FrameHeader.IsIntra &&
             this.picture.Parent.FrameUpdateType is not (Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate);
 
         /// <summary>
-        /// Gets the Q12 mode threshold multiplier of the block, from 2.5 at quantizer zero to 1 at quantizer 255 when
-        /// skippable inter modes are pruned, else 1. Reference: mode_threshold_mul_factor[x->qindex] in
-        /// av1_rd_pick_inter_mode(), with the table's nearest-integer rounding.
+        /// Gets the Q12 mode threshold multiplier of the block. When skippable inter modes are pruned, it goes from 2.5 at quantizer zero
+        /// to 1 at quantizer 255, rounded to the nearest integer in Q12. Otherwise it is 1.
         /// </summary>
         private readonly int ModeThresholdSkipMultiplier => this.picture.Parent.SpeedSettings.PruneSkippableInterModes
             ? 10240 - (((this.blockQIndex * 6144) + 127) / 255)
             : 4096;
 
         /// <summary>
-        /// Gets the quantizer scale of the mode thresholds of the block's segment. Reference: the segment_id index of
-        /// rd->threshes in av1_rd_pick_inter_mode().
+        /// Gets the quantizer scale of the mode thresholds of the segment of the block.
         /// </summary>
         private readonly int ModeThresholdQuantizerFactor => this.blockWorkspace.ModeThresholdQuantizerFactors[this.blockSegmentId];
 
@@ -205,9 +197,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MotionSearchSettings settings = this.picture.Parent.MotionSearchSettings;
             Av1MotionVectorCosts costs = this.blockWorkspace.GetDisplacementVectorCosts(workspaceStorage);
 
-            // The displacement search reads the source frame, and only the rate-distortion trial below
-            // predicts from the reconstruction. Reference: the xd->cur_buf, which is cpi->source, that
-            // rd_pick_intrabc_mode_sb() passes to av1_setup_pred_block().
+            // The displacement search reads the source frame for both the block and its candidates. Only the rate-distortion trial below
+            // predicts from the reconstruction.
             int candidateCount = this.picture.IntraBlockCopySearch.FindCandidates<TSample, TOperator>(
                 this.source.GetPlane(Av1Plane.Y),
                 this.source.GetPlane(Av1Plane.Y),
@@ -386,9 +377,9 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns whether a zero-vector global mode whose references all have identity models is dropped because
-        /// its prediction error exceeds that of the best new vectors of the references, by a quarter at level one.
-        /// A compound mode compares the sums over both references. Reference: prune_zero_mv_with_sse().
+        /// Returns whether a zero-vector global mode whose references all have identity models is dropped. The mode is dropped when its
+        /// prediction error is more than the error of the best new vectors of the references, at level one by more than a quarter. A
+        /// compound mode compares the sums over both references.
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -424,9 +415,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // The identity model predicts with the reference block at the same place, and the variance function of
-            // the block size measures its error, rounded down to 8-bit precision. The sums wrap as unsigned values.
-            // Reference: the fn_ptr[bsize].vf call.
+            // The identity model predicts with the reference block at the same place. The variance function of the block size measures its
+            // error, rounded down to 8-bit precision. The sums wrap as unsigned values.
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             int shift = 2 * (this.bitDepth.GetBitCount() - 8);
             uint sseSum = 0;
@@ -562,9 +552,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<long> topAverageCosts = stackalloc long[5];
             topAverageCosts.Fill(long.MaxValue);
 
-            // The saved wedge index, wedge sign and difference-weighted mask type are shared by every compound
-            // reference pair of the block; the last compound type is kept per pair. Reference: wedge_index,
-            // wedge_sign, diffwtd_index and cmp_mode[] of HandleInterModeArgs in av1_rd_pick_inter_mode().
+            // Every compound reference pair of the block shares the saved wedge index, wedge sign and difference-weighted mask type. The last
+            // compound type is kept for each pair.
             Span<int> compoundMaskHistory = stackalloc int[64];
             compoundMaskHistory.Fill(-1);
             modeInfo.Block.MotionMode = Av1MotionMode.SimpleTranslation;
@@ -586,10 +575,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> newMotionVectorMasks = newMotionVectorMasksStorage;
             uint searchedSingleModes = 0;
 
-            // Reference: the best_single_sse_in_refs reset of init_inter_mode_search_state().
+            // Each block search starts without a best single-reference error.
             this.bestSingleReferenceSses[..].Fill(int.MaxValue);
 
-            // Reference: the x->pred_sse reset at the start of av1_rd_pick_inter_mode().
+            // Each block search starts without a prediction error for any first reference.
             this.predictionSses[..].Fill(int.MaxValue);
             this.leftoverInterEstimate = Av1RateDistortionStatistics.Invalid;
             selectedVector = default;
@@ -632,8 +621,8 @@ internal static partial class Av1IntraSuperblockEncoder
             this.SetInterModeSkipMasks(sourceLuma, sourceBlue, sourceRed, blockOrigin, blockSize, singleReferenceVectors[..]);
             this.PrepareTplInterModePruning(workspaceStorage, blockOrigin, blockSize);
 
-            // Search the same syntax mode across the available references before advancing to the
-            // next mode. NEWMV's complete DRL search is retained for the later compound candidates.
+            // The search tries the same syntax mode across the available references before it moves to the next mode. The complete
+            // reference list search of NEWMV is kept for the later compound candidates.
             ReadOnlySpan<Av1PredictionMode> modeOrder =
             [
                 Av1PredictionMode.NearestMotionVector, Av1PredictionMode.NewMotionVector,
@@ -646,14 +635,12 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 foreach (Av1ReferenceFrameType reference in referenceOrder)
                 {
-                    // Reference: the skip_txfm reset at the start of each iteration of the av1_rd_pick_inter_mode()
-                    // mode loop.
+                    // Each iteration of the mode loop clears the leftover skip flag.
                     this.transformSearchSkip = false;
                     int index = (int)reference;
 
-                    // A reference that the cached decision of an asymmetric sub-block needs is not removed by the
-                    // partition's reference mask, and a mode the cache leaves searches motion modes only when the
-                    // cache holds that single-reference mode itself.
+                    // The reference mask of the partition does not remove a reference that the cached decision of an asymmetric sub-block
+                    // needs. A mode that the cache leaves searches motion modes only when the cache holds that single-reference mode itself.
                     int cacheDecision = this.GetInterModeCacheDecision(mode, reference, Av1ReferenceFrameType.None);
                     bool skipMotionModes = cacheDecision == 2 ||
                         (cacheDecision == 0 && (this.skipReferenceFrameMask & (1 << index)) != 0);
@@ -666,9 +653,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         continue;
                     }
 
-                    // The last argument is the search's all-empty result, not the skip choice of the block.
-                    // Reference: the best_mode_skippable of the search state, which update_search_state() takes
-                    // from the skip_txfm of the winner's RD_STATS.
+                    // The last argument is the all-empty result of the search winner, not the skip choice of the block.
                     if (Av1ModeThresholds.ShouldSkip(
                         modeThresholdFactors,
                         this.ModeThresholdQuantizerFactor,
@@ -722,8 +707,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             Av1SymbolEncoder.GetInterModeCost(tables.ModeCosts, mode, context) >
                             Av1SymbolEncoder.GetInterModeCost(tables.ModeCosts, compareMode, context))
                         {
-                            // Identical vectors have identical prediction error. Retain the modeled cost
-                            // for compound comparisons, but do not search the more expensive single syntax.
+                            // Identical vectors have identical prediction error. The modeled cost is kept for the compound comparisons, but
+                            // the more expensive single syntax is not searched.
                             int currentIndex = (((int)mode - (int)Av1PredictionMode.InterModeStart) * 3 *
                                 Av1Constants.ReferenceFrameCount) + (int)reference;
 
@@ -732,9 +717,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         }
                     }
 
-                    // The cache test follows the repeated-vector test, and a single mode kept for a cached compound
-                    // passes the neighbor test unconditionally. Reference: the order of
-                    // inter_mode_search_order_independent_skip(), which returns before prune_nearmv_using_neighbors.
+                    // The cache test follows the repeated-vector test. A single mode kept for a cached compound always passes the neighbor
+                    // test.
                     if (cacheDecision == 1)
                     {
                         continue;
@@ -841,8 +825,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         ref newVectors,
                         ref newVectorMask);
 
-                    // A completed search leaves the skip flag of its best motion mode. Reference: the best_xskip_txfm
-                    // restore at the end of handle_inter_mode().
+                    // A completed search leaves the skip flag of its best motion mode.
                     if (candidateStatistics.Cost != long.MaxValue)
                     {
                         this.transformSearchSkip = candidateModeInfo.Block.Skip;
@@ -860,7 +843,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     // A reference kept only because a compound pair uses it searches no motion mode.
-                    // Reference: the skip_motion_mode result of inter_mode_search_order_independent_skip().
                     if (!skipMotionModes)
                     {
                         this.RecordMotionModeWinner(candidateStatistics.Cost, false, candidateModeInfo, candidateBlock, candidateVector);
@@ -905,8 +887,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.transformSearchSkip = false;
             }
 
-            // After every single-reference mode, a pair is searched only when one of its references is within ten
-            // percent of the best single reference. Reference: find_top_ref() and in_single_ref_cutoff().
+            // After every single-reference mode, a pair is searched only when one of its references is within ten percent of the best single
+            // reference.
             long singleReferenceCutoff = long.MaxValue;
             for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
             {
@@ -919,13 +901,12 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             // An alternate reference frame of the base layer searches no compound mode at the speeds that skip them.
-            // Reference: the skip_arf_compound test of inter_mode_search_order_independent_skip().
             bool skipsCompound = this.picture.Parent.PrunesAllCompoundReferences ||
                 (this.picture.Parent.SpeedSettings.SkipAlternateReferenceCompound &&
                  this.picture.Parent.FrameUpdateType == Av1FrameUpdateType.Alternate);
 
-            // Nearest pairs establish a bound across all admitted references first. The remaining
-            // motion families then complete each pair in order, retaining that pair's mask history.
+            // The nearest pairs set a bound across all admitted references first. Then the remaining motion families complete each pair in
+            // order, and keep the mask history of that pair.
             for (int phase = 0; !skipsCompound && phase < 2; phase++)
             {
                 for (int index = 0; index < compoundSearchOrder.Length; index++)
@@ -1079,10 +1060,9 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns whether the frame drops a compound pair. When the references lie on both sides of the frame, a pair
-        /// with both references on one side is dropped, and from selective level four a pair with ALTREF2 is dropped
-        /// when BWDREF is a nearer future reference. Reference: the second branch of setup_prune_ref_frame_mask(),
-        /// which prune_ref_frame() reads.
+        /// Returns whether the frame drops a compound pair. From selective level one, when the references lie on both sides of the frame,
+        /// a pair with both references on one side is dropped. From selective level four, a pair with ALTREF2 is dropped when BWDREF is a
+        /// nearer future reference.
         /// </summary>
         /// <param name="first">The first reference of the pair.</param>
         /// <param name="second">The second reference of the pair.</param>
@@ -1111,9 +1091,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns the combined type of a reference or reference pair. A pair of a forward and a backward reference
-        /// indexes the forward-by-backward table, and a pair on one side indexes the unidirectional pairs after it.
-        /// Reference: av1_ref_frame_type() with get_uni_comp_ref_idx().
+        /// Returns the combined type of a reference or reference pair. A pair of a forward and a backward reference indexes the
+        /// forward-by-backward table. A pair on one side indexes the unidirectional pairs after that table.
         /// </summary>
         /// <param name="first">The first reference.</param>
         /// <param name="second">The second reference, or none for a single reference.</param>
@@ -1139,7 +1118,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns the reference pair of a combined compound type. Reference: ref_frame_map.
+        /// Returns the reference pair of a combined compound type.
         /// </summary>
         /// <param name="type">The combined reference type, at least the single-reference count.</param>
         /// <returns>The two references.</returns>
@@ -1156,7 +1135,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns a unidirectional compound pair. Reference: comp_ref0() and comp_ref1().
+        /// Returns a unidirectional compound pair, in the AV1 order of unidirectional pairs.
         /// </summary>
         /// <param name="index">The pair index, from zero to eight.</param>
         /// <returns>The two references.</returns>
@@ -1175,10 +1154,14 @@ internal static partial class Av1IntraSuperblockEncoder
             };
 
         /// <summary>
-        /// Returns the largest full-sample magnitude of the first two reference predictors, which sets the block's
-        /// spatial search range. Clamping at the last potentially visible interpolation tap bounds padded reads
-        /// without changing their prediction. Reference: x->max_mv_context from av1_find_best_ref_mvs().
+        /// Returns the largest full-sample magnitude of the first two reference predictors, which sets the spatial search range of the
+        /// block. A clamp at the last interpolation tap that can be visible limits the padded reads without a change to their prediction.
         /// </summary>
+        /// <param name="referenceMotionVectors">The reference vector list of the block.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="frameSize">The frame size in luma samples.</param>
+        /// <returns>The largest full-sample magnitude.</returns>
         private static int GetSpatialMotionMagnitude(
             Av1ReferenceMotionVectors referenceMotionVectors,
             Point blockOrigin,
@@ -1198,11 +1181,9 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Evaluates a motion mode other than simple translation for a single-reference prediction, from the
-        /// decisions of its simple-translation result. OBMC re-searches a new vector against its blended target, and
-        /// warped motion refines one against its local model. A pruned mode, an invalid model, or a new vector equal
-        /// to its reference returns an invalid result. Reference: the OBMC_CAUSAL and WARPED_CAUSAL iterations of the
-        /// mode_index loop of motion_mode_rd().
+        /// Evaluates a motion mode other than simple translation for a single-reference prediction, from the decisions of its
+        /// simple-translation result. OBMC searches a new vector again against its blended target. Warped motion refines a new vector
+        /// against its local model. A pruned mode, an invalid model, or a new vector equal to its reference returns an invalid result.
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the block entry read once.</param>
@@ -1235,14 +1216,14 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="motionMode">The motion mode to evaluate.</param>
-        /// <param name="lastAllowed">The last motion mode the block may code.</param>
+        /// <param name="lastAllowed">The last motion mode that the block can code.</param>
         /// <param name="baseRate">The prediction rate without the motion mode and filter syntax.</param>
         /// <param name="costLimit">The cost above which the transform search stops.</param>
         /// <param name="hasChroma">Whether the block codes chroma.</param>
         /// <param name="referenceIndex">The dynamic reference list index of the prediction.</param>
         /// <param name="referenceMotionVectors">The reference vector list of the reference frame.</param>
         /// <param name="candidate">The block decisions. The motion mode and, for warped motion, the filters are set.</param>
-        /// <param name="vector">The motion vector, which a new vector search may change.</param>
+        /// <param name="vector">The motion vector, which a new vector search can change.</param>
         /// <param name="lumaReconstruction">The luma reconstruction scratch.</param>
         /// <param name="lumaCoefficients">The luma coefficient scratch.</param>
         /// <param name="blueReconstruction">The blue reconstruction scratch.</param>
@@ -1316,8 +1297,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             Av1BlockSize blockSize = candidate.BlockSize;
 
-            // Sharpness 3 searches neither OBMC nor warped motion. Reference: the sharpness test of the mode_index
-            // loop of motion_mode_rd().
+            // Sharpness 3 searches neither OBMC nor warped motion.
             if (this.blockWorkspace.EncoderOptions.Sharpness == 3)
             {
                 return Av1RateDistortionStatistics.Invalid;
@@ -1328,8 +1308,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int filterRate = 0;
             if (motionMode == Av1MotionMode.Obmc)
             {
-                // A block size that rarely picks OBMC does not search it. Reference: the prune_obmc test of
-                // motion_mode_rd().
+                // A block size that rarely picks OBMC does not search it.
                 if (this.picture.Parent.ObmcProbabilities[(int)blockSize] < this.picture.Parent.SpeedSettings.ObmcProbabilityThreshold)
                 {
                     return Av1RateDistortionStatistics.Invalid;
@@ -1338,9 +1317,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.SetWarpedPrediction(macroBlock, blockOrigin, candidate.PartitionType, candidate, vector);
                 if (candidate.Mode == Av1PredictionMode.NewMotionVector)
                 {
-                    // A new vector is searched again against the OBMC target, and one equal to its reference
-                    // codes no difference. Reference: the av1_single_motion_search() call of motion_mode_rd(),
-                    // then av1_check_newmv_joint_nonzero().
+                    // A new vector is searched again against the OBMC target. A new vector equal to its reference codes no difference, so
+                    // the candidate is invalid.
                     Av1MotionVector referenceVector = referenceMotionVectors.GetNewReference(referenceIndex);
                     Size frameSize = new(
                         this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
@@ -1395,8 +1373,8 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else
             {
-                // A warped block signals no filter and predicts any small chroma plane with the frame's fixed filter.
-                // Reference: av1_unswitchable_filter().
+                // A warped block signals no filter. It predicts any small chroma plane with the fixed filter of the frame, or the regular
+                // filter when the frame filter is switchable.
                 Av1InterpolationFilter warpedFilter = frameHeader.InterpolationFilter == Av1InterpolationFilter.Switchable
                     ? Av1InterpolationFilter.Regular
                     : frameHeader.InterpolationFilter;
@@ -1423,7 +1401,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         vector,
                         referenceVector);
 
-                    // A new vector equal to its reference codes no difference. Reference: av1_check_newmv_joint_nonzero().
+                    // A new vector equal to its reference codes no difference, so the candidate is invalid.
                     if (vector == referenceVector)
                     {
                         this.useWarpedPrediction = false;
@@ -1507,8 +1485,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Retains a mode-loop result for the motion-mode search after the loop. Reference: the handle_winner_cand()
-        /// call of av1_rd_pick_inter_mode().
+        /// Keeps a mode-loop result for the motion-mode search after the loop. The list keeps the cheapest results, up to the winner
+        /// limit of the speed settings.
         /// </summary>
         /// <param name="cost">The rate-distortion cost of the result.</param>
         /// <param name="isCompound">Whether the result predicts from two references.</param>
@@ -1540,9 +1518,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Searches the motion modes other than simple translation for the single-reference winners of the mode
-        /// loop. Reference: evaluate_motion_mode_for_winner_candidates(), with the WARPED_CAUSAL branch of
-        /// motion_mode_rd().
+        /// Searches the motion modes other than simple translation for the single-reference winners of the mode loop.
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables of the tile.</param>
@@ -1643,7 +1619,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
-                // Reference: the skip_txfm reset of each candidate in evaluate_motion_mode_for_winner_candidates().
+                // Each candidate clears the leftover skip flag.
                 this.transformSearchSkip = false;
 
                 Av1MotionMode lastAllowed = Av1EncoderMotionVariation.GetLastAllowedMotionMode(
@@ -1653,11 +1629,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 bool candidateBestSkip = false;
 
                 // A completed trial bounds the later trials of the candidate by its cost before the image tune bias.
-                // Reference: the ref_best_rd update of motion_mode_rd().
                 long candidateTrialCost = long.MaxValue;
 
-                // OBMC first, then warped motion, each from the simple-translation decisions of the winner.
-                // Reference: the mode_index loop of motion_mode_rd() from update_mode_start_end_index().
+                // OBMC comes first, then warped motion, each from the simple-translation decisions of the winner.
                 for (Av1MotionMode motionMode = Av1MotionMode.Obmc; motionMode <= lastAllowed; motionMode++)
                 {
                     Av1MacroBlockModeInfo candidateModeInfo = winner.ModeInfo;
@@ -1758,8 +1732,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     selectedSecondaryVector = default;
                 }
 
-                // The best motion mode of the candidate leaves its skip flag. Reference: the best_xskip_txfm restore at the
-                // end of motion_mode_rd().
+                // The best motion mode of the candidate leaves its skip flag.
                 if (candidateBestCost != long.MaxValue)
                 {
                     this.transformSearchSkip = candidateBestSkip;
@@ -1770,9 +1743,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Refines the new vector of a warped block in unit steps, re-deriving the warped model at each step and
-        /// keeping the vector with the smallest luma variance plus vector cost. The retained model is left in
-        /// <see cref="warpedModel"/>. Reference: av1_refine_warped_mv() with compute_motion_cost().
+        /// Refines the new vector of a warped block in unit steps. At each step, the method derives the warped model again and keeps the
+        /// vector with the smallest luma variance plus vector cost. The kept model stays in <see cref="warpedModel"/>.
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -1797,8 +1769,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MotionVector vector,
             Av1MotionVector referenceVector)
         {
-            // The diamond visits the four edge neighbors and the square adds the corners. A neighbor that the last
-            // step made redundant is skipped. Reference: warp_search_info.
+            // The diamond visits the four edge neighbors, and the square adds the corners. After a step, each mask keeps only the neighbors
+            // that the earlier position did not already measure.
             ReadOnlySpan<sbyte> rows = [0, 1, 0, -1, 1, 1, -1, -1];
             ReadOnlySpan<sbyte> columns = [-1, 0, 1, 0, -1, 1, -1, 1];
             ReadOnlySpan<byte> diamondMasks = [0b1011, 0b0111, 0b1110, 0b1101];
@@ -1900,7 +1872,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Measures the luma variance of the current warped prediction plus the cost of its vector.
-        /// Reference: compute_motion_cost().
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -1969,8 +1940,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Runs complete transform search on ranked predictions before publishing the inter winner.
-        /// Reference: tx_search_best_inter_candidates().
+        /// Runs the complete transform search on the ranked predictions before it publishes the inter winner.
         /// </summary>
         /// <param name="writer">The symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the block entry read once.</param>
@@ -2008,8 +1978,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="selectedSecondaryVector">The second vector of the winner.</param>
         /// <param name="selectedStates">The transform states of the winner.</param>
         /// <param name="lumaThreshold">
-        /// The luma cost of the cheapest candidate whose transform search completed, even one above the block budget,
-        /// or the maximum when none completed. Reference: the *yrd of best_rd_in_this_partition.
+        /// The luma cost of the cheapest candidate whose transform search completed, even one above the block budget, or the maximum when
+        /// none completed.
         /// </param>
         /// <returns>The winner, or invalid when no candidate is below the block budget.</returns>
         private Av1RateDistortionStatistics SearchRetainedInterCandidates(
@@ -2086,15 +2056,15 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
-                // Reference: the skip_txfm reset of each candidate in tx_search_best_inter_candidates().
+                // Each candidate clears the leftover skip flag.
                 this.transformSearchSkip = false;
                 if (!this.ShouldSearchInterTransforms(candidate))
                 {
                     continue;
                 }
 
-                // Recreate only the predictions that reach transform search. Inter-intra owns its complete
-                // three-plane blend; other modes use the same plane builder as the initial estimation pass.
+                // Only the predictions that reach the transform search are built again. Inter-intra owns its complete three-plane blend.
+                // Other modes use the same plane builder as the first estimation pass.
                 if (predictionModeInfo.SecondaryReferenceFrame == Av1ReferenceFrameType.Intra)
                 {
                     this.PrepareInterIntraPrediction(
@@ -2177,8 +2147,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             sourceRed);
                     }
 
-                    // The rebuilt luma goes into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in
-                    // tx_search_best_inter_candidates().
+                    // The rebuilt luma also goes into the frame, unless the prediction uses OBMC or warped motion.
                     if (!this.useObmcPrediction && !this.useWarpedPrediction)
                     {
                         this.WriteInterLumaDestination(lumaFrame, blockOrigin, predictionModeInfo.BlockSize, interWorkspace.LumaPrediction);
@@ -2528,14 +2497,12 @@ internal static partial class Av1IntraSuperblockEncoder
             int skipRate = Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext);
             bool allEmpty = !candidateStatistics.HasCoefficients;
 
-            // Skipping removes the entire transform tree, including every partition and coefficient
-            // symbol. Compare that complete syntax once both luma and chroma have been evaluated. An empty
-            // residual still codes as non-skip when its skip flag costs more. Any sharpness keeps the residual of a
-            // compound prediction. Reference: the skip_blk test of refine_winner_mode_tx().
+            // A skip removes the entire transform tree, including every partition and coefficient symbol. The comparison of that complete
+            // syntax comes after both luma and chroma are evaluated. An empty residual still codes as non-skip when its skip flag costs
+            // more. Any sharpness keeps the residual of a compound prediction.
             bool compound = candidateModeInfo.Block.SecondaryReferenceFrame > Av1ReferenceFrameType.Intra;
 
             // High bit depth sharpness 3 adds a skip penalty to the comparison only.
-            // Reference: the av1_get_tx_skip_dist() call before the skip_blk test of refine_winner_mode_tx().
             long comparedCodedDistortion = candidateStatistics.Distortion;
             long comparedSkipDistortion = candidateStatistics.PredictionDistortion;
             if (this.UsesHighBitDepthSharpness)
@@ -2563,9 +2530,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     PredictionDistortion = predictionDistortion
                 };
 
-                // A skipped block codes no transform tree, so it carries no split decisions and no
-                // per-transform state. Returning the sizes to the largest the block permits, and
-                // clearing the states, leaves the block in the shape the bitstream describes.
+                // A skipped block codes no transform tree, so it carries no split decisions and no per-transform state. The sizes return to
+                // the largest that the block permits, and the states clear. This leaves the block in the shape that the bitstream describes.
                 candidateModeInfo.Block.Skip = true;
                 candidateModeInfo.Block.TransformSize = maximumTransformSize;
                 candidateModeInfo.Block.InterTransformSizes.Fill(maximumTransformSize);
@@ -2575,10 +2541,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 stateCount = 1;
             }
 
-            // A skipped block pays its skip flag through the statistics above, so only a coded
-            // block adds the flag that says it is not skipped. The luma cost is kept apart from the
-            // total because later stages compare luma alone when they decide whether to search
-            // chroma at all.
+            // A skipped block pays its skip flag through the statistics above, so only a coded block adds the non-skip flag. The luma cost
+            // is kept apart from the total, because later stages compare luma alone when they decide whether to search chroma.
             int residualRate = candidateStatistics.Rate + (skip ? 0 : noSkipRate);
             Av1RateDistortionStatistics refinedStatistics = new(
                 this.rateMultiplier,
@@ -2602,8 +2566,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     sourceLuma, sourceBlue, sourceRed, ref refinedStatistics, blockOrigin, modeInfo.Block, vector, interWorkspace.LumaPrediction, refinedSkip);
             }
 
-            // The winner is priced again from its rate and distortion, which drops the cost bias of the image tune but
-            // keeps its distortion bias. Reference: the best_rd of refine_winner_mode_tx().
+            // The winner is priced again from its rate and distortion. This drops the cost bias of the image tune, but keeps its distortion
+            // bias.
             if (refinedStatistics.Cost >= Av1RateDistortion.GetCost(this.rateMultiplier, selectedStatistics.Rate, selectedStatistics.Distortion))
             {
                 return;
@@ -2611,9 +2575,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             selectedStatistics = refinedStatistics;
 
-            // One array holds all three planes so that a winning candidate is retained by a single
-            // copy. Luma owns the first 64 entries, which is the most transforms a superblock
-            // partition can hold, and each chroma plane owns 16 after it.
+            // One array holds all three planes, so a single copy keeps a winning candidate. Luma owns the first 64 entries, which is the
+            // most transforms that a superblock partition can hold. Each chroma plane owns 16 entries after it.
             modeInfo = candidateModeInfo;
             candidateStates[..stateCount].CopyTo(selectedStates);
             blueStates[..].CopyTo(selectedStates[64..80]);
@@ -2621,10 +2584,9 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Sets the cost of a refined inter winner at high bit depth sharpness 3, as the reference does. The cost starts at zero.
-        /// The image tunes add one eighth to the distortion and to the zero cost. Else the texture-loss charge sets a cost only when its offset is positive.
-        /// A refined winner with a cost of zero always replaces the selection.
-        /// Reference: the tmp_rd_stats branch of refine_winner_mode_tx(). Its av1_init_rd_stats() sets rdcost to zero before adjust_rdcost().
+        /// Sets the cost of a refined inter winner at high bit depth sharpness 3. The cost starts at zero on purpose. The image tunes add
+        /// one eighth to the distortion and to the zero cost. Otherwise the texture-loss charge sets a cost only when its offset is
+        /// positive. A refined winner with a cost of zero always replaces the selection.
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -2676,10 +2638,9 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Sets the cost of a refined intra winner in an inter frame at high bit depth sharpness 3, as the reference does.
-        /// The cost starts at zero. The texture-loss charge sets a cost only when its offset is positive.
-        /// The measure reads the frame luma that the last transform trial of the refinement left. An intra mode never skips.
-        /// Reference: the tmp_rd_stats branch of refine_winner_mode_tx() with is_inter_mode() false.
+        /// Sets the cost of a refined intra winner in an inter frame at high bit depth sharpness 3. The cost starts at zero on purpose. The
+        /// texture-loss charge sets a cost only when its offset is positive. The measure reads the frame luma that the last transform trial
+        /// of the refinement left. An intra mode never skips.
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -3031,8 +2992,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     primaryWarped,
                     secondaryWarped);
 
-                // The rebuilt luma goes into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in
-                // refine_winner_mode_tx().
+                // The rebuilt luma also goes into the frame.
                 this.WriteInterLumaDestination(lumaFrame, blockOrigin, predictionSize, prediction);
                 return;
             }
@@ -3048,8 +3008,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (warped)
             {
-                // A warped block of at least 8x8 luma samples predicts with its local model, and a GLOBALMV block
-                // with the model of its reference. Reference: av1_init_warp_params().
+                // A warped block of at least 8x8 luma samples predicts with its local model. A GLOBALMV block predicts with the model of its
+                // reference.
                 Av1EncoderFrame<TSample> referenceFrame = this.references.Span[(int)modeInfo.Block.ReferenceFrame];
                 int width = predictionSize.GetWidth();
                 int height = predictionSize.GetHeight();
@@ -3077,8 +3037,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     width,
                     height);
 
-                // A global warp is allowed at sharpness 3, so its rebuilt luma goes into the frame. A local warp is not.
-                // Reference: av1_enc_build_inter_predictor() in refine_winner_mode_tx().
+                // The rebuilt luma of a global warp goes into the frame. The rebuilt luma of a local warp does not.
                 if (!this.useWarpedPrediction)
                 {
                     this.WriteInterLumaDestination(lumaFrame, blockOrigin, predictionSize, prediction);
@@ -3147,15 +3106,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
-            // Reference: av1_enc_build_inter_predictor() in refine_winner_mode_tx().
+            // The rebuilt luma also goes into the frame.
             this.WriteInterLumaDestination(lumaFrame, blockOrigin, predictionSize, prediction);
         }
 
         /// <summary>
-        /// Evaluates a prepared luma prediction with local coefficient and transform edge contexts.
-        /// At high bit depth sharpness 3, the trellis of each luma trial can treat the block as a noise pattern.
-        /// During an inter residual search, the destination holds the prediction, so the test reads the prediction.
-        /// Reference: is_noise_pattern in av1_optimize_txb(), from av1_get_variance_stats() on pd->dst.
+        /// Evaluates a prepared luma prediction with local coefficient and transform edge contexts. At high bit depth sharpness 3, the
+        /// trellis of each luma trial can treat the block as a noise pattern. During an inter residual search, the destination holds the
+        /// prediction, so the test reads the prediction.
         /// </summary>
         /// <param name="writer">The symbol encoder that supplies the coefficient costs.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the block entry read once.</param>
@@ -3329,7 +3287,6 @@ internal static partial class Av1IntraSuperblockEncoder
             bool residualPrepared = false;
 
             // The recursive search exits early when the modeled luma cost is already well above its bound.
-            // Reference: model_based_tx_search_prune() in av1_pick_recursive_tx_size_type_yrd().
             if (costLimit != long.MaxValue && initialDepth != Av1Constants.MaxVarTransform &&
                 this.picture.Parent.SpeedSettings.GetModelBasedTransformPruneLevel(this.picture.Parent.FrameUpdateType) != 0)
             {
@@ -3348,9 +3305,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // A block inside the tile reuses the result of an earlier search of the same residual in the superblock,
-            // unless the search has no cost bound. Reference: the use_mb_rd_hash lookup of
-            // av1_pick_recursive_tx_size_type_yrd() and av1_pick_uniform_tx_size_type_yrd().
+            // A block inside the tile reuses the result of an earlier search of the same residual in the superblock, unless the search has
+            // no cost bound. The record matches residuals by hash.
             Av1MacroblockRateDistortionRecord record = this.blockWorkspace.MacroblockRateDistortionRecord;
             bool useRecord = this.picture.Parent.SpeedSettings.UseMacroblockRateDistortionHash &&
                 macroBlock.ToBottomEdge > 0 && macroBlock.ToRightEdge > 0;
@@ -3382,9 +3338,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // A residual predicted to quantize to nothing takes the largest transforms with every coefficient
-            // zero, and the transform search is not run. Reference: the predict_skip_txfm() and set_skip_txfm()
-            // step that opens av1_pick_recursive_tx_size_type_yrd() and av1_pick_uniform_tx_size_type_yrd().
+            // A residual predicted to quantize to nothing takes the largest transforms with every coefficient zero, and the transform search
+            // does not run.
             int skipPredictionLevel = this.GetSkipPredictionLevel();
             if (skipPredictionLevel != 0 && !this.BlockLossless &&
                 this.PredictSkipTransform(
@@ -3438,17 +3393,16 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1RateDistortionStatistics statistics = default;
             int rootIndex = 0;
 
-            // The uniform search of the largest transform accumulates the cheaper of coding and skipping each
-            // block after the cheaper skip flag, and stops once that sum exceeds the budget. Reference:
-            // choose_largest_tx_size() with the current_rd of av1_txfm_rd_in_plane() and block_rd_txfm().
+            // The uniform search of the largest transform starts with the cheaper skip flag. Then it adds the cheaper of coding and skipping
+            // each block, and stops when that sum exceeds the budget.
             bool uniformSearch = initialDepth == Av1Constants.MaxVarTransform;
 
-            // Lossless coding starts at zero. Reference: choose_smallest_tx_size().
+            // Lossless coding starts at zero.
             long uniformCurrentCost = this.BlockLossless ? 0 : Math.Min(skipCost, codedCost);
             bool uniformExited = false;
 
-            // A coding block can contain several maximum-size transforms. Each root consumes the
-            // contexts left by its predecessor, while the bound retains both coded and skipped costs.
+            // A coding block can contain several maximum-size transforms. Each root reads the contexts that its predecessor left, and the
+            // bound keeps both the coded and the skipped costs.
             int rootCount = width4 * height4 / (rootWidth4 * rootHeight4);
             for (int root = 0; root < rootCount; root++)
             {
@@ -3457,9 +3411,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 int column = offset.X >> Av1Constants.ModeInfoSizeLog2;
                 if (row < visibleHeight4 && column < visibleWidth4)
                 {
-                    // A block that follows the end of the uniform search leaves the plane incomplete. The uniform
-                    // search records even an incomplete result. Reference: save_mb_rd_info() in
-                    // av1_pick_uniform_tx_size_type_yrd().
+                    // A block that follows the end of the uniform search leaves the plane incomplete. The uniform search records even an
+                    // incomplete result.
                     if (uniformExited)
                     {
                         if (useRecord)
@@ -3512,8 +3465,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (rootStatistics.Rate == int.MaxValue)
                     {
-                        // Only the uniform search records a failed result. Reference: the rd == INT64_MAX return of
-                        // av1_pick_recursive_tx_size_type_yrd(), before save_mb_rd_info().
+                        // Only the uniform search records a failed result. The recursive search returns before it records.
                         if (useRecord && uniformSearch)
                         {
                             record.Save(hash, Av1RateDistortionStatistics.Invalid, states[..stateCount], modeInfo);
@@ -3539,8 +3491,6 @@ internal static partial class Av1IntraSuperblockEncoder
             // When a skip of the whole luma residual costs no more than coding it, the largest-transform search reports a skip.
             // The skip has the prediction error and no rate. At high bit depth sharpness 3, the skip gets a penalty first.
             // The largest transform signals no size, so the coded cost has no size rate. The record keeps the result.
-            // Reference: the forced skip test at the end of uniform_txfm_yrd() with TX_MODE_LARGEST.
-            // Also save_mb_rd_info() in av1_pick_uniform_tx_size_type_yrd().
             if (uniformSearch && statistics.HasCoefficients && !this.BlockLossless)
             {
                 long codedDistortion = statistics.Distortion;
@@ -3575,18 +3525,17 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Gets the predicted-skip level of the current evaluation stage.
-        /// Reference: predict_skip_levels, indexed by use_skip_flag_prediction and the mode evaluation type.
         /// </summary>
+        /// <returns>Zero when the speed settings disable the prediction, the settings level at the candidate stage, and one otherwise.</returns>
         private int GetSkipPredictionLevel()
         {
-            // Rows of predict_skip_levels: { 0, 0, 0 }, { 1, 1, 1 } and { 1, 2, 1 }.
+            // The levels for the default, candidate and winner stages are { 0, 0, 0 }, { 1, 1, 1 } and { 1, 2, 1 }, by settings level.
             int level = this.picture.Parent.SpeedSettings.SkipFlagPredictionLevel;
             return level == 0 ? 0 : this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Candidate ? level : 1;
         }
 
         /// <summary>
         /// Predicts whether the whole luma residual of an inter or copied block quantizes to nothing.
-        /// Reference: predict_skip_txfm().
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -3617,7 +3566,6 @@ internal static partial class Av1IntraSuperblockEncoder
             int height = blockSize.GetHeight();
 
             // High bit depth sharpness 3 never predicts a skip when the prediction is smoother than a source with low detail.
-            // Reference: av1_is_skip_txfm_penalized() at the start of predict_skip_txfm().
             if (this.PenalizesHighBitDepthSkip)
             {
                 this.GetVarianceStatistics(
@@ -3648,11 +3596,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 width,
                 height);
 
-            // The whole block is subtracted with the DCT_DCT border padding. Reference: av1_subtract_plane().
+            // The whole block is subtracted with the DCT_DCT border padding.
             Av1TransformBlockEncoder.PadBorderResidual(
                 this.blockWorkspace, Av1Plane.Y, blockOrigin, residual, width, width, height, Av1TransformType.DctDct);
 
-            // The distortion covers the visible samples only. Reference: av1_pixel_diff_dist().
+            // The distortion covers the visible samples only.
             Size visibleSize = this.blockWorkspace.GetVisibleSize(Av1Plane.Y, blockOrigin, width, height);
             int visibleWidth = visibleSize.Width;
             int visibleHeight = visibleSize.Height;
@@ -3715,8 +3663,19 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Records a predicted-skip luma result: the largest transforms, each coded as all zero.
-        /// Reference: set_skip_txfm().
         /// </summary>
+        /// <param name="writer">The tile symbol encoder that prices the all-zero flag.</param>
+        /// <param name="macroBlock">The frame edges of the block.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="modeInfo">The block syntax, which receives the transform sizes.</param>
+        /// <param name="states">Receives the state of each visible transform.</param>
+        /// <param name="coefficientAbove">The local above coefficient contexts, updated for each transform.</param>
+        /// <param name="coefficientLeft">The local left coefficient contexts, updated for each transform.</param>
+        /// <param name="transformAbove">The local above transform size contexts, updated for each transform.</param>
+        /// <param name="transformLeft">The local left transform size contexts, updated for each transform.</param>
+        /// <param name="distortion">The prediction error of the visible samples, at the sample bit depth.</param>
+        /// <param name="stateCount">The number of states written.</param>
+        /// <returns>The rate and distortion of the skipped luma residual.</returns>
         private Av1RateDistortionStatistics SetSkipTransform(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
@@ -3749,7 +3708,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int transformCount = (blockWidth4 / width4) * (blockHeight4 / height4);
 
-            // Should the block stay non-skip after chroma, its luma transforms code as empty DCT blocks.
+            // If the block stays non-skip after chroma, its luma transforms code as empty DCT blocks.
             stateCount = 0;
             Size frameContextSize = new(this.picture.Parent.FrameHeader.ModeInfoColumnCount, this.picture.Parent.FrameHeader.ModeInfoRowCount);
             for (int row = 0; row < blockHeight4; row += height4)
@@ -3792,6 +3751,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
+            // The distortion rounds to the 8-bit scale, then scales by 16 to the distortion units of the cost.
             int shift = (this.bitDepth.GetBitCount() - 8) * 2;
             long scaled = (shift == 0 ? distortion : (distortion + (1L << (shift - 1))) >> shift) << 4;
             return new Av1RateDistortionStatistics(this.rateMultiplier, zeroRate * transformCount, scaled)
@@ -3892,7 +3852,6 @@ internal static partial class Av1IntraSuperblockEncoder
             int savedStateCount = stateCount;
 
             // The largest-transform search of mode evaluation codes each root transform once, without a split.
-            // Reference: choose_largest_tx_size() against select_tx_block().
             bool uniformSearch = rootIndex >= 0 && depth == Av1Constants.MaxVarTransform;
             InlineArray32<byte> savedCoefficientAbove = default;
             InlineArray32<byte> savedCoefficientLeft = default;
@@ -3932,8 +3891,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int pruningLevel = this.picture.Parent.SpeedSettings.InterTransformSizePruningLevel;
             if (canSplit && pruningLevel > 0 && this.bitDepth.GetBitCount() > 8)
             {
-                // Compare the residual's mean and variance across the parent and its subdivisions.
-                // Uniform residuals keep the larger transform; sharply different regions bypass it.
+                // The test compares the mean and variance of the residual across the parent and its subdivisions. Uniform residuals keep the
+                // larger transform. Sharply different regions skip it.
                 int subWidth = width >= height ? width >> 1 : width;
                 int subHeight = height >= width ? height >> 1 : height;
                 int subArea = subWidth * subHeight;
@@ -3948,7 +3907,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     for (int x = 0; x < width; x += subWidth)
                     {
-                        // Reference: the aom_get_blk_sse_sum() call of get_blk_var_dev().
+                        // Each subdivision gives its sum and its sum of squares.
                         long subSquaredSum = Av1ResidualBuilder.SumAndSumSquares(
                             residual[((y * width) + x)..], width, subWidth, subHeight, out long blockSum);
 
@@ -4053,17 +4012,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     usesInterTransformSet: true,
                     this.BlockLossless);
 
-                // The neighbors of this transform read the entropy context of its coded result, even when the
-                // empty residual below wins. Reference: txb_entropy_ctx, which the zero_blk_rd branch of
-                // try_tx_block_no_split() leaves as quantization set it.
+                // The neighbors of this transform read the entropy context of its coded result, even when the empty residual below wins. The
+                // empty branch leaves the context as quantization set it.
                 coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
                     lumaCandidateCoefficients, transformSize, noSplitState.TransformType, noSplitState.EndOfBlock);
 
-                // An empty residual can win even when quantization retained coefficients. Its distortion
-                // is the prediction error, and its syntax consists only of the transform-skip symbol. The
-                // uniform search of the largest transform keeps the coded result and its searched type.
-                // Reference: the zero_blk_rd branch of try_tx_block_no_split(), which choose_largest_tx_size()
-                // does not have.
+                // An empty residual can win even when quantization kept coefficients. Its distortion is the prediction error, and its syntax
+                // is only the transform-skip symbol. The uniform search of the largest transform has no such test. It keeps the coded result
+                // and its searched type.
                 if (!uniformSearch && (noSplitState.EndOfBlock == 0 ||
                     (!this.BlockLossless &&
                     Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion) >=
@@ -4089,9 +4045,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (uniformSearch)
                 {
-                    // The block keeps its result even above the budget; the plane search ends after it instead,
-                    // and fails only when another block follows. Reference: the exit_early and incomplete_exit
-                    // handling of block_rd_txfm() and av1_txfm_rd_in_plane() for inter blocks.
+                    // The block keeps its result even above the budget. Instead, the plane search ends after it, and fails only when another
+                    // block follows.
                     return this.CommitInterTransformNode(
                         ref modeInfo,
                         transformSize,
@@ -4114,8 +4069,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 int retainedCount = this.picture.Parent.SpeedSettings.InterTransformNoSplitCandidateCount;
                 if (rootIndex >= 0 && retainedCount != 0 && !this.BlockLossless && !modeInfo.UseIntraBlockCopy)
                 {
-                    // Compare the same root across prediction modes. Child transforms do not enter
-                    // this history: their areas and context-dependent costs are not interchangeable.
+                    // The history compares the same root across prediction modes. Child transforms do not enter this history, because their
+                    // areas and context-dependent costs are not interchangeable.
                     Span<long> previousCosts = this.interTransformNoSplitCosts[(rootIndex * 4)..((rootIndex * 4) + retainedCount)];
                     for (int index = 0; index < retainedCount; index++)
                     {
@@ -4168,9 +4123,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 int childCount = (width4 / childWidth4) * (height4 / childHeight4);
                 long splitLimit = Math.Min(noSplit.Cost, costLimit);
 
-                // The split cost counts only after the first child: the partition rate is added without updating
-                // rdcost, so the first child receives the whole budget. Reference: the ref_best_rd -
-                // split_rd_stats->rdcost of try_tx_block_split().
+                // The split cost counts only after the first child. The partition rate is added without an update of the cost, so the first
+                // child receives the whole budget.
                 long consumedCost = 0;
                 for (int y = 0; y < height4 && row + y < visibleHeight4; y += childHeight4)
                 {
@@ -4317,11 +4271,9 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns whether the reference lists that skip mode reads exist for the block. A pair that the rectangular
-        /// partition mask drops, unless the cached decision of an asymmetric sub-block uses it, or that the frame or
-        /// the selective reference search prunes, has no list of its own, and skip mode then builds it only when both
-        /// single references have theirs. Reference: the ref_mv_count UINT8_MAX return of rd_pick_skip_mode(), with
-        /// the lists that set_params_rd_pick_inter_mode() builds under prune_ref_frame().
+        /// Returns whether the reference lists that skip mode reads exist for the block. Some pairs have no list of their own: a pair that
+        /// the rectangular partition mask drops, unless the cached decision of an asymmetric sub-block uses it, and a pair that the frame
+        /// or the selective reference search prunes. For such a pair, the lists exist only when both single references have theirs.
         /// </summary>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="first">The first skip-mode reference.</param>
@@ -4339,8 +4291,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Prices the non-skip-mode symbol of the block winner and tries skip mode against it. Reference:
-        /// rd_pick_skip_mode().
+        /// Prices the non-skip-mode symbol of the block winner and tries skip mode against it.
         /// </summary>
         /// <param name="tables">The rate tables that price the syntax.</param>
         /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
@@ -4419,9 +4370,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MotionVector primaryVector = referenceMotionVectors.GetCompoundNearestReference(0);
             Av1MotionVector secondaryVector = referenceMotionVectors.GetCompoundNearestReference(1);
 
-            // Skip mode is not searched when its vectors fail the build_cur_mv() test, which only the second vector
-            // decides; see CompoundVectorsInFrameSearchBounds(). Reference: the build_cur_mv() return of
-            // rd_pick_skip_mode().
+            // Skip mode is not searched when its vectors fail the frame search bounds test. Only the second vector decides this test, as in
+            // `CompoundVectorsInFrameSearchBounds`.
             Av1PlaneRegion<TSample> boundsPlane = this.references.Span[(int)primaryReference].CodedView.GetPlane(Av1Plane.Y);
             Rectangle frameBounds = Av1MotionVector.GetFrameSearchBounds(
                 new Rectangle(blockOrigin, new Size(blockSize.GetWidth(), blockSize.GetHeight())),
@@ -4435,8 +4385,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
-            // The winner takes the cost of coding skip mode as off only once skip mode is tried. Reference: the
-            // skip_mode_cost[skip_mode_ctx][0] update of rd_pick_skip_mode().
+            // The winner takes the cost of coding skip mode as off only when skip mode is tried.
             if (selectedStatistics.Cost != long.MaxValue)
             {
                 selectedStatistics.Add(this.rateMultiplier, nonSkipModeStatistics);
@@ -4500,16 +4449,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     sourceBlue,
                     sourceRed);
 
-                // The luma prediction goes into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in skip_mode_rd().
+                // The luma prediction also goes into the frame.
                 if (plane == Av1Plane.Y)
                 {
                     this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, prediction);
                 }
 
-                // Skip mode carries no coefficient or transform-choice syntax. Accumulate visible
-                // prediction error directly and abandon later planes once the candidate cannot win.
-                // A frame that pads its border measures the samples inside the frame only. Reference:
-                // av1_pixel_diff_dist() in skip_mode_rd().
+                // Skip mode carries no coefficient or transform-choice syntax. The loop adds the visible prediction error directly and stops
+                // the later planes when the candidate cannot win. A frame that pads its border measures the samples inside the frame only.
                 Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
                 Size visibleSize = this.blockWorkspace.BorderPad
                     ? this.blockWorkspace.GetVisibleSize(plane, origin, planeSize.GetWidth(), planeSize.GetHeight())
@@ -4532,15 +4479,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // Normalization can round a small high-bit-depth error to zero. A reversible frame
-            // still requires the original samples, so preserve the unrounded equality decision.
+            // The normalization can round a small high-bit-depth error to zero. A lossless frame still needs the original samples, so the
+            // test uses the unrounded equality.
             if (this.BlockLossless && !exactPrediction)
             {
                 return;
             }
 
-            // Skip mode codes no residual, so the block is skippable. Reference: the best_mode_skippable update of
-            // rd_pick_skip_mode().
+            // Skip mode codes no residual, so the block is skippable.
             selectedStatistics = new(this.rateMultiplier, rate, distortion)
             {
                 PredictionDistortion = distortion,
@@ -4701,8 +4647,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
 
-            // The global motion of a reference is a warp model, so the vector it contributes
-            // depends on where the block sits. Reference: gm_get_motion_vector().
+            // The global motion of a reference is a warp model, so the vector that it contributes depends on the position of the block.
             Av1MotionVector globalMotion = frameHeader
                 .GetGlobalMotionParameters()[(int)referenceFrame - (int)Av1ReferenceFrameType.Last]
                 .GetMotionVector(
@@ -4711,11 +4656,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfoPosition,
                     frameHeader.ForceIntegerMotionVector);
 
-            // A mode that codes a dynamic reference list index searches more than one entry of that
-            // list, and the reference caps the search at three. The near mode starts at the second
-            // entry, because the first is what the nearest mode already covers, so it has one fewer
-            // candidate. Every other mode has a single vector and no list index to code.
-            // Reference: the ref_mv_idx loop of handle_inter_mode(), bounded by MAX_REF_MV_SEARCH.
+            // A mode that codes a dynamic reference list index searches more than one entry of that list, at most three. The near mode
+            // starts at the second entry, because the nearest mode already covers the first, so it has one fewer candidate. Every other mode
+            // has a single vector and no list index to code.
             InlineArray3<Av1MotionVector> candidateVectorsStorage = default;
             InlineArray3<byte> candidateReferenceIndicesStorage = default;
             Span<Av1MotionVector> candidateVectors = candidateVectorsStorage;
@@ -4739,9 +4682,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 };
             }
 
-            // Each plane keeps two buffers: one holding the best candidate so far and one the
-            // candidate under test. Naming both here lets the winner be taken by exchanging spans
-            // rather than by copying a block of samples for every improvement.
+            // Each plane keeps two buffers: one for the best candidate so far, and one for the candidate under test. The winner moves by a
+            // swap of the spans, not by a copy of a block of samples for every improvement.
             Span<TSample> selectedLumaReconstruction = interWorkspace.SelectedLumaReconstruction;
             Span<TSample> candidateLumaReconstruction = interWorkspace.LumaCandidateReconstruction;
             Span<TSample> selectedBlueReconstruction = interWorkspace.SelectedBlueReconstruction;
@@ -4761,27 +4703,23 @@ internal static partial class Av1IntraSuperblockEncoder
             // Every candidate prices its reference and skip syntax with the same rates.
             Av1ModeCosts modeCosts = tables.ModeCosts;
 
-            // Every candidate of this reference pays the same syntax: the flag that says the block
-            // is inter, and the reference selection itself. Pricing it once keeps it out of the
-            // candidate loop.
+            // Every candidate of this reference pays the same syntax: the inter flag and the reference selection itself. This rate is priced
+            // once, outside the candidate loop.
             int intraInterContext = Av1TileWriter.GetIntraInterContext(modeInfoGrid, modeInfoAllocation, macroBlock);
             int commonPredictionRate = Av1SymbolEncoder.GetIsInterCost(tables.ModeCosts, isInter: true, intraInterContext) +
                 Av1SymbolEncoder.GetSingleReferenceCost(tables.ModeCosts, referenceFrame, referenceCounts);
 
-            // A frame that lets each block choose its reference mode codes one flag saying whether
-            // the block is compound. A block with a side below eight samples cannot be compound, so
-            // it codes no flag and pays nothing.
+            // A frame that lets each block choose its reference mode codes one flag that tells whether the block is compound. A block with a
+            // side below eight samples cannot be compound, so it codes no flag and pays nothing.
             if (frameHeader.ReferenceMode == ObuReferenceMode.ReferenceModeSelect &&
                 Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 8)
             {
                 commonPredictionRate += modeCosts.GetCompInter(Av1SymbolContextHelper.GetReferenceModeContext(modeInfoGrid, modeInfoAllocation, macroBlock), 0);
             }
 
-            // A frame that selects its transform size codes, for each block, whether the largest
-            // transform is split. This search never splits, so the cost of the unsplit flag is
-            // common to every candidate. The smallest transform cannot split and codes nothing.
-            // Mode evaluation that defers the transform size search codes the largest transform, which signals no
-            // split flag. Reference: the tx_select test of av1_estimate_txfm_yrd().
+            // A frame that selects its transform size codes, for each block, whether the largest transform is split. This search never
+            // splits, so every candidate pays the same unsplit flag. The smallest transform cannot split and codes nothing. A mode evaluation
+            // that defers the transform size search codes the largest transform, which signals no split flag.
             int transformPartitionRate = 0;
             if (frameHeader.TransformMode == Av1TransformMode.Select && lumaTransformSize != Av1TransformSize.Size4x4 &&
                 (!this.picture.Parent.SpeedSettings.DeferTransformSizeSearch ||
@@ -4822,7 +4760,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
 
             // The motion search reads a reference of another size through its copy resized to the frame size.
-            // Reference: the scaled_ref_frame of av1_single_motion_search().
             Av1PlaneRegion<TSample> referencePlane = this.searchReferences.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
             int sourceOrigin = ((sourcePlane.Bounds.Y + blockOrigin.Y) * sourcePlane.Stride) + sourcePlane.Bounds.X + blockOrigin.X;
             int referenceOrigin = ((referencePlane.Bounds.Y + blockOrigin.Y) * referencePlane.Stride) + referencePlane.Bounds.X + blockOrigin.X;
@@ -4838,8 +4775,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<byte> aboveContexts = lumaCoefficientEdges.Top.Slice(lumaCoefficientEdges.GetTopIndex(blockOrigin), blockSize.Get4x4WideCount());
             ReadOnlySpan<byte> leftContexts = lumaCoefficientEdges.Left.Slice(lumaCoefficientEdges.GetLeftIndex(blockOrigin), blockSize.Get4x4HighCount());
 
-            // Frame owners provide contiguous padded planes. Borrow those spans without copying source blocks
-            // or reconstructing border samples, and keep the search scratch disjoint from retained inter winners.
+            // The frame owners provide contiguous padded planes. The search borrows those spans without a copy of source blocks or a rebuild
+            // of border samples. Its working buffers do not overlap the kept inter winners.
             Av1MotionSearchBase.SingleReferenceSearch<TSample, TOperator> motionSearch = new(
                 sourceLuma[sourceOrigin..],
                 sourcePlane.Stride,
@@ -4876,13 +4813,11 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MotionSearchSettings motionSettings = this.picture.Parent.MotionSearchSettings;
             Av1MotionSearchBase.SingleReferenceState motionState = default;
 
-            // The spatial start and one candidate per 16x16 model block of the largest block. Reference: the cand
-            // array of av1_single_motion_search(), MAX_TPL_BLK_IN_SB squared plus one.
+            // The starts are the spatial start and one candidate for each 16x16 model block of the largest block.
             Span<Av1MotionSearchBase.StartingCandidate> motionStarts =
                 stackalloc Av1MotionSearchBase.StartingCandidate[Av1EncoderBlockWorkspace.TplSuperblockBlockCount + 1];
 
-            // The model prunes no entry of the mode when a neighbor shares its reference. Reference: the
-            // ref_match_found_in_above_nb and ref_match_found_in_left_nb setup of handle_inter_mode().
+            // The model prunes no entry of the mode when a neighbor shares its reference.
             bool tplPruning = this.tplInterModePruning &&
                 !this.HasNeighborReferenceMatch(
                     modeInfoGrid,
@@ -4895,9 +4830,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int candidateMask = (1 << candidateCount) - 1;
 
-            // A list or global vector that points beyond the frame displacement region is not searched, and neither
-            // is it modeled among the near entries. A new-motion entry searches from its reference instead.
-            // Reference: build_cur_mv() in handle_inter_mode() and ref_mv_idx_to_search().
+            // A list or global vector that points beyond the frame displacement region is not searched, and it is not modeled among the
+            // near entries either. A new-motion entry searches from its reference instead.
             if (requestedMode != Av1PredictionMode.NewMotionVector)
             {
                 for (int index = 0; index < candidateCount; index++)
@@ -4938,7 +4872,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 InlineArray4<Av1RateDistortionStatistics> planeStatisticsStorage = default;
                 Span<Av1RateDistortionStatistics> planeStatistics = planeStatisticsStorage;
 
-                // A scaled reference is not pruned. Reference: the av1_is_scaled() test of ref_mv_idx_to_search().
+                // A scaled reference is not pruned.
                 bool modelTranslation = this.picture.Parent.SpeedSettings.PruneNearMotionByTranslation &&
                     blockSize.GetWidth() * blockSize.GetHeight() > 64 &&
                     !this.IsScaledReference(modeInfo.Block.ReferenceFrame);
@@ -4955,10 +4889,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     int modeRate = GetInterModeRate(
                         in tables, in motionVectorCosts, requestedMode, candidateVectors[index], candidateReferenceIndices[index], referenceMotionVectors);
 
-                    // Every candidate of this mode pays the mode itself, so removing it leaves the
-                    // part that separates one list entry from another. A candidate whose syntax
-                    // alone already costs more than the block winner cannot win at any distortion,
-                    // so it is dropped before any prediction is formed.
+                    // Every candidate of this mode pays the mode itself. Without that rate, the rest separates one list entry from another. A
+                    // candidate whose syntax alone already costs more than the block winner cannot win at any distortion, so it drops before
+                    // any prediction is formed.
                     int drlRate = modeRate - Av1SymbolEncoder.GetInterModeCost(tables.ModeCosts, requestedMode, referenceMotionVectors.ModeContext);
 
                     if (Av1RateDistortion.GetCost(this.rateMultiplier, commonPredictionRate + drlRate, 0) > bestCost)
@@ -4967,9 +4900,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         continue;
                     }
 
-                    // A surviving candidate is priced with a model of the prediction error rather
-                    // than a transform search. The estimate is only used to rank the list entries
-                    // against each other, so its absolute value does not have to be exact.
+                    // A surviving candidate is priced with a model of the prediction error, not with a transform search. The estimate only
+                    // ranks the list entries against each other, so its absolute value does not have to be exact.
                     if (modelTranslation && Av1RateDistortion.GetCost(this.rateMultiplier, commonPredictionRate + modeRate, 0) <= bestCost)
                     {
                         long translationLumaSquaredError = 0;
@@ -5002,12 +4934,10 @@ internal static partial class Av1IntraSuperblockEncoder
                             planeStatistics,
                             ref translationLumaSquaredError);
 
-                        // The estimate predicts luma into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in
-                        // simple_translation_pred_rd().
+                        // The estimate also predicts luma into the frame.
                         this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, interWorkspace.LumaPrediction);
 
-                        // Reference: the plane 0 pred_sse store of model_rd_for_sb_with_curvfit() in
-                        // simple_translation_pred_rd().
+                        // The model stores its luma error as the prediction error of the reference.
                         this.SetPredictionSse(modeInfo.Block.ReferenceFrame, translationLumaSquaredError);
                         translationCosts[index] = estimate.Cost;
                         bestTranslation = Math.Min(bestTranslation, estimate.Cost);
@@ -5018,8 +4948,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     for (int index = 0; index < candidateCount; index++)
                     {
-                        // The two relative bounds keep the best DRL estimate and reject entries that
-                        // cannot approach either it or the current block winner.
+                        // The two relative bounds keep the best list estimate. They reject the entries that cannot come near it or the current
+                        // block winner.
                         if (!((double)translationCosts[index] / bestTranslation < 1.001 &&
                             (double)translationCosts[index] / bestCost < 5))
                         {
@@ -5029,18 +4959,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // The block keeps the interpolation families of the previous list entry until the next entry searches
-            // its filters, so a new-motion search predicts with them. Reference: set_default_interp_filters() in
-            // init_mbmi(), and the mbmi left by av1_interpolation_filter_search() between the ref_mv_idx passes of
-            // handle_inter_mode().
+            // The block keeps the interpolation families of the previous list entry until the next entry searches its filters, so a
+            // new-motion search predicts with them. The first entry starts from the default filters.
             Av1InterpolationFilter heldHorizontalFilter = defaultFilter;
             Av1InterpolationFilter heldVerticalFilter = defaultFilter;
 
-            // A new-motion entry keeps its motion modes only when the vector that its last trial leaves in the block
-            // differs from the reference; otherwise the entry yields nothing and the block keeps the filters of that
-            // trial. The winner from before the entry is held in the spare buffers until the test, which runs when
-            // the next entry starts and after the last. Reference: the av1_check_newmv_joint_nonzero() test at the
-            // end of motion_mode_rd().
+            // A new-motion entry keeps its motion modes only when the vector that its last trial leaves in the block differs from the
+            // reference. Otherwise the entry gives nothing, and the block keeps the filters of that trial. The spare buffers hold the winner
+            // from before the entry until the test. The test runs when the next entry starts and after the last entry.
             Span<TSample> spareLumaReconstruction = interWorkspace.SpareLumaReconstruction;
             Span<TSample> spareBlueReconstruction = interWorkspace.SpareBlueReconstruction;
             Span<TSample> spareRedReconstruction = interWorkspace.SpareRedReconstruction;
@@ -5171,10 +5097,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         continue;
                     }
 
-                    // A later list entry usually starts near an entry already searched. Finding the
-                    // nearest one that was searched lets this search cover only the ground between
-                    // the two starting points plus the distance that search actually travelled,
-                    // instead of the full range again.
+                    // A later list entry usually starts near an entry already searched. With the nearest searched entry, this search covers
+                    // only the distance between the two starting points plus the distance that the earlier search moved. It does not cover
+                    // the full range again.
                     int searchRange = int.MaxValue;
                     if (motionSettings.ReduceSearchRange && referenceIndex > 0)
                     {
@@ -5182,9 +5107,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         int bestMatch = 0;
                         for (int index = 0; index < referenceIndex; index++)
                         {
-                            // Every earlier list entry is compared, searched or not, by the vector of the list
-                            // itself; the candidate array holds the search result of an entry already searched.
-                            // Reference: the av1_get_ref_mv_from_stack() call of handle_newmv().
+                            // Every earlier list entry is compared, searched or not, by the vector of the list itself. The candidate array
+                            // holds the search result of an entry already searched, so the comparison does not read it.
                             Av1MotionVector previousReference = referenceMotionVectors.GetNewReference(index);
                             int difference = Math.Max(
                                 Math.Abs(referenceVector.Row - previousReference.Row),
@@ -5197,9 +5121,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             }
                         }
 
-                        // The bound only holds when the two starting points are close. Sixteen
-                        // samples, at the eighth-sample precision the vectors carry, is the
-                        // distance beyond which the earlier search says nothing useful.
+                        // The bound holds only when the two starting points are close. Beyond sixteen samples, in the eighth-sample precision of
+                        // the vectors, the earlier search gives no useful bound.
                         ref Av1MotionSearchBase.ReferenceSearchResult previous = ref motionState.References[bestMatch];
                         if (minimumDifference < 16 * 8 && previous.IsValid)
                         {
@@ -5216,9 +5139,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         (referenceVector.Column + 3 + (referenceVector.Column >= 0 ? 1 : 0)) >> 3,
                         (referenceVector.Row + 3 + (referenceVector.Row >= 0 ? 1 : 0)) >> 3);
 
-                    // The temporal dependency vectors of the covered 16x16 blocks join the spatial start, unless the
-                    // speed limits the full-pixel search to the spatial start. Reference: the full_pixel_search_level
-                    // test and get_mv_candidate_from_tpl() in av1_single_motion_search().
+                    // The temporal dependency vectors of the covered 16x16 blocks join the spatial start, unless the speed limits the
+                    // full-pixel search to the spatial start.
                     motionStarts[0] = new Av1MotionSearchBase.StartingCandidate(startVector, 0);
                     int startCount = 1;
                     int startWeight = 0;
@@ -5262,9 +5184,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         continue;
                     }
 
-                    // A search result is kept for the compound modes even when the entry is then skipped as a repeat
-                    // of an earlier one. Reference: the single_newmv_valid update before the mode_info skip return
-                    // in handle_newmv().
+                    // A search result is kept for the compound modes, even when the entry is then skipped as a repeat of an earlier one.
                     searchedNewVectors[referenceIndex] = searchResult.Vector;
                     searchedNewVectorMask |= (byte)(1 << referenceIndex);
                     if (motionState.References[referenceIndex].Skip)
@@ -5274,11 +5194,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     candidateVectors[candidateIndex] = searchResult.Vector;
 
-                    // The prediction error of the search is kept for the zero-vector pruning. Reference: the
-                    // best_single_sse_in_refs update after handle_newmv() in handle_inter_mode(), which reads the
-                    // pred_sse that the fractional search leaves. A forced integer vector skips that search, so the
-                    // value an earlier candidate of the reference left is read. Reference: use_fractional_mv in
-                    // av1_single_motion_search().
+                    // The prediction error of the search is kept for the zero-vector pruning. The value is the error that the fractional
+                    // search leaves. A forced integer vector skips that search, so the value that an earlier candidate of the reference left is
+                    // read.
                     if (!frameHeader.ForceIntegerMotionVector)
                     {
                         this.SetPredictionSse(referenceFrame, searchResult.SquaredError);
@@ -5293,13 +5211,11 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 modeInfo.Block.Mode = requestedMode;
 
-                // Estimated mode evaluation keeps the budget of the entry for every motion mode trial; a full search
-                // lowers it to each trial it completes. Reference: the ref_best_rd update of the full transform
-                // search path of motion_mode_rd(), which the estimation path does not have.
+                // The estimated mode evaluation keeps the budget of the entry for every motion mode trial. A full search lowers the budget to
+                // each trial that it completes.
                 long candidateLimit = Math.Min(bestCost, selectedStatistics.Cost);
 
                 // A completed trial bounds the later trials of the entry by its cost before the image tune bias.
-                // Reference: the ref_best_rd update of motion_mode_rd().
                 long entryTrialCost = long.MaxValue;
                 modeInfo.Block.HorizontalInterpolationFilter = defaultFilter;
                 modeInfo.Block.VerticalInterpolationFilter = defaultFilter;
@@ -5375,9 +5291,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                 }
 
-                // A new vector equal to its reference codes no difference, so simple translation skips it; the other
-                // motion modes search their own vectors. Reference: av1_check_newmv_joint_nonzero() in the mode_index
-                // loop of motion_mode_rd().
+                // A new vector equal to its reference codes no difference, so simple translation skips it. The other motion modes search their
+                // own vectors.
                 bool newEntry = requestedMode == Av1PredictionMode.NewMotionVector;
                 Av1MotionVector newReference = newEntry
                     ? referenceMotionVectors.GetNewReference(candidateReferenceIndices[candidateIndex])
@@ -5503,17 +5418,15 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 singleReferenceSimpleCosts[filterCostIndex] = candidateStatistics.Cost;
 
-                // The block leaves this entry with the filters of its best motion mode, or of its last motion mode
-                // trial when none succeeds; a warped trial holds the regular filter. Reference: the best_mbmi
-                // restore and the base_mbmi reset of each mode_index in motion_mode_rd().
+                // The block leaves this entry with the filters of its best motion mode. When no motion mode succeeds, it keeps the filters of
+                // its last motion mode trial. A warped trial holds the regular filter.
                 long motionModeCost = candidateStatistics.Cost;
 
-                // Strict replacement preserves nearest, new, near, then global mode order on equal RD cost.
+                // A strict replacement keeps the nearest, new, near, then global mode order on equal RD cost.
                 if (candidateStatistics.Cost < selectedStatistics.Cost)
                 {
-                    // The winner is taken by exchanging the two buffers of each plane rather than
-                    // by copying samples. The loser becomes the scratch that the next candidate
-                    // writes into, so no block of reconstruction or coefficients is ever moved.
+                    // The winner moves by a swap of the two buffers of each plane, not by a copy of samples. The loser becomes the buffer that
+                    // the next candidate writes into, so no block of reconstruction or coefficients is ever moved.
                     Span<TSample> displacedLumaReconstruction = selectedLumaReconstruction;
                     selectedLumaReconstruction = candidateLumaReconstruction;
                     candidateLumaReconstruction = displacedLumaReconstruction;
@@ -5552,8 +5465,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     selectedBlueState = candidateBlueStateStorage;
                     selectedRedState = candidateRedStateStorage;
 
-                    // The first winner of a new-motion entry keeps the earlier winner in the spare buffers until the entry's
-                    // final vector test.
+                    // The first winner of a new-motion entry keeps the earlier winner in the spare buffers until the final vector test of the
+                    // entry.
                     if (entryPending && !winnerHeld)
                     {
                         Span<TSample> spareLumaReconstructionBuffer = spareLumaReconstruction;
@@ -5578,10 +5491,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                 }
 
-                // Without motion_mode_for_winner_cand, each candidate searches OBMC and warped motion after simple
-                // translation. A reference kept only because a compound pair uses it searches no other motion mode,
-                // and a simple translation whose luma search failed ends the candidate. Reference: the mode_index
-                // loop of motion_mode_rd(), with the skip_motion_mode test and the mode_index 0 return.
+                // When the motion modes are not deferred to the winners, each candidate searches OBMC and warped motion after simple
+                // translation. A reference kept only because a compound pair uses it searches no other motion mode. A simple translation whose
+                // luma search failed ends the candidate.
                 if (searchMotionModes && !simpleSkipped && this.lumaSearchFailed)
                 {
                     continue;
@@ -5793,8 +5705,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
-                // A new vector that the blend search leaves at its reference codes no difference. Reference:
-                // av1_check_newmv_joint_nonzero() after av1_handle_inter_intra_mode() in motion_mode_rd().
+                // A new vector that the blend search leaves at its reference codes no difference, so the trial is skipped.
                 lastTrialVector = interIntraVector;
                 if (newEntry && interIntraVector == newReference)
                 {
@@ -5994,8 +5905,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Gets the rate of signaling simple translation for a single-reference block that may use OBMC or warped
-        /// motion. Reference: the motion_mode_cost and motion_mode_cost1 terms of motion_mode_rd().
+        /// Gets the rate of signaling simple translation for a single-reference block that can use OBMC or warped motion. A block that
+        /// allows warped motion codes the motion mode symbol. A block that allows only OBMC codes the OBMC flag.
         /// </summary>
         /// <param name="tables">The rate tables of the tile.</param>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
@@ -6059,7 +5970,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockSize">The block size.</param>
         /// <param name="predictionMode">The single-reference mode.</param>
         /// <param name="referenceFrame">The reference frame.</param>
-        /// <param name="vector">The motion vector, which the wedge search may refine.</param>
+        /// <param name="vector">The motion vector, which the wedge search can refine.</param>
         /// <param name="referenceVector">The reference of a new vector.</param>
         /// <param name="searchMotion">Whether the wedge blend refines the vector.</param>
         /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
@@ -6124,8 +6035,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<byte> mask = compoundMask[..sampleCount];
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
 
-            // The wedge motion refinement reads a reference of another size through its resized copy. Reference:
-            // the scaled_ref_frame of av1_compound_single_motion_search().
+            // The wedge motion refinement reads a reference of another size through its resized copy.
             Av1PlaneRegion<TSample> referencePlane = this.searchReferences.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
             this.PrepareSingleInterPrediction(
                 sourceLuma,
@@ -6187,9 +6097,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1InterIntraMaskBuilder.FillInterIntraMask(mask, width, width, height, mode, invert: true);
                 TOperator.BlendInterIntraPrediction(blendedPrediction, intraPrediction, mask, width, height);
 
-                // The blend goes into pd->dst, which is the frame after the single prediction into tmp_buf.
-                // Reference: av1_combine_interintra() in compute_best_interintra_mode(), after restore_dst_buf() in
-                // av1_handle_inter_intra_mode().
+                // The blend also goes into the frame. The single prediction went into separate storage.
                 this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, blendedPrediction);
                 TOperator.GetMoments(
                     Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin),
@@ -6206,9 +6114,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     error = (error + (1L << (shift - 1))) >> shift;
                 }
 
-                // The model stores its luma error as the reference's prediction error, except when the cached mode
-                // is reused without a model. Reference: model_rd_for_sb_with_curvfit() in
-                // compute_best_interintra_mode(), which handle_smooth_inter_intra_mode() skips for a cached mode.
+                // The model stores its luma error as the prediction error of the reference, except when the cached mode is reused without a
+                // model.
                 if (!settings.ReuseInterIntraMode || cachedMode < 0)
                 {
                     this.SetPredictionSse(referenceFrame, error);
@@ -6257,7 +6164,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1InterIntraMaskBuilder.FillInterIntraMask(mask, width, width, height, selectedMode, invert: true);
             TOperator.BlendInterIntraPrediction(blendedPrediction, selectedIntra, mask, width, height);
 
-            // Reference: the av1_combine_interintra() rebuild of the best mode in handle_smooth_inter_intra_mode().
+            // The blend of the best mode is built again and also goes into the frame.
             this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, blendedPrediction);
             int smoothRate = motionRate + modeCosts.GetInterIntraMode(blockSize, selectedMode) + modeCosts.GetWedgeInterIntra(blockSize, 0);
             long smoothBound = bestCost < 9 * (long.MaxValue / 16) ? (bestCost / 9) * 16 : long.MaxValue;
@@ -6322,8 +6229,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1Plane.Y,
                     mode);
 
-                // The inter prediction minus the intra prediction, over the intra residual that is not
-                // read again. Reference: the diff10 of pick_interintra_wedge().
+                // The inter prediction minus the intra prediction goes into the intra residual buffer, which is not read again.
                 TOperator.SubtractPackedPrediction(interPrediction, wedgeIntra, intraResidual, width, height);
                 long bestMaskCost = long.MaxValue;
                 int bestMaskIndex = 0;
@@ -6397,8 +6303,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int wedgeMotionRate = motionRate;
             if (searchMotion)
             {
-                // Keep the intra predictor and mask fixed while refining the moving reference.
-                // Motion scratch uses an idle chroma prediction plane; the fixed predictor stays intact.
+                // The intra predictor and the mask stay fixed while the moving reference is refined. The motion search uses an idle chroma
+                // prediction plane as its buffer, so the fixed predictor stays intact.
                 Av1MotionSearchSettings motionSettings = this.picture.Parent.MotionSearchSettings;
                 int sourceOrigin = ((sourcePlane.Bounds.Y + blockOrigin.Y) * sourcePlane.Stride) + sourcePlane.Bounds.X + blockOrigin.X;
                 int referenceOrigin = ((referencePlane.Bounds.Y + blockOrigin.Y) * referencePlane.Stride) + referencePlane.Bounds.X + blockOrigin.X;
@@ -6522,8 +6428,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     TOperator.BlendInterIntraPrediction(blendedPrediction, selectedIntra, mask, width, height);
 
-                    // The refined vector predicts luma into pd->dst, and the blend goes there too. Reference: av1_enc_build_inter_predictor()
-                    // and av1_combine_interintra() after av1_compound_single_motion_search() in handle_wedge_inter_intra_mode().
+                    // The blend of the refined vector also goes into the frame.
                     this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, blendedPrediction);
                     TOperator.GetMoments(
                         Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin),
@@ -6540,8 +6445,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         error = (error + (1L << (shift - 1))) >> shift;
                     }
 
-                    // Reference: the model_rd_for_sb_with_curvfit() store to pred_sse after the refined vector of
-                    // handle_wedge_inter_intra_mode().
+                    // The model stores the luma error of the refined vector as the prediction error of the reference.
                     this.SetPredictionSse(referenceFrame, error);
                     Av1RateDistortion.ModelPredictionError(
                         blockSize,
@@ -6564,14 +6468,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // Only an accepted motion refinement can replace the original inter component.
-            // Rejected trials restore it before the fixed-transform comparison against the smooth blend.
+            // Only an accepted motion refinement can replace the original inter component. Rejected trials restore it before the
+            // fixed-transform comparison against the smooth blend.
             if (wedgeVector == vector)
             {
                 interPrediction.CopyTo(blendedPrediction);
                 TOperator.BlendInterIntraPrediction(blendedPrediction, selectedIntra, mask, width, height);
 
-                // Reference: the av1_combine_interintra() call for rd >= *best_rd in handle_wedge_inter_intra_mode().
+                // The restored blend also goes into the frame.
                 this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, blendedPrediction);
             }
 
@@ -6629,7 +6533,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="modeRate">The prediction syntax rate of the blend.</param>
-        /// <param name="residualBound">The cost that the residual may still add, or a negative value when none is left.</param>
+        /// <param name="residualBound">The cost that the residual can still add, or a negative value when none is left.</param>
         /// <param name="residualStatistics">The rate and distortion of the estimated residual.</param>
         /// <returns>The cost of the blend, or <see cref="long.MaxValue"/> when the estimate stops.</returns>
         private long EstimateInterPredictionResidual(
@@ -6670,8 +6574,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 width,
                 height);
 
-            // A block crossing the frame edge is subtracted with the DCT_DCT border padding. Reference: the
-            // av1_subtract_plane() call of estimate_yrd_for_sb().
+            // A block that crosses the frame edge is subtracted with the DCT_DCT border padding.
             Av1TransformBlockEncoder.PadBorderResidual(
                 this.blockWorkspace, Av1Plane.Y, blockOrigin, interWorkspace.Residual, width, width, height, Av1TransformType.DctDct);
 
@@ -6679,8 +6582,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<byte> above = lumaCoefficientEdges.Top.Slice(lumaCoefficientEdges.GetTopIndex(blockOrigin), blockSize.Get4x4WideCount());
             ReadOnlySpan<byte> left = lumaCoefficientEdges.Left.Slice(lumaCoefficientEdges.GetLeftIndex(blockOrigin), blockSize.Get4x4HighCount());
 
-            // Mode evaluation that defers the transform size search codes the largest transform, which signals no
-            // split flag. Reference: the tx_select test of av1_estimate_txfm_yrd().
+            // A mode evaluation that defers the transform size search codes the largest transform, which signals no split flag.
             int transformRate = 0;
             if (this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select && blockSize > Av1BlockSize.Block4x4 &&
                 (!this.picture.Parent.SpeedSettings.DeferTransformSizeSearch ||
@@ -7022,8 +6924,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 TOperator.BlendInterIntraPrediction(interPrediction, intraPrediction[..sampleCount], compoundMask, width, height);
 
-                // The blended luma goes into pd->dst, which is the frame. Reference: av1_build_interintra_predictor() in
-                // av1_enc_build_inter_predictor().
+                // The blended luma also goes into the frame.
                 if (plane == Av1Plane.Y)
                 {
                     this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, interPrediction);
@@ -7032,16 +6933,16 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Sets the local warped model that single-reference predictions use, or clears it when the block keeps
-        /// another motion mode or its model is invalid. Reference: the WARPED_CAUSAL branch of motion_mode_rd(),
-        /// with av1_findSamples(), av1_selectSamples() and av1_find_projection().
+        /// Sets the local warped model that single-reference predictions use. The model comes from the motion samples of the neighbors and
+        /// the block vector. For an OBMC block, the method arms the OBMC state instead. For any other motion mode, or when the block has no
+        /// samples or an invalid model, the method clears both states.
         /// </summary>
         /// <param name="macroBlock">The neighbor availability of the block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="partitionType">The partition that produced the block.</param>
         /// <param name="mode">The block decisions.</param>
         /// <param name="vector">The block motion vector.</param>
-        /// <returns><see langword="true"/> when predictions use a valid warped model.</returns>
+        /// <returns><see langword="true"/> when predictions use OBMC or a valid warped model.</returns>
         private bool SetWarpedPrediction(
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
@@ -7091,9 +6992,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns the reference types that a block reached by a rectangular or extended partition does not search:
-        /// those that no square block of the superblock picked over the same area.
-        /// Reference: the picked_ref_frames_mask setup of av1_rd_pick_inter_mode() with fetch_picked_ref_frames_mask().
+        /// Returns the reference types that a block reached by a rectangular or extended partition does not search. These are the types
+        /// that no square block of the superblock picked over the same area.
         /// </summary>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
@@ -7125,14 +7025,11 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns whether the selective reference search drops a reference or pair: from level two, LAST2 and LAST3
-        /// when they precede GOLDEN, and from level three, ALTREF2 and BWDREF when they precede LAST. A reference whose
-        /// predicted-vector SAD is the best of the past references is kept. Without temporal-dependency statistics
-        /// no reference is kept by them. A compound pair that is neither kept nor made of the closest past and future
-        /// references is dropped at pruning level three, and below it unless it holds the best predicted-vector SAD
-        /// on each side.
-        /// Reference: prune_ref_by_selective_ref_frame() with prune_ref(), has_closest_ref_frames() and
-        /// has_best_pred_mv_sad().
+        /// Returns whether the selective reference search drops a reference or pair. From level two, or from level one for a pair, it drops
+        /// LAST2 and LAST3 when they precede GOLDEN. From level three, it drops ALTREF2 and BWDREF when they precede LAST. A reference whose
+        /// predicted-vector SAD is the best of the past references is kept. Without temporal-dependency statistics, the model keeps no
+        /// reference. A compound pair that is neither kept nor made of the closest past and future references is dropped at compound
+        /// pruning level three. Below that level, it is dropped unless it holds the best predicted-vector SAD on each side.
         /// </summary>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="first">The first reference.</param>
@@ -7199,11 +7096,9 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Prepares the pruning of the block's inter modes by the temporal dependency model: when the speed prunes by
-        /// the model and the frame has ready statistics, sums the model prediction error of each reference over the
-        /// block and keeps the best among the references that the model keeps or the selective pruning does not drop.
-        /// Reference: the prune_inter_modes_based_on_tpl setup of av1_rd_pick_inter_mode() with
-        /// get_block_level_tpl_stats(), and prune_modes_based_on_tpl of handle_inter_mode().
+        /// Prepares the pruning of the inter modes of the block by the temporal dependency model. When the speed prunes by the model and the
+        /// frame has ready statistics, the method sums the model prediction error of each reference over the block. Then it keeps the best
+        /// cost among the references that the model keeps or that the selective pruning does not drop.
         /// </summary>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -7218,7 +7113,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
-            // A reference the model keeps, or one the selective pruning keeps on its own, may hold the best cost.
+            // A reference that the model keeps, or one that the selective pruning keeps on its own, can hold the best cost.
             Span<bool> validReferences = stackalloc bool[Av1TplModelConstants.InterReferenceCount];
             for (Av1ReferenceFrameType reference = Av1ReferenceFrameType.Last; reference <= Av1ReferenceFrameType.Alternate; reference++)
             {
@@ -7238,10 +7133,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns whether an inter block of the row above or the column to the left of the block uses one of the
-        /// block's references, or that row or column is unavailable. The model then prunes none of the entries of the
-        /// block's mode. Reference: find_ref_match_in_above_nbs() and find_ref_match_in_left_nbs() with
-        /// ref_match_found_in_nb_blocks().
+        /// Returns whether an inter block of the row above or the column to the left of the block uses one of the references of the block,
+        /// or whether that row or column is unavailable. If so, the model prunes none of the entries of the mode of the block.
         /// </summary>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
@@ -7265,8 +7158,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return true;
             }
 
-            // Each step advances by the width of the above block found at the current column. A neighbor is its
-            // allocation entry at the grid cell.
+            // Each step moves by the width of the above block at the current column. The neighbor is the allocation entry at the grid cell.
             int modeInfoRow = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
             int modeInfoColumn = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
             int endColumn = Math.Min(modeInfoColumn + blockSize.Get4x4WideCount(), this.picture.Parent.Common.ModeInfoColumnCount);
@@ -7303,8 +7195,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns whether a neighbor is an inter block that uses the first reference, or the second of a compound
-        /// pair. Reference: is_inter_block() and ref_match_found_in_nb_blocks().
+        /// Returns whether a neighbor is an inter or intra block copy block that uses the first reference, or the second reference of a
+        /// compound pair.
         /// </summary>
         /// <param name="neighbor">The neighbor's mode.</param>
         /// <param name="first">The first reference.</param>
@@ -7325,16 +7217,14 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns whether the model skips an entry of an inter mode: once the block has a best cost, when the
-        /// references predicted much worse in the model than the best reference, by the pruning level of the speed.
-        /// The caller has checked that pruning is on and that no neighbor shares a reference. Reference: the
-        /// prune_modes_based_on_tpl test of the ref_mv_idx loop of handle_inter_mode(), with
-        /// prune_modes_based_on_tpl_stats().
+        /// Returns whether the model skips an entry of an inter mode. When the block has a best cost, the entry is skipped if the references
+        /// predicted much worse in the model than the best reference, by the pruning level of the speed. The caller has checked that
+        /// pruning is on and that no neighbor shares a reference.
         /// </summary>
-        /// <param name="bestCost">The best cost of the block so far. Reference: ref_best_rd.</param>
+        /// <param name="bestCost">The best cost of the block so far.</param>
         /// <param name="first">The first reference.</param>
         /// <param name="second">The second reference, or none for a single reference.</param>
-        /// <param name="referenceIndex">The dynamic reference list index of the entry. Reference: ref_mv_idx.</param>
+        /// <param name="referenceIndex">The dynamic reference list index of the entry.</param>
         /// <param name="mode">The inter mode.</param>
         /// <returns><see langword="true"/> when the entry is skipped.</returns>
         private readonly bool PrunesInterModeByTpl(
@@ -7353,15 +7243,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.Parent.SpeedSettings.TplInterModePruningLevel);
 
         /// <summary>
-        /// Returns whether a reference or pair uses a candidate reference that precedes the anchor reference in
-        /// display order, unless the temporal dependency model keeps the candidate or it has the best past
-        /// predicted-vector SAD. Reference: prune_ref(), with the tpl_keep_ref_frame and pred_mv_sad tests of
-        /// prune_ref_by_selective_ref_frame().
+        /// Returns whether a reference or pair uses a candidate reference that precedes the anchor reference in display order. The result is
+        /// false when the temporal dependency model keeps the candidate, or when the candidate has the best past predicted-vector SAD.
         /// </summary>
         /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="first">The first reference.</param>
         /// <param name="second">The second reference, or none.</param>
-        /// <param name="candidate">The reference that may be dropped.</param>
+        /// <param name="candidate">The reference that can be dropped.</param>
         /// <param name="anchor">The reference it is compared with.</param>
         /// <returns><see langword="true"/> when the candidate is used and precedes the anchor.</returns>
         private readonly bool PrunesOlderReference(
@@ -7385,18 +7273,17 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns how the decision cached for a sub-block of an asymmetric partition restricts an inter mode. A
-        /// cached intra decision excludes every inter mode; a cached single-reference decision keeps only its own
-        /// mode and reference; a cached compound decision keeps only its own mode and pair, and the single
-        /// references whose new vectors its new components start from, without their motion modes.
-        /// Reference: the mb_mode_cache test of inter_mode_search_order_independent_skip().
+        /// Returns how the decision cached for a sub-block of an asymmetric partition restricts an inter mode. A cached intra decision
+        /// excludes every inter mode. A cached single-reference decision keeps only its own mode and reference. A cached compound decision
+        /// keeps only its own mode and pair. It also keeps, without their motion modes, the single references from whose new vectors its
+        /// new components start.
         /// </summary>
         /// <param name="mode">The inter prediction mode.</param>
         /// <param name="first">The first reference.</param>
         /// <param name="second">The second reference, or none for a single reference.</param>
         /// <returns>
-        /// Zero without a cache, one to skip the mode, two to search it without motion modes, or three for the
-        /// cached mode itself, whose references no reference pruning may remove.
+        /// Zero without a cache, one to skip the mode, two to search it without motion modes, or three for the cached mode itself. No
+        /// reference pruning can remove the references of the cached mode.
         /// </returns>
         private readonly int GetInterModeCacheDecision(
             Av1PredictionMode mode,
@@ -7441,9 +7328,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns whether the cached decision of an asymmetric sub-block is a compound prediction from this pair, which
-        /// the partition's reference mask then does not remove. Reference: is_ref_frame_used_in_cache() for a compound
-        /// reference type.
+        /// Returns whether the cached decision of an asymmetric sub-block is a compound prediction from this pair. If so, the reference mask
+        /// of the partition does not remove the pair.
         /// </summary>
         /// <param name="first">The first reference.</param>
         /// <param name="second">The second reference.</param>
@@ -7455,10 +7341,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.activeModeCache.SecondaryReferenceFrame == second;
 
         /// <summary>
-        /// Returns whether the block searches no mode of a single reference: the rectangular pruning skips it, no
-        /// compound pair that the pruning keeps uses it, and the cached decision of an asymmetric sub-block does not
-        /// predict from it. Reference: is_ref_frame_used_by_compound_ref() and is_ref_frame_used_in_cache() with the
-        /// skip_ref_frame_mask tests.
+        /// Returns whether the block searches no mode of a single reference. This is true when the rectangular pruning skips the reference,
+        /// no compound pair that the pruning keeps uses it, and the cached decision of an asymmetric sub-block does not predict from it.
         /// </summary>
         /// <param name="reference">The reference type.</param>
         /// <returns><see langword="true"/> when the reference is skipped.</returns>
@@ -7491,8 +7375,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Records the reference type that the unsplit search of a square block picked over the block area.
-        /// Reference: av1_update_picked_ref_frames_mask().
+        /// Records the reference type that the unsplit search of a square block picked over the block area. The masks use a stride of 32
+        /// 4x4 units, which covers a 128x128 superblock.
         /// </summary>
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The square block size.</param>
@@ -7518,10 +7402,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Masks the modes of each reference whose predicted-vector SAD is poor. A reference far from the best SAD
-        /// loses its fixed-vector modes, and with single-reference pruning a reference other than the closest ones
-        /// loses every single-reference mode. Reference: av1_mv_pred() in setup_buffer_ref_mvs_inter(), then
-        /// init_mode_skip_mask().
+        /// Masks the modes of each reference whose predicted-vector SAD is poor. A reference far from the best SAD loses its fixed-vector
+        /// modes. With single-reference pruning, a reference other than the closest ones loses every single-reference mode.
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -7548,7 +7430,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 (1u << (int)Av1PredictionMode.NearestMotionVector) | (1u << (int)Av1PredictionMode.NearMotionVector) |
                 (1u << (int)Av1PredictionMode.GlobalMotionVector) | (1u << (int)Av1PredictionMode.NewMotionVector);
 
-            // Every single and compound inter mode. Reference: INTER_ALL.
+            // Every single and compound inter mode.
             const uint interAll = ((1u << ((int)Av1PredictionMode.NewNewMotionVector + 1)) - 1) &
                 ~((1u << (int)Av1PredictionMode.NearestMotionVector) - 1);
 
@@ -7571,8 +7453,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<Av1EncoderFrame<TSample>> searchReferences = this.searchReferences.Span;
             for (int reference = (int)Av1ReferenceFrameType.Last; reference <= (int)Av1ReferenceFrameType.Alternate; reference++)
             {
-                // A reference that the block does not search measures no SAD. Reference: the skip_ref_frame_mask
-                // test of set_params_rd_pick_inter_mode().
+                // A reference that the block does not search measures no SAD.
                 if ((availableReferences & (1 << reference)) == 0 || this.IsSingleReferenceSkipped(reference))
                 {
                     continue;
@@ -7585,16 +7466,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1MotionVector second = singleReferenceVectors[reference].GetStackVector(1, globalMotion);
                 int count = first == second ? 1 : 2;
 
-                // A reference of another size is measured through its copy resized to the frame size. Reference: the
-                // scaled_ref_frame of setup_buffer_ref_mvs_inter().
+                // A reference of another size is measured through its copy resized to the frame size.
                 Av1PlaneRegion<TSample> referencePlane = searchReferences[reference].CodedView.GetPlane(Av1Plane.Y);
                 ReadOnlySpan<TSample> referenceSamples = referencePlane.Samples;
                 bool zeroSeen = false;
                 int best = int.MaxValue;
                 for (int i = 0; i < count; i++)
                 {
-                    // Clamp the vector to the interpolation extension around the coded frame, then round it to whole
-                    // samples. Reference: enc_clamp_mv().
+                    // The vector clamps to the interpolation extension around the coded frame, then rounds to whole samples.
                     Av1MotionVector vector = i == 0 ? first : second;
                     int column = Math.Clamp(vector.Column, -(blockOrigin.X + width + 4) * 8, (frameSize.Width - blockOrigin.X + 4) * 8);
                     int row = Math.Clamp(vector.Row, -(blockOrigin.Y + height + 4) * 8, (frameSize.Height - blockOrigin.Y + 4) * 8);
@@ -7618,9 +7497,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 sads[reference] = best;
             }
 
-            // The best past and future SADs are measured only when the alternate reference search or the single
-            // reference pruning reads them; otherwise both stay at the maximum. Reference: the alt_ref_search_fp and
-            // prune_single_ref test of set_params_rd_pick_inter_mode().
+            // The best past and future SADs are measured only when the alternate reference search or the single reference pruning reads them.
+            // Otherwise both stay at the maximum.
             int pruneLevel = parent.SpeedSettings.GetPruneSingleReferenceLevel(parent.FrameUpdateType);
             bool measuresBestSads = parent.SpeedSettings.AlternateReferenceSearchLevel != 0 || pruneLevel != 0;
             int minimum = int.MaxValue;
@@ -7652,10 +7530,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // A frame coded from the source of an alternate reference searches that reference alone. Without
-            // temporal filtering it keeps the fixed-vector modes whose vector is the global one, and the faster
-            // speeds search every mode of the reference. Reference: the is_src_frame_alt_ref branches of
-            // init_mode_skip_mask(), with disable_inter_references_except_altref().
+            // A frame coded from the source of an alternate reference searches that reference alone. Without temporal filtering, it keeps
+            // the fixed-vector modes whose vector is the global one. The faster speeds search every mode of the reference.
             int alternateSearchLevel = parent.SpeedSettings.AlternateReferenceSearchLevel;
             const int alternate = (int)Av1ReferenceFrameType.Alternate;
             if (parent.IsSourceAlternateReference)
@@ -7685,9 +7561,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // An unshown frame drops every mode of a later-type reference that lies in the past near LAST, when its
-            // predicted-vector SAD is well above the best of the past. Reference: the alt_ref_search_fp branch of
-            // init_mode_skip_mask().
+            // An unshown frame drops every mode of a later-type reference that lies in the past near LAST, when its predicted-vector SAD is
+            // well above the best of the past.
             if (alternateSearchLevel != 0 && !frameHeader.ShowFrame && bestByDirection[0] < int.MaxValue)
             {
                 int sadThreshold = bestByDirection[0] + (bestByDirection[0] >> 3);
@@ -7724,8 +7599,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Drops every mode of every reference but ALTREF. A compound pair names ALTREF only second, so every pair
-        /// goes too. Reference: disable_inter_references_except_altref().
+        /// Drops every mode of every reference except ALTREF. A compound pair names ALTREF only second, so every pair is dropped too.
         /// </summary>
         /// <param name="masks">The skipped modes of each reference, one bit per mode.</param>
         private static void DisableReferencesExceptAlternate(Span<uint> masks)
@@ -7770,25 +7644,22 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns whether a compound entry may be searched, as libaom decides it. build_cur_mv() tests each component
-        /// that does not search a new vector with clamp_and_check_mv(), but each pass of its loop first assigns the
-        /// get_this_mv() result to the same flag, so the test of the first component is overwritten and only the
-        /// second component decides. A second component that searches a new vector leaves the entry valid. The
-        /// encoder keeps that behavior, because the entry set changes the coded decisions. Reference:
-        /// build_cur_mv().
+        /// Returns whether a compound entry can be searched. Only the second component decides. A second component that searches a new
+        /// vector leaves the entry valid. Any other second component must lie in the frame search bounds. The first component is not
+        /// tested. This quirk is kept on purpose, because the entry set changes the coded decisions.
         /// </summary>
         /// <param name="mode">The compound prediction mode.</param>
         /// <param name="secondary">The vector of the second reference.</param>
         /// <param name="secondaryModes">The single mode of the second component of each compound mode.</param>
         /// <param name="frameBounds">The full-pixel frame displacement region of the block.</param>
-        /// <returns><see langword="true"/> when the entry may be searched.</returns>
+        /// <returns><see langword="true"/> when the entry can be searched.</returns>
         private static bool CompoundVectorsInFrameSearchBounds(
             Av1PredictionMode mode,
             Av1MotionVector secondary,
             ReadOnlySpan<Av1PredictionMode> secondaryModes,
             Rectangle frameBounds)
         {
-            // The first component's test does not survive the second pass of the build_cur_mv() loop.
+            // The test of the first component is overwritten by the test of the second, so it has no effect.
             int modeIndex = (int)mode - (int)Av1PredictionMode.CompoundInterModeStart;
             return secondaryModes[modeIndex] == Av1PredictionMode.NewMotionVector || secondary.IsInFrameSearchBounds(frameBounds);
         }
@@ -7832,10 +7703,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 int firstReference = direction == 0 ? (int)Av1ReferenceFrameType.Last : (int)Av1ReferenceFrameType.Golden + 1;
                 int lastReference = direction == 0 ? (int)Av1ReferenceFrameType.Golden : (int)Av1ReferenceFrameType.Alternate;
 
-                // The bound is the best GLOBALMV or NEWMV state of the direction, and only a searched reference has
-                // a state; a mode skipped for a repeated vector keeps a copied modeled cost but no state. Reference:
-                // the state[INTER_OFFSET(NEWMV)][0] and state[INTER_OFFSET(GLOBALMV)][0] bound of
-                // analyze_single_states(), with collect_single_states().
+                // The bound is the best GLOBALMV or NEWMV state of the direction. Only a searched reference has a state. A mode skipped for a
+                // repeated vector keeps a copied modeled cost, but no state.
                 long bestSimple = long.MaxValue;
                 long bestModel = long.MaxValue;
                 for (int reference = firstReference; reference <= lastReference; reference++)
@@ -8113,8 +7982,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 primaryReference,
                 secondaryReference);
 
-            // The model prunes no entry of the pair when a neighbor shares one of its references. Reference: the
-            // ref_match_found_in_above_nb and ref_match_found_in_left_nb setup of handle_inter_mode().
+            // The model prunes no entry of the pair when a neighbor shares one of its references.
             bool tplPruning = this.tplInterModePruning &&
                 !this.HasNeighborReferenceMatch(modeInfoGrid, modeInfoAllocation, macroBlock, blockOrigin, blockSize, primaryReference, secondaryReference);
 
@@ -8153,7 +8021,6 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             // A list or global component that points beyond the frame displacement region removes its entry.
-            // Reference: build_cur_mv() in handle_inter_mode() and ref_mv_idx_to_search().
             Av1PlaneRegion<TSample> boundsPlane = this.references.Span[(int)primaryReference].CodedView.GetPlane(Av1Plane.Y);
             Rectangle frameBounds = Av1MotionVector.GetFrameSearchBounds(
                 new Rectangle(blockOrigin, new Size(blockSize.GetWidth(), blockSize.GetHeight())),
@@ -8201,8 +8068,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 modes[candidateCount++] = Av1PredictionMode.NearestNewMotionVector;
             }
 
-            // Complete one syntax mode's DRL entries before moving to the next mode. The searched
-            // vector cache uses the signaled index; only a NEAR predictor advances in the reference stack.
+            // All list entries of one syntax mode complete before the next mode starts. The searched vector cache uses the signaled index.
+            // Only a NEAR predictor moves forward in the reference stack.
             for (int referenceIndex = 0; referenceIndex <= maximumNearIndex; referenceIndex++)
             {
                 if ((primaryNewVectorMask & (1 << referenceIndex)) != 0)
@@ -8387,8 +8254,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                 }
 
-                // The entries of one mode share a budget that their own results lower before the image tune biases
-                // them. Reference: the ref_best_rd update in the ref_mv_idx loop of handle_inter_mode().
+                // The entries of one mode share a budget. Their own results, before the image tune bias, lower that budget.
                 long modeCostLimit = Math.Min(Math.Min(this.blockCostLimit, selectedStatistics.Cost), modeBestCost);
                 if (startsMode && !rejectMode)
                 {
@@ -8401,8 +8267,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     candidateMask = (1 << referenceCount) - 1;
                     if (referenceCount > 1)
                     {
-                        // A scaled reference is not pruned. Reference: the av1_is_scaled() test of
-                        // ref_mv_idx_to_search().
+                        // A scaled reference is not pruned.
                         bool modelTranslation = nearMode && settings.PruneNearMotionByTranslation &&
                             blockSize.GetWidth() * blockSize.GetHeight() > 64 &&
                             !this.IsScaledReference(primaryReference) && !this.IsScaledReference(secondaryReference);
@@ -8421,9 +8286,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         for (int index = candidateIndex; index < candidateCount && modes[index] == mode; index++)
                         {
-                            // A later list entry of a pair that uses LAST2 or LAST3 is searched only when its stack
-                            // weight marks a nearest neighbor. Reference: the reduce_inter_modes test of
-                            // ref_mv_idx_early_breakout().
+                            // A later list entry of a pair that uses LAST2 or LAST3 is searched only when its stack weight marks a nearest
+                            // neighbor.
                             if (settings.ReduceInterReferenceIndices != 0 && referenceIndices[index] > 0 && secondaryPastPair &&
                                 referenceMotionVectors.Weights[referenceIndices[index] + (nearMode ? 1 : 0)] <
                                 Av1ReferenceMotionVectors.NearestCandidateWeight)
@@ -8458,9 +8322,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             if (modelTranslation &&
                                 Av1RateDistortion.GetCost(this.rateMultiplier, commonPredictionRate + translationModeRate, 0) <= modeCostLimit)
                             {
-                                // The model predicts a new-vector component from the raw stack entry at the signaled
-                                // index, not from a searched vector. Reference: the NEWMV branch of build_cur_mv(),
-                                // which simple_translation_pred_rd() calls.
+                                // The model predicts a new-vector component from the raw stack entry at the signaled index, not from a
+                                // searched vector.
                                 int componentModeIndex = (int)mode - (int)Av1PredictionMode.CompoundInterModeStart;
                                 Av1MotionVector translationPrimary = primaryModes[componentModeIndex] == Av1PredictionMode.NewMotionVector
                                     ? referenceMotionVectors.GetCompoundNewReference(referenceIndices[index], 0)
@@ -8500,12 +8363,10 @@ internal static partial class Av1IntraSuperblockEncoder
                                     planeStatistics,
                                     ref translationLumaSquaredError);
 
-                                // The estimate predicts luma into pd->dst, which is the frame. Reference: av1_enc_build_inter_predictor() in
-                                // simple_translation_pred_rd().
+                                // The estimate also predicts luma into the frame.
                                 this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, interWorkspace.LumaPrediction);
 
-                                // Reference: the plane 0 pred_sse store of model_rd_for_sb_with_curvfit() in
-                                // simple_translation_pred_rd().
+                                // The model stores its luma error as the prediction error of the first reference.
                                 this.SetPredictionSse(prediction.ReferenceFrame, translationLumaSquaredError);
                                 translationCosts[referenceIndices[index]] = estimate.Cost;
                                 bestTranslation = Math.Min(bestTranslation, estimate.Cost);
@@ -8665,12 +8526,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
-                // The blend search above chose how the two predictions combine. The two flags below
-                // are how that choice reaches the bitstream: the group flag separates the masked
-                // blends from the rest, and the index then separates a plain average from a
-                // distance weighted one.
-                // Each mode starts from simple translation, whatever an earlier trial left in the block.
-                // Reference: init_mbmi().
+                // The blend search above chose how the two predictions combine. The two flags below carry that choice to the bitstream. The
+                // group flag separates the masked blends from the rest. The index then separates a plain average from a distance-weighted
+                // average. Each mode starts from simple translation, whatever an earlier trial left in the block.
                 Av1EncoderBlockModeInfo candidateMode = modeInfo.Block;
                 candidateMode.ReferenceFrame = primaryReference;
                 candidateMode.SecondaryReferenceFrame = secondaryReference;
@@ -8686,13 +8544,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 candidateMode.HorizontalInterpolationFilter = filter;
                 candidateMode.VerticalInterpolationFilter = filter;
 
-                // A compound mode names one single-reference mode for each of its two references.
-                // The costs of those single-reference searches are already known, so the cheaper of
-                // the two gives this candidate a bound: a compound prediction that cannot approach
-                // the better of its own halves is not worth a filter search.
+                // A compound mode names one single-reference mode for each of its two references. The costs of those single-reference
+                // searches are already known, so the cheaper of the two gives this candidate a bound. A compound prediction that cannot come
+                // near the better of its own halves does not get a filter search.
                 //
-                // The two indices address one table laid out as mode, then list index, then
-                // reference frame, so each step multiplies by the size of the level below it.
+                // The two indices address one table laid out as mode, then list index, then reference frame. Each step multiplies by the
+                // size of the level below it.
                 int compoundModeIndex = (int)modes[candidateIndex] - (int)Av1PredictionMode.CompoundInterModeStart;
                 int primaryCostIndex = (((((int)primaryModes[compoundModeIndex] - (int)Av1PredictionMode.InterModeStart) * 3) +
                     referenceIndices[candidateIndex]) * Av1Constants.ReferenceFrameCount) + (int)primaryReference;
@@ -8732,11 +8589,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     out int filterRate,
                     out long filterModelCost);
 
-                // The filter search prices the prediction with a model rather than a transform, so
-                // the thresholds below are deliberately loose. The shift by three removes the
-                // fixed-point scale the model carries before the two ratios are applied: against
-                // the block winner when the speed setting allows it, and always against the better
-                // half of this compound pair.
+                // The filter search prices the prediction with a model, not with a transform, so the thresholds below are loose on purpose.
+                // When the speed setting allows it, the candidate drops when three eighths of the model cost exceed the block bound. The
+                // candidate always drops when six eighths of the model cost exceed the cost of the better half of this compound pair.
                 if (filterModelCost == long.MaxValue ||
                     (modeCostLimit != long.MaxValue &&
                         ((this.picture.Parent.SpeedSettings.ModelBasedInterpolationBreakout &&
@@ -8747,7 +8602,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 // A new vector equal to its reference codes no difference, so the mode is invalid.
-                // Reference: av1_check_newmv_joint_nonzero() in motion_mode_rd().
                 if (!HasCodedCompoundNewVectors(
                     modes[candidateIndex], candidatePrimary, candidateSecondary, referenceIndices[candidateIndex], referenceMotionVectors))
                 {
@@ -8840,8 +8694,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfo.Block.SecondaryReferenceFrame = secondaryReference;
                 modeInfo.Block.Mode = modes[candidateIndex];
 
-                // A compound winner codes simple translation outside skip mode, whatever an earlier single-reference
-                // winner left in the block. Reference: init_mbmi().
+                // A compound winner codes simple translation outside skip mode, whatever an earlier single-reference winner left in the block.
                 modeInfo.Block.MotionMode = candidateMode.MotionMode;
                 modeInfo.Block.SkipMode = candidateMode.SkipMode;
                 modeInfo.Block.Skip = candidateSkip;
@@ -8860,12 +8713,10 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Gets the sharpness 3 offset of an intra candidate's luma in an inter frame. Sharpness searches intra modes
-        /// in an inter frame only for blocks of 16x16 or smaller, and such a block always lies inside the coded frame:
-        /// the coded frame is a multiple of eight samples, and a block whose midpoint is inside it may only reach
-        /// past it when the block is 32 samples or larger. So the intra search writes every sample that the measure
-        /// reads. Reference: the sharpness return of search_intra_modes_in_interframe(), the has_rows and has_cols
-        /// partition rules, and pd->dst in get_variance_stats().
+        /// Gets the sharpness 3 offset of the luma of an intra candidate in an inter frame. With a sharpness, the intra search of an inter
+        /// frame runs only for blocks of 16x16 or smaller, and such a block always lies inside the coded frame. The coded frame is a
+        /// multiple of eight samples, and a block whose midpoint is inside it can reach past it only when the block is 32 samples or
+        /// larger. Thus the intra search writes every sample that the measure reads.
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -8893,11 +8744,9 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Gets the distortion that sharpness 3 adds to a block whose luma samples are smoother than its source: the
-        /// amount by which the source's departure from its own 3x3 smoothing exceeds the samples', or zero. A high bit
-        /// depth scales both measures to eight bits first. The source past the coded frame repeats its edge, as the
-        /// reference's extended source border does. Reference: get_variance_stats() and the var_offset of
-        /// adjust_rdcost() and adjust_cost().
+        /// Gets the distortion that sharpness 3 adds to a block whose luma samples are smoother than its source. The offset is the amount by
+        /// which the departure of the source from its own 3x3 smoothing exceeds the departure of the samples, or zero. A high bit depth
+        /// scales both measures to eight bits first. Past the coded frame, the source repeats its edge.
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -8923,10 +8772,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Measures how much the block source and the block luma samples each differ from their own 3x3 smoothing.
-        /// A high bit depth scales both measures to 8 bits.
-        /// Past the coded frame, the source repeats its edge, as the extended source border of the reference does.
-        /// Reference: av1_get_variance_stats().
+        /// Measures how much the block source and the block luma samples each differ from their own 3x3 smoothing. A high bit depth scales
+        /// both measures to 8 bits. Past the coded frame, the source repeats its edge, as an extended source border does.
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -8951,15 +8798,15 @@ internal static partial class Av1IntraSuperblockEncoder
             int width = blockSize.GetWidth();
             int height = blockSize.GetHeight();
 
-            // Sharpness 3 turns border padding off. So the visible size is the coded 8-sample boundary, and the source repeats its edge past it.
-            // Each block origin is inside this boundary.
+            // Sharpness 3 turns border padding off. Thus the visible size is the coded 8-sample boundary, and the source repeats its edge past
+            // it. Each block origin is inside this boundary.
             Size visible = this.blockWorkspace.GetVisibleSize(Av1Plane.Y, blockOrigin, width, height);
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             ReadOnlySpan<TSample> sourceBlock = Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin);
             sourceVariance = TOperator.GetVarianceStatistic(sourceBlock, sourcePlane.Stride, width, height, visible.Width, visible.Height);
             sampleVariance = TOperator.GetVarianceStatistic(samples, stride, width, height, width, height);
 
-            // Both measures round to the 8-bit scale. Reference: the ROUND_POWER_OF_TWO of get_variance_stats_hbd().
+            // Both measures round to the 8-bit scale, with the half added before the shift.
             int shift = (this.bitDepth.GetBitCount() - 8) * 2;
             if (shift != 0)
             {
@@ -8970,11 +8817,10 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Gets the distortion that high bit depth sharpness 3 adds for the texture that a block loses.
-        /// The offset is the amount by which the source measure is more than the sample measure.
-        /// The offset is four times larger for a skipped block with low source detail, a smooth intra mode, an inter-intra blend or a compound.
-        /// A single-reference prediction with low source detail also pays for the length of its motion vector.
-        /// Reference: var_offset in the high bit depth branch of adjust_rdcost() and adjust_cost().
+        /// Gets the distortion that high bit depth sharpness 3 adds for the texture that a block loses. The offset is the amount by which
+        /// the source measure is more than the sample measure. The offset is four times larger for a skipped block with low source detail,
+        /// a smooth intra mode, an inter-intra blend or a compound. A single-reference prediction with low source detail also pays for the
+        /// length of its motion vector.
         /// </summary>
         /// <param name="sourceVariance">The source measure from <see cref="GetVarianceStatistics"/>.</param>
         /// <param name="sampleVariance">The sample measure from <see cref="GetVarianceStatistics"/>.</param>
@@ -9007,10 +8853,10 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Gets the energy difference between the most detailed and the least detailed 8x8 sub-blocks of the block source.
-        /// The energy of a sub-block is the rounded natural logarithm of its per-sample variance plus one. A block narrower or shorter than 16 has none.
-        /// The result is kept with its block size. A later block of the same size gets the same result at any position, as the cache of the reference does.
-        /// Reference: get_sub_block_energy_diff().
+        /// Gets the energy difference between the most detailed and the least detailed 8x8 sub-blocks of the block source. The energy of a
+        /// sub-block is the rounded natural logarithm of its per-sample variance plus one. A block narrower or shorter than 16 has none.
+        /// The result is cached with its block size only. Thus a later block of the same size gets the same result at any position. This
+        /// cache key is kept on purpose, because it changes the coded decisions.
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -9051,7 +8897,6 @@ internal static partial class Av1IntraSuperblockEncoder
                         TOperator.GetMoments(subBlock, luma.Stride, zeros, 0, 8, 8, out int sum, out long squares);
 
                         // A high bit depth first rounds both moments to 8-bit precision. The variance is never less than zero.
-                        // Reference: aom_highbd_10_variance8x8() and aom_highbd_12_variance8x8().
                         long normalizedSum = sum;
                         long normalizedSquares = squares;
                         if (shift > 0)
@@ -9077,10 +8922,9 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Increases the distortions that a skip decision compares, when high bit depth sharpness 3 adds a skip penalty.
-        /// When the source measure is more than the prediction measure, the coded distortion gets the difference.
-        /// The skip distortion also gets the difference, four times for a source with low detail.
-        /// Reference: av1_get_tx_skip_dist().
+        /// Increases the distortions that a skip decision compares, when high bit depth sharpness 3 adds a skip penalty. When the source
+        /// measure is more than the prediction measure, the coded distortion gets the difference. The skip distortion also gets the
+        /// difference, four times for a source with low detail.
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -9121,7 +8965,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Gets a value indicating whether the texture-loss charge treats a mode as smooth. The smooth modes are DC, the three smooth modes and Paeth.
-        /// Reference: is_smooth_intra_mode in adjust_rdcost() and adjust_cost().
         /// </summary>
         /// <param name="mode">The prediction mode.</param>
         /// <returns>True when the mode is smooth.</returns>
@@ -9131,7 +8974,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Adds the texture-loss charge of high bit depth sharpness 3 to an inter trial, on a valid luma cost and on the trial statistics.
-        /// Reference: the adjust_cost() of this_yrd and the adjust_rdcost() of rd_stats in motion_mode_rd().
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -9173,9 +9015,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Adds the texture-loss charge of high bit depth sharpness 3 to the statistics of a block. First the distortion gets the offset.
-        /// Then a block of 16x16 or larger with an energy difference gets an extra cost, from the cost before this step.
-        /// A smooth intra mode pays the full difference, and another intra mode pays one quarter of it. A compound pays one quarter of its cost.
-        /// A single reference pays nothing more. Reference: the high bit depth branch of adjust_rdcost().
+        /// Then a block of 16x16 or larger with an energy difference gets an extra cost, from the cost before this step. A smooth intra mode
+        /// pays the full difference, and another intra mode pays one quarter of it. A compound pays one quarter of its cost. A single
+        /// reference pays nothing more.
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -9226,9 +9068,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Adds the texture-loss charge of high bit depth sharpness 3 to a luma cost. First the cost gets the price of the offset.
-        /// Then a block of 16x16 or larger with an energy difference gets a multiple of the cost, by the same rules as <see cref="ChargeTextureLoss"/>.
-        /// Reference: the high bit depth branch of adjust_cost().
+        /// Adds the texture-loss charge of high bit depth sharpness 3 to a luma cost. First the cost gets the price of the offset. Then a
+        /// block of 16x16 or larger with an energy difference gets a multiple of the cost, by the same rules as <see cref="ChargeTextureLoss"/>.
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -9311,8 +9152,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="topAverageCosts">The lowest average-blend costs of the block so far.</param>
         /// <param name="maskHistory">The wedge index, wedge sign and difference-weighted mask type that every pair of the block shares.</param>
         /// <param name="typeHistory">The last compound type of the pair.</param>
-        /// <param name="primary">The first vector, which a masked blend may refine.</param>
-        /// <param name="secondary">The second vector, which a masked blend may refine.</param>
+        /// <param name="primary">The first vector, which a masked blend can refine.</param>
+        /// <param name="secondary">The second vector, which a masked blend can refine.</param>
         /// <param name="selectedType">The selected compound type.</param>
         /// <param name="selectedWedgeIndex">The wedge mask index of a wedge blend.</param>
         /// <param name="selectedWedgeSign">The wedge sign of a wedge blend.</param>
@@ -9465,9 +9306,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 int typeIndex = (int)previous.SelectedType;
                 if (record.Rates[typeIndex] == int.MaxValue)
                 {
-                    // Without stored statistics the mode keeps the average blend at no type cost and no estimate,
-                    // which only a block without a best cost survives. Reference: the early return of
-                    // populate_reuse_comp_type_data() and the ref_best_rd test of process_compound_inter_mode().
+                    // Without stored statistics, the mode keeps the average blend at no type cost and no estimate. Only a block without a
+                    // best cost keeps such a mode.
                     selectedType = Av1CompoundType.Average;
                     selectedWedgeIndex = 0;
                     selectedWedgeSign = false;
@@ -9532,10 +9372,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (isMasked && !predictorsReady)
                 {
-                    // Rounded predictors are retained only during blend selection. Full coding regenerates
-                    // its selected high-precision compound predictor after these scratch spans are released.
-                    // A GLOBAL_GLOBALMV block warps each single predictor with the model of its reference.
-                    // Reference: av1_init_warp_params() in build_inter_predictors_single_buf().
+                    // The rounded predictors are kept only during the blend selection. The full coding builds its selected high-precision
+                    // compound predictor again after these temporary spans are released. A GLOBAL_GLOBALMV block warps each single predictor
+                    // with the model of its reference.
                     Av1PredictionMode singleMode = mode == Av1PredictionMode.GlobalGlobalMotionVector
                         ? Av1PredictionMode.GlobalMotionVector
                         : Av1PredictionMode.NearestMotionVector;
@@ -9687,8 +9526,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1DifferenceWeightedMaskType typeMaskType = maskType;
                 for (int maskCandidate = 0; maskCandidate < maskCount; maskCandidate++)
                 {
-                    // Prune between mask pairs, including pairs whose two signs were both rejected.
-                    // An oblique winner admits only its asymmetric pair; an axis winner finishes here.
+                    // The fast search prunes between mask pairs, also pairs whose two signs were both rejected. An oblique winner admits only
+                    // its asymmetric pair. An axis winner ends the search here.
                     if (isWedge && !modelMask && !reuseMask && settings.FastWedgeMaskSearch && maskCandidate == 16)
                     {
                         if (typeWedgeIndex > 3)
@@ -9701,10 +9540,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         maskCount = maskCandidate + 4;
                     }
 
-                    // A wedge is one of sixteen shapes with a sign that says which side each
-                    // prediction fills, so the candidate index carries the sign in its low bit and
-                    // the shape above it. A difference weighted mask has no sign and the index is
-                    // the mask type itself.
+                    // A wedge is one of sixteen shapes with a sign that tells which side each prediction fills. Thus the candidate index carries
+                    // the sign in its low bit and the shape above it. A difference-weighted mask has no sign, and the index is the mask type
+                    // itself.
                     if (isWedge && !modelMask && !reuseMask)
                     {
                         wedgeIndex = maskCandidate >> 1;
@@ -9717,23 +9555,18 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     int blendRate = Av1SymbolEncoder.GetCompoundBlendCost(tables.ModeCosts, blockSize, type, groupContext, indexContext, wedgeIndex, masked);
 
-                    // The syntax of a wedge is priced before its prediction is formed. Half of the
-                    // current winner is the allowance: a shape whose syntax alone already reaches
-                    // it leaves no room for the distortion that will follow. A wedge kept from an
-                    // earlier mode of the block is not pruned this way. Reference: the
-                    // need_mask_search branches of av1_compound_type_rd().
+                    // The syntax of a wedge is priced before its prediction is formed. The allowance is half of the current winner. A shape
+                    // whose syntax alone already reaches it leaves no room for the distortion that follows. A wedge kept from an earlier mode
+                    // of the block is not pruned this way.
                     if (isWedge && !modelMask && !reuseMask &&
                         Av1RateDistortion.GetCost(this.rateMultiplier, blendRate + totalModeRate, 0) >= currentBest / 2)
                     {
                         continue;
                     }
 
-                    // A mask changes which samples each reference contributes, so the vectors that
-                    // suited an average are no longer the best pair. Only a mode that codes its own
-                    // vectors can be refined, and the speed settings decide whether the refinement
-                    // is worth its cost for this blend. An average or distance blend refines unless the speed
-                    // keeps refinement for NEW_NEWMV only. Reference: skip_mv_refinement_for_avg_distwtd in
-                    // av1_compound_type_rd().
+                    // A mask changes which samples each reference contributes, so the vectors that suited an average are no longer the best
+                    // pair. Only a mode that codes its own vectors can be refined. The speed settings decide whether the refinement is worth
+                    // its cost for this blend. An average or distance blend refines, unless the speed keeps the refinement for NEW_NEWMV only.
                     Av1MotionVector trialPrimary = initialPrimary;
                     Av1MotionVector trialSecondary = initialSecondary;
                     bool refinesUnmasked = settings.CompoundMotionSearchLevel < 2 || mode == Av1PredictionMode.NewNewMotionVector;
@@ -9786,10 +9619,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             ref trialSecondary);
                     }
 
-                    // A wedge kept from an earlier mode of the block is predicted from the references, as a
-                    // refined or difference-weighted blend is; a searched wedge blends the two single-reference
-                    // predictions. Reference: av1_enc_build_inter_predictor() in the reuse branch of
-                    // av1_compound_type_rd(), and av1_build_wedge_inter_predictor_from_buf() in its search loop.
+                    // A wedge kept from an earlier mode of the block is predicted from the references, as a refined or difference-weighted
+                    // blend is. A searched wedge blends the two single-reference predictions.
                     int motionRate = GetCompoundMotionRate(in motionVectorCosts, mode, trialPrimary, trialSecondary, referenceIndex, referenceMotionVectors);
                     if (!isMasked || refine || (!isWedge && !modelMask) || (isWedge && reuseMask))
                     {
@@ -9836,10 +9667,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     bool useCachedEstimate = record.Rates[typeIndex] != int.MaxValue &&
                         (modelMask || (!isMasked && settings.CompoundMotionSearchLevel == 2 && mode != Av1PredictionMode.NewNewMotionVector));
 
-                    // Only the average blend predicts into the frame. libaom then moves the luma pd->dst to tmp_dst for the
-                    // later types, and an average with stored statistics predicts nothing. Reference: the
-                    // av1_enc_build_inter_predictor() calls of COMPOUND_AVERAGE and the restore_dst_buf() calls with tmp_dst in
-                    // av1_compound_type_rd().
+                    // Only the average blend predicts into the frame. The later types predict into separate storage, and an average with
+                    // stored statistics predicts nothing.
                     if (type == Av1CompoundType.Average && !useCachedEstimate)
                     {
                         this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, interWorkspace.LumaPrediction);
@@ -9868,23 +9697,17 @@ internal static partial class Av1IntraSuperblockEncoder
                         model = maskModel + Av1RateDistortion.GetCost(this.rateMultiplier, blendRate + motionRate, 0);
                     }
 
-                    // The gate prices the vectors the mode came with, even after a refinement moved them.
-                    // Reference: the rs2 + *rate_mv of each prune_mode_by_skip_rd() call in av1_compound_type_rd().
+                    // The gate prices the vectors that the mode came with, even after a refinement moved them.
                     if ((modelMask && !useCachedEstimate && settings.PruneCompoundTypeByModel && model > bestModel) ||
                         (!modelMask && !useCachedEstimate && !this.ShouldSearchCompoundTransforms(blendRate + initialMotionRate, predictionError << 4)))
                     {
                         continue;
                     }
 
-                    // A kept wedge is estimated without a bound, and a searched wedge against the best of its type
-                    // and the block. A difference blend searched without the model is bounded by the block's best.
-                    // An average or distance blend is estimated without a bound when its vectors may be refined,
-                    // whether or not the mode codes a new vector; otherwise its bound drops the whole mode syntax.
-                    // A modeled masked blend's bound drops only its type and vector syntax. Reference: the
-                    // estimate_yrd_for_sb() bounds of av1_compound_type_rd(), whose COMPOUND_DIFFWTD search branch
-                    // passes ref_best_rd and whose skip_mv_refinement_for_avg_distwtd branch subtracts
-                    // RDCOST(rs2 + rd_stats->rate), and of masked_compound_type_rd(), which subtracts
-                    // RDCOST(*rs2 + *out_rate_mv).
+                    // A kept wedge is estimated without a bound. A searched wedge is bounded by the best of its type and of the block. A
+                    // difference blend searched without the model is bounded by the best of the block. An average or distance blend is
+                    // estimated without a bound when its vectors can be refined, whether or not the mode codes a new vector. Otherwise its
+                    // bound drops the cost of the whole mode syntax. The bound of a modeled masked blend drops only its type and vector syntax.
                     long residualBound = isWedge && !modelMask && reuseMask ? long.MaxValue :
                         isWedge && !modelMask ? Math.Min(typeEstimate, currentBest) :
                         isMasked && !modelMask ? currentBest :
@@ -10010,9 +9833,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 records[this.compoundSearchRecordCount++] = record;
             }
 
-            // The mode carries the syntax cost of the best type, or none when no type produced an estimate; then
-            // only a block without a best cost keeps it. Reference: best_compmode_interinter_cost of
-            // av1_compound_type_rd() and the ref_best_rd test of process_compound_inter_mode().
+            // The mode carries the syntax cost of the best type. When no type produced an estimate, it carries no cost, and only a block
+            // without a best cost keeps it.
             if (bestEstimate == long.MaxValue)
             {
                 selectedTypeRate = 0;
@@ -10028,6 +9850,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Gates luma-only compound transform estimates against the best completed inter prediction.
         /// </summary>
+        /// <param name="syntaxRate">The rate of the blend and vector syntax.</param>
+        /// <param name="predictionError">The prediction error of the candidate, in the distortion units of the cost.</param>
+        /// <returns><see langword="true"/> when the transform estimate runs.</returns>
         private bool ShouldSearchCompoundTransforms(int syntaxRate, long predictionError)
         {
             int level = this.picture.Parent.SpeedSettings.GetInterTransformGateLevel(
@@ -10055,7 +9880,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Estimates the wedge sign of all masks from the errors of the two predictions over opposite quadrants.
-        /// Reference: estimate_wedge_sign().
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -10078,9 +9902,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int width,
             int height)
         {
-            // A wedge divides the block, so the sign says which reference fills which side. The squared
-            // errors of the top-left and bottom-right quadrants come from the variance function of the
-            // quadrant size, which rounds each one to eight-bit precision on its own.
+            // A wedge divides the block, so the sign tells which reference fills which side. The squared errors of the top-left and
+            // bottom-right quadrants each round to eight-bit precision on their own.
             ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, blockOrigin);
             int stride = sourcePlane.Stride;
             int halfWidth = width >> 1;
@@ -10097,8 +9920,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns the squared error of one quadrant, rounded to eight-bit precision. Reference: the sse output
-        /// of aom_variance and aom_highbd_{10,12}_variance.
+        /// Returns the squared error of one quadrant, rounded to eight-bit precision.
         /// </summary>
         /// <param name="source">The source samples at the quadrant origin.</param>
         /// <param name="sourceStride">The source row stride.</param>
@@ -10169,8 +9991,7 @@ internal static partial class Av1IntraSuperblockEncoder
             TOperator.SubtractPrediction(sourceBlock, sourcePlane.Stride, firstPrediction, firstResidual, width, height);
             TOperator.SubtractPrediction(sourceBlock, sourcePlane.Stride, secondPrediction, secondResidual, width, height);
 
-            // The second prediction minus the first. Reference: the aom_subtract_block() call that fills
-            // diff10 in av1_compound_type_rd().
+            // The difference is the second prediction minus the first.
             TOperator.SubtractPackedPrediction(secondPrediction, firstPrediction, difference, width, height);
 
             bool fastSign = this.picture.Parent.SpeedSettings.FastWedgeSignEstimation;
@@ -10184,11 +10005,10 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else if (compoundType == Av1CompoundType.Wedge)
             {
-                // Each mask candidate is scored from how much better one reference predicts each
-                // sample than the other. Holding that difference per sample lets every candidate be
-                // scored by summing over the samples its mask selects, instead of forming a blended
-                // prediction for each one. Reference: the sign_limit and av1_wedge_compute_delta_squares()
-                // of pick_wedge(). The first residual buffer then holds the differences of squares.
+                // Each mask candidate is scored from how much better one reference predicts each sample than the other. With that
+                // difference for each sample, a candidate is scored by a sum over the samples that its mask selects, without a blended
+                // prediction for each one. The sign limit is 32 times the difference of the two squared errors. The first residual buffer
+                // then holds the differences of squares.
                 signLimit = (Av1ResidualBuilder.SumSquares(firstResidual) - Av1ResidualBuilder.SumSquares(secondResidual)) * 32;
                 Av1WedgeSearch.ComputeDeltaSquares(firstResidual, firstResidual, secondResidual);
             }
@@ -10354,8 +10174,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="referenceMotionVectors">The reference vector list of the pair.</param>
         /// <param name="mask">The blend mask of the first reference.</param>
         /// <param name="wedge">Whether the mask is a wedge.</param>
-        /// <param name="primary">The first vector, which the search may change.</param>
-        /// <param name="secondary">The second vector, which the search may change.</param>
+        /// <param name="primary">The first vector, which the search can change.</param>
+        /// <param name="secondary">The second vector, which the search can change.</param>
         private void RefineCompoundVectors(
             Span<int> workspaceStorage,
             ReadOnlySpan<TSample> sourceLuma,
@@ -10704,8 +10524,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int planeCount = block.HasChroma ? 3 : 1;
             bool coded = false;
 
-            // The final chroma type comes from the final luma types, in which an empty luma block is DCT_DCT.
-            // Reference: av1_get_tx_type() after encode_block() resets the type of a luma block without coefficients.
+            // The final chroma type comes from the final luma types. In those types, an empty luma block is DCT_DCT.
             Span<Rectangle> lumaBlocks = stackalloc Rectangle[64];
             Span<Av1TransformType> lumaTypes = stackalloc Av1TransformType[64];
             int lumaBlockCount = 0;
@@ -10743,8 +10562,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     _ => interWorkspace.RedPrediction,
                 };
 
-                // Keep motion interpolation and compound masks in full-block coordinates. Transform
-                // leaves consume strided views, while coefficients remain packed in coding order.
+                // The motion interpolation and the compound masks stay in full-block coordinates. Transform leaves read strided views, but
+                // the coefficients stay packed in coding order.
                 this.PrepareInterPlanePrediction(
                     vector,
                     secondaryVector,
@@ -10779,7 +10598,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     sourceRed);
 
                 // The whole luma prediction goes into the frame before the transform blocks, also past the coded area.
-                // Reference: av1_enc_build_inter_predictor() into pd->dst in encode_superblock(), before av1_encode_sb().
                 if (plane == Av1Plane.Y)
                 {
                     this.WriteInterLumaDestination(lumaFrame, blockOrigin, modeInfo.Block.BlockSize, prediction);
@@ -10918,21 +10736,25 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Gets the source extent used by prediction-error models at the coded frame boundary.
         /// </summary>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The luma block size.</param>
+        /// <param name="subsamplingX">The horizontal subsampling shift of the plane.</param>
+        /// <param name="subsamplingY">The vertical subsampling shift of the plane.</param>
+        /// <returns>The visible extent of the plane block, in plane samples.</returns>
         private Size GetPredictionModelSize(Point blockOrigin, Av1BlockSize blockSize, int subsamplingX, int subsamplingY)
         {
             Av1BlockSize planeSize = blockSize.GetSubsampled(subsamplingX != 0, subsamplingY != 0);
             int width = planeSize.GetWidth();
             int height = planeSize.GetHeight();
 
-            // The model measures only the visible samples: the frame edge with border padding, otherwise the coded
-            // boundary. Reference: get_visible_dimensions() in model_rd_for_sb_with_curvfit().
+            // The model measures only the visible samples. The limit is the frame edge with border padding, and otherwise the coded boundary.
             Size visible = this.picture.Parent.GetVisibleBoundary(0, 0);
             int right = blockOrigin.X + blockSize.GetWidth() - visible.Width;
             int bottom = blockOrigin.Y + blockSize.GetHeight() - visible.Height;
             if (right > 0)
             {
-                // Round the out-of-frame luma count before subtracting it from the plane size.
-                // The coded frame boundary and the chroma block must use the same rounding direction.
+                // The out-of-frame luma count rounds up before it is subtracted from the plane size. The coded frame boundary and the
+                // chroma block must use the same rounding direction.
                 width = Math.Max(0, width - ((right + subsamplingX) >> subsamplingX));
             }
 
@@ -10945,9 +10767,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns whether the modeled luma cost of a prepared residual exceeds the transform search bound by the
-        /// level 1 margin. The model stores its luma prediction error as the reference's prediction error.
-        /// Reference: model_based_tx_search_prune(), with model_rd_for_sb_with_curvfit() for the luma plane.
+        /// Returns whether the modeled luma cost of a prepared residual exceeds the transform search bound by the level 1 margin. The model
+        /// stores its luma prediction error as the prediction error of the reference.
         /// </summary>
         /// <param name="blockOrigin">The luma coding-block origin.</param>
         /// <param name="blockSize">The coding-block size.</param>
@@ -10982,21 +10803,23 @@ internal static partial class Av1IntraSuperblockEncoder
                 out int rate,
                 out long distortion);
 
-            // A model that predicts no coded coefficients keeps the search. Reference: the model_skip return.
+            // A model that predicts no coded coefficients keeps the search.
             if (rate == 0)
             {
                 return false;
             }
 
-            // Level 1 compares three eighths of the modeled cost. Reference: prune_factor_by8.
+            // Level 1 compares three eighths of the modeled cost.
             long modelCost = new Av1RateDistortionStatistics(this.rateMultiplier, rate, distortion).Cost;
             return ((modelCost * 3) >> 3) > costLimit;
         }
 
         /// <summary>
-        /// Records the luma prediction error that a model or search leaves for a first reference.
-        /// Reference: the (unsigned int)AOMMIN(sse, UINT_MAX) stores to x->pred_sse.
+        /// Records the luma prediction error that a model or search leaves for a first reference. The value saturates at the largest
+        /// unsigned 32-bit value.
         /// </summary>
+        /// <param name="reference">The first reference.</param>
+        /// <param name="squaredError">The luma prediction error.</param>
         private void SetPredictionSse(Av1ReferenceFrameType reference, long squaredError)
             => this.predictionSses[(int)reference] = (uint)Math.Min(squaredError, uint.MaxValue);
 
@@ -11108,7 +10931,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (match >= 0)
             {
-                // Reference: the pred_sse restore of a find_interp_filter_match() hit.
+                // A cache hit also restores the prediction error that the matched search left for the reference.
                 this.predictionSses[(int)modeInfo.ReferenceFrame] = records[match].PredictionSse;
                 modelCost = records[match].Cost;
                 modeInfo.HorizontalInterpolationFilter = records[match].HorizontalFilter;
@@ -11116,15 +10939,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 filterRate = Av1SymbolEncoder.GetSwitchableInterpolationFilterCost(modeCosts, modeInfo.VerticalInterpolationFilter, verticalContext) +
                     (dual ? Av1SymbolEncoder.GetSwitchableInterpolationFilterCost(modeCosts, modeInfo.HorizontalInterpolationFilter, horizontalContext) : 0);
 
-                // Cached decisions retain syntax, not pixels. The caller rebuilds the current vectors'
-                // prediction; approximate vector matches must never reuse another candidate's samples.
+                // Cached decisions keep syntax, not samples. The caller builds the prediction of the current vectors again. An approximate
+                // vector match must never reuse the samples of another candidate.
                 return false;
             }
 
-            // The adaptive search allows only the filters of interp_filter_search_mask, which a one-pass encode
-            // never fills, so it tries no filter other than the regular one. Reference: the
-            // adaptive_interp_filter_search tests of find_best_non_dual_interp_filter(), with
-            // av1_setup_interp_filter_search_mask() called only in the stats-consuming pass of a two-pass encode.
+            // The adaptive search allows only the filters of the filter search mask. A one-pass encode never fills that mask, so the
+            // adaptive search tries no filter other than the regular one.
             const int filterCount = Av1InterpolationProbabilities.FilterCount;
             int allowedMask = winnerSearch
                 ? (1 << (int)Av1InterpolationFilter.Regular) |
@@ -11155,9 +10976,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             bool modelChroma = hasChroma && !winnerSearch && !settings.SkipInterpolationChromaModel;
 
-            // The skip flags start from the frame's plane count and measure luma and the first chroma plane of every
-            // block, whether or not the block codes chroma. Reference: set_default_interp_skip_flags() and the
-            // plane loop of calc_interp_skip_pred_flag().
+            // The skip flags start from the plane count of the frame. They measure luma and the first chroma plane of every block, whether
+            // or not the block codes chroma.
             bool chromaPlanes = !this.source.IsMonochrome;
             int defaultSkip = chromaPlanes ? 3 : 1;
             int horizontalSkip = defaultSkip;
@@ -11165,8 +10985,7 @@ internal static partial class Av1IntraSuperblockEncoder
             const int interpolationExtension = 4;
             for (int referenceIndex = 0; referenceIndex < (compound ? 2 : 1); referenceIndex++)
             {
-                // A scaled reference filters every position, so no axis skips its filter trials. Reference: the
-                // av1_is_scaled() test of calc_interp_skip_pred_flag().
+                // A scaled reference filters every position, so no axis skips its filter trials.
                 if (this.IsScaledReference(referenceIndex == 0 ? modeInfo.ReferenceFrame : modeInfo.SecondaryReferenceFrame))
                 {
                     horizontalSkip = 0;
@@ -11180,15 +10999,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     int subX = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingX;
                     int subY = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingY;
 
-                    // The plane extent is the subsampled block extent, at least four samples. Reference: the
-                    // pd->width and pd->height that set_plane_n4() gives clamp_mv_to_umv_border_sb().
+                    // The plane extent is the subsampled block extent, at least four samples.
                     int planeWidth = Math.Max(blockSize.GetWidth() >> subX, 4);
                     int planeHeight = Math.Max(blockSize.GetHeight() >> subY, 4);
                     int horizontalBorder = (interpolationExtension + planeWidth) << 4;
                     int verticalBorder = (interpolationExtension + planeHeight) << 4;
 
-                    // Once every tap lies outside an edge, border replication makes the fractional
-                    // displacement irrelevant. Clamp in sixteenth-sample plane units before testing phase.
+                    // When every tap lies outside an edge, border replication makes the fractional displacement irrelevant. The vector clamps
+                    // in sixteenth-sample plane units before the phase test.
                     int column = Math.Clamp(
                         vector.Column << (1 - subX),
                         (macroBlock.ToLeftEdge << (1 - subX)) - horizontalBorder,
@@ -11211,17 +11029,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // A difference-weighted blend builds its mask during luma prediction, which chroma then reads, so luma is
-            // predicted for the vertical decision when only the horizontal one predicts. Reference: the
-            // COMPOUND_DIFFWTD test of calc_interp_skip_pred_flag().
+            // A difference-weighted blend builds its mask during the luma prediction, and chroma then reads that mask. Thus luma is also
+            // predicted for the vertical decision when only the horizontal decision predicts.
             if (compound && modeInfo.CompoundIndex && modeInfo.CompoundType == Av1CompoundType.DifferenceWeighted &&
                 horizontalSkip == 0 && verticalSkip == 1)
             {
                 verticalSkip = 0;
             }
 
-            // Chroma that the search does not model counts as skipped. Reference: the skip_model_rd_uv flags of
-            // calc_interp_skip_pred_flag(); a winner search models luma alone.
+            // Chroma that the search does not model counts as skipped. A winner search models luma alone.
             if (chromaPlanes && !modelChroma && (settings.SkipInterpolationChromaModel || winnerSearch))
             {
                 horizontalSkip |= 2;
@@ -11259,10 +11075,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1InterpolationFilter initialFilter = frameHeader.InterpolationFilter == Av1InterpolationFilter.Switchable
                 ? Av1InterpolationFilter.Regular : frameHeader.InterpolationFilter;
 
-            // The default filter's model prices its switchable syntax even when the block codes none, because the
-            // rate is taken before the search learns that no filter is needed. The coded rate stays zero then.
-            // Reference: the *switchable_rate = get_switchable_rate() call ahead of the need_search return of
-            // av1_interpolation_filter_search(), against the av1_is_interp_needed() rate of motion_mode_rd().
+            // The model of the default filter prices its switchable syntax even when the block codes none, because the rate is taken before
+            // the search learns that no filter is necessary. In that case the coded rate stays zero.
             int searchRate = Av1SymbolEncoder.GetSwitchableInterpolationFilterCost(modeCosts, initialFilter, verticalContext) +
                 (dual ? Av1SymbolEncoder.GetSwitchableInterpolationFilterCost(modeCosts, initialFilter, horizontalContext) : 0);
 
@@ -11309,23 +11123,21 @@ internal static partial class Av1IntraSuperblockEncoder
             modeInfo.VerticalInterpolationFilter = initialFilter;
             filterRate = regularRate;
 
-            // The default filter predicts into pd->dst, which is the frame here. The winner search keeps its frame
-            // write to the end, where the frame holds its best prediction. Reference: the first interp_model_rd_eval() of
-            // av1_interpolation_filter_search(), and fast_interp_search().
+            // The default filter predicts into the frame. The winner search keeps its frame write to the end, where the frame holds its best
+            // prediction.
             if (!winnerSearch)
             {
                 this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, bestLuma);
             }
 
-            // These copy the libaom destination state through the trials. After the default filter, pd->dst moves to tmp_dst.
-            // A winning trial that measured a plane swaps pd->dst between the frame and tmp_dst. A trial predicts luma into the
-            // pd->dst of that time. A win that measured chroma only toggles the luma rebuild flag.
-            // Reference: restore_dst_buf() with tmp_dst, swap_dst_buf() and recalc_luma_mc_data in av1_interpolation_filter_search()
-            // and interpolation_filter_rd().
+            // These flags follow which buffer receives the trial predictions. After the default filter, the trials predict into a
+            // temporary buffer. A winning trial that measured a plane swaps the destination between the frame and the temporary buffer. A
+            // trial predicts luma into the destination of that time. A win that measured chroma only toggles the luma rebuild flag. The
+            // frame contents depend on this sequence, so the code keeps it.
             bool destinationIsTemporary = true;
             bool rebuildLuma = false;
 
-            // Reference: the pred_sse store after the default filter's model in av1_interpolation_filter_search().
+            // The model of the default filter stores its luma error as the prediction error of the reference.
             this.SetPredictionSse(modeInfo.ReferenceFrame, bestLumaSquaredError);
             if (writesFilters && compound && bestCandidateCost != long.MaxValue && (bestCost >> 1) > singleReferenceCost)
             {
@@ -11393,7 +11205,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     trialPlaneStatistics,
                     ref trialLumaSquaredError);
 
-                // The trial predicted luma into pd->dst. Reference: interp_model_rd_eval() in interpolation_filter_rd().
+                // The trial predicted luma into the current destination. When that destination is the frame, the frame gets the trial.
                 if (!winnerSearch && (skipPlanes & 1) == 0 && !destinationIsTemporary)
                 {
                     this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, trialLuma);
@@ -11406,7 +11218,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfo.VerticalInterpolationFilter = (Av1InterpolationFilter)vertical;
                     filterRate = trialRate;
 
-                    // Reference: the recalc_luma_mc_data updates and swap_dst_buf() of a win in interpolation_filter_rd().
+                    // A win that measured a plane swaps the destination and updates the luma rebuild flag.
                     if (!winnerSearch && skipPlanes != defaultSkip)
                     {
                         rebuildLuma = skipPlanes switch
@@ -11419,10 +11231,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         destinationIsTemporary = !destinationIsTemporary;
                     }
 
-                    // A win that skipped the chroma model keeps the earlier statistics, so the luma error that
-                    // pred_sse reads stays too. Reference: the rd_stats_luma and rd_stats updates of
-                    // interpolation_filter_rd(), made only for INTERP_EVAL_LUMA_EVAL_CHROMA and
-                    // INTERP_SKIP_LUMA_EVAL_CHROMA.
+                    // A win that skipped the chroma model keeps the earlier statistics, so the luma error of the reference stays too. Only a
+                    // win that measured chroma updates them.
                     if ((skipPlanes & 2) == 0)
                     {
                         bestLumaSquaredError = trialLumaSquaredError;
@@ -11456,10 +11266,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // The search ends with pd->dst on the buffer of the best prediction. When the luma of that buffer is not the best luma,
-            // libaom predicts the best luma into it again. The winner search leaves its best prediction in the frame.
-            // Reference: the swap_dst_buf() and the recalc_luma_mc_data rebuild at the end of av1_interpolation_filter_search(),
-            // and the copy into orig_dst at the end of fast_interp_search().
+            // The search ends with the destination on the buffer of the best prediction. When the luma of that buffer is not the best luma,
+            // the best luma is predicted into it again. The winner search leaves its best prediction in the frame.
             destinationIsTemporary = !destinationIsTemporary;
             if (winnerSearch || (rebuildLuma && !destinationIsTemporary))
             {
@@ -11479,8 +11287,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (hasChroma && !modelChroma)
             {
-                // Difference-weighted chroma consumes the luma mask. Rebuild that mask for the winner
-                // after filter trials, then prepare only the chroma planes omitted by the luma-only model.
+                // Difference-weighted chroma reads the luma mask. That mask is built again for the winner after the filter trials. Then only
+                // the chroma planes that the luma-only model omitted are prepared.
                 int firstPlane = compound && modeInfo.CompoundType == Av1CompoundType.DifferenceWeighted ? 0 : 1;
                 ReadOnlySpan<Av1EncoderFrame<TSample>> references = this.references.Span;
                 for (int planeIndex = firstPlane; planeIndex < 3; planeIndex++)
@@ -11528,8 +11336,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         sourceBlue,
                         sourceRed);
 
-                    // A difference-weighted blend predicts luma into pd->dst again. Reference: the av1_enc_build_inter_predictor()
-                    // call after av1_interpolation_filter_search() in handle_inter_mode().
+                    // A difference-weighted blend predicts luma into the destination again. When that destination is the frame, the frame
+                    // gets it.
                     if (planeIndex == 0 && !destinationIsTemporary)
                     {
                         this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, prediction);
@@ -11554,8 +11362,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 };
             }
 
-            // Reference: the pred_sse store of the selected filter's luma error at the end of
-            // av1_interpolation_filter_search().
+            // The luma error of the selected filter becomes the prediction error of the reference.
             this.SetPredictionSse(modeInfo.ReferenceFrame, bestLumaSquaredError);
             modelCost = bestCost;
             return true;
@@ -11690,8 +11497,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int visibleWidth = visible.Width;
                 int visibleHeight = visible.Height;
 
-                // The source view includes samples extended to the coded dimensions; only the visible
-                // rectangle counts.
+                // The source view includes samples extended to the coded dimensions. Only the visible rectangle counts.
                 long squaredError = Av1ResidualBuilder.SumSquares(residual, width, visibleWidth, visibleHeight);
 
                 int normalizationShift = (this.bitDepth.GetBitCount() - 8) * 2;
@@ -12012,8 +11818,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(plane);
                     Point planeOrigin = planeIndex == 0 ? blockOrigin : Av1TileWriter.GetChromaBlockOrigin(blockOrigin, subX, subY);
 
-                    // A frame that pads its border measures the samples inside the frame only. Reference:
-                    // get_visible_dimensions() in get_sse().
+                    // A frame that pads its border measures the samples inside the frame only.
                     Size extent = this.picture.Parent.SpeedSettings.InterModeEstimation == 2 && this.estimateInterCandidates
                         ? this.GetPredictionModelSize(blockOrigin, blockSize, subX, subY)
                         : this.blockWorkspace.BorderPad
@@ -12065,23 +11870,20 @@ internal static partial class Av1IntraSuperblockEncoder
 
             candidate.PredictionError = predictionError;
 
-            // A new prediction goes into pd->dst, which is the frame here. A prepared prediction is already in pd->dst.
-            // Reference: av1_enc_build_inter_predictor() in handle_inter_mode() and rd_pick_intrabc_mode_sb().
+            // A new prediction also goes into the frame. A prepared prediction is already there.
             if (!usePreparedPrediction && !this.useObmcPrediction && !this.useWarpedPrediction)
             {
                 this.WriteInterLumaDestination(lumaFrame, blockOrigin, blockSize, interWorkspace.LumaPrediction);
             }
 
-            // Sharpness 3 measures the candidate's luma prediction, which the plane loop leaves in the current
-            // destination, unless the image tune's bias replaces the charge. Reference: get_variance_stats() reading
-            // pd->dst in adjust_rdcost() of motion_mode_rd().
+            // Sharpness 3 measures the luma prediction of the candidate, which the plane loop leaves in the current destination. The bias
+            // of the image tune replaces this charge.
             bool chargesPrediction = referenceFrame != Av1ReferenceFrameType.Intra && !this.BiasesInterCosts && this.ChargesSmoothing;
             long predictionSmoothingOffset = chargesPrediction
                 ? this.GetSmoothingOffset(sourceLuma, sourceBlue, sourceRed, blockOrigin, blockSize, interWorkspace.LumaPrediction, blockSize.GetWidth())
                 : 0;
 
             // High bit depth sharpness 3 measures the same prediction. It sets the charge when the skip is known.
-            // Reference: av1_get_variance_stats() in the high bit depth branch of adjust_rdcost() of motion_mode_rd().
             bool chargesTextureLoss = referenceFrame != Av1ReferenceFrameType.Intra && !this.BiasesInterCosts && this.ChargesHighBitDepthTextureLoss;
             long predictionSourceVariance = 0;
             long predictionSampleVariance = 0;
@@ -12107,17 +11909,16 @@ internal static partial class Av1IntraSuperblockEncoder
                         predictionError, out estimatedRate, out estimatedDistortion);
                 }
 
-                // An estimate clears the skip flag that each motion mode trial starts with.
-                // So a winner that has only an estimate is not skippable for the mode thresholds.
-                // Reference: the rd_stats->skip_txfm = 0 of the !do_tx_search branch of motion_mode_rd(), and the best_mode_skippable of update_search_state().
+                // An estimate clears the skip flag that each motion mode trial starts with. Thus a winner that has only an estimate is not
+                // skippable for the mode thresholds.
                 Av1RateDistortionStatistics estimate = new(this.rateMultiplier, predictionRate + estimatedRate, estimatedDistortion)
                 {
                     ResidualRate = estimatedRate,
                     PredictionDistortion = predictionError
                 };
 
-                // Retain predictions close enough to the best estimate for the later transform pass.
-                // Syntax and vectors are sufficient to rebuild them; no candidate owns a pixel buffer.
+                // The predictions close enough to the best estimate are kept for the later transform pass. Syntax and vectors are sufficient to
+                // build them again, so no candidate owns a sample buffer.
                 if (estimate.Cost * 0.80 > this.bestInterEstimate)
                 {
                     return Av1RateDistortionStatistics.Invalid;
@@ -12133,8 +11934,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 candidate.EstimatedCost = estimate.Cost;
                 this.blockWorkspace.GetInterModeCandidates(workspaceStorage)[this.interCandidateCount++] = candidate;
 
-                // The bias follows the estimate's records. Reference: adjust_rdcost() after the !do_tx_search branch of
-                // motion_mode_rd().
+                // The bias applies after the records of the estimate.
                 if (referenceFrame != Av1ReferenceFrameType.Intra && this.BiasesInterCosts)
                 {
                     estimate.AddInterPredictionBias(this.rateMultiplier);
@@ -12146,7 +11946,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 else if (chargesTextureLoss)
                 {
                     // An estimate never skips, and its cost is the estimated cost.
-                    // Reference: the rd_stats->rdcost = est_rd and rd_stats->skip_txfm = 0 of the !do_tx_search branch of motion_mode_rd().
                     this.ChargeInterTextureLoss(
                         sourceLuma,
                         sourceBlue,
@@ -12212,9 +12011,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 out blueState,
                 out redState);
 
-            // A completed search takes the bias after the residual model records it, and later trials of the entry are
-            // bounded by its cost before the bias. Reference: the ref_best_rd update before adjust_cost() and
-            // adjust_rdcost() in motion_mode_rd().
+            // A completed search takes the bias after the residual model records it. Its cost before the bias bounds the later trials of the
+            // entry.
             this.unbiasedInterTrialCost = statistics.Cost;
             if (referenceFrame != Av1ReferenceFrameType.Intra && statistics.Cost != long.MaxValue && this.BiasesInterCosts)
             {
@@ -12226,9 +12024,8 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else if (chargesTextureLoss && statistics.Cost != long.MaxValue)
             {
-                // The residual search starts its statistics at zero and never sets their cost.
-                // So the extra cost scales zero, unless the offset sets the cost first.
-                // Reference: the av1_init_rd_stats() of av1_txfm_search(), which sets rd_stats->rdcost to zero.
+                // The residual search starts its statistics at zero and never sets their cost. Thus the extra cost scales zero, unless the
+                // offset sets the cost first. This zero start is kept on purpose.
                 this.ChargeInterTextureLoss(
                     sourceLuma,
                     sourceBlue,
@@ -12249,10 +12046,11 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Gets the gate level of the current inter search. The mode loop gates a block larger than 16x16 at the
-        /// motion-mode level; the winner motion-mode search and the retained-candidate search use the default level.
-        /// Reference: get_txfm_rd_gate_level() in motion_mode_rd() and tx_search_best_inter_candidates().
+        /// Gets the gate level of the current inter search. The mode loop gates a block larger than 16x16 at the motion-mode level. The
+        /// winner motion-mode search and the kept-candidate search use the default level.
         /// </summary>
+        /// <param name="blockSize">The block size.</param>
+        /// <returns>The gate level of the speed settings.</returns>
         private int GetInterTransformGateLevel(Av1BlockSize blockSize)
         {
             bool motionModeCase = !this.evaluatingMotionModeWinners && !this.searchingRetainedCandidates &&
@@ -12401,9 +12199,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int noSkipCost = Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext);
             int skipCost = Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext);
 
-            // The header alone above the budget and a failed luma search both leave the luma result invalid, unlike
-            // a later bound on the combined cost or a failed chroma search. Reference: the rd_stats_y->rate ==
-            // INT_MAX returns of av1_txfm_search().
+            // A header that alone exceeds the budget and a failed luma search both leave the luma result invalid. A later bound on the
+            // combined cost or a failed chroma search does not.
             this.lumaSearchFailed = true;
             if (Av1RateDistortion.GetCost(this.rateMultiplier, predictionRate + Math.Min(noSkipCost, skipCost), 0) > bestCost)
             {
@@ -12613,26 +12410,23 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1RateDistortionStatistics selectedStatistics = new(this.rateMultiplier, codedRate, codedDistortion);
             long skipDistortion = lumaPredictionDistortion + bluePredictionDistortion + redPredictionDistortion;
 
-            // All-empty residuals omit the transform tree. Nonempty residuals can also be discarded when
-            // prediction alone costs no more; shared prediction syntax must not affect the rounded comparison.
+            // All-empty residuals omit the transform tree. Nonempty residuals can also be dropped when the prediction alone costs no more.
+            // The shared prediction syntax must not affect the rounded comparison.
             bool allEmpty = !lumaStatistics.HasCoefficients && !blueHasCoefficients && !redHasCoefficients;
             bool skippable = allEmpty;
 
             if (this.BlockLossless)
             {
-                // Preserve coefficient presence independently of rounded distortion. A small high-bit-depth
-                // residual can have zero normalized error but still requires reversible coefficients.
+                // The skip follows the presence of coefficients, not the rounded distortion. A small high-bit-depth residual can have zero
+                // normalized error, but it still needs reversible coefficients.
                 skip = allEmpty;
             }
             else
             {
-                // The recursive luma search marks its result skippable by comparing the costs, not by the
-                // emptiness of its transforms, while chroma is skippable only when it codes nothing. Skip is
-                // taken outright when both are, and otherwise when leaving the residual uncoded costs no more.
-                // Reference: the skip_txfm result of select_inter_block_yrd(), merged with av1_txfm_uvrd()'s,
-                // and the choose_skip_txfm comparison of av1_txfm_search(). A mode search that defers the size
-                // search runs the uniform search of TX_MODE_LARGEST, whose luma is skippable when it is empty.
-                // Reference: the tx_mode_search_type set by set_mode_eval_params() for MODE_EVAL.
+                // The recursive luma search marks its result skippable by a comparison of the costs, not by the emptiness of its transforms.
+                // Chroma is skippable only when it codes nothing. If both are skippable, the block skips. Otherwise it skips when leaving the
+                // residual uncoded costs no more. A mode search that defers the size search runs the uniform search of the largest transform,
+                // whose luma is skippable when it is empty.
                 bool recursiveLumaSearch = this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select &&
                     (!this.picture.Parent.SpeedSettings.DeferTransformSizeSearch ||
                         this.blockWorkspace.EvaluationStage != Av1EncoderEvaluationStage.Candidate);
@@ -12645,7 +12439,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 skippable = lumaSkippable && !blueHasCoefficients && !redHasCoefficients;
 
                 // High bit depth sharpness 3 adds a skip penalty to the comparison only.
-                // Reference: the av1_get_tx_skip_dist() call before the choose_skip_txfm comparison of av1_txfm_search().
                 long comparedCodedDistortion = codedDistortion;
                 long comparedSkipDistortion = skipDistortion;
                 if (!skippable && this.UsesHighBitDepthSharpness)
@@ -12673,8 +12466,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     predictionRate + skipCost,
                     skipDistortion);
 
-                // A skippable residual whose skipped cost exceeds the budget fails the search. Reference: the
-                // rd_stats->skip_txfm test at the end of av1_txfm_search().
+                // A skippable residual whose skipped cost exceeds the budget fails the search.
                 if (skippable && selectedStatistics.Cost > bestCost)
                 {
                     return Av1RateDistortionStatistics.Invalid;
@@ -12700,14 +12492,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // The luma cost prices the skip flag that the complete residual search reports, and a block coded as
-            // skip drops its luma rate and keeps the prediction error. Reference: this_yrd in motion_mode_rd().
+            // The luma cost prices the skip flag that the complete residual search reports. A block coded as skip drops its luma rate and
+            // keeps the prediction error.
             selectedStatistics.LumaCost = skip ? skippedLumaCost : codedLumaCost;
             selectedStatistics.HasCoefficients = !skip;
 
-            // The residual search reports the skip that it chose, from an empty residual or from the comparison.
-            // best_mode_skippable and the partition search read this result.
-            // Reference: the rd_stats->skip_txfm = 1 and rd_stats->skip_txfm = 0 of the choose_skip_txfm branches of av1_txfm_search().
+            // The residual search reports the skip that it chose, from an empty residual or from the comparison. The mode thresholds and the
+            // partition search read this result.
             selectedStatistics.AllTransformsEmpty = skip;
             selectedStatistics.ResidualRate = selectedStatistics.Rate - predictionRate;
             selectedStatistics.PredictionDistortion = skipDistortion;
@@ -12789,7 +12580,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Returns whether every new vector of a compound mode differs from its reference vector.
-        /// Reference: av1_check_newmv_joint_nonzero(), with the reference vectors of av1_get_ref_mv().
         /// </summary>
         /// <param name="mode">The compound mode.</param>
         /// <param name="vector">The first vector.</param>
@@ -12819,9 +12609,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Keeps a motion search range within eight samples of the visible frame when the sharpness is 3, and returns
-        /// it unchanged otherwise. Reference: the sharpness margins of av1_make_default_fullpel_ms_params() and
-        /// av1_make_default_subpel_ms_params().
+        /// Keeps a motion search range within eight samples of the visible frame when the sharpness is 3. Otherwise it returns the
+        /// range unchanged.
         /// </summary>
         /// <param name="bounds">The search range, with exclusive right and bottom edges.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -12841,12 +12630,12 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Clamps a single-reference new vector that a compound mode reuses into the fractional search range around
-        /// the compound reference vector. Reference: clamp_mv_in_range() in handle_newmv().
+        /// Clamps a single-reference new vector that a compound mode reuses into the fractional search range around the compound
+        /// reference vector.
         /// </summary>
         /// <param name="vector">The reused single-reference vector.</param>
         /// <param name="reference">The compound reference vector of the component.</param>
-        /// <param name="frameBounds">The full-pixel region of the block. Reference: x->mv_limits.</param>
+        /// <param name="frameBounds">The full-pixel motion range of the block.</param>
         /// <returns>The clamped vector.</returns>
         private static Av1MotionVector ClampToSubpixelRange(Av1MotionVector vector, Av1MotionVector reference, Rectangle frameBounds)
         {
@@ -12951,8 +12740,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Av1MotionVector reference = referenceMotionVectors.GetNewReference(referenceMotionVectorIndex);
 
-            // Mode selection discounts motion syntax to 108/128 of its estimated rate. Apply the rounded
-            // weight to the vector alone; mode and dynamic-reference-list symbols retain their full rate.
+            // Mode selection discounts motion syntax to 108/128 of its estimated rate. The rounded weight applies to the vector alone.
+            // The mode and reference-list symbols keep their full rate.
             return rate + (((motionVectorCosts.GetCost(vector, reference) * 108) + 64) >> 7);
         }
 
@@ -13186,9 +12975,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         lumaIndex++;
                     }
 
-                    // The recursive luma search stores DCT_DCT for a luma block that quantized to nothing, and
-                    // the uniform search of mode evaluation keeps the type it searched. Reference: the zero_blk_rd
-                    // branch of try_tx_block_no_split() against update_txk_array() in search_tx_type().
+                    // The recursive luma search stores DCT_DCT for a luma block that quantized to nothing. The uniform search of mode
+                    // evaluation keeps the type that it searched.
                     bool emptyLumaIsDct = recursiveLumaSearch && lumaState.EndOfBlock == 0;
                     Av1TransformType transformType = emptyLumaIsDct || !lumaState.TransformType.IsExtendedSetUsed(transformSet)
                         ? Av1TransformType.DctDct
@@ -13270,12 +13058,9 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Blends the prediction of one plane with the predictions of the overlappable above and left neighbors over
-        /// the neighbor's own vector, reference and filters, then rebuilds the residual. A plane block smaller than
+        /// Blends the prediction of one plane with the predictions of the overlappable above and left neighbors. Each neighbor
+        /// predicts with its own vector, reference and filters. The method then rebuilds the residual. A plane block smaller than
         /// 8x8 blends with its left neighbors only.
-        /// Reference: av1_build_prediction_by_above_preds() and av1_build_prediction_by_left_preds() with
-        /// build_obmc_prediction(), then av1_build_obmc_inter_prediction(), foreach_overlappable_nb_above() and
-        /// foreach_overlappable_nb_left().
         /// </summary>
         /// <param name="plane">The plane.</param>
         /// <param name="subsamplingX">The horizontal subsampling shift.</param>
@@ -13316,7 +13101,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> neighborPrediction = stackalloc TSample[64 * 32];
             Span<byte> maskRows = stackalloc byte[64 * 32];
 
-            // Reference: av1_skip_u4x4_pred_in_obmc().
+            // A plane block smaller than 8x8 skips the above blend.
             bool smallPlane = planeSize is Av1BlockSize.Block4x4 or Av1BlockSize.Block8x4 or Av1BlockSize.Block4x8;
 
             // A neighbor and its vector share the allocation index at the grid cell.
@@ -13435,8 +13220,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Predicts one neighbor's rectangle of the OBMC overlap with the neighbor's first reference, vector and
-        /// filters. Reference: build_obmc_prediction() with setup_address_for_obmc().
+        /// Predicts one neighbor's rectangle of the OBMC overlap with the neighbor's first reference, vector and filters.
         /// </summary>
         /// <param name="plane">The plane.</param>
         /// <param name="subsamplingX">The horizontal subsampling shift.</param>
@@ -13462,8 +13246,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> filterRows,
             Av1BitDepth bitDepth)
         {
-            // A neighbor predicts from its reference with that reference's scale factors. Reference:
-            // av1_setup_build_prediction_by_above_pred() and av1_setup_build_prediction_by_left_pred().
+            // A neighbor predicts from its reference with the scale factors of that reference.
             if (!neighbor.UseIntraBlockCopy && this.IsResizedReference(neighbor.ReferenceFrame))
             {
                 this.PredictScaledInter(
@@ -13507,10 +13290,9 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Builds the chroma prediction of a block four samples wide or high, whose subsampled plane block covers the
-        /// neighboring luma blocks as well, from the vector, reference and filters of each covered block. The path
-        /// applies only when every covered block predicts from a reference frame.
-        /// Reference: is_sub8x8_inter() and build_inter_predictors_sub8x8().
+        /// Builds the chroma prediction of a block four samples wide or high. Its subsampled plane block also covers the neighboring
+        /// luma blocks. Each covered block predicts its part with its own vector, reference and filters. The path applies only when
+        /// every covered block predicts from a reference frame.
         /// </summary>
         /// <param name="vector">The vector of the current block.</param>
         /// <param name="referenceFrame">The reference of the current block.</param>
@@ -13560,7 +13342,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return false;
             }
 
-            // The plane block starts at the first covered luma block; the current block is the last one.
+            // The plane block starts at the first covered luma block. The current block is the last one.
             int rowStart = subFourY ? -1 : 0;
             int columnStart = subFourX ? -1 : 0;
             Point current = new(
@@ -13622,9 +13404,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         subVertical = covered.VerticalInterpolationFilter;
                     }
 
-                    // Each covered block predicts from its reference frame with that reference's scale factors,
-                    // even within the estimated real-time search. Reference: the ref_scale_factors of
-                    // build_inter_predictors_sub8x8().
+                    // Each covered block predicts with the scale factors of its own reference. This also holds in the estimated real-time search.
                     if (this.IsResizedReference(subReferenceFrame))
                     {
                         this.PredictScaledInter(
@@ -13678,9 +13458,9 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns the global motion model that a GLOBALMV block warps with: the rotation-zoom or affine model of its
-        /// reference, for a block at least 8 samples in both directions, in a frame that allows fractional vectors.
-        /// Reference: is_global_mv_block() with the global warp branch of av1_allow_warp().
+        /// Returns the global motion model that a GLOBALMV or GLOBAL_GLOBALMV block warps with. This is the valid rotation-zoom or
+        /// affine model of its reference. The block must be at least 8 samples in both directions, in a frame that allows fractional
+        /// vectors.
         /// </summary>
         /// <param name="mode">The prediction mode.</param>
         /// <param name="reference">The reference of the prediction.</param>
@@ -13708,10 +13488,9 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Warps one reference of a GLOBAL_GLOBALMV block into its compound intermediate when that reference has a
-        /// rotation-zoom or affine global model and the plane block is at least 8x8. Each reference decides for
-        /// itself, so one reference can warp while the other translates. Reference: av1_init_warp_params() for
-        /// each reference in build_inter_predictors().
+        /// Warps one reference of a GLOBAL_GLOBALMV block into its compound intermediate. This occurs when that reference has a
+        /// rotation-zoom or affine global model and the plane block is at least 8x8. Each reference decides for itself, so one
+        /// reference can warp while the other translates.
         /// </summary>
         /// <param name="mode">The prediction mode.</param>
         /// <param name="reference">The reference of this predictor.</param>
@@ -13763,10 +13542,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Builds the single-reference prediction of one plane and its residual. A GLOBALMV block of at least 8x8
-        /// plane samples warps with the rotation-zoom or affine model of its reference; every other block
-        /// translates. Reference: av1_init_warp_params() for the inter predictor that
-        /// av1_build_interintra_predictor() blends.
+        /// Builds the single-reference prediction of one plane and its residual. A GLOBALMV block of at least 8x8 plane samples warps
+        /// with the rotation-zoom or affine model of its reference. Every other block translates.
         /// </summary>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
@@ -13881,11 +13658,10 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Writes a luma inter prediction into the frame at the block, as av1_enc_build_inter_predictor() and av1_combine_interintra()
-        /// write pd->dst when pd->dst is the frame. A later trial can read these samples from the frame, so the frame must hold them.
-        /// The port does not write chroma inter predictions into the frame: no libaom code reads chroma samples that an earlier trial left
-        /// in pd->dst. The port also does not write OBMC and warped predictions: libaom skips those modes at sharpness 3, and only
-        /// sharpness 3 reads the luma samples that an earlier inter trial left.
+        /// Writes a luma inter prediction into the frame at the block. A later trial can read these samples from the frame, so the frame
+        /// must hold them. Chroma inter predictions do not go into the frame, because no later step reads chroma samples that an earlier
+        /// trial left. OBMC and warped predictions also do not go into the frame. Sharpness 3 skips those modes, and only sharpness 3
+        /// reads the luma samples that an earlier inter trial left.
         /// </summary>
         /// <param name="lumaFrame">The samples of the reconstructed luma plane, which the caller reads once outside its loops.</param>
         /// <param name="blockOrigin">The luma block origin.</param>
@@ -13966,7 +13742,6 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> sourceRed)
         {
             // A chroma block of a block four samples wide or high starts at the first luma block it covers.
-            // Reference: the odd mi_row and mi_col adjustment of setup_pred_plane().
             if (plane != Av1Plane.Y)
             {
                 Point chromaOrigin = Av1TileWriter.GetChromaBlockOrigin(lumaOrigin, subsamplingX, subsamplingY);
@@ -14100,10 +13875,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     return;
                 }
 
-                // A warped block predicts each plane of at least 8x8 samples with its local model, and a GLOBALMV
-                // block with the rotation-zoom or affine model of its reference. A smaller plane keeps the
-                // translational prediction, and so does a frame that forces integer vectors. Reference:
-                // av1_init_warp_params() and av1_allow_warp(), with is_global_mv_block().
+                // A warped block predicts each plane of at least 8x8 samples with its local model. A GLOBALMV block uses the rotation-zoom
+                // or affine model of its reference. A smaller plane keeps the translational prediction. A GLOBALMV block in a frame that
+                // forces integer vectors also keeps it.
                 bool warped = this.useWarpedPrediction;
                 Av1GlobalMotionParameters warpModel = this.warpedModel;
                 if (!warped && this.TryGetGlobalWarpModel(predictionMode, primaryReferenceFrame, blockSize, out Av1GlobalMotionParameters global))
@@ -14141,8 +13915,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     return;
                 }
 
-                // Reference-frame modes use the complete interpolation pipeline even when the current zero-phase
-                // global vector reduces to a SIMD copy. Later fractional vectors therefore share decoder arithmetic.
+                // Reference-frame modes always run the complete interpolation path, also for a zero-phase global vector. Every vector then
+                // uses the same arithmetic as the decoder.
                 if (this.IsScaledReference(primaryReferenceFrame))
                 {
                     this.PrepareScaledInterPrediction(
@@ -14326,12 +14100,11 @@ internal static partial class Av1IntraSuperblockEncoder
             selectedRate = result.Rate;
             selectedDistortion = result.Distortion;
 
-            // The winning type reports the residual energy that the block would leave unskipped. Reference: the sse
-            // of search_tx_type(), which best_rd_stats keeps.
+            // The winning type reports the energy of the residual. This is the distortion of the block when it skips the residual.
             predictionDistortion = result.Sse;
 
-            // Callers retain the selected coefficients after this scratch workspace is reused by the next plane or motion vector. An inter
-            // block is never reconstructed in the search, so there are no winner samples to keep. Reference: the is_inter test of recon_intra().
+            // Callers keep the selected coefficients after the next plane or motion vector reuses this workspace. The search never
+            // reconstructs an inter block, so it keeps no winner samples.
             if (bestCoefficients != selectedCoefficients[..sampleCount])
             {
                 bestCoefficients.CopyTo(selectedCoefficients);

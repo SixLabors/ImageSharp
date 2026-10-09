@@ -685,7 +685,7 @@ internal static partial class Av1IntraSuperblockEncoder
     ];
 
     /// <summary>
-    /// Predicts whether a transform should subdivide from its residual means and deviations.
+    /// Scores how much a transform gains from a split, from its residual means and deviations.
     /// </summary>
     /// <param name="residual">The residual samples in contiguous transform rows.</param>
     /// <param name="transformSize">The transform geometry.</param>
@@ -800,8 +800,8 @@ internal static partial class Av1IntraSuperblockEncoder
         float deviationSum = 0;
         int subCount = 0;
 
-        // Square transforms contribute four subregions; rectangles contribute two. Each pair
-        // stores a mean followed by a standard deviation in raster order.
+        // A square transform contributes four subregions and a rectangle contributes two. Each pair stores a mean followed by a standard
+        // deviation, in raster order.
         for (int y = 0; y < height; y += subHeight)
         {
             for (int x = 0; x < width; x += subWidth)

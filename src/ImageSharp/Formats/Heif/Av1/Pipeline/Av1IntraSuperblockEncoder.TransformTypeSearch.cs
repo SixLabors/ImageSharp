@@ -334,10 +334,10 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Selects the transform types that one transform block searches. Mode evaluation can restrict intra luma to
-        /// its default or derived types and inter luma to a type the frame statistics make likely. A chroma block
-        /// keeps the type it derives. A full search is pruned by the frame's type statistics and then by estimated
-        /// costs or, for an inter block, by the separable type model. Reference: get_tx_mask().
+        /// Selects the transform types that one transform block searches. The mode evaluation can restrict intra luma to its default or
+        /// derived types, and inter luma to a type that the frame statistics make likely. A chroma block keeps the type that it derives.
+        /// The type statistics of the frame prune a full search first. Then the estimated costs prune it, or the separable type model
+        /// for an inter block.
         /// </summary>
         /// <param name="writer">The tile symbol encoder that prices the estimates.</param>
         /// <param name="modeCosts">The mode rates that the caller read once.</param>
@@ -351,14 +351,14 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformSize">The transform size.</param>
         /// <param name="mode">The prediction mode of the block.</param>
         /// <param name="filterIntraMode">The filter intra mode, or <see cref="Av1FilterIntraMode.AllFilterIntraModes"/>.</param>
-        /// <param name="derivedTransformType">The type a chroma block derives. Reference: av1_get_tx_type().</param>
+        /// <param name="derivedTransformType">The type that a chroma block derives.</param>
         /// <param name="blockContext">The coefficient contexts of the transform block.</param>
         /// <param name="residual">The residual samples.</param>
         /// <param name="residualStride">The number of residual samples between rows.</param>
-        /// <param name="costLimit">The budget left for the transform block. Reference: ref_best_rd.</param>
+        /// <param name="costLimit">The budget left for the transform block.</param>
         /// <param name="coefficients">The storage that the estimates quantize into.</param>
         /// <param name="transformOrder">The search order, which the estimates sort by cost.</param>
-        /// <param name="singleTypeAllowed">Whether one type is allowed. Reference: txk_allowed &lt; TX_TYPES.</param>
+        /// <param name="singleTypeAllowed">Whether only one type is allowed.</param>
         /// <returns>The types to search.</returns>
         private ushort GetTransformMask(
             Av1SymbolEncoder writer,
@@ -390,14 +390,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 ((int)transformSize * Av1TransformTypeProbabilities.TypeCount),
                 Av1TransformTypeProbabilities.TypeCount);
 
-            // The search tries several types while this stays AllTransformTypes, and only this type otherwise.
-            // Reference: txk_allowed.
+            // The search tries several types while this value stays AllTransformTypes. Otherwise it tries only this type.
             Av1TransformType allowedType = Av1TransformType.AllTransformTypes;
             int intraSearchLevel = !isInter && candidateStage ? settings.IntraTransformTypeSearchLevel : 0;
             int interThreshold = isInter && candidateStage ? settings.InterTransformTypeProbabilityThreshold : int.MaxValue;
             if (intraSearchLevel == 2 || interThreshold == 0)
             {
-                // Reference: get_default_tx_type().
+                // The default type is DCT_DCT for inter blocks, for transforms of 32x32 and larger, and for screen content. Other intra
+                // blocks use the type that the prediction mode maps to.
                 allowedType = isInter || transformSize >= Av1TransformSize.Size32x32 || frameHeader.AllowScreenContentTools
                     ? Av1TransformType.DctDct
                     : mode.ToTransformType();
@@ -438,10 +438,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 allowedType = derivedTransformType;
             }
 
-            // The direction of a filter-intra block comes from fimode_to_intradir, where the Paeth filter is a DC
-            // direction. Each bit selects one type in syntax order. The reduced intra set omits one-dimensional
-            // transforms whose direction disagrees with the predictor. Reference: av1_ext_tx_used_flag and
-            // av1_reduced_intra_tx_used_flag.
+            // A filter-intra block takes the direction that its filter mode maps to. The Paeth filter maps to the DC direction. Each bit
+            // selects one type in syntax order. The reduced intra set omits one-dimensional transforms whose direction does not agree with
+            // the predictor.
             Av1PredictionMode direction = filterIntraMode == Av1FilterIntraMode.AllFilterIntraModes
                 ? mode
                 : filterIntraMode.ToIntraDirection();
@@ -466,7 +465,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else if (intraSearchLevel == 1)
             {
-                // Reference: av1_derived_intra_tx_used_flag.
+                // The derived intra types of each prediction direction, one bit per type in syntax order.
                 ReadOnlySpan<ushort> derivedMasks =
                     [0x0209, 0x0403, 0x0805, 0x020F, 0x0009, 0x0009, 0x0009, 0x0805, 0x0403, 0x0205, 0x0403, 0x0805, 0x0209];
 
@@ -529,13 +528,11 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Searches the transform types of one transform block and keeps the best one. The block statistics decide
-        /// first: a residual that cannot survive quantization is settled as empty without a search, and a
-        /// low-variance block searches DCT_DCT alone with its mean as the DC coefficient. Each remaining type is
-        /// quantized and priced; a type whose rate alone costs more than the winner is not measured. The
-        /// distortion domain follows the speed policy of the current evaluation stage: policy 1 measures the
-        /// candidates in the transform domain and the winner again in the pixel domain, policy 2 keeps the
-        /// transform domain throughout. Reference: search_tx_type(), after get_tx_mask().
+        /// Searches the transform types of one transform block and keeps the best one. The block statistics decide first. A residual
+        /// that cannot survive quantization is settled as empty without a search. A low-variance block searches DCT_DCT alone, with
+        /// its mean as the DC coefficient. Each remaining type is quantized and priced. A type whose rate alone costs more than the
+        /// winner is not measured. The distortion domain follows the speed policy of the current evaluation stage. Policy 1 measures
+        /// the candidates in the transform domain and the winner again in the pixel domain. Policy 2 uses the transform domain for all.
         /// </summary>
         /// <remarks>
         /// The candidate and best buffers swap on each improvement, so the winner is never copied inside the loop.
@@ -559,8 +556,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformSize">The transform size.</param>
         /// <param name="mode">The prediction mode that selects the transform-type context.</param>
         /// <param name="filterIntraMode">The filter intra mode, or <see cref="Av1FilterIntraMode.AllFilterIntraModes"/>.</param>
-        /// <param name="derivedTransformType">The type a chroma block derives, which it searches alone. Reference: av1_get_tx_type().</param>
-        /// <param name="costLimit">The budget left for the transform block. Reference: ref_best_rd.</param>
+        /// <param name="derivedTransformType">The type that a chroma block derives, which it searches alone.</param>
+        /// <param name="costLimit">The budget left for the transform block.</param>
         /// <param name="winnerDestination">
         /// The prediction in the frame when a later transform block of an intra block predicts from the winner, and empty otherwise.
         /// A winner with coefficients that the search did not reconstruct is then reconstructed here in place, over its prediction.
@@ -653,9 +650,9 @@ internal static partial class Av1IntraSuperblockEncoder
             int acDequantizer = Av1QuantizationLookup.GetAcQuant(
                 this.blockQIndex, this.quantization.DeltaQAc[planeIndex], this.bitDepth);
 
-            // predict_dc_only_block settles a block whose residual cannot survive quantization, and from level two
-            // keeps only the DC coefficient of a low-variance block. Chroma of an intra block keeps its full
-            // transform. A DC-only block searches DCT_DCT alone and measures its distortion in the pixel domain.
+            // The DC prediction settles a block whose residual cannot survive quantization. From level two, it keeps only the DC
+            // coefficient of a low-variance block. The chroma of an intra block keeps its full transform. A DC-only block searches DCT_DCT
+            // alone and measures its distortion in the pixel domain.
             bool dcOnlyCandidate = false;
             bool predictedSkip = predictDcBlock && Av1TransformBlockEncoder.PredictSkippedBlock(
                 transformSize,
@@ -666,14 +663,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockVariance,
                 out dcOnlyCandidate);
 
-            // A DC-only chroma block quantizes with DCT_DCT and reconstructs with the type it derives. Reference:
-            // av1_get_tx_type() in dist_block_px_domain().
+            // A DC-only chroma block quantizes with DCT_DCT and reconstructs with the type that it derives.
             Av1TransformType derivedType = derivedTransformType;
             bool dcOnlyBlock = predictDcBlock && dcOnlyCandidate && predictDcLevel > 1 && (plane == Av1Plane.Y || isInter);
 
-            // A predicted empty block searches no type, and a DC-only block DCT_DCT alone. Every other block
-            // searches the types that get_tx_mask() selects, in the order its estimates leave.
-            // The order is taken as a span once, outside the loops, rather than through the inline array indexer.
+            // A predicted empty block searches no type, and a DC-only block searches DCT_DCT alone. Every other block searches the types
+            // that the transform mask selects, in the order that its estimates leave. The order is taken as a span once, outside the loops,
+            // and not through the inline array indexer.
             InlineArray16<Av1TransformType> transformOrderStorage = default;
             Span<Av1TransformType> transformOrder = transformOrderStorage;
             for (int type = 0; type < Av1TransformTypeProbabilities.TypeCount; type++)
@@ -748,11 +744,9 @@ internal static partial class Av1IntraSuperblockEncoder
             best.Sse = blockError;
             bool bestReconstructed = false;
 
-            // A predicted empty block searches no transform type: the prediction stands as the reconstruction, and
-            // the block costs the all-zero flag alone, priced with the contexts that av1_get_entropy_contexts()
-            // reads at the block origin rather than with the contexts of earlier transform blocks. As
-            // predict_dc_only_block() does, only the end of block is set to zero: the coefficient buffer keeps its
-            // samples, because every reader stops at the end of block.
+            // A predicted empty block searches no transform type. The prediction stands as the reconstruction. The block costs the
+            // all-zero flag alone, priced with the contexts at the coding block origin, not with the contexts of earlier transform blocks.
+            // Only the end of block is set to zero. The coefficient buffer keeps its values, because every reader stops at the end of block.
             if (predictedSkip)
             {
                 best.Type = Av1TransformType.DctDct;
@@ -938,8 +932,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     bestReconstructed = candidateReconstructed;
                 }
 
-                // adaptive_txb_search_level: a winner already far above the remaining budget ends the search;
-                // skip_tx_search ends it once a type quantizes the block to zero.
+                // With an adaptive search level, a winner that is already far above the remaining budget ends the search. When the
+                // settings ask for it, a type that quantizes the block to zero also ends the search.
                 if (adaptiveSearchLevel != 0 && best.Cost - (best.Cost >> adaptiveSearchLevel) > costLimit)
                 {
                     break;
@@ -953,7 +947,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // The winner is reconstructed only when it has coefficients and either a later transform block predicts from it, or policy 1
             // measures its final distortion in pixels. An empty winner reconstructs to its prediction, which the caller uses instead.
-            // Reference: calc_pixel_domain_distortion_final with best_eob, and recon_intra(), at the end of search_tx_type().
             bool reconstructWinner = !winnerDestination.IsEmpty;
             bool measureWinner = measureWinnerInPixelDomain && best.State.EndOfBlock != 0;
             if (!bestReconstructed && best.State.EndOfBlock != 0 && (reconstructWinner || measureWinner))
@@ -1023,8 +1016,8 @@ internal static partial class Av1IntraSuperblockEncoder
             public long Distortion;
 
             /// <summary>
-            /// The energy the block leaves uncoded: in the transform domain where the search measured the winner
-            /// there, and the visible residual energy otherwise. Reference: the sse of search_tx_type().
+            /// The energy that the block leaves uncoded. When the search measured the winner in the transform domain, the energy is in that
+            /// domain. Otherwise it is the visible residual energy.
             /// </summary>
             public long Sse;
 

@@ -69,9 +69,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns the per-sample variance of a source block around the mid-gray level. Reference:
-        /// av1_get_perpixel_variance(), which measures the source against a flat mid-gray block with the
-        /// variance function of the block size.
+        /// Returns the per-sample variance of a source block around the mid-gray level. The method measures the source against a flat
+        /// mid-gray block.
         /// </summary>
         /// <param name="source">The source plane.</param>
         /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
@@ -106,8 +105,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 out int sum,
                 out long squares);
 
-            // Normalize the two moments separately before subtracting the squared mean. At high bit
-            // depths their independent rounding can make the centered result slightly negative.
+            // The two moments are normalized separately before the squared mean is subtracted. At high bit depths, their independent
+            // rounding can make the centered result slightly negative, so the result clamps at zero.
             int squareShift = sampleShift * 2;
             sum = (sum + ((1 << sampleShift) >> 1)) >> sampleShift;
             squares = (squares + ((1L << squareShift) >> 1)) >> squareShift;
@@ -348,7 +347,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             out long transformDistortion,
                             out bool transformSkip);
 
-                        // The sum stays below the invalid-rate value. Reference: the INT_MAX / 2 clamp of av1_estimate_block_intra().
+                        // The sum clamps at half of the maximum integer, so it stays below the invalid-rate value.
                         rate = (int)Math.Min((long)rate + transformRate, int.MaxValue / 2);
                         distortion += transformDistortion;
 
@@ -364,8 +363,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 rate = (skip ? 0 : rate) + Av1SymbolEncoder.GetSkipCost(modeCosts, skip, skipContext);
 
-                // Prediction estimates charge the mode symbol only. Angle syntax belongs to the
-                // full transform search and would unfairly penalize horizontal and vertical estimates.
+                // The prediction estimates charge the mode symbol only. The angle syntax belongs to the full transform search. If the
+                // estimates charged it, the horizontal and vertical estimates cost too much.
                 rate += Av1SymbolEncoder.GetLumaModeCost(modeCosts, mode, aboveContext, leftContext);
                 Av1RateDistortionStatistics statistics = new(this.rateMultiplier, rate, distortion);
                 if (statistics.Cost < bestStatistics.Cost)
@@ -390,9 +389,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1RateDistortionStatistics paletteStatistics = bestStatistics;
                 Av1TransformSize paletteTransformSize = transformSize;
 
-                // The estimated search runs its palette through the complete search at the default stage,
-                // with the transform size searched as the default stage sets it. Reference: the
-                // set_mode_eval_params(DEFAULT_EVAL) that opens av1_nonrd_use_partition().
+                // The estimated search runs its palette through the complete search at the default stage. The transform size search uses
+                // the settings of the default stage.
                 Av1EncoderEvaluationStage previousStage = this.blockWorkspace.EvaluationStage;
                 this.blockWorkspace.EvaluationStage = Av1EncoderEvaluationStage.Default;
                 bool paletteImproved = this.SelectLumaPalette(
@@ -427,8 +425,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.blockWorkspace.EvaluationStage = previousStage;
                 if (paletteImproved)
                 {
-                    // A skipped palette block omits its residual and mode rates. Apply skip syntax
-                    // before comparing with the retained estimate, which already includes that syntax.
+                    // A skipped palette block omits its residual and mode rates. The skip syntax is added before the comparison with the
+                    // kept estimate, which already includes that syntax.
                     bool skip = !paletteStatistics.HasCoefficients;
                     int paletteRate = (skip ? 0 : paletteStatistics.Rate) + Av1SymbolEncoder.GetSkipCost(modeCosts, skip, skipContext);
                     paletteStatistics = new(this.rateMultiplier, paletteRate, paletteStatistics.Distortion)
@@ -458,9 +456,7 @@ internal static partial class Av1IntraSuperblockEncoder
             block.PredictionUnit.AngleDelta[0] = 0;
             block.PredictionUnit.AngleDelta[1] = 0;
 
-            // The search leaves only a candidate reconstruction behind, so the selected block is
-            // encoded again, palette included. Reference: the encode_b() that follows
-            // av1_nonrd_pick_intra_mode(), which reaches encode_block_intra().
+            // The search leaves only a candidate reconstruction, so the selected block is encoded again, palette included.
             this.EncodeSelectedIntraPlane(
                 writer,
                 in tables,
@@ -648,11 +644,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 ? Av1TransformType.DctDct
                 : Av1SymbolContextHelper.GetDefaultIntraTransformType(mode, transformSize, this.picture.Parent.FrameHeader.UseReducedTransformSet);
 
-            // A palette block predicts from its color index map. It keeps the transform types its search chose
-            // only when the first transform block's type is not DCT_DCT; otherwise the context keeps the DCT_DCT
-            // map it was allocated with, for every transform block. Reference: the tx_type_map that
-            // av1_nonrd_pick_intra_mode() copies into the context when palette wins and xd->tx_type_map[0] is
-            // not DCT_DCT, read back by encode_block_intra().
+            // A palette block predicts from its color index map. It keeps the transform types that its search chose only when the type of
+            // the first transform block is not DCT_DCT. Otherwise every transform block uses DCT_DCT, the type of the initial map.
             Av1PlaneRegion<byte> paletteMap = paletteColors.IsEmpty
                 ? default
                 : this.superblock.Workspace.GetPaletteMaps().GetMap(Av1PlaneType.Y, planeBlockSize.GetWidth(), planeBlockSize.GetHeight());
@@ -660,11 +653,10 @@ internal static partial class Av1IntraSuperblockEncoder
             bool keepsSearchedTypes = !paletteColors.IsEmpty &&
                 states[coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount].TransformType != Av1TransformType.DctDct;
 
-            // The selected predictor writes directly to the retained frame. Its inverse transform adds
-            // residuals in place, so subsequent units consume reconstructed neighbors without a pixel copy.
-            // An intra block codes its uniform transforms in raster order inside each 64x64 luma unit.
-            // The packing pass reads coefficients in that order, so analysis must store them in it too.
-            // Depth-first order belongs to inter transform trees only.
+            // The selected predictor writes directly to the kept frame. Its inverse transform adds the residuals in place, so later units
+            // read reconstructed neighbors without a pixel copy. An intra block codes its uniform transforms in raster order inside each
+            // 64x64 luma unit. The packing pass reads the coefficients in that order, so the analysis must store them in that order too.
+            // Depth-first order applies only to inter transform trees.
             Av1BlockSize maximumUnit = plane == Av1Plane.Y
                 ? Av1BlockSize.Block64x64
                 : Av1BlockSize.Block64x64.GetSubsampled(subX != 0, subY != 0);
@@ -758,8 +750,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             }
                             else
                             {
-                                // At high bit depth sharpness 3, the trellis of a luma transform block tests the whole block in the frame
-                                // for a noise pattern. Reference: is_noise_pattern in av1_optimize_txb(), from encode_block_intra().
+                                // At high bit depth with sharpness 3, the trellis of a luma transform block tests the whole block in the frame
+                                // for a noise pattern.
                                 this.blockWorkspace.LumaNoisePattern = plane == Av1Plane.Y && this.IsLumaNoisePattern(
                                     sourceLuma,
                                     sourceBlue,
@@ -801,7 +793,6 @@ internal static partial class Av1IntraSuperblockEncoder
                             }
 
                             // A luma transform block that quantized to nothing returns to DCT_DCT.
-                            // Reference: the update_txk_array() call of encode_block_intra().
                             if (plane == Av1Plane.Y && state.EndOfBlock == 0)
                             {
                                 state.TransformType = Av1TransformType.DctDct;

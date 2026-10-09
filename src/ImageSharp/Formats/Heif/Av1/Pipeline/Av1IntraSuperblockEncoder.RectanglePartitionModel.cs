@@ -473,8 +473,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // Normalize each quarter's centered variance against the complete block. Padded samples
-            // remain part of the coded geometry; cropping to the visible image would change the features.
+            // The centered variance of each quarter is normalized against the complete block. Padded samples stay part of the coded
+            // geometry. A crop to the visible image changes the features.
             int wholeVariance = Math.Max(sourceVariance, 1);
             Av1BlockSize childSize = Av1PartitionType.Split.GetBlockSubSize(blockSize);
             int halfWidth = blockSize.GetWidth() >> 1;

@@ -54,9 +54,8 @@ internal static partial class Av1IntraSuperblockEncoder
         public static abstract int GetSampleValue(TSample sample);
 
         /// <summary>
-        /// Measures how far a block departs from its own 3x3 smoothing. The columns and rows past the visible ones
-        /// repeat the last visible column and row. Reference: aom_calc_variance_stat() and
-        /// aom_highbd_calc_variance_stat().
+        /// Measures how far a block departs from its own 3x3 smoothing. The columns and rows past the visible ones repeat the last visible
+        /// column and row.
         /// </summary>
         /// <param name="source">The samples, starting at the block origin.</param>
         /// <param name="stride">The row stride.</param>
@@ -459,8 +458,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height);
 
         /// <summary>
-        /// Subtracts one packed prediction from another. Reference: aom_subtract_block and
-        /// aom_highbd_subtract_block with both inputs at the block width.
+        /// Subtracts one packed prediction from another. Both inputs and the output use the block width as the stride.
         /// </summary>
         /// <param name="minuend">The prediction to subtract from, packed at the block width.</param>
         /// <param name="subtrahend">The prediction to subtract, packed at the block width.</param>
@@ -475,8 +473,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int height);
 
         /// <summary>
-        /// Predicts a block with an affine warped model. Reference: av1_warp_plane(), which
-        /// av1_make_inter_predictor() calls for a warped block.
+        /// Predicts a block with an affine warped model.
         /// </summary>
         /// <param name="reference">The padded retained reference plane.</param>
         /// <param name="referenceSamples">The samples of the complete reference plane, read once by the caller.</param>
@@ -507,9 +504,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth);
 
         /// <summary>
-        /// Predicts one reference of a compound block with an affine warped model into the unsigned compound
-        /// intermediate. Reference: av1_warp_plane() with the compound convolve parameters that
-        /// av1_make_inter_predictor() passes for a warped reference of a compound block.
+        /// Predicts one reference of a compound block with an affine warped model into the unsigned compound intermediate. The warp uses
+        /// the compound convolution rounding.
         /// </summary>
         /// <param name="reference">The padded retained reference plane.</param>
         /// <param name="referenceSamples">The samples of the complete reference plane, read once by the caller.</param>
@@ -627,9 +623,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth);
 
         /// <summary>
-        /// Predicts one rectangle from a reference of another size than the frame into a strided destination, with
-        /// a source position and phase that advance by a step per output sample. Reference: the scaled branch of
-        /// av1_make_inter_predictor(), which calls av1_convolve_2d_scale() or av1_highbd_convolve_2d_scale().
+        /// Predicts one rectangle from a reference of another size than the frame into a strided destination. The source position and
+        /// phase advance by a step for each output sample.
         /// </summary>
         /// <param name="reference">The padded retained reference plane.</param>
         /// <param name="referenceSamples">The samples of the complete reference plane, read once by the caller.</param>
@@ -1016,8 +1011,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static int GetAverage8x8(ReadOnlySpan<byte> source, int stride)
         {
-            // Each widened lane accumulates one column from eight rows. Column sums fit in
-            // eleven bits, and their total fits in ushort; round once after the complete sum.
+            // Each widened lane accumulates one column from eight rows. The column sums fit in eleven bits, and their total fits in a
+            // ushort. The average rounds once, after the complete sum.
             Vector128<ushort> columns = Vector128<ushort>.Zero;
             for (int row = 0; row < 8; row++)
             {

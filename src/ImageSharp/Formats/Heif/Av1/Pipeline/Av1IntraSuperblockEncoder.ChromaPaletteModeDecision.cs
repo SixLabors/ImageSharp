@@ -226,11 +226,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PlaneRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
             Av1PlaneRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
 
-            // Clip against the coded mode-info boundary before subsampling, as the decoder does. Visible odd
-            // dimensions still have complete coded chroma samples; truncating them here can leave an empty palette input.
-            // A chroma plane narrower or shorter than four samples belongs to a block that shares its chroma
-            // with the neighbour it pairs with, so its samples cover the pair.
-            // Reference: av1_get_block_dimensions().
+            // The block clips against the coded mode-info boundary before subsampling, as the decoder does. Visible odd dimensions still
+            // have complete coded chroma samples. A clip after subsampling can truncate them and leave an empty palette input. A chroma
+            // plane narrower or shorter than four samples belongs to a block that shares its chroma with the neighbor it pairs with, so
+            // its samples cover the pair.
             int chromaSub8Height = (blockSize.GetHeight() >> subsamplingY) < 4 ? 2 : 0;
             int chromaSub8Width = (blockSize.GetWidth() >> subsamplingX) < 4 ? 2 : 0;
             int rows = ((blockSize.GetHeight() + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subsamplingY) + chromaSub8Height;
@@ -249,8 +248,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> blueBlock = blueSourceSamples[blueSource.GetOffset(chromaOrigin.X, chromaOrigin.Y)..];
             ReadOnlySpan<TSample> redBlock = redSourceSamples[redSource.GetOffset(chromaOrigin.X, chromaOrigin.Y)..];
 
-            // Count native values for clustering, but count occupied 8-bit bins for deciding whether
-            // palette is suitable. Binning controls the search only; centroids keep the full sample precision.
+            // The clustering counts native values, but the palette decision counts occupied 8-bit bins. The bins control the search only.
+            // The centroids keep the full sample precision.
             Span<int> colorCounts = workspace.LumaColorCounts[..(1 << this.bitDepth.GetBitCount())];
             int uniqueBlueColorCount = this.CountPaletteColors(
                 blueBlock, blueSource.Stride, rows, columns, colorCounts, out int blueColorBins, out short blueMinimum, out short blueMaximum);
@@ -280,7 +279,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 .GetPaletteMaps()
                 .GetMap(Av1PlaneType.Uv, width, height);
 
-            // The map is read once; map row r starts one stride per row after the map origin.
+            // The map is read once. Map row r starts r strides after the map origin.
             Span<byte> mapSamples = colorIndexMap.Samples;
             int mapOrigin = colorIndexMap.Origin;
             int mapStride = colorIndexMap.Stride;
@@ -593,8 +592,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // Scanning in sample-value order counts occupied bins without a second histogram. Frequencies
-            // remain available for luma's dominant-color seeds; no input sample is rounded or overwritten.
+            // A scan in sample-value order counts occupied bins without a second histogram. The frequencies stay available for the
+            // dominant-color seeds of luma. No input sample is rounded or overwritten.
             int colorCount = 0;
             int previousBin = -1;
             int binShift = this.bitDepth.GetBitCount() - 8;

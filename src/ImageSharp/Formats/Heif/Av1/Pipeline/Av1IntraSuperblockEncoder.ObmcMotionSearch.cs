@@ -16,15 +16,13 @@ internal static partial class Av1IntraSuperblockEncoder
     internal partial struct ModeDecision<TSample, TOperator>
     {
         /// <summary>
-        /// The weight of one prediction in a blend, in 1/64 units. Reference: AOM_BLEND_A64_MAX_ALPHA.
+        /// The full weight of one prediction in a blend, in 1/64 units.
         /// </summary>
         private const int BlendMaximumAlpha = 64;
 
         /// <summary>
-        /// Searches a new vector for an OBMC block against the source with the neighbors' predictions removed: a
-        /// full-sample refinement around the simple-translation vector, then the two-level fractional tree. The OBMC
-        /// state must be armed for the block. Reference: av1_single_motion_search() with OBMC_CAUSAL, using
-        /// calc_target_weighted_pred(), av1_obmc_full_pixel_search() and av1_find_best_obmc_sub_pixel_tree_up().
+        /// Searches a new vector for an OBMC block against the source with the neighbor predictions removed. A full-sample search
+        /// around the simple-translation vector comes first, then the two-level fractional tree. The OBMC state must be armed for the block.
         /// </summary>
         /// <param name="motionSearchPrediction">The motion search prediction buffer.</param>
         /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
@@ -68,9 +66,8 @@ internal static partial class Av1IntraSuperblockEncoder
             this.CalculateObmcTarget(
                 blockSize, weightedSource, mask, filterRows, modeInfoGrid, modeInfoAllocation, displacementVectors, sourceLuma, sourceBlue, sourceRed);
 
-            // The full-sample search reads a reference of another size through its copy resized to the frame size, and
-            // the fractional search the reference itself. Reference: the scaled_ref_frame of
-            // av1_single_motion_search().
+            // For a reference of another size, the full-sample search reads the copy that is resized to the frame size. The fractional
+            // search reads the original reference.
             this.obmcSearchReference = referenceFrame;
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
             Av1PlaneRegion<TSample> referencePlane = this.searchReferences.Span[(int)referenceFrame].CodedView.GetPlane(Av1Plane.Y);
@@ -90,8 +87,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 ((referenceVector.Row + 3 + (referenceVector.Row >= 0 ? 1 : 0)) >> 3) * 8,
                 ((referenceVector.Column + 3 + (referenceVector.Column >= 0 ? 1 : 0)) >> 3) * 8);
 
-            // Full-sample refinement around the rounded start. Reference: the fast_obmc_search branch of
-            // av1_obmc_full_pixel_search() with obmc_refining_search_sad().
+            // The full-sample stage starts at the rounded start vector. It runs a diamond search, or, when the settings select the
+            // refining search, it moves to the best of the four nearest neighbors for at most eight steps.
             Rectangle fullBounds = referenceVector.GetFullPixelSearchBounds(frameBounds);
             Point best = new(
                 Math.Clamp((start.Column + 3 + (start.Column >= 0 ? 1 : 0)) >> 3, fullBounds.Left, fullBounds.Right - 1),
@@ -166,8 +163,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // Fractional tree with upsampled predictions. Reference: av1_find_best_obmc_sub_pixel_tree_up() with
-            // obmc_first_level_check() and obmc_second_level_check_v2().
+            // The fractional stage searches a tree of candidates with upsampled predictions.
             Av1MotionSearchSettings settings = this.picture.Parent.MotionSearchSettings;
             Rectangle fractionalBounds = referenceVector.GetSubpixelSearchBounds(frameBounds);
             int taps = settings.FractionalInterpolationTaps;
@@ -368,9 +364,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Runs the diamond search from the start at the given step, then restarts it from the start at each finer
-        /// step that the earlier searches did not settle at their start, and keeps the vector with the lowest OBMC
-        /// variance plus vector cost. Reference: obmc_full_pixel_diamond() with get_obmc_mvpred_var().
+        /// Runs the diamond search from the start at the given step. Then it runs the search again from the start at each finer step that
+        /// the earlier searches did not settle at their start. It keeps the vector with the lowest OBMC variance plus vector cost.
         /// </summary>
         /// <param name="reference">The reference plane samples.</param>
         /// <param name="referenceStride">The reference plane stride.</param>
@@ -485,9 +480,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Visits the sites of each stage from the given step down to the finest, moving to the site with the lowest
-        /// OBMC SAD plus vector cost, and counts the stages that leave the search at its start.
-        /// Reference: obmc_diamond_search_sad().
+        /// Visits the sites of each stage from the given step down to the finest. Each stage moves to the site with the lowest OBMC SAD
+        /// plus vector cost. The method counts the stages that leave the search at its start.
         /// </summary>
         /// <param name="reference">The reference plane samples.</param>
         /// <param name="referenceStride">The reference plane stride.</param>
@@ -569,7 +563,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Returns the OBMC variance of the reference block at a full-sample vector plus the vector cost.
-        /// Reference: get_obmc_mvpred_var().
         /// </summary>
         /// <param name="reference">The reference plane samples.</param>
         /// <param name="referenceStride">The reference plane stride.</param>
@@ -601,7 +594,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Measures one fractional candidate and keeps it when it lowers the cost. Reference: obmc_check_better().
+        /// Measures one fractional candidate and keeps it when it lowers the cost.
         /// </summary>
         /// <param name="vector">The fractional candidate vector.</param>
         /// <param name="bounds">The fractional search range.</param>
@@ -673,7 +666,6 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <summary>
         /// Returns the OBMC variance of the upsampled prediction at a vector plus the vector cost.
-        /// Reference: upsampled_obmc_pref_error() and mv_err_cost_().
         /// </summary>
         /// <param name="reference">The reference plane samples.</param>
         /// <param name="referenceStride">The reference plane stride.</param>
@@ -706,8 +698,7 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             if (this.IsScaledReference(this.obmcSearchReference))
             {
-                // A scaled reference predicts each candidate from the reference itself with its scale factors.
-                // Reference: aom_upsampled_pred_scaled() in upsampled_obmc_pref_error().
+                // A scaled reference predicts each candidate from the original reference with its scale factors.
                 this.GetScaledSearchReference(this.obmcSearchReference, this.obmcBlockOrigin, filterRows)
                     .Predict<TOperator>(vector, motionSearchPrediction, new Size(width, height), this.bitDepth.GetBitCount());
             }
@@ -732,9 +723,17 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns the OBMC SAD of the reference block at a full-sample vector. Reference: aom_obmc_sad and
-        /// aom_highbd_obmc_sad.
+        /// Returns the OBMC SAD of the reference block at a full-sample vector.
         /// </summary>
+        /// <param name="reference">The reference plane samples.</param>
+        /// <param name="referenceStride">The reference plane stride.</param>
+        /// <param name="referenceOrigin">The index of the block origin in the reference plane.</param>
+        /// <param name="vector">The full-sample vector.</param>
+        /// <param name="weightedSource">The source with the neighbor predictions removed.</param>
+        /// <param name="mask">The OBMC blend weights.</param>
+        /// <param name="width">The block width.</param>
+        /// <param name="height">The block height.</param>
+        /// <returns>The OBMC SAD.</returns>
         private static int GetObmcSad(
             ReadOnlySpan<TSample> reference,
             int referenceStride,
@@ -750,9 +749,15 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns the OBMC variance of a packed prediction, normalized to eight bits for higher depths.
-        /// Reference: aom_obmc_variance and aom_highbd_{8,10,12}_obmc_variance.
+        /// Returns the OBMC variance of a packed prediction. For bit depths above eight, the moments round to the 8-bit scale first.
         /// </summary>
+        /// <param name="prediction">The prediction samples.</param>
+        /// <param name="predictionStride">The prediction stride.</param>
+        /// <param name="weightedSource">The source with the neighbor predictions removed.</param>
+        /// <param name="mask">The OBMC blend weights.</param>
+        /// <param name="width">The block width.</param>
+        /// <param name="height">The block height.</param>
+        /// <returns>The OBMC variance. A negative result after the rounding becomes zero.</returns>
         private readonly int GetObmcVariance(
             ReadOnlySpan<TSample> prediction,
             int predictionStride,
@@ -776,10 +781,8 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Builds the OBMC search target of the luma block: the source scaled by 64 * 64 minus the weighted above and
-        /// left neighbor predictions, and the matching weight of the block's own prediction.
-        /// Reference: calc_target_weighted_pred() with calc_target_weighted_pred_above() and
-        /// calc_target_weighted_pred_left().
+        /// Builds the OBMC search target of the luma block. The target is the source scaled by 64 * 64 minus the weighted above and left
+        /// neighbor predictions. The mask holds the matching weight of the prediction of the block itself.
         /// </summary>
         /// <param name="blockSize">The block size.</param>
         /// <param name="weightedSource">Receives the weighted source, one entry per luma sample.</param>

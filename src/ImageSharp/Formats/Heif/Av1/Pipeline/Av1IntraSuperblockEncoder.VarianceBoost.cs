@@ -16,16 +16,15 @@ internal static partial class Av1IntraSuperblockEncoder
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
         /// <summary>
-        /// Gets the Variance Boost quantizer index of the superblock at an origin. Reference:
-        /// av1_get_variance_boost_block_variance() and av1_get_sbq_variance_boost().
+        /// Gets the Variance Boost quantizer index of the superblock at an origin, from the variances of its 8x8 luma blocks.
         /// </summary>
         /// <param name="origin">The superblock origin in luma samples.</param>
         /// <param name="baseQIndex">The frame quantizer index.</param>
         /// <returns>The superblock quantizer index before the delta resolution.</returns>
         private readonly int GetVarianceBoostQIndex(Point origin, int baseQIndex)
         {
-            // Each 8x8 variance is measured against zero samples, reading the replicated border past the frame
-            // edge, and truncated to a per-sample value.
+            // Each 8x8 variance uses zero samples as the second input. Past the frame edge, the read uses the replicated border.
+            // The result is truncated to a per-sample value.
             Span<uint> variances = stackalloc uint[Av1VarianceBoost.SubblockCount];
             Span<TSample> zeros = stackalloc TSample[Av1VarianceBoost.SubblockSize];
             zeros.Clear();
@@ -47,8 +46,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         out int sum,
                         out long squares);
 
-                    // High bit depths round both moments to eight-bit precision first. Reference:
-                    // aom_highbd_10_variance8x8() and aom_highbd_12_variance8x8().
+                    // High bit depths round both moments to eight-bit precision first, so the thresholds apply to every bit depth.
                     long normalizedSum = sum;
                     long normalizedSquares = squares;
                     if (shift > 0)

@@ -198,8 +198,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> dominantColors = dominantColorStorage;
             int dominantCount = 0;
 
-            // Only eight seeds survive. Insert by decreasing frequency; visiting values in ascending
-            // order preserves the lower-color tie break without sorting the complete histogram.
+            // At most eight seeds survive. The loop inserts them by decreasing frequency. Because it visits values in ascending order, a
+            // tie keeps the lower color, and the full histogram needs no sort.
             for (int color = 0; color < counts.Length; color++)
             {
                 if (counts[color] == 0)
@@ -566,17 +566,15 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PaletteKMeans.AssignIndices(samples, paletteCentroids, mapSamples.Slice(mapOrigin, rows * columns));
             ExtendPaletteColorMap(mapSamples[mapOrigin..], columns, rows, blockWidth, blockHeight);
 
-            // The intra reference cost of an inter frame joins the total only after the search, so the header gate
-            // and the candidate comparison leave it out. Reference: intra_mode_info_cost_y() in palette_rd_y(), and
-            // the ref_frame_cost that av1_search_palette_mode() adds to rate2.
+            // In an inter frame, the cost of the intra reference joins the total only after the search. Thus the header gate and the
+            // candidate comparison leave it out.
             Av1ModeCosts modeCosts = tables.ModeCosts;
             int rate = dcModeCost;
             rate += Av1SymbolEncoder.GetPaletteYModeCost(modeCosts, true, blockSizeContext, neighborContext);
             rate += Av1SymbolEncoder.GetPaletteSizeCost(modeCosts, paletteSize, blockSizeContext, Av1PlaneType.Y);
             rate += Av1SymbolEncoder.GetPaletteYColorCost(colorCache, paletteColors, bitDepth);
 
-            // Real-time mode search prices only the first map index; the rest of the color map is discounted.
-            // Reference: rt_sf.discount_color_cost in intra_mode_info_cost_y().
+            // When the speed settings discount the color map, the search prices only the first map index. The rest of the map costs nothing.
             rate += this.picture.Parent.SpeedSettings.DiscountPaletteColorCost
                 ? Av1SymbolEncoder.GetUniformCost(paletteSize, mapSamples[mapOrigin])
                 : writer.GetPaletteColorMapCost(paletteSize, Av1PlaneType.Y, rows, columns, colorIndexMap);
@@ -600,9 +598,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     ? 0
                     : blockWidth == blockHeight ? settings.IntraSquareTransformSearchDepth : settings.IntraRectangularTransformSearchDepth;
 
-            // The palette search bounds every depth by the best candidate so far, and a depth is retained when its
-            // cost with the palette syntax beats that candidate. Reference: the *best_rd that palette_rd_y() passes
-            // to av1_pick_uniform_tx_size_type_yrd(), then its this_rd < *best_rd test.
+            // The palette search bounds every depth by the best candidate so far. A depth is kept when its cost with the palette syntax
+            // is less than the cost of that candidate.
             long candidateLimit = Math.Min(this.blockCostLimit, bestStatistics.Cost);
             Av1RateDistortionStatistics candidateStatistics = this.ChooseUniformTransformSize(
                 sourceLuma,

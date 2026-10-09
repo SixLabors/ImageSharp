@@ -1580,8 +1580,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1PlaneRegion<TSample> source = this.source.GetPlane(Av1Plane.Y);
                 float maximum = (1 << this.bitDepth.GetBitCount()) - 1;
 
-                // Include the padded source row and column above/left. The complete 64x64 parent
-                // was checked by the partition controller; the frame owner supplies its physical border.
+                // The input includes the padded source row above and the padded source column to the left. The partition controller
+                // checked the complete 64x64 parent. The frame owner supplies the physical border.
                 ReadOnlySpan<TSample> sourceSamples = sourceLuma;
                 int rowOffset = source.GetOffset(blockOrigin.X - 1, blockOrigin.Y - 1);
                 for (int y = 0; y < 65; y++, rowOffset += source.Stride)
@@ -1596,8 +1596,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Av1NeuralNetwork.Convolve(input, 65, 1, 5, 4, IntraPartitionCnnLayer0Kernel, IntraPartitionCnnLayer0Bias, firstLayer);
 
-                // Retain each later layer at its final branch offset. Child searches borrow those planes;
-                // only the normalized input and first layer occupy reusable arithmetic scratch.
+                // Each later layer stays at its final branch offset, because the child searches read those planes. Only the normalized
+                // input and the first layer use the reusable arithmetic storage.
                 Av1NeuralNetwork.Convolve(firstLayer, 16, 20, 2, 2, IntraPartitionCnnLayer1Kernel, IntraPartitionCnnLayer1Bias, retained[356..]);
                 Av1NeuralNetwork.Convolve(retained[356..], 8, 20, 2, 2, IntraPartitionCnnLayer2Kernel, IntraPartitionCnnLayer2Bias, retained[36..356]);
                 Av1NeuralNetwork.Convolve(retained[36..356], 4, 20, 2, 2, IntraPartitionCnnLayer3Kernel, IntraPartitionCnnLayer3Bias, retained[20..36]);

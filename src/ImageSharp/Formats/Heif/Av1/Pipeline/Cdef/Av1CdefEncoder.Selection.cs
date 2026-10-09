@@ -29,9 +29,8 @@ internal static partial class Av1CdefEncoder
     {
         if (realtime)
         {
-            // Real-time usage searches the fourth fast level, and the fifth from speed 7. Strengths come from
-            // the quantizer from speed 7 below 360p, and from speed 9 below 1080p. Reference: cdef_pick_method in
-            // set_rt_speed_features_framesize_independent() and set_rt_speed_feature_framesize_dependent().
+            // Real-time usage searches four candidates, and two candidates from speed 7. Strengths come from the quantizer
+            // from speed 7 below 360p, and from speed 9 below 1080p.
             int minimumDimension = Math.Min(size.Width, size.Height);
             if ((speed >= HeifEncodingSpeed.Level7 && minimumDimension < 360) ||
                 (speed >= HeifEncodingSpeed.Level9 && minimumDimension < 1080))
@@ -118,8 +117,8 @@ internal static partial class Av1CdefEncoder
                 error = AddStrength(luma, chroma, count, lumaErrors, chromaErrors, unitIndices.Length, candidateCount, color, totals);
             }
 
-            // Reconsider each selected entry while retaining the others. Chroma always uses four
-            // complete refinement rounds; reduced monochrome searches keep their greedy selection.
+            // Each step drops the oldest entry and selects a new one while the others stay. Color frames and full 64-candidate searches
+            // run four complete refinement rounds. Reduced monochrome searches keep their greedy selection.
             if (color || candidateCount == MaximumStrengthCount)
             {
                 for (int iteration = 0; iteration < 4 * strengthCount; iteration++)
@@ -186,8 +185,8 @@ internal static partial class Av1CdefEncoder
     }
 
     /// <summary>
-    /// Halves the primary and secondary strengths of every palette entry, and zeroes the low ones when asked. Chroma
-    /// is zeroed with a zeroed luma entry. Reference: the strength reduction of av1_cdef_search().
+    /// Halves the primary and secondary strengths of every palette entry, and zeroes the low ones when asked. A zeroed luma entry
+    /// also zeroes its chroma entry.
     /// </summary>
     /// <param name="parameters">The frame CDEF parameters holding packed strengths.</param>
     /// <param name="color">Whether the frame codes chroma strengths.</param>

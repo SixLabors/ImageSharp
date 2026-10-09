@@ -28,7 +28,7 @@ internal static class Av1LoopFilterBase
         /// <param name="state">The owning frame state.</param>
         /// <param name="position">The position in luma 4x4 units, adjusted for chroma ownership.</param>
         /// <param name="plane">The component plane.</param>
-        /// <param name="pass">Zero for vertical boundaries; one for horizontal boundaries.</param>
+        /// <param name="pass">Zero for vertical boundaries, one for horizontal boundaries.</param>
         /// <param name="subX">The horizontal subsampling shift.</param>
         /// <param name="subY">The vertical subsampling shift.</param>
         /// <param name="blockIndex">The storage index identifying the owning prediction block.</param>
@@ -54,7 +54,7 @@ internal static class Av1LoopFilterBase
         /// <param name="mode">The resolved block mode, read without another grid lookup or structure copy.</param>
         /// <param name="position">The block position in luma 4x4 units.</param>
         /// <param name="plane">The component plane.</param>
-        /// <param name="pass">Zero for vertical boundaries; one for horizontal boundaries.</param>
+        /// <param name="pass">Zero for vertical boundaries, one for horizontal boundaries.</param>
         /// <returns>The adjusted level in the zero-to-63 domain.</returns>
         public static abstract int GetFilterLevel(TState state, ref TMode mode, Point position, Av1Plane plane, int pass);
     }
@@ -102,7 +102,7 @@ internal static class Av1LoopFilterBase
         int columnStep = 1 << subX;
 
         // Chroma remains in luma-grid coordinates. Each step still covers four samples in its own plane.
-        // Finish vertical edges across each row before starting the horizontal traversal of this band.
+        // The band filters the vertical edges of every row before it starts the horizontal edges.
         for (int row = rowStart; row < rowEnd; row += rowStep)
         {
             for (int column = 0; column < header.ModeInfoColumnCount; column += columnStep)
@@ -112,7 +112,7 @@ internal static class Av1LoopFilterBase
             }
         }
 
-        // Visit horizontal edges down each column: adjacent filters can read samples modified by earlier edges.
+        // The horizontal edges go down each column, because adjacent filters can read samples that earlier edges changed.
         for (int column = 0; column < header.ModeInfoColumnCount; column += columnStep)
         {
             for (int row = rowStart; row < rowEnd; row += rowStep)
@@ -170,8 +170,8 @@ internal static class Av1LoopFilterBase
                 level += parameters.ModeDeltas[modeDeltaIndex] * referenceScale;
             }
 
-            // Reference and mode adjustments use the same scale and may cancel beyond either limit.
-            // Clipping the intermediate reference sum would discard part of that cancellation.
+            // Reference and mode adjustments use the same scale and can cancel beyond either limit.
+            // A clip of the intermediate reference sum discards part of that cancellation.
             level = Av1Math.Clip3(0, Av1Constants.MaxLoopFilter, level);
         }
 
@@ -189,7 +189,7 @@ internal static class Av1LoopFilterBase
     /// <param name="state">The owning frame state.</param>
     /// <param name="header">The decoded or selected frame header.</param>
     /// <param name="plane">The component plane.</param>
-    /// <param name="pass">Zero for vertical boundaries; one for horizontal boundaries.</param>
+    /// <param name="pass">Zero for vertical boundaries, one for horizontal boundaries.</param>
     /// <param name="row">The boundary row in luma 4x4 units.</param>
     /// <param name="column">The boundary column in luma 4x4 units.</param>
     /// <param name="subX">The horizontal subsampling shift.</param>
@@ -247,8 +247,8 @@ internal static class Av1LoopFilterBase
         int planeY = y >> subY;
         bool isTransformEdge = verticalBoundary ? planeX % transform.GetWidth() == 0 : planeY % transform.GetHeight() == 0;
 
-        // Residual-free intra predictions still need deblocking. Only skipped inter transforms suppress
-        // internal boundaries; two different prediction blocks retain their common boundary.
+        // Residual-free intra predictions still need deblocking. Only skipped inter transforms suppress internal boundaries.
+        // Two different prediction blocks keep their common boundary.
         if (!isTransformEdge || (blockIndex == previousIndex && skipped && previousSkipped))
         {
             return;
@@ -271,8 +271,8 @@ internal static class Av1LoopFilterBase
         int limit = sharpness > 0 ? Av1Math.Clip3(1, 9 - sharpness, filterLevel >> shift) : Math.Max(1, filterLevel);
         int boundaryLimit = (2 * (filterLevel + 2)) + limit;
 
-        // Thresholds stay in the eight-bit domain; the sample operator and kernel handle storage and precision.
-        // The explicit origin accommodates bordered encoder planes and the decoder's preceding-row view.
+        // Thresholds stay in the eight-bit domain. The sample operator and kernel handle storage and precision.
+        // The explicit origin supports bordered encoder planes and the decoder's preceding-row view.
         Av1DeblockingFilter.Filter<TSample, TEdgeOperator>(
             samples, origin + (planeY * stride) + planeX, stride, kernelLength, limit, boundaryLimit, filterLevel >> 4, bitDepth);
     }

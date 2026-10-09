@@ -16,6 +16,7 @@ internal static partial class Av1CdefFilter
         /// <inheritdoc/>
         public static void StoreVector(ref byte destination, int offset, Vector128<short> value, int count)
         {
+            // Narrow keeps the low byte of each 16-bit lane, the same as the cast in StoreScalar. A four-sample row writes only 32 bits.
             Vector64<byte> packed = Vector128.Narrow(value.AsUInt16(), Vector128<ushort>.Zero).GetLower();
             ref byte output = ref Unsafe.Add(ref destination, offset);
             if (count == 8)

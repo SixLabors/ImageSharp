@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 internal static partial class Av1CdefEncoder
 {
     /// <summary>
-    /// Predicts the frame strengths from the quantizer. Reference: av1_pick_cdef_from_qp(), without its screen-content fit.
+    /// Predicts the frame strengths from the quantizer. Screen content uses the same fit as other content.
     /// </summary>
     /// <param name="picture">The frame receiving predicted strengths.</param>
     /// <param name="avoidChroma">Whether chroma stays unfiltered.</param>

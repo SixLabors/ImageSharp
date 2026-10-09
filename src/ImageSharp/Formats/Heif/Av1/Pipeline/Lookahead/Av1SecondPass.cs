@@ -6,24 +6,20 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 /// <summary>
 /// The frame-level decisions of good-quality one-pass coding with a look-ahead: key frame placement, golden frame
 /// group length and structure, the alternate reference decisions, and the constant-quality quantizer of each frame.
-/// The look-ahead stage runs a first pass on each frame as it enters and pushes its statistics here; the encode
-/// stage then asks for one frame at a time.
-/// Reference: the one-pass look-ahead (LAP) path of av1_get_second_pass_params(), with the parts of
-/// av1_encode_strategy(), av1_rc_pick_q_and_bounds(), av1_rc_postencode_update() and
-/// av1_twopass_postencode_update() that the decisions read and update, for AOM_Q, one thread and no forced
-/// key frames.
+/// The look-ahead stage runs a first pass on each frame as it enters and pushes its statistics here. The encode
+/// stage then asks for one frame at a time. The decisions cover one thread and no forced key frames.
 /// </summary>
 /// <remarks>
 /// <para>A caller drives one frame as follows.</para>
 /// <list type="number">
 /// <item>Push the statistics of every frame that enters the look-ahead with <see cref="PushStatistics"/>, in display
 /// order. Before asking for a frame, push until <see cref="PendingFrameCount"/> reaches
-/// <see cref="LookaheadDepth"/> or the input has ended; libaom's encode stage waits for exactly that.</item>
+/// <see cref="LookaheadDepth"/> or the input has ended. The frame decisions depend on this full look-ahead.</item>
 /// <item>Call <see cref="TryBeginFrame"/>. It returns false when the look-ahead must be filled first or when every
 /// frame is coded.</item>
 /// <item>When the frame starts a group, run the temporal filter and the temporal dependency model on
-/// <see cref="Group"/>; both may read <see cref="PickQIndex(int, bool)"/> for any frame of the group. For an
-/// <see cref="Av1FrameUpdateType.Alternate"/> frame set <see cref="ShowExistingAlternateReference"/> from the
+/// <see cref="Group"/>. Both can read <see cref="PickQIndex(int, bool)"/> for any frame of the group. For an
+/// <see cref="Av1FrameUpdateType.Alternate"/> frame, set <see cref="ShowExistingAlternateReference"/> from the
 /// filtered frame test.</item>
 /// <item>Unless the frame shows an existing frame, call <see cref="ChooseBaseQIndex"/> with the temporal
 /// dependency results of the frame and code it with the returned quantizer index.</item>
@@ -33,74 +29,72 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 internal sealed partial class Av1SecondPass
 {
     /// <summary>
-    /// The default key frame boost. Reference: DEFAULT_KF_BOOST.
+    /// The default key frame boost.
     /// </summary>
     private const int DefaultKeyFrameBoost = 2300;
 
     /// <summary>
-    /// The default golden boost. Reference: DEFAULT_GF_BOOST.
+    /// The default golden boost.
     /// </summary>
     private const int DefaultGoldenBoost = 2000;
 
     /// <summary>
-    /// The largest golden interval. Reference: MAX_GF_INTERVAL.
+    /// The largest golden interval.
     /// </summary>
     private const int MaximumGoldenInterval = 32;
 
     /// <summary>
-    /// The largest golden interval of a short look-ahead. Reference: MAX_GF_LENGTH_LAP.
+    /// The largest golden interval of a short look-ahead.
     /// </summary>
     private const int MaximumLookaheadGoldenLength = 16;
 
     /// <summary>
-    /// The smallest golden interval that may use an alternate reference. Reference: MIN_GF_INTERVAL.
+    /// The smallest golden interval that can use an alternate reference.
     /// </summary>
     private const int MinimumGoldenInterval = 4;
 
     /// <summary>
-    /// The number of golden intervals the length decision may produce. Reference: MAX_NUM_GF_INTERVALS.
+    /// The number of golden intervals the length decision can produce.
     /// </summary>
     private const int MaximumGoldenIntervalCount = 15;
 
     /// <summary>
-    /// The number of frames after a key frame candidate that its test examines. Reference:
-    /// SCENE_CUT_KEY_TEST_INTERVAL.
+    /// The number of frames after a key frame candidate that its test examines.
     /// </summary>
     private const int SceneCutKeyTestInterval = 16;
 
     /// <summary>
-    /// The largest number of look-ahead statistics. Reference: MAX_LAP_BUFFERS.
+    /// The largest number of look-ahead statistics.
     /// </summary>
     private const int MaximumLookaheadBuffers = 48;
 
     /// <summary>
-    /// The smallest look-ahead that allows an alternate reference. Reference: ALT_MIN_LAG.
+    /// The smallest look-ahead that allows an alternate reference.
     /// </summary>
     private const int AlternateReferenceMinimumLag = 3;
 
     /// <summary>
-    /// The smallest key frame distance of the default configuration. Reference: the kf_min_dist default.
+    /// The smallest key frame distance of the default configuration.
     /// </summary>
     private const int KeyFrameMinimumDistance = 0;
 
     /// <summary>
-    /// The largest pyramid height of golden frame groups. Reference: the gf_max_pyr_height default.
+    /// The largest pyramid height of golden frame groups in the default configuration.
     /// </summary>
     private const int MaximumPyramidHeight = 5;
 
     /// <summary>
-    /// The smallest pyramid height of golden frame groups; zero lets a group drop its alternate reference.
-    /// Reference: the gf_min_pyr_height default.
+    /// The smallest pyramid height of golden frame groups in the default configuration. Zero lets a group drop its alternate reference.
     /// </summary>
     private const int MinimumPyramidHeight = 0;
 
     /// <summary>
-    /// The largest number of frames the temporal filter blends. Reference: the arnr_max_frames default.
+    /// The largest number of frames the temporal filter blends in the default configuration.
     /// </summary>
     private const int ArnrMaximumFrames = 7;
 
     /// <summary>
-    /// The lowest pyramid level that reference mapping uses. Reference: MIN_PYR_LEVEL.
+    /// The lowest pyramid level that reference mapping uses.
     /// </summary>
     private const int MinimumPyramidLevel = 1;
 
@@ -123,33 +117,33 @@ internal sealed partial class Av1SecondPass
     private IGopLengthEvaluator? gopLengthEvaluator;
 
     /// <summary>
-    /// The linear buffer of look-ahead statistics from the first frame not yet shown to the newest analysed frame.
-    /// The flash, noise and correlation estimates are written here. Reference: the stats_buf_ctx buffer.
+    /// The linear buffer of look-ahead statistics from the first frame not yet shown to the newest analyzed frame.
+    /// The flash, noise and correlation estimates are written here.
     /// </summary>
     private readonly Av1FirstPassStatistics[] statistics;
 
     /// <summary>
-    /// The ring of unmodified statistics around the current frame. Reference: firstpass_info.
+    /// The ring of unmodified statistics around the current frame.
     /// </summary>
     private readonly Av1SecondPassStatisticsInfo statisticsInfo = new();
 
     /// <summary>
-    /// The golden frame group being coded. Reference: gf_group.
+    /// The golden frame group being coded.
     /// </summary>
     private readonly Av1GopStructure group = new();
 
     /// <summary>
-    /// The golden intervals of the length decision. Reference: gf_intervals.
+    /// The golden intervals of the length decision.
     /// </summary>
     private readonly int[] goldenIntervals = new int[MaximumGoldenIntervalCount];
 
     /// <summary>
-    /// The number of statistics in <see cref="statistics"/>. Reference: stats_in_end.
+    /// The number of statistics in <see cref="statistics"/>.
     /// </summary>
     private int statisticsCount;
 
     /// <summary>
-    /// The read position in <see cref="statistics"/>. Reference: twopass_frame.stats_in.
+    /// The read position in <see cref="statistics"/>.
     /// </summary>
     private int statisticsPosition;
 
@@ -190,38 +184,34 @@ internal sealed partial class Av1SecondPass
     private Av1SecondPassFrame current;
 
     /// <summary>
-    /// The largest number of frames between key frames. Reference: kf_cfg.key_freq_max.
+    /// The largest number of frames between key frames.
     /// </summary>
     private readonly int keyFrameMaximumDistance;
 
     /// <summary>
-    /// The encoder sharpness. Reference: oxcf->algo_cfg.sharpness.
+    /// The encoder sharpness.
     /// </summary>
     private readonly int sharpness;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1SecondPass"/> class for libavif's color sequence
-    /// configuration: good-quality usage, the requested rate control mode at libaom's default rate, automatic key
-    /// frames up to the largest key frame distance apart, automatic alternate references with a pyramid of up to five
-    /// layers, and the temporal dependency model on. Reference:
-    /// av1_primary_rc_init(), av1_rc_init(), av1_init_single_pass_lap(), set_gf_interval_range(), the look-ahead
-    /// sizing of encoder_init() and av1_lookahead_init(), and the scene cut mode of av1_create_primary_compressor().
+    /// Initializes a new instance of the <see cref="Av1SecondPass"/> class for the color sequence configuration: good-quality usage, the
+    /// requested rate control mode at the default target rate, automatic key frames up to the largest key frame distance apart, automatic
+    /// alternate references with a pyramid of up to five layers, and the temporal dependency model on.
     /// </summary>
     /// <param name="width">The frame width.</param>
     /// <param name="height">The frame height.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    /// <param name="cqLevel">The constant-quality quantizer index. Reference: cq_level.</param>
-    /// <param name="bestAllowedQIndex">The lowest allowed quantizer index. Reference: best_allowed_q.</param>
-    /// <param name="worstAllowedQIndex">The highest allowed quantizer index. Reference: worst_allowed_q.</param>
+    /// <param name="cqLevel">The constant-quality quantizer index.</param>
+    /// <param name="bestAllowedQIndex">The lowest allowed quantizer index.</param>
+    /// <param name="worstAllowedQIndex">The highest allowed quantizer index.</param>
     /// <param name="speed">The cpu-used tier, 0 to 6.</param>
-    /// <param name="lagInFrames">The requested look-ahead, at least 1. Reference: g_lag_in_frames.</param>
-    /// <param name="framerate">The frame rate that sets the golden interval range. Reference: framerate.</param>
-    /// <param name="keyFrameMaximumDistance">The largest number of frames between key frames. Reference: kf_max_dist.</param>
-    /// <param name="sharpness">The encoder sharpness, 0 to 7. Reference: oxcf->algo_cfg.sharpness.</param>
-    /// <param name="mode">The rate control mode. Reference: rc_cfg.mode.</param>
+    /// <param name="lagInFrames">The requested look-ahead, at least 1.</param>
+    /// <param name="framerate">The frame rate that sets the golden interval range.</param>
+    /// <param name="keyFrameMaximumDistance">The largest number of frames between key frames.</param>
+    /// <param name="sharpness">The encoder sharpness, 0 to 7.</param>
+    /// <param name="mode">The rate control mode.</param>
     /// <param name="gopLengthEvaluator">
-    /// The temporal dependency test that may shorten a golden interval above 16 frames at speeds 0 to 5, or null
-    /// to keep every interval.
+    /// The temporal dependency test that can shorten a golden interval above 16 frames at speeds 0 to 5, or null to keep every interval.
     /// </param>
     public Av1SecondPass(
         int width,
@@ -252,16 +242,16 @@ internal sealed partial class Av1SecondPass
         this.gopLengthEvaluator = gopLengthEvaluator;
         this.activeWorstQuality = cqLevel;
 
-        // FRAME_INFO and mi_params: 16x16 macroblocks over the 8-aligned frame.
+        // Count the 16x16 macroblocks over the frame aligned to 8 pixels. The frame splits into 4x4 mode info units, and four units in each
+        // direction make one macroblock. The macroblock count rounds to the nearest whole macroblock.
         int modeInfoRows = Av1Math.AlignPowerOf2(height, 3) >> 2;
         int modeInfoColumns = Av1Math.AlignPowerOf2(width, 3) >> 2;
         this.macroblockRows = (modeInfoRows + 2) >> 2;
         this.macroblockCount = this.macroblockRows * ((modeInfoColumns + 2) >> 2);
 
-        // set_encoder_config() raises a good-quality look-ahead of 32 to 38 frames to 39 for better temporal
-        // filtering. The look-ahead stage keeps the requested length: encoder_init() sizes its buffers from the
-        // configuration value, and the look-ahead stage itself has no lag, so the encode stage waits for that many
-        // frames. Reference: set_encoder_config(), encoder_init() and av1_lookahead_init().
+        // A good-quality look-ahead of 32 to 38 frames becomes 39 frames for better temporal filtering. The look-ahead stage keeps the
+        // requested length. Its buffers take their size from the requested value, and the stage itself has no lag. As a result, the encode
+        // stage waits for that many frames.
         this.lagInFrames = Math.Clamp(lagInFrames, 0, MaximumLookaheadBuffers);
         if (this.lagInFrames is >= 32 and < 39)
         {
@@ -272,14 +262,15 @@ internal sealed partial class Av1SecondPass
         this.lookaheadDepth = lookaheadBuffers;
         this.statistics = new Av1FirstPassStatistics[Math.Max(lookaheadBuffers + 1, MaximumLookaheadGoldenLength + 1)];
 
-        // Scene cut detection needs enough look-ahead to test the frames after a candidate.
-        // Reference: ENABLE_SCENECUT_MODE_2, ENABLE_SCENECUT_MODE_1 and DISABLE_SCENECUT.
+        // Scene cut detection needs enough look-ahead to test the frames after a candidate. Mode 0 turns detection off below 19 frames.
+        // Mode 1 applies below 33 frames. Mode 2 applies from 33 frames on, which covers the full test interval after a candidate.
         this.sceneCutDetection = lookaheadBuffers < MaximumLookaheadGoldenLength + 3
             ? 0
             : lookaheadBuffers < MaximumLookaheadGoldenLength + SceneCutKeyTestInterval + 1 ? 1 : 2;
 
-        // av1_rc_get_default_min_gf_interval() and get_default_max_gf_interval(), limited by set_gf_interval_range()
-        // to one past the maximum for a look-ahead.
+        // Set the default golden interval range. The minimum is one eighth of the frame rate, clamped to 4 to 32 frames. Above the pixel rate
+        // of 4K at 20 frames per second, the minimum grows with the pixel rate. The maximum is three quarters of the frame rate, at most 32
+        // frames, rounded up to an even count. It is then at least 32 frames and at least the minimum. A static scene can use one more frame.
         const double factorSafe = 3840 * 2160 * 20.0;
         double factor = (double)width * height * framerate;
         int defaultInterval = Math.Clamp((int)(framerate * 0.125), MinimumGoldenInterval, MaximumGoldenInterval);
@@ -293,19 +284,18 @@ internal sealed partial class Av1SecondPass
         this.minimumGoldenInterval = Math.Min(minimum, this.maximumGoldenInterval);
         this.baselineGoldenInterval = (this.minimumGoldenInterval + this.maximumGoldenInterval) / 2;
 
-        // Speeds 0 to 4 do the test on three alternate layers. Speed 5 does the test on two layers, after a boost test. Speed 6 does no test.
-        // Reference: gop_length_decision_method of init_tpl_sf() and set_good_speed_features_framesize_independent().
+        // Speeds 0 to 4 do the group length test on three alternate layers. Speed 5 does the test on two layers, after a boost test. Speed 6
+        // does no test.
         this.gopLengthDecisionMethod = speed >= 6 ? 2 : speed >= 5 ? 1 : 0;
 
-        // Speeds 0 and 1 may code any frame again, faster speeds only key frames, golden frames and alternate
-        // references. Reference: the recode_loop of set_good_speed_features_framesize_independent().
+        // Speeds 0 and 1 can code any frame again. Faster speeds code only key frames, golden frames and alternate references again.
         this.recodesEveryFrame = speed < 2;
         this.recodeTolerance = GetRecodeTolerance(width, height, speed);
 
         this.averageKeyFrameQIndex = (worstAllowedQIndex + bestAllowedQIndex) / 2;
         this.averageInterFrameQIndex = (worstAllowedQIndex + bestAllowedQIndex) / 2;
 
-        // av1_rc_update_framerate(): the bits of one frame at the target rate, and the largest frame.
+        // Set the bits of one frame at the target rate, and the bits of the largest frame.
         this.averageFrameBandwidth = (int)Math.Min(Math.Round(TargetBandwidth / framerate), int.MaxValue);
         long maximumSectionBits = (long)this.averageFrameBandwidth * VariableBitrateMaximumSection / 100;
         this.maximumFrameBandwidth = (int)Math.Max(Math.Max((long)this.macroblockCount * MaximumMacroblockRate, MaximumRate1080P), maximumSectionBits);
@@ -314,53 +304,46 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Runs the temporal dependency model on the trial group of a golden interval above 16 frames. Reference: the
-    /// av1_tf_info_filtering() and av1_tpl_setup_stats() calls of av1_get_second_pass_params() and
-    /// is_shorter_gf_interval_better().
+    /// Runs the temporal dependency model on the trial group of a golden interval above 16 frames.
     /// </summary>
     internal interface IGopLengthEvaluator
     {
         /// <summary>
-        /// Filters the key frame and alternate reference of the trial <see cref="Group"/>. Reference: the
-        /// av1_tf_info_filtering() call before is_shorter_gf_interval_better().
+        /// Filters the key frame and alternate reference of the trial <see cref="Group"/> before the group length test.
         /// </summary>
         /// <param name="secondPass">The decisions that own the trial group.</param>
         void FilterGroup(Av1SecondPass secondPass);
 
         /// <summary>
-        /// Runs the temporal dependency model for a group length evaluation, reading the preloaded
-        /// <see cref="Av1GopStructure.QValues"/>. Reference: av1_tpl_setup_stats().
+        /// Runs the temporal dependency model for a group length evaluation. The model reads the preloaded <see cref="Av1GopStructure.QValues"/>.
         /// </summary>
         /// <param name="secondPass">The decisions that own the trial group.</param>
         /// <returns>The evaluation result: 0 to shorten, 1 to keep.</returns>
         int SetupTplStatistics(Av1SecondPass secondPass);
 
         /// <summary>
-        /// Discards the filtered frames of the previous group before a new group is defined. Reference:
-        /// av1_tf_info_reset() in av1_get_second_pass_params().
+        /// Discards the filtered frames of the previous group before a new group is defined.
         /// </summary>
         void BeginGroup();
 
         /// <summary>
-        /// Marks the source of the previous group's alternate reference as unusable at a new key frame. Reference: the
-        /// prev_gop_arf_disp_order reset of av1_get_second_pass_params().
+        /// Marks the source of the alternate reference of the previous group as unusable at a new key frame.
         /// </summary>
         void BeginKeyFrameInterval();
     }
 
     /// <summary>
     /// Gets the number of frames the look-ahead holds before the encode stage codes a frame.
-    /// Reference: pop_sz of the encode stage.
     /// </summary>
     public int LookaheadDepth => this.lookaheadDepth;
 
     /// <summary>
-    /// Gets the number of pushed frames that are not yet shown. Reference: av1_lookahead_depth().
+    /// Gets the number of pushed frames that are not yet shown.
     /// </summary>
     public int PendingFrameCount => this.pushedCount - this.shownCount;
 
     /// <summary>
-    /// Gets the golden frame group being coded. Reference: gf_group.
+    /// Gets the golden frame group being coded.
     /// </summary>
     public Av1GopStructure Group => this.group;
 
@@ -372,13 +355,11 @@ internal sealed partial class Av1SecondPass
     /// <summary>
     /// Sets a value indicating whether the overlay of the current alternate reference repeats the filtered
     /// alternate reference. The temporal filter decides it when the alternate reference is coded.
-    /// Reference: show_existing_alt_ref.
     /// </summary>
     public bool ShowExistingAlternateReference { private get; set; }
 
     /// <summary>
-    /// Appends the first-pass statistics of the newest frame of the look-ahead. Reference: the statistics push of
-    /// update_firstpass_stats() in the look-ahead stage.
+    /// Appends the first-pass statistics of the newest frame of the look-ahead.
     /// </summary>
     /// <param name="frameStatistics">The statistics.</param>
     public void PushStatistics(Av1FirstPassStatistics frameStatistics)
@@ -395,9 +376,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Makes the frame-level decisions of the next coded frame.
-    /// Reference: av1_encode_strategy() up to the reference frame selection, with av1_get_second_pass_params(),
-    /// choose_frame_source() and the order hint and pyramid level of av1_encode().
+    /// Makes the frame-level decisions of the next coded frame: the group position, the frame source, whether the frame is shown, the order hint
+    /// and the pyramid level.
     /// </summary>
     /// <param name="flush">Whether the input has ended, so that the look-ahead drains.</param>
     /// <param name="frame">Receives the decisions.</param>
@@ -417,8 +397,7 @@ internal sealed partial class Av1SecondPass
         int index = this.groupFrameIndex;
         Av1FrameUpdateType updateType = this.group.UpdateTypes[index];
 
-        // av1_configure_buffer_updates() marks an overlay, and av1_set_frame_size() sets the frame's bit target from
-        // its allocation before the display count of a key frame restarts.
+        // Mark an overlay, then set the bit target of the frame from its allocation. Both happen before a key frame restarts the display count.
         this.sourceIsAlternate = updateType is Av1FrameUpdateType.Overlay or Av1FrameUpdateType.IntermediateOverlay;
         this.SetFrameTarget();
 
@@ -433,14 +412,14 @@ internal sealed partial class Av1SecondPass
                 updateType == Av1FrameUpdateType.IntermediateOverlay;
         }
 
-        // allow_show_existing(): the first frame never repeats one.
+        // The first frame never repeats an existing frame.
         showExisting &= this.frameNumber != 0;
         if (updateType == Av1FrameUpdateType.Overlay)
         {
             this.ShowExistingAlternateReference = false;
         }
 
-        // choose_frame_source(): an alternate reference codes a future source and is hidden.
+        // An alternate reference codes a future source and is hidden.
         int sourceOffset = showExisting ? 0 : this.group.ArfSourceOffsets[index];
         bool showFrame = showExisting || sourceOffset == 0;
         bool keyFrame = this.group.KeyFrames[index] && !showExisting;
@@ -448,7 +427,7 @@ internal sealed partial class Av1SecondPass
         int frameNumber = this.frameNumber;
         if (keyFrame && resetsReferences)
         {
-            // av1_encode() restarts the display count at a key frame that resets the references.
+            // A key frame that resets the references restarts the display count.
             this.frameNumber = 0;
         }
 
@@ -480,23 +459,20 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the quantizer index of the current frame after the temporal dependency model adjusts the golden boost:
-    /// the rate model's choice under a bit budget, else the constant-quality choice replaced by the temporal
-    /// dependency choice when the model has statistics for the frame. Reference: av1_set_size_dependent_vars() with
-    /// process_tpl_stats_frame(), av1_rc_pick_q_and_bounds(), and av1_tpl_get_q_index() in AOM_Q mode.
+    /// Returns the quantizer index of the current frame after the temporal dependency model adjusts the golden boost. Under a bit budget, the
+    /// rate model chooses the index. Otherwise the constant-quality choice applies, and the temporal dependency choice replaces it when the
+    /// model has statistics for the frame.
     /// </summary>
-    /// <param name="screenContent">Whether the frame is screen content. Reference: is_screen_content_type.</param>
+    /// <param name="screenContent">Whether the frame is screen content.</param>
     /// <param name="tplReady">
-    /// Whether the temporal dependency model has ready statistics for the frame that show a dependency, which gates
-    /// the boost blend. Reference: av1_tpl_stats_ready() with a nonzero mc_dep_cost_base.
+    /// Whether the temporal dependency model has ready statistics for the frame that show a dependency. This value gates the boost blend.
     /// </param>
     /// <param name="tplFrameValid">
-    /// Whether the frame's statistics entry is valid, ready or not, which gates the quantizer replacement. Reference:
-    /// tpl_frame[gf_frame_index].is_valid in av1_set_size_dependent_vars().
+    /// Whether the statistics entry of the frame is valid, ready or not. This value gates the quantizer replacement.
     /// </param>
-    /// <param name="tplR0">The frame's ratio of propagated to intra cost. Reference: r0.</param>
+    /// <param name="tplR0">The ratio of propagated cost to intra cost of the frame.</param>
     /// <param name="tplQStepRatio">
-    /// The frame's quantizer step ratio, one without ready statistics. Reference: av1_tpl_get_qstep_ratio().
+    /// The quantizer step ratio of the frame, or one without ready statistics.
     /// </param>
     /// <returns>The base quantizer index.</returns>
     public int ChooseBaseQIndex(bool screenContent, bool tplReady, bool tplFrameValid, double tplR0, double tplQStepRatio)
@@ -505,8 +481,7 @@ internal sealed partial class Av1SecondPass
         Av1FrameUpdateType updateType = this.group.UpdateTypes[index];
         if (tplReady && updateType is Av1FrameUpdateType.Alternate or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Key)
         {
-            // process_tpl_stats_frame(): the model's boost, projected to the frames the boost was meant to cover,
-            // is blended with the boost from the statistics.
+            // Project the boost of the model to the frames that the boost covers. Then blend it with the boost from the statistics.
             double minimumBoostFactor = Math.Sqrt(this.baselineGoldenInterval);
             int tplBoost = Av1ConstantQuality.GetGoldenBoostFromR0(
                 minimumBoostFactor,
@@ -522,7 +497,7 @@ internal sealed partial class Av1SecondPass
                 this.statisticsUsedForGoldenBoost);
         }
 
-        // The frame picks its quantizer after av1_encode() copies its own refresh flags.
+        // The frame picks its quantizer with its own refresh flags, not with the flags of the last coded frame.
         this.screenContentType = screenContent;
         GetReferenceRefreshes(in this.current, out bool refreshGolden, out bool refreshAlternate);
         int q = this.PickQIndex(index, screenContent, refreshGolden || refreshAlternate);
@@ -546,28 +521,24 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the quantizer index of one frame of the group without the temporal dependency replacement, with the
-    /// reference refresh the encoder holds before the frame is coded: that of the last coded frame. An alternate
-    /// reference records its index for the internal alternate references.
-    /// Reference: av1_rc_pick_q_and_bounds() before av1_encode() copies the frame's refresh flags.
+    /// Returns the quantizer index of one frame of the group without the temporal dependency replacement. The choice uses the reference
+    /// refresh that the encoder holds before the frame is coded, which is the refresh of the last coded frame. An alternate reference records
+    /// its index for the internal alternate references.
     /// </summary>
-    /// <param name="groupIndex">The frame's index in the group.</param>
-    /// <param name="screenContent">Whether the frame is screen content. Reference: is_screen_content_type.</param>
+    /// <param name="groupIndex">The index of the frame in the group.</param>
+    /// <param name="screenContent">Whether the frame is screen content.</param>
     /// <returns>The quantizer index.</returns>
     public int PickQIndex(int groupIndex, bool screenContent)
         => this.PickQIndex(groupIndex, screenContent, this.lastRefreshesBoostedReference);
 
     /// <summary>
-    /// Returns the quantizer index of one frame of the group without the temporal dependency replacement: the
-    /// constant-quality choice, or under a bit budget the rate model's choice. An alternate reference records its
-    /// index for the internal alternate references.
-    /// Reference: av1_rc_pick_q_and_bounds() with rc_pick_q_and_bounds() and rc_pick_q_and_bounds_q_mode().
+    /// Returns the quantizer index of one frame of the group without the temporal dependency replacement: the constant-quality choice, or
+    /// under a bit budget the choice of the rate model. An alternate reference records its index for the internal alternate references.
     /// </summary>
-    /// <param name="groupIndex">The frame's index in the group.</param>
-    /// <param name="screenContent">Whether the frame is screen content. Reference: is_screen_content_type.</param>
+    /// <param name="groupIndex">The index of the frame in the group.</param>
+    /// <param name="screenContent">Whether the frame is screen content.</param>
     /// <param name="refreshesBoostedReference">
-    /// Whether the encoder's current refresh flags refresh GOLDEN or ALTREF. Reference: refresh_frame->golden_frame
-    /// || refresh_frame->alt_ref_frame.
+    /// Whether the current refresh flags of the encoder refresh the golden or the alternate reference.
     /// </param>
     /// <returns>The quantizer index.</returns>
     private int PickQIndex(int groupIndex, bool screenContent, bool refreshesBoostedReference)
@@ -607,12 +578,10 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Records a coded frame: the rate control update from its size, the quantizer averages, the consumed
-    /// statistics, the key frame counters and the group position. Reference: av1_rc_postencode_update(),
-    /// av1_twopass_postencode_update(), update_keyframe_counters(), update_gf_group_index() and
-    /// update_counters_for_show_frame().
+    /// Records a coded frame: the rate control update from its size, the quantizer averages, the consumed statistics, the key frame counters
+    /// and the group position.
     /// </summary>
-    /// <param name="baseQIndex">The frame's base quantizer index; ignored for a frame that shows an existing one.</param>
+    /// <param name="baseQIndex">The base quantizer index of the frame. A frame that shows an existing frame ignores this value.</param>
     /// <param name="frameBits">The coded size of the frame in bits, without the temporal delimiter.</param>
     public void CompleteFrame(int baseQIndex, long frameBits)
     {
@@ -625,8 +594,8 @@ internal sealed partial class Av1SecondPass
         GetReferenceRefreshes(in frame, out bool refreshGolden, out bool refreshAlternate);
         bool sourceIsAlternate = updateType is Av1FrameUpdateType.Overlay or Av1FrameUpdateType.IntermediateOverlay;
 
-        // av1_rc_postencode_update(): the rate correction from the frame size, then the running quantizer averages
-        // and the last boosted quantizer.
+        // Update the rate correction from the frame size. Then update the running quantizer averages and the last boosted quantizer. Each
+        // average keeps three quarters of its old value and adds one quarter of the new index, rounded to nearest.
         int projectedFrameSize = (int)Math.Min(frameBits, int.MaxValue);
         this.UpdateRateAfterFrame(projectedFrameSize, q, frame.IsKeyFrame, frame.ShowFrame);
         bool intermediateArf = updateType == Av1FrameUpdateType.IntermediateAlternate;
@@ -651,8 +620,7 @@ internal sealed partial class Av1SecondPass
             this.lastKeyFrameQIndex = q;
         }
 
-        // An alternate reference restarts the golden count, as does a golden refresh or an overlay; any other
-        // shown frame advances it. Reference: update_alt_ref_frame_stats() and update_golden_frame_stats().
+        // An alternate reference, a golden refresh or an overlay restarts the golden count. Any other shown frame advances it.
         if (this.lagInFrames >= AlternateReferenceMinimumLag && refreshAlternate && !frame.IsKeyFrame)
         {
             this.framesSinceGolden = 0;
@@ -666,8 +634,8 @@ internal sealed partial class Av1SecondPass
             this.framesSinceGolden++;
         }
 
-        // av1_twopass_postencode_update(): a frame that is not an alternate reference consumes the statistics of
-        // its display position, which input_stats_lap() removes from the front of the linear buffer.
+        // A frame that is not an alternate reference consumes the statistics of its display position. These statistics leave the front of
+        // the linear buffer. An alternate reference moves the read position back to the start.
         if (index < this.group.Size || this.framesToKey == 0)
         {
             if (updateType is not (Av1FrameUpdateType.Alternate or Av1FrameUpdateType.IntermediateAlternate))
@@ -686,11 +654,11 @@ internal sealed partial class Av1SecondPass
             }
         }
 
-        // The rest of av1_twopass_postencode_update(): the bits off target and the quantizer extensions.
+        // Update the bits off target and the quantizer extensions.
         this.UpdateBitsAfterFrame(projectedFrameSize, q, frame.IsKeyFrame);
         this.lastRefreshesBoostedReference = refreshGolden || refreshAlternate;
 
-        // update_keyframe_counters(): a shown frame advances the ring and the key frame counters.
+        // A shown frame advances the ring and the key frame counters.
         if (frame.ShowFrame && this.framesToKey != 0)
         {
             if (this.statisticsInfo.PastCount > 1)
@@ -707,7 +675,7 @@ internal sealed partial class Av1SecondPass
             this.framesToForwardKeyFrame--;
         }
 
-        // update_gf_group_index().
+        // Advance the group position. The position wraps at the largest group length.
         if (++this.groupFrameIndex == Av1GopStructure.MaximumLength)
         {
             this.groupFrameIndex = 0;
@@ -726,13 +694,11 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the references a frame refreshes by its update role, where a shown key frame that is coded refreshes
-    /// every reference. Reference: av1_configure_buffer_updates() with the force_refresh_all of
-    /// av1_encode_strategy().
+    /// Returns the references that a frame refreshes by its update role. A shown key frame that is coded refreshes every reference.
     /// </summary>
     /// <param name="frame">The decisions of the frame.</param>
-    /// <param name="refreshGolden">Receives whether the frame refreshes GOLDEN.</param>
-    /// <param name="refreshAlternate">Receives whether the frame refreshes ALTREF.</param>
+    /// <param name="refreshGolden">Receives whether the frame refreshes the golden reference.</param>
+    /// <param name="refreshAlternate">Receives whether the frame refreshes the alternate reference.</param>
     private static void GetReferenceRefreshes(in Av1SecondPassFrame frame, out bool refreshGolden, out bool refreshAlternate)
     {
         switch (frame.UpdateType)
@@ -768,10 +734,11 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Gets the pyramid level that ranks a frame for reference mapping. Reference: get_true_pyr_level().
+    /// Gets the pyramid level that ranks a frame for reference mapping. The first frame ranks at the lowest level. A frame on the leaf
+    /// layer ranks at the deepest layer of its group. A frame on the layer below the leaf layer ranks at the lowest level.
     /// </summary>
-    /// <param name="frameLevel">The frame's layer depth.</param>
-    /// <param name="frameOrder">The frame's display order.</param>
+    /// <param name="frameLevel">The layer depth of the frame.</param>
+    /// <param name="frameOrder">The display order of the frame.</param>
     /// <param name="maximumLayerDepth">The deepest layer of the group.</param>
     /// <returns>The pyramid level.</returns>
     private static int GetTruePyramidLevel(int frameLevel, int frameOrder, int maximumLayerDepth)
@@ -790,9 +757,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Decides the key frame and golden frame group state of the next frame, defining a new key frame group and a
-    /// new golden frame group when the current group is finished.
-    /// Reference: av1_get_second_pass_params() in the one-pass look-ahead stage.
+    /// Decides the key frame and golden frame group state of the next frame. When the current group is finished, the method defines a new
+    /// key frame group and a new golden frame group.
     /// </summary>
     private void GetSecondPassParameters()
     {
@@ -809,8 +775,7 @@ internal sealed partial class Av1SecondPass
             }
         }
 
-        // Constant quality restarts the highest quantizer at the quality level; a bit budget keeps the estimate of
-        // the group.
+        // Constant quality restarts the highest quantizer at the quality level. A bit budget keeps the estimate of the group.
         if (!this.UsesBitBudget)
         {
             this.activeWorstQuality = this.cqLevel;
@@ -836,14 +801,13 @@ internal sealed partial class Av1SecondPass
         {
             this.FindNextKeyFrame(thisFrame);
 
-            // The source of the previous group's alternate reference cannot be used after a key frame. Reference: the
-            // prev_gop_arf_disp_order reset of av1_get_second_pass_params().
+            // The source of the alternate reference of the previous group cannot be used after a key frame.
             this.gopLengthEvaluator?.BeginKeyFrameInterval();
         }
 
         if (this.framesToForwardKeyFrame <= 0)
         {
-            // The forward key frame distance is disabled. Reference: the fwd_kf_dist default of -1.
+            // The default configuration turns off the forward key frame distance, so the count stays at -1.
             this.framesToForwardKeyFrame = -1;
         }
 
@@ -863,7 +827,6 @@ internal sealed partial class Av1SecondPass
 
     /// <summary>
     /// Decides the length and the structure of a new golden frame group.
-    /// Reference: the new group part of av1_get_second_pass_params() in the one-pass look-ahead stage.
     /// </summary>
     /// <param name="thisFrame">The statistics of the current frame.</param>
     private void DefineNewGoldenGroup(ref Av1FirstPassStatistics thisFrame)
@@ -875,8 +838,9 @@ internal sealed partial class Av1SecondPass
 
         maximumGopLength = Math.Min(maximumGopLength, this.framesToKey);
 
-        // Identify the stable, varying, blending and scene cut regions of the look-ahead. The regions are indexed
-        // from the frame being coded while their readers index them from the key frame; libaom keeps that offset.
+        // Identify the stable, varying, blending and scene cut regions of the look-ahead. The regions are indexed from the frame being coded,
+        // but their readers index them from the key frame. The encoder keeps this offset so that the group decisions stay the same as other
+        // AV1 encoders.
         if (this.framesSinceKey == 0 ||
             this.framesSinceKey == 1 ||
             (this.framesTillRegionsUpdate - this.framesSinceKey < this.framesToKey &&
@@ -901,8 +865,8 @@ internal sealed partial class Av1SecondPass
 
         this.CalculateGoldenLength(maximumGopLength);
 
-        // The test needs the temporal dependency model. Reference: the enable_tpl_model condition of the group length
-        // test in av1_get_second_pass_params().
+        // The group length test needs a maximum group length above 16 frames, the temporal dependency model, a look-ahead of at least 32
+        // frames and a speed that does the test.
         if (maximumGopLength > MaximumLookaheadGoldenLength &&
             this.gopLengthEvaluator is not null &&
             this.lagInFrames >= 32 &&
@@ -919,9 +883,8 @@ internal sealed partial class Av1SecondPass
             if (this.goldenIntervals[this.currentGoldenIndex] > MaximumLookaheadGoldenLength &&
                 this.minimumGoldenInterval <= MaximumLookaheadGoldenLength)
             {
-                // A trial definition of the long group, filtered once, lets the temporal dependency model judge its
-                // length. Reference: the define_gf_group() and av1_tf_info_filtering() calls before
-                // is_shorter_gf_interval_better().
+                // Define the long group as a trial and filter it once. Then the temporal dependency model judges its length. If a shorter
+                // interval is better but the group ends at a scene cut, a cut of fewer than 4 frames keeps the original interval.
                 this.DefineGoldenGroup(false);
                 this.gopLengthEvaluator!.FilterGroup(this);
                 if (this.IsShorterGoldenIntervalBetter())
@@ -945,8 +908,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Asks the temporal dependency model whether a golden interval of 16 frames codes better than the trial
-    /// interval. Reference: is_shorter_gf_interval_better() with av1_tpl_preload_rc_estimate().
+    /// Asks the temporal dependency model whether a golden interval of 16 frames codes better than the trial interval.
     /// </summary>
     /// <returns>Whether to shorten the interval.</returns>
     private bool IsShorterGoldenIntervalBetter()
@@ -956,12 +918,12 @@ internal sealed partial class Av1SecondPass
             return false;
         }
 
-        // The model codes each frame of the trial group at its estimated quantizer. The screen content type is still
-        // that of the last coded frame, because the new key frame, if any, has not yet been classified.
+        // The model codes each frame of the trial group at its estimated quantizer. The screen content type is still that of the last coded
+        // frame, because a new key frame is not classified yet.
         this.PreloadTplQuantizers();
 
-        // Both methods use approximate statistics of the lower alternate layers. The second method also needs a low boost.
-        // Reference: the gop_length_decision_method branches of is_shorter_gf_interval_better().
+        // Both methods use approximate statistics of the lower alternate layers. The second method also needs a low boost. The third method
+        // does no test.
         if (this.gopLengthDecisionMethod == 1)
         {
             return this.goldenBoost < this.statisticsUsedForGoldenBoost * GoldenMinimumBoost * 1.4 && this.gopLengthEvaluator.SetupTplStatistics(this) == 0;
@@ -973,9 +935,8 @@ internal sealed partial class Av1SecondPass
     /// <summary>
     /// Reads the statistics of the current frame and advances the read position. Under a bit budget, the first frame
     /// of the sequence first estimates the highest quantizer from the statistics the look-ahead holds.
-    /// Reference: process_first_pass_stats().
     /// </summary>
-    /// <param name="thisFrame">Receives the statistics, unchanged at the end of the buffer.</param>
+    /// <param name="thisFrame">Receives the statistics. The value does not change at the end of the buffer.</param>
     private void ProcessFirstPassStatistics(ref Av1FirstPassStatistics thisFrame)
     {
         if (this.UsesBitBudget && this.frameNumber == 0 && this.groupFrameIndex == 0)
@@ -993,8 +954,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Sets the per-frame values the encoder reads from the statistics at a buffer position, unless the position
-    /// is outside the buffer. Reference: read_frame_stats() with set_twopass_params_based_on_fp_stats().
+    /// Sets the per-frame values the encoder reads from the statistics at a buffer position, unless the position is outside the buffer.
     /// </summary>
     /// <param name="position">The buffer position.</param>
     private void SetParametersFromStatistics(int position)
@@ -1006,8 +966,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Sets the per-frame energy and content class the encoder reads from a frame's statistics.
-    /// Reference: set_twopass_params_based_on_fp_stats().
+    /// Sets the per-frame energy and content class the encoder reads from the statistics of a frame. The wavelet energy changes only when
+    /// the look-ahead total has a valid energy.
     /// </summary>
     /// <param name="frameStatistics">The statistics.</param>
     private void SetParameters(Av1FirstPassStatistics frameStatistics)
@@ -1018,13 +978,12 @@ internal sealed partial class Av1SecondPass
             this.frameAverageHaarEnergy = Av1FirstPassMath.Log1P(frameStatistics.FrameAverageWaveletEnergy);
         }
 
-        // Reference: FC_ANIMATION_THRESH.
+        // A frame with at least 15 percent of intra skip blocks counts as animation or graphics.
         this.isGraphicsAnimation = frameStatistics.IntraSkipPercent >= 0.15;
     }
 
     /// <summary>
     /// Limits the frames to the next key frame to the frames left in a draining look-ahead.
-    /// Reference: correct_frames_to_key() without a frame limit.
     /// </summary>
     private void CorrectFramesToKey()
     {

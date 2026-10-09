@@ -12,14 +12,13 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 
 /// <summary>
-/// Runs the first pass of the look-ahead stage once per source frame in display order, producing the frame's
-/// first-pass statistics. The stage owns the reconstructed LAST, LAST2 and GOLDEN references of its own
-/// compressor and its own frame counter; nothing it holds is shared with the coding pass.
+/// Runs the first pass of the look-ahead stage once per source frame in display order and produces the first-pass statistics of each frame.
+/// The stage owns the reconstructed LAST, LAST2 and GOLDEN references of its own compressor and its own frame counter. It shares none of them
+/// with the coding pass.
 /// </summary>
 /// <remarks>
-/// The first frame and every forced key frame are intra-only. Every other frame measures intra prediction,
-/// motion-compensated prediction from the three stage references, and zero motion against the previous source.
-/// Only luma is read, so every chroma format behaves the same. Reference: av1_first_pass().
+/// The first frame and every forced key frame are intra-only. Every other frame measures intra prediction, motion-compensated prediction from the
+/// three stage references, and zero motion against the previous source. The stage reads only luma, so every chroma format gives the same result.
 /// </remarks>
 /// <typeparam name="TSample">The unsigned component storage type.</typeparam>
 /// <typeparam name="TOperator">The operator closing the sample work over <typeparamref name="TSample"/>.</typeparam>
@@ -28,68 +27,68 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     where TOperator : struct, Av1FirstPassOperator.IOperator<TSample>
 {
     /// <summary>
-    /// The real quantizer of the first pass. Reference: FIRST_PASS_Q.
+    /// The real quantizer of the first pass.
     /// </summary>
     private const double FirstPassQ = 10.0;
 
     /// <summary>
-    /// The intra error surcharge matching the overhead of a zero motion vector. Reference: INTRA_MODE_PENALTY.
+    /// The intra error surcharge that matches the overhead of a zero motion vector.
     /// </summary>
     private const int IntraModePenalty = 1024;
 
     /// <summary>
-    /// The inter error surcharge of a searched vector. Reference: NEW_MV_MODE_PENALTY.
+    /// The inter error surcharge of a searched vector.
     /// </summary>
     private const int NewMotionVectorModePenalty = 32;
 
     /// <summary>
-    /// The eight-bit level below which a flat block counts as dark. Reference: DARK_THRESH.
+    /// The eight-bit level below which a flat block counts as dark.
     /// </summary>
     private const int DarkThreshold = 64;
 
     /// <summary>
-    /// The intra error above which a close inter error counts as partly neutral. Reference: NCOUNT_INTRA_THRESH.
+    /// The intra error above which a close inter error counts as partly neutral.
     /// </summary>
     private const int NeutralCountIntraThreshold = 8192;
 
     /// <summary>
-    /// The ratio of intra to inter error below which a block counts as partly neutral. Reference: NCOUNT_INTRA_FACTOR.
+    /// The ratio of intra to inter error below which a block counts as partly neutral.
     /// </summary>
     private const int NeutralCountIntraFactor = 3;
 
     /// <summary>
-    /// The wavelet energy stored when it is not measured. Reference: INVALID_FP_STATS_TO_PREDICT_FLAT_GOP.
+    /// The wavelet energy stored when it is not measured.
     /// </summary>
     private const int InvalidWaveletEnergy = -1;
 
     /// <summary>
-    /// The intra error below which a block counts as skipped. Reference: UL_INTRA_THRESH.
+    /// The intra error below which a block counts as skipped.
     /// </summary>
     private const int LowIntraThreshold = 50;
 
     /// <summary>
-    /// The start row of a unit or frame that has not yet seen image data. Reference: INVALID_ROW.
+    /// The start row of a unit or frame that has not yet seen image data.
     /// </summary>
     private const int InvalidRow = -1;
 
     /// <summary>
-    /// The largest full-sample vector component. Reference: MAX_FULL_PEL_VAL.
+    /// The largest full-sample vector component.
     /// </summary>
     private const int MaximumFullPixelValue = (1 << 10) - 1;
 
     /// <summary>
-    /// The interpolation margin the vector limits keep inside the border. Reference: AOM_INTERP_EXTEND.
+    /// The interpolation margin that the vector limits keep inside the border.
     /// </summary>
     private const int InterpolationExtend = 4;
 
     /// <summary>
-    /// The border of the stage references. The vector limits never reach more than a unit plus two
-    /// interpolation margins, 24 samples, beyond the coded frame.
+    /// The border of the stage references. The vector limits never reach more than a unit plus two interpolation margins, 24 samples, beyond the
+    /// coded frame.
     /// </summary>
     private const int ReconstructionBorder = 32;
 
     /// <summary>
-    /// The number of residual samples the intra error sums, one 16x16 block. Reference: aom_get_mb_ss().
+    /// The number of residual samples that the intra error sums, one 16x16 block.
     /// </summary>
     private const int MacroblockArea = 256;
 
@@ -162,7 +161,6 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1FirstPass{TSample, TOperator}"/> class with empty references.
-    /// Reference: av1_create_compressor().
     /// </summary>
     /// <param name="configuration">The configuration providing the reference and rate-table allocations.</param>
     /// <param name="width">The visible luma width.</param>
@@ -172,13 +170,13 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     /// <param name="superblockSize">The sequence superblock size in samples, 64 or 128, which sets the frame border.</param>
     /// <param name="doBorderPad">Whether residuals outside the visible frame are replaced by the visible mean.</param>
     /// <param name="calculateWaveletEnergy">Whether the perceptual delta-quantizer mode requests the wavelet energy.</param>
-    /// <param name="sharpness">The encoder sharpness; at three it keeps searched blocks inside the visible frame.</param>
+    /// <param name="sharpness">The encoder sharpness. At three, it keeps searched blocks inside the visible frame.</param>
     /// <param name="tuning">The tune metric, which scales the rate multiplier.</param>
     /// <param name="lookaheadStage">
-    /// Whether the statistics feed a one-pass encode through the look-ahead stage, whose second-reference lag starts
-    /// at one, rather than the first pass of a two-pass encode, whose lag starts at zero.
+    /// Whether the statistics feed a one-pass encode through the look-ahead stage. The second-reference lag then starts at one. Otherwise the
+    /// statistics feed the first pass of a two-pass encode, and the lag starts at zero.
     /// </param>
-    /// <param name="tiles">The tile layout of the coded frames, which the stage shares. Reference: cm->tiles.</param>
+    /// <param name="tiles">The tile layout of the coded frames, which the stage shares.</param>
     public Av1FirstPass(
         Configuration configuration,
         int width,
@@ -215,19 +213,17 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
         this.sharpness = sharpness;
         this.tuning = tuning;
 
-        // The stage keeps the mode-information grid of a statistics compressor: mode-information units cover
-        // the frame rounded up to eight samples, and 16x16 macroblocks round those units up again.
-        // Reference: stat_stage_set_mb_mi().
+        // The stage keeps the mode-information grid of a statistics compressor. Mode-information units cover the frame rounded up to eight
+        // samples. The 16x16 macroblocks round those units up again.
         this.miColumns = ((width + 7) & ~7) >> 2;
         this.miRows = ((height + 7) & ~7) >> 2;
         this.macroblockColumns = (this.miColumns + 2) >> 2;
         this.macroblockRows = (this.miRows + 2) >> 2;
 
-        // The frame border of a coding compressor without resizing or all-intra coding. Reference:
-        // av1_get_enc_border_size().
+        // The frame border of a coding compressor without resizing or all-intra coding.
         this.border = superblockSize + 32;
 
-        // The first-pass speed features. Reference: set_good_speed_features_framesize_independent().
+        // The first-pass speed features.
         this.reduceMotionVectorStepParameter = speed >= HeifEncodingSpeed.Level5 ? 4 : 3;
         this.skipMotionSearchThreshold = speed >= HeifEncodingSpeed.Level2 ? 25 : 0;
         this.disableReconstruction = speed >= HeifEncodingSpeed.Level5;
@@ -243,8 +239,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
         this.unitStatistics = new FrameStatistics[unitCount];
         this.rawMotionErrors = new int[unitCount];
 
-        // A row of 16x16 units holds two 8x8 blocks per unit, which is at most two more than half the mode-info
-        // columns. A row of 8x8 units holds fewer.
+        // A row of 16x16 units holds two 8x8 blocks per unit, which is at most two more than half the mode-info columns. A row of 8x8 units holds
+        // fewer.
         this.waveletEnergies = new int[(this.miColumns >> 1) + 2];
 
         // Three reference slots can hold three distinct buffers, so a fourth is always free for the frame.
@@ -257,14 +253,14 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
 
         new Av1MotionSearchSites(this.searchSites).ConfigureFirstPass(this.buffers[0].Frame.CodedView.GetPlane(Av1Plane.Y).Stride);
 
-        // The stage restores the default vector distributions and allows eighth-sample precision before every
-        // frame, so one table serves the whole sequence. Reference: av1_init_mv_probs() and av1_fill_mv_costs().
+        // The stage restores the default vector distributions and allows eighth-sample precision before every frame, so one table serves the
+        // whole sequence.
         this.motionCostOwner = configuration.MemoryAllocator.Allocate<int>(Av1MotionVectorCosts.StorageLength);
         new Av1MotionVectorCosts(this.motionCostOwner.Memory.Span, Av1MotionVectorPrecision.EighthSample)
             .Fill(new Av1MotionVectorContext());
 
-        // The look-ahead stage shares the lag of the coding compressor, which starts it at one; a two-pass first
-        // pass leaves it zeroed. Reference: av1_init_single_pass_lap().
+        // The look-ahead stage shares the lag of the coding compressor, which starts the lag at one. The first pass of a two-pass encode starts
+        // the lag at zero.
         this.secondReferenceUpdateLag = lookaheadStage ? 1 : 0;
     }
 
@@ -274,16 +270,18 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     public int FrameNumber => this.frameNumber;
 
     /// <summary>
-    /// Measures one source frame and advances the stage references. Reference: av1_first_pass().
+    /// Measures one source frame and advances the stage references.
     /// </summary>
     /// <param name="source">The source frame, with its coded padding and border replicated from the visible edges.</param>
-    /// <param name="previousSource">The source frame preceding <paramref name="source"/> in display order; not read for intra-only frames.</param>
+    /// <param name="previousSource">
+    /// The source frame before <paramref name="source"/> in display order. The stage does not read it for intra-only frames.
+    /// </param>
     /// <param name="duration">The frame duration in time-stamp ticks.</param>
     /// <param name="forceKeyFrame">Whether the frame is a forced key frame.</param>
     /// <param name="groupUpdateType">
-    /// The update type at the first index of the coding compressor's current group of frames, <see cref="Av1FrameUpdateType.Key"/>
-    /// before the coding compressor has built one. The stage shares that group and never advances its own index,
-    /// so this selects the rate multiplier of every vector cost.
+    /// The update type at the first index of the current group of frames of the coding compressor. It is <see cref="Av1FrameUpdateType.Key"/>
+    /// before the coding compressor builds a group. The stage shares that group and never advances its own index, so this value selects the rate
+    /// multiplier of every vector cost.
     /// </param>
     /// <returns>The first-pass statistics of the frame.</returns>
     public Av1FirstPassStatistics Process(
@@ -295,8 +293,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     {
         bool intraOnly = this.frameNumber == 0 || forceKeyFrame;
 
-        // Detect whether a key frame is screen content; later frames keep the decision. Reference: the
-        // av1_set_screen_content_options() call of av1_first_pass().
+        // Each intra-only frame detects whether it is screen content. Later frames keep the decision.
         if (intraOnly)
         {
             this.isScreenContentType = TOperator.DetectScreenContent(
@@ -309,7 +306,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
         Span<FrameStatistics> unitStatistics = this.unitStatistics.AsSpan(0, unitRows * unitColumns);
         Span<int> rawMotionErrors = this.rawMotionErrors.AsSpan(0, unitRows * unitColumns);
 
-        // Every unit record starts empty with no image data seen. Reference: setup_firstpass_data().
+        // Every unit record starts empty with no image data seen.
         unitStatistics.Clear();
         foreach (ref FrameStatistics unit in unitStatistics)
         {
@@ -318,6 +315,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
 
         rawMotionErrors.Clear();
 
+        // The frame reconstructs into the first buffer that no reference slot holds.
         int current = 0;
         while (Array.IndexOf(this.slots, current) >= 0)
         {
@@ -342,12 +340,12 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
             Costs = new Av1MotionVectorCosts(this.motionCostOwner!.Memory.Span, Av1MotionVectorPrecision.EighthSample),
             Sites = new Av1MotionSearchSites(this.searchSites),
 
-            // The rate multiplier follows the shared group's first update type; the statistics stage never
-            // applies the layer and boost terms of a consuming stage. Reference: av1_initialize_rd_consts().
+            // The rate multiplier follows the first update type of the shared group. The statistics stage never applies the layer and boost
+            // terms of a consuming stage.
             RateMultiplier = Av1RateDistortion.GetRateMultiplier(this.qIndex, this.bitDepth, groupUpdateType, this.tuning),
 
-            // Graphics content lowers the exhaustive-search threshold; the stage never classifies content as
-            // animation, so only the screen-content tools do. Reference: set_good_speed_features_framesize_independent().
+            // Graphics content lowers the exhaustive-search threshold. The stage never classifies content as animation, so only the
+            // screen-content tools lower it. Speed 1 and higher doubles the threshold.
             MeshThreshold = (this.useScreenContentTools ? 1 << 20 : 1 << 25) << (this.speed >= HeifEncodingSpeed.Level1 ? 1 : 0),
         };
 
@@ -362,9 +360,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
             frame.Last2 = this.GetReference(Last2Slot);
         }
 
-        // Tiles run in raster order and rows run top to bottom in each tile. The vector of the first unit of a row
-        // seeds the next row of the same tile, and every tile starts each frame from a zero vector. Reference:
-        // first_pass_tiles(), first_pass_tile() and the firstpass_top_mv reset of av1_init_tile_data().
+        // Tiles run in raster order and rows run top to bottom in each tile. The vector of the first unit of a row seeds the next row of the same
+        // tile. Every tile starts each frame from a zero vector.
         int unitHeight = 1 << unitLog2;
         for (int tileRow = 0; tileRow < this.tileRowStarts.Length - 1; tileRow++)
         {
@@ -390,8 +387,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
         int rawMotionErrorCount = intraOnly ? 0 : unitRows * unitColumns;
         double rawErrorStandardDeviation = GetRawMotionErrorStandardDeviation(rawMotionErrors[..rawMotionErrorCount]);
 
-        // Clamp the image start to half the rows; that many rows are discarded top and bottom as dead data, so
-        // half the rows means a blank frame. The dead rows are then excluded from the skipped blocks.
+        // The image start is at most half the rows. That many rows count as dead data at the top and at the bottom, so half the rows means a
+        // blank frame. The skipped block count then excludes the dead rows.
         if (statistics.ImageDataStartRow > unitRows / 2 || statistics.ImageDataStartRow == InvalidRow)
         {
             statistics.ImageDataStartRow = unitRows / 2;
@@ -414,7 +411,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     }
 
     /// <summary>
-    /// Releases the stage references and the rate table. Reference: av1_remove_compressor().
+    /// Releases the stage references and the rate table.
     /// </summary>
     public void Dispose()
     {
@@ -428,8 +425,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     }
 
     /// <summary>
-    /// Gets the unit size of the first pass: screen content halves it to capture its finer detail.
-    /// Reference: get_fp_block_size().
+    /// Gets the unit size of the first pass. Screen content halves the unit size to capture its finer detail.
     /// </summary>
     /// <param name="isScreenContentType">Whether the last key frame was screen content.</param>
     /// <returns>The first-pass unit size.</returns>
@@ -437,7 +433,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
         => isScreenContentType ? Av1BlockSize.Block8x8 : Av1BlockSize.Block16x16;
 
     /// <summary>
-    /// Converts a row count of 16x16 macroblocks to first-pass units. Reference: get_unit_rows().
+    /// Converts a row count of 16x16 macroblocks to first-pass units.
     /// </summary>
     /// <param name="unitLog2">The base-two logarithm of the unit height in 4x4 units.</param>
     /// <param name="macroblockRows">The number of macroblock rows.</param>
@@ -445,7 +441,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     private static int GetUnitRows(int unitLog2, int macroblockRows) => macroblockRows << (2 - unitLog2);
 
     /// <summary>
-    /// Converts a column count of 16x16 macroblocks to first-pass units. Reference: get_unit_cols().
+    /// Converts a column count of 16x16 macroblocks to first-pass units.
     /// </summary>
     /// <param name="unitLog2">The base-two logarithm of the unit width in 4x4 units.</param>
     /// <param name="macroblockColumns">The number of macroblock columns.</param>
@@ -453,7 +449,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     private static int GetUnitColumns(int unitLog2, int macroblockColumns) => macroblockColumns << (2 - unitLog2);
 
     /// <summary>
-    /// Converts a count of 16x16 macroblocks to square first-pass units. Reference: get_num_mbs().
+    /// Converts a count of 16x16 macroblocks to square first-pass units.
     /// </summary>
     /// <param name="unitLog2">The base-two logarithm of the unit size in 4x4 units.</param>
     /// <param name="macroblockCount">The number of macroblocks.</param>
@@ -462,14 +458,12 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
 
     /// <summary>
     /// Finds the quantizer index whose real quantizer first reaches the first-pass quantizer.
-    /// Reference: find_fp_qindex().
     /// </summary>
     /// <param name="bitDepth">The coded sample precision.</param>
     /// <returns>The first-pass quantizer index.</returns>
     private static int FindFirstPassQIndex(Av1BitDepth bitDepth)
     {
-        // The real quantizer scales the AC step back to eight-bit precision. Reference: av1_find_qindex() over
-        // av1_convert_qindex_to_q().
+        // The real quantizer scales the AC step back to eight-bit precision. A binary search finds the first index that reaches the target.
         double divisor = 4 << ((int)bitDepth * 2);
         int low = 0;
         int high = Av1Constants.MaxQ;
@@ -490,8 +484,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     }
 
     /// <summary>
-    /// Gets the number of outer search stages the frame size makes unnecessary: a doubling of the shorter
-    /// dimension still inside the largest vector removes one. Reference: get_search_range().
+    /// Gets the number of outer search stages that the frame size makes unnecessary. Each doubling of the shorter dimension that stays below the
+    /// largest vector component removes one stage.
     /// </summary>
     /// <param name="width">The visible luma width.</param>
     /// <param name="height">The visible luma height.</param>
@@ -509,8 +503,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     }
 
     /// <summary>
-    /// Sums the unit records of a frame in raster order, taking the first unit that saw image data as the image
-    /// start. Floating-point factors are summed in the same order as the reference. Reference: accumulate_frame_stats().
+    /// Sums the unit records of a frame in raster order. The first unit that saw image data gives the image start. The sum keeps raster order
+    /// because the rounding of the floating-point factors depends on the order of addition.
     /// </summary>
     /// <param name="units">The unit records.</param>
     /// <param name="unitRows">The number of unit rows.</param>
@@ -555,7 +549,6 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
 
     /// <summary>
     /// Gets the standard deviation of the zero-motion errors against the previous source over every unit.
-    /// Reference: raw_motion_error_stdev().
     /// </summary>
     /// <param name="errors">The unit errors, empty for an intra-only frame.</param>
     /// <returns>The standard deviation, or zero without errors.</returns>
@@ -584,7 +577,6 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
 
     /// <summary>
     /// Normalizes errors and counters to one 16x16 macroblock and vectors to the frame dimensions.
-    /// Reference: normalize_firstpass_stats().
     /// </summary>
     /// <param name="statistics">The frame record to normalize.</param>
     /// <param name="macroblockCount">The number of 16x16 macroblocks.</param>
@@ -613,9 +605,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     }
 
     /// <summary>
-    /// Builds the frame record from its totals. Each error receives a floor that grows with the square root of
-    /// the unit count, so static frames still receive bits; counters become shares of the units, and vector
-    /// sums become means and variances over the units with motion. Reference: update_firstpass_stats().
+    /// Builds the frame record from its totals. Each error receives a floor that grows with the square root of the unit count, so static frames
+    /// still receive bits. Counters become shares of the units. Vector sums become means and variances over the units with motion.
     /// </summary>
     /// <param name="statistics">The frame totals.</param>
     /// <param name="rawErrorStandardDeviation">The standard deviation of the zero-motion source errors.</param>
@@ -678,10 +669,9 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     }
 
     /// <summary>
-    /// Rotates the stage references after a frame: a poorly predicted frame moves GOLDEN into LAST2, a well
-    /// predicted frame (or a lag of more than three frames) moves LAST into GOLDEN, and the frame itself becomes
-    /// LAST. The first frame also fills GOLDEN and LAST2. Reference: the reference updates at the end of
-    /// av1_first_pass().
+    /// Rotates the stage references after a frame. A poorly predicted inter frame moves GOLDEN into LAST2. A well predicted frame, or a
+    /// second-reference lag of more than three frames, moves LAST into GOLDEN for an inter frame and restarts the lag. The frame itself becomes
+    /// LAST. The first frame also fills GOLDEN and LAST2.
     /// </summary>
     /// <param name="statistics">The record of the frame just measured.</param>
     /// <param name="intraOnly">Whether the frame was intra-only, which leaves GOLDEN and LAST2 unread.</param>
@@ -693,7 +683,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
             this.slots[Last2Slot] = this.slots[GoldenSlot];
         }
 
-        // DOUBLE_DIVIDE_CHECK keeps the ratio finite for a zero error.
+        // The small constant keeps the ratio finite for a zero coded error.
         if (this.secondReferenceUpdateLag > 3 ||
             (this.frameNumber > 0 && statistics.PercentInter > 0.20 &&
             (statistics.IntraError / (statistics.CodedError + 0.000001)) > 2.0))
@@ -711,7 +701,6 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
         }
 
         // Motion search reads beyond the coded frame, so the new reference replicates its visible edges.
-        // Reference: aom_extend_frame_borders().
         this.buffers[current].Frame.ExtendBorders();
         this.slots[LastSlot] = current;
         if (this.frameNumber == 0)
@@ -724,8 +713,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     }
 
     /// <summary>
-    /// Gets the complete bordered luma plane of a reference slot, which shares the stride and origin of every
-    /// stage buffer. Reference: get_ref_frame_yv12_buf().
+    /// Gets the complete bordered luma plane of a reference slot, which shares the stride and origin of every stage buffer.
     /// </summary>
     /// <param name="slot">The reference slot.</param>
     /// <returns>The reference samples.</returns>

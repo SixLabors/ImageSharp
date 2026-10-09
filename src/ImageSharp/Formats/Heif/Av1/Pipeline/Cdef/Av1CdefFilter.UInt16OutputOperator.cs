@@ -23,6 +23,7 @@ internal static partial class Av1CdefFilter
             }
             else
             {
+                // A four-sample row writes only the low 64 bits, so the store never touches the next block.
                 ref byte outputBytes = ref Unsafe.As<ushort, byte>(ref output);
                 Unsafe.WriteUnaligned(ref outputBytes, value.AsUInt64().GetLower().ToScalar());
             }

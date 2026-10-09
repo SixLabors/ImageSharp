@@ -13,84 +13,83 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Resize;
 /// </summary>
 /// <remarks>
 /// <para>
-/// libaom has two resizers. The normative one convolves each 16x16 output tile with an interpolation kernel at a
-/// fixed phase offset, first along rows and then along columns. The x64 build uses it for eight-bit planes whose size
-/// ratio divides sixteen in both directions, or is three quarters. The other one, which libaom calls nonnormative,
-/// halves a line with a symmetric filter until it is less than twice the target length and then interpolates the rest,
-/// first along rows and then along columns. It takes every other ratio and every plane of more than eight bits.
+/// There are two resizers. The normative one convolves each 16x16 output tile with an interpolation kernel at a fixed
+/// phase offset, first along rows and then along columns. The encoder uses it for eight-bit planes whose size ratio
+/// divides sixteen in both directions, or is three quarters. The nonnormative one halves a line with a symmetric filter
+/// until it is less than twice the target length, and then interpolates the rest. It also runs first along rows and then
+/// along columns. It takes every other ratio and every plane of more than eight bits.
 /// </para>
 /// <para>
 /// Both resizers are separable sums of eight weighted samples, rounded by seven bits and clipped after each direction.
 /// This class plans each direction as a list of output lines, each naming eight input lines and eight coefficients,
 /// and applies the plan down the columns of a plane with one vector across the columns. A pass along rows runs on a
-/// transposed copy, so it is a pass down columns too. The arithmetic of each output sample is the same as libaom's,
-/// so the result is the same.
+/// transposed copy, so it is a pass down columns too. The arithmetic of each output sample is the same as in other AV1
+/// encoders, so the resized frames are the same.
 /// </para>
 /// </remarks>
 internal static partial class Av1FrameResizer
 {
     /// <summary>
-    /// The fractional bits of a filter coefficient. Reference: FILTER_BITS.
+    /// The fractional bits of a filter coefficient.
     /// </summary>
     private const int FilterBits = 7;
 
     /// <summary>
-    /// The number of taps of every resize filter. Reference: SUBPEL_TAPS.
+    /// The number of taps of every resize filter.
     /// </summary>
     private const int Taps = 8;
 
     /// <summary>
-    /// The fractional bits of a position in the normative resizer. Reference: SUBPEL_BITS.
+    /// The fractional bits of a position in the normative resizer.
     /// </summary>
     private const int SubpixelBits = 4;
 
     /// <summary>
-    /// The mask of the fractional part of a position in the normative resizer. Reference: SUBPEL_MASK.
+    /// The mask of the fractional part of a position in the normative resizer.
     /// </summary>
     private const int SubpixelMask = (1 << SubpixelBits) - 1;
 
     /// <summary>
-    /// The width and height of an output tile of the normative resizer. Reference: the 16x16 tiles of
-    /// av1_resize_and_extend_frame_c().
+    /// The width and height of an output tile of the normative resizer.
     /// </summary>
     private const int TileSize = 16;
 
     /// <summary>
-    /// The fractional bits of a filter phase in the nonnormative resizer. Reference: RS_SUBPEL_BITS.
+    /// The fractional bits of a filter phase in the nonnormative resizer.
     /// </summary>
     private const int ResizeSubpixelBits = 6;
 
     /// <summary>
-    /// The mask of a filter phase in the nonnormative resizer. Reference: RS_SUBPEL_MASK.
+    /// The mask of a filter phase in the nonnormative resizer.
     /// </summary>
     private const int ResizeSubpixelMask = (1 << ResizeSubpixelBits) - 1;
 
     /// <summary>
-    /// The fractional bits of a position in the nonnormative resizer. Reference: RS_SCALE_SUBPEL_BITS.
+    /// The fractional bits of a position in the nonnormative resizer.
     /// </summary>
     private const int ResizeScaleSubpixelBits = 14;
 
     /// <summary>
-    /// The position bits below the filter phase. Reference: RS_SCALE_EXTRA_BITS.
+    /// The position bits below the filter phase.
     /// </summary>
     private const int ResizeScaleExtraBits = ResizeScaleSubpixelBits - ResizeSubpixelBits;
 
     /// <summary>
-    /// The rounding offset of the position bits below the filter phase. Reference: RS_SCALE_EXTRA_OFF.
+    /// The rounding offset of the position bits below the filter phase.
     /// </summary>
     private const int ResizeScaleExtraOffset = 1 << (ResizeScaleExtraBits - 1);
 
     /// <summary>
-    /// Returns whether the x64 kernels of the normative resizer handle the size change of one plane: a reduction to a
+    /// Returns whether the group kernels of the normative resizer handle the size change of one plane: a reduction to a
     /// half, a quarter or three quarters of both sizes, or a doubling of both at phase zero from a width that is a
-    /// multiple of eight. Reference: has_normative_scaler_ssse3().
+    /// multiple of eight.
     /// </summary>
     /// <param name="sourceWidth">The source width.</param>
     /// <param name="sourceHeight">The source height.</param>
     /// <param name="destinationWidth">The target width.</param>
     /// <param name="destinationHeight">The target height.</param>
     /// <param name="phase">The phase offset, in sixteenths of a sample.</param>
-    /// <returns><see langword="true"/> when the x64 kernels handle the size change.</returns>
+    /// <returns><see langword="true"/> when the group kernels handle the size change.</returns>
     private static bool HasGroupScaler(int sourceWidth, int sourceHeight, int destinationWidth, int destinationHeight, int phase)
         => (2 * destinationWidth == sourceWidth && 2 * destinationHeight == sourceHeight) ||
             (4 * destinationWidth == sourceWidth && 4 * destinationHeight == sourceHeight) ||
@@ -98,9 +97,9 @@ internal static partial class Av1FrameResizer
             (destinationWidth == sourceWidth * 2 && destinationHeight == sourceHeight * 2 && phase == 0 && sourceWidth % 8 == 0);
 
     /// <summary>
-    /// Returns whether the normative resizer of the x64 build handles a size change: each size is between a quarter
-    /// and sixteen times the other, sixteen times each size is a multiple of the other, or the target is three quarters
-    /// of the source. Reference: av1_has_optimized_scaler() with the HAVE_SSSE3 extension.
+    /// Returns whether the normative resizer handles a size change. In both directions, the target must be from a quarter
+    /// to sixteen times the source, and sixteen times each size must be a multiple of the other. A reduction to three
+    /// quarters of both sizes is also handled.
     /// </summary>
     /// <param name="sourceWidth">The source width.</param>
     /// <param name="sourceHeight">The source height.</param>
@@ -121,8 +120,7 @@ internal static partial class Av1FrameResizer
     /// <summary>
     /// Returns the kernel and the phase offset with which the encoder resizes the source and the references of a frame
     /// of another size: the phase is half a sample, and the kernel is bilinear for a 2:1 reduction of a frame larger
-    /// than 320x180, regular for a 4:3 reduction, and smooth otherwise. Reference: the filter_scaler and phase_scaler
-    /// of encode_without_recode() without spatial layer coding.
+    /// than 320x180, regular for a 4:3 reduction, and smooth otherwise.
     /// </summary>
     /// <param name="frameSize">The size of the frame being coded.</param>
     /// <param name="sourceSize">The size of the source frame.</param>
@@ -144,10 +142,8 @@ internal static partial class Av1FrameResizer
 
     /// <summary>
     /// Resizes every plane of an eight-bit frame to the size of the destination frame and extends its borders. The
-    /// normative resizer takes the planes when it handles both the luma and the chroma size change, and the
-    /// nonnormative one takes them otherwise. Reference: the use_optimized_scaler branch of
-    /// av1_realloc_and_scale_if_required() and av1_scale_references(), with av1_resize_and_extend_frame() and
-    /// av1_resize_and_extend_frame_nonnormative().
+    /// normative resizer takes the planes when it handles both the luma and the chroma size change, and the nonnormative
+    /// one takes them otherwise.
     /// </summary>
     /// <param name="allocator">The allocator of the intermediate planes.</param>
     /// <param name="source">The source frame. Its borders must be extended, because the normative resizer reads them.</param>
@@ -163,8 +159,7 @@ internal static partial class Av1FrameResizer
     {
         bool optimized = HasOptimizedScaler(source.Width, source.Height, destination.Width, destination.Height);
 
-        // The x64 build takes its own kernels only when every plane has a size change that it handles. Reference:
-        // the has_normative_scaler test of av1_resize_and_extend_frame_ssse3().
+        // The group kernels apply only when every plane has a size change that they handle.
         bool groupKernels = HasGroupScaler(source.Width, source.Height, destination.Width, destination.Height, phase);
         if (!source.IsMonochrome)
         {
@@ -195,10 +190,8 @@ internal static partial class Av1FrameResizer
     }
 
     /// <summary>
-    /// Resizes every plane of a frame of more than eight bits to the size of the destination frame with the
-    /// nonnormative resizer, and extends its borders. Reference: the high bit depth branch of
-    /// av1_realloc_and_scale_if_required() and av1_scale_references(), with
-    /// av1_resize_and_extend_frame_nonnormative().
+    /// Resizes every plane of a frame of more than eight bits to the size of the destination frame with the nonnormative
+    /// resizer, and extends its borders.
     /// </summary>
     /// <param name="allocator">The allocator of the intermediate planes.</param>
     /// <param name="source">The source frame.</param>
@@ -228,7 +221,7 @@ internal static partial class Av1FrameResizer
     }
 
     /// <summary>
-    /// Returns the visible size of the chroma planes of a frame. Reference: uv_crop_width and uv_crop_height.
+    /// Returns the visible size of the chroma planes of a frame. A subsampled size rounds up for an odd luma size.
     /// </summary>
     /// <typeparam name="TSample">The native sample storage type.</typeparam>
     /// <param name="frame">The frame.</param>
@@ -243,19 +236,16 @@ internal static partial class Av1FrameResizer
     /// Resizes one eight-bit plane with the normative resizer. Each output tile of 16x16 samples starts its positions
     /// from the tile corner, so the positions inside a tile step by the integer ratio. The rows and the columns are
     /// planned once for the whole plane, which gives each output sample the inputs and the kernel phase of its tile.
-    /// Reference: av1_resize_and_extend_frame_c() and aom_scaled_2d_c().
     /// </summary>
     /// <param name="allocator">The allocator of the intermediate planes.</param>
-    /// <param name="source">
-    /// The source plane. The resizer reads up to three samples before and five after its visible edges.
-    /// </param>
+    /// <param name="source">The source plane. The resizer reads up to three samples before and five after its visible edges.</param>
     /// <param name="sourceSize">The visible size of the source plane.</param>
     /// <param name="destination">The destination plane.</param>
     /// <param name="destinationSize">The visible size of the destination plane.</param>
     /// <param name="filter">The interpolation kernel.</param>
     /// <param name="phase">The phase offset, in sixteenths of a sample.</param>
     /// <param name="groupKernels">
-    /// Whether every plane of the frame has a size change that the x64 kernels handle, so a plane reduced to three
+    /// Whether every plane of the frame has a size change that the group kernels handle. Then a plane reduced to three
     /// quarters takes the positions of those kernels.
     /// </param>
     internal static void ScalePlane(
@@ -277,9 +267,8 @@ internal static partial class Av1FrameResizer
         TapPlan columns = new(columnRowsOwner.Memory.Span[..(width * Taps)], columnCoefficientsOwner.Memory.Span[..(width * Taps)], width);
         TapPlan rows = new(rowRowsOwner.Memory.Span[..(height * Taps)], rowCoefficientsOwner.Memory.Span[..(height * Taps)], height);
 
-        // The x64 build reduces a plane to three quarters of both sizes with its own kernel, which places every group
-        // of three outputs on four inputs. Every other size change it handles takes the positions of the 16x16 tiles.
-        // Reference: the 4 to 3 branch of av1_resize_and_extend_frame_ssse3().
+        // The group kernels reduce a plane to three quarters of both sizes with their own positions, which place every
+        // group of three outputs on four inputs. Every other size change takes the positions of the 16x16 tiles.
         bool threeQuarters = groupKernels && 4 * width == 3 * sourceSize.Width && 4 * height == 3 * sourceSize.Height;
         if (threeQuarters)
         {
@@ -317,8 +306,7 @@ internal static partial class Av1FrameResizer
 
     /// <summary>
     /// Resizes one plane with the nonnormative resizer: every row, then every column, is halved while that keeps it at
-    /// least as long as the target, and the remaining ratio is interpolated. Reference: av1_resize_plane(),
-    /// highbd_resize_plane(), resize_multistep() and highbd_resize_multistep().
+    /// least as long as the target, and the remaining ratio is interpolated.
     /// </summary>
     /// <typeparam name="TSample">The native sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
@@ -371,7 +359,7 @@ internal static partial class Av1FrameResizer
 
     /// <summary>
     /// Resizes the lines of a plane laid out one line per row, from one length to another. Each step halves the
-    /// lines or interpolates them, and the steps alternate between the two buffers. Reference: resize_multistep().
+    /// lines or interpolates them, and the steps alternate between the two buffers.
     /// </summary>
     /// <typeparam name="TSample">The native sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
@@ -394,7 +382,7 @@ internal static partial class Av1FrameResizer
         where TSample : unmanaged
         where TOperator : struct, IAv1ResizeSampleOperator<TSample>
     {
-        // Lines of the target length are kept as they are. Reference: the memcpy of resize_multistep().
+        // Lines of the target length stay unchanged in the first buffer.
         if (length == targetLength)
         {
             return true;
@@ -430,8 +418,7 @@ internal static partial class Av1FrameResizer
     }
 
     /// <summary>
-    /// Returns the number of times a line can be halved while it stays at least as long as the target. Reference:
-    /// get_down2_steps().
+    /// Returns the number of times a line can be halved while it stays at least as long as the target.
     /// </summary>
     /// <param name="length">The line length.</param>
     /// <param name="targetLength">The target length.</param>
@@ -445,7 +432,7 @@ internal static partial class Av1FrameResizer
             steps++;
             length = halvedLength;
 
-            // A line of one sample stays one sample long, so it would halve forever.
+            // A line of one sample stays one sample long when halved, so the count stops here to end the loop.
             if (length == 1)
             {
                 break;
@@ -458,8 +445,7 @@ internal static partial class Av1FrameResizer
     /// <summary>
     /// Plans one direction of the normative resizer. Each output sample of a tile reads from the source position of
     /// the tile corner, scaled to sixteenths and offset by the phase, then steps by the integer ratio. Equal sizes read
-    /// each sample at phase 0. Reference: the x_q4 and y_q4 positions of av1_resize_and_extend_frame_c(), with
-    /// convolve_horiz() and convolve_vert() of aom_scaled_2d_c().
+    /// each sample at phase 0.
     /// </summary>
     /// <param name="length">The source length.</param>
     /// <param name="targetLength">The target length.</param>
@@ -475,8 +461,8 @@ internal static partial class Av1FrameResizer
             int tileStart = output & ~(TileSize - 1);
             int local = output - tileStart;
 
-            // libaom computes the tile positions in 32-bit integers; the 64-bit products here give the same value for
-            // every size whose product fits in 32 bits.
+            // The tile positions use 64-bit products. For every size whose product fits in 32 bits, the value is the same as
+            // with 32-bit arithmetic.
             int start = scaled ? (int)((tileStart * 16L * length / targetLength) + phase) : 0;
             int tileBase = (int)(tileStart * (long)length / targetLength);
             int position = (start & SubpixelMask) + (local * step);
@@ -491,10 +477,9 @@ internal static partial class Av1FrameResizer
     }
 
     /// <summary>
-    /// Plans one direction of the x64 reduction to three quarters. Output 3g + k reads around input 4g plus the
-    /// whole part of the phase offset plus k times 21 sixteenths, with the kernel of the fractional part, so every
-    /// group restarts on a multiple of four inputs. Reference: the offset1_q4 and offset2_q4 positions of
-    /// scale_plane_4_to_3_general(), whose eight-tap sums are exact.
+    /// Plans one direction of the group-kernel reduction to three quarters. Output 3g + k reads around input 4g, plus the
+    /// whole part of the phase offset, plus k times 21 sixteenths. It uses the kernel of the fractional part. Thus every
+    /// group restarts on a multiple of four inputs.
     /// </summary>
     /// <param name="targetLength">The target length, three quarters of the source length.</param>
     /// <param name="phase">The phase offset, in sixteenths of a sample.</param>
@@ -502,7 +487,7 @@ internal static partial class Av1FrameResizer
     /// <param name="plan">Receives the source lines, relative to the first visible line, and the coefficients.</param>
     private static void PlanThreeQuarters(int targetLength, int phase, Av1InterpolationFilter filter, ref TapPlan plan)
     {
-        // Reference: step_q4 = 16 * 4 / 3.
+        // Four inputs for three outputs is a step of 64 / 3 sixteenths, truncated to 21.
         const int step = 16 * 4 / 3;
         for (int output = 0; output < targetLength; output++)
         {
@@ -521,8 +506,7 @@ internal static partial class Av1FrameResizer
     /// <summary>
     /// Plans the halving of a line: each output sample is the symmetric filter of the input samples around an even
     /// position, with positions past either end clamped to the end. An even-length line uses an eight-tap filter
-    /// centered between two samples, and an odd-length one a seven-tap filter centered on a sample. Reference:
-    /// down2_symeven() and down2_symodd(), with av1_down2_symeven_half_filter and av1_down2_symodd_half_filter.
+    /// centered between two samples, and an odd-length one a seven-tap filter centered on a sample.
     /// </summary>
     /// <param name="length">The input line length.</param>
     /// <param name="plan">Receives the input samples and the coefficients of each output sample.</param>
@@ -536,8 +520,8 @@ internal static partial class Av1FrameResizer
             int tap = output * Taps;
             for (int k = 0; k < Taps; k++)
             {
-                // Tap k reads center - 3 + k. The even filter weighs center - j and center + 1 + j by half[j]; the odd
-                // filter weighs center - j and center + j by half[j], so its eighth tap has no weight.
+                // Tap k reads center - 3 + k. The even filter weighs center - j and center + 1 + j by half[j]. The odd filter
+                // weighs center - j and center + j by half[j], so its eighth tap has no weight.
                 int position = center - 3 + k;
                 int distance = odd ? Math.Abs(position - center) : position <= center ? center - position : position - center - 1;
                 plan.Rows[tap + k] = Math.Clamp(position, 0, length - 1);
@@ -547,22 +531,25 @@ internal static partial class Av1FrameResizer
     }
 
     /// <summary>
-    /// Plans the interpolation of a line to another length. Each output sample sits at a fixed step from the one
-    /// before it, in units of a sixteen-thousandth of a sample, and reads eight input samples around its position with
-    /// the kernel of its phase. Positions past either end are clamped to the end. The kernel bank is narrower for a
-    /// larger reduction. Reference: interpolate_core(), highbd_interpolate_core() and choose_interp_filter().
+    /// Plans the interpolation of a line to another length. Each output sample sits at a fixed step from the one before
+    /// it, in units of 1/16384 of a sample, and reads eight input samples around its position with the kernel of its
+    /// phase. Positions past either end are clamped to the end. The kernel bank is narrower for a larger reduction.
     /// </summary>
     /// <param name="length">The input line length.</param>
     /// <param name="targetLength">The output line length.</param>
     /// <param name="plan">Receives the input samples and the coefficients of each output sample.</param>
     private static void PlanInterpolation(int length, int targetLength, ref TapPlan plan)
     {
+        // The step is the rounded Q14 ratio of the lengths. The offset is half the length difference in Q14, divided by the
+        // target length, so the output grid stays centered on the input grid.
         int delta = (int)((((uint)length << ResizeScaleSubpixelBits) + (uint)(targetLength / 2)) / (uint)targetLength);
         int offset = length > targetLength
             ? (((length - targetLength) << (ResizeScaleSubpixelBits - 1)) + (targetLength / 2)) / targetLength
             : -((((targetLength - length) << (ResizeScaleSubpixelBits - 1)) + (targetLength / 2)) / targetLength);
 
         ReadOnlySpan<short> bank = GetInterpolationBank(length, targetLength);
+
+        // The added half unit of the bits below the phase rounds each position to the nearest of the 64 kernel phases.
         int position = offset + ResizeScaleExtraOffset;
         for (int output = 0; output < targetLength; output++, position += delta)
         {
@@ -578,8 +565,7 @@ internal static partial class Av1FrameResizer
     }
 
     /// <summary>
-    /// Returns the kernel of one phase of the interpolation filter that the normative resizer uses. Reference:
-    /// av1_interp_filter_params_list.
+    /// Returns the kernel of one phase of the interpolation filter that the normative resizer uses.
     /// </summary>
     /// <param name="filter">The interpolation kernel: bilinear, smooth or regular.</param>
     /// <param name="phase">The phase, in sixteenths of a sample.</param>

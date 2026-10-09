@@ -7,31 +7,30 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 
 /// <summary>
-/// The pruning of the coding mode search that reads the temporal dependency statistics: inter modes whose reference
-/// predicted much worse than the best reference in the model, and the intra search of inter frames through a small
-/// neural network over the model's intra and inter costs.
+/// The pruning of the coding mode search that reads the temporal dependency statistics. It prunes inter modes whose
+/// reference predicted much worse than the best reference in the model. It also prunes the intra search of inter frames
+/// with a small neural network over the intra and inter costs of the model.
 /// </summary>
 internal static class Av1TplModePruning
 {
     /// <summary>
-    /// The number of features of the intra pruning network. Reference: NUM_FEATURES_12.
+    /// The number of features of the intra pruning network.
     /// </summary>
     private const int FeatureCount = 6;
 
     /// <summary>
-    /// The largest number of dynamic reference vectors searched. Reference: MAX_REF_MV_SEARCH.
+    /// The largest number of dynamic reference vectors searched.
     /// </summary>
     private const int MaximumReferenceVectorSearch = 3;
 
     /// <summary>
-    /// Gets the pruning thresholds in quarters by level and reference vector index, the last column for global motion.
-    /// Reference: tpl_inter_mode_prune_mul_factor.
+    /// Gets the pruning thresholds in quarters by level and reference vector index. The last column is for global motion.
     /// </summary>
     private static ReadOnlySpan<byte> InterModePruneFactors => [6, 6, 6, 4, 6, 4, 4, 4, 5, 4, 4, 4];
 
     /// <summary>
     /// Gets the hidden layer weights of the intra pruning network for frames up to 480 lines, one row of six weights
-    /// per node. Reference: av1_intrap_hiddenlayer_0_kernel_12.
+    /// per node.
     /// </summary>
     private static ReadOnlySpan<float> IntraHiddenWeights =>
     [
@@ -68,7 +67,6 @@ internal static class Av1TplModePruning
 
     /// <summary>
     /// Gets the hidden layer biases of the intra pruning network for frames up to 480 lines.
-    /// Reference: av1_intrap_hiddenlayer_0_bias_12.
     /// </summary>
     private static ReadOnlySpan<float> IntraHiddenBiases =>
     [
@@ -80,7 +78,7 @@ internal static class Av1TplModePruning
 
     /// <summary>
     /// Gets the output weights of the intra pruning network for frames up to 480 lines, one row of 24 weights per
-    /// output. Reference: av1_intrap_logits_kernel_12.
+    /// output.
     /// </summary>
     private static ReadOnlySpan<float> IntraOutputWeights =>
     [
@@ -98,13 +96,11 @@ internal static class Av1TplModePruning
 
     /// <summary>
     /// Gets the output biases of the intra pruning network for frames up to 480 lines.
-    /// Reference: av1_intrap_logits_bias_12.
     /// </summary>
     private static ReadOnlySpan<float> IntraOutputBiases => [0.95783f, -0.95823103f];
 
     /// <summary>
-    /// Gets the hidden layer weights of the intra pruning network for larger frames.
-    /// Reference: av1_intraph_hiddenlayer_0_kernel_15.
+    /// Gets the hidden layer weights of the intra pruning network for larger frames, one row of six weights per node.
     /// </summary>
     private static ReadOnlySpan<float> HighDefinitionHiddenWeights =>
     [
@@ -141,7 +137,6 @@ internal static class Av1TplModePruning
 
     /// <summary>
     /// Gets the hidden layer biases of the intra pruning network for larger frames.
-    /// Reference: av1_intraph_hiddenlayer_0_bias_15.
     /// </summary>
     private static ReadOnlySpan<float> HighDefinitionHiddenBiases =>
     [
@@ -152,8 +147,7 @@ internal static class Av1TplModePruning
     ];
 
     /// <summary>
-    /// Gets the output weights of the intra pruning network for larger frames.
-    /// Reference: av1_intraph_logits_kernel_15.
+    /// Gets the output weights of the intra pruning network for larger frames, one row of 24 weights per output.
     /// </summary>
     private static ReadOnlySpan<float> HighDefinitionOutputWeights =>
     [
@@ -171,14 +165,12 @@ internal static class Av1TplModePruning
 
     /// <summary>
     /// Gets the output biases of the intra pruning network for larger frames.
-    /// Reference: av1_intraph_logits_bias_15.
     /// </summary>
     private static ReadOnlySpan<float> HighDefinitionOutputBiases => [0.83619016f, -0.8340626f];
 
     /// <summary>
-    /// Sums the model prediction error of each reference over the 16x16 blocks of a coding block, and returns the
-    /// smallest nonzero sum among the references the selective pruning keeps, or the maximum value.
-    /// Reference: get_block_level_tpl_stats().
+    /// Sums the model prediction error of each reference over the 16x16 blocks of a coding block. It returns the smallest
+    /// nonzero sum among the valid references, or the maximum value. Without ready statistics it returns zero.
     /// </summary>
     /// <param name="statisticsReady">Whether the statistics of the frame are ready.</param>
     /// <param name="frame">The statistics of the frame being coded.</param>
@@ -188,8 +180,8 @@ internal static class Av1TplModePruning
     /// <param name="validReferences">
     /// For each reference LAST to ALTREF, whether the model keeps it or the selective pruning does not drop it.
     /// </param>
-    /// <param name="referenceInterCosts">Receives the summed prediction error of each reference. Reference: ref_inter_cost.</param>
-    /// <returns>The best inter cost. Reference: best_inter_cost.</returns>
+    /// <param name="referenceInterCosts">Receives the summed prediction error of each reference.</param>
+    /// <returns>The best inter cost.</returns>
     public static long GetBlockLevelStatistics(
         bool statisticsReady,
         Av1TplFrameStatistics frame,
@@ -241,8 +233,8 @@ internal static class Av1TplModePruning
 
     /// <summary>
     /// Returns whether an inter mode is skipped because its reference predicted much worse than the best reference in
-    /// the model. Level one prunes only LAST2 pairs, level two spares new vector modes, and higher levels compare against
-    /// thresholds by dynamic reference index. Reference: prune_modes_based_on_tpl_stats().
+    /// the model. Level one prunes only modes that use LAST2. Level two spares new vector modes. A mode that uses LAST2
+    /// is pruned when its cost is more than the best cost. Other modes compare against thresholds by dynamic reference index.
     /// </summary>
     /// <param name="referenceInterCosts">The summed prediction error of each reference.</param>
     /// <param name="bestInterCost">The best inter cost.</param>
@@ -250,7 +242,7 @@ internal static class Av1TplModePruning
     /// <param name="second">The second reference type, or zero for a single reference.</param>
     /// <param name="referenceVectorIndex">The dynamic reference vector index.</param>
     /// <param name="mode">The inter mode.</param>
-    /// <param name="level">The pruning level. Reference: prune_inter_modes_based_on_tpl.</param>
+    /// <param name="level">The pruning level, one to four.</param>
     /// <returns><see langword="true"/> when the mode is skipped.</returns>
     public static bool PruneInterMode(
         ReadOnlySpan<long> referenceInterCosts,
@@ -300,13 +292,13 @@ internal static class Av1TplModePruning
     }
 
     /// <summary>
-    /// Returns the mean model inter and intra costs over the 16x16 blocks of a coding block, available only for
-    /// superblocks fully inside the frame; otherwise both stay at -1. Reference: calculate_cost_from_tpl_data().
+    /// Returns the mean model inter and intra costs over the 16x16 blocks of a coding block. The costs are available only
+    /// for superblocks fully inside the frame and coding blocks of at least 16x16. Otherwise both stay at -1.
     /// </summary>
     /// <param name="superblockInterCosts">The superblock inter costs of <see cref="Av1TplDecisions.GetSuperblockStatistics"/>.</param>
     /// <param name="superblockIntraCosts">The superblock intra costs.</param>
-    /// <param name="blockCount">The number of superblock blocks inside the frame. Reference: tpl_data_count.</param>
-    /// <param name="stride">The number of blocks per superblock row. Reference: tpl_stride.</param>
+    /// <param name="blockCount">The number of superblock blocks inside the frame.</param>
+    /// <param name="stride">The number of blocks per superblock row.</param>
     /// <param name="superblockModeInfoSize">The superblock size in mode-information units.</param>
     /// <param name="blockSize">The coding block size.</param>
     /// <param name="modeInfoRow">The block row in mode-information units.</param>
@@ -345,7 +337,8 @@ internal static class Av1TplModePruning
         int offsetColumn = modeInfoColumn % superblockModeInfoSize;
         int start = ((offsetRow / ModelModeInfo) * stride) + (offsetColumn / ModelModeInfo);
 
-        // The reference encoder accumulates onto its -1 initial values before dividing.
+        // The sums start from the -1 initial values, not from zero. This small offset keeps the pruning decisions
+        // compatible with other AV1 encoders.
         for (int k = 0; k < high; k++)
         {
             for (int l = 0; l < wide; l++)
@@ -360,15 +353,15 @@ internal static class Av1TplModePruning
     }
 
     /// <summary>
-    /// Returns whether the network skips the intra search of an inter frame block, from the transform skip of the best
-    /// inter mode, the block dimensions, the model intra and inter costs, and the quantizer. The network runs only when
-    /// both costs are available. Reference: the neural network branch of skip_intra_modes_in_interframe().
+    /// Returns whether the network skips the intra search of an inter frame block. The features are the transform skip of
+    /// the best inter mode, the block dimensions, the model intra and inter costs, and the quantizer. The network runs
+    /// only when both costs are available.
     /// </summary>
-    /// <param name="bestModeSkipsTransform">Whether the best inter mode skips its transform. Reference: best_mbmode.skip_txfm.</param>
+    /// <param name="bestModeSkipsTransform">Whether the best inter mode skips its transform.</param>
     /// <param name="blockSize">The coding block size.</param>
     /// <param name="intraCost">The mean model intra cost.</param>
     /// <param name="interCost">The mean model inter cost.</param>
-    /// <param name="qIndex">The block quantizer. Reference: x->qindex.</param>
+    /// <param name="qIndex">The block quantizer.</param>
     /// <param name="bitDepth">The sample precision.</param>
     /// <param name="minimumFrameDimension">The shorter frame dimension.</param>
     /// <returns><see langword="true"/> when the intra search is skipped.</returns>
@@ -406,8 +399,9 @@ internal static class Av1TplModePruning
             smallFrame ? IntraOutputBiases : HighDefinitionOutputBiases,
             scores);
 
-        // For two outputs the softmax maximum is 1 / (1 + e^-|diff|), so the scores are compared directly. Every
-        // pruning level uses the same threshold.
+        // With two outputs the softmax probability of output 1 is 1 / (1 + e^-(s1 - s0)). Thus a threshold on the
+        // score difference is a threshold on the probability, and no softmax is necessary. Every pruning level uses the
+        // same threshold.
         const float Threshold = 1.4f;
         return scores[1] > scores[0] + Threshold;
     }

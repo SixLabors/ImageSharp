@@ -176,10 +176,9 @@ internal static class Av1SuperResolutionFilter
     /// <param name="initialSubpixel">The initial fixed-point source position.</param>
     /// <param name="maximum">The largest sample the coded depth permits.</param>
     /// <remarks>
-    /// Every output position samples the source at its own fixed-point position with its own set of
-    /// taps, so four outputs are evaluated together and the position advances by four steps. The
-    /// eight-tap kernel overshoots on an edge, so both the vector stage and the scalar tail clip to
-    /// the coded depth. Reference: av1_upscale_normative_rows().
+    /// Every output position samples the source at its own fixed-point position with its own set of taps, so four outputs are
+    /// evaluated together and the position advances by four steps. The eight-tap kernel overshoots on an edge, so both the vector
+    /// stage and the scalar tail clip to the coded depth.
     /// </remarks>
     private static void UpscaleRowCore<TSource, TDestination>(
         ReadOnlySpan<TSource> source,
@@ -391,8 +390,8 @@ internal static class Av1SuperResolutionFilter
         Vector128<int> products2 = Vector128_.MultiplyAddAdjacent(samples2, filter2);
         Vector128<int> products3 = Vector128_.MultiplyAddAdjacent(samples3, filter3);
 
-        // the reference decoder reduces four independent filters in two horizontal-add stages so the four complete sums occupy
-        // consecutive lanes. Keeping that arrangement also allows both destination forms to use one packed store.
+        // Each products vector holds four pair sums of one output. The first horizontal add gives two half sums per output in adjacent lanes.
+        // The second add completes them, so lane n holds output n. This order lets both destination forms use one packed store.
         Vector128<int> pairs01 = Vector128_.HorizontalAdd(products0, products1);
         Vector128<int> pairs23 = Vector128_.HorizontalAdd(products2, products3);
         return (Vector128_.HorizontalAdd(pairs01, pairs23) + Vector128.Create(FilterRounding)) >> FilterBits;

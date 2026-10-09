@@ -15,20 +15,31 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOperator>
 {
     /// <summary>
-    /// The luma border that the inter prediction clamp assumes on the top and left. Reference: AOM_BORDER_IN_PIXELS.
+    /// The luma border that the inter prediction clamp assumes on the top and left.
     /// </summary>
     private const int ReferenceBorder = 288;
 
     /// <summary>
-    /// The number of fractional bits of a scaled prediction position. Reference: SCALE_SUBPEL_BITS.
+    /// The number of fractional bits of a scaled prediction position.
     /// </summary>
     private const int ScaleSubpelBits = 10;
 
     /// <summary>
-    /// Codes the winner of a block in each plane, luma only when so configured: predicts it (intra in place from the
-    /// reconstruction, or inter from the given references), then transforms, quantizes and measures the residual, and
-    /// reconstructs when asked. Reference: get_rate_distortion().
+    /// Codes the winner of a block in each plane, or in luma only when so configured. It predicts the block: intra in
+    /// place from the reconstruction, or inter from the given references. Then it transforms, quantizes and measures the
+    /// residual, and reconstructs when asked.
     /// </summary>
+    /// <param name="input">The encoder state of the run.</param>
+    /// <param name="mode">The winning mode.</param>
+    /// <param name="first">The first reference of an inter mode.</param>
+    /// <param name="second">The second reference of a compound mode.</param>
+    /// <param name="vectors">The vectors of the references, in eighth luma samples.</param>
+    /// <param name="modeInfoRow">The block row in mode-information units.</param>
+    /// <param name="modeInfoColumn">The block column in mode-information units.</param>
+    /// <param name="reconstruct">Whether to add the coded residual to the prediction.</param>
+    /// <param name="rate">Receives the summed coefficient rate of the planes.</param>
+    /// <param name="reconstructionError">Receives one plus the summed quantization error of the planes.</param>
+    /// <param name="predictionError">Receives one plus the summed residual energy of the planes.</param>
     private void GetRateDistortion(
         Av1TplSetupInput<TSample> input,
         Av1PredictionMode mode,
@@ -99,9 +110,19 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
     /// <summary>
     /// Subtracts the prediction, transforms the residual with the DCT, quantizes it with the luma quantizer of the model,
-    /// and returns the estimated rate, the quantization error and the residual energy, each at least one.
-    /// Reference: txfm_quant_rdcost() with get_quantize_error() and rate_estimator().
+    /// and returns the estimated rate, the quantization error and the residual energy. Both errors are at least one.
     /// </summary>
+    /// <param name="source">The source samples at the block origin.</param>
+    /// <param name="sourceStride">The source row stride.</param>
+    /// <param name="destination">The prediction at the block origin, replaced by the reconstruction on request.</param>
+    /// <param name="destinationStride">The destination row stride.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
+    /// <param name="transformSize">The transform size, which covers the whole block.</param>
+    /// <param name="reconstruct">Whether to add the dequantized residual to the prediction.</param>
+    /// <param name="rate">Receives the estimated coefficient rate.</param>
+    /// <param name="reconstructionError">Receives the quantization error.</param>
+    /// <param name="sse">Receives the residual energy.</param>
     private void TransformQuantizeRateCost(
         ReadOnlySpan<TSample> source,
         int sourceStride,
@@ -126,8 +147,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             this.bitDepth.GetBitCount(),
             this.transformWorkspace);
 
-        // Every plane uses the luma quantizer, without a quantization matrix. Reference: the get_quantize_error() call
-        // with plane 0 and av1_setup_quant().
+        // Every plane uses the luma quantizer, without a quantization matrix.
         Span<int> coefficientSpan = this.coefficients.AsSpan(0, count);
         Span<int> quantizedSpan = this.quantized.AsSpan(0, count);
         Span<int> dequantizedSpan = this.dequantized.AsSpan(0, count);
@@ -143,7 +163,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             this.bitDepth,
             this.quantizerSharpness);
 
-        // The error is scaled down by four below 32x32 transforms, and normalized to 8-bit precision first.
+        // The error is first normalized to 8-bit precision. Below 32x32 transforms it is then divided by four.
         reconstructionError = Av1TransformBlockEncoder.GetTransformErrorCore(coefficientSpan, dequantizedSpan, transformSize, this.bitDepth, out sse);
         reconstructionError = Math.Max(reconstructionError, 1);
         sse = Math.Max(sse, 1);
@@ -156,13 +176,17 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
     /// <summary>
     /// Estimates the coefficient rate as one bit plus, per coefficient in scan order up to the end of block, the bit
-    /// length of its level plus one, one more bit, and a sign bit for a nonzero level. Reference: rate_estimator().
+    /// length of its level plus one, one more bit, and a sign bit for a nonzero level.
     /// </summary>
     /// <remarks>
-    /// Every coefficient past the end of block is zero and adds only its one bit, and a sum does not depend on its
-    /// order. So the rate is one bit per scan position up to the end of block plus the level bits of every coefficient
-    /// that the quantizer wrote, in raster order.
+    /// Every coefficient past the end of block is zero and adds no level bits. A sum does not depend on its order. Thus
+    /// the rate is one bit per scan position up to the end of block, plus the level bits of every coefficient that the
+    /// quantizer wrote, in raster order.
     /// </remarks>
+    /// <param name="quantized">The quantized coefficients in raster order.</param>
+    /// <param name="endOfBlock">The end of block in scan order.</param>
+    /// <param name="transformSize">The transform size.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
     private static int EstimateRate(ReadOnlySpan<int> quantized, int endOfBlock, Av1TransformSize transformSize)
     {
         int count = transformSize.GetAdjusted().GetSize2d();
@@ -172,8 +196,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
     /// <summary>
     /// Predicts one reference with the regular filter, at the position that the encoder prediction clamps to the frame
-    /// extension. Reference: av1_enc_build_one_inter_predictor() with av1_init_inter_params(), init_subpel_params() and
-    /// get_conv_params().
+    /// extension.
     /// </summary>
     /// <param name="reference">The reference picture.</param>
     /// <param name="plane">The plane.</param>
@@ -185,8 +208,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
     /// <param name="visibleSize">
-    /// Whether the clamp uses the visible size of the reference, as the pre-plane buffers of the joint motion search
-    /// do, instead of the 8-aligned size of the frame buffer. Reference: the y_crop_width of av1_setup_pred_block().
+    /// Whether the clamp uses the visible size of the reference instead of the 8-aligned size of the frame buffer. The
+    /// joint motion search uses the visible size.
     /// </param>
     private void PredictSingle(
         Av1EncoderFrame<TSample> reference,
@@ -222,10 +245,16 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Predicts a compound pair by averaging the unrounded intermediates of both references. Reference: the compound
-    /// branches of mode_estimation() and get_rate_distortion(), with av1_init_comp_mode() and
-    /// get_conv_params_no_round().
+    /// Predicts a compound pair. It averages the unrounded intermediates of both references with equal weights.
     /// </summary>
+    /// <param name="first">The first reference picture.</param>
+    /// <param name="second">The second reference picture.</param>
+    /// <param name="vectors">The vectors of both references, in eighth luma samples.</param>
+    /// <param name="plane">The plane.</param>
+    /// <param name="lumaX">The block column in luma samples.</param>
+    /// <param name="lumaY">The block row in luma samples.</param>
+    /// <param name="destination">The prediction destination.</param>
+    /// <param name="destinationStride">The destination row stride.</param>
     private void PredictCompound(
         Av1EncoderFrame<TSample> first,
         Av1EncoderFrame<TSample> second,
@@ -271,18 +300,20 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
     /// <summary>
     /// Converts a plane position and a vector component to the integer position and sixteenth-sample phase of the
-    /// prediction, clamped to the extension the encoder assumes around the reference. Reference: init_subpel_params()
-    /// without scaling, with the top and left limits of AOM_LEFT_TOP_MARGIN_SCALED() and the bottom and right limits of
-    /// the reference size plus AOM_INTERP_EXTEND.
+    /// prediction. The position is clamped to the extension that the encoder assumes around the reference. The top and
+    /// left limit is <see cref="ReferenceBorder"/> minus the interpolation extension. The bottom and right limit is the
+    /// plane size plus the interpolation extension.
     /// </summary>
     /// <param name="position">The block position in plane samples.</param>
     /// <param name="component">The vector component in eighth luma samples.</param>
     /// <param name="subsampling">The plane subsampling in this direction.</param>
-    /// <param name="planeSize">The 8-aligned plane size in this direction. Reference: y_width or uv_width.</param>
+    /// <param name="planeSize">The plane size in this direction, 8-aligned unless the caller asks for the visible size.</param>
     /// <param name="integer">Receives the integer sample position.</param>
     /// <param name="phase">Receives the phase in sixteenth samples.</param>
     private static void GetClampedPosition(int position, int component, int subsampling, int planeSize, out int integer, out int phase)
     {
+        // The position and the vector convert to sixteenth plane samples, then to the 1/1024 scale of the scaled
+        // prediction path. The added half step and the final shift give the sixteenth-sample phase.
         const int ExtraBits = ScaleSubpelBits - 4;
         int scaled = ((position << 4) + (component * (1 << (1 - subsampling)))) * (1 << ExtraBits);
         scaled += 1 << (ExtraBits - 1);
@@ -295,10 +326,20 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
     /// <summary>
     /// Predicts an intra block from the model reconstruction, with the edge availability, sample counts and edge filter
-    /// of the reference encoder. The block reads the stale partition of its mode-information record, and the smooth
-    /// state of its neighbors' records. Reference: av1_predict_intra_block() for a 16x16 block with its transform at
-    /// the origin, with build_non_directional_intra_predictors() and build_directional_and_filter_intra_predictors().
+    /// of the encoder intra prediction. The block is 16x16 with one transform at its origin. The block reads the stale
+    /// partition of its mode-information record, and the smooth state of the records of its neighbors.
     /// </summary>
+    /// <param name="input">The encoder state of the run.</param>
+    /// <param name="plane">The plane.</param>
+    /// <param name="mode">The intra mode.</param>
+    /// <param name="reconstruction">The reconstruction plane that supplies the edges.</param>
+    /// <param name="planeX">The block column in plane samples.</param>
+    /// <param name="planeY">The block row in plane samples.</param>
+    /// <param name="destination">The prediction destination.</param>
+    /// <param name="destinationStride">The destination row stride.</param>
+    /// <param name="transformSize">The transform size, which covers the whole plane block.</param>
+    /// <param name="modeInfoRow">The block row in mode-information units.</param>
+    /// <param name="modeInfoColumn">The block column in mode-information units.</param>
     private void PredictIntra(
         Av1TplSetupInput<TSample> input,
         int plane,
@@ -324,8 +365,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         int aboveIndex = blockIndex - stride;
         int leftIndex = blockIndex - 1;
 
-        // The distances to the frame edges come from set_mi_row_col() for the whole 16x16 luma block; the prediction
-        // covers the whole plane block, so the block and transform extents cancel.
+        // The distances to the frame edges are for the whole 16x16 luma block, in eighth samples. The prediction covers
+        // the whole plane block, so the block and transform extents cancel.
         const int ModeInfoSize = Av1TplModelConstants.BlockSize >> 2;
         int toRightEdge = (this.ModeInfoColumns - ModeInfoSize - modeInfoColumn) * 4 * 8;
         int toBottomEdge = (this.ModeInfoRows - ModeInfoSize - modeInfoRow) * 4 * 8;
@@ -343,7 +384,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
         if (!mode.IsDirectional())
         {
-            // DC, smooth and Paeth need both edges; Paeth also needs the corner.
+            // DC, smooth and Paeth need both edges. Paeth also needs the corner. A missing edge copies the first sample
+            // of the other edge, or keeps the midpoint plus or minus one.
             leftData.Fill(TSampleOperator.CreateSample(baseValue + 1));
             if (leftCount > 0)
             {
@@ -410,17 +452,16 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             ? (Av1IntraReferenceAvailability.HasBottomLeft(input.SuperblockSize, Av1BlockSize.Block16x16, modeInfoRow, modeInfoColumn, bottomAvailable, haveLeft, partition, transformSize, 0, 0, subX, subY) ? 1 : 0)
             : -1;
 
-        // A smooth neighbor above or to the left selects the stronger edge filter. The neighbors are the records the
-        // grid positions above and to the left point to; a chroma block of a subsampled plane reads the position one
-        // step right above it and one step down left of it. Reference: the above_mbmi, left_mbmi,
-        // chroma_above_mbmi and chroma_left_mbmi of set_mi_row_col(), read by get_intra_edge_filter_type().
+        // A smooth neighbor above or to the left selects the stronger edge filter. The neighbors are the records that the
+        // grid positions above and to the left point to. A chroma block of a subsampled plane reads the position one step
+        // right of the above position, and one step down from the left position.
         bool filterType = (haveTop && this.modeInfo.IsSmooth(blockRow - 1, blockColumn + subX, plane)) ||
             (haveLeft && this.modeInfo.IsSmooth(blockRow + subY, blockColumn - 1, plane));
 
         int topRightCount = haveTopRight > 0 ? Math.Clamp(rightDistance, 0, transformWidth) : haveTopRight;
         int bottomLeftCount = haveBottomLeft > 0 ? Math.Clamp(bottomDistance, 0, transformHeight) : haveBottomLeft;
 
-        // A sole needed edge that is missing gives a constant block.
+        // If the mode needs only one edge and that edge is missing, the block is constant.
         if ((!needAbove && leftCount == 0) || (!needLeft && topCount == 0))
         {
             TSample value = needLeft
@@ -526,8 +567,14 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
     /// <summary>
     /// Writes the shared corner before both edges: the reconstructed corner, else the first sample of the available
-    /// edge, else the midpoint. Reference: the need_above_left step of the intra edge builders.
+    /// edge, else the midpoint.
     /// </summary>
+    /// <param name="samples">The reconstruction plane.</param>
+    /// <param name="aboveIndex">The index of the first sample above the block.</param>
+    /// <param name="leftIndex">The index of the first sample left of the block.</param>
+    /// <param name="topCount">The number of available above samples.</param>
+    /// <param name="leftCount">The number of available left samples.</param>
+    /// <param name="baseValue">The midpoint of the sample range.</param>
     private void SetCorner(ReadOnlySpan<TSample> samples, int aboveIndex, int leftIndex, int topCount, int leftCount, int baseValue)
     {
         TSample corner = topCount > 0 && leftCount > 0

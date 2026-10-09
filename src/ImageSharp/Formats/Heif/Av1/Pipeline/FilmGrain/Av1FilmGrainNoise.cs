@@ -13,10 +13,10 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 /// Applies selected AV1 grain blocks to restored luma and chroma samples.
 /// </summary>
 /// <remarks>
-/// SIMD lanes follow consecutive samples within one plane row. Grain values and native samples are widened to signed
-/// 32-bit lanes before the scaling-table lookup and fixed-point addition, then clipped and narrowed only once. AVX2
-/// uses indexed gathers for the 256-entry scaling table. The current portable 128-bit dispatch handles high-bit-depth
-/// interpolation with scalar table reads; all remaining columns use the same scalar equation.
+/// SIMD lanes follow consecutive samples within one plane row. Grain values and native samples widen to signed 32-bit
+/// lanes before the scaling-table lookup and fixed-point addition. Then the result is clipped and narrowed only once. AVX2
+/// uses indexed gathers for the 256-entry scaling table. The portable 128-bit path handles high-bit-depth interpolation
+/// with scalar table reads. All remaining columns use the same scalar equation.
 /// </remarks>
 internal static class Av1FilmGrainNoise
 {
@@ -99,7 +99,7 @@ internal static class Av1FilmGrainNoise
         int chromaMaximum = sampleMaximum;
         if (parameters.ClipToRestrictedRange)
         {
-            // Restricted-range endpoints are signaled at eight-bit precision and scale exactly at higher depths.
+            // The restricted-range limits are eight-bit values. A multiply by the depth scale gives the exact limits at higher depths.
             lumaMinimum = RestrictedLumaMinimum * depthScale;
             lumaMaximum = RestrictedLumaMaximum * depthScale;
             chromaMinimum = (isIdentityMatrix ? RestrictedLumaMinimum : RestrictedChromaMinimum) * depthScale;
@@ -116,7 +116,7 @@ internal static class Av1FilmGrainNoise
             int crOffset = ((int)parameters.CrOffset * depthScale) - (256 * depthScale);
             if (parameters.ChromaScalingFromLuma)
             {
-                // Unity in the Q6 luma-multiplier domain selects luma directly and removes the chroma contribution.
+                // A luma multiplier of 64 is 1.0 in Q6. Thus the scaling index is the luma value, and the chroma sample has no effect.
                 cbMultiplier = 0;
                 cbLumaMultiplier = 64;
                 cbOffset = 0;
@@ -177,6 +177,19 @@ internal static class Av1FilmGrainNoise
     /// <summary>
     /// Selects the widest available luma traversal.
     /// </summary>
+    /// <typeparam name="TSample">The native sample type.</typeparam>
+    /// <param name="scaling">The luma scaling lookup table.</param>
+    /// <param name="samples">The restored luma samples.</param>
+    /// <param name="sampleStride">The sample row stride.</param>
+    /// <param name="grain">The selected luma grain rectangle.</param>
+    /// <param name="grainStride">The grain row stride.</param>
+    /// <param name="height">The number of rows.</param>
+    /// <param name="width">The number of samples in each row.</param>
+    /// <param name="bitDepth">The decoded sample bit depth.</param>
+    /// <param name="roundingOffset">The rounding offset added before the scaling shift.</param>
+    /// <param name="scalingShift">The right shift that removes the scaling precision.</param>
+    /// <param name="minimum">The minimum output sample.</param>
+    /// <param name="maximum">The maximum output sample.</param>
     private static void ApplyLuma<TSample>(
         ReadOnlySpan<int> scaling,
         Span<TSample> samples,
@@ -192,8 +205,8 @@ internal static class Av1FilmGrainNoise
         int maximum)
         where TSample : unmanaged
     {
-        // Scaling is an indexed lookup, so AVX2 is selected by gather support rather than generic preferred vector
-        // width. The portable path is deliberately limited by CanVectorizeWithoutGather for the same reason.
+        // Scaling is an indexed lookup, so the dispatch follows gather support and not the preferred vector width. The 256-bit
+        // path uses the AVX2 gather where it exists. The 128-bit path has no gather, so `CanVectorizeWithoutGather` limits it.
         if (Vector256.IsHardwareAccelerated)
         {
             ApplyLuma(
@@ -240,6 +253,20 @@ internal static class Av1FilmGrainNoise
     /// <summary>
     /// Applies luma grain eight samples at a time.
     /// </summary>
+    /// <typeparam name="TSample">The native sample type.</typeparam>
+    /// <param name="scaling">The luma scaling lookup table.</param>
+    /// <param name="samples">The restored luma samples.</param>
+    /// <param name="sampleStride">The sample row stride.</param>
+    /// <param name="grain">The selected luma grain rectangle.</param>
+    /// <param name="grainStride">The grain row stride.</param>
+    /// <param name="height">The number of rows.</param>
+    /// <param name="width">The number of samples in each row.</param>
+    /// <param name="bitDepth">The decoded sample bit depth.</param>
+    /// <param name="roundingOffset">The rounding offset added before the scaling shift.</param>
+    /// <param name="scalingShift">The right shift that removes the scaling precision.</param>
+    /// <param name="minimum">The minimum output sample.</param>
+    /// <param name="maximum">The maximum output sample.</param>
+    /// <param name="vector">The overload-selection value.</param>
     private static void ApplyLuma<TSample>(
         ReadOnlySpan<int> scaling,
         Span<TSample> samples,
@@ -295,6 +322,20 @@ internal static class Av1FilmGrainNoise
     /// <summary>
     /// Applies luma grain four samples at a time.
     /// </summary>
+    /// <typeparam name="TSample">The native sample type.</typeparam>
+    /// <param name="scaling">The luma scaling lookup table.</param>
+    /// <param name="samples">The restored luma samples.</param>
+    /// <param name="sampleStride">The sample row stride.</param>
+    /// <param name="grain">The selected luma grain rectangle.</param>
+    /// <param name="grainStride">The grain row stride.</param>
+    /// <param name="height">The number of rows.</param>
+    /// <param name="width">The number of samples in each row.</param>
+    /// <param name="bitDepth">The decoded sample bit depth.</param>
+    /// <param name="roundingOffset">The rounding offset added before the scaling shift.</param>
+    /// <param name="scalingShift">The right shift that removes the scaling precision.</param>
+    /// <param name="minimum">The minimum output sample.</param>
+    /// <param name="maximum">The maximum output sample.</param>
+    /// <param name="vector">The overload-selection value.</param>
     private static void ApplyLuma<TSample>(
         ReadOnlySpan<int> scaling,
         Span<TSample> samples,
@@ -320,8 +361,8 @@ internal static class Av1FilmGrainNoise
             int column = 0;
             int vectorEnd = (int)(Numerics.Vector128Count<int>(width) * (nuint)Vector128<int>.Count);
 
-            // Four scalar table reads assemble the scale vector; the rest of the normative grain equation remains
-            // lane-wise, including interpolation for 10- and 12-bit coordinates.
+            // Four scalar table reads build the scale vector, including the interpolation for 10-bit and 12-bit coordinates.
+            // The rest of the normative grain equation stays lane-wise.
             for (; column < vectorEnd; column += Vector128<int>.Count)
             {
                 ref TSample destination = ref Unsafe.Add(ref sampleBase, sampleRowOffset + column);
@@ -348,8 +389,21 @@ internal static class Av1FilmGrainNoise
     }
 
     /// <summary>
-    /// Applies the luma scalar remainder or complete scalar fallback.
+    /// Applies luma grain to the scalar remainder of a row, or to the whole rectangle when no vector path is available.
     /// </summary>
+    /// <typeparam name="TSample">The native sample type.</typeparam>
+    /// <param name="scaling">The luma scaling lookup table.</param>
+    /// <param name="samples">The restored luma samples.</param>
+    /// <param name="sampleStride">The sample row stride.</param>
+    /// <param name="grain">The selected luma grain rectangle.</param>
+    /// <param name="grainStride">The grain row stride.</param>
+    /// <param name="height">The number of rows.</param>
+    /// <param name="width">The number of samples in each row.</param>
+    /// <param name="bitDepth">The decoded sample bit depth.</param>
+    /// <param name="roundingOffset">The rounding offset added before the scaling shift.</param>
+    /// <param name="scalingShift">The right shift that removes the scaling precision.</param>
+    /// <param name="minimum">The minimum output sample.</param>
+    /// <param name="maximum">The maximum output sample.</param>
     private static void ApplyLumaScalar<TSample>(
         ReadOnlySpan<int> scaling,
         Span<TSample> samples,
@@ -385,6 +439,35 @@ internal static class Av1FilmGrainNoise
     /// <summary>
     /// Selects the widest available chroma traversal.
     /// </summary>
+    /// <typeparam name="TSample">The native sample type.</typeparam>
+    /// <param name="scalingCb">The first chroma scaling lookup table.</param>
+    /// <param name="scalingCr">The second chroma scaling lookup table.</param>
+    /// <param name="luma">The restored luma samples that select the chroma scaling.</param>
+    /// <param name="cb">The restored first chroma samples.</param>
+    /// <param name="cr">The restored second chroma samples.</param>
+    /// <param name="lumaStride">The luma row stride.</param>
+    /// <param name="chromaStride">The chroma row stride.</param>
+    /// <param name="cbGrain">The selected first chroma grain rectangle.</param>
+    /// <param name="crGrain">The selected second chroma grain rectangle.</param>
+    /// <param name="grainStride">The chroma grain row stride.</param>
+    /// <param name="height">The number of chroma rows.</param>
+    /// <param name="width">The number of chroma samples in each row.</param>
+    /// <param name="bitDepth">The decoded sample bit depth.</param>
+    /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subsamplingY">The vertical chroma subsampling shift.</param>
+    /// <param name="applyCb">Whether to add grain to the first chroma plane.</param>
+    /// <param name="applyCr">Whether to add grain to the second chroma plane.</param>
+    /// <param name="cbMultiplier">The signed Q6 weight of the first chroma sample in its scaling index.</param>
+    /// <param name="cbLumaMultiplier">The signed Q6 weight of the luma value in the first chroma scaling index.</param>
+    /// <param name="cbOffset">The offset added to the first chroma scaling index.</param>
+    /// <param name="crMultiplier">The signed Q6 weight of the second chroma sample in its scaling index.</param>
+    /// <param name="crLumaMultiplier">The signed Q6 weight of the luma value in the second chroma scaling index.</param>
+    /// <param name="crOffset">The offset added to the second chroma scaling index.</param>
+    /// <param name="roundingOffset">The rounding offset added before the scaling shift.</param>
+    /// <param name="scalingShift">The right shift that removes the scaling precision.</param>
+    /// <param name="sampleMaximum">The largest sample value, which is also the largest scaling index.</param>
+    /// <param name="minimum">The minimum output sample.</param>
+    /// <param name="maximum">The maximum output sample.</param>
     private static void ApplyChroma<TSample>(
         ReadOnlySpan<int> scalingCb,
         ReadOnlySpan<int> scalingCr,
@@ -416,8 +499,8 @@ internal static class Av1FilmGrainNoise
         int maximum)
         where TSample : unmanaged
     {
-        // Chroma shares luma's dispatch: AVX2 gathers scaling values, while the portable vector path is currently
-        // enabled only for high-bit-depth interpolation. This policy does not establish which path is faster.
+        // Chroma uses the same dispatch as luma. AVX2 gathers the scaling values. The portable vector path runs only for high
+        // bit depths, where it also interpolates. This dispatch choice does not show which path is faster.
         if (Vector256.IsHardwareAccelerated)
         {
             ApplyChroma(
@@ -524,6 +607,36 @@ internal static class Av1FilmGrainNoise
     /// <summary>
     /// Applies chroma grain eight samples at a time.
     /// </summary>
+    /// <typeparam name="TSample">The native sample type.</typeparam>
+    /// <param name="scalingCb">The first chroma scaling lookup table.</param>
+    /// <param name="scalingCr">The second chroma scaling lookup table.</param>
+    /// <param name="luma">The restored luma samples that select the chroma scaling.</param>
+    /// <param name="cb">The restored first chroma samples.</param>
+    /// <param name="cr">The restored second chroma samples.</param>
+    /// <param name="lumaStride">The luma row stride.</param>
+    /// <param name="chromaStride">The chroma row stride.</param>
+    /// <param name="cbGrain">The selected first chroma grain rectangle.</param>
+    /// <param name="crGrain">The selected second chroma grain rectangle.</param>
+    /// <param name="grainStride">The chroma grain row stride.</param>
+    /// <param name="height">The number of chroma rows.</param>
+    /// <param name="width">The number of chroma samples in each row.</param>
+    /// <param name="bitDepth">The decoded sample bit depth.</param>
+    /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subsamplingY">The vertical chroma subsampling shift.</param>
+    /// <param name="applyCb">Whether to add grain to the first chroma plane.</param>
+    /// <param name="applyCr">Whether to add grain to the second chroma plane.</param>
+    /// <param name="cbMultiplier">The signed Q6 weight of the first chroma sample in its scaling index.</param>
+    /// <param name="cbLumaMultiplier">The signed Q6 weight of the luma value in the first chroma scaling index.</param>
+    /// <param name="cbOffset">The offset added to the first chroma scaling index.</param>
+    /// <param name="crMultiplier">The signed Q6 weight of the second chroma sample in its scaling index.</param>
+    /// <param name="crLumaMultiplier">The signed Q6 weight of the luma value in the second chroma scaling index.</param>
+    /// <param name="crOffset">The offset added to the second chroma scaling index.</param>
+    /// <param name="roundingOffset">The rounding offset added before the scaling shift.</param>
+    /// <param name="scalingShift">The right shift that removes the scaling precision.</param>
+    /// <param name="sampleMaximum">The largest sample value, which is also the largest scaling index.</param>
+    /// <param name="minimum">The minimum output sample.</param>
+    /// <param name="maximum">The maximum output sample.</param>
+    /// <param name="vector">The overload-selection value.</param>
     private static void ApplyChroma<TSample>(
         ReadOnlySpan<int> scalingCb,
         ReadOnlySpan<int> scalingCr,
@@ -655,6 +768,36 @@ internal static class Av1FilmGrainNoise
     /// <summary>
     /// Applies chroma grain four samples at a time.
     /// </summary>
+    /// <typeparam name="TSample">The native sample type.</typeparam>
+    /// <param name="scalingCb">The first chroma scaling lookup table.</param>
+    /// <param name="scalingCr">The second chroma scaling lookup table.</param>
+    /// <param name="luma">The restored luma samples that select the chroma scaling.</param>
+    /// <param name="cb">The restored first chroma samples.</param>
+    /// <param name="cr">The restored second chroma samples.</param>
+    /// <param name="lumaStride">The luma row stride.</param>
+    /// <param name="chromaStride">The chroma row stride.</param>
+    /// <param name="cbGrain">The selected first chroma grain rectangle.</param>
+    /// <param name="crGrain">The selected second chroma grain rectangle.</param>
+    /// <param name="grainStride">The chroma grain row stride.</param>
+    /// <param name="height">The number of chroma rows.</param>
+    /// <param name="width">The number of chroma samples in each row.</param>
+    /// <param name="bitDepth">The decoded sample bit depth.</param>
+    /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subsamplingY">The vertical chroma subsampling shift.</param>
+    /// <param name="applyCb">Whether to add grain to the first chroma plane.</param>
+    /// <param name="applyCr">Whether to add grain to the second chroma plane.</param>
+    /// <param name="cbMultiplier">The signed Q6 weight of the first chroma sample in its scaling index.</param>
+    /// <param name="cbLumaMultiplier">The signed Q6 weight of the luma value in the first chroma scaling index.</param>
+    /// <param name="cbOffset">The offset added to the first chroma scaling index.</param>
+    /// <param name="crMultiplier">The signed Q6 weight of the second chroma sample in its scaling index.</param>
+    /// <param name="crLumaMultiplier">The signed Q6 weight of the luma value in the second chroma scaling index.</param>
+    /// <param name="crOffset">The offset added to the second chroma scaling index.</param>
+    /// <param name="roundingOffset">The rounding offset added before the scaling shift.</param>
+    /// <param name="scalingShift">The right shift that removes the scaling precision.</param>
+    /// <param name="sampleMaximum">The largest sample value, which is also the largest scaling index.</param>
+    /// <param name="minimum">The minimum output sample.</param>
+    /// <param name="maximum">The maximum output sample.</param>
+    /// <param name="vector">The overload-selection value.</param>
     private static void ApplyChroma<TSample>(
         ReadOnlySpan<int> scalingCb,
         ReadOnlySpan<int> scalingCr,
@@ -702,8 +845,8 @@ internal static class Av1FilmGrainNoise
             int column = 0;
             int vectorEnd = (int)(Numerics.Vector128Count<int>(width) * (nuint)Vector128<int>.Count);
 
-            // The four-lane path preserves the same coordinate alignment and Q6 scaling-index arithmetic. Only the
-            // table read changes from a hardware gather to four scalar reads assembled into a vector.
+            // The four-lane path keeps the same coordinate alignment and Q6 scaling-index arithmetic. Only the table read
+            // changes from a hardware gather to four scalar reads that build one vector.
             for (; column < vectorEnd; column += Vector128<int>.Count)
             {
                 ref TSample lumaSource = ref Unsafe.Add(ref lumaRow, column << subsamplingX);
@@ -784,8 +927,37 @@ internal static class Av1FilmGrainNoise
     }
 
     /// <summary>
-    /// Applies the chroma scalar remainder or complete scalar fallback.
+    /// Applies chroma grain to the scalar remainder of a row, or to the whole rectangle when no vector path is available.
     /// </summary>
+    /// <typeparam name="TSample">The native sample type.</typeparam>
+    /// <param name="scalingCb">The first chroma scaling lookup table.</param>
+    /// <param name="scalingCr">The second chroma scaling lookup table.</param>
+    /// <param name="luma">The restored luma samples that select the chroma scaling.</param>
+    /// <param name="cb">The restored first chroma samples.</param>
+    /// <param name="cr">The restored second chroma samples.</param>
+    /// <param name="lumaStride">The luma row stride.</param>
+    /// <param name="chromaStride">The chroma row stride.</param>
+    /// <param name="cbGrain">The selected first chroma grain rectangle.</param>
+    /// <param name="crGrain">The selected second chroma grain rectangle.</param>
+    /// <param name="grainStride">The chroma grain row stride.</param>
+    /// <param name="height">The number of chroma rows.</param>
+    /// <param name="width">The number of chroma samples in each row.</param>
+    /// <param name="bitDepth">The decoded sample bit depth.</param>
+    /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subsamplingY">The vertical chroma subsampling shift.</param>
+    /// <param name="applyCb">Whether to add grain to the first chroma plane.</param>
+    /// <param name="applyCr">Whether to add grain to the second chroma plane.</param>
+    /// <param name="cbMultiplier">The signed Q6 weight of the first chroma sample in its scaling index.</param>
+    /// <param name="cbLumaMultiplier">The signed Q6 weight of the luma value in the first chroma scaling index.</param>
+    /// <param name="cbOffset">The offset added to the first chroma scaling index.</param>
+    /// <param name="crMultiplier">The signed Q6 weight of the second chroma sample in its scaling index.</param>
+    /// <param name="crLumaMultiplier">The signed Q6 weight of the luma value in the second chroma scaling index.</param>
+    /// <param name="crOffset">The offset added to the second chroma scaling index.</param>
+    /// <param name="roundingOffset">The rounding offset added before the scaling shift.</param>
+    /// <param name="scalingShift">The right shift that removes the scaling precision.</param>
+    /// <param name="sampleMaximum">The largest sample value, which is also the largest scaling index.</param>
+    /// <param name="minimum">The minimum output sample.</param>
+    /// <param name="maximum">The maximum output sample.</param>
     private static void ApplyChromaScalar<TSample>(
         ReadOnlySpan<int> scalingCb,
         ReadOnlySpan<int> scalingCr,
@@ -870,8 +1042,17 @@ internal static class Av1FilmGrainNoise
     }
 
     /// <summary>
-    /// Adds scaled grain to eight source samples and clips the result.
+    /// Adds scaled grain to eight source samples and clips the result. The source samples are also the scaling indices.
     /// </summary>
+    /// <param name="source">The widened source samples.</param>
+    /// <param name="grain">The grain values for the same lanes.</param>
+    /// <param name="scaling">The scaling lookup table.</param>
+    /// <param name="bitDepth">The decoded sample bit depth.</param>
+    /// <param name="roundingOffset">The rounding offset added before the scaling shift.</param>
+    /// <param name="scalingShift">The right shift that removes the scaling precision.</param>
+    /// <param name="minimum">The minimum output sample.</param>
+    /// <param name="maximum">The maximum output sample.</param>
+    /// <returns>The clipped output samples.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<int> AddNoise(
         Vector256<int> source,
@@ -885,8 +1066,18 @@ internal static class Av1FilmGrainNoise
         => AddNoise(source, grain, scaling, source, bitDepth, roundingOffset, scalingShift, minimum, maximum);
 
     /// <summary>
-    /// Adds scaled grain to eight source samples using independent scaling coordinates.
+    /// Adds scaled grain to eight source samples with separate scaling indices, and clips the result.
     /// </summary>
+    /// <param name="source">The widened source samples.</param>
+    /// <param name="grain">The grain values for the same lanes.</param>
+    /// <param name="scaling">The scaling lookup table.</param>
+    /// <param name="scalingIndex">The scaling-table coordinate of each lane, at the decoded bit depth.</param>
+    /// <param name="bitDepth">The decoded sample bit depth.</param>
+    /// <param name="roundingOffset">The rounding offset added before the scaling shift.</param>
+    /// <param name="scalingShift">The right shift that removes the scaling precision.</param>
+    /// <param name="minimum">The minimum output sample.</param>
+    /// <param name="maximum">The maximum output sample.</param>
+    /// <returns>The clipped output samples.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<int> AddNoise(
         Vector256<int> source,
@@ -899,14 +1090,25 @@ internal static class Av1FilmGrainNoise
         int minimum,
         int maximum)
     {
+        // Each lane computes source + round(scale * grain / 2^scalingShift). The arithmetic right shift rounds negative
+        // products the same way as the scalar `>>`, so every lane equals the scalar result.
         Vector256<int> scale = ScaleLookup(scaling, scalingIndex, bitDepth);
         Vector256<int> result = source + (((scale * grain) + Vector256.Create(roundingOffset)) >> scalingShift);
         return Vector256.Min(Vector256.Max(result, Vector256.Create(minimum)), Vector256.Create(maximum));
     }
 
     /// <summary>
-    /// Adds scaled grain to four source samples and clips the result.
+    /// Adds scaled grain to four source samples and clips the result. The source samples are also the scaling indices.
     /// </summary>
+    /// <param name="source">The widened source samples.</param>
+    /// <param name="grain">The grain values for the same lanes.</param>
+    /// <param name="scaling">The scaling lookup table.</param>
+    /// <param name="bitDepth">The decoded sample bit depth.</param>
+    /// <param name="roundingOffset">The rounding offset added before the scaling shift.</param>
+    /// <param name="scalingShift">The right shift that removes the scaling precision.</param>
+    /// <param name="minimum">The minimum output sample.</param>
+    /// <param name="maximum">The maximum output sample.</param>
+    /// <returns>The clipped output samples.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<int> AddNoise(
         Vector128<int> source,
@@ -920,8 +1122,18 @@ internal static class Av1FilmGrainNoise
         => AddNoise(source, grain, scaling, source, bitDepth, roundingOffset, scalingShift, minimum, maximum);
 
     /// <summary>
-    /// Adds scaled grain to four source samples using independent scaling coordinates.
+    /// Adds scaled grain to four source samples with separate scaling indices, and clips the result.
     /// </summary>
+    /// <param name="source">The widened source samples.</param>
+    /// <param name="grain">The grain values for the same lanes.</param>
+    /// <param name="scaling">The scaling lookup table.</param>
+    /// <param name="scalingIndex">The scaling-table coordinate of each lane, at the decoded bit depth.</param>
+    /// <param name="bitDepth">The decoded sample bit depth.</param>
+    /// <param name="roundingOffset">The rounding offset added before the scaling shift.</param>
+    /// <param name="scalingShift">The right shift that removes the scaling precision.</param>
+    /// <param name="minimum">The minimum output sample.</param>
+    /// <param name="maximum">The maximum output sample.</param>
+    /// <returns>The clipped output samples.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<int> AddNoise(
         Vector128<int> source,
@@ -934,6 +1146,7 @@ internal static class Av1FilmGrainNoise
         int minimum,
         int maximum)
     {
+        // The lane formula and rounding are the same as in the eight-lane overload.
         Vector128<int> scale = ScaleLookup(scaling, scalingIndex, bitDepth);
         Vector128<int> result = source + (((scale * grain) + Vector128.Create(roundingOffset)) >> scalingShift);
         return Vector128.Min(Vector128.Max(result, Vector128.Create(minimum)), Vector128.Create(maximum));
@@ -947,18 +1160,22 @@ internal static class Av1FilmGrainNoise
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool CanVectorizeWithoutGather(int bitDepth)
     {
-        // This path assembles four scale values from scalar lookups. High-depth samples additionally interpolate
-        // between table entries. The current depth gate requires end-to-end evidence before it can be justified
-        // as a performance policy; it does not express a numerical requirement of film-grain synthesis.
+        // This path builds four scale values from scalar lookups. High-depth samples also interpolate between table entries.
+        // The bit-depth gate is a performance choice without end-to-end measurement. Film-grain synthesis has no numerical need for it.
         return bitDepth > 8 && Vector128.IsHardwareAccelerated;
     }
 
     /// <summary>
     /// Gathers eight scaling values and interpolates high-bit-depth coordinates.
     /// </summary>
+    /// <param name="scaling">The 256-entry scaling lookup table.</param>
+    /// <param name="index">The scaling coordinate of each lane, at the decoded bit depth.</param>
+    /// <param name="bitDepth">The decoded sample bit depth.</param>
+    /// <returns>The scaling value of each lane.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<int> ScaleLookup(ReadOnlySpan<int> scaling, Vector256<int> index, int bitDepth)
     {
+        // The high bits of a coordinate select the table entry. At high bit depths the low bits are the interpolation fraction.
         int depthShift = bitDepth - 8;
         Vector256<int> tableIndex = index >> depthShift;
         ref int table = ref MemoryMarshal.GetReference(scaling);
@@ -968,7 +1185,8 @@ internal static class Av1FilmGrainNoise
             return current;
         }
 
-        // Clamping the following index extends entry 255 across the final interpolation interval.
+        // The clamp makes the next entry of index 255 equal to entry 255. Thus the difference is zero, and the lane returns
+        // entry 255 the same as the scalar early return. The rounded linear interpolation is the same as the scalar overload.
         Vector256<int> nextIndex = Vector256.Min(tableIndex + Vector256<int>.One, Vector256.Create(255));
         Vector256<int> next = Vector256_.Gather(ref table, nextIndex);
         Vector256<int> fraction = index & Vector256.Create((1 << depthShift) - 1);
@@ -978,6 +1196,10 @@ internal static class Av1FilmGrainNoise
     /// <summary>
     /// Reads four scaling values and interpolates high-bit-depth coordinates.
     /// </summary>
+    /// <param name="scaling">The 256-entry scaling lookup table.</param>
+    /// <param name="index">The scaling coordinate of each lane, at the decoded bit depth.</param>
+    /// <param name="bitDepth">The decoded sample bit depth.</param>
+    /// <returns>The scaling value of each lane.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<int> ScaleLookup(ReadOnlySpan<int> scaling, Vector128<int> index, int bitDepth)
         => Vector128.Create(
@@ -987,8 +1209,12 @@ internal static class Av1FilmGrainNoise
             ScaleLookup(scaling, index.GetElement(3), bitDepth));
 
     /// <summary>
-    /// Reads one scaling value, interpolating between eight-bit entries when required.
+    /// Reads one scaling value. At high bit depths, it interpolates between two adjacent table entries.
     /// </summary>
+    /// <param name="scaling">The 256-entry scaling lookup table.</param>
+    /// <param name="index">The scaling coordinate at the decoded bit depth.</param>
+    /// <param name="bitDepth">The decoded sample bit depth.</param>
+    /// <returns>The scaling value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int ScaleLookup(ReadOnlySpan<int> scaling, int index, int bitDepth)
     {

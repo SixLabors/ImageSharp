@@ -9,10 +9,9 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 
 /// <summary>
-/// The temporal dependency model: for each frame of a golden group it estimates, per 16x16 block, the cost of intra
-/// coding and of the best inter prediction against earlier frames of the group, then propagates backwards how much of
-/// each block's information later frames inherit. The rate control and the block coding read the result.
-/// Reference: TplParams and the functions of tpl_model.c.
+/// The temporal dependency model. For each frame of a golden group it estimates, per 16x16 block, the cost of intra
+/// coding and of the best inter prediction against earlier frames of the group. Then it propagates backwards how much of
+/// the information of each block later frames inherit. The rate control and the block coding read the result.
 /// </summary>
 /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
 /// <typeparam name="TSearchOperator">The motion search sample operator.</typeparam>
@@ -23,42 +22,42 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     where TSampleOperator : struct, IAv1TplSampleOperator<TSample>
 {
     /// <summary>
-    /// The picture identity of an absent picture. Reference: a NULL YV12_BUFFER_CONFIG pointer.
+    /// The picture identity of an absent picture.
     /// </summary>
     private const int NoPicture = -1;
 
     /// <summary>
-    /// The picture identity of the saved source of the previous group's alternate reference.
+    /// The picture identity of the saved source of the alternate reference of the previous group.
     /// </summary>
     private const int PreviousArfSourceId = -2;
 
     /// <summary>
-    /// The picture identity of the saved model reconstruction of the previous group's alternate reference.
+    /// The picture identity of the saved model reconstruction of the alternate reference of the previous group.
     /// </summary>
     private const int PreviousArfReconstructionId = -3;
 
     /// <summary>
-    /// The first picture identity of a reference slot buffer; the caller's buffer identity is added.
+    /// The first picture identity of a reference slot buffer. The model adds the buffer identity of the caller.
     /// </summary>
     private const int SlotIdBase = 1 << 20;
 
     /// <summary>
-    /// The first picture identity of a look-ahead source; the look-ahead offset is added.
+    /// The first picture identity of a look-ahead source. The model adds the look-ahead offset.
     /// </summary>
     private const int LookaheadIdBase = 2 << 20;
 
     /// <summary>
-    /// The first picture identity of a temporally filtered source; the group index is added.
+    /// The first picture identity of a temporally filtered source. The model adds the group index.
     /// </summary>
     private const int FilteredIdBase = 3 << 20;
 
     /// <summary>
-    /// The quantizer range of the leaf frames of a constant quality model. Reference: MIN_TPL_Q_INDEX and MAX_TPL_Q_INDEX.
+    /// The lower quantizer limit of the leaf frames of a constant quality model.
     /// </summary>
     private const int MinimumQIndex = 120;
 
     /// <summary>
-    /// The upper quantizer limit of the leaf frames of a constant quality model. Reference: MAX_TPL_Q_INDEX.
+    /// The upper quantizer limit of the leaf frames of a constant quality model.
     /// </summary>
     private const int MaximumQIndex = 220;
 
@@ -113,18 +112,17 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     private readonly int planeCount;
 
     /// <summary>
-    /// The number of pool entries. Reference: lag_in_frames of av1_setup_tpl_buffers().
+    /// The number of pool entries: the look-ahead depth, at most <see cref="Av1TplModelConstants.MaximumLagBuffers"/>.
     /// </summary>
     private readonly int lagInFrames;
 
     /// <summary>
-    /// The frame statistics; model frame i is entry i + 9, and reference slot s is entry 8 - s.
-    /// Reference: tpl_stats_buffer.
+    /// The frame statistics. Model frame i is entry i + 9, and reference slot s is entry 8 - s.
     /// </summary>
     private readonly Av1TplFrameStatistics[] frames;
 
     /// <summary>
-    /// The source picture of each frame entry. Reference: gf_picture.
+    /// The source picture of each frame entry.
     /// </summary>
     private readonly Av1EncoderFrame<TSample>[] sourcePictures;
 
@@ -134,7 +132,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     private readonly int[] sourceIds;
 
     /// <summary>
-    /// The reconstructed picture of each frame entry. Reference: rec_picture.
+    /// The reconstructed picture of each frame entry.
     /// </summary>
     private readonly Av1EncoderFrame<TSample>[] reconstructionPictures;
 
@@ -145,7 +143,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
     /// <summary>
     /// The block statistics pool, one contiguous entry of <see cref="statisticsEntryLength"/> blocks per look-ahead
-    /// frame. Reference: tpl_stats_pool.
+    /// frame.
     /// </summary>
     private readonly IMemoryOwner<Av1TplBlockStatistics> statisticsPool;
 
@@ -155,22 +153,22 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     private readonly int statisticsEntryLength;
 
     /// <summary>
-    /// The reconstruction pool, one frame per look-ahead frame. Reference: tpl_rec_pool.
+    /// The reconstruction pool, one frame per look-ahead frame.
     /// </summary>
     private readonly Av1EncoderFrameBuffer<TSample>[] reconstructionPool;
 
     /// <summary>
-    /// The saved source of the previous group's alternate reference. Reference: prev_gop_arf_src.
+    /// The saved source of the alternate reference of the previous group.
     /// </summary>
     private readonly Av1EncoderFrameBuffer<TSample> previousArfSource;
 
     /// <summary>
-    /// The saved model reconstruction of the previous group's alternate reference. Reference: prev_gop_arf_tpl_recon.
+    /// The saved model reconstruction of the alternate reference of the previous group.
     /// </summary>
     private readonly Av1EncoderFrameBuffer<TSample> previousArfReconstruction;
 
     /// <summary>
-    /// The stale block mode-information fields the model reads and writes.
+    /// The stale block mode-information fields that the model reads and writes.
     /// </summary>
     private readonly Av1TplModeInfoGrid modeInfo;
 
@@ -181,7 +179,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1TplModel{TSample, TSearchOperator, TSampleOperator}"/> class and
-    /// allocates the frame statistics, the statistics pool and the reconstruction pool. Reference: av1_setup_tpl_buffers().
+    /// allocates the frame statistics, the statistics pool and the reconstruction pool.
     /// </summary>
     /// <param name="configuration">The configuration providing the allocator.</param>
     /// <param name="width">The frame width.</param>
@@ -190,7 +188,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// <param name="colorFormat">The sampling layout.</param>
     /// <param name="chromaPositionX">The horizontal chroma position.</param>
     /// <param name="chromaPositionY">The vertical chroma position.</param>
-    /// <param name="lagInFrames">The look-ahead depth; the model is used only above one. Reference: lag_in_frames.</param>
+    /// <param name="lagInFrames">The look-ahead depth. The encoder uses the model only when it is more than one.</param>
     public Av1TplModel(
         Configuration configuration,
         int width,
@@ -249,60 +247,57 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Gets the number of mode-information rows of a frame. Reference: mi_rows.
+    /// Gets the number of mode-information rows of a frame.
     /// </summary>
     public int ModeInfoRows { get; }
 
     /// <summary>
-    /// Gets the number of mode-information columns of a frame. Reference: mi_cols.
+    /// Gets the number of mode-information columns of a frame.
     /// </summary>
     public int ModeInfoColumns { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the statistics of the current group are complete. Reference: ready.
+    /// Gets a value indicating whether the statistics of the current group are complete.
     /// </summary>
     public bool Ready { get; private set; }
 
     /// <summary>
-    /// Gets the factor that compensates the frame importance when leaf frames were skipped. Reference: r0_adjust_factor.
+    /// Gets the factor that compensates the frame importance when leaf frames were skipped.
     /// </summary>
     public double R0AdjustFactor { get; private set; } = 1.0;
 
     /// <summary>
-    /// Gets the leaf quantizer the model used, which the rate control records as the base layer quantizer.
-    /// Reference: p_rc->base_layer_qp.
+    /// Gets the leaf quantizer that the model used. The rate control records it as the base layer quantizer.
     /// </summary>
     public int BaseLayerQIndex { get; private set; }
 
     /// <summary>
-    /// Gets a value indicating whether the last run measured a frame, which sets the encoder's base quantizer
-    /// index to <see cref="BaseLayerQIndex"/>. Reference: the cm->quant_params.base_qindex assignment of
-    /// init_mc_flow_dispenser().
+    /// Gets a value indicating whether the last run measured a frame. If it did, the base quantizer index of the encoder
+    /// becomes <see cref="BaseLayerQIndex"/>.
     /// </summary>
     public bool MeasuredFrame { get; private set; }
 
     /// <summary>
-    /// Gets the display order of the saved alternate reference of the previous group, or -1. Reference:
-    /// prev_gop_arf_disp_order.
+    /// Gets the display order of the saved alternate reference of the previous group, or -1.
     /// </summary>
     public long PreviousArfDisplayOrder { get; private set; }
 
     /// <summary>
-    /// Gets the block mode-information fields that the model reads from the encoder's previous frame. The encoder must
-    /// record, before each run, the fields its previous frame left at every 16x16-aligned position; the grid starts
-    /// zeroed, which is the state before the first frame.
+    /// Gets the block mode-information fields that the model reads from the previous frame of the encoder. Before each
+    /// run, the encoder must record the fields that its previous frame left at every 16x16-aligned position. The grid
+    /// starts zeroed, which is the state before the first frame.
     /// </summary>
     public Av1TplModeInfoGrid ModeInfo => this.modeInfo;
 
     /// <summary>
-    /// Gets the statistics of a model frame. Reference: tpl_frame[frame_index].
+    /// Gets the statistics of a model frame.
     /// </summary>
     /// <param name="frameIndex">The group index, -8 to 95.</param>
     /// <returns>The frame statistics.</returns>
     public Av1TplFrameStatistics GetFrame(int frameIndex) => this.frames[frameIndex + Av1TplModelConstants.ReferenceFrameSlotCount + 1];
 
     /// <summary>
-    /// Gets the reconstructed picture the model produced for a frame of the current group.
+    /// Gets the reconstructed picture that the model produced for a frame of the current group.
     /// </summary>
     /// <param name="frameIndex">The group index.</param>
     /// <returns>The reconstructed picture.</returns>
@@ -310,7 +305,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         => this.reconstructionPictures[frameIndex + Av1TplModelConstants.ReferenceFrameSlotCount + 1];
 
     /// <summary>
-    /// Clears the readiness and validity flags and zeroes the statistics pool. Reference: av1_init_tpl_stats().
+    /// Clears the readiness and validity flags and zeroes the statistics pool.
     /// </summary>
     public void InitializeStatistics()
     {
@@ -324,13 +319,12 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Marks the saved alternate reference of the previous group as unusable. Reference: the prev_gop_arf_disp_order
-    /// reset of av1_get_second_pass_params() at a key frame.
+    /// Marks the saved alternate reference of the previous group as unusable. The encoder calls it at a key frame.
     /// </summary>
     public void ForgetPreviousGroupAlternate() => this.PreviousArfDisplayOrder = -1;
 
     /// <summary>
-    /// Returns whether a frame of the current group has complete statistics. Reference: av1_tpl_stats_ready().
+    /// Returns whether a frame of the current group has complete statistics.
     /// </summary>
     /// <param name="groupIndex">The group index of the frame.</param>
     /// <returns><see langword="true"/> when the statistics are ready.</returns>
@@ -351,15 +345,14 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Saves the source and the model reconstruction of the last displayed frame of a group, so the next group can use
-    /// the pair as a reference that only its own frames may choose. The encoder calls it after coding each frame.
-    /// Reference: the prev_gop_arf copy of encode_frame_to_data_rate().
+    /// Saves the source and the model reconstruction of the last displayed frame of a group. The next group can use the
+    /// pair as a reference that only its own frames can choose. The encoder calls it after it codes each frame.
     /// </summary>
     /// <param name="group">The golden group.</param>
     /// <param name="groupIndex">The group index of the coded frame.</param>
     /// <param name="statisticsReady">Whether the statistics of the frame were ready before the frame processed them.</param>
-    /// <param name="source">The source the frame was coded from, after temporal filtering. Reference: cpi->source.</param>
-    /// <param name="displayOrderHint">The display order of the frame. Reference: display_order_hint.</param>
+    /// <param name="source">The source that the frame was coded from, after temporal filtering.</param>
+    /// <param name="displayOrderHint">The display order of the frame.</param>
     public void SavePreviousGroupAlternate(
         Av1TplGroup group, int groupIndex, bool statisticsReady, Av1EncoderFrame<TSample> source, int displayOrderHint)
     {
@@ -406,8 +399,10 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Copies the visible samples of a frame and extends its borders. Reference: aom_yv12_copy_frame().
+    /// Copies the visible samples of a frame and extends its borders.
     /// </summary>
+    /// <param name="source">The frame to copy.</param>
+    /// <param name="destination">The frame that receives the copy. It has the same geometry as the source.</param>
     private static void CopyFrame(Av1EncoderFrame<TSample> source, Av1EncoderFrame<TSample> destination)
     {
         int planes = source.IsMonochrome ? 1 : 3;
@@ -429,8 +424,9 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Allocates one bordered frame of the model geometry. Reference: aom_alloc_frame_buffer() with border_in_pixels.
+    /// Allocates one frame of the model geometry with a border of <see cref="Av1TplModelConstants.Border"/> samples.
     /// </summary>
+    /// <returns>The frame buffer.</returns>
     private Av1EncoderFrameBuffer<TSample> CreateFrameBuffer()
         => new(
             this.configuration,

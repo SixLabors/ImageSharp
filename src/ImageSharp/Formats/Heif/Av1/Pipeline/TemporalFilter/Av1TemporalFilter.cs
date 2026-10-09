@@ -21,59 +21,54 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
 /// samples. The frame to filter enters at the full weight. The filtered sample is the rounded weighted mean.
 /// </para>
 /// <para>
-/// A caller drives it as av1_tf_info_filtering() and denoise_and_encode() do: <see cref="ShouldApplyFiltering"/>
-/// decides whether a frame is filtered, <see cref="Filter"/> writes the filtered frame into a caller-owned buffer,
-/// and <see cref="CheckShowFilteredFrame"/> decides between showing the filtered alternate reference directly and
-/// coding an overlay.
+/// A caller uses three steps. <see cref="ShouldApplyFiltering"/> decides whether a frame is filtered. <see cref="Filter"/> writes
+/// the filtered frame into a caller-owned buffer. <see cref="CheckShowFilteredFrame"/> decides between showing the filtered
+/// alternate reference directly and coding an overlay.
 /// </para>
 /// </remarks>
 internal static partial class Av1TemporalFilter
 {
     /// <summary>
-    /// The filter block size, TF_BLOCK_SIZE.
+    /// The filter block size.
     /// </summary>
     internal const int BlockSize = 64;
 
     /// <summary>
-    /// The gradient magnitude below which a sample counts as smooth in the noise estimate,
-    /// NOISE_ESTIMATION_EDGE_THRESHOLD.
+    /// The gradient magnitude below which a sample counts as smooth in the noise estimate.
     /// </summary>
     internal const int NoiseEdgeThreshold = 50;
 
     /// <summary>
-    /// The rate multiplier that makes the shared searches' variance-domain motion cost zero: one error per bit.
+    /// The rate multiplier that makes the variance-domain motion cost of the shared searches zero: one error per bit.
     /// See <see cref="FillL1MotionCosts"/>.
     /// </summary>
     private const int MotionCostNoneRateMultiplier = 1 << 6;
 
     /// <summary>
-    /// The look-ahead offset from which an intermediate alternate reference counts as the second one,
-    /// TF_LOOKAHEAD_IDX_THR.
+    /// The look-ahead offset from which an intermediate alternate reference counts as the second alternate reference.
     /// </summary>
     private const int SecondAlternateReferenceOffset = 7;
 
     /// <summary>
-    /// Returns whether the configuration enables temporal filtering. Reference: av1_is_temporal_filter_on().
+    /// Returns whether the configuration enables temporal filtering.
     /// </summary>
-    /// <param name="maximumFrames">The configured number of filter frames, arnr_max_frames.</param>
-    /// <param name="lagInFrames">The look-ahead depth, lag_in_frames.</param>
+    /// <param name="maximumFrames">The configured number of filter frames.</param>
+    /// <param name="lagInFrames">The look-ahead depth in frames.</param>
     /// <returns><see langword="true"/> when frames are filtered.</returns>
     public static bool IsTemporalFilterOn(int maximumFrames, int lagInFrames)
         => maximumFrames > 0 && lagInFrames > 1;
 
     /// <summary>
     /// Returns whether an intermediate alternate reference is the second alternate reference of its group.
-    /// Reference: av1_gop_is_second_arf().
     /// </summary>
-    /// <param name="updateType">The frame's update type.</param>
-    /// <param name="alternateReferenceOffset">The frame's arf_src_offset.</param>
+    /// <param name="updateType">The update type of the frame.</param>
+    /// <param name="alternateReferenceOffset">The look-ahead offset of the source frame of the alternate reference.</param>
     /// <returns><see langword="true"/> for a second alternate reference.</returns>
     public static bool IsSecondAlternateReference(Av1FrameUpdateType updateType, int alternateReferenceOffset)
         => updateType == Av1FrameUpdateType.IntermediateAlternate && alternateReferenceOffset >= SecondAlternateReferenceOffset;
 
     /// <summary>
-    /// Decides whether the source of the frame being coded is replaced by its filtered frame. Reference: the
-    /// apply_filtering decision of denoise_and_encode().
+    /// Decides whether the filtered frame replaces the source of the frame that the encoder codes.
     /// </summary>
     /// <param name="temporalFilterOn">The result of <see cref="IsTemporalFilterOn"/>.</param>
     /// <param name="updateType">The update type of the coded frame.</param>
@@ -81,8 +76,7 @@ internal static partial class Av1TemporalFilter
     /// <param name="isSecondAlternateReference">Whether the coded frame is a second alternate reference.</param>
     /// <param name="showExistingFrame">Whether the coded frame only shows an existing frame.</param>
     /// <param name="losslessRequested">Whether the rate control requests lossless coding: both quantizer limits zero.</param>
-    /// <param name="lumaNoiseLevel">For a key frame, the luma noise level of its source from
-    /// <see cref="EstimateNoiseLevel"/>; unused otherwise.</param>
+    /// <param name="lumaNoiseLevel">For a key frame, the source luma noise level from <see cref="EstimateNoiseLevel"/>. Other frames do not use it.</param>
     /// <param name="settings">The filter settings.</param>
     /// <returns><see langword="true"/> when the filtered frame replaces the source.</returns>
     public static bool ShouldApplyFiltering(
@@ -103,7 +97,7 @@ internal static partial class Av1TemporalFilter
 
         if (isKeyFrame)
         {
-            // A key frame is filtered only when its luma noise estimate is positive; a flat frame gives -1.
+            // A key frame is filtered only when its luma noise estimate is positive. A flat frame gives -1.
             return settings.KeyFrameFiltering != 0 && !showExistingFrame && !losslessRequested && lumaNoiseLevel > 0;
         }
 
@@ -112,7 +106,7 @@ internal static partial class Av1TemporalFilter
 
     /// <summary>
     /// Decides whether a filtered alternate reference is shown directly, without an overlay: the filtered frame must
-    /// be close to its source relative to the quantizer. Reference: av1_check_show_filtered_frame().
+    /// be close to its source relative to the quantizer.
     /// </summary>
     /// <param name="frameWidth">The visible frame width.</param>
     /// <param name="frameHeight">The visible frame height.</param>
@@ -140,8 +134,8 @@ internal static partial class Av1TemporalFilter
         int blockColumns = (frameWidth + BlockSize - 1) / BlockSize;
         int blockCount = Math.Max(1, blockRows * blockColumns);
 
-        // libaom evaluates the mean, the variance and the threshold in single precision, then compares the standard
-        // deviation with 1.2 times the mean in double precision.
+        // The mean, the variance and the threshold use single precision. The comparison of the deviation with 1.2 times the mean
+        // uses double precision. This mix keeps the overlay decisions the same as other AV1 encoders.
         float mean = (float)result.DifferenceSum / blockCount;
         float deviation = (float)Math.Sqrt(((float)result.DifferenceSquares / blockCount) - (mean * mean));
         int step = Av1QuantizationLookup.GetAcQuant(qIndex, 0, bitDepth);
@@ -150,8 +144,7 @@ internal static partial class Av1TemporalFilter
     }
 
     /// <summary>
-    /// Returns the quantizer factor of the filter from a quantizer index. Reference: get_q() with
-    /// av1_convert_qindex_to_q().
+    /// Returns the quantizer factor of the filter from a quantizer index.
     /// </summary>
     /// <param name="qIndex">The quantizer index that sets the filter strength.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
@@ -170,7 +163,7 @@ internal static partial class Av1TemporalFilter
     }
 
     /// <summary>
-    /// Estimates the noise level of one plane of a frame. Reference: av1_estimate_noise_level() for one plane.
+    /// Estimates the noise level of one plane of a frame.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
@@ -181,7 +174,7 @@ internal static partial class Av1TemporalFilter
         where TSample : unmanaged
         where TOperator : struct, ITemporalFilterOperator<TSample>
     {
-        // Chroma uses the visible chroma dimensions, crop_widths[1] and crop_heights[1].
+        // Chroma uses the visible chroma dimensions: the visible luma dimensions divided by the subsampling, rounded up.
         int subsamplingX = plane == Av1Plane.Y ? 0 : frame.ChromaSubsamplingX;
         int subsamplingY = plane == Av1Plane.Y ? 0 : frame.ChromaSubsamplingY;
         Av1PlaneRegion<TSample> region = frame.CodedView.GetPlane(plane);
@@ -199,23 +192,22 @@ internal static partial class Av1TemporalFilter
 
     /// <summary>
     /// Filters one frame of the look-ahead buffer with its neighbors and writes the filtered frame.
-    /// Reference: av1_temporal_filter(), with init_tf_ctx() and tf_do_filtering().
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
     /// <typeparam name="TSearch">The motion search sample arithmetic.</typeparam>
     /// <param name="workspace">The filter scratch storage.</param>
-    /// <param name="lookahead">The look-ahead frames in display order; index <c>i</c> is av1_lookahead_peek(i). Every
-    /// frame shares one plane layout and is edge-extended from its visible size through at least
+    /// <param name="lookahead">The look-ahead frames in display order. Index <c>i</c> holds the frame at look-ahead offset <c>i</c>.
+    /// Every frame shares one plane layout and is edge-extended from its visible size through at least
     /// <see cref="Av1TemporalFilterFrameParameters.BorderInPixels"/> samples.</param>
     /// <param name="filterIndex">The look-ahead index of the frame to filter.</param>
     /// <param name="settings">The filter settings.</param>
     /// <param name="parameters">The group-of-pictures and rate-control state of the filtered frame.</param>
-    /// <param name="correlationCoefficients">The first-pass cor_coeff of the statistics from stats_in_start up to,
-    /// but excluding, stats_in_end.</param>
-    /// <param name="statisticsPosition">The position of twopass_frame.stats_in in
+    /// <param name="correlationCoefficients">The first-pass correlation coefficients of all available statistics entries, from the
+    /// first entry up to, but excluding, the end.</param>
+    /// <param name="statisticsPosition">The position of the statistics entry of the current frame in
     /// <paramref name="correlationCoefficients"/>.</param>
-    /// <param name="arfBoost">The first-pass boost of alternate references; unused for key frames.</param>
+    /// <param name="arfBoost">The first-pass boost of alternate references. Key frames do not use it.</param>
     /// <param name="output">The caller-owned filtered frame. Every 64x64 block is written, including samples beyond
     /// the visible size, which the caller extends from the visible edges afterwards.</param>
     /// <returns>The frames used and the source-to-filtered difference for <see cref="CheckShowFilteredFrame"/>.</returns>
@@ -279,7 +271,6 @@ internal static partial class Av1TemporalFilter
 
     /// <summary>
     /// Chooses the frames before and after the filtered frame and estimates its noise levels.
-    /// Reference: tf_setup_filtering_buffer().
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
@@ -288,7 +279,7 @@ internal static partial class Av1TemporalFilter
     /// <param name="settings">The filter settings.</param>
     /// <param name="parameters">The group-of-pictures and rate-control state of the filtered frame.</param>
     /// <param name="correlationCoefficients">The first-pass correlation coefficients.</param>
-    /// <param name="statisticsPosition">The position of stats_in in <paramref name="correlationCoefficients"/>.</param>
+    /// <param name="statisticsPosition">The position of the statistics entry of the current frame in <paramref name="correlationCoefficients"/>.</param>
     /// <param name="arfBoost">The first-pass boost of alternate references.</param>
     /// <param name="qFactor">The quantizer factor.</param>
     /// <param name="noiseLevels">Receives the noise level of every plane.</param>
@@ -375,7 +366,7 @@ internal static partial class Av1TemporalFilter
         }
         else if (settings.FrameCountAdjustment > 0 && parameters.UpdateType != Av1FrameUpdateType.Key && parameters.FramesSinceKey > 0)
         {
-            // av1_adjust_num_using_noise_lvl
+            // Each level maps a luma noise below 0.5, below 1.0, and from 1.0 to the number of added frames.
             ReadOnlySpan<byte> adjustments = settings.FrameCountAdjustment == 1 ? [6, 4, 2] : [4, 2, 0];
             adjustment = noiseLevels[0] < 0.5 ? adjustments[0] : noiseLevels[0] < 1.0 ? adjustments[1] : adjustments[2];
         }
@@ -390,12 +381,13 @@ internal static partial class Av1TemporalFilter
         }
         else
         {
-            // tf_setup_filtering_buffer() passes the earlier range as f_frames and the later range as b_frames.
+            // The earlier range goes to the forward count and the later range goes to the backward count. This swapped order keeps
+            // the frame counts the same as other AV1 encoders.
             int boost = arfBoost.CalculateArfBoost(filterIndex, maximumBefore, maximumAfter);
             frameCount = Math.Min(frameCount, boost / 150);
             frameCount += (frameCount & 1) == 0 ? 1 : 0;
 
-            // Only two neighbors for the second alternate reference.
+            // The second alternate reference uses at most two neighbors.
             if (parameters.UpdateType == Av1FrameUpdateType.IntermediateAlternate)
             {
                 frameCount = Math.Min(frameCount, 3);
@@ -419,7 +411,7 @@ internal static partial class Av1TemporalFilter
                     framesAfter = Math.Min(frameCount - 1 - framesBefore, maximumAfter);
                 }
 
-                // The frame-level correlation limits how far the shorter side may be exceeded.
+                // The frame-level correlation limits how far the longer side can exceed the shorter side.
                 if (maximumAfter > 0 && maximumBefore > 0)
                 {
                     if (framesAfter < framesBefore)
@@ -441,7 +433,6 @@ internal static partial class Av1TemporalFilter
 
     /// <summary>
     /// Filters one row of 64x64 blocks and accumulates the source-to-filtered luma differences.
-    /// Reference: av1_tf_do_filtering_row().
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
@@ -455,8 +446,8 @@ internal static partial class Av1TemporalFilter
     /// <param name="context">The per-frame filter parameters.</param>
     /// <param name="noiseLevels">The noise level of every plane.</param>
     /// <param name="output">The filtered frame.</param>
-    /// <param name="differenceSum">The running FRAME_DIFF.sum.</param>
-    /// <param name="differenceSquares">The running FRAME_DIFF.sse.</param>
+    /// <param name="differenceSum">The running sum of the per-block luma squared differences.</param>
+    /// <param name="differenceSquares">The running sum of the squares of the per-block luma squared differences.</param>
     private static void FilterRow<TSample, TOperator, TSearch>(
         Av1TemporalFilterWorkspace<TSample> workspace,
         ReadOnlySpan<Av1EncoderFrame<TSample>> frames,
@@ -499,8 +490,8 @@ internal static partial class Av1TemporalFilter
             count.Clear();
             Av1MotionVector referenceVector = default;
 
-            // The sub-block motion search does not occur when the 4x4 log variances of the block differ by 4.0 or less.
-            // It also never occurs at high bit depth sharpness 3. Reference: allow_me_for_sub_blks in av1_tf_do_filtering_row().
+            // With pruning on, the block skips the sub-block motion search when its 4x4 log variances differ by 4.0 or less.
+            // A high bit depth with sharpness 3 never searches the sub-blocks.
             bool highBitDepthSharpness = context.BitDepth > 8 && settings.Sharpness == 3;
             bool allowSubblockSearch = !highBitDepthSharpness;
             int blockOrigin = sourceOrigin + (blockRow * BlockSize * stride) + (blockColumn * BlockSize);
@@ -553,7 +544,7 @@ internal static partial class Av1TemporalFilter
                     strength = Math.Min(strength, 1);
                 }
 
-                // A high bit depth turns off the filter of a low-contrast block. Reference: the mbd->bd > 8 ? 0 : 3 cap of av1_tf_do_filtering_row().
+                // With sharpness 3, a low-contrast block limits the strength to 3. A high bit depth turns off the filter of this block.
                 if (settings.Sharpness == 3 && isLowContrast)
                 {
                     strength = Math.Min(strength, highBitDepthSharpness ? 0 : 3);
@@ -595,7 +586,7 @@ internal static partial class Av1TemporalFilter
 
             NormalizeBlock<TSample, TOperator>(output, outputLuma, outputBlue, outputRed, blockRow, blockColumn, accumulator, count);
 
-            // compute_frame_diff: the 64x64 luma squared difference between the source and the filtered block.
+            // Add the 64x64 luma squared difference between the source and the filtered block to the frame totals.
             int filteredStride = filteredLuma.Stride;
             int filteredOrigin = ((filteredLuma.Bounds.Y + (blockRow * BlockSize)) * filteredStride) + filteredLuma.Bounds.X + (blockColumn * BlockSize);
             GetVariance<TSample, TSearch>(
@@ -615,7 +606,6 @@ internal static partial class Av1TemporalFilter
 
     /// <summary>
     /// Adds one block of the frame to filter to the accumulators of every plane at the full weight.
-    /// Reference: tf_apply_temporal_filter_self().
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
@@ -665,8 +655,6 @@ internal static partial class Av1TemporalFilter
 
     /// <summary>
     /// Weighs the prediction of one block from one reference frame and adds it to the accumulators of every plane.
-    /// Reference: av1_apply_temporal_filter_avx2() and av1_highbd_apply_temporal_filter_avx2(), and
-    /// av1_apply_temporal_filter_c() for 4:2:2 high bit depth, as av1_tf_do_filtering_row() dispatches them.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
@@ -707,12 +695,13 @@ internal static partial class Av1TemporalFilter
         int bitDepth = frameToFilter.LumaBitDepth;
         bool isMonochrome = frameToFilter.IsMonochrome;
 
-        // The x64 kernels support square subsampling only; libaom sends 4:2:2 high-bit-depth frames to the C function,
-        // which multiplies the combined error by the distance factor and the decay factor separately.
+        // A high-bit-depth frame with unequal subsampling (4:2:2) multiplies the combined error by the distance factor and the
+        // decay factor separately. Other frames multiply by their product. The two orders round differently. Each frame type
+        // keeps the order of other AV1 encoders, so the filtered samples stay the same.
         bool separateFactors = bitDepth > 8 && !isMonochrome && frameToFilter.ChromaSubsamplingX != frameToFilter.ChromaSubsamplingY;
 
-        // A larger quantizer and a larger strength give larger weights. Above TF_QINDEX_CUTOFF the quantizer decay
-        // grows past one, up to eight.
+        // A larger quantizer and a larger strength give larger weights. From a quantizer factor of 128, the quantizer decay
+        // grows past one.
         double qDecay = Math.Pow((double)qFactor / 20, 2);
         qDecay = qDecay < 1e-5 ? 1e-5 : qDecay > 1 ? 1 : qDecay;
         if (qFactor >= 128)
@@ -775,9 +764,9 @@ internal static partial class Av1TemporalFilter
                 firstFactors[i] = separateFactors ? distanceFactors[i] : distanceFactors[i] * decay;
             }
 
-            // The chroma planes add the luma errors of the samples they cover, because only the luma motion was
-            // searched. The luma errors are summed before the first chroma plane replaces them, and reused for the
-            // second chroma plane.
+            // The chroma planes add the luma errors of the samples they cover, because the search uses only the luma motion.
+            // The luma errors are summed before the first chroma plane overwrites the squared differences. The second chroma
+            // plane uses the same sums again.
             if (plane == (int)Av1Plane.U)
             {
                 SumLumaErrors<TSample, TOperator>(workspace.SquaredErrors, subsamplingX, subsamplingY, width, height, lumaErrors);
@@ -812,7 +801,7 @@ internal static partial class Av1TemporalFilter
     }
 
     /// <summary>
-    /// Writes the filtered samples of one block of every plane. Reference: tf_normalize_filtered_frame().
+    /// Writes the filtered samples of one block of every plane.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
@@ -860,8 +849,7 @@ internal static partial class Av1TemporalFilter
     }
 
     /// <summary>
-    /// Returns the samples of one filter block of one plane. Reference: the frame_offset of
-    /// av1_apply_temporal_filter_c().
+    /// Returns the samples of one filter block of one plane.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <param name="frame">The frame.</param>
@@ -901,27 +889,27 @@ internal static partial class Av1TemporalFilter
 
     /// <summary>
     /// Holds the per-frame values that the block filter reads, copied from the frame, the settings and the
-    /// group-of-pictures state. Reference: TemporalFilterCtx.
+    /// group-of-pictures state.
     /// </summary>
     internal readonly struct TemporalFilterContext
     {
         /// <summary>
-        /// Gets the visible frame width, cm->width and y_crop_width.
+        /// Gets the visible frame width.
         /// </summary>
         public int FrameWidth { get; init; }
 
         /// <summary>
-        /// Gets the visible frame height, cm->height and y_crop_height.
+        /// Gets the visible frame height.
         /// </summary>
         public int FrameHeight { get; init; }
 
         /// <summary>
-        /// Gets the frame width aligned to eight samples, mi_cols * MI_SIZE.
+        /// Gets the frame width aligned to eight samples.
         /// </summary>
         public int CodedWidth { get; init; }
 
         /// <summary>
-        /// Gets the frame height aligned to eight samples, mi_rows * MI_SIZE.
+        /// Gets the frame height aligned to eight samples.
         /// </summary>
         public int CodedHeight { get; init; }
 
@@ -966,17 +954,17 @@ internal static partial class Av1TemporalFilter
         public bool CurrentFrameIsKeyFrameUpdate { get; init; }
 
         /// <summary>
-        /// Gets the quantizer factor, q_factor.
+        /// Gets the quantizer factor.
         /// </summary>
         public int QFactor { get; init; }
 
         /// <summary>
-        /// Gets the number of samples of all planes of one filter block, num_pels.
+        /// Gets the number of samples of all planes of one filter block.
         /// </summary>
         public int BlockPixels { get; init; }
 
         /// <summary>
-        /// Returns the per-frame filter values. Reference: init_tf_ctx().
+        /// Returns the per-frame filter values.
         /// </summary>
         /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
         /// <param name="frame">The frame to filter.</param>

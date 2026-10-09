@@ -18,16 +18,17 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOperator>
 {
     /// <summary>
-    /// Gets the reference pairs of the compound search, as reference indices. Reference: comp_ref_frames.
+    /// Gets the reference pairs of the compound search, as reference indices: LAST with BWDREF, LAST with ALTREF, and
+    /// GOLDEN with ALTREF.
     /// </summary>
     private static ReadOnlySpan<byte> CompoundPairs => [0, 4, 0, 6, 3, 6];
 
     /// <summary>
-    /// Sets up the references, the rate multiplier and the quantizer for one frame. Reference: init_mc_flow_dispenser().
+    /// Sets up the references, the rate multiplier and the quantizer for one frame.
     /// </summary>
     /// <param name="input">The encoder state.</param>
     /// <param name="frameIndex">The group index of the frame.</param>
-    /// <param name="modelQIndex">The leaf quantizer of the model. Reference: pframe_qindex.</param>
+    /// <param name="modelQIndex">The leaf quantizer of the model.</param>
     private void InitializeFlowDispenser(Av1TplSetupInput<TSample> input, int frameIndex, int modelQIndex)
     {
         Av1TplGroup group = input.Group;
@@ -48,7 +49,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         }
 
         // A reference whose reconstruction repeats one earlier in priority order is removed. Absent references compare
-        // equal, as their pointers do. Reference: get_ref_frame_flags().
+        // equal, because they all have the identity `NoPicture`.
         int referenceFlags = 0x7F;
         ReadOnlySpan<byte> order = ReferencePriorityOrder;
         for (int i = 1; i < Av1TplModelConstants.InterReferenceCount; i++)
@@ -74,8 +75,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             }
         }
 
-        // The selective reference pruning of the coding search also skips references here, except for frames past the
-        // group, whose references differ from those of the coding search. Reference: is_frame_eligible_for_ref_pruning().
+        // The selective reference pruning of the coding search also skips references here. It does not apply to eligible
+        // frames, or to frames past the group, whose references differ from those of the coding search.
         bool pruningEnabled = speedFeatures.SelectiveReferenceFrame > 0 &&
             speedFeatures.PruneReferenceFrames &&
             !group.IsTplEligible(frameIndex);
@@ -91,9 +92,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             }
         }
 
-        // The quantizers, the vector error per bit and the SAD per bit use the model quantizer plus the superblock
-        // delta that the previous coded frame left. Reference: the av1_frame_init_quantizer() call that follows
-        // av1_set_error_per_bit() and av1_set_sad_per_bit() in init_mc_flow_dispenser().
+        // The quantizers, the rate multiplier and the SAD per bit use the model quantizer plus the superblock delta that
+        // the previous coded frame left. The base rate multiplier of the frame uses the model quantizer alone.
         int quantizerQIndex = Math.Clamp(modelQIndex + input.QuantizerDeltaQIndex, 0, Av1Constants.MaxQ);
         this.rateMultiplier = Math.Max(
             1,
@@ -114,7 +114,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         this.quantizerSharpness = input.QuantizerSharpness;
         frame.BaseRateMultiplier = Av1RateDistortion.GetRateMultiplier(modelQIndex, this.bitDepth, group.UpdateType[0], input.Tuning, false) / 6;
 
-        // The model runs before the frame level speed features, so the key frame exception is applied here.
+        // The model runs before the frame sets its own speed features, so the key frame exception applies here. Level one
+        // uses absolute differences only from layer depth 5. Level two uses them at every depth.
         int layerDepthThreshold = speedFeatures.UseSadForModeDecision == 1 ? 5 : 0;
         frame.UsePredictionSad = speedFeatures.UseSadForModeDecision != 0 &&
             group.UpdateType[0] != Av1FrameUpdateType.Key &&
@@ -122,10 +123,15 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Disables references past the limit that the speed features allow, in a fixed order. The fourth disabled
-    /// reference, BWDREF, clears the GOLDEN flag, as the reference encoder does. Reference: enforce_max_ref_frames(),
-    /// with get_max_allowed_ref_frames() and get_num_refs_to_disable() of one-pass encoding.
+    /// Disables references past the limit that the speed features allow, in the fixed order of <see cref="DisableOrder"/>.
+    /// When the order reaches BWDREF, the method clears the GOLDEN flag instead. The encoder keeps this quirk so that its
+    /// reference choices stay compatible.
     /// </summary>
+    /// <param name="referenceFlags">The valid references, one bit per reference with LAST in bit zero.</param>
+    /// <param name="selectiveReferenceFrame">The selective reference frame level of the speed.</param>
+    /// <param name="displayIndices">The display index of each reference.</param>
+    /// <param name="currentDisplayIndex">The display index of the frame.</param>
+    /// <returns>The valid references after the limit.</returns>
     private static int EnforceMaximumReferenceFrames(int referenceFlags, int selectiveReferenceFrame, ReadOnlySpan<int> displayIndices, int currentDisplayIndex)
     {
         int totalValid = 0;
@@ -148,7 +154,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             }
             else if (selectiveReferenceFrame == 5 && (referenceFlags & (1 << ((int)Av1ReferenceFrameType.Last2 - 1))) != 0)
             {
-                // A temporally distant LAST2 goes. The low coded-error test needs two-pass statistics.
+                // A temporally distant LAST2 goes. The model has no two-pass statistics, so it skips the test for a low coded error.
                 int distance = displayIndices[(int)Av1ReferenceFrameType.Last2 - 1] - currentDisplayIndex;
                 if (Math.Abs(distance) > 2)
                 {
@@ -177,10 +183,14 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Returns whether the selective reference search drops a single reference: from level two LAST2 and LAST3 that
-    /// precede GOLDEN, and from level three ALTREF2 and BWDREF that precede LAST. The model has no block statistics that
-    /// keep a reference. Reference: prune_ref_by_selective_ref_frame() with a NULL block and prune_ref().
+    /// Returns whether the selective reference search drops a single reference. From level two it drops LAST2 and LAST3
+    /// when they come before GOLDEN. From level three it drops ALTREF2 and BWDREF when they come before LAST. The model
+    /// has no block statistics that keep a reference.
     /// </summary>
+    /// <param name="level">The selective reference frame level.</param>
+    /// <param name="reference">The reference type, LAST to ALTREF.</param>
+    /// <param name="displayIndices">The display index of each reference.</param>
+    /// <returns><see langword="true"/> when the reference is dropped.</returns>
     private static bool PruneBySelectiveReferenceFrame(int level, int reference, ReadOnlySpan<int> displayIndices)
     {
         if (level == 0)
@@ -212,16 +222,16 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Measures every block of the current frame in raster order and stores its statistics. Reference:
-    /// mc_flow_dispenser() and av1_mc_flow_dispenser_row() in a single thread.
+    /// Measures every block of the current frame in raster order on one thread and stores its statistics. Raster order
+    /// matters because each block reads the vectors and reconstruction of the blocks above and to the left.
     /// </summary>
+    /// <param name="input">The encoder state of the run.</param>
     private void DispenseFlow(Av1TplSetupInput<TSample> input)
     {
         Av1TplFrameStatistics frame = this.GetFrame(this.frameIndex);
         const int Step = 1 << Av1TplModelConstants.BlockModeInfoLog2;
 
-        // The frame's planes and block statistics are read once. Reference: the cur_buf and tpl_stats_ptr that
-        // mc_flow_dispenser() sets before its block loops.
+        // The planes and the block statistics of the frame are resolved once, before the block loops.
         int entry = GetEntry(this.frameIndex);
         PlaneAccess source = GetPlane(this.sourcePictures[entry], 0);
         PlaneAccess reconstruction = GetPlane(this.reconstructionPictures[entry], 0);
@@ -233,7 +243,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
                 Av1TplBlockStatistics statistics = default;
                 this.EstimateMode(input, source, reconstruction, blocks, modeInfoRow, modeInfoColumn, ref statistics);
 
-                // Every stored cost and distortion is at least one. Reference: tpl_model_store().
+                // Every stored cost, distortion and rate is at least one. The propagation divides by some of them and
+                // takes their logarithms.
                 ref Av1TplBlockStatistics stored = ref blocks[GetBlockPosition(frame, modeInfoRow, modeInfoColumn)];
                 stored = statistics;
                 stored.IntraCost = Math.Max(1, stored.IntraCost);
@@ -253,7 +264,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
     /// <summary>
     /// Measures one 16x16 block: the intra search, the single reference motion search with neighbor starting vectors,
-    /// the compound search, then the rates and distortions of the winner. Reference: mode_estimation().
+    /// the compound search, then the rates and distortions of the winner.
     /// </summary>
     /// <param name="input">The setup input of the group.</param>
     /// <param name="source">The source luma plane of the frame.</param>
@@ -287,17 +298,16 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         statistics.ReferenceFrameIndex[0] = -1;
         statistics.ReferenceFrameIndex[1] = -1;
 
-        // set_mi_row_col() in the single tile the model uses.
+        // The model uses one tile, so a neighbor is available when it is inside the frame.
         this.upAvailable = modeInfoRow > 0;
         this.leftAvailable = modeInfoColumn > 0;
 
-        // The block lends its own mode-information record, and the intra search starts from an intra reference
-        // field. Reference: set_mode_info_offsets() in mode_estimation().
+        // The block lends its own mode-information record, and the intra search starts from an intra reference field.
         this.modeInfo.LendRecord(modeInfoRow, modeInfoColumn);
         this.modeInfo.SetInter(modeInfoRow, modeInfoColumn, false);
 
-        // The bottom-left neighbors belong to the next block row, which the model has not reconstructed, while the
-        // availability rules of a superblock may declare them present. Repeat the last left sample below the block.
+        // The bottom-left neighbors belong to the next block row, which the model did not reconstruct yet. The
+        // availability rules of a superblock can declare them present. Thus the last left sample repeats below the block.
         if (this.leftAvailable && modeInfoRow + ModeInfoSize < this.tileModeInfoRowEnd)
         {
             Span<TSample> samples = reconstruction.Samples;
@@ -309,7 +319,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             }
         }
 
-        // Pruned intra search tests DC_PRED, V_PRED and H_PRED only.
+        // The pruned intra search tests only the DC, vertical and horizontal modes.
         Av1PredictionMode lastIntraMode = speedFeatures.PruneIntraModes ? Av1PredictionMode.Directional45Degrees : Av1PredictionMode.IntraModeEnd;
         int bestIntraCost = int.MaxValue;
         Av1PredictionMode bestMode = Av1PredictionMode.DC;
@@ -362,8 +372,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             PlaneAccess referencePlane = GetPlane(this.sourcePictures[this.referenceEntries[reference]], 0);
             int referenceIndex = referencePlane.IndexOf(x, y);
 
-            // The zero vector and the vectors of the above, left and above-right neighbors start the search, unless
-            // alike to an earlier start.
+            // The zero vector and the vectors of the above, left and above-right neighbors start the search. A start
+            // that is alike to an earlier start is skipped.
             centers.Clear();
             centerSads.Fill(int.MaxValue);
             int startCount = 1;
@@ -414,7 +424,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
                 SortBySad(centers[..startCount], centerSads[..startCount]);
                 startCount = Math.Min(4 - speedFeatures.PruneStartingMotionVector, startCount);
 
-                // Drop the last start when its difference is much larger than the one before it.
+                // Drop the last start when its difference is more than 1.2 times the one before it.
                 if (startCount > 1)
                 {
                     int lastSad = centerSads[startCount - 1];
@@ -442,8 +452,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
                     keyFrameUpdate,
                     out Av1MotionVector vector);
 
-                // High bit depth sharpness 3 keeps a zero best vector, unless a nonzero vector decreases the error by more than one sixteenth.
-                // Reference: the CONFIG_AV1_HIGHBITDEPTH bias toward (0,0) in mode_estimation().
+                // At high bit depth with sharpness 3, a zero best vector stays unless a nonzero vector lowers the error by
+                // more than about one sixteenth. This bias toward the zero vector is part of the high bit depth search.
                 bool keepsZeroVector = bestSme != uint.MaxValue && bestReferenceVector.IsZero && !vector.IsZero && unchecked(sme + (sme >> 4)) >= bestSme;
                 if (this.bitDepth.GetBitCount() > 8 && input.Sharpness == 3 && keepsZeroVector)
                 {
@@ -464,7 +474,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             // The inter cost of each reference lets the coding search prune inter modes.
             statistics.PredictionError[reference] = Math.Max(1, interCost);
 
-            // A saved alternate reference of the previous group may only win for the frames of that group.
+            // While a saved alternate reference of the previous group exists, a reference wins only if its source and
+            // reconstruction differ. This keeps the saved pair from winning for the frames of the current group.
             if (interCost < bestInterCost &&
                 (this.PreviousArfDisplayOrder < 0 || this.SourceDiffersFromReconstruction(reference)))
             {
@@ -500,7 +511,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
                 continue;
             }
 
-            // The trial writes the pair and NEW_NEWMV into the block's mode-information fields.
+            // The trial writes the inter flag and the compound new-vector mode into the mode-information fields of the block.
             this.modeInfo.SetInter(modeInfoRow, modeInfoColumn, true);
             this.modeInfo.SetMode(modeInfoRow, modeInfoColumn, Av1PredictionMode.NewNewMotionVector);
             trialVectors[0] = singleVectors[first];
@@ -565,7 +576,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
         if (bestMode == Av1PredictionMode.NewNewMotionVector)
         {
-            // Each compound reference reconstructed while the other stays a source.
+            // Code the winner twice more: each time one compound reference is reconstructed and the other stays a source.
             this.GetRateDistortion(
                 input,
                 bestMode,
@@ -599,8 +610,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             statistics.CompoundReconstructedRate[1] = secondRate;
         }
 
-        // Final encode. D203_PRED reads the chroma below the left neighbor, which the next block row has not
-        // reconstructed yet; repeat the last left chroma sample below the block.
+        // Final encode against reconstructed references. The 203-degree mode reads the chroma below the left neighbor,
+        // which the next block row did not reconstruct yet. Thus the last left chroma sample repeats below the block.
         int planes = speedFeatures.LumaOnlyRateDistortion ? 1 : this.planeCount;
         if (bestMode == Av1PredictionMode.Directional203Degrees && this.leftAvailable && modeInfoRow + ModeInfoSize < this.tileModeInfoRowEnd)
         {
@@ -653,7 +664,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         }
         else if (bestMode == Av1PredictionMode.NewNewMotionVector)
         {
-            // The compound rates and distortions lie between the source and the reconstructed reference results.
+            // The clamps keep the compound rates and distortions between the source and the reconstructed reference results.
             for (int reference = 0; reference < 2; reference++)
             {
                 long distortion = Math.Max(statistics.SourceReferenceDistortion, statistics.CompoundReconstructedDistortion[reference]);
@@ -670,9 +681,11 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Returns whether a reference's source and reconstruction are different buffers, which holds for the frames of
-    /// the group and for the saved alternate reference, but not for the reference slots.
+    /// Returns whether the source and the reconstruction of a reference are different buffers. This is true for the
+    /// frames of the group and for the saved alternate reference, but not for the reference slots.
     /// </summary>
+    /// <param name="reference">The reference index, zero for LAST.</param>
+    /// <returns><see langword="true"/> when the buffers differ.</returns>
     private bool SourceDiffersFromReconstruction(int reference)
     {
         int entry = this.referenceEntries[reference];
@@ -682,6 +695,9 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// <summary>
     /// Returns the source or the reconstruction of a reference.
     /// </summary>
+    /// <param name="reference">The reference index, zero for LAST.</param>
+    /// <param name="source">Whether to return the source instead of the reconstruction.</param>
+    /// <returns>The picture, marked absent when the entry holds no picture.</returns>
     private ReferencePicture GetPicture(int reference, bool source)
     {
         int entry = this.referenceEntries[reference];
@@ -691,9 +707,13 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Returns whether a starting vector is close to an earlier one: within one eighth sample, or eight or sixteen
-    /// samples, per the speed level. Reference: is_alike_mv().
+    /// Returns whether a starting vector is close to an earlier one. At level zero only an equal vector is close. At
+    /// levels one and two, both components must differ by less than eight or sixteen samples.
     /// </summary>
+    /// <param name="candidate">The candidate vector, in eighth samples.</param>
+    /// <param name="centers">The earlier starting vectors.</param>
+    /// <param name="level">The skip level, zero to two.</param>
+    /// <returns><see langword="true"/> when the candidate is close to an earlier vector.</returns>
     private static bool IsAlike(Av1MotionVector candidate, ReadOnlySpan<Av1MotionVector> centers, int level)
     {
         ReadOnlySpan<int> thresholds = [1, 8 << 3, 16 << 3];
@@ -711,11 +731,12 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
 #pragma warning disable CA1517 // False positive: https://github.com/dotnet/sdk/issues/53388
     /// <summary>
-    /// Sorts the starting vectors by increasing absolute difference. The reference encoder sorts them with the C
-    /// library qsort, and the x64 reference build links the Microsoft C runtime, whose qsort sorts lists of up to eight
-    /// entries by moving the first largest entry to the end. Reference: the qsort() of mode_estimation() with
-    /// compare_sad().
+    /// Sorts the starting vectors by increasing absolute difference. Each pass moves the first largest entry to the end.
+    /// For lists of up to eight entries, the qsort of the Microsoft C runtime gives the same order of equal entries. The
+    /// encoder keeps that order so that ties resolve the same way as in x64 builds of other AV1 encoders.
     /// </summary>
+    /// <param name="vectors">The starting vectors, sorted in place.</param>
+    /// <param name="sads">The absolute difference of each vector, sorted in place with the vectors.</param>
     private static void SortBySad(Span<Av1MotionVector> vectors, Span<int> sads)
     {
         for (int high = vectors.Length - 1; high > 0; high--)
@@ -737,8 +758,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
     /// <summary>
     /// Keeps a motion search range of a model block within eight samples of the visible frame when the sharpness is
-    /// 3, and returns it unchanged otherwise. Reference: the sharpness margins of av1_make_default_fullpel_ms_params()
-    /// and av1_make_default_subpel_ms_params().
+    /// 3, and returns it unchanged otherwise.
     /// </summary>
     /// <param name="input">The model input.</param>
     /// <param name="bounds">The search range, with exclusive right and bottom edges.</param>
@@ -757,8 +777,18 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
     /// <summary>
     /// Searches one starting vector: the full-pixel search with the model method, then a fractional refinement with
-    /// bilinear interpolation and no vector cost. Reference: motion_estimation().
+    /// bilinear interpolation and no vector cost.
     /// </summary>
+    /// <param name="input">The encoder state of the run.</param>
+    /// <param name="source">The source samples at the block origin.</param>
+    /// <param name="sourceStride">The source row stride.</param>
+    /// <param name="reference">The luma plane of the source reference.</param>
+    /// <param name="referenceIndex">The index of the block origin in the reference plane.</param>
+    /// <param name="frameBounds">The full-pixel search bounds of the frame.</param>
+    /// <param name="blockOrigin">The luma origin of the block.</param>
+    /// <param name="center">The starting vector, in eighth samples.</param>
+    /// <param name="keyFrameUpdate">Whether the group starts with a key frame.</param>
+    /// <param name="best">Receives the selected vector, in eighth samples.</param>
     /// <returns>The error of the selected vector.</returns>
     private uint EstimateMotion(
         Av1TplSetupInput<TSample> input,
@@ -795,8 +825,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             [],
             []);
 
-        // The integer neighborhood is published only for the pruned fractional trees with use_fullpel_costlist, which
-        // only real-time usage enables; good quality searches without it. Reference: cond_cost_list().
+        // The search does not return the costs of the integer neighborhood. Only the pruned fractional trees of real-time
+        // usage read them, and good quality usage does not use those trees.
         FullPixelResult integer = fullSearch.Search(
             start,
             stepParameter,
@@ -850,11 +880,20 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Refines a compound pair: each reference in turn is searched with the other's prediction fixed, twice each, until
-    /// neither improves. Reference: av1_joint_motion_search() with NUM_JOINT_ME_REFINE_ITER, no mask, the vector cost
-    /// removed from the fractional search, and the eight-point refining search that disable_extensive_joint_motion_search
-    /// selects in good quality.
+    /// Refines a compound pair. Each reference in turn is searched with the prediction of the other fixed, for at most
+    /// two rounds. The search stops when a reference does not improve. In the second round it also stops when the other
+    /// vector is still at its start and the moving vector is at the whole-sample position of its start. The full-pixel step
+    /// is an eight-point refinement. The fractional step has no vector cost and no mask.
     /// </summary>
+    /// <param name="input">The encoder state of the run.</param>
+    /// <param name="source">The source samples at the block origin.</param>
+    /// <param name="sourceStride">The source row stride.</param>
+    /// <param name="first">The first reference index.</param>
+    /// <param name="second">The second reference index.</param>
+    /// <param name="x">The block column in luma samples.</param>
+    /// <param name="y">The block row in luma samples.</param>
+    /// <param name="frameBounds">The full-pixel search bounds of the frame.</param>
+    /// <param name="vectors">The single vectors of the pair on entry, and the refined vectors on return.</param>
     private void SearchJointMotion(
         Av1TplSetupInput<TSample> input,
         ReadOnlySpan<TSample> source,
@@ -872,7 +911,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         Span<Av1MotionVector> initial = stackalloc Av1MotionVector[2];
         vectors.CopyTo(initial);
 
-        // The differential references are the single vectors the pair started from.
+        // The vector costs are relative to the single vectors that the pair started from.
         Span<Av1MotionVector> referenceVectors = stackalloc Av1MotionVector[2];
         vectors.CopyTo(referenceVectors);
         Span<int> lastBestError = stackalloc int[2];
@@ -975,8 +1014,16 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// <summary>
     /// Returns the cost of a single reference prediction: the fractional prediction from the source reference, or the
     /// source reference itself at an integer vector, measured by absolute differences or by the transform cost.
-    /// Reference: get_inter_cost().
     /// </summary>
+    /// <param name="input">The encoder state of the run.</param>
+    /// <param name="source">The source samples at the block origin.</param>
+    /// <param name="sourceStride">The source row stride.</param>
+    /// <param name="reference">The reference index, zero for LAST.</param>
+    /// <param name="x">The block column in luma samples.</param>
+    /// <param name="y">The block row in luma samples.</param>
+    /// <param name="vector">The vector, in eighth samples.</param>
+    /// <param name="usePredictionSad">Whether to measure absolute differences instead of the transform cost.</param>
+    /// <returns>The cost.</returns>
     private int GetInterCost(
         Av1TplSetupInput<TSample> input,
         ReadOnlySpan<TSample> source,
@@ -1008,9 +1055,14 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Returns the absolute difference of a 16x16 block in the 8-bit error domain. Reference: the fn_ptr sdf of
-    /// BLOCK_16X16, whose high-bit-depth variants shift by the extra precision.
+    /// Returns the absolute difference of a 16x16 block in the 8-bit error domain. A high bit depth sum shifts right by
+    /// the extra precision bits.
     /// </summary>
+    /// <param name="source">The source samples at the block origin.</param>
+    /// <param name="sourceStride">The source row stride.</param>
+    /// <param name="prediction">The prediction samples at the block origin.</param>
+    /// <param name="predictionStride">The prediction row stride.</param>
+    /// <returns>The sum of absolute differences.</returns>
     private int GetSad(ReadOnlySpan<TSample> source, int sourceStride, ReadOnlySpan<TSample> prediction, int predictionStride)
     {
         const int Size = Av1TplModelConstants.BlockSize;
@@ -1019,8 +1071,13 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Returns the sum of the magnitudes of the DCT coefficients of a 16x16 residual. Reference: tpl_get_satd_cost().
+    /// Returns the sum of the magnitudes of the DCT coefficients of a 16x16 residual.
     /// </summary>
+    /// <param name="source">The source samples at the block origin.</param>
+    /// <param name="sourceStride">The source row stride.</param>
+    /// <param name="prediction">The prediction samples at the block origin.</param>
+    /// <param name="predictionStride">The prediction row stride.</param>
+    /// <returns>The transform cost.</returns>
     private int GetSatdCost(ReadOnlySpan<TSample> source, int sourceStride, ReadOnlySpan<TSample> prediction, int predictionStride)
     {
         const int Size = Av1TplModelConstants.BlockSize;

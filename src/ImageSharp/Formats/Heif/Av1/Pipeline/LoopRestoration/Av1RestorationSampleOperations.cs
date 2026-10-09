@@ -32,8 +32,8 @@ internal static class Av1RestorationSampleOperations
     public static TSample FromInt32<TSample>(int value)
         where TSample : unmanaged
     {
-        // Only the two frame-selected instantiations reach this path. The size branch is constant in
-        // either instantiation; narrowing preserves the value because the filter has already clipped it.
+        // Only the byte and ushort instantiations reach this path, and the size branch is constant in each.
+        // The narrowing keeps the value, because the filter clipped it before.
         TSample result = default;
         if (Unsafe.SizeOf<TSample>() == 1)
         {
@@ -60,8 +60,8 @@ internal static class Av1RestorationSampleOperations
     {
         if (Unsafe.SizeOf<TSample>() == 1)
         {
-            // Read only the bytes owned by this batch. The zero upper half supplies unused lanes,
-            // so widening cannot read across the row boundary to fill a full-width source vector.
+            // The load reads only the bytes of this batch. The zero upper half fills the unused lanes,
+            // so the widening never reads past the row end to fill a full-width source vector.
             Vector64<byte> packed = Vector64.LoadUnsafe(ref Unsafe.As<TSample, byte>(ref source));
             return Vector128.WidenLower(Vector128.Create(packed, Vector64<byte>.Zero));
         }
@@ -82,8 +82,8 @@ internal static class Av1RestorationSampleOperations
     {
         if (Unsafe.SizeOf<TSample>() == 1)
         {
-            // Read only the bytes owned by this batch. The zero upper half supplies unused lanes,
-            // so widening cannot read across the row boundary to fill a full-width source vector.
+            // The load reads only the bytes of this batch. The zero upper half fills the unused lanes,
+            // so the widening never reads past the row end to fill a full-width source vector.
             Vector128<byte> packed = Vector128.LoadUnsafe(ref Unsafe.As<TSample, byte>(ref source));
             return Vector256.WidenLower(Vector256.Create(packed, Vector128<byte>.Zero));
         }
@@ -104,8 +104,8 @@ internal static class Av1RestorationSampleOperations
     {
         if (Unsafe.SizeOf<TSample>() == 1)
         {
-            // Read only the bytes owned by this batch. The zero upper half supplies unused lanes,
-            // so widening cannot read across the row boundary to fill a full-width source vector.
+            // The load reads only the bytes of this batch. The zero upper half fills the unused lanes,
+            // so the widening never reads past the row end to fill a full-width source vector.
             Vector256<byte> packed = Vector256.LoadUnsafe(ref Unsafe.As<TSample, byte>(ref source));
             return Vector512.WidenLower(Vector512.Create(packed, Vector256<byte>.Zero));
         }
@@ -126,8 +126,8 @@ internal static class Av1RestorationSampleOperations
     {
         if (Unsafe.SizeOf<TSample>() == 1)
         {
-            // Four bytes are enough for four result lanes. Both widening steps consume only
-            // their initialized lower halves; no padding or neighboring sample is needed.
+            // Four bytes give the four result lanes. Both widening steps use only their initialized lower halves,
+            // so no padding or neighboring sample is necessary.
             uint packed = Unsafe.ReadUnaligned<uint>(ref Unsafe.As<TSample, byte>(ref source));
             Vector128<ushort> words = Vector128.WidenLower(Vector128.CreateScalar(packed).AsByte());
             return Vector128.WidenLower(words).AsInt32();
@@ -150,6 +150,7 @@ internal static class Av1RestorationSampleOperations
     {
         if (Unsafe.SizeOf<TSample>() == 1)
         {
+            // Eight bytes give the eight result lanes. Each widening step gets a zero upper half, so it reads no sample past the batch.
             Vector64<byte> packed = Vector64.LoadUnsafe(ref Unsafe.As<TSample, byte>(ref source));
             Vector128<ushort> words = Vector128.WidenLower(Vector128.Create(packed, Vector64<byte>.Zero));
             return Vector256.WidenLower(Vector256.Create(words, Vector128<ushort>.Zero)).AsInt32();
@@ -172,8 +173,8 @@ internal static class Av1RestorationSampleOperations
     {
         if (Unsafe.SizeOf<TSample>() == 1)
         {
-            // Sixteen bytes are enough for sixteen result lanes. Both widening steps consume only their
-            // initialized lower halves.
+            // Sixteen bytes give the sixteen result lanes. The upper halves from the unsafe vector extensions are undefined,
+            // but both widening steps use only the lower halves.
             Vector128<byte> packed = Vector128.LoadUnsafe(ref Unsafe.As<TSample, byte>(ref source));
             Vector256<ushort> words = Vector256.WidenLower(packed.ToVector256Unsafe());
             return Vector512.WidenLower(words.ToVector512Unsafe()).AsInt32();
@@ -195,8 +196,8 @@ internal static class Av1RestorationSampleOperations
     {
         if (Unsafe.SizeOf<TSample>() == 1)
         {
-            // Clipping has restricted every lane to 0..255. Store just the populated half after
-            // narrowing, so neither a row tail nor an adjacent destination row is overwritten.
+            // The clipping limits every lane to 0..255, so the narrowing keeps each value. The store writes only the populated half,
+            // so it does not overwrite a row tail or the next destination row.
             Vector128<ushort> words = Vector128.Create(samples, Vector64<ushort>.Zero);
             uint packed = Vector128.Narrow(words, Vector128<ushort>.Zero).AsUInt32().GetElement(0);
             Unsafe.WriteUnaligned(ref Unsafe.As<TSample, byte>(ref destination), packed);
@@ -219,8 +220,8 @@ internal static class Av1RestorationSampleOperations
     {
         if (Unsafe.SizeOf<TSample>() == 1)
         {
-            // Clipping has restricted every lane to 0..255. Store just the populated half after
-            // narrowing, so neither a row tail nor an adjacent destination row is overwritten.
+            // The clipping limits every lane to 0..255, so the narrowing keeps each value. The store writes only the populated half,
+            // so it does not overwrite a row tail or the next destination row.
             Vector64<byte> packed = Vector128.Narrow(samples, Vector128<ushort>.Zero).GetLower();
             packed.StoreUnsafe(ref Unsafe.As<TSample, byte>(ref destination));
         }
@@ -242,8 +243,8 @@ internal static class Av1RestorationSampleOperations
     {
         if (Unsafe.SizeOf<TSample>() == 1)
         {
-            // Clipping has restricted every lane to 0..255. Store just the populated half after
-            // narrowing, so neither a row tail nor an adjacent destination row is overwritten.
+            // The clipping limits every lane to 0..255, so the narrowing keeps each value. The store writes only the populated half,
+            // so it does not overwrite a row tail or the next destination row.
             Vector128<byte> packed = Vector256.Narrow(samples, Vector256<ushort>.Zero).GetLower();
             packed.StoreUnsafe(ref Unsafe.As<TSample, byte>(ref destination));
         }
@@ -265,8 +266,8 @@ internal static class Av1RestorationSampleOperations
     {
         if (Unsafe.SizeOf<TSample>() == 1)
         {
-            // Clipping has restricted every lane to 0..255. Store just the populated half after
-            // narrowing, so neither a row tail nor an adjacent destination row is overwritten.
+            // The clipping limits every lane to 0..255, so the narrowing keeps each value. The store writes only the populated half,
+            // so it does not overwrite a row tail or the next destination row.
             Vector256<byte> packed = Vector512.Narrow(samples, Vector512<ushort>.Zero).GetLower();
             packed.StoreUnsafe(ref Unsafe.As<TSample, byte>(ref destination));
         }

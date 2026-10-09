@@ -4,119 +4,107 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 
 /// <content>
-/// The recode loop of a look-ahead sequence that codes against a bit budget: after a frame is coded and packed once
-/// to measure its size, a frame outside the tolerance around its target is coded again at a quantizer that the rate
-/// model, or a binary search once both an over- and an undershoot were seen, picks between the bounds of the frame.
-/// Reference: encode_with_recode_loop() with recode_loop_update_q() and recode_loop_test().
+/// The recode loop of a look-ahead sequence that codes against a bit budget. The encoder codes and packs a frame once to measure its size.
+/// A frame outside the tolerance around its target is coded again at a new quantizer between the bounds of the frame. The rate model picks
+/// this quantizer. After both an overshoot and an undershoot, a binary search picks it.
 /// </content>
 internal sealed partial class Av1SecondPass
 {
     /// <summary>
-    /// Whether every frame may be coded again, not only key frames, golden frames and alternate references.
-    /// Reference: hl_sf.recode_loop == ALLOW_RECODE, which speeds 0 and 1 keep.
+    /// Whether every frame can be coded again, not only key frames, golden frames and alternate references. Speeds 0 and 1 set this value.
     /// </summary>
     private readonly bool recodesEveryFrame;
 
     /// <summary>
-    /// The tolerance around the frame target, in percent, inside which a frame is not coded again. Reference:
-    /// hl_sf.recode_tolerance.
+    /// The tolerance around the frame target, in percent, inside which a frame is not coded again.
     /// </summary>
     private readonly int recodeTolerance;
 
     /// <summary>
-    /// The lowest quantizer index the rate control allowed the current frame. Reference: the bottom_index of
-    /// av1_rc_pick_q_and_bounds().
+    /// The lowest quantizer index the rate control allowed the current frame.
     /// </summary>
     private int pickedBottomIndex;
 
     /// <summary>
-    /// The highest quantizer index the rate control allowed the current frame. Reference: the top_index of
-    /// av1_rc_pick_q_and_bounds().
+    /// The highest quantizer index the rate control allowed the current frame.
     /// </summary>
     private int pickedTopIndex;
 
     /// <summary>
-    /// The lowest quantizer index of the frame's bounds. Reference: bottom_index of encode_with_recode_loop().
+    /// The lowest quantizer index of the bounds of the frame.
     /// </summary>
     private int recodeBottomIndex;
 
     /// <summary>
-    /// The highest quantizer index of the frame's bounds. Reference: top_index of encode_with_recode_loop().
+    /// The highest quantizer index of the bounds of the frame.
     /// </summary>
     private int recodeTopIndex;
 
     /// <summary>
-    /// The lowest quantizer index the search may still try. Reference: q_low.
+    /// The lowest quantizer index the search can still try.
     /// </summary>
     private int recodeLowIndex;
 
     /// <summary>
-    /// The highest quantizer index the search may still try. Reference: q_high.
+    /// The highest quantizer index the search can still try.
     /// </summary>
     private int recodeHighIndex;
 
     /// <summary>
-    /// The number of times the frame was coded again. Reference: loop_count.
+    /// The number of times the frame was coded again.
     /// </summary>
     private int recodeCount;
 
     /// <summary>
-    /// Whether a coding of the frame came out below the tolerance. Reference: undershoot_seen.
+    /// Whether a coding of the frame came out below the tolerance.
     /// </summary>
     private bool undershootSeen;
 
     /// <summary>
-    /// Whether a coding of the frame came out above the tolerance. Reference: overshoot_seen.
+    /// Whether a coding of the frame came out above the tolerance.
     /// </summary>
     private bool overshootSeen;
 
     /// <summary>
-    /// The luma squared error of the frame before a forced key frame, which the forced key frame matches its error
-    /// to. Reference: cpi->ambient_err.
+    /// The luma squared error of the frame before a forced key frame. The forced key frame matches its error to this value.
     /// </summary>
     private long ambientError;
 
     /// <summary>
-    /// Gets a value indicating whether each coding of a frame is packed to measure its size and may be coded again.
-    /// Reference: the do_dummy_pack test of encode_with_recode_loop(), with a recode loop of ALLOW_RECODE_KFARFGF or
-    /// more outside AOM_Q.
+    /// Gets a value indicating whether each coding of a frame is packed to measure its size and can be coded again. Only a bit budget
+    /// uses the recode loop.
     /// </summary>
     public bool UsesRecodeLoop => this.UsesBitBudget;
 
     /// <summary>
-    /// Gets a value indicating whether the current frame is the last before a forced key frame, whose reconstruction
-    /// error the key frame aims for. Reference: the next_key_frame_forced and frames_to_key == 1 test of
-    /// encode_with_recode_loop_and_filter().
+    /// Gets a value indicating whether the current frame is the last frame before a forced key frame. The key frame aims for the
+    /// reconstruction error of this frame.
     /// </summary>
     public bool RecordsAmbientError => this.nextKeyFrameForced && this.framesToKey == 1;
 
     /// <summary>
-    /// Gets a value indicating whether the current frame is a forced key frame, which a recode matches to the error of
-    /// the frame before it. Reference: the KEY_FRAME and this_key_frame_forced test of recode_loop_update_q().
+    /// Gets a value indicating whether the current frame is a forced key frame. A recode matches its error to the error of the frame before it.
     /// </summary>
     public bool MatchesAmbientError => this.current.IsKeyFrame && this.thisKeyFrameForced;
 
     /// <summary>
-    /// Sets the luma squared error of the reconstruction of the frame before a forced key frame. Reference:
-    /// cpi->ambient_err.
+    /// Sets the luma squared error of the reconstruction of the frame before a forced key frame.
     /// </summary>
     /// <param name="squaredError">The luma squared error of the unfiltered reconstruction.</param>
     public void SetAmbientError(long squaredError) => this.ambientError = squaredError;
 
     /// <summary>
-    /// Updates the quantizer of a frame after a coding of it was packed, and returns whether the frame must be coded
-    /// again at the new quantizer. An overlay within the largest frame size keeps its coding. A forced key frame
-    /// moves its quantizer by the ratio of its error to that of the frame before it. Any other frame outside the
-    /// tolerance around its target moves its rate correction and picks the quantizer the rate model expects to
-    /// meet the target, or the middle of the remaining range once it has both over- and undershot.
-    /// Reference: recode_loop_update_q() with av1_rc_compute_frame_size_bounds(), recode_loop_test(),
-    /// get_regulated_q_overshoot() and get_regulated_q_undershoot().
+    /// Updates the quantizer of a frame after a coding of it was packed, and returns whether the frame must be coded again at the new
+    /// quantizer. An overlay within the largest frame size keeps its coding. A forced key frame moves its quantizer by the ratio of its error
+    /// to the error of the frame before it. Any other frame outside the tolerance around its target moves its rate correction. Then it picks
+    /// the quantizer that the rate model expects to meet the target. After both an overshoot and an undershoot, it picks the middle of the
+    /// remaining range.
     /// </summary>
-    /// <param name="projectedFrameSize">The packed size of the frame in bits. Reference: rc->projected_frame_size.</param>
+    /// <param name="projectedFrameSize">The packed size of the frame in bits.</param>
     /// <param name="keyFrameError">
-    /// The luma squared error of the unfiltered reconstruction of a forced key frame, else ignored.
+    /// The luma squared error of the unfiltered reconstruction of a forced key frame. Other frames ignore this value.
     /// </param>
-    /// <param name="qIndex">The quantizer index of the coding; receives the quantizer index of the next coding.</param>
+    /// <param name="qIndex">The quantizer index of the coding. Receives the quantizer index of the next coding.</param>
     /// <returns>Whether the frame must be coded again.</returns>
     public bool UpdateRecodeQuantizer(int projectedFrameSize, long keyFrameError, ref int qIndex)
     {
@@ -131,8 +119,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Starts the recode search of the current frame from the bounds its quantizer pick allowed. Reference: the q_low
-    /// and q_high setup of encode_with_recode_loop().
+    /// Starts the recode search of the current frame from the bounds its quantizer pick allowed.
     /// </summary>
     private void BeginRecode()
     {
@@ -146,13 +133,13 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Updates the quantizer of a frame after a coding of it was packed. Reference: recode_loop_update_q() without
-    /// a minimum compression ratio or level targets.
+    /// Updates the quantizer of a frame after a coding of it was packed. The encoder has no minimum compression ratio and no level targets,
+    /// so no limit of that kind applies.
     /// </summary>
     /// <param name="projectedFrameSize">The packed size of the frame in bits.</param>
     /// <param name="keyFrameError">The luma squared error of the unfiltered reconstruction of a forced key frame.</param>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
-    /// <param name="qIndex">The quantizer index of the coding; receives the quantizer index of the next coding.</param>
+    /// <param name="qIndex">The quantizer index of the coding. Receives the quantizer index of the next coding.</param>
     /// <returns>Whether the frame must be coded again.</returns>
     private bool UpdateRecodeQuantizer(int projectedFrameSize, long keyFrameError, bool keyFrame, ref int qIndex)
     {
@@ -171,21 +158,22 @@ internal sealed partial class Av1SecondPass
 
         if (keyFrame && this.thisKeyFrameForced && projectedFrameSize < this.maximumFrameBandwidth)
         {
-            // The forced key frame aims for the error of the frame before it, within half of it, to avoid popping.
+            // The forced key frame aims for an error between half and all of the error of the frame before it. This avoids a visible jump in
+            // quality at the key frame.
             long highErrorTarget = this.ambientError;
             long lowErrorTarget = this.ambientError >> 1;
             long keyError = Math.Max(keyFrameError, 1);
             if ((keyError > highErrorTarget && projectedFrameSize <= overShootLimit) ||
                 (keyError > lowErrorTarget && projectedFrameSize <= underShootLimit))
             {
-                // The key frame is not good enough, or can afford to be better: lower the ceiling and the quantizer.
+                // The key frame is not good enough, or it has bits to be better. Lower the ceiling and the quantizer.
                 this.recodeHighIndex = Math.Max(qIndex - 1, this.recodeLowIndex);
                 qIndex = (int)(qIndex * highErrorTarget / keyError);
                 qIndex = Math.Min(qIndex, (this.recodeHighIndex + this.recodeLowIndex) >> 1);
             }
             else if (keyError < lowErrorTarget && projectedFrameSize >= underShootLimit)
             {
-                // The key frame is much better than the frame before it: raise the floor and the quantizer.
+                // The key frame is much better than the frame before it. Raise the floor and the quantizer.
                 this.recodeLowIndex = Math.Min(qIndex + 1, this.recodeHighIndex);
                 qIndex = (int)(qIndex * lowErrorTarget / keyError);
                 qIndex = Math.Min(qIndex, (this.recodeHighIndex + this.recodeLowIndex + 1) >> 1);
@@ -248,7 +236,7 @@ internal sealed partial class Av1SecondPass
                 int regulated = this.GetRegulatedUndershootQIndex(projectedFrameSize, qIndex, keyFrame);
                 qIndex = (middle + regulated) / 2;
 
-                // A constrained-quality frame far below its target may go below the floor of its quality level.
+                // A constrained-quality frame far below its target can go below the floor of its quality level.
                 if (this.mode == Av1RateControlMode.ConstrainedQuality && regulated < this.recodeLowIndex)
                 {
                     this.recodeLowIndex = qIndex;
@@ -271,10 +259,10 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns whether a coding of a frame is far enough from its target to code it again: a frame at or above the
-    /// largest size, any frame when every frame may be recoded, or else a key frame, golden frame or alternate
-    /// reference, whose size lies outside the limits while the quantizer can still move, or a constrained-quality
-    /// frame above its quality level below seven eighths of its target. Reference: recode_loop_test().
+    /// Returns whether a coding of a frame is far enough from its target to code it again. Only some frames take the test: a frame at or
+    /// above the largest size, a key frame, a golden frame, an alternate reference, or any frame when every frame can be coded again. Such a
+    /// frame is coded again when its size is outside the limits and the quantizer can still move in that direction. A constrained-quality
+    /// frame above its quality level is also coded again when its size is below seven eighths of its target.
     /// </summary>
     /// <param name="projectedFrameSize">The packed size of the frame in bits.</param>
     /// <param name="highLimit">The overshoot limit in bits.</param>
@@ -304,9 +292,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the frame size limits inside which a coding of the current frame is kept: the target with the recode
-    /// tolerance, at least 100 bits, on either side, below the largest frame size. Reference:
-    /// av1_rc_compute_frame_size_bounds() outside AOM_Q.
+    /// Returns the frame size limits inside which a coding of the current frame is kept. The limits are the target plus and minus the recode
+    /// tolerance. The tolerance is at least 100 bits. The undershoot limit is at least 0, and the overshoot limit is at most the largest frame size.
     /// </summary>
     /// <param name="underShootLimit">Receives the undershoot limit in bits.</param>
     /// <param name="overShootLimit">Receives the overshoot limit in bits.</param>
@@ -318,9 +305,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Moves the rate correction toward an overshooting coding and returns the quantizer index the rate model picks
-    /// for the target, moving the correction again up to ten times while the pick stays below the search floor.
-    /// Reference: get_regulated_q_overshoot().
+    /// Moves the rate correction toward an overshooting coding and returns the quantizer index that the rate model picks for the target.
+    /// While the pick stays below the search floor, the method moves the correction again, up to ten times.
     /// </summary>
     /// <param name="projectedFrameSize">The packed size of the frame in bits.</param>
     /// <param name="qIndex">The quantizer index of the coding.</param>
@@ -341,9 +327,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Moves the rate correction toward an undershooting coding and returns the quantizer index the rate model picks
-    /// for the target, moving the correction again up to ten times while the pick stays above the search ceiling.
-    /// Reference: get_regulated_q_undershoot().
+    /// Moves the rate correction toward an undershooting coding and returns the quantizer index that the rate model picks for the target.
+    /// While the pick stays above the search ceiling, the method moves the correction again, up to ten times.
     /// </summary>
     /// <param name="projectedFrameSize">The packed size of the frame in bits.</param>
     /// <param name="qIndex">The quantizer index of the coding.</param>
@@ -363,8 +348,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the recode tolerance of a good-quality frame size and speed. Reference: the recode_tolerance of
-    /// init_hl_sf() and set_good_speed_feature_framesize_dependent() with libavif's 25% under- and overshoot.
+    /// Returns the recode tolerance of a good-quality frame size and speed. Small frames at speeds 0 and 1 add a quarter of the smaller of the
+    /// configured undershoot and overshoot percentages. Faster speeds use fixed tolerances.
     /// </summary>
     /// <param name="width">The frame width.</param>
     /// <param name="height">The frame height.</param>

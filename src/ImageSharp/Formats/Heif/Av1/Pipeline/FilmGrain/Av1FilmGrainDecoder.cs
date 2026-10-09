@@ -247,7 +247,7 @@ internal sealed class Av1FilmGrainDecoder
 
         if (visibleHeight != alignedHeight)
         {
-            // Span.CopyTo uses the runtime's optimized bulk-copy path and preserves the already replicated edge column.
+            // The last visible row goes to the extra row. The copy includes the edge column that the loop above replicated.
             plane.Slice((visibleHeight - 1) * stride, alignedWidth)
                 .CopyTo(plane.Slice(visibleHeight * stride, alignedWidth));
         }
@@ -359,7 +359,7 @@ internal sealed class Av1FilmGrainDecoder
             ? scratch.Slice(scratchOffset, chromaColumnLength)
             : Span<int>.Empty;
 
-        // An empty control-point list leaves its lookup untouched. Start at zero so inherited chroma scaling
+        // An empty control-point list leaves its lookup unchanged. The tables start at zero, so chroma scaling copied from luma
         // cannot read pooled values when the luma scaling function is empty.
         scalingY.Clear();
         scalingCb.Clear();
@@ -368,8 +368,8 @@ internal sealed class Av1FilmGrainDecoder
         int bitDepth = this.sequenceHeader.ColorConfig.BitDepth.GetBitCount();
         ushort randomRegister = (ushort)parameters.GrainSeed;
 
-        // Luma consumes the seed's initial pseudo-random sequence. Chroma generation subsequently reinitializes
-        // the same register with plane-specific row identities so its two templates remain deterministic and distinct.
+        // Luma uses the initial pseudo-random sequence of the seed. Then chroma generation initializes the same register again
+        // with a different block-row value for each plane. Thus the two chroma templates stay deterministic and different.
         GenerateLumaGrain(
             parameters,
             ref randomRegister,
@@ -499,8 +499,8 @@ internal sealed class Av1FilmGrainDecoder
 
                     int rowAdjustment = halfY != 0 ? 1 : 0;
 
-                    // A final two-row block belongs entirely to the top overlap. Form destination spans
-                    // only for rows owned by this vertical strip; boundary blending above still prepares its corner.
+                    // A final two-row block belongs fully to the top overlap. The code forms destination spans only for rows that
+                    // this vertical strip owns. The boundary blend above still prepares the corner.
                     if (halfY + rowAdjustment < height / 2)
                     {
                         // The top overlap row, when present, is owned by the horizontal-boundary pass below. Skip it here
@@ -703,8 +703,8 @@ internal sealed class Av1FilmGrainDecoder
                 int interiorRowAdjustment = parameters.OverlapFlag && halfY != 0 ? 1 : 0;
                 int interiorColumnAdjustment = parameters.OverlapFlag && halfX != 0 ? 1 : 0;
 
-                // Overlap can consume the entire clipped rectangle. Only an interior with samples owns
-                // destination spans; the outgoing boundary state below must still advance for the next block.
+                // Overlap can consume the full clipped rectangle. Only an interior that has samples owns destination spans. The
+                // outgoing boundary state below must still advance for the next block.
                 if (halfY + interiorRowAdjustment < height / 2 && halfX + interiorColumnAdjustment < width / 2)
                 {
                     // Move both the destination and template origins past boundary strips already applied above. This
@@ -928,8 +928,7 @@ internal sealed class Av1FilmGrainDecoder
                 int weightedSum = 0;
                 int coefficientIndex = 0;
 
-                // The AV1 coefficient order walks the complete rows above the current sample before
-                // the already generated samples to its left on the current row.
+                // The AV1 coefficient order walks the complete rows above the current sample before the already generated samples to its left.
                 for (int relativeRow = -lag; relativeRow < 0; relativeRow++)
                 {
                     for (int relativeColumn = -lag; relativeColumn <= lag; relativeColumn++)
@@ -990,8 +989,8 @@ internal sealed class Av1FilmGrainDecoder
         ReadOnlySpan<short> gaussian = Av1FilmGrainGaussianSequence.Samples;
         if (applyCb)
         {
-            // The fixed luma-line identities seven and eleven decorrelate the two chroma pseudo-random sequences
-            // from each other and from the luma template while retaining deterministic generation from GrainSeed.
+            // The fixed block-row values 7 and 11 give the two chroma pseudo-random sequences different start states. They differ
+            // from each other and from the luma sequence. Generation stays deterministic from `GrainSeed`.
             InitializeRandomGenerator(ref randomRegister, 7 << 5, (ushort)parameters.GrainSeed);
             FillGaussianGrain(ref randomRegister, cbGrain, height, width, stride, gaussian, gaussianShift, gaussianRounding);
         }

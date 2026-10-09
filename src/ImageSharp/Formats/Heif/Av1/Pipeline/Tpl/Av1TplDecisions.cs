@@ -13,23 +13,23 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 internal static class Av1TplDecisions
 {
     /// <summary>
-    /// The resolution of objective delta quantizers. Reference: DEFAULT_DELTA_Q_RES_OBJECTIVE.
+    /// The resolution of objective delta quantizers.
     /// </summary>
     public const int ObjectiveDeltaQResolution = 4;
 
     /// <summary>
-    /// The largest golden boost factor. Reference: MAX_GFUBOOST_FACTOR.
+    /// The largest golden boost factor.
     /// </summary>
     private const double MaximumGoldenBoostFactor = 10.0;
 
     /// <summary>
-    /// The largest boost combination factor. Reference: MAX_BOOST_COMBINE_FACTOR.
+    /// The largest boost combination factor.
     /// </summary>
     private const double MaximumBoostCombineFactor = 12.0;
 
     /// <summary>
-    /// Returns the frame importance: the exponential of the source-distortion weighted mean of the logarithmic gain that
-    /// later frames draw from the frame. Reference: get_frame_importance().
+    /// Returns the frame importance: the exponential of the mean logarithmic gain that later frames draw from the frame.
+    /// The source distortion of each block weights the mean.
     /// </summary>
     /// <param name="frame">The frame statistics.</param>
     /// <returns>The frame importance.</returns>
@@ -61,18 +61,18 @@ internal static class Av1TplDecisions
     }
 
     /// <summary>
-    /// Measures the propagated importance of the frame being coded, which later decisions read as r0, and for an
-    /// eligible frame blends the golden boost it implies into the rate control's boost. A frame whose statistics show no
-    /// dependency loses its validity. The encoder calls it once per frame whose statistics are ready, before it picks
-    /// the frame quantizer. Reference: process_tpl_stats_frame() with the look-ahead branch.
+    /// Measures the propagated importance of the frame being coded, which later decisions read as r0. For an eligible
+    /// frame it also blends the golden boost that r0 implies into the boost of the rate control. A frame whose statistics
+    /// show no dependency loses its validity. The encoder calls it once per frame whose statistics are ready, before it
+    /// picks the frame quantizer.
     /// </summary>
     /// <param name="frame">The statistics of the frame being coded.</param>
     /// <param name="tplEligible">Whether the frame is a key, golden or alternate reference frame.</param>
-    /// <param name="baselineGoldenInterval">The golden interval. Reference: p_rc->baseline_gf_interval.</param>
-    /// <param name="statsRequiredForBoost">Reference: p_rc->num_stats_required_for_gfu_boost.</param>
-    /// <param name="statsUsedForBoost">Reference: p_rc->num_stats_used_for_gfu_boost.</param>
-    /// <param name="r0">The importance of the frame, unchanged when the frame shows no dependency. Reference: cpi->rd.r0.</param>
-    /// <param name="goldenBoost">The golden boost, updated for eligible frames. Reference: p_rc->gfu_boost.</param>
+    /// <param name="baselineGoldenInterval">The golden interval. Its square root is the smallest boost factor.</param>
+    /// <param name="statsRequiredForBoost">The number of frames that the boost of the model covers.</param>
+    /// <param name="statsUsedForBoost">The number of frames that the prior boost covers. It sets the weight of the prior boost.</param>
+    /// <param name="r0">The importance of the frame, unchanged when the frame shows no dependency.</param>
+    /// <param name="goldenBoost">The golden boost, updated for eligible frames.</param>
     public static void ProcessFrame(
         Av1TplFrameStatistics frame,
         bool tplEligible,
@@ -125,7 +125,7 @@ internal static class Av1TplDecisions
 
     /// <summary>
     /// Returns the golden boost that an importance implies: a projection factor over the frame count divided by r0.
-    /// Reference: get_gfu_boost_from_r0_lap() with av1_get_gfu_boost_projection_factor().
+    /// The factor is 200 plus ten times the square root of the frame count, with the root clamped to the factor limits.
     /// </summary>
     /// <param name="minimumFactor">The smallest factor.</param>
     /// <param name="maximumFactor">The largest factor.</param>
@@ -142,8 +142,8 @@ internal static class Av1TplDecisions
     }
 
     /// <summary>
-    /// Blends the prior golden boost with the model's by a factor that grows with the number of frames.
-    /// Reference: combine_prior_with_tpl_boost().
+    /// Blends the prior golden boost with the boost of the model. The weight of the prior boost grows with the square root
+    /// of the number of frames, inside the factor limits.
     /// </summary>
     /// <param name="minimumFactor">The smallest factor.</param>
     /// <param name="maximumFactor">The largest factor.</param>
@@ -162,18 +162,17 @@ internal static class Av1TplDecisions
     }
 
     /// <summary>
-    /// Returns the quantizer of a frame from its importance: the leaf quantizer's DC step scaled by the inverse square
-    /// root of the importance, or the leaf quantizer without ready statistics. In constant quality mode the encoder
-    /// clamps it to the allowed range and uses it for every frame whose statistics are valid, and an alternate reference
-    /// records it as its quantizer. Reference: av1_tpl_get_q_index() with av1_tpl_get_qstep_ratio(), and the AOM_Q
-    /// branch of av1_set_size_dependent_vars().
+    /// Returns the quantizer of a frame from its importance. The DC step of the leaf quantizer scales by the inverse square
+    /// root of the importance. Without ready statistics the result is the leaf quantizer. In constant quality mode the
+    /// encoder clamps the result to the allowed range and uses it for every frame whose statistics are valid. An alternate
+    /// reference records it as its quantizer.
     /// </summary>
     /// <param name="statisticsReady">
-    /// Whether the statistics of the frame are ready. Reference:
-    /// <see cref="Av1TplModel{TSample, TSearchOperator, TSampleOperator}.IsStatisticsReady"/>.
+    /// Whether the statistics of the frame are ready, as
+    /// <see cref="Av1TplModel{TSample, TSearchOperator, TSampleOperator}.IsStatisticsReady"/> reports.
     /// </param>
     /// <param name="frame">The statistics of the frame.</param>
-    /// <param name="leafQIndex">The leaf quantizer. Reference: rc->active_worst_quality.</param>
+    /// <param name="leafQIndex">The leaf quantizer: the active worst quality of the rate control.</param>
     /// <param name="bitDepth">The sample precision.</param>
     /// <returns>The quantizer index.</returns>
     public static int GetQIndex(bool statisticsReady, Av1TplFrameStatistics frame, int leafQIndex, Av1BitDepth bitDepth)
@@ -188,8 +187,8 @@ internal static class Av1TplDecisions
     }
 
     /// <summary>
-    /// Returns the quantizer whose DC step first reaches a ratio of the leaf quantizer's step, searching down for a
-    /// ratio below one and up otherwise. Reference: av1_get_q_index_from_qstep_ratio().
+    /// Returns the quantizer whose DC step first reaches a ratio of the step of the leaf quantizer. The search goes down
+    /// for a ratio below one and up otherwise.
     /// </summary>
     /// <param name="leafQIndex">The leaf quantizer.</param>
     /// <param name="qStepRatio">The step ratio.</param>
@@ -225,24 +224,22 @@ internal static class Av1TplDecisions
     }
 
     /// <summary>
-    /// Returns the objective quantizer of a superblock: the frame quantizer moved by the offset whose DC step scales by
-    /// the inverse square root of the ratio of r0 to the superblock's importance, limited to nine resolution steps. It
-    /// also returns the regularized importance that the coding-block rate multiplier divides by, and optionally the
-    /// estimated change of rate-distortion cost that the frame-level delta quantizer decision sums. Reference:
-    /// av1_get_q_for_deltaq_objective().
+    /// Returns the objective quantizer of a superblock. It moves the frame quantizer by the offset whose DC step scales by
+    /// the inverse square root of r0 over the importance of the superblock. The offset is limited to nine resolution steps.
+    /// It also returns the regularized importance that the coding-block rate multiplier divides by. On request it returns
+    /// the estimated change of rate-distortion cost that the frame-level delta quantizer decision sums.
     /// </summary>
     /// <param name="frame">The statistics of the frame being coded.</param>
     /// <param name="superblockModeInfoSize">The superblock size in mode-information units.</param>
     /// <param name="modeInfoRow">The superblock row in mode-information units.</param>
     /// <param name="modeInfoColumn">The superblock column in mode-information units.</param>
-    /// <param name="baseQIndex">The frame quantizer. Reference: base_qindex.</param>
+    /// <param name="baseQIndex">The frame quantizer.</param>
     /// <param name="bitDepth">The sample precision.</param>
-    /// <param name="r0">The importance of the frame. Reference: cpi->rd.r0.</param>
+    /// <param name="r0">The importance of the frame.</param>
     /// <param name="regularizedImportance">
     /// Receives the regularized importance of the superblock, or keeps its value when the statistics give none.
-    /// Reference: x->rb.
     /// </param>
-    /// <param name="deltaDistortion">Receives the rate-distortion change, when requested. Reference: delta_dist.</param>
+    /// <param name="deltaDistortion">Receives the rate-distortion change, when requested.</param>
     /// <param name="computeDeltaDistortion">Whether to compute <paramref name="deltaDistortion"/>.</param>
     /// <returns>The superblock quantizer.</returns>
     public static int GetQForDeltaQObjective(
@@ -314,8 +311,8 @@ internal static class Av1TplDecisions
 
         if (computeDeltaDistortion)
         {
-            // The distortion scales with the square of the step and the rate inversely, bounded by the prediction
-            // energy; a nonzero delta costs four bits.
+            // The distortion scales with the square of the step, and the prediction energy limits it. The rate scales
+            // inversely with the step. A nonzero delta costs four bits.
             int frameStep = Av1QuantizationLookup.GetDcQuant(baseQIndex, 0, bitDepth);
             int superblockStep = Av1QuantizationLookup.GetDcQuant(baseQIndex, offset, bitDepth);
             double superblockDistortion = sourceDistortion * Math.Pow((double)superblockStep / frameStep, 2.0);
@@ -330,15 +327,15 @@ internal static class Av1TplDecisions
     }
 
     /// <summary>
-    /// Returns whether objective delta quantizers lower the frame's estimated rate-distortion cost, summed over every
-    /// superblock. A frame that fails keeps its delta quantizer syntax off. Reference: allow_deltaq_mode().
+    /// Returns whether objective delta quantizers lower the estimated rate-distortion cost of the frame, summed over every
+    /// superblock. A frame that fails keeps its delta quantizer syntax off.
     /// </summary>
     /// <param name="frame">The statistics of the frame being coded.</param>
     /// <param name="superblockModeInfoSize">The superblock size in mode-information units.</param>
     /// <param name="baseQIndex">The frame quantizer.</param>
     /// <param name="bitDepth">The sample precision.</param>
     /// <param name="r0">The importance of the frame.</param>
-    /// <param name="regularizedImportance">The running regularized importance, which the calls update. Reference: x->rb.</param>
+    /// <param name="regularizedImportance">The running regularized importance, which the calls update.</param>
     /// <returns><see langword="true"/> when the summed change is negative.</returns>
     public static bool AllowDeltaQ(
         Av1TplFrameStatistics frame,
@@ -362,8 +359,8 @@ internal static class Av1TplDecisions
     }
 
     /// <summary>
-    /// Returns the change of quantizer index whose DC step equals the step divided by the square root of beta, searching
-    /// from the frame quantizer. Reference: av1_get_deltaq_offset().
+    /// Returns the change of quantizer index whose DC step first reaches the frame step divided by the square root of beta.
+    /// The search starts at the frame quantizer.
     /// </summary>
     /// <param name="bitDepth">The sample precision.</param>
     /// <param name="qIndex">The frame quantizer.</param>
@@ -408,9 +405,8 @@ internal static class Av1TplDecisions
     }
 
     /// <summary>
-    /// Returns the rate multiplier of a coding block with objective delta quantizers: the multiplier at the superblock
-    /// quantizer, scaled by the block's importance over the superblock's regularized importance. Reference:
-    /// av1_get_cb_rdmult().
+    /// Returns the rate multiplier of a coding block with objective delta quantizers. The multiplier at the superblock
+    /// quantizer scales by the regularized importance of the block over the regularized importance of the superblock.
     /// </summary>
     /// <param name="statisticsReady">Whether the statistics of the frame are ready.</param>
     /// <param name="frame">The statistics of the frame being coded.</param>
@@ -419,9 +415,9 @@ internal static class Av1TplDecisions
     /// <param name="modeInfoColumn">The block column in mode-information units.</param>
     /// <param name="deltaQRateMultiplier">
     /// The rate multiplier at the frame quantizer plus the superblock delta and the luma DC delta, with the layer and
-    /// boost adjustments. Reference: set_rdmult(cpi, x, -1).
+    /// boost adjustments.
     /// </param>
-    /// <param name="regularizedImportance">The regularized importance of the superblock. Reference: x->rb.</param>
+    /// <param name="regularizedImportance">The regularized importance of the superblock.</param>
     /// <returns>The rate multiplier, at least one.</returns>
     public static int GetCodingBlockRateMultiplier(
         bool statisticsReady,
@@ -476,10 +472,10 @@ internal static class Av1TplDecisions
     }
 
     /// <summary>
-    /// Chooses the references a superblock keeps from the selective reference pruning: INTRA, LAST and the three
-    /// references whose prediction error falls most below LAST's, then further references until one gains less than an
-    /// eighth of the previous. An overlay keeps all. The result is all zero without ready statistics of an eligible
-    /// frame. Reference: init_ref_frame_space().
+    /// Chooses the references that a superblock keeps from the selective reference pruning. It keeps INTRA, LAST and the
+    /// three references whose prediction error falls most below that of LAST. Then it keeps further references until one
+    /// gains less than an eighth of the previous. An overlay keeps all. Without ready statistics of an eligible frame, the
+    /// result is all zero.
     /// </summary>
     /// <param name="statisticsReady">Whether the statistics of the frame are ready.</param>
     /// <param name="frame">The statistics of the frame being coded.</param>
@@ -488,7 +484,7 @@ internal static class Av1TplDecisions
     /// <param name="superblockModeInfoSize">The superblock size in mode-information units.</param>
     /// <param name="modeInfoRow">The superblock row.</param>
     /// <param name="modeInfoColumn">The superblock column.</param>
-    /// <param name="keepReferenceFrame">Receives one flag per reference type, INTRA to ALTREF. Reference: x->tpl_keep_ref_frame.</param>
+    /// <param name="keepReferenceFrame">Receives one flag per reference type, INTRA to ALTREF.</param>
     public static void GetKeptReferenceFrames(
         bool statisticsReady,
         Av1TplFrameStatistics frame,
@@ -525,7 +521,7 @@ internal static class Av1TplDecisions
                 ref readonly Av1TplBlockStatistics block = ref statistics[Av1TplFrameStatistics.GetPosition(
                     row, column, frame.Stride, Av1TplModelConstants.BlockModeInfoLog2)];
 
-                // The winner is the smallest nonzero prediction error; its reduction against LAST is summed.
+                // The winner is the smallest nonzero prediction error. The loop sums its reduction against LAST.
                 long bestInterCost = block.PredictionError[0];
                 int bestReference = 0;
                 for (int reference = 1; reference < References; reference++)
@@ -581,9 +577,9 @@ internal static class Av1TplDecisions
     }
 
     /// <summary>
-    /// Gathers the model costs and vectors of every 16x16 block of a superblock, in raster order with the
-    /// superblock's block stride; blocks outside the frame get the maximum costs and invalid vectors. Nothing is
-    /// gathered for key frames, overlays, or without ready statistics. Reference: av1_get_tpl_stats_sb().
+    /// Gathers the model costs and vectors of every 16x16 block of a superblock, in raster order with the block stride of
+    /// the superblock. Blocks outside the frame get the maximum costs and invalid vectors. The method gathers nothing for
+    /// key frames, overlays, or without ready statistics.
     /// </summary>
     /// <param name="statisticsReady">Whether the statistics of the frame are ready.</param>
     /// <param name="frame">The statistics of the frame being coded.</param>
@@ -592,11 +588,11 @@ internal static class Av1TplDecisions
     /// <param name="superblockModeInfoSize">The superblock size in mode-information units.</param>
     /// <param name="modeInfoRow">The superblock row.</param>
     /// <param name="modeInfoColumn">The superblock column.</param>
-    /// <param name="interCosts">Receives the inter costs, scaled by sixteen. Reference: tpl_inter_cost.</param>
-    /// <param name="intraCosts">Receives the intra costs, scaled by sixteen. Reference: tpl_intra_cost.</param>
-    /// <param name="vectors">Receives seven vectors per block, one per reference. Reference: tpl_mv.</param>
-    /// <param name="stride">Receives the number of blocks per superblock row. Reference: tpl_stride.</param>
-    /// <returns>The number of blocks inside the frame. Reference: tpl_data_count.</returns>
+    /// <param name="interCosts">Receives the inter costs, scaled by sixteen.</param>
+    /// <param name="intraCosts">Receives the intra costs, scaled by sixteen.</param>
+    /// <param name="vectors">Receives seven vectors per block, one per reference.</param>
+    /// <param name="stride">Receives the number of blocks per superblock row.</param>
+    /// <returns>The number of blocks inside the frame.</returns>
     public static int GetSuperblockStatistics(
         bool statisticsReady,
         Av1TplFrameStatistics frame,

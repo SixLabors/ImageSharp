@@ -11,18 +11,17 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
 internal readonly struct Av1TemporalFilterSettings
 {
     /// <summary>
-    /// The default number of filter frames. Reference: the arnr_max_frames of default_extra_cfg.
+    /// The default number of filter frames.
     /// </summary>
     public const int DefaultMaximumFrames = 7;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1TemporalFilterSettings"/> struct with the default_extra_cfg
-    /// values for good-quality encoding (seven filter frames, strength five, key frame filtering and overlays), the
-    /// configured sharpness and the temporal filter speed features. Reference:
-    /// set_good_speed_features_framesize_independent() and set_good_speed_feature_framesize_dependent().
+    /// Initializes a new instance of the <see cref="Av1TemporalFilterSettings"/> struct with the default values for good-quality
+    /// encoding (seven filter frames, strength five, key frame filtering and overlays), the configured sharpness and the temporal
+    /// filter speed features of <paramref name="speed"/>.
     /// </summary>
     /// <param name="speed">The encoding speed, 0 to 6.</param>
-    /// <param name="sharpness">The configured sharpness, algo_cfg.sharpness.</param>
+    /// <param name="sharpness">The configured sharpness.</param>
     /// <param name="frameWidth">The visible frame width.</param>
     /// <param name="frameHeight">The visible frame height.</param>
     /// <param name="allowScreenContentTools">Whether the frame allows the screen content tools, which disables the
@@ -43,40 +42,39 @@ internal readonly struct Av1TemporalFilterSettings
         this.Sharpness = sharpness;
         this.MotionSearch = motionSearch;
 
-        // hl_sf.weight_calc_level_in_tf: the approximated exponential from speed 3.
+        // Speed 3 and faster use the approximated exponential for the weights.
         this.WeightCalculationLevel = speed >= HeifEncodingSpeed.Level3 ? 1 : 0;
 
-        // hl_sf.adjust_num_frames_for_arf_filtering: level 1 from speed 1 and level 2 from speed 5, never for
-        // screen content.
+        // The noise-based frame count adjustment uses level 1 from speed 1 and level 2 from speed 5. Screen content never uses it.
         this.FrameCountAdjustment = allowScreenContentTools ? 0
             : speed >= HeifEncodingSpeed.Level5 ? 2
             : speed >= HeifEncodingSpeed.Level1 ? 1 : 0;
 
-        // hl_sf.allow_sub_blk_me_in_tf: from speed 6 at 480p and larger.
+        // Speed 6 and faster skip the sub-block motion search of flat blocks when the shorter frame side is 480 or more.
         this.AllowSubblockMotionSearchPruning = speed >= HeifEncodingSpeed.Level6 && Math.Min(frameWidth, frameHeight) >= 480;
 
-        // hl_sf.second_alt_ref_filtering: disabled from speed 6.
+        // Speed 6 and faster do not filter the second alternate reference.
         this.SecondAlternateReferenceFiltering = speed < HeifEncodingSpeed.Level6;
     }
 
     /// <summary>
-    /// Gets the configured number of filter frames, arnr_max_frames; one disables filtering.
+    /// Gets the configured number of filter frames. A value of one disables filtering.
     /// </summary>
     public int MaximumFrames { get; init; }
 
     /// <summary>
-    /// Gets the configured filter strength, arnr_strength, 0 to 6.
+    /// Gets the configured filter strength, 0 to 6.
     /// </summary>
     public int Strength { get; init; }
 
     /// <summary>
-    /// Gets the key frame filtering mode, enable_keyframe_filtering; the strength limit of large mean differences
-    /// applies only in mode one.
+    /// Gets the key frame filtering mode. Zero disables key frame filtering. The strength limit for large mean differences applies
+    /// only in mode one.
     /// </summary>
     public int KeyFrameFiltering { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether a filtered alternate reference may be followed by an overlay, enable_overlay.
+    /// Gets a value indicating whether an overlay can follow a filtered alternate reference.
     /// </summary>
     public bool EnableOverlay { get; init; }
 
@@ -87,22 +85,22 @@ internal readonly struct Av1TemporalFilterSettings
     public int Sharpness { get; init; }
 
     /// <summary>
-    /// Gets the weight calculation level, hl_sf.weight_calc_level_in_tf.
+    /// Gets the weight calculation level. Level zero uses the exact exponential. Level one uses the approximated exponential.
     /// </summary>
     public int WeightCalculationLevel { get; init; }
 
     /// <summary>
-    /// Gets the noise-based frame count adjustment level, hl_sf.adjust_num_frames_for_arf_filtering.
+    /// Gets the level of the noise-based frame count adjustment. Zero disables the adjustment.
     /// </summary>
     public int FrameCountAdjustment { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether sub-block motion search is skipped for flat blocks, hl_sf.allow_sub_blk_me_in_tf.
+    /// Gets a value indicating whether the sub-block motion search is skipped for flat blocks.
     /// </summary>
     public bool AllowSubblockMotionSearchPruning { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether the second alternate reference is filtered, hl_sf.second_alt_ref_filtering.
+    /// Gets a value indicating whether the second alternate reference is filtered.
     /// </summary>
     public bool SecondAlternateReferenceFiltering { get; init; }
 

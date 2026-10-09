@@ -7,19 +7,18 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 
 /// <content>
-/// Searches full-sample motion with the first-pass configuration: the first-pass site geometry, every row of
-/// the block in each absolute difference, and a follow-on mesh when the result is poor.
+/// Searches full-sample motion with the first-pass configuration. The search uses the first-pass site geometry and every row of the block in each
+/// absolute difference. A mesh search follows when the result is poor.
 /// </content>
 /// <remarks>
-/// The first pass resets the motion speed features before it searches, so it never samples alternate rows,
-/// whatever the frame size and speed. The coding-pass search settings cannot express that for large frames or
-/// the faster speeds, so the first pass keeps its own traversal over the shared sample kernels.
+/// The first pass resets the motion speed features before it searches, so it never samples alternate rows, whatever the frame size and speed.
+/// The coding-pass search settings cannot express that for large frames or the faster speeds, so the first pass keeps its own traversal over
+/// the shared sample kernels.
 /// </remarks>
 internal sealed partial class Av1FirstPass<TSample, TOperator>
 {
     /// <summary>
-    /// Gets the range and interval pairs of the four mesh passes at speeds zero through five; faster speeds use
-    /// the last row. Reference: good_quality_mesh_patterns.
+    /// Gets the range and interval pairs of the four mesh passes at speeds zero through five. Faster speeds use the last row.
     /// </summary>
     private static ReadOnlySpan<int> MeshPatterns =>
     [
@@ -32,8 +31,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     ];
 
     /// <summary>
-    /// Searches one reference for a unit starting at a vector, and keeps the result when its squared error plus
-    /// vector cost and the new-vector surcharge beats the best error so far. Reference: first_pass_motion_search().
+    /// Searches one reference for a unit from a start vector. The result replaces the best so far when its squared error, vector cost and
+    /// new-vector surcharge together are less than the best error.
     /// </summary>
     /// <param name="frame">The frame being measured.</param>
     /// <param name="reference">The reference plane.</param>
@@ -62,8 +61,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         // Screen content with block copy starts its mesh with a fine interval.
         bool fineSearchInterval = this.isScreenContentType && this.allowIntraBlockCopy;
 
-        // The limits of the unit are narrowed to the vectors codable against the reference vector. Reference:
-        // av1_make_default_fullpel_ms_params() with av1_set_mv_search_range().
+        // The limits of the unit narrow to the vectors that are codable against the reference vector.
         FullMotionVectorLimits limits = this.motionLimits;
         SetMotionVectorSearchRange(ref limits, referenceVector);
 
@@ -121,7 +119,6 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
 
     /// <summary>
     /// Rounds an eighth-sample vector to the nearest full sample, with ties away from zero.
-    /// Reference: get_fullmv_from_mv().
     /// </summary>
     /// <param name="vector">The vector in eighth samples.</param>
     /// <returns>The vector in full samples, as column and row.</returns>
@@ -131,14 +128,14 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
             (vector.Row + 3 + (vector.Row >= 0 ? 1 : 0)) >> 3);
 
     /// <summary>
-    /// Intersects limits with the full-sample vectors whose difference from a reference vector stays codable,
-    /// rounding the lower bounds up and the upper bounds down. Reference: av1_set_mv_search_range().
+    /// Intersects limits with the full-sample vectors whose difference from a reference vector stays codable. The lower bounds round up and the
+    /// upper bounds round down.
     /// </summary>
     /// <param name="limits">The limits to narrow.</param>
     /// <param name="vector">The reference vector in eighth samples.</param>
     private static void SetMotionVectorSearchRange(ref FullMotionVectorLimits limits, Av1MotionVector vector)
     {
-        // The codable components lie strictly inside MV_LOW and MV_UPP, plus or minus 2^14 eighth samples.
+        // The codable components lie strictly between -2^14 and 2^14 eighth samples.
         const int lowest = -(1 << 14);
         const int highest = 1 << 14;
         int columnMinimum = Math.Max(((vector.Column + 7) >> 3) - MaximumFullPixelValue, (lowest >> 3) + 1);
@@ -150,13 +147,14 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         limits.ColumnMaximum = Math.Min(limits.ColumnMaximum, columnMaximum);
         limits.RowMinimum = Math.Max(limits.RowMinimum, rowMinimum);
         limits.RowMaximum = Math.Min(limits.RowMaximum, rowMaximum);
+
+        // An empty intersection collapses to its minimum so that the limits always hold at least one vector.
         limits.ColumnMaximum = Math.Max(limits.ColumnMinimum, limits.ColumnMaximum);
         limits.RowMaximum = Math.Max(limits.RowMinimum, limits.RowMaximum);
     }
 
     /// <summary>
     /// Borrows the source block, reference plane, limits and costs of one full-sample search.
-    /// Reference: FULLPEL_MOTION_SEARCH_PARAMS.
     /// </summary>
     private ref struct MotionSearch
     {
@@ -224,8 +222,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         public bool FineInterval;
 
         /// <summary>
-        /// Runs the site search and, when its result is poor and not pruned, a mesh around its winner.
-        /// Reference: av1_full_pixel_search().
+        /// Runs the site search. When its result is poor and not pruned, a mesh search around its winner follows.
         /// </summary>
         /// <param name="start">The unclamped start.</param>
         /// <param name="stepParameter">The number of outer stages to skip.</param>
@@ -258,8 +255,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         }
 
         /// <summary>
-        /// Measures the squared error of a vector plus its variance-domain cost. High bit depths round the error
-        /// to eight-bit precision. Reference: av1_get_mvpred_sse().
+        /// Measures the squared error of a vector plus its variance-domain cost. High bit depths round the error to eight-bit precision.
         /// </summary>
         /// <param name="vector">The full-sample vector.</param>
         /// <returns>The squared error plus the vector cost.</returns>
@@ -270,9 +266,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         }
 
         /// <summary>
-        /// Repeats site searches of decreasing initial radius from the same clamped start and keeps the lowest
-        /// variance cost. A search that stays at its center for several stages lets the next restart skip them.
-        /// Reference: full_pixel_diamond().
+        /// Repeats site searches of decreasing initial radius from the same clamped start and keeps the lowest variance cost. A search that stays
+        /// at its center for several stages lets the next restart skip them.
         /// </summary>
         /// <param name="start">The unclamped start.</param>
         /// <param name="stepParameter">The number of outer stages the first search skips.</param>
@@ -305,9 +300,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         }
 
         /// <summary>
-        /// Moves to the best site of each stage from the outermost searched radius inward, comparing absolute
-        /// differences plus vector cost. Stages searched before the first move count as center stays.
-        /// Reference: diamond_search_sad().
+        /// Moves to the best site of each stage from the outermost searched radius inward. Each site costs its absolute differences plus its
+        /// vector cost. Stages searched before the first move count as center stays.
         /// </summary>
         /// <param name="start">The clamped start.</param>
         /// <param name="startSad">The absolute-difference cost of the start.</param>
@@ -327,8 +321,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
                 int count = this.Sites.GetCandidateCount(step);
                 int bestSite = 0;
 
-                // When every site of the stage lies inside the limits the reference skips the per-site test; the
-                // test is kept here because it passes for every such site.
+                // Every stage tests each site against the limits. When all sites of a stage lie inside the limits, every test passes and the
+                // result is the same as a search without the test.
                 for (int index = 1; index <= count; index++)
                 {
                     Av1MotionSearchSites.Site site = sites[index];
@@ -363,7 +357,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
                     centerSteps++;
                 }
 
-                // Repeated radii after a center stay are skipped; the first-pass radii never repeat.
+                // A center stay skips the stages that repeat its radius. The first-pass radii never repeat.
                 if (bestSite == 0 && step > 2)
                 {
                     while (this.Sites.GetRadius(step - 1) == this.Sites.GetRadius(step) && step > 2)
@@ -378,9 +372,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         }
 
         /// <summary>
-        /// Runs the mesh passes around a vector: the first pass widens its range to cover the vector's magnitude
-        /// and keeps its interval ratio, and later passes narrow until an interval of one.
-        /// Reference: full_pixel_exhaustive().
+        /// Runs the mesh passes around a vector. The first pass widens its range to cover the magnitude of the vector and keeps its interval
+        /// ratio. Later passes narrow until an interval of one.
         /// </summary>
         /// <param name="start">The vector around which the mesh starts.</param>
         /// <param name="best">Receives the winning vector.</param>
@@ -428,8 +421,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         }
 
         /// <summary>
-        /// Visits a grid of vectors around a clamped center. A unit interval visits whole groups of four columns,
-        /// and a final partial group stops one column short of the range. Reference: exhaustive_mesh_search().
+        /// Visits a grid of vectors around a clamped center. A unit interval visits whole groups of four columns. A final partial group stops one
+        /// column short of the range.
         /// </summary>
         /// <param name="start">The center.</param>
         /// <param name="range">The grid radius.</param>
@@ -455,7 +448,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
                     {
                         Point candidate = new(start.X + column + i, start.Y + row);
 
-                        // Reference: update_mvs_and_sad().
+                        // The vector cost is added only when the difference alone can still win.
                         int sad = this.GetSad(candidate);
                         if (sad < bestSad)
                         {
@@ -474,7 +467,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         }
 
         /// <summary>
-        /// Measures the variance of a vector plus its variance-domain cost. Reference: get_mvpred_var_cost().
+        /// Measures the variance of a vector plus its variance-domain cost.
         /// </summary>
         /// <param name="vector">The full-sample vector.</param>
         /// <returns>The variance plus the vector cost.</returns>
@@ -482,15 +475,13 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         {
             this.GetMoments(vector, out int sum, out long squares);
 
-            // The high-bit-depth variance is never negative after its separate roundings. Reference:
-            // aom_highbd_10_variance16x16().
+            // At high bit depths the sum and the squares round separately, which can make the variance negative. The variance clamps at zero.
             long variance = Math.Max(squares - (((long)sum * sum) / (this.Width * this.Height)), 0);
             return (int)variance + this.GetVectorErrorCost(vector);
         }
 
         /// <summary>
-        /// Measures the signed and squared differences of a vector, rounding each to eight-bit precision at the
-        /// higher bit depths. Reference: highbd_10_variance().
+        /// Measures the signed and squared differences of a vector. At the higher bit depths, each rounds to eight-bit precision.
         /// </summary>
         /// <param name="vector">The full-sample vector.</param>
         /// <param name="sum">Receives the rounded signed sum.</param>
@@ -517,14 +508,13 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
 
         /// <summary>
         /// Measures the absolute differences of a vector plus its absolute-difference cost.
-        /// Reference: get_start_mvpred_sad_cost().
         /// </summary>
         /// <param name="vector">The full-sample vector.</param>
         /// <returns>The absolute differences plus the vector cost.</returns>
         private readonly int GetSadCost(Point vector) => this.GetSad(vector) + this.GetVectorSadCost(vector);
 
         /// <summary>
-        /// Measures the absolute differences of a vector at eight-bit precision. Reference: get_mvpred_sad().
+        /// Measures the absolute differences of a vector at eight-bit precision.
         /// </summary>
         /// <param name="vector">The full-sample vector.</param>
         /// <returns>The absolute differences.</returns>
@@ -539,7 +529,6 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
 
         /// <summary>
         /// Gets the absolute-difference cost of a vector relative to the full-sample reference vector.
-        /// Reference: mvsad_err_cost_().
         /// </summary>
         /// <param name="vector">The full-sample vector.</param>
         /// <returns>The vector cost.</returns>
@@ -551,7 +540,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         }
 
         /// <summary>
-        /// Gets the variance-domain cost of a vector relative to the reference vector. Reference: mv_err_cost_().
+        /// Gets the variance-domain cost of a vector relative to the reference vector.
         /// </summary>
         /// <param name="vector">The full-sample vector.</param>
         /// <returns>The vector cost.</returns>
@@ -562,7 +551,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         }
 
         /// <summary>
-        /// Clamps a vector to the limits. Reference: clamp_fullmv().
+        /// Clamps a vector to the limits.
         /// </summary>
         /// <param name="vector">The full-sample vector.</param>
         /// <returns>The clamped vector.</returns>
@@ -572,7 +561,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
                 Math.Clamp(vector.Y, this.Limits.RowMinimum, this.Limits.RowMaximum));
 
         /// <summary>
-        /// Tests whether a vector lies inside the limits. Reference: av1_is_fullmv_in_range().
+        /// Tests whether a vector lies inside the limits.
         /// </summary>
         /// <param name="vector">The full-sample vector.</param>
         /// <returns>Whether the vector is inside the limits.</returns>

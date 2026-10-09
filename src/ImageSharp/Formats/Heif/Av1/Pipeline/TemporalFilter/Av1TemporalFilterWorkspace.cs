@@ -11,14 +11,14 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
 
 /// <summary>
 /// Owns the scratch storage of the temporal filter, allocated once and reused by every filtered frame so that the
-/// per-block paths do not allocate. Reference: TemporalFilterData and tf_alloc_and_reset_data().
+/// per-block paths do not allocate.
 /// </summary>
 /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
 internal sealed class Av1TemporalFilterWorkspace<TSample> : IDisposable
     where TSample : unmanaged
 {
     /// <summary>
-    /// The number of samples of one plane of a filter block, BW * BH.
+    /// The number of samples of one plane of a filter block.
     /// </summary>
     private const int BlockPixels = Av1TemporalFilter.BlockSize * Av1TemporalFilter.BlockSize;
 
@@ -44,7 +44,7 @@ internal sealed class Av1TemporalFilterWorkspace<TSample> : IDisposable
     private IMemoryOwner<int>? motion;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1TemporalFilterWorkspace{TSample}"/> class. Reference: tf_alloc_and_reset_data().
+    /// Initializes a new instance of the <see cref="Av1TemporalFilterWorkspace{TSample}"/> class.
     /// </summary>
     /// <param name="configuration">The configuration providing the memory allocator.</param>
     public Av1TemporalFilterWorkspace(Configuration configuration)
@@ -56,12 +56,12 @@ internal sealed class Av1TemporalFilterWorkspace<TSample> : IDisposable
         this.intermediate = allocator.Allocate<short>(Av1TemporalFilter.PredictionIntermediateLength);
         this.motion = allocator.Allocate<int>(Av1MotionVectorCosts.IntegerStorageLength + Av1MotionSearchSites.StorageLength);
 
-        // The L1 rate table never changes; the search sites are configured for each frame's stride.
+        // The L1 rate table never changes. The search sites depend on the frame stride, so each frame configures them again.
         Av1TemporalFilter.FillL1MotionCosts(this.MotionCosts);
     }
 
     /// <summary>
-    /// Gets the predictions of all planes of one filter block, TemporalFilterData.pred.
+    /// Gets the predictions of all planes of one filter block.
     /// </summary>
     public Span<TSample> Prediction => this.samples!.Memory.Span[..AllPlanePixels];
 
@@ -76,27 +76,27 @@ internal sealed class Av1TemporalFilterWorkspace<TSample> : IDisposable
     public ReadOnlySpan<TSample> Zeros => this.samples!.Memory.Span.Slice(AllPlanePixels + Av1TranslationalInterPredictor.SearchPredictionBufferLength, ZeroCount);
 
     /// <summary>
-    /// Gets the weighted sums of all planes of one filter block, TemporalFilterData.accum.
+    /// Gets the weighted sums of all planes of one filter block.
     /// </summary>
     public Span<uint> Accumulator => this.errors!.Memory.Span[..AllPlanePixels];
 
     /// <summary>
-    /// Gets the squared differences of one plane block, the frame_sse of the x64 kernels.
+    /// Gets the squared differences of one plane block.
     /// </summary>
     public Span<uint> SquaredErrors => this.errors!.Memory.Span.Slice(AllPlanePixels, BlockPixels);
 
     /// <summary>
-    /// Gets the luma squared differences covered by each chroma sample, luma_sse_sum.
+    /// Gets, for each chroma sample, the sum of the luma squared differences that the sample covers.
     /// </summary>
     public Span<uint> LumaErrors => this.errors!.Memory.Span.Slice(AllPlanePixels + BlockPixels, BlockPixels);
 
     /// <summary>
-    /// Gets zero luma errors, the luma_sse_sum of the luma plane.
+    /// Gets a block of zero luma errors. The luma plane adds these in place of <see cref="LumaErrors"/>.
     /// </summary>
     public ReadOnlySpan<uint> ZeroLumaErrors => this.errors!.Memory.Span.Slice(AllPlanePixels + (2 * BlockPixels), BlockPixels);
 
     /// <summary>
-    /// Gets the window errors of one plane block, acc_5x5_sse plus the luma errors.
+    /// Gets the window errors of one plane block: the 5x5 window sums of the squared differences plus the luma errors.
     /// </summary>
     public Span<uint> WindowErrors => this.errors!.Memory.Span.Slice(AllPlanePixels + (3 * BlockPixels), BlockPixels);
 
@@ -106,7 +106,7 @@ internal sealed class Av1TemporalFilterWorkspace<TSample> : IDisposable
     public Span<uint> Columns => this.errors!.Memory.Span.Slice(AllPlanePixels + (4 * BlockPixels), ColumnCount);
 
     /// <summary>
-    /// Gets the weight totals of all planes of one filter block, TemporalFilterData.count.
+    /// Gets the weight totals of all planes of one filter block.
     /// </summary>
     public Span<ushort> Count => this.counts!.Memory.Span[..AllPlanePixels];
 
@@ -121,12 +121,12 @@ internal sealed class Av1TemporalFilterWorkspace<TSample> : IDisposable
     public Span<int> MotionCosts => this.motion!.Memory.Span[..Av1MotionVectorCosts.IntegerStorageLength];
 
     /// <summary>
-    /// Gets the storage of the NSTEP search sites.
+    /// Gets the storage of the n-step search sites.
     /// </summary>
     public Span<int> SearchSites => this.motion!.Memory.Span.Slice(Av1MotionVectorCosts.IntegerStorageLength, Av1MotionSearchSites.StorageLength);
 
     /// <summary>
-    /// Releases the scratch storage. Reference: tf_dealloc_data().
+    /// Releases the scratch storage.
     /// </summary>
     public void Dispose()
     {

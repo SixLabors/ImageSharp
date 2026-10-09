@@ -166,8 +166,8 @@ internal static partial class Av1DeblockingFilter
         InlineArray14<Vector128<int>> window = default;
         Span<Vector128<int>> windowSpan = window;
 
-        // AV1 names the samples p6..p0,q0..q6. Loading them into that exact order lets the packed equations below
-        // follow the normative scalar formulas without lane shuffles or an intermediate per-edge sample buffer.
+        // AV1 names the samples p6..p0,q0..q6. Window index 6 - n holds pn and index 7 + n holds qn. Loading them into that exact order lets
+        // the packed equations below follow the normative scalar formulas without lane shuffles or an intermediate per-edge sample buffer.
         for (int distance = 1; distance <= radius; distance++)
         {
             windowSpan[7 - distance] = TEdgeOperator.LoadVector(ref samples, q0Offset, stride, -distance);
@@ -488,8 +488,8 @@ internal static partial class Av1DeblockingFilter
         Vector128<int> signedQ0 = q0 - offset;
         Vector128<int> signedQ1 = q1 - offset;
 
-        // the reference decoder performs every delta operation in the signed sample domain. Saturating only the final samples is
-        // not equivalent because the intermediate delta can clip before the asymmetric +4/+3 rounding is applied.
+        // Every delta operation runs in the signed sample domain. Saturating only the final samples is not equivalent, because the intermediate
+        // delta can clip before the asymmetric +4/+3 rounding. The mask makes `filter` zero in a disabled lane, so that lane keeps its samples.
         Vector128<int> filter = Vector128.ConditionalSelect(highEdgeVariance, Vector128.Clamp(signedP1 - signedQ1, minimum, maximum), Vector128<int>.Zero);
         filter = Vector128.Clamp(filter + (3 * (signedQ0 - signedP0)), minimum, maximum) & filterEnabled;
 
@@ -526,6 +526,8 @@ internal static partial class Av1DeblockingFilter
         Vector128<int> q2 = samples[9];
         Vector128<int> wideFilter = filterEnabled & flat;
 
+        // Filter4 runs on every enabled lane first. The wide formulas use the samples read before that call, and the select keeps
+        // the Filter4 result only in lanes that are not flat. This gives the same result as the scalar branch.
         Filter4(ref samples, filterEnabled, highEdgeVarianceThreshold, bitDepth);
         if (Vector128.EqualsAll(wideFilter, Vector128<int>.Zero))
         {
@@ -620,8 +622,7 @@ internal static partial class Av1DeblockingFilter
         Vector128<int> q6 = samples[13];
         Vector128<int> wideFilter = filterEnabled & flat & outerFlat;
 
-        // The eight-tap routine first produces the normative fallback. Lanes satisfying the outer flatness mask are
-        // then replaced with the wider results, matching the reference decoder's mask blend without evaluating lanes independently.
+        // The eight-tap routine first produces the fallback for every lane. Lanes that pass all three masks then take the wider results.
         Filter8(ref samples, filterEnabled, flat, highEdgeVarianceThreshold, bitDepth);
         if (Vector128.EqualsAll(wideFilter, Vector128<int>.Zero))
         {

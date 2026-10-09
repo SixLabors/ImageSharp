@@ -67,7 +67,7 @@ internal sealed class Av1LoopFilterDecoder
         ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
         int modeInfoRowsPerBand = 1 << (Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2);
 
-        // Complete one 128-sample band at a time. Vertical and horizontal passes modify intersecting
+        // The decoder completes one 128-sample band at a time. Vertical and horizontal passes modify intersecting
         // neighborhoods, so changing their order across bands changes the reconstructed samples.
         for (int rowStart = 0; rowStart < this.frameHeader.ModeInfoRowCount; rowStart += modeInfoRowsPerBand)
         {
@@ -124,7 +124,7 @@ internal sealed class Av1LoopFilterDecoder
     /// <param name="modeInfo">The decoded mode and segment information.</param>
     /// <param name="modeInfoPosition">The frame-relative position in luma 4x4 units.</param>
     /// <param name="plane">The color plane.</param>
-    /// <param name="pass">Zero for a vertical boundary; one for a horizontal boundary.</param>
+    /// <param name="pass">Zero for a vertical boundary, one for a horizontal boundary.</param>
     /// <returns>The filter level in the AV1 zero-to-63 domain.</returns>
     private int GetFilterLevel(ref Av1BlockModeInfo modeInfo, Point modeInfoPosition, Av1Plane plane, int pass)
     {

@@ -43,6 +43,10 @@ internal static partial class Av1LoopRestorationEncoder
         Av1LoopRestorationUnit best = default;
         best.FilterType = Av1RestorationFilterType.SgrProjection;
         long bestError = long.MaxValue;
+
+        // Without pruning, the search tries all 16 parameter sets. With pruning, it starts with four dual-radius seeds. Level 1 then tries
+        // the neighbors of the seed winner, and one radius-one set and one radius-two set that the tables pair with the current winner.
+        // The -1 entries are never read, because the winner before the radius-one lookup is always a dual-radius set.
         ReadOnlySpan<int> seeds = [0, 3, 6, 9];
         ReadOnlySpan<int> radiusOneSets = [10, 10, 11, 11, 12, 12, 13, 13, 13, 13, -1, -1, -1, -1];
         ReadOnlySpan<int> radiusTwoSets = [14, 14, 14, 14, 14, 14, 14, 15, 15, 15, 15, 15, 15, 15];
@@ -66,8 +70,8 @@ internal static partial class Av1LoopRestorationEncoder
 
         if (pruning == 1)
         {
-            // Neighbors are chosen around the seed winner, while the single-radius groups use the
-            // current winner. Preserve this order because a group winner changes the next lookup.
+            // The neighbors come from the seed winner, and the single-radius groups use the current winner.
+            // The order is important, because a new winner changes the next table lookup.
             int seedWinner = best.SgrParameterSet;
             for (int parameterSet = seedWinner - 1; parameterSet <= seedWinner + 1; parameterSet += 2)
             {
@@ -122,6 +126,17 @@ internal static partial class Av1LoopRestorationEncoder
     /// Selects the projection traversal once for the parameter set's active radii.
     /// </summary>
     /// <typeparam name="TSample">The physical component sample type.</typeparam>
+    /// <param name="source">The original unit region.</param>
+    /// <param name="reconstruction">The reconstructed unit region.</param>
+    /// <param name="bitDepth">The component precision.</param>
+    /// <param name="processingWidth">The processing block width.</param>
+    /// <param name="processingHeight">The processing block height.</param>
+    /// <param name="parameterSet">The parameter set to evaluate.</param>
+    /// <param name="filtered0">The retained radius-two results.</param>
+    /// <param name="filtered1">The retained radius-one results.</param>
+    /// <param name="scratch">The shared processing-block workspace.</param>
+    /// <param name="bestError">The lowest error found so far.</param>
+    /// <param name="best">The parameters associated with that error.</param>
     private static void EvaluateParameterSet<TSample>(
         Av1PlaneRegion<TSample> source,
         Av1PlaneRegion<TSample> reconstruction,
@@ -136,9 +151,8 @@ internal static partial class Av1LoopRestorationEncoder
         ref Av1LoopRestorationUnit best)
         where TSample : unmanaged
     {
-        // The first ten parameter sets use both radii, the next four use radius one,
-        // and the final two use radius two. Closed generic traversal removes that
-        // choice from the per-sample statistics and projection-error loops.
+        // The first ten parameter sets use both radii, the next four use radius one, and the last two use radius two.
+        // Closed generic traversal removes that choice from the per-sample statistics and projection-error loops.
         if (parameterSet < 10)
         {
             EvaluateSelfGuided<TSample, DualRadiusProjection>(
@@ -229,15 +243,16 @@ internal static partial class Av1LoopRestorationEncoder
             {
                 int width = Math.Min(processingWidth, source.Width - x);
                 int length = width * height;
+
+                // The filter input starts three samples above and left of the block, so that it includes the filter context.
                 int origin = ((reconstruction.Bounds.Y + y - 3) * reconstruction.Stride) + reconstruction.Bounds.X + x - 3;
                 Span<int> first = filtered0.Slice(offset, length);
                 Span<int> second = filtered1.Slice(offset, length);
                 Av1SelfGuidedFilter.GenerateFilters(
                     storage[origin..], reconstruction.Stride, width, height, bitDepth, parameterSet, first, second, scratch);
 
-                // Retain packed processing blocks directly in the unit workspace. No repacking is needed:
-                // coefficient refinement walks this same block order. All sums remain integer until the
-                // complete unit has been accumulated, so block boundaries introduce no rounding.
+                // The unit workspace keeps the packed processing blocks in place. Coefficient refinement walks the same block order, so no repacking
+                // is necessary. All sums stay integer until the full unit is accumulated, so block boundaries add no rounding.
                 for (int row = 0; row < height; row++)
                 {
                     AccumulateProjectionMoments<TSample, TProjection, ProjectionStatisticsOperator>(
@@ -258,6 +273,9 @@ internal static partial class Av1LoopRestorationEncoder
         long h11 = moments.Sum(2) / area;
         long c0 = moments.Sum(3) / area;
         long c1 = moments.Sum(4) / area;
+
+        // The least-squares solution gives the projection weights in Q7, that is scaled by 128.
+        // One radius gives C / H. Two radii solve the 2x2 system with Cramer's rule.
         int projection0 = 0;
         int projection1 = 0;
         if (!TProjection.UsesRadiusTwo)
@@ -279,8 +297,8 @@ internal static partial class Av1LoopRestorationEncoder
             long determinant = (h00 * h11) - (h01 * h01);
             if (determinant != 0)
             {
-                // Scale the divisor instead when scaling the numerator would overflow. Singular
-                // systems retain zero projections; they occur naturally in flat reconstructed units.
+                // If the numerator times 128 overflows, the code divides the determinant by 128 instead.
+                // A singular system keeps zero projections. Flat reconstructed units give such systems.
                 long numerator0 = (h11 * c0) - (h01 * c1);
                 long numerator1 = (h00 * c1) - (h01 * c0);
                 projection0 = (int)(numerator0 > long.MaxValue / 128 || numerator0 < long.MinValue / 128
@@ -293,6 +311,7 @@ internal static partial class Av1LoopRestorationEncoder
             }
         }
 
+        // The coded form keeps the first weight and stores the second as 128 less both weights. Each coded value clamps to its range.
         Av1LoopRestorationUnit candidate = default;
         candidate.FilterType = Av1RestorationFilterType.SgrProjection;
         candidate.SgrParameterSet = parameterSet;
@@ -301,6 +320,9 @@ internal static partial class Av1LoopRestorationEncoder
             128 - candidate.SgrProjectionCoefficients[0] - (!TProjection.UsesRadiusOne ? 0 : projection1), -32, 95);
 
         long error = GetProjectionError<TSample, TProjection>(source, reconstruction, processingWidth, processingHeight, candidate, filtered0, filtered1);
+
+        // The step halves from two to one. Each coefficient of an active radius first tries to decrease, then to increase. A kept decrease
+        // ends the coefficient sweep for this step. At step two, a direction continues while the error does not increase.
         for (int step = 2; step >= 1; step >>= 1)
         {
             for (int coefficient = 0; coefficient < 2; coefficient++)
@@ -446,6 +468,9 @@ internal static partial class Av1LoopRestorationEncoder
         ref int secondBase = ref MemoryMarshal.GetReference(second);
         int width = original.Length;
         int column = 0;
+
+        // Each register width takes the whole vectors that fit, and the next narrower width takes the rest. The scalar loop takes the
+        // last samples. Each width adds to its own totals, and the sum of all widths gives the exact moment.
         if (Vector512.IsHardwareAccelerated)
         {
             for (; column <= width - Vector512<int>.Count; column += Vector512<int>.Count)
@@ -580,7 +605,7 @@ internal static partial class Av1LoopRestorationEncoder
     }
 
     /// <summary>
-    /// Divides signed fixed-point values with half-way cases rounded away from zero.
+    /// Divides signed fixed-point values. For a positive divisor, half-way cases round away from zero.
     /// </summary>
     /// <param name="numerator">The signed dividend.</param>
     /// <param name="denominator">The nonzero divisor.</param>

@@ -8,22 +8,21 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 
 /// <content>
-/// Measures the units of one row: intra prediction for every unit and, on inter frames, prediction from the
-/// three stage references and the previous source.
+/// Measures the units of one row. Every unit gets intra prediction. On inter frames, every unit also gets prediction from the three stage
+/// references and the previous source.
 /// </content>
 internal sealed partial class Av1FirstPass<TSample, TOperator>
 {
     /// <summary>
-    /// Measures the units of one row inside one tile from left to right. The best vector of each unit starts the
-    /// search of the next unit, and the last nonzero vector of the tile row's first unit seeds the next row of the
-    /// tile. Reference: av1_first_pass_row().
+    /// Measures the units of one row inside one tile from left to right. The best vector of each unit starts the search of the next unit. The
+    /// last nonzero vector after the first unit of the row seeds the next row of the tile.
     /// </summary>
     /// <param name="frame">The frame being measured.</param>
     /// <param name="unitRow">The unit row.</param>
     /// <param name="tileUnitRowStart">The first unit row of the tile.</param>
     /// <param name="tileColumnStart">The first mode-info column of the tile.</param>
     /// <param name="tileColumnEnd">The mode-info column after the tile.</param>
-    /// <param name="firstTopMotionVector">The last nonzero vector left by the first unit of the tile's previous row.</param>
+    /// <param name="firstTopMotionVector">The last nonzero vector left by the first unit of the previous row of the tile.</param>
     private void ProcessRow(
         ref FrameContext frame,
         int unitRow,
@@ -43,14 +42,13 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         Av1MotionVector bestReferenceVector = default;
         Av1MotionVector lastNonZeroVector = default;
 
-        // Prediction never reads across a tile edge. Reference: set_mi_row_col() with the tile of the row.
+        // Prediction never reads across a tile edge.
         bool upAvailable = unitRow != tileUnitRowStart;
 
         // The vector limits keep a whole unit plus two interpolation margins inside the reference border.
         this.SetMotionVectorRowLimits(unitRow << frame.UnitLog2, unitSize >> 2);
 
-        // Zero the 16x16 residual once per row. Smaller units leave the rest of it unwritten, and the intra error
-        // of every unit sums all of it. Reference: the av1_zero_array() call of av1_first_pass_row().
+        // Zero the 16x16 residual once per row. Smaller units leave the rest of it unwritten, and the intra error of every unit sums all of it.
         this.residual.AsSpan().Clear();
 
         if (this.calculateWaveletEnergy)
@@ -100,8 +98,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Gets the block measured for a unit: a unit whose right or bottom half lies outside the frame keeps only
-    /// its inside half or quarter. Reference: get_bsize().
+    /// Gets the block measured for a unit. A unit whose right or bottom half lies outside the frame keeps only its inside half or quarter.
     /// </summary>
     /// <param name="firstPassBlockSize">The unit size.</param>
     /// <param name="unitLog2">The base-two logarithm of the unit size in 4x4 units.</param>
@@ -127,10 +124,9 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Measures the DC intra prediction error of a unit with 4x4 transforms and adds its skip, image-start,
-    /// intra and brightness contributions. At the speeds that disable reconstruction the prediction reads the
-    /// source and the source becomes the reconstruction; otherwise every transform block is coded and
-    /// reconstructed at the first-pass quantizer. Reference: firstpass_intra_prediction().
+    /// Measures the DC intra prediction error of a unit with 4x4 transforms and adds its skip, image-start, intra and brightness contributions.
+    /// At the speeds that disable reconstruction, the prediction reads the source and the source becomes the reconstruction. Otherwise every
+    /// transform block is coded and reconstructed at the first-pass quantizer.
     /// </summary>
     /// <param name="frame">The frame being measured.</param>
     /// <param name="unitRow">The unit row.</param>
@@ -147,8 +143,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         int x = (unitColumn << frame.UnitLog2) << 2;
         int y = (unitRow << frame.UnitLog2) << 2;
 
-        // Border padding measures the distance to the visible frame; otherwise to the eight-aligned coded frame.
-        // Reference: set_pixels_to_frame_edge().
+        // Border padding measures the distance to the visible frame. Without border padding, the distance is to the eight-aligned coded frame.
         int boundaryWidth = this.doBorderPad ? this.width : this.miColumns << 2;
         int boundaryHeight = this.doBorderPad ? this.height : this.miRows << 2;
         this.pixelsToRightEdge = boundaryWidth - (x + blockWidth);
@@ -165,8 +160,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
             this.EncodeIntraLuma(ref frame, sourceIndex, reconstructionIndex, blockWidth, blockHeight, upAvailable, leftAvailable);
         }
 
-        // The squares of all 256 residual entries sum in 32-bit unsigned arithmetic, which a twelve-bit
-        // residual can carry past the signed range before the precision shift. Reference: aom_get_mb_ss().
+        // The squares of all 256 residual entries sum in 32-bit unsigned arithmetic. A twelve-bit residual can carry that sum past the signed
+        // range before the precision shift.
         int intraError = unchecked((int)(uint)Av1ResidualBuilder.SumSquares(this.residual));
         int precisionShift = this.bitDepth.GetBitCount() - 8;
         intraError >>= 2 * precisionShift;
@@ -180,6 +175,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
             record.ImageDataStartRow = unitRow;
         }
 
+        // A unit with a low intra error adds more than one to the intra factor.
         double logIntra = Av1FirstPassMath.Log1P(intraError);
         if (logIntra < 10.0)
         {
@@ -190,6 +186,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
             record.IntraFactor += 1.0;
         }
 
+        // A dark unit with a low intra error adds more than one to the brightness factor. The first source sample gives the eight-bit level.
         int level = TOperator.ToInt32(frame.Source[sourceIndex]) >> precisionShift;
         if (level < DarkThreshold && logIntra < 9.0)
         {
@@ -200,11 +197,12 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
             record.BrightnessFactor += 1.0;
         }
 
-        // The surcharge matches the cost of a zero vector, so a plain frame does not turn into key frames.
+        // The surcharge matches the cost of a zero vector, so that a plain frame does not become a key frame.
         intraError += IntraModePenalty;
         record.IntraError += intraError;
 
-        // The row measures the wavelet energy of every unit before its units are predicted.
+        // When the wavelet energy is enabled, the row adds it to every record before the units are predicted. Otherwise the record holds the
+        // marker of an unmeasured energy.
         if (!this.calculateWaveletEnergy)
         {
             record.FrameAverageWaveletEnergy = InvalidWaveletEnergy;
@@ -214,17 +212,16 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Predicts every 4x4 transform block of a unit from the neighboring source samples, writes the residual,
-    /// and copies the source block into the reconstruction, which later frames use as their reference.
-    /// Reference: first_pass_predict_intra_block_for_luma_plane().
+    /// Predicts every 4x4 transform block of a unit from the neighboring source samples and writes the residual. Then it copies the source block
+    /// into the reconstruction, which later frames use as their reference.
     /// </summary>
     /// <param name="frame">The frame being measured.</param>
     /// <param name="sourceIndex">The source index of the block origin.</param>
     /// <param name="reconstructionIndex">The reconstruction index of the block origin.</param>
     /// <param name="blockWidth">The block width.</param>
     /// <param name="blockHeight">The block height.</param>
-    /// <param name="upAvailable">Whether the row above is inside the frame.</param>
-    /// <param name="leftAvailable">Whether the column to the left is inside the frame.</param>
+    /// <param name="upAvailable">Whether the row above is inside the tile.</param>
+    /// <param name="leftAvailable">Whether the column to the left is inside the tile.</param>
     private void PredictLumaFromSource(
         ref FrameContext frame,
         int sourceIndex,
@@ -242,7 +239,6 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
             for (int column = 0; column < blockWidth; column += 4)
             {
                 // The prediction reads the source, so it does not depend on earlier blocks of the unit.
-                // Reference: first_pass_intra_pred_and_calc_diff().
                 int index = sourceIndex + (row * stride) + column;
                 bool hasAbove = row > 0 || upAvailable;
                 bool hasLeft = column > 0 || leftAvailable;
@@ -262,7 +258,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
             }
         }
 
-        // The source replaces the reconstruction. Reference: copy_rect().
+        // The source replaces the reconstruction.
         for (int row = 0; row < blockHeight; row++)
         {
             frame.Source.Slice(sourceIndex + (row * stride), blockWidth)
@@ -271,17 +267,16 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Codes every 4x4 transform block of a unit with DC prediction from the reconstruction, regular
-    /// quantization without coefficient optimization, and reconstruction in place. Reference:
-    /// av1_encode_intra_block_plane() with encode_block_intra().
+    /// Codes every 4x4 transform block of a unit with DC prediction from the reconstruction, regular quantization without coefficient
+    /// optimization, and reconstruction in place.
     /// </summary>
     /// <param name="frame">The frame being measured.</param>
     /// <param name="sourceIndex">The source index of the block origin.</param>
     /// <param name="reconstructionIndex">The reconstruction index of the block origin.</param>
     /// <param name="blockWidth">The block width.</param>
     /// <param name="blockHeight">The block height.</param>
-    /// <param name="upAvailable">Whether the row above is inside the frame.</param>
-    /// <param name="leftAvailable">Whether the column to the left is inside the frame.</param>
+    /// <param name="upAvailable">Whether the row above is inside the tile.</param>
+    /// <param name="leftAvailable">Whether the column to the left is inside the tile.</param>
     private void EncodeIntraLuma(
         ref FrameContext frame,
         int sourceIndex,
@@ -317,7 +312,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
                 TOperator.Subtract(
                     frame.Source[(sourceIndex + (row * sourceStride) + column)..], sourceStride, reconstruction, stride, residual, blockWidth, 4, 4);
 
-                // The statistics stage pads with the DCT rule whatever type the block would code.
+                // The statistics stage always pads with the DCT rule, whatever transform type a coding pass picks for the block.
                 this.PadBorderResidual(residual, blockWidth, blockWidth, blockHeight, column, row, 4, 4);
                 this.CodeTransformBlock(residual, blockWidth, reconstruction, stride);
             }
@@ -325,9 +320,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Codes the residual of a unit predicted from LAST: the residual of the whole block is padded as one
-    /// region, then every 4x4 transform block is quantized and added to the prediction. Reference:
-    /// av1_encode_sby_pass1() with encode_block_pass1().
+    /// Codes the residual of a unit with an inter prediction. The residual of the whole block is padded as one region. Then every 4x4 transform
+    /// block is quantized and added to the prediction.
     /// </summary>
     /// <param name="frame">The frame being measured.</param>
     /// <param name="sourceIndex">The source index of the block origin.</param>
@@ -356,9 +350,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Transforms a 4x4 residual with the DCT, quantizes it with the regular quantizer at the first-pass
-    /// quantizer index, and adds the inverse of any nonzero coefficients to the prediction. Reference:
-    /// av1_xform_quant() and av1_inverse_transform_block() as called by encode_block_pass1().
+    /// Transforms a 4x4 residual with the DCT and quantizes it with the regular quantizer at the first-pass quantizer index. When any
+    /// coefficient is nonzero, the inverse transform adds the result to the prediction.
     /// </summary>
     /// <param name="residual">The residual at the transform origin.</param>
     /// <param name="residualStride">The residual row stride.</param>
@@ -375,9 +368,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
             this.bitDepth.GetBitCount(),
             this.transformWorkspace);
 
-        // The statistics compressor builds its quantizer tables once, when it is created, and never rebuilds
-        // them. Both aomenc and libavif set the sharpness afterwards, so the first pass always rounds with the
-        // tables of sharpness zero. Reference: the av1_init_quantizer() call of av1_create_compressor().
+        // The statistics compressor builds its quantizer tables once, at creation, and never rebuilds them. The encoder applies the sharpness
+        // setting after that, so the first pass always rounds with the tables of sharpness zero.
         int endOfBlock = Av1ForwardQuantizer.QuantizeRegular(
             this.transformed,
             this.quantized,
@@ -398,8 +390,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Replaces the residual of a region outside the visible frame by the mean of its visible part when border
-    /// padding is enabled. Reference: av1_subtract_block() with get_visible_dimensions().
+    /// Replaces the residual of a region outside the visible frame by the mean of its visible part when border padding is enabled.
     /// </summary>
     /// <param name="residual">The residual at the region origin.</param>
     /// <param name="residualStride">The residual row stride.</param>
@@ -425,10 +416,9 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Measures the inter errors of a unit. LAST is searched from the previous unit's vector and, when that is
-    /// nonzero, from zero; LAST2 and GOLDEN are searched from zero once they hold older frames. The best LAST
-    /// error competes with the intra error, and a winning vector is coded and accumulated.
-    /// Reference: firstpass_inter_prediction().
+    /// Measures the inter errors of a unit. The LAST search starts from the vector of the previous unit and, when that vector is nonzero, also
+    /// from zero. The LAST2 and GOLDEN searches start from zero once those references hold older frames. The best LAST error competes with the
+    /// intra error. A winning vector is coded and accumulated.
     /// </summary>
     /// <param name="frame">The frame being measured.</param>
     /// <param name="unitRow">The unit row.</param>
@@ -515,22 +505,22 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
             record.SecondReferenceCount++;
         }
 
-        // Before GOLDEN holds an older frame the second-reference error takes the LAST error, not its best with
-        // intra; the reference notes the asymmetry and keeps it.
+        // Before GOLDEN holds an older frame, the second-reference error takes the LAST error and not its minimum with the intra error. The
+        // stage keeps this asymmetry so that its statistics stay the same as those of other AV1 encoders.
         record.SecondReferenceCodedError += this.frameNumber > 1 ? Math.Min(goldenError, intraError) : motionError;
 
         bestVector = default;
         if (motionError <= intraError)
         {
-            // Count units where intra and inter are close and both low, which marks black bars and cropped
-            // content, and units where intra is not much worse, which limits the golden-frame interval.
+            // Count units where intra and inter are close and both low, which marks black bars and cropped content. Also count units where intra
+            // is not much worse, which limits the golden-frame interval.
             if (((intraError - IntraModePenalty) * 9 <= motionError * 10) && (intraError < 2 * IntraModePenalty))
             {
                 record.NeutralCount += 1.0;
             }
             else if ((intraError > NeutralCountIntraThreshold) && (intraError < NeutralCountIntraFactor * motionError))
             {
-                // DOUBLE_DIVIDE_CHECK keeps the ratio finite for a zero intra error.
+                // The small constant keeps the ratio finite for a zero intra error.
                 record.NeutralCount += motionError / ((double)intraError + 0.000001);
             }
 
@@ -539,11 +529,10 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
 
             if (!this.disableReconstruction)
             {
-                // A full-sample vector predicts by copying the displaced block. The predictor addresses the base
-                // of the plane that was last attached to the block, and restoring LAST after the other searches
-                // moves only the block pointer, not that base. Once GOLDEN is searched, from the third frame on,
-                // the LAST vector therefore predicts from GOLDEN. Reference: av1_enc_build_inter_predictor()
-                // through enc_calc_subpel_params(), which reads buf0.
+                // A full-sample vector predicts by a copy of the displaced block. The predictor addresses the base of the plane that the block
+                // used last. The return to LAST after the other searches moves only the block position, not that base. From the third frame on,
+                // the GOLDEN search runs last, so the LAST vector predicts from GOLDEN. The stage keeps this behavior so that its statistics stay
+                // the same as those of other AV1 encoders.
                 ReadOnlySpan<TSample> predictionPlane = this.frameNumber > 1 ? frame.Golden : frame.Last;
                 int blockWidth = blockSize.GetWidth();
                 int blockHeight = blockSize.GetHeight();
@@ -572,8 +561,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Counts a nonzero vector, whether it differs from the previous nonzero vector, and whether each component
-    /// points toward or away from the frame center. Reference: accumulate_mv_stats().
+    /// Counts a nonzero vector, whether it differs from the previous nonzero vector, and whether each component points toward or away from the
+    /// frame center.
     /// </summary>
     /// <param name="bestVector">The winning vector in eighth samples.</param>
     /// <param name="vector">The winning vector in full samples.</param>
@@ -606,8 +595,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
 
         lastNonZeroVector = bestVector;
 
-        // A component pointing away from the center of its half of the frame counts inward, and one pointing
-        // toward the center counts outward; the middle row and column count neither way.
+        // A component that points away from the frame center adds one to the inward count. A component that points toward the frame center
+        // subtracts one. The middle unit row and unit column count neither way.
         if (unitRow < unitRows / 2)
         {
             record.SumInVectors += vector.Y > 0 ? -1 : vector.Y < 0 ? 1 : 0;
@@ -628,10 +617,9 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Measures the squared error of a source block against a reference block at zero motion. Only the 8x8,
-    /// 16x8 and 8x16 blocks have their own measure; every other block, including those smaller than 8x8, is
-    /// measured over 16x16. High bit depths round the error to eight-bit precision.
-    /// Reference: get_prediction_error_bitdepth().
+    /// Measures the squared error of a source block against a reference block at zero motion. Only the 8x8, 16x8 and 8x16 blocks have their own
+    /// measure. Every other block, including those smaller than 8x8, is measured over 16x16. High bit depths round the error to eight-bit
+    /// precision.
     /// </summary>
     /// <param name="blockSize">The measured block size.</param>
     /// <param name="frame">The frame being measured.</param>
@@ -659,7 +647,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         TOperator.GetMoments(
             frame.Source[sourceIndex..], frame.SourceStride, reference[referenceIndex..], referenceStride, width, height, out _, out long squares);
 
-        // The high-bit-depth measures round to eight-bit precision. Reference: aom_highbd_10_mse16x16().
+        // The high-bit-depth measures round to eight-bit precision.
         int shift = 2 * (this.bitDepth.GetBitCount() - 8);
         if (shift != 0)
         {
@@ -670,12 +658,14 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Sets the row limits of every search in a unit row. Reference: av1_set_mv_row_limits().
+    /// Sets the row limits of every search in a unit row.
     /// </summary>
     /// <param name="miRow">The unit row in 4x4 units.</param>
     /// <param name="miHeight">The unit height in 4x4 units.</param>
     private void SetMotionVectorRowLimits(int miRow, int miHeight)
     {
+        // Each bound is the tighter of two limits. The first keeps the displaced block two interpolation margins inside the frame border. The
+        // second lets the whole block leave the coded frame by at most two interpolation margins.
         int minimum1 = -((miRow * 4) + this.border - (2 * InterpolationExtend));
         int minimum2 = -(((miRow + miHeight) * 4) + (2 * InterpolationExtend));
         this.motionLimits.RowMinimum = Math.Max(minimum1, minimum2);
@@ -685,7 +675,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Sets the column limits of every search in a unit. Reference: av1_set_mv_col_limits().
+    /// Sets the column limits of every search in a unit. The bounds follow the same rule as <see cref="SetMotionVectorRowLimits"/>.
     /// </summary>
     /// <param name="miColumn">The unit column in 4x4 units.</param>
     /// <param name="miWidth">The unit width in 4x4 units.</param>

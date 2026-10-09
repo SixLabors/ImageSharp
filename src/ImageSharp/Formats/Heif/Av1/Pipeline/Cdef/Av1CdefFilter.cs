@@ -34,7 +34,7 @@ internal static partial class Av1CdefFilter
     /// <param name="destinationOffset">The offset of the rectangle's top-left destination sample.</param>
     /// <param name="destinationStride">The number of samples between adjacent destination rows.</param>
     /// <param name="width">The rectangle width in samples.</param>
-    /// <param name="height">The even rectangle height in samples.</param>
+    /// <param name="height">The rectangle height in samples.</param>
     public static void CopyPlane(
         ReadOnlySpan<byte> source,
         int sourceOffset,
@@ -48,8 +48,8 @@ internal static partial class Av1CdefFilter
         ref byte sourceBase = ref MemoryMarshal.GetReference(source);
         ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        // Each row widens the widest runs first; every width widens the unsigned samples exactly, so the steps
-        // only change how many samples one instruction converts.
+        // Each row widens the widest runs first: 32 bytes into one 512-bit vector, then 16 bytes into one 256-bit vector of 16-bit lanes.
+        // Zero extension is exact at every width, so the steps only change how many samples one instruction converts.
         for (int row = 0; row < height; row++)
         {
             int sourceRow = sourceOffset + (row * sourceStride);
@@ -357,8 +357,8 @@ internal static partial class Av1CdefFilter
         ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
         ref TSample destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        // the reference decoder selects one of four closed kernels from the two strength flags. The semantic operator makes the same
-        // choice once per block so the JIT removes primary/secondary mode branches from every row and tap.
+        // The two strength flags select one of four closed kernels. The filter operator makes this choice once per block,
+        // so the JIT removes the primary and secondary mode branches from every row and tap.
         if (primaryStrength != 0)
         {
             if (secondaryStrength != 0)
@@ -618,9 +618,8 @@ internal static partial class Av1CdefFilter
         Vector256<short> one = Vector256.Create((short)1);
         int rowsPerBatch = blockWidth == 8 ? 2 : 4;
 
-        // The 256-bit lane layout follows the reference decoder: two complete 8-wide rows, or four complete 4-wide rows. Directional
-        // offsets therefore remain ordinary source offsets, while all constrain, weight, clip, and round operations
-        // advance several output rows together without crossing a row boundary inside any 128-bit lane.
+        // Each 256-bit vector holds two complete 8-wide rows or four complete 4-wide rows, and no row crosses a 128-bit lane boundary.
+        // Directional offsets therefore remain ordinary source offsets. All constrain, weight, clip, and round operations advance several rows together.
         for (int row = 0; row < blockHeight; row += rowsPerBatch)
         {
             int sourceIndex = sourceOffset + (row * sourceStride);
@@ -673,6 +672,7 @@ internal static partial class Av1CdefFilter
                 }
             }
 
+            // The sign correction gives the same rounding as the scalar kernel: sum / 16 rounds to the nearest value, ties away from zero.
             Vector256<short> correction = (sum >> 15) & one;
             Vector256<short> filtered = sample + ((sum + rounding - correction) >> 4);
             if (clippingRequired)
@@ -718,7 +718,9 @@ internal static partial class Av1CdefFilter
             lines[row] = (samples >> coefficientShift).AsInt16() - analysisBias;
         }
 
-        // Vector lanes are written in memory order. These are the low-to-high forms of the reference decoder's set-style constants.
+        // Vector lanes are written in memory order, lowest lane first. A line cost is its squared sum times 840 / length. 840 is the least
+        // common multiple of 1 to 8, so every weight is an exact integer. The fold weights cover lengths 1 to 8. The diagonal weights
+        // cover the shallow-diagonal lengths 2, 4, 6 and 8. The two zero weights remove the first two lane pairs from those costs.
         Vector128<int> foldWeights0 = Vector128.Create(840, 420, 280, 210);
         Vector128<int> foldWeights1 = Vector128.Create(168, 140, 120, 105);
         Vector128<int> diagonalWeights0 = Vector128.Create(0, 0, 420, 210);
@@ -726,8 +728,7 @@ internal static partial class Av1CdefFilter
         InlineArray8<int> costs = default;
         ref int costBase = ref costs[0];
 
-        // The first pass evaluates directions 4..7. Rotating the block counter-clockwise lets the identical arithmetic
-        // evaluate directions 0..3, exactly matching the reference decoder's portable vector implementation.
+        // The first pass evaluates directions 4 to 7. ReverseTranspose rotates the block counter-clockwise, so the same arithmetic evaluates 0 to 3.
         ComputeDirectionCosts(ref lines, foldWeights0, foldWeights1, diagonalWeights0, diagonalWeights1).StoreUnsafe(ref costBase, 4);
         ReverseTranspose(ref lines);
         ComputeDirectionCosts(ref lines, foldWeights0, foldWeights1, diagonalWeights0, diagonalWeights1).StoreUnsafe(ref costBase);
@@ -767,8 +768,8 @@ internal static partial class Av1CdefFilter
             Vector128<ushort> first = Vector128.LoadUnsafe(ref sourceBase, (nuint)(firstSourceOffset + (row * sourceStride)));
             Vector128<ushort> second = Vector128.LoadUnsafe(ref sourceBase, (nuint)(secondSourceOffset + (row * sourceStride)));
 
-            // Keeping one block in each 128-bit lane is critical: every byte shift, unpack, multiply,
-            // and transpose remains lane-local while one AVX2 instruction advances both direction searches.
+            // Each 128-bit lane holds one block. Every byte shift, unpack, multiply, and transpose stays lane-local, so one 256-bit
+            // instruction advances both direction searches.
             lines[row] = (Vector256.Create(first, second) >> coefficientShift).AsInt16() - analysisBias;
         }
 
@@ -957,7 +958,7 @@ internal static partial class Av1CdefFilter
         Vector128<int> weights1)
     {
         // Reversal aligns equally long lines. Interleaving then gives MultiplyAddAdjacent the [x,y] pairs whose
-        // squared magnitudes share one line-length weight, including the unpaired centre line with an inserted zero.
+        // squared magnitudes share one line-length weight, including the unpaired center line with an inserted zero.
         partialB = Vector128.ShuffleNative(partialB, Vector128.Create((short)6, 5, 4, 3, 2, 1, 0, 7));
         Vector128<short> originalA = partialA;
         partialA = Vector128_.UnpackLow(partialA, partialB);
@@ -981,6 +982,7 @@ internal static partial class Av1CdefFilter
         Vector256<int> weights0,
         Vector256<int> weights1)
     {
+        // The byte pattern reverses Int16 lanes 0 to 6 of each 128-bit lane and keeps lane 7 in place, as in the 128-bit kernel.
         Vector128<byte> laneShuffle = Vector128.Create((byte)12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 14, 15);
         partialB = Vector256_.ShufflePerLane(partialB.AsByte(), Vector256.Create(laneShuffle, laneShuffle)).AsInt16();
         Vector256<short> originalA = partialA;
@@ -1005,6 +1007,7 @@ internal static partial class Av1CdefFilter
         Vector128<int> cost2,
         Vector128<int> cost3)
     {
+        // The unpacks transpose the 4x4 matrix of partial costs. Adding the four transposed rows puts the total of cost n in lane n.
         Vector128<int> pair01Lower = Vector128_.UnpackLow(cost0, cost1);
         Vector128<int> pair23Lower = Vector128_.UnpackLow(cost2, cost3);
         Vector128<int> pair01Upper = Vector128_.UnpackHigh(cost0, cost1);
@@ -1130,8 +1133,8 @@ internal static partial class Av1CdefFilter
         Span<int> lineSums = partials;
         Span<int> directionCosts = costs;
 
-        // The fallback reuses one 15-line accumulator for each direction. Re-reading the 8x8 block is preferable to
-        // reserving and clearing the old 120-element partial table on every block when SIMD is explicitly disabled.
+        // The fallback reuses one 15-line accumulator for each direction. It reads the 8x8 block again for each direction instead of
+        // keeping and clearing a 120-element table that holds the line sums of all eight directions.
         for (int direction = 0; direction < 8; direction++)
         {
             lineSums.Clear();
@@ -1203,6 +1206,7 @@ internal static partial class Av1CdefFilter
     /// <returns>The weighted direction cost.</returns>
     private static int CalculateDirectionCost(int direction, ReadOnlySpan<int> lineSums)
     {
+        // Horizontal and vertical directions have eight lines of length 8.
         int cost = 0;
         if (direction is 2 or 6)
         {
@@ -1214,6 +1218,7 @@ internal static partial class Av1CdefFilter
             return cost * 105;
         }
 
+        // The 45-degree directions have 15 lines. Line n and its mirror 14 - n both have length n + 1, and the center line has length 8.
         if ((direction & 1) == 0)
         {
             for (int line = 0; line < 7; line++)
@@ -1225,6 +1230,7 @@ internal static partial class Av1CdefFilter
             return cost + (lineSums[7] * lineSums[7] * 105);
         }
 
+        // The shallow diagonals have 11 lines. Lines 3 to 7 have length 8. Line n and its mirror 10 - n have length 2n + 2 for n below 3.
         for (int line = 3; line < 8; line++)
         {
             cost += lineSums[line] * lineSums[line];
@@ -1367,7 +1373,8 @@ internal static partial class Av1CdefFilter
                 }
             }
 
-            // The sign lane contributes the one-unit correction required by AV1's asymmetric rounding for negative sums.
+            // `sum >> 15` is all ones in a negative lane, so `correction` is one there and zero elsewhere. The result is the scalar
+            // rounding (8 + sum - (sum < 0)) >> 4: sum / 16 rounds to the nearest value, ties away from zero.
             Vector128<short> correction = (sum >> 15) & one;
             Vector128<short> filtered = sample + ((sum + rounding - correction) >> 4);
             if (clippingRequired)
@@ -1483,6 +1490,7 @@ internal static partial class Av1CdefFilter
                     }
                 }
 
+                // The minus one for a negative sum makes the rounding symmetric about zero: ties round away from zero.
                 int filtered = sample + ((8 + sum - (sum < 0 ? 1 : 0)) >> 4);
                 TOutputOperator.StoreScalar(
                     ref destination,
@@ -1530,6 +1538,7 @@ internal static partial class Av1CdefFilter
         int column,
         int width)
     {
+        // Eight bytes load as one 64-bit scalar and zero-extend into eight 16-bit lanes. The scalar loop copies the final samples.
         if (Vector128.IsHardwareAccelerated)
         {
             for (; column <= width - Vector64<byte>.Count; column += Vector64<byte>.Count)
@@ -1565,8 +1574,8 @@ internal static partial class Av1CdefFilter
             return Vector256.Create(firstRow, secondRow);
         }
 
-        // Four-row batches use one 64-bit load per row. Pairing two rows in each 128-bit lane preserves the exact row
-        // boundaries required by the reference decoder's lane-local shifts while avoiding reads beyond the frame sentinel border.
+        // Four-row batches use one 64-bit load per row, so no load reads past the sentinel border. The lower 128-bit lane holds rows 0
+        // and 1, and the upper lane holds rows 2 and 3. Each row therefore keeps its own four lanes.
         Vector64<short> row0 = LoadSamples(ref source, offset, 4).GetLower();
         Vector64<short> row1 = LoadSamples(ref source, offset + stride, 4).GetLower();
         Vector64<short> row2 = LoadSamples(ref source, offset + (2 * stride), 4).GetLower();
@@ -1603,6 +1612,7 @@ internal static partial class Av1CdefFilter
             return;
         }
 
+        // Each 128-bit half holds two 4-wide rows. The second row of each half moves into the low four lanes for its store.
         TOutputOperator.StoreVector(ref destination, offset, lower, 4);
         TOutputOperator.StoreVector(ref destination, offset + stride, Vector128.Create(lower.GetUpper(), Vector64<short>.Zero), 4);
         TOutputOperator.StoreVector(ref destination, offset + (2 * stride), upper, 4);
@@ -1620,6 +1630,7 @@ internal static partial class Av1CdefFilter
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<short> Constrain(Vector128<short> neighbor, Vector128<short> sample, int threshold, int dampingShift)
     {
+        // The saturating subtraction stops threshold - (magnitude >> dampingShift) at zero. This is the lower bound of the scalar Clip3.
         Vector128<short> difference = neighbor - sample;
         Vector128<short> sign = difference >> 15;
         Vector128<ushort> magnitude = Vector128.Abs(difference).AsUInt16();
@@ -1659,6 +1670,7 @@ internal static partial class Av1CdefFilter
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<short> MaximumIgnoringSentinel(Vector128<short> maximum, Vector128<short> candidate, Vector128<short> sentinel)
     {
+        // The sentinel is larger than every 12-bit sample. The minimum therefore ignores it without a mask, but the maximum needs this select.
         Vector128<short> available = Vector128.ConditionalSelect(Vector128.Equals(candidate, sentinel), Vector128<short>.Zero, candidate);
         return Vector128.Max(maximum, available);
     }

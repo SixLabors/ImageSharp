@@ -35,7 +35,7 @@ internal static partial class Av1LoopRestorationEncoder
         Span<long> covariance)
         where TSample : unmanaged
     {
-        // The mean of the reconstructed unit centers every product. Reference: find_average().
+        // The mean of the reconstructed unit centers every product.
         GetSampleMoments(reconstruction, out long sum, out _);
         int average = (int)(sum / (reconstruction.Width * reconstruction.Height));
         ReadOnlySpan<TSample> original = source.Samples;
@@ -141,6 +141,8 @@ internal static partial class Av1LoopRestorationEncoder
         ref TSample secondBase = ref MemoryMarshal.GetReference(second);
         int width = first.Length;
         int column = 0;
+
+        // Each register width takes the whole vectors of 16-bit samples that fit. The narrower widths and the scalar loop take the rest.
         if (Vector512.IsHardwareAccelerated)
         {
             for (; column <= width - Vector512<short>.Count; column += Vector512<short>.Count)
@@ -191,6 +193,8 @@ internal static partial class Av1LoopRestorationEncoder
         Span<int> vertical = verticalStorage;
         Span<int> horizontal = horizontalStorage;
         Span<int> product = productStorage;
+
+        // The center tap makes the seven symmetric Q7 taps sum to 128.
         vertical[3] = horizontal[3] = 128;
         for (int index = 0; index < 3; index++)
         {
@@ -200,6 +204,7 @@ internal static partial class Av1LoopRestorationEncoder
             horizontal[3] -= 2 * horizontal[index];
         }
 
+        // The separable 2D filter is the product of the vertical and horizontal taps, in Q14. It uses the column-major index of the statistics.
         int inset = (7 - window) >> 1;
         int count = window * window;
         for (int column = 0; column < window; column++)
@@ -210,6 +215,8 @@ internal static partial class Av1LoopRestorationEncoder
             }
         }
 
+        // The score is the squared error without the constant source energy: the filter times the covariance times the filter, less two
+        // times the filter times the correlation. Each division by 128 removes one Q7 scale.
         long linear = 0;
         long quadratic = 0;
         for (int first = 0; first < count; first++)
@@ -221,6 +228,7 @@ internal static partial class Av1LoopRestorationEncoder
             }
         }
 
+        // The identity filter has only the center tap, so its score uses only the center entries.
         int centerIndex = count >> 1;
         long identity = covariance[(centerIndex * count) + centerIndex] - (2 * correlation[centerIndex]);
         return quadratic - (2 * linear) - identity;

@@ -4,337 +4,319 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 
 /// <content>
-/// The rate control of a look-ahead sequence that codes against a bit budget: the bits of each key frame group and
-/// golden frame group, the target of each frame, the quantizer the rate model picks for it, and the update after it
-/// is coded. libavif keeps libaom's default rate of 256 kbps with the good-quality buffer of 6000 ms and 25% under-
-/// and overshoot. Reference: the one-pass look-ahead (LAP) bit allocation of find_next_key_frame() and
-/// define_gf_group(), the targets of av1_set_frame_size(), and the statistics branch of rc_pick_q_and_bounds().
+/// The rate control of a look-ahead sequence that codes against a bit budget: the bits of each key frame group and golden frame group,
+/// the target of each frame, the quantizer the rate model picks for it, and the update after it is coded. The rate control uses a fixed
+/// rate of 256 kbps, a buffer of 6000 ms and an undershoot and overshoot tolerance of 25%.
 /// </content>
 internal sealed partial class Av1SecondPass
 {
     /// <summary>
-    /// The target rate in bits per second. Reference: the rc_target_bitrate default.
+    /// The target rate in bits per second.
     /// </summary>
     private const long TargetBandwidth = 256 * 1000;
 
     /// <summary>
-    /// The largest frame in percent of the average frame. Reference: the rc_2pass_vbr_maxsection_pct default.
+    /// The largest frame in percent of the average frame.
     /// </summary>
     private const int VariableBitrateMaximumSection = 2000;
 
     /// <summary>
-    /// The undershoot tolerance in percent. Reference: the rc_undershoot_pct default.
+    /// The undershoot tolerance in percent.
     /// </summary>
     private const int UnderShootPercentage = 25;
 
     /// <summary>
-    /// The overshoot tolerance in percent. Reference: the rc_overshoot_pct default.
+    /// The overshoot tolerance in percent.
     /// </summary>
     private const int OverShootPercentage = 25;
 
     /// <summary>
-    /// The buffer level before the first frame, in milliseconds. Reference: the rc_buf_initial_sz default.
+    /// The buffer level before the first frame, in milliseconds.
     /// </summary>
     private const int StartingBufferMilliseconds = 4000;
 
     /// <summary>
-    /// The largest buffer level, in milliseconds. Reference: the rc_buf_sz default.
+    /// The largest buffer level, in milliseconds.
     /// </summary>
     private const int MaximumBufferMilliseconds = 6000;
 
     /// <summary>
-    /// The bits-per-macroblock precision. Reference: BPER_MB_NORMBITS.
+    /// The number of fraction bits of a bits-per-macroblock value.
     /// </summary>
     private const int BitsPerMacroblockShift = 9;
 
     /// <summary>
-    /// The least bits a frame is given. Reference: FRAME_OVERHEAD_BITS.
+    /// The least bits a frame is given.
     /// </summary>
     private const int FrameOverheadBits = 200;
 
     /// <summary>
-    /// Reference: MIN_BPB_FACTOR.
+    /// The smallest rate correction factor.
     /// </summary>
     private const double MinimumBitsPerBlockFactor = 0.005;
 
     /// <summary>
-    /// Reference: MAX_BPB_FACTOR.
+    /// The largest rate correction factor.
     /// </summary>
     private const double MaximumBitsPerBlockFactor = 50;
 
     /// <summary>
-    /// Reference: MAX_MB_RATE.
+    /// The bits per macroblock that the largest frame target always allows.
     /// </summary>
     private const int MaximumMacroblockRate = 250;
 
     /// <summary>
-    /// Reference: MAXRATE_1080P.
+    /// The bits that the largest frame target always allows. This is <see cref="MaximumMacroblockRate"/> for the 8100 macroblocks of a 1080p frame.
     /// </summary>
     private const int MaximumRate1080P = 2025000;
 
     /// <summary>
-    /// The seconds of frames a look-ahead key frame group allocates its key frame bits over at most. Reference:
-    /// MAX_KF_BITS_INTERVAL_SINGLE_PASS.
+    /// The largest number of seconds of frames over which a look-ahead key frame group allocates its key frame bits.
     /// </summary>
     private const int MaximumKeyFrameBitsIntervalSeconds = 5;
 
     /// <summary>
-    /// The largest share, in percent, of a frame target that the variable-bitrate correction moves. Reference:
-    /// VBR_PCT_ADJUSTMENT_LIMIT.
+    /// The largest share, in percent, of a frame target that the variable-bitrate correction moves.
     /// </summary>
     private const int VariableBitrateAdjustmentLimit = 50;
 
     /// <summary>
-    /// The largest quantizer floor extension of the variable-bitrate mode. Reference: MINQ_ADJ_LIMIT.
+    /// The largest quantizer floor extension of the variable-bitrate mode.
     /// </summary>
     private const int MinimumQAdjustmentLimit = 48;
 
     /// <summary>
-    /// The largest quantizer floor extension of the constrained-quality mode. Reference: MINQ_ADJ_LIMIT_CQ.
+    /// The largest quantizer floor extension of the constrained-quality mode.
     /// </summary>
     private const int MinimumQAdjustmentLimitConstrained = 20;
 
     /// <summary>
-    /// The undershoot below which an ordinary frame feeds its unused bits back quickly. Reference:
-    /// HIGH_UNDERSHOOT_RATIO.
+    /// The divisor of the frame allocation below which an ordinary frame feeds its unused bits back quickly.
     /// </summary>
     private const int HighUndershootRatio = 2;
 
     /// <summary>
-    /// The error scale of the worst quantizer estimate. Reference: ERR_DIVISOR.
+    /// The error scale of the worst quantizer estimate.
     /// </summary>
     private const double ErrorDivisor = 96.0;
 
     /// <summary>
-    /// The zero motion percentage at and above which a key frame group is static. Reference:
-    /// STATIC_KF_GROUP_THRESH.
+    /// The zero motion percentage at and above which a key frame group is static.
     /// </summary>
     private const int StaticKeyFrameGroupPercent = 99;
 
     /// <summary>
-    /// The zero motion percentage of the last key frame group at and above which a forced key frame keeps its
-    /// quantizer range. Reference: STATIC_MOTION_THRESH.
+    /// The zero motion percentage of the last key frame group at and above which a forced key frame keeps its quantizer range.
     /// </summary>
     private const int StaticMotionThreshold = 95;
 
     /// <summary>
-    /// The share of the quality level the spending must reach before the constrained-quality mode keeps its level.
-    /// Reference: cq_adjust_threshold of get_active_cq_level().
+    /// The share of the target bits that the spent bits must reach before the constrained-quality mode keeps its level.
     /// </summary>
     private const double ConstantQualityAdjustThreshold = 0.1;
 
     /// <summary>
-    /// The rate correction factor level of ordinary inter frames. Reference: INTER_NORMAL.
+    /// The rate correction factor level of ordinary inter frames.
     /// </summary>
     private const int InterNormalLevel = 0;
 
     /// <summary>
-    /// The rate correction factor level of internal alternate references. Reference: GF_ARF_LOW.
+    /// The rate correction factor level of internal alternate references.
     /// </summary>
     private const int GoldenLowLevel = 1;
 
     /// <summary>
-    /// The rate correction factor level of golden frames and alternate references. Reference: GF_ARF_STD.
+    /// The rate correction factor level of golden frames and alternate references.
     /// </summary>
     private const int GoldenStandardLevel = 2;
 
     /// <summary>
-    /// The rate correction factor level of key frames. Reference: KF_STD.
+    /// The rate correction factor level of key frames.
     /// </summary>
     private const int KeyFrameLevel = 3;
 
     /// <summary>
-    /// The rate control mode. Reference: rc_cfg.mode.
+    /// The rate control mode.
     /// </summary>
     private readonly Av1RateControlMode mode;
 
     /// <summary>
-    /// The frame rate. Reference: cpi->framerate.
+    /// The frame rate.
     /// </summary>
     private readonly double framerate;
 
     /// <summary>
-    /// The bits per frame at the target rate. Reference: rc->avg_frame_bandwidth.
+    /// The bits per frame at the target rate.
     /// </summary>
     private readonly int averageFrameBandwidth;
 
     /// <summary>
-    /// The largest bit target of a frame. Reference: rc->max_frame_bandwidth.
+    /// The largest bit target of a frame.
     /// </summary>
     private readonly int maximumFrameBandwidth;
 
     /// <summary>
-    /// The largest buffer level, in bits. Reference: p_rc->maximum_buffer_size.
+    /// The largest buffer level, in bits.
     /// </summary>
     private readonly long maximumBufferSize;
 
     /// <summary>
-    /// The rate correction factors, indexed by level. Reference: p_rc->rate_correction_factors.
+    /// The rate correction factors, indexed by level.
     /// </summary>
     private readonly double[] rateCorrectionFactors = [0.7, 0.7, 0.7, 1.0];
 
     /// <summary>
-    /// The quantizer index of the last frame of each pyramid level and the levels above it. Reference:
-    /// p_rc->active_best_quality.
+    /// The quantizer index of the last frame of each pyramid level and the levels above it.
     /// </summary>
     private readonly int[] activeBestQualities = new int[Av1GopStructure.MaximumArfLayers + 1];
 
     /// <summary>
-    /// The sum of the statistics of every analysed frame. Reference: stats_buf_ctx->total_stats.
+    /// The sum of the statistics of every analysed frame.
     /// </summary>
     private Av1FirstPassStatistics totalStatistics;
 
     /// <summary>
-    /// The bits left for the frames of the key frame group. Reference: twopass->kf_group_bits.
+    /// The bits left for the frames of the key frame group.
     /// </summary>
     private long keyFrameGroupBits;
 
     /// <summary>
-    /// The error left for the golden groups of the key frame group, one per frame. Reference:
-    /// twopass->kf_group_error_left.
+    /// The error left for the golden groups of the key frame group, one per frame.
     /// </summary>
     private double keyFrameGroupErrorLeft;
 
     /// <summary>
-    /// The bits of the current golden group. Reference: p_rc->gf_group_bits.
+    /// The bits of the current golden group.
     /// </summary>
     private long goldenGroupBits;
 
     /// <summary>
-    /// The bit allocation of the current frame. Reference: rc->base_frame_target.
+    /// The bit allocation of the current frame.
     /// </summary>
     private int baseFrameTarget;
 
     /// <summary>
-    /// The bit target of the current frame after the variable-bitrate correction. Reference: rc->this_frame_target.
+    /// The bit target of the current frame after the variable-bitrate correction.
     /// </summary>
     private int thisFrameTarget;
 
     /// <summary>
-    /// The bits the coded frames used beyond their allocations, negative when they overshot. Reference:
-    /// p_rc->vbr_bits_off_target.
+    /// The bits the coded frames used beyond their allocations, negative when they overshot.
     /// </summary>
     private long variableBitrateBitsOffTarget;
 
     /// <summary>
-    /// The bits large undershoots left for quick reuse. Reference: p_rc->vbr_bits_off_target_fast.
+    /// The bits large undershoots left for quick reuse.
     /// </summary>
     private long variableBitrateBitsOffTargetFast;
 
     /// <summary>
-    /// The extra bits the current frame took from the quick reuse. Reference: rc->frame_level_fast_extra_bits.
+    /// The extra bits the current frame took from the quick reuse.
     /// </summary>
     private int frameFastExtraBits;
 
     /// <summary>
-    /// Whether the current frame took extra bits from the quick reuse. Reference:
-    /// cpi->do_update_vbr_bits_off_target_fast.
+    /// Whether the current frame took extra bits from the quick reuse.
     /// </summary>
     private bool updatesFastBitsOffTarget;
 
     /// <summary>
-    /// The bits off target in percent of the bits spent, from -100 to 100. Reference: p_rc->rate_error_estimate.
+    /// The bits off target in percent of the bits spent, from -100 to 100.
     /// </summary>
     private int rateErrorEstimate;
 
     /// <summary>
-    /// The correction of the expected bits per macroblock of the worst quantizer estimate. Reference:
-    /// twopass->bpm_factor.
+    /// The correction of the expected bits per macroblock of the worst quantizer estimate.
     /// </summary>
     private double bitsPerMacroblockFactor = 1.0;
 
     /// <summary>
-    /// The allocated bits of the current alternate reference group. Reference:
-    /// twopass->rolling_arf_group_target_bits.
+    /// The allocated bits of the current alternate reference group.
     /// </summary>
     private long rollingGroupTargetBits = 1;
 
     /// <summary>
-    /// The coded bits of the current alternate reference group. Reference: twopass->rolling_arf_group_actual_bits.
+    /// The coded bits of the current alternate reference group.
     /// </summary>
     private long rollingGroupActualBits = 1;
 
     /// <summary>
-    /// The decrease of the quantizer floor from repeated undershoots. Reference: twopass->extend_minq.
+    /// The decrease of the quantizer floor from repeated undershoots.
     /// </summary>
     private int extendMinimumQ;
 
     /// <summary>
-    /// The increase of the quantizer ceiling from repeated overshoots. Reference: twopass->extend_maxq.
+    /// The increase of the quantizer ceiling from repeated overshoots.
     /// </summary>
     private int extendMaximumQ;
 
     /// <summary>
-    /// The running target of inter frames. Reference: p_rc->rolling_target_bits.
+    /// The running target of inter frames.
     /// </summary>
     private int rollingTargetBits;
 
     /// <summary>
-    /// The running size of inter frames. Reference: p_rc->rolling_actual_bits.
+    /// The running size of inter frames.
     /// </summary>
     private int rollingActualBits;
 
     /// <summary>
-    /// The bits every coded frame used. Reference: p_rc->total_actual_bits.
+    /// The bits every coded frame used.
     /// </summary>
     private long totalActualBits;
 
     /// <summary>
-    /// The average frame bandwidth summed over the shown frames. Reference: p_rc->total_target_bits.
+    /// The average frame bandwidth summed over the shown frames.
     /// </summary>
     private long totalTargetBits;
 
     /// <summary>
-    /// The bits saved against the target, capped at the buffer size. Reference: p_rc->bits_off_target.
+    /// The bits saved against the target, capped at the buffer size.
     /// </summary>
     private long bitsOffTarget;
 
     /// <summary>
-    /// The zero motion percentage of the current key frame group. Reference: twopass->kf_zeromotion_pct.
+    /// The zero motion percentage of the current key frame group.
     /// </summary>
     private int keyFrameZeroMotionPercent = 100;
 
     /// <summary>
-    /// The zero motion percentage of the key frame group of the last inter frame. Reference:
-    /// twopass->last_kfgroup_zeromotion_pct.
+    /// The zero motion percentage of the key frame group of the last inter frame.
     /// </summary>
     private int lastKeyFrameGroupZeroMotionPercent = 100;
 
     /// <summary>
-    /// Whether the refresh flags of the last coded frame refresh GOLDEN or ALTREF, which the quantizer estimates
-    /// read until the next frame is coded. Reference: cpi->refresh_frame.golden_frame || alt_ref_frame.
+    /// Whether the last coded frame refreshes the golden or the alternate reference frame. The quantizer estimates read this value until
+    /// the next frame is coded.
     /// </summary>
     private bool lastRefreshesBoostedReference;
 
     /// <summary>
-    /// Whether the current frame codes the source of an alternate reference, an overlay. Reference:
-    /// rc->is_src_frame_alt_ref.
+    /// Whether the current frame codes the source of an alternate reference, an overlay.
     /// </summary>
     private bool sourceIsAlternate;
 
     /// <summary>
-    /// Gets the bit target of the current frame, zero in constant-quality coding. Reference: rc->this_frame_target.
+    /// Gets the bit target of the current frame, zero in constant-quality coding.
     /// </summary>
     public int FrameTarget => this.thisFrameTarget;
 
     /// <summary>
-    /// Gets a value indicating whether the frames code against a bit budget. Reference: rc_cfg.mode != AOM_Q.
+    /// Gets a value indicating whether the frames code against a bit budget.
     /// </summary>
     private bool UsesBitBudget => this.mode != Av1RateControlMode.Quality;
 
     /// <summary>
     /// Gets a value indicating whether a high bit depth sequence uses sharpness 3.
     /// Then the fast return of undershoot bits stops while the sequence uses too many bits.
-    /// Reference: the bit_depth &gt; 8 &amp;&amp; sharpness == 3 tests of vbr_rate_correction() and av1_twopass_postencode_update().
     /// </summary>
     private bool UsesHighBitDepthSharpness => this.bitDepth.GetBitCount() > 8 && this.sharpness == 3;
 
     /// <summary>
-    /// Returns the quantizer index whose quantizer sets the strength of the temporal filter: the quality level, or
-    /// under a bit budget the running average quantizer of the frame type of the frame being coded.
-    /// Reference: get_q() of the temporal filter.
+    /// Returns the quantizer index whose quantizer sets the strength of the temporal filter: the quality level, or under a bit budget the
+    /// running average quantizer of the frame type of the frame being coded.
     /// </summary>
-    /// <param name="groupIndex">The index in the group of the frame being coded. Reference: gf_frame_index.</param>
+    /// <param name="groupIndex">The index in the group of the frame being coded.</param>
     /// <returns>The quantizer index.</returns>
     public int GetTemporalFilterQIndex(int groupIndex)
     {
@@ -347,8 +329,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the expected bits of a frame at a quantizer, the bits per macroblock at the current correction factor
-    /// times the macroblock count. Reference: av1_estimate_bits_at_q() without the accurate estimate.
+    /// Returns the expected bits of a frame at a quantizer, the bits per macroblock at the current correction factor times the macroblock
+    /// count. The result is never less than <see cref="FrameOverheadBits"/>.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="qIndex">The quantizer index.</param>
@@ -361,8 +343,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the expected bits per macroblock at a quantizer. Reference: av1_rc_bits_per_mb() with
-    /// get_bpmb_enumerator(), outside the constant-bitrate accurate estimate.
+    /// Returns the expected bits per macroblock at a quantizer: an enumerator times the correction factor, divided by the quantizer step.
+    /// Inter frames and screen content use smaller enumerators.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="qIndex">The quantizer index.</param>
@@ -376,21 +358,19 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Sets up the rate control state. Reference: av1_primary_rc_init(), av1_rc_init(), set_rc_buffer_sizes(),
-    /// av1_rc_update_framerate() and av1_init_single_pass_lap().
+    /// Sets up the rate control state: the starting buffer level and the running targets of inter frames.
     /// </summary>
     private void InitializeRateControl()
     {
         this.bitsOffTarget = StartingBufferMilliseconds * TargetBandwidth / 1000;
 
-        // The first frames of the group targets start at the bits of one frame at the configured frame rate.
-        // Reference: the rolling_target_bits of av1_primary_rc_init(), with the init_framerate of the 1/30 time base.
+        // The running target and size start at the bits of one frame at 30 frames per second, the initial frame rate of the 1/30 time base.
         this.rollingTargetBits = Math.Max(1, (int)(TargetBandwidth / 30.0));
         this.rollingActualBits = this.rollingTargetBits;
     }
 
     /// <summary>
-    /// Returns the largest bit target of one ordinary frame. Reference: frame_max_bits().
+    /// Returns the largest bit target of one ordinary frame.
     /// </summary>
     /// <returns>The largest target.</returns>
     private int GetFrameMaximumBits()
@@ -401,7 +381,6 @@ internal sealed partial class Av1SecondPass
 
     /// <summary>
     /// Returns the bits of a group that its boosted frame takes: the boost weighs against one hundred per other frame.
-    /// Reference: calculate_boost_bits().
     /// </summary>
     /// <param name="frameCount">The number of other frames of the group.</param>
     /// <param name="boost">The boost.</param>
@@ -433,11 +412,9 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Allocates the bits of a new key frame group of a look-ahead sequence and the key frame's own bits: the group
-    /// gets one average frame per frame, capped at the largest frame per frame, and the key frame takes its boost's
-    /// share of the bits of at most five seconds of frames. Constant-quality coding gives the group no bits.
-    /// Reference: the bit allocation of find_next_key_frame() with get_kf_group_bits() in the one-pass look-ahead
-    /// stage, without corpus complexity or level targets.
+    /// Allocates the bits of a new key frame group of a look-ahead sequence and the own bits of the key frame. The group gets one average
+    /// frame per frame, capped at the largest frame per frame. The key frame takes the share of its boost of the bits of at most five seconds
+    /// of frames. Constant-quality coding gives the group no bits.
     /// </summary>
     private void AllocateKeyFrameGroupBits()
     {
@@ -470,20 +447,16 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Allocates the bits of a golden frame group and of each of its frames: the group takes its share of the key
-    /// frame group's bits by its frame count, the alternate reference or golden frame its boost's share of them, and
-    /// the internal alternate references their layer's fraction of that. A final definition also estimates the
-    /// highest quantizer of the group and restarts the group's running bit counts. Reference: the bit allocation of
-    /// set_gop_bits_boost() with calculate_total_gf_group_bits(), get_twopass_worst_quality() under
-    /// GROUP_ADAPTIVE_MAXQ, av1_gop_bit_allocation() and allocate_gf_group_bits().
+    /// Allocates the bits of a golden frame group and of each of its frames. The group takes its share of the bits of the key frame group by
+    /// its frame count. The alternate reference or golden frame takes the share of its boost of these bits, and the internal alternate
+    /// references take the fraction of their layer of that. A final definition also estimates the highest quantizer of the group and restarts
+    /// the running bit counts of the group.
     /// </summary>
     /// <param name="finalPass">Whether this is the final definition of the group, not a trial.</param>
     /// <param name="useAltRef">Whether the group uses an alternate reference.</param>
-    /// <param name="rawError">The coded error summed over the frames of the group. Reference: gf_group_raw_error.</param>
-    /// <param name="skipPercent">The intra skip share summed over the frames of the group. Reference: gf_group_skip_pct.</param>
-    /// <param name="inactiveZoneRows">
-    /// The inactive rows summed over the frames of the group. Reference: gf_group_inactive_zone_rows.
-    /// </param>
+    /// <param name="rawError">The coded error summed over the frames of the group.</param>
+    /// <param name="skipPercent">The intra skip share summed over the frames of the group.</param>
+    /// <param name="inactiveZoneRows">The inactive rows summed over the frames of the group.</param>
     private void AllocateGoldenGroupBits(bool finalPass, bool useAltRef, double rawError, double skipPercent, double inactiveZoneRows)
     {
         // The look-ahead cannot know the error of the group, so every frame counts one.
@@ -497,8 +470,7 @@ internal sealed partial class Av1SecondPass
         totalGroupBits = Math.Min(totalGroupBits, (long)maximumBits * this.baselineGoldenInterval);
         this.goldenGroupBits = totalGroupBits;
 
-        // An estimate of the highest quantizer the group needs, which corrects an expected overshoot more than an
-        // expected undershoot.
+        // An estimate of the highest quantizer the group needs, which corrects an expected overshoot more than an expected undershoot.
         if (this.UsesBitBudget && this.baselineGoldenInterval > 1 && finalPass)
         {
             int groupBitsPerFrame = (int)(this.goldenGroupBits / this.baselineGoldenInterval);
@@ -514,7 +486,7 @@ internal sealed partial class Av1SecondPass
             this.keyFrameGroupErrorLeft -= groupError;
         }
 
-        // av1_gop_bit_allocation(): the boosted frame of the group, then every frame of it.
+        // Allocate the bits of the boosted frame of the group, then of every frame of the group.
         bool keyFrameGroup = this.framesSinceKey == 0;
         int boostedBits = CalculateBoostBits(this.baselineGoldenInterval - (keyFrameGroup ? 1 : 0), this.goldenBoost, this.goldenGroupBits);
         this.AllocateGroupFrameBits(boostedBits, keyFrameGroup, useAltRef);
@@ -527,9 +499,9 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Divides the bits of a golden frame group between its frames. Each alternate reference layer takes its fraction
-    /// of the boosted bits, which the frames of the layer share on top of the base bits of every frame; overlays take
-    /// none, and a key frame keeps the bits its group allocated. Reference: allocate_gf_group_bits().
+    /// Divides the bits of a golden frame group between its frames. Each alternate reference layer takes its fraction of the boosted bits.
+    /// The frames of the layer share these bits on top of the base bits of every frame. Overlays take no bits, and a key frame keeps the bits
+    /// that its group allocated.
     /// </summary>
     /// <param name="boostedBits">The extra bits of the alternate reference layers.</param>
     /// <param name="keyFrame">Whether a key frame starts the group.</param>
@@ -559,7 +531,7 @@ internal sealed partial class Av1SecondPass
             }
         }
 
-        // Each layer takes its fraction of what the layers above it left; the deepest layer takes the rest.
+        // Each layer takes its fraction of what the layers above it left. The deepest layer takes the rest.
         Span<int> layerExtraBits = stackalloc int[Av1GopStructure.MaximumArfLayers + 1];
         layerExtraBits.Clear();
         int arfBits = boostedBits;
@@ -597,9 +569,9 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Estimates the highest quantizer at which a group of frames codes within a bit rate, from the average coded
-    /// error per macroblock and a correction from the rate errors so far. Reference: get_twopass_worst_quality() with
-    /// twopass_update_bpm_factor(), calc_correction_factor() and find_qindex_by_rate_with_correction().
+    /// Estimates the highest quantizer at which a group of frames codes within a bit rate, from the average coded error per macroblock and
+    /// a correction from the rate errors so far. A binary search finds the lowest quantizer index whose expected bits per macroblock do not
+    /// exceed the target.
     /// </summary>
     /// <param name="averageFrameError">The average coded error per frame.</param>
     /// <param name="inactiveZone">The share of the frame to ignore, such as letterbox bands.</param>
@@ -623,8 +595,7 @@ internal sealed partial class Av1SecondPass
 
         this.UpdateBitsPerMacroblockFactor(rateErrorTolerance);
 
-        // A group whose alternate reference codes well below the group's error lowers its quantizer on static
-        // frames.
+        // A group whose alternate reference codes well below the error of the group lowers its quantizer on static frames.
         bool lowerOnStaticFrame = false;
         int arfOffset = this.baselineGoldenInterval - 1;
         if (this.statisticsInfo.Contains(arfOffset))
@@ -656,9 +627,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the correction of the bits per macroblock of the worst quantizer estimate at a quantizer index: the
-    /// error per macroblock to a power that grows with the quantizer. Reference: calc_correction_factor() with
-    /// q_pow_term.
+    /// Returns the correction of the bits per macroblock of the worst quantizer estimate at a quantizer index: the error per macroblock to
+    /// a power that grows with the quantizer. The power interpolates linearly between table entries that are 32 quantizer indices apart.
     /// </summary>
     /// <param name="errorPerMacroblock">The coded error per macroblock.</param>
     /// <param name="qIndex">The quantizer index.</param>
@@ -680,9 +650,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Moves the bits per macroblock correction of the worst quantizer estimate toward the rate error of the last
-    /// alternate reference group, damped and only in the direction that the error is getting worse. Reference:
-    /// twopass_update_bpm_factor() in the one-pass look-ahead stage.
+    /// Moves the bits per macroblock correction of the worst quantizer estimate toward the rate error of the last alternate reference group.
+    /// The move is damped, and it occurs only when the rate error of the whole sequence points the same way.
     /// </summary>
     /// <param name="rateErrorTolerance">The smaller of the under- and overshoot tolerances, in percent.</param>
     private void UpdateBitsPerMacroblockFactor(int rateErrorTolerance)
@@ -696,8 +665,8 @@ internal sealed partial class Av1SecondPass
             double absoluteErrorTolerance = 0.6 * rateErrorTolerance;
             double stepSize = (0.2 - initialAdjustmentLimit) / (rateErrorTolerance - absoluteErrorTolerance);
 
-            // The look-ahead leaves no bits, so the error measures against the bits spent. Before the first frame
-            // nothing is off target, and the error is zero.
+            // The look-ahead leaves no bits, so the error measures against the bits spent. Before the first frame nothing is off target, and
+            // the error is zero.
             double absoluteErrorSoFar = 100 * Math.Abs((double)this.variableBitrateBitsOffTarget / Math.Max(this.totalActualBits, 1));
             adjustmentLimitCap = initialAdjustmentLimit;
             if (absoluteErrorSoFar >= absoluteErrorTolerance)
@@ -732,9 +701,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Sets the highest quantizer of a look-ahead sequence before its first frame from the statistics the look-ahead
-    /// holds, and starts the quantizer history from it. Reference: the first frame branch of
-    /// process_first_pass_stats() with get_section_target_bandwidth() in the one-pass look-ahead stage.
+    /// Sets the highest quantizer of a look-ahead sequence before its first frame from the statistics the look-ahead holds, and starts the
+    /// quantizer history from it.
     /// </summary>
     private void InitializeFirstFrameQuality()
     {
@@ -751,9 +719,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Sets the bit target of the current frame from its allocation, moved by a limited share of the bits the earlier
-    /// frames left or overspent, plus the bits a large undershoot left for an ordinary frame. Reference:
-    /// av1_setup_target_rate(), then av1_set_target_rate() with vbr_rate_correction() in av1_set_frame_size().
+    /// Sets the bit target of the current frame from its allocation, moved by a limited share of the bits the earlier frames left or
+    /// overspent, plus the bits a large undershoot left for an ordinary frame.
     /// </summary>
     private void SetFrameTarget()
     {
@@ -772,7 +739,6 @@ internal sealed partial class Av1SecondPass
 
             // An ordinary frame quickly takes back the bits of a large local undershoot.
             // At high bit depth sharpness 3, this does not occur while the sequence uses too many bits.
-            // Reference: the fast redistribution test of vbr_rate_correction().
             Av1FrameUpdateType updateType = this.group.UpdateTypes[this.groupFrameIndex];
             bool boosted = updateType is Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate;
             bool sourceIsAlternate = updateType is Av1FrameUpdateType.Overlay or Av1FrameUpdateType.IntermediateOverlay;
@@ -797,8 +763,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the rate correction factor level of a frame of the group by its update type. Reference:
-    /// get_rate_factor_level() with rate_factor_levels.
+    /// Returns the rate correction factor level of a frame of the group by its update type.
     /// </summary>
     /// <param name="groupIndex">The frame's index in the group.</param>
     /// <returns>The level.</returns>
@@ -811,9 +776,8 @@ internal sealed partial class Av1SecondPass
     };
 
     /// <summary>
-    /// Returns the rate correction factor of a frame: the key frame factor for a key frame, else the factor of the
-    /// level of the frame being coded, which the estimates of the other frames of the group read too. Reference:
-    /// get_rate_correction_factor() in a statistics-consuming stage, which reads the level at gf_frame_index.
+    /// Returns the rate correction factor of a frame: the key frame factor for a key frame, else the factor of the level of the frame being
+    /// coded. The estimates of the other frames of the group also read this factor.
     /// </summary>
     /// <param name="groupIndex">The index in the group of the frame the factor is for.</param>
     /// <returns>The factor.</returns>
@@ -827,18 +791,16 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Picks the quantizer index of a frame of the group that codes against a bit budget. The floor comes from the
-    /// key frame or golden tables, the floor of the layer above for a deeper frame, or the inter table for a leaf;
-    /// the ceiling from the group's estimate, moved toward the floor for a boosted frame, by the layer's rate step and
-    /// by the corrections of the earlier rate errors. The rate model then picks the quantizer that meets the frame
-    /// target between them. Reference: rc_pick_q_and_bounds() outside AOM_Q, with get_intra_q_and_bounds(),
-    /// get_active_best_quality(), adjust_active_best_and_worst_quality() and get_q().
+    /// Picks the quantizer index of a frame of the group that codes against a bit budget. The floor comes from the key frame or golden
+    /// tables, the floor of the layer above for a deeper frame, or the inter table for a leaf. The ceiling comes from the estimate of the
+    /// group. The ceiling moves toward the floor for a boosted frame, by the rate step of the layer and by the corrections of the earlier rate
+    /// errors. The rate model then picks the quantizer that meets the frame target between them.
     /// </summary>
     /// <param name="groupIndex">The frame's index in the group.</param>
-    /// <param name="screenContent">Whether the frame is screen content. Reference: is_screen_content_type.</param>
+    /// <param name="screenContent">Whether the frame is screen content.</param>
     /// <param name="refreshesBoostedReference">
-    /// Whether the frame being set up refreshes GOLDEN or ALTREF, which the estimates of the other frames of the group
-    /// also read. Reference: refresh_frame->golden_frame || refresh_frame->alt_ref_frame.
+    /// Whether the frame being set up refreshes the golden or the alternate reference frame. The estimates of the other frames of the group
+    /// also read this value.
     /// </param>
     /// <returns>The quantizer index.</returns>
     private int PickBitBudgetQIndex(int groupIndex, bool screenContent, bool refreshesBoostedReference)
@@ -867,16 +829,16 @@ internal sealed partial class Av1SecondPass
                 activeBestQuality += (activeWorst - activeBestQuality) / 2;
             }
 
-            // A boosted frame moves its ceiling a quarter of the way to its floor, so that its quantizer stays below
-            // that of the leaves on hard sections.
+            // A boosted frame moves its ceiling a quarter of the way to its floor, so that its quantizer stays below that of the leaves on
+            // hard sections.
             if (!this.sourceIsAlternate && (refreshesBoostedReference || intermediateArf))
             {
                 activeWorst = (activeBestQuality + (3 * activeWorst) + 2) / 4;
             }
         }
 
-        // adjust_active_best_and_worst_quality(): the corrections of the earlier rate errors, then the rate step of
-        // the layer of the frame being coded, unless the frame is a static forced key frame.
+        // Apply the corrections of the earlier rate errors. Then apply the rate step of the layer of the frame being coded, unless the frame
+        // is a static forced key frame.
         activeBestQuality -= this.extendMinimumQ / 4;
         activeWorst += this.extendMaximumQ;
         if (!keyFrame || !this.thisKeyFrameForced || this.lastKeyFrameGroupZeroMotionPercent < StaticMotionThreshold)
@@ -888,7 +850,7 @@ internal sealed partial class Av1SecondPass
         activeBestQuality = Math.Clamp(activeBestQuality, this.bestQuality, this.worstQuality);
         activeWorst = Math.Clamp(activeWorst, activeBestQuality, this.worstQuality);
 
-        // get_q().
+        // Pick the quantizer between the bounds. A static key frame group codes its key frame at the floor.
         int q;
         if (keyFrame && !this.thisKeyFrameForced && this.keyFrameZeroMotionPercent >= StaticKeyFrameGroupPercent && this.framesToKey > 1)
         {
@@ -896,8 +858,8 @@ internal sealed partial class Av1SecondPass
         }
         else if (keyFrame && this.thisKeyFrameForced)
         {
-            // A forced key frame stays near the last boosted quantizer to limit popping, or after a static group
-            // at the better of that and the last key frame quantizer.
+            // A forced key frame stays near the last boosted quantizer to limit popping. After a static group, it uses the better of that and
+            // the last key frame quantizer.
             q = this.lastKeyFrameGroupZeroMotionPercent >= StaticMotionThreshold
                 ? Math.Min(this.lastKeyFrameQIndex, this.lastBoostedQIndex)
                 : Math.Min(this.lastBoostedQIndex, (activeBestQuality + activeWorst) / 2);
@@ -908,7 +870,7 @@ internal sealed partial class Av1SecondPass
         {
             q = this.RegulateQuantizer(keyFrame, groupIndex, activeBestQuality, activeWorst);
 
-            // Targeting the largest allowed frame keeps the chosen quantizer.
+            // A frame that targets the largest allowed size keeps the chosen quantizer. Other frames stay at or below the ceiling.
             if (q > activeWorst && this.thisFrameTarget < this.maximumFrameBandwidth)
             {
                 q = activeWorst;
@@ -917,16 +879,15 @@ internal sealed partial class Av1SecondPass
             q = Math.Max(q, activeBestQuality);
         }
 
-        // The bounds a recode searches between; a frame that targets the largest allowed size may exceed the ceiling.
+        // The bounds that a recode searches between. A frame that targets the largest allowed size can exceed the ceiling.
         this.pickedBottomIndex = activeBestQuality;
         this.pickedTopIndex = this.thisFrameTarget >= this.maximumFrameBandwidth && q > activeWorst ? q : activeWorst;
         return q;
     }
 
     /// <summary>
-    /// Returns the quality level of the constrained-quality mode, lowered in proportion while the frames so far spent
-    /// less than a tenth of their target, else the configured level. Reference: get_active_cq_level() without
-    /// superres.
+    /// Returns the quality level of the constrained-quality mode, lowered in proportion while the frames so far spent less than a tenth of
+    /// their target, else the configured level.
     /// </summary>
     /// <returns>The active level.</returns>
     private int GetActiveConstantQualityLevel()
@@ -945,10 +906,10 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the quantizer index change of a frame's layer: the change that scales the expected rate by the rate
-    /// step of the layer, one for ordinary frames. Reference: frame_type_qdelta() with arf_layer_deltas.
+    /// Returns the quantizer index change of a frame's layer: the change that scales the expected rate by the rate step of the layer, one
+    /// for ordinary frames.
     /// </summary>
-    /// <param name="groupIndex">The index in the group of the frame being coded. Reference: gf_frame_index.</param>
+    /// <param name="groupIndex">The index in the group of the frame being coded.</param>
     /// <param name="q">The quantizer index the step applies to.</param>
     /// <returns>The quantizer index change.</returns>
     private int GetFrameTypeQDelta(int groupIndex, int q)
@@ -962,8 +923,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the quantizer index change that scales the expected rate by a ratio, at the base rate correction.
-    /// Reference: av1_compute_qdelta_by_rate() and find_qindex_by_rate().
+    /// Returns the quantizer index change that scales the expected rate by a ratio, at the base rate correction. A binary search finds the
+    /// lowest quantizer index whose expected bits per macroblock do not exceed the scaled rate.
     /// </summary>
     /// <param name="keyFrame">Whether the rate is of a key frame.</param>
     /// <param name="qIndex">The base quantizer index.</param>
@@ -992,13 +953,11 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Updates the rate control after a frame is coded: the rate correction factor of the frame's level moves toward
-    /// the ratio of the coded to the expected size unless the frame codes an overlay, the buffer gains a frame's
-    /// bits for a shown frame and loses the coded size, the running inter frame target and size follow the frame,
-    /// and the totals add up. Reference: av1_rc_postencode_update() with av1_rc_update_rate_correction_factors()
-    /// and update_buffer_level(), for frames of the original size.
+    /// Updates the rate control after a frame is coded. The rate correction factor of the level of the frame moves toward the ratio of the
+    /// coded to the expected size, unless the frame codes an overlay. The buffer gains the bits of one frame for a shown frame and loses the
+    /// coded size. The running inter frame target and size follow the frame, and the totals add up.
     /// </summary>
-    /// <param name="projectedFrameSize">The coded size in bits. Reference: rc->projected_frame_size.</param>
+    /// <param name="projectedFrameSize">The coded size in bits.</param>
     /// <param name="qIndex">The frame's base quantizer index.</param>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="showFrame">Whether the frame is shown.</param>
@@ -1006,7 +965,7 @@ internal sealed partial class Av1SecondPass
     {
         this.UpdateRateCorrectionFactor(projectedFrameSize, qIndex, keyFrame);
 
-        // update_buffer_level(): a hidden frame is pure overhead.
+        // Update the buffer level. A hidden frame is pure overhead.
         this.bitsOffTarget += showFrame ? this.averageFrameBandwidth - projectedFrameSize : -projectedFrameSize;
         this.bitsOffTarget = Math.Min(this.bitsOffTarget, this.maximumBufferSize);
 
@@ -1021,10 +980,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Moves the rate correction factor of the current frame's level toward the ratio of the coded size to the size
-    /// the factor expected, damped more for small errors and for screen content. An overlay keeps the factors.
-    /// Reference: av1_rc_update_rate_correction_factors() and set_rate_correction_factor() in a
-    /// statistics-consuming stage, without cyclic refresh.
+    /// Moves the rate correction factor of the level of the current frame toward the ratio of the coded size to the size the factor
+    /// expected, damped more for small errors and for screen content. An overlay keeps the factors.
     /// </summary>
     /// <param name="projectedFrameSize">The coded size in bits.</param>
     /// <param name="qIndex">The frame's base quantizer index.</param>
@@ -1068,12 +1025,11 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Updates the bit budget after a frame is coded: the bits off target gain the frame's allocation less its size,
-    /// the quick reuse loses what the frame took, the alternate reference group's totals and the rate error follow,
-    /// the pyramid floors of the frame's layer and below take its quantizer unless it codes an overlay, and the key
-    /// frame group loses the allocation of an inter frame. A bit budget then extends the quantizer floor after
-    /// repeated undershoot and the ceiling after repeated overshoot, and feeds the bits of a large undershoot of an
-    /// ordinary frame back quickly. Reference: av1_twopass_postencode_update() after the statistics are consumed.
+    /// Updates the bit budget after a frame is coded. The bits off target gain the allocation of the frame less its size. The quick reuse
+    /// loses what the frame took. The totals of the alternate reference group and the rate error follow. The pyramid floors of the layer of
+    /// the frame and below take its quantizer, unless it codes an overlay. The key frame group loses the allocation of an inter frame.
+    /// A bit budget then extends the quantizer floor after repeated undershoot and the ceiling after repeated overshoot. It also feeds the
+    /// bits of a large undershoot of an ordinary frame back quickly.
     /// </summary>
     /// <param name="projectedFrameSize">The coded size in bits.</param>
     /// <param name="qIndex">The frame's base quantizer index.</param>
@@ -1152,8 +1108,8 @@ internal sealed partial class Av1SecondPass
         }
         else if (this.rollingTargetBits > this.rollingActualBits)
         {
-            // Unwinds the extreme overshoot raise. With tolerances below 100% this branch sees equal running bits
-            // and never runs.
+            // Unwinds the extreme overshoot raise. The first branch already handles a running size below the running target, so this
+            // branch never runs.
             --this.extendMaximumQ;
         }
 
@@ -1162,7 +1118,6 @@ internal sealed partial class Av1SecondPass
 
         // An ordinary frame with an unexpectedly good prediction quickly returns the bits that it did not use.
         // At high bit depth sharpness 3, a sequence that uses too many bits clears the quick bits instead.
-        // Reference: the vbr_bits_off_target_fast update of av1_twopass_postencode_update().
         Av1FrameUpdateType updateType = this.group.UpdateTypes[this.groupFrameIndex];
         if (updateType is not (Av1FrameUpdateType.Key or Av1FrameUpdateType.Golden or Av1FrameUpdateType.Alternate))
         {
@@ -1183,9 +1138,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the quantizer index whose expected bits per macroblock lie closest to the frame target, choosing between
-    /// the first index at or below the target and the one before it. Reference: av1_rc_regulate_q() with
-    /// find_closest_qindex_by_rate(), outside constant-bitrate coding without statistics.
+    /// Returns the quantizer index whose expected bits per macroblock lie closest to the frame target. The choice is between the first
+    /// index at or below the target and the index before it.
     /// </summary>
     /// <param name="keyFrame">Whether the frame is a key frame.</param>
     /// <param name="groupIndex">The frame's index in the group, which selects the correction factor.</param>

@@ -4,21 +4,20 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 
 /// <summary>
-/// The coding order of one golden frame group: for each coded frame its update role, the look-ahead offset of its
-/// source, its display position, its pyramid layer and its boost. A group of <c>n</c> shown frames that uses an
-/// alternate reference codes the alternate reference first, then the frames before it in a pyramid of internal
-/// alternate references and their overlays, and ends with the overlay of the alternate reference.
-/// Reference: GF_GROUP.
+/// The coding order of one golden frame group. For each coded frame, it holds the update role, the look-ahead offset of the source, the display
+/// position, the pyramid layer and the boost. A group of <c>n</c> shown frames that uses an alternate reference codes the alternate reference
+/// first. Then it codes the frames before it in a pyramid of internal alternate references and their overlays. The overlay of the alternate
+/// reference comes last.
 /// </summary>
 internal sealed class Av1GopStructure
 {
     /// <summary>
-    /// The largest number of coded frames in a group. Reference: MAX_STATIC_GF_GROUP_LENGTH.
+    /// The largest number of coded frames in a group.
     /// </summary>
     public const int MaximumLength = 250;
 
     /// <summary>
-    /// The pyramid layer of leaf frames and overlays. Reference: MAX_ARF_LAYERS.
+    /// The pyramid layer of leaf frames and overlays.
     /// </summary>
     public const int MaximumArfLayers = 6;
 
@@ -34,83 +33,78 @@ internal sealed class Av1GopStructure
     private readonly int[] bitAllocations = new int[MaximumLength];
 
     /// <summary>
-    /// Gets the update role of each coded frame. Reference: update_type.
+    /// Gets the update role of each coded frame.
     /// </summary>
     public Span<Av1FrameUpdateType> UpdateTypes => this.updateTypes;
 
     /// <summary>
-    /// Gets the offset of each frame's source from the first frame not yet shown, which is nonzero only for
-    /// alternate references. Reference: arf_src_offset.
+    /// Gets the offset of the source of each frame from the first frame not yet shown. Only alternate references have a nonzero offset.
     /// </summary>
     public Span<int> ArfSourceOffsets => this.arfSourceOffsets;
 
     /// <summary>
-    /// Gets the number of shown frames of the group before each frame. Reference: cur_frame_idx.
+    /// Gets the number of shown frames of the group before each frame.
     /// </summary>
     public Span<int> CurrentFrameIndices => this.currentFrameIndices;
 
     /// <summary>
-    /// Gets the pyramid layer of each frame: 0 for key and golden frames, 1 for the alternate reference, deeper
-    /// for internal alternate references, and <see cref="MaximumArfLayers"/> for leaves. Reference: layer_depth.
+    /// Gets the pyramid layer of each frame. Key and golden frames use layer 0. The alternate reference uses layer 1. Internal alternate
+    /// references use deeper layers. Leaves use <see cref="MaximumArfLayers"/>.
     /// </summary>
     public Span<int> LayerDepths => this.layerDepths;
 
     /// <summary>
-    /// Gets the boost of each frame. Reference: arf_boost.
+    /// Gets the boost of each frame.
     /// </summary>
     public Span<int> ArfBoosts => this.arfBoosts;
 
     /// <summary>
-    /// Gets a value for each frame indicating whether it is a key frame. Reference: frame_type.
+    /// Gets a value for each frame indicating whether it is a key frame.
     /// </summary>
     public Span<bool> KeyFrames => this.keyFrames;
 
     /// <summary>
     /// Gets a value for each frame indicating whether it refreshes every reference slot.
-    /// Reference: refbuf_state equal to REFBUF_RESET.
     /// </summary>
     public Span<bool> ReferenceResets => this.referenceResets;
 
     /// <summary>
-    /// Gets the display index of each frame. Reference: display_idx.
+    /// Gets the display index of each frame.
     /// </summary>
     public Span<int> DisplayIndices => this.displayIndices;
 
     /// <summary>
-    /// Gets the quantizer index the rate control estimated for each frame before the temporal dependency model runs.
-    /// Reference: q_val.
+    /// Gets the quantizer index that the rate control estimated for each frame before the temporal dependency model runs.
     /// </summary>
     public Span<int> QValues => this.qValues;
 
     /// <summary>
-    /// Gets the bit target of each frame of the group, which coding under a bit budget allocates. Reference:
-    /// bit_allocation.
+    /// Gets the bit target of each frame of the group. Coding under a bit budget allocates these targets.
     /// </summary>
     public Span<int> BitAllocations => this.bitAllocations;
 
     /// <summary>
-    /// Gets or sets the number of coded frames. Reference: size.
+    /// Gets or sets the number of coded frames.
     /// </summary>
     public int Size { get; set; }
 
     /// <summary>
-    /// Gets or sets the deepest pyramid layer of the group. Reference: max_layer_depth.
+    /// Gets or sets the deepest pyramid layer of the group.
     /// </summary>
     public int MaxLayerDepth { get; set; }
 
     /// <summary>
-    /// Gets or sets the deepest pyramid layer the group may use; zero disables the alternate reference.
-    /// Reference: max_layer_depth_allowed.
+    /// Gets or sets the deepest pyramid layer that the group can use. Zero disables the alternate reference.
     /// </summary>
     public int MaxLayerDepthAllowed { get; set; }
 
     /// <summary>
-    /// Gets or sets the index of the alternate reference, or -1. Reference: arf_index.
+    /// Gets or sets the index of the alternate reference, or -1.
     /// </summary>
     public int ArfIndex { get; set; }
 
     /// <summary>
-    /// Resets every entry. Reference: av1_zero() of GF_GROUP.
+    /// Resets every entry and every property to zero.
     /// </summary>
     public void Clear()
     {

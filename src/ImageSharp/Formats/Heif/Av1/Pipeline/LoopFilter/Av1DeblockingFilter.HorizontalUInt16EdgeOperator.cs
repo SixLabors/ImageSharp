@@ -17,6 +17,7 @@ internal static partial class Av1DeblockingFilter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<int> LoadVector(ref ushort samples, int q0Offset, int stride, int distance)
         {
+            // One 64-bit load reads the four adjacent samples of the row. Zero extension gives one sample in each 32-bit lane.
             ref ushort source = ref Unsafe.Add(ref samples, q0Offset + (distance * stride));
             ulong packed = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref source));
             return Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsUInt16()).AsInt32();
@@ -26,6 +27,7 @@ internal static partial class Av1DeblockingFilter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void StoreVector(ref ushort samples, int q0Offset, int stride, int distance, Vector128<int> value)
         {
+            // Narrow keeps the low 16 bits of each 32-bit lane, the same as the cast in StoreScalar. The store writes only 64 bits.
             Vector64<ushort> narrowed = Vector128.Narrow(value, Vector128<int>.Zero).AsUInt16().GetLower();
             ref byte destination = ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref samples, q0Offset + (distance * stride)));
             Unsafe.WriteUnaligned(ref destination, narrowed.AsUInt64().ToScalar());

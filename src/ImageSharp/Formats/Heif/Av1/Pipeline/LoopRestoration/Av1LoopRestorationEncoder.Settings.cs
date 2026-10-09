@@ -47,8 +47,9 @@ internal static partial class Av1LoopRestorationEncoder
             this.DownsampleWienerStatistics = !allIntra && level >= 3;
             this.RefineWiener = allIntra || level < 5;
 
-            // Ordinary inter frames restrict self-guided search to the middle quantizer range.
-            // Boosted and internal alternate-reference frames retain their more detailed search.
+            // From speed level 4, frames that are not boosted and not internal alternate references search self-guided filters only in the
+            // middle quantizer range. Outside that range, they also skip Wiener refinement. Boosted and internal alternate-reference frames
+            // keep the full search.
             if (level >= 4 && !boosted && !internalAltReference)
             {
                 int lowQIndex = minimumDimension >= 720 ? 60 : 100;

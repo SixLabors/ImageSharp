@@ -17,7 +17,6 @@ internal static partial class Av1CdefFilter
 {
     /// <summary>
     /// Finds the dominant directions and directional variances of a list of 8x8 luma blocks.
-    /// Reference: cdef_find_dir(), which calls cdef_find_dir_dual() for each pair of blocks.
     /// </summary>
     /// <param name="source">The bordered, deblocked source plane containing every block.</param>
     /// <param name="sourceOffsets">The offset of each block's top-left sample.</param>
@@ -36,8 +35,8 @@ internal static partial class Av1CdefFilter
         int count = sourceOffsets.Length;
         int index = 0;
 
-        // Each width analyses as many independent blocks as it has 128-bit lanes, widest first. A block's
-        // direction does not depend on its neighbours, so the grouping does not change any result.
+        // Each width analyzes as many independent blocks as it has 128-bit lanes, widest first. A block's direction does not depend on
+        // its neighbors, so the grouping does not change any result. The single-block loop handles the blocks that remain.
         if (Vector512.IsHardwareAccelerated)
         {
             for (; index + 4 <= count; index += 4)
@@ -226,6 +225,7 @@ internal static partial class Av1CdefFilter
         Vector512<int> weights0,
         Vector512<int> weights1)
     {
+        // The byte pattern reverses Int16 lanes 0 to 6 of each 128-bit lane and keeps lane 7 in place, as in the 128-bit kernel.
         Vector128<byte> laneShuffle = Vector128.Create((byte)12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 14, 15);
         Vector256<byte> pairShuffle = Vector256.Create(laneShuffle, laneShuffle);
         partialB = Vector512_.ShufflePerLane(partialB.AsByte(), Vector512.Create(pairShuffle, pairShuffle)).AsInt16();
@@ -407,6 +407,7 @@ internal static partial class Av1CdefFilter
                 }
             }
 
+            // The sign correction gives the same rounding as the scalar kernel: sum / 16 rounds to the nearest value, ties away from zero.
             Vector512<short> correction = (sum >> 15) & one;
             Vector512<short> filtered = sample + ((sum + rounding - correction) >> 4);
             if (clippingRequired)

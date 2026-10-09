@@ -23,7 +23,7 @@ internal static class Av1FirstPassOperator
         where TSample : unmanaged
     {
         /// <summary>
-        /// Converts one stored sample to its native integer value. Reference: CONVERT_TO_SHORTPTR().
+        /// Converts one stored sample to its native integer value.
         /// </summary>
         /// <param name="value">The stored sample.</param>
         /// <returns>The sample value at native precision.</returns>
@@ -48,8 +48,7 @@ internal static class Av1FirstPassOperator
         public static abstract Vector256<int> LoadWidened(ReadOnlySpan<TSample> source, int index, Vector256<int> lanes);
 
         /// <summary>
-        /// Measures the raw absolute differences of every row of a block, as the high-bit-depth form does before
-        /// its precision shift. Reference: aom_sad16x16().
+        /// Measures the raw absolute differences of every row of a block, before any high-bit-depth precision shift.
         /// </summary>
         /// <param name="source">The source samples at the block origin.</param>
         /// <param name="sourceStride">The source row stride.</param>
@@ -68,7 +67,6 @@ internal static class Av1FirstPassOperator
 
         /// <summary>
         /// Measures the raw signed and squared difference sums of a block, before any high-bit-depth rounding.
-        /// Reference: highbd_variance64().
         /// </summary>
         /// <param name="source">The source samples at the block origin.</param>
         /// <param name="sourceStride">The source row stride.</param>
@@ -76,8 +74,8 @@ internal static class Av1FirstPassOperator
         /// <param name="referenceStride">The reference row stride.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
-        /// <param name="sum">The raw signed difference sum.</param>
-        /// <param name="squares">The raw squared difference sum.</param>
+        /// <param name="sum">Receives the raw signed difference sum.</param>
+        /// <param name="squares">Receives the raw squared difference sum.</param>
         public static abstract void GetMoments(
             ReadOnlySpan<TSample> source,
             int sourceStride,
@@ -90,7 +88,6 @@ internal static class Av1FirstPassOperator
 
         /// <summary>
         /// Writes the source-minus-prediction residual of a block at either precision.
-        /// Reference: aom_subtract_block().
         /// </summary>
         /// <param name="source">The source samples at the block origin.</param>
         /// <param name="sourceStride">The source row stride.</param>
@@ -111,8 +108,8 @@ internal static class Av1FirstPassOperator
             int height);
 
         /// <summary>
-        /// Predicts a square block from the mean of its available neighbors, falling back to one side or to the
-        /// mid-range value. Reference: build_non_directional_intra_predictors().
+        /// Predicts a square block from the mean of its available neighbors. With one side available, the mean uses that side only. With no side
+        /// available, the prediction is the mid-range value.
         /// </summary>
         /// <param name="hasLeft">Whether the left column is available.</param>
         /// <param name="hasAbove">Whether the above row is available.</param>
@@ -134,7 +131,6 @@ internal static class Av1FirstPassOperator
 
         /// <summary>
         /// Adds the inverse transform of dequantized coefficients to the prediction in place, at either precision.
-        /// Reference: av1_inv_txfm_add().
         /// </summary>
         /// <param name="coefficients">The dequantized coefficients in raster order.</param>
         /// <param name="reconstruction">The prediction and reconstruction samples at the block origin.</param>

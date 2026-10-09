@@ -208,9 +208,8 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
         ObuFrameSize frameSize = frameHeader.FrameSize;
         this.bytesPerSample = bytesPerSample;
 
-        // The allocation grid uses the mode-info-aligned luma height for all planes. Chroma stripes
-        // share the same indices even when their sample height is halved. Two context rows are kept
-        // on each side; four horizontal samples allow the three-tap context to be copied in aligned rows.
+        // The allocation grid uses the mode-info-aligned luma height for all planes. Chroma stripes use the same indices when their sample height is halved.
+        // Each stripe keeps two context rows on each side. Four replicated samples on each side of a row cover the three-sample horizontal filter context.
         int stripeCount = (ProcessingStripeOffset + (frameHeader.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2) + 63) / ProcessingStripeSize;
         Span<int> planeWidths = this.planeWidths;
         Span<int> planeStrides = this.planeStrides;
@@ -228,9 +227,8 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
                 ? 0
                 : stripeCount;
 
-            // Reuse is determined by physical byte size, including changes of sample precision.
-            // Owners belong to this boundary storage, so an allocation failure leaves earlier owners available
-            // for the normal disposal path; no frame or header is retained by this storage.
+            // The physical byte size decides reuse, so a change of sample precision also reallocates. If an allocation fails, the owners
+            // that exist stay in this object and Dispose releases them. This storage keeps no reference to a frame or a header.
             if (storageLengths[planeIndex] != storageLength)
             {
                 this.rowsAbove[planeIndex]?.Dispose();
@@ -275,8 +273,7 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
         int reconstructedWidth = frameHeader.ModeInfoColumnCount
             << (Av1Constants.ModeInfoSizeLog2 - subsamplingX);
 
-        // Super-resolution phase uses the coded width, while its filter taps can consume the
-        // complete mode-info-aligned reconstruction at the right edge.
+        // The super-resolution phase uses the coded width. Its filter taps can read the full mode-info-aligned reconstruction at the right edge.
         int planeHeight = Av1Math.DivideLog2Ceiling(frameSize.FrameHeight, subsamplingY);
         int stripeHeight = ProcessingStripeSize >> subsamplingY;
         int stripeOffset = ProcessingStripeOffset >> subsamplingY;
@@ -295,8 +292,8 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
             int stripeEnd = Math.Min(((stripe + 1) * stripeHeight) - stripeOffset, planeHeight);
             if (stripe > 0)
             {
-                // Internal top context is the two deblocked rows immediately preceding the
-                // stripe; restoration later expands the first row to fill its three-row border.
+                // The top context of an internal stripe is the two deblocked rows before the stripe.
+                // Restoration later repeats the first row to fill its three-row border.
                 SaveDeblockedRow(
                     lowBitDepthPlane,
                     highBitDepthPlane,
@@ -324,8 +321,8 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
 
             if (stripeEnd < planeHeight)
             {
-                // Internal bottom context begins at the exclusive stripe end. A one-row tail
-                // duplicates its final sample row, matching AV1 crop-edge clamping.
+                // The bottom context of an internal stripe starts at the exclusive stripe end. If only one plane row remains,
+                // the second context row repeats that row, because AV1 clamps row positions at the crop edge.
                 SaveDeblockedRow(
                     lowBitDepthPlane,
                     highBitDepthPlane,
@@ -506,9 +503,8 @@ internal sealed class Av1LoopRestorationBoundary : IDisposable
             return;
         }
 
-        // Boundary rows use the same phase and reconstructed right edge as full-frame upscaling.
-        // Padding the source supplies interpolation taps; destination padding repeats the final
-        // upscaled edge and is never used to advance the interpolation phase.
+        // Boundary rows use the same phase and reconstructed right edge as full-frame upscaling. The padded source supplies the interpolation taps.
+        // The destination padding repeats the last upscaled sample and does not advance the interpolation phase.
         int sourceOffset = row * sourceStride;
         if (!highBitDepthPlane.IsEmpty)
         {

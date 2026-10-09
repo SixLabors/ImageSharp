@@ -117,8 +117,8 @@ internal static partial class Av1LoopRestorationEncoder
             boundary.SaveFrameEdgePlane(plane, region.Height, low, high, region.Stride);
         }
 
-        // Fitting reads post-CDEF samples outside the visible unit. Boundary substitution is only
-        // needed for actual trial filtering, where the shared stripe kernel restores every replaced row.
+        // The fit reads post-CDEF samples outside the visible unit, so the frame borders are extended first.
+        // Only trial filtering substitutes the boundary rows, and the shared stripe kernel restores every replaced row.
         reconstruction.ExtendBorders();
         Av1ColorFormat colorFormat = sequence.ColorConfig.GetColorFormat();
 
@@ -141,8 +141,8 @@ internal static partial class Av1LoopRestorationEncoder
         Span<long> correlation = statistics[..49];
         Span<long> covariance = statistics.Slice(49, 49 * 49);
 
-        // A short final unit merges into its predecessor. The vertical stripe offset can add
-        // eight rows to the last unit; size the two retained projections for that exact maximum.
+        // A short last unit merges into the unit before it, so a unit is less than 1.5 times the nominal size. The vertical stripe offset
+        // can add up to eight rows to the last unit. The two retained projections use that exact maximum.
         int maximumUnitWidth = Math.Min(source.Width, ((settings.MaximumUnitSize * 3) / 2) - 1);
         int maximumUnitHeight = Math.Min(source.Height, ((settings.MaximumUnitSize * 3) / 2) + 7);
         int projectionLength = maximumUnitWidth * maximumUnitHeight;
@@ -159,8 +159,7 @@ internal static partial class Av1LoopRestorationEncoder
         Span<TSample> savedRows = MemoryMarshal.Cast<ushort, TSample>(boundary.GetStripeSaveBuffer());
         int rateQIndex = qIndex + header.QuantizationParameters.DeltaQDc[0];
 
-        // The restoration search reads the frame multiplier. Reference: x->rdmult = cpi->rd.RDMULT in
-        // av1_pick_filter_restoration().
+        // The restoration search uses the rate multiplier of the frame, not a per-block value.
         int rateMultiplier = picture.Parent.GetRateMultiplier(rateQIndex, sequence.ColorConfig.BitDepth);
 
         int quantizer = Av1QuantizationLookup.GetDcQuant(qIndex, 0, sequence.ColorConfig.BitDepth) >> 3;
@@ -256,8 +255,8 @@ internal static partial class Av1LoopRestorationEncoder
                 }
             }
 
-            // If no plane benefits at this size, smaller units are not searched. Likewise, the
-            // first worse size ends the search. Preserve the winning parameters before reusing results.
+            // If no plane uses restoration at this size, the search stops before smaller units. The first size with a higher cost also stops it.
+            // The loop above copies the winning parameters out, because the next size reuses the result storage.
             if (allNone)
             {
                 break;
@@ -308,8 +307,8 @@ internal static partial class Av1LoopRestorationEncoder
                 }
             }
 
-            // The complete plane must be filtered before replacing its source. Adjacent units
-            // consume the same reconstruction even when they choose different filter families.
+            // The code filters the full plane before the copy replaces its source. Adjacent units read the same reconstruction,
+            // also when they choose different filter types.
             Span<TSample> trialSamples = trial.Samples;
             Span<TSample> regionSamples = region.Samples;
             for (int row = 0; row < region.Height; row++)

@@ -17,12 +17,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOperator>
 {
     /// <summary>
-    /// The number of samples an intra edge buffer holds. Reference: NUM_INTRA_NEIGHBOUR_PIXELS.
+    /// The number of samples that an intra edge buffer holds.
     /// </summary>
     private const int EdgeLength = (2 * Av1Constants.MaxTransformSize) + 32;
 
     /// <summary>
-    /// The number of samples before the first edge sample. Reference: the +16 offset of above_row and left_col.
+    /// The number of samples before the first edge sample. The edge filter and the upsampler read and write this prefix.
     /// </summary>
     private const int EdgePrefix = 16;
 
@@ -32,12 +32,12 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     private const int SearchPredictionLength = 128 * (Av1TplModelConstants.BlockSize + 7);
 
     /// <summary>
-    /// The packed 16x16 prediction of the intra and inter trials. Reference: TplBuffers predictor8.
+    /// The packed 16x16 prediction of the intra and inter trials.
     /// </summary>
     private TSample[] predictor = null!;
 
     /// <summary>
-    /// The fixed prediction of the other reference of the joint motion search. Reference: second_pred.
+    /// The fixed prediction of the other reference of the joint motion search.
     /// </summary>
     private TSample[] secondPrediction = null!;
 
@@ -47,12 +47,12 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     private TSample[] searchPrediction = null!;
 
     /// <summary>
-    /// The above intra edge with its prefix. Reference: above_data.
+    /// The above intra edge with its prefix.
     /// </summary>
     private TSample[] aboveEdge = null!;
 
     /// <summary>
-    /// The left intra edge with its prefix. Reference: left_data.
+    /// The left intra edge with its prefix.
     /// </summary>
     private TSample[] leftEdge = null!;
 
@@ -67,7 +67,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     private TSample[] directionalScratch = null!;
 
     /// <summary>
-    /// The packed residual. Reference: TplBuffers src_diff.
+    /// The packed residual.
     /// </summary>
     private short[] residual = null!;
 
@@ -77,7 +77,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     private short[] convolutionScratch = null!;
 
     /// <summary>
-    /// The compound intermediate of the first reference. Reference: xd->tmp_conv_dst.
+    /// The compound intermediate of the first reference.
     /// </summary>
     private ushort[] firstIntermediate = null!;
 
@@ -87,17 +87,17 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     private ushort[] secondIntermediate = null!;
 
     /// <summary>
-    /// The transform coefficients. Reference: TplBuffers coeff.
+    /// The transform coefficients.
     /// </summary>
     private int[] coefficients = null!;
 
     /// <summary>
-    /// The quantized coefficients. Reference: TplBuffers qcoeff.
+    /// The quantized coefficients.
     /// </summary>
     private int[] quantized = null!;
 
     /// <summary>
-    /// The dequantized coefficients. Reference: TplBuffers dqcoeff.
+    /// The dequantized coefficients.
     /// </summary>
     private int[] dequantized = null!;
 
@@ -107,27 +107,27 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     private int[] transformWorkspace = null!;
 
     /// <summary>
-    /// The search site geometry of the full-pixel search. Reference: search_site_cfg.
+    /// The search site geometry of the full-pixel search.
     /// </summary>
     private int[] siteStorage = null!;
 
     /// <summary>
-    /// The vector cost tables of the model search. Reference: x->mv_costs.
+    /// The vector cost tables of the model search.
     /// </summary>
     private IMemoryOwner<int> motionVectorCostStorage = null!;
 
     /// <summary>
-    /// All-zero vector cost tables, which price nothing as MV_COST_NONE does.
+    /// All-zero vector cost tables. A search that uses them gives no cost to any vector.
     /// </summary>
     private IMemoryOwner<int> zeroCostStorage = null!;
 
     /// <summary>
-    /// The default vector distributions of a key frame. Reference: av1_init_mv_probs().
+    /// The default vector distributions of a key frame.
     /// </summary>
     private Av1MotionVectorContext defaultMotionVectorContext = null!;
 
     /// <summary>
-    /// The method and stride the search site storage is configured for.
+    /// The method and stride that the search site storage is configured for.
     /// </summary>
     private int configuredSiteMethod = -1;
     private int configuredSiteStride = -1;
@@ -143,12 +143,12 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     private bool lastEntryIsKeyFrame;
 
     /// <summary>
-    /// The frame being measured. Reference: tpl_data->frame_idx.
+    /// The frame being measured.
     /// </summary>
     private int frameIndex;
 
     /// <summary>
-    /// The quantizer of the model. Reference: the base_qindex set by init_mc_flow_dispenser().
+    /// The quantizer of the model.
     /// </summary>
     private int qIndex;
 
@@ -158,59 +158,57 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     private int quantizerSharpness;
 
     /// <summary>
-    /// The rate multiplier of the motion search. Reference: the rdmult of init_mc_flow_dispenser().
+    /// The rate multiplier of the motion search.
     /// </summary>
     private int rateMultiplier;
 
     /// <summary>
-    /// The absolute difference rate scale of the motion search. Reference: x->sadperbit.
+    /// The absolute difference rate scale of the motion search.
     /// </summary>
     private int sadPerBit;
 
     /// <summary>
-    /// The storage entry of each named reference's frame, or -1.
+    /// The storage entry of the frame of each named reference, or -1.
     /// </summary>
     private readonly int[] referenceEntries = new int[Av1TplModelConstants.InterReferenceCount];
 
     /// <summary>
-    /// Whether each named reference's reconstruction is used. Reference: tpl_data->ref_frame[i] != NULL.
+    /// Whether the model uses the reconstruction of each named reference.
     /// </summary>
     private readonly bool[] hasReference = new bool[Av1TplModelConstants.InterReferenceCount];
 
     /// <summary>
-    /// Whether each named reference's source is present. Reference: tpl_data->src_ref_frame[i] != NULL.
+    /// Whether the source of each named reference is present.
     /// </summary>
     private readonly bool[] hasSourceReference = new bool[Av1TplModelConstants.InterReferenceCount];
 
     /// <summary>
-    /// Whether the block above is available. Reference: xd->up_available.
+    /// Whether the block above is available.
     /// </summary>
     private bool upAvailable;
 
     /// <summary>
-    /// Whether the block to the left is available. Reference: xd->left_available.
+    /// Whether the block to the left is available.
     /// </summary>
     private bool leftAvailable;
 
     /// <summary>
-    /// The mode-information row that ends the first tile, which bounds every block of the model. Reference:
-    /// xd->tile.mi_row_end after av1_tile_init(&amp;xd->tile, cm, 0, 0).
+    /// The mode-information row that ends the first tile. It bounds every block of the model.
     /// </summary>
     private int tileModeInfoRowEnd;
 
     /// <summary>
-    /// The mode-information column that ends the first tile, which bounds every block of the model. Reference:
-    /// xd->tile.mi_col_end after av1_tile_init(&amp;xd->tile, cm, 0, 0).
+    /// The mode-information column that ends the first tile. It bounds every block of the model.
     /// </summary>
     private int tileModeInfoColumnEnd;
 
     /// <summary>
-    /// Gets the reference types in the order that duplicate buffers are removed. Reference: ref_frame_priority_order.
+    /// Gets the reference types in the order that duplicate buffers are removed.
     /// </summary>
     private static ReadOnlySpan<byte> ReferencePriorityOrder => [1, 7, 5, 4, 6, 2, 3];
 
     /// <summary>
-    /// Gets the reference types a reference limit disables first. Reference: disable_order.
+    /// Gets the reference types that a reference limit disables first.
     /// </summary>
     private static ReadOnlySpan<byte> DisableOrder => [3, 2, 6, 5];
 
@@ -251,9 +249,9 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Captures the vector costs of the model search from the entropy context, the defaults for a key frame.
-    /// Reference: the av1_init_mv_probs() and av1_fill_mv_costs() calls of av1_tpl_setup_stats().
+    /// Captures the vector costs of the model search from the entropy context. A key frame uses the default distributions.
     /// </summary>
+    /// <param name="input">The encoder state of the run.</param>
     private void FillMotionVectorCosts(Av1TplSetupInput<TSample> input)
     {
         this.costPrecision = input.ForceIntegerMotionVector
@@ -266,9 +264,11 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Returns the search sites of a method, configuring the storage when the method or the stride changes.
-    /// Reference: the search_site_cfg that motion_estimation() selects by stride.
+    /// Returns the search sites of a method. It configures the storage again only when the method or the stride changes.
     /// </summary>
+    /// <param name="method">The full-pixel search method.</param>
+    /// <param name="stride">The row stride of the searched plane.</param>
+    /// <returns>The search sites.</returns>
     private Av1MotionSearchSites GetSearchSites(Av1MotionSearchSettings.FullPixelSearchMethod method, int stride)
     {
         // Fast diamond variants share the big-diamond geometry.
@@ -290,6 +290,9 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// <summary>
     /// Borrows the whole backing buffer of a plane with the index of its coded origin.
     /// </summary>
+    /// <param name="frame">The frame.</param>
+    /// <param name="plane">The plane, zero for luma.</param>
+    /// <returns>The plane access.</returns>
     private static PlaneAccess GetPlane(Av1EncoderFrame<TSample> frame, int plane)
     {
         Av1PlaneRegion<TSample> region = frame.CodedView.GetPlane((Av1Plane)plane);
@@ -300,7 +303,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// A plane's backing storage with its row stride and the index of its coded origin.
+    /// The backing storage of a plane with its row stride and the index of its coded origin.
     /// </summary>
     private readonly ref struct PlaneAccess
     {

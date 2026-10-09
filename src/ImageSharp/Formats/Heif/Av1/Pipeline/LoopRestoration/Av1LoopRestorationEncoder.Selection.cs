@@ -75,8 +75,8 @@ internal static partial class Av1LoopRestorationEncoder
                 GetSampleMoments(original, out long sum, out long squares);
                 int area = original.Width * original.Height;
 
-                // Compute population variance at native sample precision. The integer divisions
-                // occur after the complete unit sum, so neither row nor block boundaries round it.
+                // This is the population variance at native sample precision. The integer divisions run after the full unit sum,
+                // so row and block boundaries add no rounding.
                 long variance = (squares - ((sum * sum) / area)) / area;
                 pruneWiener = variance < varianceThreshold || unfilteredError == 0;
             }
@@ -152,6 +152,8 @@ internal static partial class Av1LoopRestorationEncoder
 
                 double noneCost = GetRestorationCost(rateMultiplier, noneBits, unfilteredError, context.BitDepth);
                 double cost = GetRestorationCost(rateMultiplier, bits, selfGuidedError, context.BitDepth);
+
+                // Parameter sets below 10 use both radii. The dual-radius penalty scales their cost.
                 if (selfGuided.SgrParameterSet < 10)
                 {
                     cost *= settings.DualSelfGuidedPenalty;
@@ -180,9 +182,8 @@ internal static partial class Av1LoopRestorationEncoder
             {
                 long error = filter == 1 ? wienerError : selfGuidedError;
 
-                // A fixed frame mode can reject a useful filter because of its signaling cost.
-                // Switchable mode has different costs and its own history, so retain candidates
-                // with competitive distortion even when their fixed-mode decision was none.
+                // A fixed frame mode can reject a useful filter because of its signaling cost. Switchable mode has different costs and its own
+                // coefficient history. Thus it tries every filter whose error is not larger than the unfiltered error, also when the fixed mode chose none.
                 if (error > unfilteredError)
                 {
                     continue;
@@ -227,8 +228,7 @@ internal static partial class Av1LoopRestorationEncoder
     }
 
     /// <summary>
-    /// Sums the samples of a unit and their squares. Reference: aom_var_2d_u8() and aom_var_2d_u16() as
-    /// var_restoration_unit() calls them.
+    /// Sums the samples of a unit and their squares.
     /// </summary>
     /// <remarks>
     /// The residual moments against a row of zeros are the sample moments. A restoration unit spans at most 383x391
@@ -264,6 +264,9 @@ internal static partial class Av1LoopRestorationEncoder
     /// <summary>
     /// Combines restoration rates and native-depth sample distortion without rounding the rate term.
     /// </summary>
+    /// <remarks>
+    /// The error scales down to eight-bit precision. The factor 128 is the fixed distortion scale of the rate-distortion cost.
+    /// </remarks>
     /// <param name="rateMultiplier">The frame rate weight.</param>
     /// <param name="bits">The probability-cost rate before restoration's four-bit scale reduction.</param>
     /// <param name="error">The squared error at native precision.</param>

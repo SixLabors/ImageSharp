@@ -16,15 +16,14 @@ internal static partial class Av1LoopRestorationEncoder
     /// Accumulates the self-guided projection moments and errors of consecutive samples in 64-bit lane totals.
     /// </summary>
     /// <remarks>
-    /// One 32-bit lane is one sample. A filtered value differs from its Q4 center by up to 2^17, so products need 64
-    /// bits; they come from signed widening multiplies of the even and the odd lanes. A total spreads across its lanes
-    /// in no defined way; only its lane sum is defined.
+    /// One 32-bit lane holds one sample. A filtered value differs from its Q4 center by up to 2^17, so the products need 64 bits. Signed
+    /// widening multiplies of the even lanes and the odd lanes give these products. The split of a total across its lanes has no defined
+    /// order. Only the sum of all lanes is defined.
     /// </remarks>
     private interface IProjectionStatisticsOperator
     {
         /// <summary>
-        /// Adds the projection moments of sixteen samples. Reference: calc_proj_params_r0_r1_c() and its one-radius
-        /// forms.
+        /// Adds the projection moments of sixteen samples.
         /// </summary>
         /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
         /// <typeparam name="TProjection">The active self-guided radius combination.</typeparam>
@@ -100,8 +99,7 @@ internal static partial class Av1LoopRestorationEncoder
             where TProjection : struct, IProjectionOperator;
 
         /// <summary>
-        /// Adds the squared projection errors of sixteen samples. Reference: av1_lowbd_pixel_proj_error() and
-        /// av1_highbd_pixel_proj_error().
+        /// Adds the squared projection errors of sixteen samples.
         /// </summary>
         /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
         /// <typeparam name="TProjection">The active self-guided radius combination.</typeparam>
@@ -320,6 +318,8 @@ internal static partial class Av1LoopRestorationEncoder
             where TSample : unmanaged
             where TProjection : struct, IProjectionOperator
         {
+            // The shift by 4 moves the samples to the Q4 scale of the filtered values. An inactive radius keeps a zero term, so its moments
+            // add nothing. The narrower widths and the scalar form use the same steps.
             Vector512<int> center = Av1RestorationSampleOperations.LoadToInt32(ref reconstructed, Vector512<int>.Zero) << 4;
             Vector512<int> target = (Av1RestorationSampleOperations.LoadToInt32(ref original, Vector512<int>.Zero) << 4) - center;
             Vector512<int> a = TProjection.UsesRadiusTwo ? Vector512.LoadUnsafe(ref first) - center : Vector512<int>.Zero;
@@ -409,8 +409,8 @@ internal static partial class Av1LoopRestorationEncoder
             where TSample : unmanaged
             where TProjection : struct, IProjectionOperator
         {
-            // The Q4 center times the Q7 unit weight is a whole multiple of 2^11, so it leaves the rounding shift as
-            // the center itself.
+            // The projection adds the Q4 center times the Q7 unit weight, which is the center times 2^11. That term is a whole multiple
+            // of 2^11, so the code adds the plain center after the shift. The 1 << 10 term rounds the shift by 11 to the nearest value.
             Vector512<int> center = Av1RestorationSampleOperations.LoadToInt32(ref reconstructed, Vector512<int>.Zero);
             Vector512<int> scaled = center << 4;
             Vector512<int> difference = Vector512.Create(1 << 10);
@@ -517,6 +517,10 @@ internal static partial class Av1LoopRestorationEncoder
         /// <summary>
         /// Multiplies signed 32-bit lanes into 64-bit products and adds each even product to its odd neighbor.
         /// </summary>
+        /// <remarks>
+        /// The arithmetic right shift of each 64-bit lane by 32 moves the odd 32-bit lane into the even position with its sign. A second
+        /// even multiply then gives the odd products.
+        /// </remarks>
         /// <param name="left">The first factors.</param>
         /// <param name="right">The second factors.</param>
         /// <returns>The pairwise product sums.</returns>

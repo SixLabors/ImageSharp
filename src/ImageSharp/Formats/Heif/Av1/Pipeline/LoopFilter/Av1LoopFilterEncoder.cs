@@ -15,14 +15,14 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 /// Selects the frame deblocking levels and applies them to the encoder reconstruction.
 /// </summary>
 /// <remarks>
-/// The level selection ports libaom <c>av1_pick_filter_level</c>. The configurations this encoder
-/// exposes never enable two-pass statistics, screen-content cyclic refresh, selective loop filter control,
-/// or the SSE-based skips, so those branches of the reference have no counterpart here.
+/// The level selection filters trial levels and measures each against the source. The configurations this encoder exposes never
+/// enable two-pass statistics, screen-content cyclic refresh, selective loop filter control, or skips based on the squared error.
+/// The selection therefore has no code for them.
 /// </remarks>
 internal static class Av1LoopFilterEncoder
 {
     /// <summary>
-    /// The side of the square tiles <c>get_sse</c> measures a plane in.
+    /// The side of the square tiles that the error measure sums a plane in.
     /// </summary>
     private const int ErrorTileSize = 16;
 
@@ -30,8 +30,7 @@ internal static class Av1LoopFilterEncoder
     /// Chooses the four frame deblocking levels for the completed, unfiltered reconstruction.
     /// </summary>
     /// <remarks>
-    /// Ports the frame-level part of <c>loopfilter_frame</c> together with
-    /// <c>av1_pick_filter_level</c>. The reconstruction is unchanged on return.
+    /// The reconstruction is unchanged on return.
     /// </remarks>
     /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
     /// <typeparam name="TVerticalOperator">The vertical sample accessor.</typeparam>
@@ -41,7 +40,7 @@ internal static class Av1LoopFilterEncoder
     /// <param name="source">The source planes the filtered reconstruction is measured against.</param>
     /// <param name="reconstruction">The unfiltered reconstructed planes.</param>
     /// <param name="previousLevels">
-    /// The luma vertical, luma horizontal, U, and V levels retained from the preceding frame; updated for the next frame.
+    /// The luma vertical, luma horizontal, U, and V levels retained from the preceding frame. The method updates them for the next frame.
     /// </param>
     public static void PickFilterLevel<TSample, TVerticalOperator, THorizontalOperator>(
         MemoryAllocator allocator,
@@ -64,21 +63,18 @@ internal static class Av1LoopFilterEncoder
             previousLevels.CopyTo(lastLevels);
         }
 
-        // set_postproc_filter_default_params clears the luma levels and their backups
-        // before every frame; the chroma backups keep their earlier values. The header levels were
-        // cleared when the frame was prepared.
+        // Every frame clears the retained luma levels. The retained chroma levels keep their earlier values.
+        // Frame preparation already cleared the header levels.
         previousLevels[0] = 0;
         previousLevels[1] = 0;
 
-        // Intra block copy frames skip loopfilter_frame altogether and coded lossless frames do not use the
-        // loop filter.
+        // Intra block copy frames and coded lossless frames do not use the loop filter.
         if (header.AllowIntraBlockCopy || header.CodedLossless)
         {
             return;
         }
 
-        // All-intra usage and the image and SSIMULACRA 2 tunes use the configured sharpness, which adaptive sharpness
-        // limits by the quantizer. Reference: the sharpness_level assignments of av1_pick_filter_level().
+        // All-intra usage and the image and SSIMULACRA 2 tunes use the configured sharpness, which adaptive sharpness limits by the quantizer.
         Av1EncoderOptions options = picture.Parent.EncoderOptions;
         int sharpness = options.IsAllIntra || options.Tuning.IsImageTuning() ? options.Sharpness : 0;
         if (options.EnableAdaptiveSharpness)
@@ -101,15 +97,13 @@ internal static class Av1LoopFilterEncoder
             return;
         }
 
-        // One pooled copy, sized for the largest plane, holds the unfiltered samples each trial restores
-        // (the reference's last_frame_uf buffer).
+        // One pooled copy, sized for the largest plane, holds the unfiltered samples that each trial restores.
         Av1PlaneRegion<TSample> lumaPlane = reconstruction.CodedView.GetPlane(Av1Plane.Y);
         using IMemoryOwner<TSample> backupOwner = allocator.Allocate<TSample>(lumaPlane.Width * lumaPlane.Height);
         Span<TSample> backup = backupOwner.Memory.Span;
 
-        // Search one level for both luma directions, then, unless dual levels are disabled, refine the
-        // vertical and horizontal levels separately. Each of those searches keeps the other direction at
-        // its latest level.
+        // The first search finds one level for both luma directions. Unless dual levels are disabled, two more searches then refine
+        // the vertical and horizontal levels separately. Each of those searches keeps the other direction at its latest level.
         int bothDirections = SearchFilterLevel<TSample, TVerticalOperator, THorizontalOperator>(
             picture, source, reconstruction, backup, lastLevels, Av1Plane.Y, 2);
 
@@ -206,8 +200,8 @@ internal static class Av1LoopFilterEncoder
         int subY = plane == Av1Plane.Y ? 0 : reconstruction.ChromaSubsamplingY;
         int rowsPerBand = 1 << (Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2);
 
-        // Each plane is one contiguous allocation. Retain its full bordered view so kernels may
-        // access their edge neighborhoods without copying the plane or materializing decoder frame state.
+        // Each plane is one contiguous allocation. The full bordered view lets kernels access their edge neighborhoods
+        // without a copy of the plane or decoder frame state.
         Span<TSample> storage = samples.Samples;
         FrameState state = new(picture);
         for (int rowStart = 0; rowStart < header.ModeInfoRowCount; rowStart += rowsPerBand)
@@ -219,8 +213,7 @@ internal static class Av1LoopFilterEncoder
     }
 
     /// <summary>
-    /// Estimates one deblocking level for every plane from the base quantizer, as the
-    /// <c>LPF_PICK_FROM_Q</c> branch of <c>av1_pick_filter_level</c> does.
+    /// Estimates one deblocking level for every plane from the base quantizer.
     /// </summary>
     /// <param name="header">The frame header holding the base quantizer index and frame type.</param>
     /// <param name="bitDepth">The sequence sample depth.</param>
@@ -250,8 +243,7 @@ internal static class Av1LoopFilterEncoder
     }
 
     /// <summary>
-    /// Finds the level that minimizes the filtered error of one plane and direction by a biased step search,
-    /// as <c>search_filter_level</c> does.
+    /// Finds the level that minimizes the filtered error of one plane and direction by a biased step search.
     /// </summary>
     /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
     /// <typeparam name="TVerticalOperator">The vertical sample accessor.</typeparam>
@@ -290,7 +282,7 @@ internal static class Av1LoopFilterEncoder
         int middle = Math.Clamp(start, minimumLevel, maximumLevel);
         int step = middle < 16 ? 4 : middle / 4;
 
-        // The measured error of each level; -1 marks a level not yet tried.
+        // The measured error of each level. The value -1 marks a level that the search has not tried.
         Span<long> errors = stackalloc long[maximumLevel + 1];
         errors.Fill(-1);
 
@@ -304,8 +296,7 @@ internal static class Av1LoopFilterEncoder
         int best = middle;
         errors[middle] = bestError;
 
-        // The coarse search ends at a step of two; otherwise the step halves until it reaches zero.
-        // Reference: min_filter_step_thesh in search_filter_level().
+        // The coarse search ends at a step of two. Otherwise the step halves until it reaches zero.
         int minimumStep = picture.Parent.SpeedSettings.UseCoarseFilterLevelSearch ? 2 : 0;
         int searchDirection = 0;
         while (step > minimumStep)
@@ -313,8 +304,7 @@ internal static class Av1LoopFilterEncoder
             int high = Math.Min(middle + step, maximumLevel);
             int low = Math.Max(middle - step, minimumLevel);
 
-            // Bias against raising the level in favor of lowering it. The bias is halved when transforms
-            // larger than 4x4 are allowed.
+            // The bias favors a lower level over a higher level. It is half as large when transforms larger than 4x4 are allowed.
             long bias = (bestError >> (15 - (middle / 8))) * step;
             if (picture.Parent.FrameHeader.TransformMode != Av1TransformMode.Only4x4)
             {
@@ -358,8 +348,7 @@ internal static class Av1LoopFilterEncoder
                 }
             }
 
-            // Halve the step when the middle level stays best. Otherwise continue from the new best, in the
-            // direction it moved.
+            // The step halves when the middle level stays best. Otherwise the search continues from the new best, in the direction it moved.
             if (best == middle)
             {
                 step /= 2;
@@ -376,8 +365,7 @@ internal static class Av1LoopFilterEncoder
     }
 
     /// <summary>
-    /// Filters one plane at a trial level, measures it against the source, and restores the unfiltered plane,
-    /// as <c>try_filter_frame</c> does.
+    /// Filters one plane at a trial level, measures it against the source, and restores the unfiltered plane.
     /// </summary>
     /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
     /// <typeparam name="TVerticalOperator">The vertical sample accessor.</typeparam>
@@ -435,8 +423,7 @@ internal static class Av1LoopFilterEncoder
     }
 
     /// <summary>
-    /// Sums the squared differences of two visible planes in 16 by 16 tiles plus the right and bottom
-    /// remainders, as <c>get_sse</c> and <c>highbd_get_sse</c> do.
+    /// Sums the squared differences of two visible planes in 16 by 16 tiles plus the right and bottom remainders.
     /// </summary>
     /// <typeparam name="TSample">The sample storage type.</typeparam>
     /// <param name="first">The first plane.</param>
@@ -550,9 +537,7 @@ internal static class Av1LoopFilterEncoder
     }
 
     /// <summary>
-    /// The encoder state that the deblocking traversal reads: the picture and its mode-information grid, read once
-    /// for a plane pass. Reference: the mi_grid_base pointer that av1_filter_block_plane_vert() and its
-    /// horizontal twin read.
+    /// The encoder state that the deblocking traversal reads: the picture and its mode-information grid, read once for a plane pass.
     /// </summary>
     private readonly ref struct FrameState
     {

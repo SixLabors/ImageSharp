@@ -22,10 +22,9 @@ internal static partial class Av1TemporalFilter
     /// scalar overload. The overloads that return nothing are selected by a default-valued <c>lanes</c> argument.
     /// </para>
     /// <para>
-    /// Sample kernels widen samples to thirty-two-bit lanes: a squared twelve-bit difference needs twenty-four bits
-    /// and a filter accumulator needs twenty-six. The noise kernel is the exception. It keeps sixteen-bit lanes, as
-    /// av1_estimate_noise_from_single_plane_avx2() does, because every intermediate Sobel and Laplacian value of a
-    /// twelve-bit plane stays inside the signed sixteen-bit range.
+    /// Sample kernels widen samples to thirty-two-bit lanes: a squared twelve-bit difference needs twenty-four bits and a filter
+    /// accumulator needs twenty-six. The noise kernel is the exception. It keeps sixteen-bit lanes, because every intermediate
+    /// Sobel and Laplacian value of a twelve-bit plane stays inside the signed sixteen-bit range.
     /// </para>
     /// <para>
     /// The weight and normalization kernels convert thirty-two-bit integers to <see cref="double"/> through the
@@ -37,7 +36,7 @@ internal static partial class Av1TemporalFilter
         where TSample : unmanaged
     {
         /// <summary>
-        /// Stores the squared differences of four samples. Reference: get_squared_error_avx2().
+        /// Stores the squared differences of four samples.
         /// </summary>
         /// <param name="frame">The first sample of the frame to filter.</param>
         /// <param name="prediction">The first predicted sample.</param>
@@ -46,7 +45,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void StoreSquaredErrors(ref TSample frame, ref TSample prediction, ref uint destination, Vector128<uint> lanes);
 
         /// <summary>
-        /// Stores the squared differences of eight samples. Reference: get_squared_error_avx2().
+        /// Stores the squared differences of eight samples.
         /// </summary>
         /// <param name="frame">The first sample of the frame to filter.</param>
         /// <param name="prediction">The first predicted sample.</param>
@@ -55,7 +54,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void StoreSquaredErrors(ref TSample frame, ref TSample prediction, ref uint destination, Vector256<uint> lanes);
 
         /// <summary>
-        /// Stores the squared differences of sixteen samples. Reference: get_squared_error_avx2().
+        /// Stores the squared differences of sixteen samples.
         /// </summary>
         /// <param name="frame">The first sample of the frame to filter.</param>
         /// <param name="prediction">The first predicted sample.</param>
@@ -64,7 +63,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void StoreSquaredErrors(ref TSample frame, ref TSample prediction, ref uint destination, Vector512<uint> lanes);
 
         /// <summary>
-        /// Stores the squared difference of one sample. Reference: compute_square_diff().
+        /// Stores the squared difference of one sample.
         /// </summary>
         /// <param name="frame">The sample of the frame to filter.</param>
         /// <param name="prediction">The predicted sample.</param>
@@ -72,7 +71,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void StoreSquaredErrors(TSample frame, TSample prediction, ref uint destination);
 
         /// <summary>
-        /// Adds four samples of the frame to filter at the full filter weight. Reference: tf_apply_temporal_filter_self().
+        /// Adds four samples of the frame to filter at the full filter weight.
         /// </summary>
         /// <param name="sample">The first sample of the frame to filter.</param>
         /// <param name="accumulator">The first weighted sum to update.</param>
@@ -81,7 +80,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void AccumulateSelf(ref TSample sample, ref uint accumulator, ref ushort count, Vector128<uint> lanes);
 
         /// <summary>
-        /// Adds eight samples of the frame to filter at the full filter weight. Reference: tf_apply_temporal_filter_self().
+        /// Adds eight samples of the frame to filter at the full filter weight.
         /// </summary>
         /// <param name="sample">The first sample of the frame to filter.</param>
         /// <param name="accumulator">The first weighted sum to update.</param>
@@ -90,7 +89,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void AccumulateSelf(ref TSample sample, ref uint accumulator, ref ushort count, Vector256<uint> lanes);
 
         /// <summary>
-        /// Adds sixteen samples of the frame to filter at the full filter weight. Reference: tf_apply_temporal_filter_self().
+        /// Adds sixteen samples of the frame to filter at the full filter weight.
         /// </summary>
         /// <param name="sample">The first sample of the frame to filter.</param>
         /// <param name="accumulator">The first weighted sum to update.</param>
@@ -99,7 +98,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void AccumulateSelf(ref TSample sample, ref uint accumulator, ref ushort count, Vector512<uint> lanes);
 
         /// <summary>
-        /// Adds one sample of the frame to filter at the full filter weight. Reference: tf_apply_temporal_filter_self().
+        /// Adds one sample of the frame to filter at the full filter weight.
         /// </summary>
         /// <param name="sample">The sample of the frame to filter.</param>
         /// <param name="accumulator">The weighted sum to update.</param>
@@ -108,7 +107,6 @@ internal static partial class Av1TemporalFilter
 
         /// <summary>
         /// Weighs four predicted samples with the approximated exponential and adds them to the accumulators.
-        /// Reference: the tf_wgt_calc_lvl 1 branch of apply_temporal_filter() in av1_apply_temporal_filter_avx2().
         /// </summary>
         /// <param name="windowErrors">The first scaled window error.</param>
         /// <param name="prediction">The first predicted sample.</param>
@@ -120,7 +118,6 @@ internal static partial class Av1TemporalFilter
 
         /// <summary>
         /// Weighs four predicted samples with the approximated exponential and adds them to the accumulators.
-        /// Reference: the tf_wgt_calc_lvl 1 branch of apply_temporal_filter() in av1_apply_temporal_filter_avx2().
         /// </summary>
         /// <param name="windowErrors">The first scaled window error.</param>
         /// <param name="prediction">The first predicted sample.</param>
@@ -132,7 +129,6 @@ internal static partial class Av1TemporalFilter
 
         /// <summary>
         /// Weighs eight predicted samples with the approximated exponential and adds them to the accumulators.
-        /// Reference: the tf_wgt_calc_lvl 1 branch of apply_temporal_filter() in av1_apply_temporal_filter_avx2().
         /// </summary>
         /// <param name="windowErrors">The first scaled window error.</param>
         /// <param name="prediction">The first predicted sample.</param>
@@ -144,7 +140,6 @@ internal static partial class Av1TemporalFilter
 
         /// <summary>
         /// Weighs one predicted sample and adds it to the accumulators, with either weight calculation level.
-        /// Reference: the per-sample weight of av1_apply_temporal_filter_c() and apply_temporal_filter().
         /// </summary>
         /// <param name="windowError">The scaled window error.</param>
         /// <param name="prediction">The predicted sample.</param>
@@ -154,7 +149,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void AccumulateWeights(uint windowError, TSample prediction, ref uint accumulator, ref ushort count, in WeightTerms terms);
 
         /// <summary>
-        /// Divides four accumulators by their weight totals with rounding. Reference: tf_normalize_filtered_frame().
+        /// Divides four accumulators by their weight totals with rounding.
         /// </summary>
         /// <param name="accumulator">The first weighted sum.</param>
         /// <param name="count">The first weight total.</param>
@@ -163,7 +158,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void Normalize(ref uint accumulator, ref ushort count, ref TSample destination, Vector128<double> lanes);
 
         /// <summary>
-        /// Divides four accumulators by their weight totals with rounding. Reference: tf_normalize_filtered_frame().
+        /// Divides four accumulators by their weight totals with rounding.
         /// </summary>
         /// <param name="accumulator">The first weighted sum.</param>
         /// <param name="count">The first weight total.</param>
@@ -172,7 +167,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void Normalize(ref uint accumulator, ref ushort count, ref TSample destination, Vector256<double> lanes);
 
         /// <summary>
-        /// Divides eight accumulators by their weight totals with rounding. Reference: tf_normalize_filtered_frame().
+        /// Divides eight accumulators by their weight totals with rounding.
         /// </summary>
         /// <param name="accumulator">The first weighted sum.</param>
         /// <param name="count">The first weight total.</param>
@@ -181,7 +176,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void Normalize(ref uint accumulator, ref ushort count, ref TSample destination, Vector512<double> lanes);
 
         /// <summary>
-        /// Divides one accumulator by its weight total with rounding. Reference: tf_normalize_filtered_frame().
+        /// Divides one accumulator by its weight total with rounding.
         /// </summary>
         /// <param name="accumulator">The weighted sum.</param>
         /// <param name="count">The weight total.</param>
@@ -190,7 +185,6 @@ internal static partial class Av1TemporalFilter
 
         /// <summary>
         /// Adds the Laplacian magnitudes of the smooth samples among eight columns to lane totals.
-        /// Reference: av1_estimate_noise_from_single_plane_avx2().
         /// </summary>
         /// <param name="center">The first center sample.</param>
         /// <param name="stride">The plane row stride.</param>
@@ -201,7 +195,6 @@ internal static partial class Av1TemporalFilter
 
         /// <summary>
         /// Adds the Laplacian magnitudes of the smooth samples among sixteen columns to lane totals.
-        /// Reference: av1_estimate_noise_from_single_plane_avx2().
         /// </summary>
         /// <param name="center">The first center sample.</param>
         /// <param name="stride">The plane row stride.</param>
@@ -212,7 +205,6 @@ internal static partial class Av1TemporalFilter
 
         /// <summary>
         /// Adds the Laplacian magnitudes of the smooth samples among thirty-two columns to lane totals.
-        /// Reference: av1_estimate_noise_from_single_plane_avx2().
         /// </summary>
         /// <param name="center">The first center sample.</param>
         /// <param name="stride">The plane row stride.</param>
@@ -223,7 +215,6 @@ internal static partial class Av1TemporalFilter
 
         /// <summary>
         /// Adds the Laplacian magnitude of one sample when it is smooth.
-        /// Reference: av1_estimate_noise_from_single_plane_c() and av1_highbd_estimate_noise_from_single_plane_c().
         /// </summary>
         /// <param name="center">The center sample.</param>
         /// <param name="stride">The plane row stride.</param>
@@ -233,7 +224,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void AccumulateNoise(ref TSample center, int stride, in NoiseTerms terms, ref int sum, ref int count);
 
         /// <summary>
-        /// Stores the sums of five rows of four squared differences. Reference: the row loop of apply_temporal_filter().
+        /// Stores the sums of five rows of four squared differences.
         /// </summary>
         /// <param name="row0">The first value of the top row.</param>
         /// <param name="row1">The first value of the second row.</param>
@@ -245,7 +236,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void SumRows(ref uint row0, ref uint row1, ref uint row2, ref uint row3, ref uint row4, ref uint destination, Vector128<uint> lanes);
 
         /// <summary>
-        /// Stores the sums of five rows of eight squared differences. Reference: the row loop of apply_temporal_filter().
+        /// Stores the sums of five rows of eight squared differences.
         /// </summary>
         /// <param name="row0">The first value of the top row.</param>
         /// <param name="row1">The first value of the second row.</param>
@@ -257,7 +248,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void SumRows(ref uint row0, ref uint row1, ref uint row2, ref uint row3, ref uint row4, ref uint destination, Vector256<uint> lanes);
 
         /// <summary>
-        /// Stores the sums of five rows of sixteen squared differences. Reference: the row loop of apply_temporal_filter().
+        /// Stores the sums of five rows of sixteen squared differences.
         /// </summary>
         /// <param name="row0">The first value of the top row.</param>
         /// <param name="row1">The first value of the second row.</param>
@@ -269,7 +260,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void SumRows(ref uint row0, ref uint row1, ref uint row2, ref uint row3, ref uint row4, ref uint destination, Vector512<uint> lanes);
 
         /// <summary>
-        /// Stores the sum of five rows of one squared difference. Reference: the window loop of av1_apply_temporal_filter_c().
+        /// Stores the sum of five rows of one squared difference.
         /// </summary>
         /// <param name="row0">The value of the top row.</param>
         /// <param name="row1">The value of the second row.</param>
@@ -281,7 +272,6 @@ internal static partial class Av1TemporalFilter
 
         /// <summary>
         /// Stores four window errors: five adjacent column sums plus the luma error, scaled to eight bits.
-        /// Reference: xx_mask_and_hadd() and the diff_sse of apply_temporal_filter().
         /// </summary>
         /// <param name="columns">The column sum two columns left of the first output, in the edge-padded row.</param>
         /// <param name="luma">The first luma error, zero on the luma plane.</param>
@@ -292,7 +282,6 @@ internal static partial class Av1TemporalFilter
 
         /// <summary>
         /// Stores eight window errors: five adjacent column sums plus the luma error, scaled to eight bits.
-        /// Reference: xx_mask_and_hadd() and the diff_sse of apply_temporal_filter().
         /// </summary>
         /// <param name="columns">The column sum two columns left of the first output, in the edge-padded row.</param>
         /// <param name="luma">The first luma error, zero on the luma plane.</param>
@@ -303,7 +292,6 @@ internal static partial class Av1TemporalFilter
 
         /// <summary>
         /// Stores sixteen window errors: five adjacent column sums plus the luma error, scaled to eight bits.
-        /// Reference: xx_mask_and_hadd() and the diff_sse of apply_temporal_filter().
         /// </summary>
         /// <param name="columns">The column sum two columns left of the first output, in the edge-padded row.</param>
         /// <param name="luma">The first luma error, zero on the luma plane.</param>
@@ -314,7 +302,6 @@ internal static partial class Av1TemporalFilter
 
         /// <summary>
         /// Stores one window error: five adjacent column sums plus the luma error, scaled to eight bits.
-        /// Reference: the sum_square_diff of av1_apply_temporal_filter_c().
         /// </summary>
         /// <param name="columns">The column sum two columns left of the output, in the edge-padded row.</param>
         /// <param name="luma">The luma error, zero on the luma plane.</param>
@@ -323,7 +310,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void SumWindow(ref uint columns, uint luma, int shift, ref uint destination);
 
         /// <summary>
-        /// Stores four horizontal luma pair sums. Reference: compute_luma_sq_error_sum() for 4:2:2 subsampling.
+        /// Stores four horizontal luma pair sums. The 4:2:2 chroma planes use these sums.
         /// </summary>
         /// <param name="row">The first luma squared difference.</param>
         /// <param name="destination">The first chroma-position sum to write.</param>
@@ -331,7 +318,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void SumLumaPairs(ref uint row, ref uint destination, Vector128<uint> lanes);
 
         /// <summary>
-        /// Stores eight horizontal luma pair sums. Reference: compute_luma_sq_error_sum() for 4:2:2 subsampling.
+        /// Stores eight horizontal luma pair sums. The 4:2:2 chroma planes use these sums.
         /// </summary>
         /// <param name="row">The first luma squared difference.</param>
         /// <param name="destination">The first chroma-position sum to write.</param>
@@ -339,7 +326,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void SumLumaPairs(ref uint row, ref uint destination, Vector256<uint> lanes);
 
         /// <summary>
-        /// Stores sixteen horizontal luma pair sums. Reference: compute_luma_sq_error_sum() for 4:2:2 subsampling.
+        /// Stores sixteen horizontal luma pair sums. The 4:2:2 chroma planes use these sums.
         /// </summary>
         /// <param name="row">The first luma squared difference.</param>
         /// <param name="destination">The first chroma-position sum to write.</param>
@@ -347,14 +334,14 @@ internal static partial class Av1TemporalFilter
         public static abstract void SumLumaPairs(ref uint row, ref uint destination, Vector512<uint> lanes);
 
         /// <summary>
-        /// Stores one horizontal luma pair sum. Reference: compute_luma_sq_error_sum() for 4:2:2 subsampling.
+        /// Stores one horizontal luma pair sum. The 4:2:2 chroma planes use these sums.
         /// </summary>
         /// <param name="row">The first luma squared difference of the pair.</param>
         /// <param name="destination">The chroma-position sum to write.</param>
         public static abstract void SumLumaPairs(ref uint row, ref uint destination);
 
         /// <summary>
-        /// Stores four two-by-two luma sums. Reference: compute_luma_sq_error_sum() for 4:2:0 subsampling.
+        /// Stores four two-by-two luma sums. The 4:2:0 chroma planes use these sums.
         /// </summary>
         /// <param name="upper">The first luma squared difference of the upper row.</param>
         /// <param name="lower">The first luma squared difference of the lower row.</param>
@@ -363,7 +350,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void SumLumaQuads(ref uint upper, ref uint lower, ref uint destination, Vector128<uint> lanes);
 
         /// <summary>
-        /// Stores eight two-by-two luma sums. Reference: compute_luma_sq_error_sum() for 4:2:0 subsampling.
+        /// Stores eight two-by-two luma sums. The 4:2:0 chroma planes use these sums.
         /// </summary>
         /// <param name="upper">The first luma squared difference of the upper row.</param>
         /// <param name="lower">The first luma squared difference of the lower row.</param>
@@ -372,7 +359,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void SumLumaQuads(ref uint upper, ref uint lower, ref uint destination, Vector256<uint> lanes);
 
         /// <summary>
-        /// Stores sixteen two-by-two luma sums. Reference: compute_luma_sq_error_sum() for 4:2:0 subsampling.
+        /// Stores sixteen two-by-two luma sums. The 4:2:0 chroma planes use these sums.
         /// </summary>
         /// <param name="upper">The first luma squared difference of the upper row.</param>
         /// <param name="lower">The first luma squared difference of the lower row.</param>
@@ -381,7 +368,7 @@ internal static partial class Av1TemporalFilter
         public static abstract void SumLumaQuads(ref uint upper, ref uint lower, ref uint destination, Vector512<uint> lanes);
 
         /// <summary>
-        /// Stores one two-by-two luma sum. Reference: compute_luma_sq_error_sum() for 4:2:0 subsampling.
+        /// Stores one two-by-two luma sum. The 4:2:0 chroma planes use these sums.
         /// </summary>
         /// <param name="upper">The first luma squared difference of the upper row.</param>
         /// <param name="lower">The first luma squared difference of the lower row.</param>
@@ -395,7 +382,7 @@ internal static partial class Av1TemporalFilter
     internal readonly struct WeightTerms
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="WeightTerms"/> struct. Reference: apply_temporal_filter().
+        /// Initializes a new instance of the <see cref="WeightTerms"/> struct.
         /// </summary>
         /// <param name="inverseReferenceCount">The reciprocal of the number of squared errors in a window.</param>
         /// <param name="blockError">The sub-block motion search error, already multiplied by the normalization factor.</param>
@@ -426,9 +413,9 @@ internal static partial class Av1TemporalFilter
         /// Gets the first multiplier of the combined error.
         /// </summary>
         /// <remarks>
-        /// The x64 kernels multiply by the product of the distance factor and the decay factor, and pass one as
-        /// <see cref="SecondFactor"/>; multiplying by one is exact. The C kernel, which libaom runs for 4:2:2 high
-        /// bit depth, multiplies by the distance factor and then by the decay factor, which rounds twice.
+        /// Most frames pass the product of the distance factor and the decay factor here, and one as <see cref="SecondFactor"/>.
+        /// A multiplication by one is exact. High-bit-depth frames with 4:2:2 subsampling pass the distance factor here and the decay
+        /// factor as <see cref="SecondFactor"/>, so the error rounds twice.
         /// </remarks>
         public double FirstFactor { get; }
 
@@ -438,7 +425,7 @@ internal static partial class Av1TemporalFilter
         public double SecondFactor { get; }
 
         /// <summary>
-        /// Gets the weight calculation level, tf_wgt_calc_lvl: zero uses exp(), one uses approx_exp().
+        /// Gets the weight calculation level. Zero uses the exact exponential. One uses the approximated exponential.
         /// </summary>
         public int Level { get; }
     }
@@ -449,8 +436,7 @@ internal static partial class Av1TemporalFilter
     internal readonly struct NoiseTerms
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="NoiseTerms"/> struct. Reference:
-        /// av1_highbd_estimate_noise_from_single_plane_c().
+        /// Initializes a new instance of the <see cref="NoiseTerms"/> struct.
         /// </summary>
         /// <param name="edgeThreshold">The gradient magnitude below which a sample counts as smooth.</param>
         /// <param name="bitDepth">The sample bit depth.</param>
@@ -462,7 +448,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Gets the gradient magnitude below which a sample counts as smooth, NOISE_ESTIMATION_EDGE_THRESHOLD.
+        /// Gets the gradient magnitude below which a sample counts as smooth.
         /// </summary>
         public int EdgeThreshold { get; }
 
@@ -472,8 +458,7 @@ internal static partial class Av1TemporalFilter
         public int Shift { get; }
 
         /// <summary>
-        /// Gets the rounding bias of <see cref="Shift"/>; ROUND_POWER_OF_TWO() adds half the divisor, which is zero
-        /// for a zero shift.
+        /// Gets the rounding bias of <see cref="Shift"/>: half the divisor, or zero for a zero shift.
         /// </summary>
         public int Bias { get; }
     }
@@ -567,7 +552,7 @@ internal static partial class Av1TemporalFilter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AccumulateNoise(ref byte center, int stride, in NoiseTerms terms, ref Vector128<int> sum, ref Vector128<int> count)
         {
-            // Nine neighborhoods are read as eight-byte rows around the center and widened to sixteen-bit lanes.
+            // Each of the nine neighbor positions loads eight bytes from its offset to the center and widens them to sixteen-bit lanes.
             Vector128<short> a = TemporalFilterLanes.LoadBytes(ref Unsafe.Add(ref center, -stride - 1), default(Vector128<short>));
             Vector128<short> b = TemporalFilterLanes.LoadBytes(ref Unsafe.Add(ref center, -stride), default(Vector128<short>));
             Vector128<short> c = TemporalFilterLanes.LoadBytes(ref Unsafe.Add(ref center, -stride + 1), default(Vector128<short>));
@@ -799,7 +784,7 @@ internal static partial class Av1TemporalFilter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AccumulateNoise(ref ushort center, int stride, in NoiseTerms terms, ref Vector128<int> sum, ref Vector128<int> count)
         {
-            // Twelve-bit samples fit the signed sixteen-bit lanes directly; see TemporalFilterLanes.AccumulateNoise().
+            // Twelve-bit samples fit the signed sixteen-bit lanes directly. TemporalFilterLanes.AccumulateNoise() explains the range limits.
             Vector128<short> a = Vector128.LoadUnsafe(ref Unsafe.Add(ref center, -stride - 1)).AsInt16();
             Vector128<short> b = Vector128.LoadUnsafe(ref Unsafe.Add(ref center, -stride)).AsInt16();
             Vector128<short> c = Vector128.LoadUnsafe(ref Unsafe.Add(ref center, -stride + 1)).AsInt16();

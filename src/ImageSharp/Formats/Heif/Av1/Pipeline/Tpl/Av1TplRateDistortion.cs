@@ -12,18 +12,18 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 internal static class Av1TplRateDistortion
 {
     /// <summary>
-    /// Gets the rate multiplier boost by golden boost, in units of 1/128. Reference: rd_boost_factor.
+    /// Gets the rate multiplier boost by golden boost, in units of 1/128.
     /// </summary>
     private static ReadOnlySpan<byte> BoostFactors => [64, 32, 32, 32, 24, 16, 12, 12, 8, 8, 4, 4, 2, 2, 1, 0];
 
     /// <summary>
-    /// Gets the rate multiplier scale by layer depth, in units of 1/128. Reference: rd_layer_depth_factor.
+    /// Gets the rate multiplier scale by layer depth, in units of 1/128.
     /// </summary>
     private static ReadOnlySpan<byte> LayerDepthFactors => [160, 160, 160, 160, 192, 208, 224];
 
     /// <summary>
-    /// Returns the rate multiplier of a quantizer, with the layer depth and golden boost adjustments of statistics
-    /// consuming encodes. Reference: av1_compute_rd_mult().
+    /// Returns the rate multiplier of a quantizer. Encodes that consume first-pass statistics also apply the layer depth
+    /// and golden boost adjustments to non-key frames.
     /// </summary>
     /// <param name="qIndex">The quantizer index, including any luma DC delta.</param>
     /// <param name="bitDepth">The sample precision.</param>
@@ -57,14 +57,14 @@ internal static class Av1TplRateDistortion
     }
 
     /// <summary>
-    /// Returns the golden boost index of the rate multiplier. Reference: AOMMIN(15, (p_rc->gfu_boost / 100)).
+    /// Returns the golden boost index of the rate multiplier: the boost divided by 100, at most 15.
     /// </summary>
     /// <param name="goldenBoost">The golden boost.</param>
     /// <returns>The boost index.</returns>
     public static int GetBoostIndex(int goldenBoost) => Math.Min(15, goldenBoost / 100);
 
     /// <summary>
-    /// Converts a quantizer index to the real quantizer on the 8-bit scale. Reference: av1_convert_qindex_to_q().
+    /// Converts a quantizer index to the real quantizer on the 8-bit scale.
     /// </summary>
     /// <param name="qIndex">The quantizer index.</param>
     /// <param name="bitDepth">The sample precision.</param>
@@ -82,20 +82,19 @@ internal static class Av1TplRateDistortion
 
     /// <summary>
     /// Returns the change of quantizer index between two real quantizers inside the allowed range.
-    /// Reference: av1_compute_qdelta().
     /// </summary>
     /// <param name="qStart">The starting real quantizer.</param>
     /// <param name="qTarget">The target real quantizer.</param>
     /// <param name="bitDepth">The sample precision.</param>
-    /// <param name="bestQuality">The lowest quantizer index. Reference: rc->best_quality.</param>
-    /// <param name="worstQuality">The highest quantizer index. Reference: rc->worst_quality.</param>
+    /// <param name="bestQuality">The lowest quantizer index that the rate control allows.</param>
+    /// <param name="worstQuality">The highest quantizer index that the rate control allows.</param>
     /// <returns>The quantizer index change.</returns>
     public static int ComputeQDelta(double qStart, double qTarget, Av1BitDepth bitDepth, int bestQuality, int worstQuality)
         => FindQIndex(qTarget, bitDepth, bestQuality, worstQuality) - FindQIndex(qStart, bitDepth, bestQuality, worstQuality);
 
     /// <summary>
-    /// Returns the first quantizer index whose real quantizer reaches a value, or the highest index.
-    /// Reference: av1_find_qindex().
+    /// Returns the first quantizer index whose real quantizer reaches a value, or the highest index. The search is binary
+    /// because the real quantizer increases with the index.
     /// </summary>
     /// <param name="desiredQ">The real quantizer.</param>
     /// <param name="bitDepth">The sample precision.</param>

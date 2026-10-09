@@ -17,7 +17,7 @@ internal static partial class Av1SelfGuidedFilter
     /// Supplies the 32-bit lane arithmetic of one register width, or of one column for the scalar tail.
     /// </summary>
     /// <remarks>
-    /// Multiplication and addition wrap in 32 bits, as the reference's unsigned products do. The logical shift and the
+    /// Multiplication and addition wrap in 32 bits, so they give the same bits as unsigned 32-bit arithmetic. The logical shift and the
     /// unsigned minimum read the lanes as unsigned values.
     /// </remarks>
     /// <typeparam name="TLanes">The lane type.</typeparam>
@@ -294,8 +294,9 @@ internal static partial class Av1SelfGuidedFilter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<int> Scan(Vector128<int> values)
         {
-            // The portable shuffle is required here because its out-of-range indices produce zero.
-            // ShuffleNative may mask those indices and wrap them back into the input on some ISAs.
+            // The first step adds the lane below to each lane, and the second step adds the sum two lanes below. Index 4 selects zero.
+            // The portable shuffle is necessary, because its out-of-range indices produce zero. ShuffleNative can mask those indices
+            // and wrap them back into the input on some instruction sets.
             Vector128<int> scan = values + Vector128.Shuffle(values, Vector128.Create(4, 0, 1, 2));
             return scan + Vector128.Shuffle(scan, Vector128.Create(4, 4, 0, 1));
         }
@@ -374,8 +375,8 @@ internal static partial class Av1SelfGuidedFilter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<int> Scan(Vector256<int> values)
         {
-            // Byte shifts inside each 128-bit half give the shortest dependency chain. After scanning each half, the
-            // lower half's total joins the upper half, so the result is one continuous eight-lane prefix.
+            // Byte shifts inside each 128-bit half give the shortest dependency chain. Then the total of the lower half (lane 3) adds to every
+            // lane of the upper half, so the result is one continuous eight-lane prefix.
             Vector256<int> scan = values + Vector256_.ShiftLeftBytesInLane(values.AsByte(), sizeof(int)).AsInt32();
             scan += Vector256_.ShiftLeftBytesInLane(scan.AsByte(), sizeof(int) * 2).AsInt32();
             return scan + Vector256.Create(Vector128<int>.Zero, Vector128.Create(scan.GetElement(3)));
@@ -451,9 +452,9 @@ internal static partial class Av1SelfGuidedFilter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<int> Scan(Vector512<int> values)
         {
-            // Byte shifts inside each 128-bit lane scan the four lanes independently. The exclusive prefix of the lane
-            // totals then joins each lane: the last element of every lane, moved one lane up, is scanned across the
-            // lanes by shifts of one and two lanes. The portable shuffle turns index 16 into zero.
+            // Byte shifts inside each 128-bit block scan the four blocks independently. Then the exclusive prefix of the block totals joins
+            // each block. The last element of every block moves one block up, and shifts of one and two blocks scan it across the blocks.
+            // The portable shuffle turns index 16 into zero.
             Vector512<int> scan = values + Vector512_.ShiftLeftBytesInLane(values.AsByte(), sizeof(int)).AsInt32();
             scan += Vector512_.ShiftLeftBytesInLane(scan.AsByte(), sizeof(int) * 2).AsInt32();
             Vector512<int> totals = Vector512.Shuffle(scan, Vector512.Create(16, 16, 16, 16, 3, 3, 3, 3, 7, 7, 7, 7, 11, 11, 11, 11));

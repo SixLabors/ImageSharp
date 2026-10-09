@@ -10,38 +10,37 @@ internal sealed partial class Av1SecondPass
 {
     /// <summary>
     /// The number of recent frames whose prediction decay the key frame search multiplies.
-    /// Reference: FRAMES_TO_CHECK_DECAY.
     /// </summary>
     private const int FramesToCheckDecay = 8;
 
     /// <summary>
-    /// Reference: KF_MIN_FRAME_BOOST.
+    /// The lower bound of the largest boost of one frame of a key frame group without a bit budget.
     /// </summary>
     private const double KeyFrameMinimumFrameBoost = 80.0;
 
     /// <summary>
-    /// Reference: KF_MAX_FRAME_BOOST.
+    /// The largest boost of one frame of a key frame group.
     /// </summary>
     private const double KeyFrameMaximumFrameBoost = 128.0;
 
     /// <summary>
-    /// The smallest boost of a key frame group that is not static. Reference: MIN_KF_BOOST.
+    /// The smallest boost of a key frame group that is not static.
     /// </summary>
     private const int MinimumKeyFrameBoost = 600;
 
     /// <summary>
-    /// The smallest boost of a static key frame group. Reference: MIN_STATIC_KF_BOOST.
+    /// The smallest boost of a static key frame group.
     /// </summary>
     private const int MinimumStaticKeyFrameBoost = 5400;
 
     /// <summary>
-    /// The zero motion share above which a key frame group is static. Reference: STATIC_KF_GROUP_FLOAT_THRESH.
+    /// The zero motion share above which a key frame group is static.
     /// </summary>
     private const double StaticKeyFrameGroupThreshold = 0.99;
 
     /// <summary>
-    /// Starts a key frame group at the current frame: finds the next key frame, the key frame boost and the bits of
-    /// the group and of the key frame. Reference: find_next_key_frame() in the one-pass look-ahead stage.
+    /// Starts a key frame group at the current frame: finds the next key frame, the key frame boost and the bits of the group and of the
+    /// key frame.
     /// </summary>
     /// <param name="thisFrame">The statistics of the key frame.</param>
     private void FindNextKeyFrame(Av1FirstPassStatistics thisFrame)
@@ -63,8 +62,7 @@ internal sealed partial class Av1SecondPass
         this.framesToKey = framesToKeyFrame != -1 ? Math.Min(this.keyFrameMaximumDistance, framesToKeyFrame) : this.keyFrameMaximumDistance;
         this.CorrectFramesToKey();
 
-        // An automatic interval between one and two maximum distances centres the extra key frame. The rescan of
-        // the statistics that follows in libaom only moves the read position, which is reset below.
+        // An automatic interval between one and two maximum distances centres the extra key frame.
         if (this.framesToKey > this.keyFrameMaximumDistance)
         {
             this.framesToKey /= 2;
@@ -75,8 +73,8 @@ internal sealed partial class Av1SecondPass
             this.nextKeyFrameForced = this.framesToKey >= this.keyFrameMaximumDistance;
         }
 
-        // The key frame group error sums only count the statistics here: the look-ahead's error range is empty,
-        // so every error term is clamped to zero and only the count is read later.
+        // Only count the statistics of the key frame group. The error range of the look-ahead is empty, so every error term is zero and
+        // later code reads only the count.
         for (int i = 0; i < this.framesToKey; ++i)
         {
             if (this.statisticsInfo.Contains(i))
@@ -119,9 +117,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the number of frames to the next key frame from the scene cuts and the still transitions in the
-    /// look-ahead, or -1 when the look-ahead finds neither.
-    /// Reference: define_kf_interval() without forced key frames.
+    /// Returns the number of frames to the next key frame from the scene cuts and the still transitions in the look-ahead, or -1 when the
+    /// look-ahead finds neither.
     /// </summary>
     /// <param name="framesToDetect">The number of frames to search.</param>
     /// <param name="searchStart">The first frame to test, 1 when the current frame is a key frame.</param>
@@ -152,8 +149,8 @@ internal sealed partial class Av1SecondPass
                     sceneCutDetected = this.TestCandidateKeyFrame(framesToKeyFrame, framesSinceKeyFrame);
                     if (sceneCutDetected)
                     {
-                        // A cut is kept only when a frame of the next 32 predicts much better from the long term
-                        // reference than from the previous frame.
+                        // A cut is kept only when a frame of the next 32 predicts much better from the long term reference than from the
+                        // previous frame.
                         bool testNextGop = false;
                         for (int j = 0; j < 32; ++j)
                         {
@@ -176,7 +173,7 @@ internal sealed partial class Av1SecondPass
                     }
                 }
 
-                // How fast is the prediction quality decaying over the recent frames?
+                // Multiply the prediction decay rates of the recent frames.
                 double loopDecayRate = GetPredictionDecayRate(this.statisticsInfo.Peek(framesToKeyFrame + 1));
                 recentLoopDecay[i % FramesToCheckDecay] = loopDecayRate;
                 double decayAccumulator = 1.0;
@@ -185,8 +182,8 @@ internal sealed partial class Av1SecondPass
                     decayAccumulator *= recentLoopDecay[j];
                 }
 
-                // A transition or high motion followed by a static scene makes the key frame a good predictor for
-                // the frames after it, so the group does not use an alternate reference.
+                // A transition or high motion followed by a static scene makes the key frame a good predictor for the frames after it, so the
+                // group does not use an alternate reference.
                 if (framesSinceKeyFrame >= KeyFrameMinimumDistance)
                 {
                     sceneCutDetected = this.DetectTransitionToStill(
@@ -231,8 +228,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Tests whether a frame is a scene cut: it must look like an intra frame, not like a flash, and predict the
-    /// frames after it well. Reference: test_candidate_kf() in AOM_Q mode.
+    /// Tests whether a frame is a scene cut: it must look like an intra frame, not like a flash, and predict the frames after it well.
     /// </summary>
     /// <param name="index">The candidate's offset from the current frame.</param>
     /// <param name="frameCountSoFar">The number of frames since the last key frame.</param>
@@ -269,9 +265,10 @@ internal sealed partial class Av1SecondPass
 
         framesToTest = Math.Min(framesToTest, statisticsAfter);
 
-        // Does the frame satisfy the primary criteria of a key frame? Constant quality needs three frames since
-        // the last key frame. Reference: MIN_INTRA_LEVEL, INTRA_VS_INTER_THRESH, VERY_LOW_INTER_THRESH,
-        // KF_II_ERR_THRESHOLD, ERR_CHANGE_THRESHOLD and II_IMPROVEMENT_THRESHOLD.
+        // The candidate must satisfy the primary criteria of a key frame. Constant quality needs three frames since the last key frame.
+        // The candidate and the next frame must use little second reference. The candidate must also have almost no inter blocks, be a
+        // slide transition, or have a high intra share with a low intra to inter ratio. That last case also needs a large change in error
+        // or a high intra to inter ratio in the next frame.
         if (frameCountSoFar >= 3 &&
             candidate.PercentSecondReference < secondReferenceUsageThreshold &&
             next.PercentSecondReference < secondReferenceUsageThreshold &&
@@ -299,7 +296,7 @@ internal sealed partial class Av1SecondPass
                     break;
                 }
 
-                // Reference: BOOST_FACTOR and KF_II_MAX.
+                // The intra to inter error ratio, scaled by 12.5 and limited to 128.
                 double nextIntraInterRatio = 12.5 * local.IntraError / DoubleDivideCheck(local.CodedError);
                 if (nextIntraInterRatio > 128.0)
                 {
@@ -331,7 +328,7 @@ internal sealed partial class Av1SecondPass
                 oldBoostScore = boostScore;
             }
 
-            // Tolerable prediction for at least the next three frames makes the candidate viable.
+            // Tolerable prediction for at least the next three frames, or the next frame when `sceneCutDetection` is 1, makes the candidate viable.
             return boostScore > 30.0 && i > countForTolerablePrediction;
         }
 
@@ -339,8 +336,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the second reference usage above which a candidate looks like a flash or an occlusion. The threshold
-    /// rises over the first 32 frames of a key frame group. Reference: get_second_ref_usage_thresh().
+    /// Returns the second reference usage above which a candidate looks like a flash or an occlusion. The threshold rises over the first 32
+    /// frames of a key frame group.
     /// </summary>
     /// <param name="frameCountSoFar">The number of frames since the last key frame.</param>
     /// <returns>The threshold.</returns>
@@ -358,8 +355,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Tests for a slide show transition: a single frame whose error spikes against low error either side, with
-    /// similar intra and inter error. Reference: slide_transition() with VERY_LOW_II and ERROR_SPIKE.
+    /// Tests for a slide show transition: a single frame whose error spikes against low error either side, with similar intra and inter error.
     /// </summary>
     /// <param name="candidate">The candidate frame.</param>
     /// <param name="last">The frame before it.</param>
@@ -371,10 +367,9 @@ internal sealed partial class Av1SecondPass
            candidate.CodedError > next.CodedError * 5.0;
 
     /// <summary>
-    /// Returns the key frame boost of the frames after the key frame, weighted by their share of static blocks,
-    /// and the zero motion share of the group. With averaged statistics, only the frames of the group beyond the
-    /// look-ahead count, each with the average statistics of the frames the look-ahead holds.
-    /// Reference: get_kf_boost_score() with calc_avg_stats().
+    /// Returns the key frame boost of the frames after the key frame, weighted by their share of static blocks, and the zero motion share of
+    /// the group. With averaged statistics, only the frames of the group beyond the look-ahead count, each with the average statistics of the
+    /// frames the look-ahead holds.
     /// </summary>
     /// <param name="keyFrameRawError">The key frame's intra error.</param>
     /// <param name="zeroMotionAccumulator">The smallest zero motion share so far.</param>
@@ -409,7 +404,8 @@ internal sealed partial class Av1SecondPass
                 zeroMotionAccumulator = frame.PercentInter - frame.PercentMotion;
             }
 
-            // Not every frame of the group counts toward the boost.
+            // A frame counts toward the boost while the second reference error growth stays below 1.5 times the key frame error, up to twice
+            // the largest golden interval.
             if (secondReferenceAccumulator < keyFrameRawError * 1.50 && i <= this.maximumGoldenInterval * 2)
             {
                 // A factor of 0.75 to 1.25 from the static share of the frame.
@@ -428,8 +424,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Reads the statistics of the frames of the key frame group after the key frame that the look-ahead holds and
-    /// averages them when there are at least two. Reference: calc_avg_stats().
+    /// Reads the statistics of the frames of the key frame group after the key frame that the look-ahead holds and averages them when there
+    /// are at least two.
     /// </summary>
     /// <param name="average">Receives the sum of the statistics, averaged when at least two frames are read.</param>
     /// <returns>The number of frames read.</returns>
@@ -478,8 +474,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the key frame boost of one frame from its intra to inter error ratio, with the accumulated growth
-    /// of the second reference error added to its inter error. Reference: calc_kf_frame_boost().
+    /// Returns the key frame boost of one frame from its intra to inter error ratio, with the accumulated growth of the second reference error
+    /// added to its inter error.
     /// </summary>
     /// <param name="frame">The frame's statistics.</param>
     /// <param name="secondReferenceAccumulator">The accumulated growth of the second reference error.</param>
@@ -506,7 +502,6 @@ internal sealed partial class Av1SecondPass
 
     /// <summary>
     /// Scales the key frame boost from the frames the look-ahead covered to the whole key frame group.
-    /// Reference: get_projected_kf_boost().
     /// </summary>
     /// <returns>The projected boost.</returns>
     private int GetProjectedKeyFrameBoost()
@@ -522,11 +517,10 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the quantizer bounds of an intra frame in constant-quality mode.
-    /// Reference: get_intra_q_and_bounds() in the one-pass look-ahead stage.
+    /// Sets the quantizer bounds of an intra frame. Without a bit budget, the only frame of its key frame group codes at the constant-quality level.
     /// </summary>
     /// <param name="activeBest">Receives the lowest quantizer.</param>
-    /// <param name="activeWorst">The highest quantizer.</param>
+    /// <param name="activeWorst">The highest quantizer. Receives the constant-quality level for the only frame of a key frame group.</param>
     /// <param name="screenContent">Whether the frame is screen content.</param>
     private void GetIntraQAndBounds(ref int activeBest, ref int activeWorst, bool screenContent)
     {

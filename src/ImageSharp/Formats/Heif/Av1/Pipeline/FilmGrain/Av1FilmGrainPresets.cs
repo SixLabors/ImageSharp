@@ -6,8 +6,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 
 /// <summary>
-/// The sixteen film grain parameter sets that emulate different types of film grain. The parameters are valid for
-/// any bit depth. Reference: film_grain_test_vectors.
+/// The sixteen film grain parameter sets that emulate different types of film grain. The parameters are valid for any bit depth.
 /// </summary>
 internal static class Av1FilmGrainPresets
 {
@@ -420,22 +419,20 @@ internal static class Av1FilmGrainPresets
     /// scaling points are value and scaling pairs.
     /// </summary>
     /// <param name="parameters">The parameters that receive the preset.</param>
-    /// <param name="updateGrain">Whether an inter frame signals the parameters, rather than reusing a reference's.</param>
+    /// <param name="updateGrain">Whether an inter frame signals the parameters, rather than reusing the parameters of a reference frame.</param>
     /// <param name="lumaPoints">The luma scaling points as value and scaling pairs.</param>
-    /// <param name="lumaPointCount">The number of luma points the preset uses, which may be fewer than listed.</param>
+    /// <param name="lumaPointCount">The number of luma points the preset uses, which can be fewer than listed.</param>
     /// <param name="blueDifferencePoints">The blue-difference scaling points as value and scaling pairs.</param>
     /// <param name="blueDifferencePointCount">The number of blue-difference points the preset uses.</param>
     /// <param name="redDifferencePoints">The red-difference scaling points as value and scaling pairs.</param>
     /// <param name="redDifferencePointCount">The number of red-difference points the preset uses.</param>
     /// <param name="scalingShift">The scaling shift, from 8 to 11.</param>
     /// <param name="autoRegressionLag">The autoregressive lag, from 0 to 3.</param>
-    /// <param name="lumaCoefficients">The luma autoregressive coefficients; unlisted ones are zero.</param>
+    /// <param name="lumaCoefficients">The luma autoregressive coefficients. Unlisted coefficients are zero.</param>
     /// <param name="blueDifferenceCoefficients">The blue-difference autoregressive coefficients.</param>
     /// <param name="redDifferenceCoefficients">The red-difference autoregressive coefficients.</param>
     /// <param name="coefficientShift">The autoregressive coefficient shift, from 6 to 9.</param>
-    /// <param name="chromaMultipliers">
-    /// The blue-difference multiplier, luma multiplier and offset, then the same three for red-difference.
-    /// </param>
+    /// <param name="chromaMultipliers">The blue-difference multiplier, luma multiplier and offset, then the same three for red-difference.</param>
     /// <param name="overlap">Whether the grain blocks overlap.</param>
     /// <param name="clipToRestrictedRange">Whether the grained samples are clipped to the restricted range.</param>
     /// <param name="chromaScalingFromLuma">Whether the chroma scaling follows the luma scaling function.</param>

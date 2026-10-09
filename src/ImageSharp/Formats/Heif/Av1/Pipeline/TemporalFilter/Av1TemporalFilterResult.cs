@@ -4,18 +4,17 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
 
 /// <summary>
-/// Describes one temporal filter pass: the frames it used and the difference between the source and the filtered
-/// frame. Reference: TemporalFilterCtx and FRAME_DIFF.
+/// Describes one temporal filter pass: the frames it used and the difference between the source and the filtered frame.
 /// </summary>
 internal readonly struct Av1TemporalFilterResult
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1TemporalFilterResult"/> struct. Reference: av1_temporal_filter().
+    /// Initializes a new instance of the <see cref="Av1TemporalFilterResult"/> struct.
     /// </summary>
-    /// <param name="frameCount">The number of frames filtered together, num_frames.</param>
-    /// <param name="framesBefore">The number of frames before the filtered frame, filter_frame_idx.</param>
-    /// <param name="differenceSum">The sum of the per-block luma squared differences, FRAME_DIFF.sum.</param>
-    /// <param name="differenceSquares">The sum of their squares, FRAME_DIFF.sse.</param>
+    /// <param name="frameCount">The number of frames filtered together.</param>
+    /// <param name="framesBefore">The number of frames before the filtered frame.</param>
+    /// <param name="differenceSum">The sum of the per-block luma squared differences.</param>
+    /// <param name="differenceSquares">The sum of the squares of the per-block luma squared differences.</param>
     public Av1TemporalFilterResult(int frameCount, int framesBefore, long differenceSum, long differenceSquares)
     {
         this.FrameCount = frameCount;

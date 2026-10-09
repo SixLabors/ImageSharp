@@ -16,14 +16,14 @@ internal static partial class Av1LoopRestorationEncoder
     /// Accumulates the products of centered samples in 64-bit lane totals.
     /// </summary>
     /// <remarks>
-    /// One 16-bit lane is one sample: a twelve-bit sample less the average stays inside 16 bits. Adjacent products add
-    /// in pairs into 32 bits, which holds two twelve-bit products, and widen to 64 bits before they join the total. A
-    /// total spreads across its lanes in no defined way; only its lane sum is defined.
+    /// One 16-bit lane holds one sample. A twelve-bit sample less the average stays inside 16 bits. Adjacent products add in pairs into
+    /// 32 bits, which hold the sum of two twelve-bit products. The pair sums widen to 64 bits before they join the total. The split of a
+    /// total across its lanes has no defined order. Only the sum of all lanes is defined.
     /// </remarks>
     private interface ICorrelationOperator
     {
         /// <summary>
-        /// Adds the centered products of thirty-two sample pairs. Reference: the accumulation of compute_stats().
+        /// Adds the centered products of thirty-two sample pairs.
         /// </summary>
         /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
         /// <param name="first">The first sample of the first row.</param>
@@ -84,6 +84,9 @@ internal static partial class Av1LoopRestorationEncoder
             Vector512<short> center = Vector512.Create((short)average);
             Vector512<short> a = Av1RestorationSampleOperations.LoadToUInt16(ref first, Vector512<ushort>.Zero).AsInt16() - center;
             Vector512<short> b = Av1RestorationSampleOperations.LoadToUInt16(ref second, Vector512<ushort>.Zero).AsInt16() - center;
+
+            // The 32 signed 16-bit products add in adjacent pairs into 16 int lanes. Widen splits those lanes into two halves of
+            // eight 64-bit lanes, and both halves add into the total. The narrower widths below use the same layout.
             (Vector512<long> lower, Vector512<long> upper) = Vector512.Widen(Vector512_.MultiplyAddAdjacent(a, b));
             return total + lower + upper;
         }

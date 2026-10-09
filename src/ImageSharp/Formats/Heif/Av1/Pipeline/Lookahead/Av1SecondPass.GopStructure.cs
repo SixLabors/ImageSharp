@@ -9,10 +9,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 internal sealed partial class Av1SecondPass
 {
     /// <summary>
-    /// Builds the coding order of the golden frame group: a key or golden frame first when the group starts with
-    /// one, then the alternate reference, a pyramid of internal alternate references over the frames before it,
-    /// and its overlay; without an alternate reference the frames follow in display order in a low-delay pyramid.
-    /// Reference: av1_gop_setup_structure() without an external rate control or a key frame pyramid limit.
+    /// Builds the coding order of the golden frame group. A key or golden frame comes first when the group starts with one. Then come the
+    /// alternate reference, a pyramid of internal alternate references over the frames before it, and its overlay. Without an alternate
+    /// reference, the frames follow in display order in a low-delay pyramid.
     /// </summary>
     private void SetupGopStructure()
     {
@@ -40,9 +39,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Fills the group entries of a golden interval and returns the number of coded frames.
-    /// Reference: construct_multi_layer_gf_structure() for one frame context, without key frame filtering overlays
-    /// or switch frames.
+    /// Fills the group entries of a golden interval and returns the number of coded frames. The group has no key frame filtering overlays
+    /// and no switch frames.
     /// </summary>
     /// <param name="baselineInterval">The golden interval.</param>
     /// <param name="firstUpdateType">The update role of the group start.</param>
@@ -135,9 +133,9 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Fills the entries of the frames between two bounds, excluding both: leaves when the pyramid is deep enough or
-    /// fewer than three frames remain, else an internal alternate reference in the middle, the frames before it, its
-    /// overlay and the frames after it. Reference: set_multi_layer_params() without parallel frames.
+    /// Fills the entries of the frames from <paramref name="start"/> up to, but not including, <paramref name="end"/>. The frames are leaves
+    /// when the pyramid is deep enough or fewer than three frames remain. Otherwise they are an internal alternate reference in the middle,
+    /// the frames before it, its overlay and the frames after it.
     /// </summary>
     /// <param name="start">The first frame.</param>
     /// <param name="end">The frame after the last.</param>
@@ -200,8 +198,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Replaces the layers of a group without an alternate reference by a low-delay pyramid: the layer falls by one
-    /// for each trailing zero bit of the frame's index. Reference: set_ld_layer_depth().
+    /// Replaces the layers of a group without an alternate reference by a low-delay pyramid: the layer falls by one for each trailing zero
+    /// bit of the frame's index.
     /// </summary>
     /// <param name="gopLength">The golden interval.</param>
     private void SetLowDelayLayerDepth(int gopLength)

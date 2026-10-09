@@ -9,9 +9,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 internal static class Av1FirstPassStatisticsAccumulator
 {
     /// <summary>
-    /// Resets a section total to the empty section. The duration starts at one tick so an empty section never
-    /// divides by zero, and the standard deviation of the raw error is left unchanged.
-    /// Reference: av1_twopass_zero_stats().
+    /// Resets a section total to the empty section. The duration starts at one tick so that an empty section never divides by zero. The standard
+    /// deviation of the raw error keeps its value.
     /// </summary>
     /// <param name="section">The section total to reset.</param>
     public static void Zero(ref Av1FirstPassStatistics section)
@@ -48,8 +47,8 @@ internal static class Av1FirstPassStatisticsAccumulator
     }
 
     /// <summary>
-    /// Adds one frame record to a section total. The logarithmic errors of the section sum the logarithms of the
-    /// frame errors rather than the stored logarithms of the frame. Reference: av1_accumulate_stats().
+    /// Adds one frame record to a section total. The logarithmic errors of the section sum the logarithms of the frame errors, not the stored
+    /// logarithms of the frame.
     /// </summary>
     /// <param name="section">The section total to update.</param>
     /// <param name="frame">The frame record to add.</param>

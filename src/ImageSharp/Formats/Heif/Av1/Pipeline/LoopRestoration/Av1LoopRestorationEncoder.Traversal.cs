@@ -74,6 +74,9 @@ internal static partial class Av1LoopRestorationEncoder
             for (int tileColumn = 0; tileColumn < layout.TileColumnCount; tileColumn++)
             {
                 tile.SetTileColumn(layout, header.ModeInfoColumnCount, tileColumn);
+
+                // Each unit codes its coefficients as a difference from the last coded coefficients of the tile.
+                // Thus both coefficient histories restart at each tile.
                 Av1LoopRestorationUnit fixedReference = Av1LoopRestorationUnit.CreateDefault();
                 Av1LoopRestorationUnit switchableReference = Av1LoopRestorationUnit.CreateDefault();
                 for (int miRow = tile.ModeInfoRowStart; miRow < tile.ModeInfoRowEnd; miRow += superblockStep)
@@ -82,9 +85,8 @@ internal static partial class Av1LoopRestorationEncoder
                     int lastRow = Math.Min(rows, (((miRow + superblockStep) << pixelShiftY) + unitSize - 1) / unitSize);
                     for (int miColumn = tile.ModeInfoColumnStart; miColumn < tile.ModeInfoColumnEnd; miColumn += superblockStep)
                     {
-                        // A unit belongs to the superblock containing its coded upper-left corner.
-                        // Horizontal super-resolution changes that ownership scale, while the
-                        // vertical stripe offset changes the filtered rectangle only.
+                        // A unit belongs to the superblock that contains its coded upper-left corner. Horizontal super-resolution
+                        // changes the scale of that ownership. The vertical stripe offset changes only the filtered rectangle.
                         int firstColumn = (((miColumn << pixelShiftX) * horizontalScale) + horizontalDivisor - 1) / horizontalDivisor;
                         int lastColumn = Math.Min(
                             columns,

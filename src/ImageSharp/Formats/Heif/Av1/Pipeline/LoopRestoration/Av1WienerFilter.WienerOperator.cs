@@ -58,9 +58,9 @@ internal static partial class Av1WienerFilter
             int roundBits,
             Vector128<int> maximum)
         {
-            // Each 16-bit lane denotes one output column. Widen before summing symmetric pairs:
-            // a vertical intermediate can reach 32767, so its pair must remain unsigned until widened.
-            // Lower and upper halves stay in increasing column order throughout all 32-bit arithmetic.
+            // Each 16-bit lane holds one output column. Each sample widens to 32 bits before the symmetric pair adds, because a vertical
+            // intermediate can reach 32767 and a pair sum does not fit in a signed 16-bit lane. The lower and upper halves keep increasing
+            // column order through all 32-bit arithmetic.
             Vector128<int> lower =
                 ((Vector128.WidenLower(sample0).AsInt32() + Vector128.WidenLower(sample6).AsInt32()) * coefficient0) +
                 ((Vector128.WidenLower(sample1).AsInt32() + Vector128.WidenLower(sample5).AsInt32()) * coefficient1) +
@@ -73,8 +73,8 @@ internal static partial class Av1WienerFilter
                 ((Vector128.WidenUpper(sample2).AsInt32() + Vector128.WidenUpper(sample4).AsInt32()) * coefficient2) +
                 (Vector128.WidenUpper(sample3).AsInt32() * coefficient3) + bias;
 
-            // Bias already contains the pass offset and half-unit rounding term. Arithmetic shifting
-            // preserves negative convolution results until clipping; narrowing then cannot wrap.
+            // The bias contains the pass offset and the half-unit rounding term. The arithmetic shift keeps negative convolution results
+            // until the clamp. After the clamp, the narrowing cannot wrap.
             lower = Vector128.Clamp(Vector128.ShiftRightArithmetic(lower, roundBits), Vector128<int>.Zero, maximum);
             upper = Vector128.Clamp(Vector128.ShiftRightArithmetic(upper, roundBits), Vector128<int>.Zero, maximum);
             return Vector128.Narrow(lower.AsUInt32(), upper.AsUInt32());
@@ -98,9 +98,9 @@ internal static partial class Av1WienerFilter
             int roundBits,
             Vector256<int> maximum)
         {
-            // Each 16-bit lane denotes one output column. Widen before summing symmetric pairs:
-            // a vertical intermediate can reach 32767, so its pair must remain unsigned until widened.
-            // Lower and upper halves stay in increasing column order throughout all 32-bit arithmetic.
+            // Each 16-bit lane holds one output column. Each sample widens to 32 bits before the symmetric pair adds, because a vertical
+            // intermediate can reach 32767 and a pair sum does not fit in a signed 16-bit lane. The lower and upper halves keep increasing
+            // column order through all 32-bit arithmetic.
             Vector256<int> lower =
                 ((Vector256.WidenLower(sample0).AsInt32() + Vector256.WidenLower(sample6).AsInt32()) * coefficient0) +
                 ((Vector256.WidenLower(sample1).AsInt32() + Vector256.WidenLower(sample5).AsInt32()) * coefficient1) +
@@ -113,8 +113,8 @@ internal static partial class Av1WienerFilter
                 ((Vector256.WidenUpper(sample2).AsInt32() + Vector256.WidenUpper(sample4).AsInt32()) * coefficient2) +
                 (Vector256.WidenUpper(sample3).AsInt32() * coefficient3) + bias;
 
-            // Bias already contains the pass offset and half-unit rounding term. Arithmetic shifting
-            // preserves negative convolution results until clipping; narrowing then cannot wrap.
+            // The bias contains the pass offset and the half-unit rounding term. The arithmetic shift keeps negative convolution results
+            // until the clamp. After the clamp, the narrowing cannot wrap.
             lower = Vector256.Clamp(Vector256.ShiftRightArithmetic(lower, roundBits), Vector256<int>.Zero, maximum);
             upper = Vector256.Clamp(Vector256.ShiftRightArithmetic(upper, roundBits), Vector256<int>.Zero, maximum);
             return Vector256.Narrow(lower.AsUInt32(), upper.AsUInt32());
@@ -138,9 +138,9 @@ internal static partial class Av1WienerFilter
             int roundBits,
             Vector512<int> maximum)
         {
-            // Each 16-bit lane denotes one output column. Widen before summing symmetric pairs:
-            // a vertical intermediate can reach 32767, so its pair must remain unsigned until widened.
-            // Lower and upper halves stay in increasing column order throughout all 32-bit arithmetic.
+            // Each 16-bit lane holds one output column. Each sample widens to 32 bits before the symmetric pair adds, because a vertical
+            // intermediate can reach 32767 and a pair sum does not fit in a signed 16-bit lane. The lower and upper halves keep increasing
+            // column order through all 32-bit arithmetic.
             Vector512<int> lower =
                 ((Vector512.WidenLower(sample0).AsInt32() + Vector512.WidenLower(sample6).AsInt32()) * coefficient0) +
                 ((Vector512.WidenLower(sample1).AsInt32() + Vector512.WidenLower(sample5).AsInt32()) * coefficient1) +
@@ -153,8 +153,8 @@ internal static partial class Av1WienerFilter
                 ((Vector512.WidenUpper(sample2).AsInt32() + Vector512.WidenUpper(sample4).AsInt32()) * coefficient2) +
                 (Vector512.WidenUpper(sample3).AsInt32() * coefficient3) + bias;
 
-            // Bias already contains the pass offset and half-unit rounding term. Arithmetic shifting
-            // preserves negative convolution results until clipping; narrowing then cannot wrap.
+            // The bias contains the pass offset and the half-unit rounding term. The arithmetic shift keeps negative convolution results
+            // until the clamp. After the clamp, the narrowing cannot wrap.
             lower = Vector512.Clamp(Vector512.ShiftRightArithmetic(lower, roundBits), Vector512<int>.Zero, maximum);
             upper = Vector512.Clamp(Vector512.ShiftRightArithmetic(upper, roundBits), Vector512<int>.Zero, maximum);
             return Vector512.Narrow(lower.AsUInt32(), upper.AsUInt32());

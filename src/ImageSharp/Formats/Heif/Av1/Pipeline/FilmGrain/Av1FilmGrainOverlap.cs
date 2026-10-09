@@ -13,8 +13,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 /// </summary>
 /// <remarks>
 /// Vertical boundaries contain only one or two strided columns and use the fixed scalar kernels. Horizontal boundaries
-/// are contiguous and progress through the enabled vector widths before the
-/// scalar tail. Every lane applies the same Q5 overlap weights, rounding offset, and signed grain clamp.
+/// are contiguous and go through the enabled vector widths before the scalar tail. Every lane applies the same Q5 overlap
+/// weights, rounding offset, and signed grain clamp.
 /// </remarks>
 internal static class Av1FilmGrainOverlap
 {
@@ -43,8 +43,8 @@ internal static class Av1FilmGrainOverlap
         int minimum,
         int maximum)
     {
-        // Each row contributes one or two strided samples. This traversal handles those columns directly;
-        // the horizontal traversal below groups contiguous samples into vector lanes.
+        // Each row contributes one or two strided samples, so this method processes those columns with scalar code.
+        // The horizontal method below groups contiguous samples into vector lanes.
         if (width == 1)
         {
             for (int row = 0; row < height; row++)
@@ -69,8 +69,8 @@ internal static class Av1FilmGrainOverlap
             int rightOffset = row * rightStride;
             int destinationOffset = row * destinationStride;
 
-            // The two-column kernel biases the outer samples toward their originating block and crosses the 27:17
-            // weights for the inner samples. These fixed weights are part of AV1 grain synthesis.
+            // The two-column kernel gives the column nearer to each block the 27 weight of that block, and crosses the 27:17
+            // weights for the second column. AV1 grain synthesis defines these fixed Q5 weights.
             destination[destinationOffset] = Av1Math.Clamp(
                 ((left[leftOffset] * 27) + (right[rightOffset] * 17) + 16) >> 5,
                 minimum,
@@ -151,8 +151,8 @@ internal static class Av1FilmGrainOverlap
     {
         int column = 0;
 
-        // The current 512-bit gate also requires Vector<T> to expose sixteen int lanes. That is a dispatch choice,
-        // not evidence of the processor's execution width or of faster overlap processing.
+        // The 512-bit path also requires Vector<T> to have sixteen int lanes. This is a dispatch choice. It does not show
+        // the execution width of the processor or a measured speed gain for overlap blending.
         if (Vector512.IsHardwareAccelerated && Vector<int>.Count == Vector512<int>.Count)
         {
             column = Blend(left, right, destination, width, column, leftWeight, rightWeight, minimum, maximum, Vector512<int>.Zero);
@@ -168,6 +168,7 @@ internal static class Av1FilmGrainOverlap
             column = Blend(left, right, destination, width, column, leftWeight, rightWeight, minimum, maximum, Vector128<int>.Zero);
         }
 
+        // The scalar tail processes the samples that do not fill a complete 128-bit group, with the same Q5 formula.
         for (; column < width; column++)
         {
             int value = ((left[column] * leftWeight) + (right[column] * rightWeight) + 16) >> 5;
@@ -211,6 +212,10 @@ internal static class Av1FilmGrainOverlap
         Vector512<int> minima = Vector512.Create(minimum);
         Vector512<int> maxima = Vector512.Create(maximum);
         nuint vectorCount = Numerics.Vector512Count<int>(width - column);
+
+        // Each int lane holds one grain sample of the row. Grain values are small signed values, so the weighted sum
+        // (weights total 44 or 45) cannot overflow 32 bits. The arithmetic shift by 5 rounds like the scalar tail.
+        // The loop processes only complete groups and returns the first column of the remainder.
         for (; vectorCount > 0; vectorCount--, column += Vector512<int>.Count)
         {
             Vector512<int> leftValues = Vector512.LoadUnsafe(ref leftBase, (nuint)column);

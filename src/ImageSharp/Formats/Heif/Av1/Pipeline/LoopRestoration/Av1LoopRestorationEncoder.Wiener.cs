@@ -24,6 +24,7 @@ internal static partial class Av1LoopRestorationEncoder
     /// <returns>The fitted Wiener filter.</returns>
     private static Av1LoopRestorationUnit FitWiener(int window, ReadOnlySpan<long> correlation, ReadOnlySpan<long> covariance)
     {
+        // The fit starts from a fixed symmetric Q7 filter whose taps sum to 128.
         ReadOnlySpan<int> initial = [3, -7, 15, 106, 15, -7, 3];
         InlineArray8<int> verticalStorage = default;
         InlineArray8<int> horizontalStorage = default;
@@ -79,6 +80,9 @@ internal static partial class Av1LoopRestorationEncoder
         Span<int> fractionalPart = fractionalPartStorage;
         int half = (window >> 1) + 1;
         int square = window * window;
+
+        // The fixed axis turns the 2D statistics into a 1D system for the updated axis. Symmetric positions fold onto one index, so the
+        // system has one unknown for each independent tap. The fixed axis also splits into whole and fractional parts at the coefficient scale.
         for (int i = 0; i < window; i++)
         {
             integerPart[i] = fixedAxis[i] / WienerCoefficientScale;
@@ -110,8 +114,8 @@ internal static partial class Av1LoopRestorationEncoder
                         int outputIndex = vertical ? (foldedL * half) + foldedK : (foldedJ * half) + foldedI;
                         long product = covariance[(covarianceRow * square) + covarianceColumn] * fixedAxis[firstWeight] / WienerCoefficientScale;
 
-                        // Split the second multiplication at the coefficient scale. Multiplying two
-                        // full-scale coefficients first can overflow even though the scaled sum fits.
+                        // The second multiplication splits at the coefficient scale. A product with the full-scale coefficient
+                        // can overflow, although the scaled sum fits.
                         matrix[outputIndex] += (product * integerPart[secondWeight]) +
                             (product * fractionalPart[secondWeight] / WienerCoefficientScale);
                     }
@@ -119,6 +123,8 @@ internal static partial class Av1LoopRestorationEncoder
             }
         }
 
+        // The taps sum to the coefficient scale, so the center tap is the scale less twice the sum of the outer taps.
+        // The substitution of that center tap removes it from the system and leaves one unknown for each outer tap.
         int center = half - 1;
         for (int i = 0; i < center; i++)
         {
@@ -134,6 +140,7 @@ internal static partial class Av1LoopRestorationEncoder
             }
         }
 
+        // The outer taps mirror the solution, and the center tap follows from the normalization. A singular system keeps the previous axis.
         if (SolveWienerSystem(center, matrix, half, rightHandSide, solution))
         {
             solution[center] = WienerCoefficientScale;
@@ -163,6 +170,7 @@ internal static partial class Av1LoopRestorationEncoder
     {
         for (int column = 0; column < count - 1; column++)
         {
+            // Adjacent swaps from the bottom move the row with the largest magnitude in this column up to the pivot row.
             for (int row = count - 1; row > column; row--)
             {
                 if (Math.Abs(matrix[((row - 1) * stride) + column]) < Math.Abs(matrix[(row * stride) + column]))
@@ -183,8 +191,8 @@ internal static partial class Av1LoopRestorationEncoder
                 maximum = Math.Max(maximum, Math.Abs(matrix[(column * stride) + index]));
             }
 
-            // A pivot row with small values does the elimination in integers. A row with large values can overflow the products.
-            // So that row does the elimination in double precision, and truncates each update. Reference: the scale_threshold branches of linsolve_wiener().
+            // A pivot row with small values does the elimination in integers. A row with large values can overflow the products,
+            // so that row does the elimination in double precision and truncates each update.
             if (maximum < 1 << 22)
             {
                 for (int row = column; row < count - 1; row++)
@@ -225,6 +233,7 @@ internal static partial class Av1LoopRestorationEncoder
             }
         }
 
+        // Back substitution gives the solution at the coefficient scale.
         for (int row = count - 1; row >= 0; row--)
         {
             long divisor = matrix[(row * stride) + row];
@@ -255,6 +264,8 @@ internal static partial class Av1LoopRestorationEncoder
     {
         ReadOnlySpan<int> minimum = [-5, -23, -17];
         ReadOnlySpan<int> maximum = [10, 8, 46];
+
+        // A five-tap window leaves the outer tap at zero. Each tap rounds from the working scale to Q7 and clamps to its coded range.
         int inset = (7 - window) >> 1;
         taps[0] = 0;
         for (int index = 0; index < window >> 1; index++)

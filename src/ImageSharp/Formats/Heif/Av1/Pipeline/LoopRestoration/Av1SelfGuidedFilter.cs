@@ -11,10 +11,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 /// Applies the normative AV1 self-guided restoration filter and projection.
 /// </summary>
 /// <remarks>
-/// Every stage walks each row with the widest available register first and finishes with one column at a time. The
-/// window sums come from padded integral images kept in the caller-provided scratch span, beside the local
-/// coefficients and the two filtered planes. Reference: av1_selfguided_restoration_c() with calc_ab(),
-/// final_filter() and av1_apply_selfguided_restoration_c().
+/// Every stage walks each row with the widest available register first and finishes with one column at a time. The window sums come
+/// from padded integral images kept in the caller-provided scratch span, beside the local coefficients and the two filtered planes.
 /// </remarks>
 internal static partial class Av1SelfGuidedFilter
 {
@@ -96,7 +94,7 @@ internal static partial class Av1SelfGuidedFilter
     ];
 
     /// <summary>
-    /// Gets the variance scales selected by each of the sixteen self-guided parameter sets.
+    /// Gets the variance scales selected by each of the sixteen self-guided parameter sets. A value of -1 marks a radius that the set does not use.
     /// </summary>
     private static ReadOnlySpan<int> ParameterScales =>
     [
@@ -132,7 +130,7 @@ internal static partial class Av1SelfGuidedFilter
     ];
 
     /// <summary>
-    /// Gets fixed-point reciprocals for every supported square-window area.
+    /// Gets the Q12 reciprocals for every supported square-window area, indexed by the area less one.
     /// </summary>
     private static ReadOnlySpan<ushort> OneByX =>
     [
@@ -389,12 +387,14 @@ internal static partial class Av1SelfGuidedFilter
         TLanes rowSquares = TOperator.Add(TOperator.Add(TOperator.Scan(squares), squaresAbove), TOperator.Create(squareCarry));
         TOperator.Store(rowSums, ref sumIntegral, (nuint)(row.Current + column));
         TOperator.Store(rowSquares, ref squareIntegral, (nuint)(row.Current + column));
+
+        // The last entry less the last entry above is the row prefix through this batch. It is the carry for the next batch.
         sumCarry = TOperator.Last(rowSums) - TOperator.Last(sumsAbove);
         squareCarry = TOperator.Last(rowSquares) - TOperator.Last(squaresAbove);
     }
 
     /// <summary>
-    /// Calculates the local blend factor and mean for the requested filter radius. Reference: calc_ab().
+    /// Calculates the local blend factor and mean for the requested filter radius.
     /// </summary>
     /// <param name="width">The processing-unit width in samples.</param>
     /// <param name="height">The processing-unit height in samples.</param>
@@ -424,6 +424,8 @@ internal static partial class Av1SelfGuidedFilter
         int windowArea = windowDiameter * windowDiameter;
         CoefficientParameters parameters = new(bufferStride, radius, bitDepth, windowArea, scale, OneByX[windowArea - 1]);
         int rowStep = skipAlternateRows ? 2 : 1;
+
+        // The work-buffer origin skips the zero row and column of the integral image and the three-sample border.
         int bufferOrigin = (Border + 1) * (bufferStride + 1);
         ref int sumBase = ref MemoryMarshal.GetReference(sumIntegral);
         ref int squareBase = ref MemoryMarshal.GetReference(squareIntegral);
@@ -471,9 +473,9 @@ internal static partial class Av1SelfGuidedFilter
     /// Calculates the blend factors and means of one batch of window centers.
     /// </summary>
     /// <remarks>
-    /// High bit depths round both window sums to the eight-bit scale before the variance. Rounding can put the squared
-    /// mean one step above the mean square; AV1 saturates that artifact to zero. The scaled variance and the mean
-    /// product are unsigned 32-bit values whose legal range can set the sign bit, so they shift logically.
+    /// High bit depths round both window sums to the eight-bit scale before the variance. Rounding can put the squared mean one step
+    /// above the mean square. AV1 sets the variance to zero in that case, and the Max operation does the same. The scaled variance and
+    /// the mean product are unsigned 32-bit values whose legal range can set the sign bit, so they shift logically.
     /// </remarks>
     /// <typeparam name="TLanes">The lane type.</typeparam>
     /// <typeparam name="TOperator">The lane arithmetic.</typeparam>
@@ -507,6 +509,8 @@ internal static partial class Av1SelfGuidedFilter
         TLanes squareOfSums = TOperator.Multiply(normalizedSums, normalizedSums);
         TLanes scaledSquareSums = TOperator.Multiply(squareSums, TOperator.Create(parameters.WindowArea));
         TLanes variance = TOperator.Subtract(TOperator.Max(scaledSquareSums, squareOfSums), squareOfSums);
+
+        // The scaled variance rounds away its 20 scale bits and clamps to the last table index.
         TLanes indices = TOperator.MinUnsigned(
             TOperator.ShiftRightLogical(
                 TOperator.Add(TOperator.Multiply(variance, TOperator.Create(parameters.Scale)), TOperator.Create(1 << (ScaleBits - 1))),
@@ -540,6 +544,7 @@ internal static partial class Av1SelfGuidedFilter
         where TLanes : unmanaged
         where TOperator : struct, ILaneOperator<TLanes>
     {
+        // The four corner entries of the integral image give the window sum by inclusion and exclusion.
         int upperOffset = centerOffset - ((radius + 1) * stride);
         int lowerOffset = centerOffset + (radius * stride);
         TLanes topLeft = TOperator.Load(ref integral, (nuint)(upperOffset - radius - 1));
@@ -550,8 +555,8 @@ internal static partial class Av1SelfGuidedFilter
     }
 
     /// <summary>
-    /// Produces the filtered values of one radius from its coefficient grid. Reference: final_filter() and the fast
-    /// radius-two variant of av1_selfguided_restoration_c().
+    /// Produces the filtered values of one radius from its coefficient grid. The radius-two filter uses the fast form, which computes
+    /// coefficients on alternate rows only.
     /// </summary>
     /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
@@ -582,7 +587,8 @@ internal static partial class Av1SelfGuidedFilter
         ref int filteredBase = ref MemoryMarshal.GetReference(filtered);
         for (int row = 0; row < height; row++)
         {
-            // The radius-one filter and the even radius-two rows weigh by 32 in all; the odd radius-two rows by 16.
+            // The radius-one weights and the even radius-two weights add up to 32. The odd radius-two weights add up to 16.
+            // The rounding shift removes that weight sum and the blend-factor scale, and leaves the result in Q4.
             FilterKind kind = !radiusTwo ? FilterKind.RadiusOne : (row & 1) == 0 ? FilterKind.RadiusTwoEven : FilterKind.RadiusTwoOdd;
             FilterRow filterRow = new(
                 ((row + Border) * sourceStride) + Border,
@@ -660,9 +666,9 @@ internal static partial class Av1SelfGuidedFilter
     /// Weighs the 3x3 coefficient neighborhoods of adjacent centers.
     /// </summary>
     /// <remarks>
-    /// The radius-one kernel weighs the cross by four and the corners by three. The radius-two kernel reads only the
-    /// coefficient rows it computed: the rows above and below for an even row, with six for the centers and five for
-    /// the corners; its own row for an odd row, with six for the center and five for the sides.
+    /// The radius-one kernel weighs the cross by four and the corners by three. The radius-two kernel reads only the coefficient rows
+    /// that it computed. For an even row, it reads the rows above and below, with six for the centers and five for the corners. For an
+    /// odd row, it reads its own row, with six for the center and five for the sides.
     /// </remarks>
     /// <typeparam name="TLanes">The lane type.</typeparam>
     /// <typeparam name="TOperator">The lane arithmetic.</typeparam>
@@ -680,6 +686,8 @@ internal static partial class Av1SelfGuidedFilter
         {
             TLanes center = TOperator.Load(ref buffer, (nuint)offset);
             TLanes combined = TOperator.Add(TOperator.Add(TOperator.Load(ref buffer, (nuint)(offset - 1)), center), TOperator.Load(ref buffer, (nuint)(offset + 1)));
+
+            // Five times the three entries plus one more center gives six for the center and five for the sides.
             return TOperator.Add(TOperator.Add(TOperator.ShiftLeft(combined, 2), combined), center);
         }
 
@@ -694,6 +702,8 @@ internal static partial class Av1SelfGuidedFilter
         {
             TLanes centers = TOperator.Add(top, bottom);
             TLanes combinedRows = TOperator.Add(corners, centers);
+
+            // Five times the six entries plus the centers again gives six for the centers and five for the corners.
             return TOperator.Add(TOperator.Add(TOperator.ShiftLeft(combinedRows, 2), combinedRows), centers);
         }
 
@@ -702,12 +712,13 @@ internal static partial class Av1SelfGuidedFilter
             TOperator.Load(ref buffer, (nuint)(offset + 1)));
 
         TLanes remainder = TOperator.Add(TOperator.Add(top, bottom), middle);
+
+        // Four times all nine entries less the corners gives four for the cross and three for the corners.
         return TOperator.Subtract(TOperator.ShiftLeft(TOperator.Add(corners, remainder), 2), corners);
     }
 
     /// <summary>
     /// Projects one batch of samples onto the two restored signals and stores the clipped result.
-    /// Reference: av1_apply_selfguided_restoration_c().
     /// </summary>
     /// <remarks>
     /// Filtered signals use Q4 precision. Projection applies the signaled Q7 weights to their difference from the
@@ -760,7 +771,7 @@ internal static partial class Av1SelfGuidedFilter
     }
 
     /// <summary>
-    /// Decodes the transmitted projection coefficients for the active radius pair. Reference: av1_decode_xq().
+    /// Decodes the transmitted projection coefficients for the active radius pair.
     /// </summary>
     /// <param name="radii">The two selected filter radii.</param>
     /// <param name="transmitted">The two transmitted projection coefficients.</param>
@@ -792,8 +803,8 @@ internal static partial class Av1SelfGuidedFilter
     /// <returns>The aligned number of integers reserved for each work-buffer row.</returns>
     private static int GetBufferStride(int width)
     {
-        // Include the border samples and the row separation before aligning to the widest batch; the coefficient and
-        // integral views share this stride.
+        // The stride includes the border samples and the row separation before it aligns to the widest batch.
+        // The coefficient and integral views share this stride.
         return Av1Math.AlignPowerOf2(width + (Border * 2) + BufferPadding, BufferAlignmentLog2);
     }
 

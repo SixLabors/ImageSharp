@@ -78,9 +78,13 @@ internal static class Av1LoopRestorationFilter
         int processingUnitWidth = Av1LoopRestorationBoundary.ProcessingStripeSize >> subsamplingX;
         int horizontalBorder = Av1LoopRestorationBoundary.HorizontalBorder;
         int boundaryWidth = unitWidth + (2 * horizontalBorder);
+
+        // The save buffer keeps a fixed ushort row stride. In byte frames, that stride holds twice as many samples.
         int savedStride = (Av1LoopRestorationBoundary.SavedRowLength * sizeof(ushort)) / Unsafe.SizeOf<TSample>();
         for (int stripeStart = verticalStart; stripeStart < verticalEnd;)
         {
+            // The first stripe of the frame is shorter by the stripe offset. At the top and bottom frame edges,
+            // the replicated border of the source supplies the context, so no rows are replaced there.
             int frameStripe = (stripeStart + stripeOffset) / fullStripeHeight;
             int nominalStripeHeight = fullStripeHeight - (frameStripe == 0 ? stripeOffset : 0);
             int stripeHeight = Math.Min(nominalStripeHeight, verticalEnd - stripeStart);
@@ -128,7 +132,7 @@ internal static class Av1LoopRestorationFilter
                 ReadOnlySpan<TSample> filterSource = source[sourceOffset..];
                 Span<TSample> filterDestination = destination[destinationOffset..];
 
-                // Both kernels read their seven-tap context directly from the reconstructed plane.
+                // Both kernels read their context of three samples on each side directly from the reconstructed plane.
                 // The typed source and destination keep byte frames byte-backed through both filters.
                 if (unit.FilterType == Av1RestorationFilterType.Wiener)
                 {
@@ -162,8 +166,8 @@ internal static class Av1LoopRestorationFilter
                 }
             }
 
-            // Later stripes and neighboring units must see the original reconstruction, never a
-            // prior unit's temporary deblocked context. Restore the exact saved bytes before advancing.
+            // Later stripes and neighboring units must read the original reconstruction, not the temporary deblocked context of an earlier unit.
+            // Thus the code restores the saved rows before it moves to the next stripe.
             if (copyAbove)
             {
                 for (int row = 0; row < FilterBorder; row++)

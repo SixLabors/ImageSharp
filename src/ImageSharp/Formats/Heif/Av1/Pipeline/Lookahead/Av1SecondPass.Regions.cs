@@ -10,22 +10,22 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 internal sealed partial class Av1SecondPass
 {
     /// <summary>
-    /// The length of the smoothing filter. Reference: SMOOTH_FILT_LEN.
+    /// The length of the smoothing filter.
     /// </summary>
     private const int SmoothFilterLength = 7;
 
     /// <summary>
-    /// Reference: HALF_FILT_LEN.
+    /// The number of filter taps on each side of the center tap.
     /// </summary>
     private const int HalfFilterLength = SmoothFilterLength / 2;
 
     /// <summary>
-    /// The window of the region statistics. Reference: WINDOW_SIZE.
+    /// The window of the region statistics.
     /// </summary>
     private const int WindowSize = 7;
 
     /// <summary>
-    /// Reference: HALF_WIN.
+    /// The number of window frames on each side of the center frame.
     /// </summary>
     private const int HalfWindow = WindowSize / 2;
 
@@ -35,66 +35,66 @@ internal sealed partial class Av1SecondPass
     private const int RegionCapacity = (2 * MaximumAnalysisFrames) + 2;
 
     /// <summary>
-    /// The regions of the latest analysis. Reference: regions of PRIMARY_RATE_CONTROL.
+    /// The regions of the latest analysis.
     /// </summary>
     private readonly Region[] regions = new Region[RegionCapacity];
 
     /// <summary>
-    /// The regions of one scene of an analysis. Reference: temp_regions of identify_regions().
+    /// The regions of one scene of an analysis.
     /// </summary>
     private readonly Region[] temporaryRegions = new Region[RegionCapacity];
 
     /// <summary>
-    /// Reference: filt_intra_err of identify_regions().
+    /// The smoothed intra error of each analyzed frame.
     /// </summary>
     private readonly double[] filteredIntraError = new double[MaximumAnalysisFrames];
 
     /// <summary>
-    /// Reference: filt_coded_err of identify_regions().
+    /// The smoothed coded error of each analyzed frame.
     /// </summary>
     private readonly double[] filteredCodedError = new double[MaximumAnalysisFrames];
 
     /// <summary>
-    /// Reference: grad_coded of identify_regions().
+    /// The gradient of the smoothed coded error of each analyzed frame.
     /// </summary>
     private readonly double[] codedGradient = new double[MaximumAnalysisFrames];
 
     /// <summary>
-    /// The number of regions. Reference: num_regions.
+    /// The number of regions.
     /// </summary>
     private int regionCount;
 
     /// <summary>
-    /// The frames the latest analysis covered. Reference: frames_till_regions_update.
+    /// The frames the latest analysis covered.
     /// </summary>
     private int framesTillRegionsUpdate;
 
     /// <summary>
-    /// The kinds of region. Reference: REGION_TYPES.
+    /// The kinds of region.
     /// </summary>
     private enum RegionType
     {
-        /// <summary>Reference: STABLE_REGION.</summary>
+        /// <summary>A region where the coded error changes little.</summary>
         Stable = 0,
 
-        /// <summary>Reference: HIGH_VAR_REGION.</summary>
+        /// <summary>A region where the coded error changes a lot.</summary>
         HighVariance = 1,
 
-        /// <summary>Reference: SCENECUT_REGION.</summary>
+        /// <summary>A scene cut.</summary>
         SceneCut = 2,
 
-        /// <summary>Reference: BLENDING_REGION.</summary>
+        /// <summary>A region where one scene blends into another, for example a fade.</summary>
         Blending = 3
     }
 
     /// <summary>
-    /// Gets the coefficients of the Gaussian smoothing filter. Reference: smooth_filt of smooth_filter_stats().
+    /// Gets the coefficients of the Gaussian smoothing filter.
     /// </summary>
     private static ReadOnlySpan<double> SmoothFilter => [0.006, 0.061, 0.242, 0.383, 0.242, 0.061, 0.006];
 
     /// <summary>
-    /// Marks each frame of the linear buffer whose next frame predicts better from the second reference, which
-    /// indicates a flash. The last frame is never a flash. Reference: mark_flashes().
+    /// Marks each frame of the linear buffer whose next frame predicts better from the second reference, which indicates a flash. The last
+    /// frame is never a flash.
     /// </summary>
     private void MarkFlashes()
     {
@@ -112,9 +112,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Estimates the noise variance of each frame of the linear buffer from the intra and inter errors of it and
-    /// the two frames before it, fills frames without a trustworthy estimate from their neighbours, and smooths the
-    /// result. Reference: estimate_noise() with smooth_filter_noise().
+    /// Estimates the noise variance of each frame of the linear buffer from the intra and inter errors of it and the two frames before it.
+    /// Frames without a trustworthy estimate take the estimate of a neighbor. Then the method smooths the result.
     /// </summary>
     private void EstimateNoise()
     {
@@ -124,7 +123,7 @@ internal sealed partial class Av1SecondPass
         {
             frames[i].NoiseVariance = 0.0;
 
-            // Flashes have highly correlated innovations, so they are skipped.
+            // The changes at a flash correlate highly, so the estimate skips frames near a flash.
             if (IsNearFlash(frames, i))
             {
                 continue;
@@ -145,7 +144,7 @@ internal sealed partial class Av1SecondPass
             frames[i].NoiseVariance = Math.Max(noise, 0.01);
         }
 
-        // Copy the noise from a neighbour when the estimate is not trustworthy, the next frames first.
+        // Copy the noise from a neighbor when the estimate is below 1 and so not trustworthy. The search tries the next frames first.
         for (int i = 2; i < last; i++)
         {
             if (IsNearFlash(frames, i) || frames[i].NoiseVariance >= 1.0)
@@ -227,7 +226,7 @@ internal sealed partial class Av1SecondPass
             frames[i].NoiseVariance = frames[2].NoiseVariance;
         }
 
-        // smooth_filter_noise(): a seven frame average that skips flashes.
+        // Smooth the noise with a seven frame average that skips flashes. The window clamps at the ends of the buffer.
         Span<double> smoothNoise = stackalloc double[frames.Length];
         for (int i = 0; i < last; i++)
         {
@@ -255,8 +254,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns whether a frame or one of the two frames before it is a flash. Reference: the flash test of
-    /// estimate_noise().
+    /// Returns whether a frame or one of the two frames before it is a flash.
     /// </summary>
     /// <param name="frames">The linear buffer.</param>
     /// <param name="index">The frame, at least 2.</param>
@@ -266,7 +264,7 @@ internal sealed partial class Av1SecondPass
 
     /// <summary>
     /// Estimates the correlation coefficient of each frame of the linear buffer with the frame before it, after
-    /// removing the noise. The first frame has a coefficient of 1. Reference: estimate_coeff().
+    /// removing the noise. The first frame has a coefficient of 1.
     /// </summary>
     private void EstimateCoefficients()
     {
@@ -290,7 +288,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the region that holds a frame, or -1. Reference: find_regions_index().
+    /// Returns the region that holds a frame, or -1 when no region holds it.
     /// </summary>
     /// <param name="frameIndex">The frame index in region coordinates.</param>
     /// <returns>The region index.</returns>
@@ -308,8 +306,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns a region, or an empty stable region for an index outside the list. libaom reads the memory before
-    /// the list for index -1 in comparisons whose result does not matter there.
+    /// Returns a region, or an empty stable region for an index outside the list. Some comparisons read index -1, and their result does not
+    /// matter there.
     /// </summary>
     /// <param name="index">The region index.</param>
     /// <returns>The region.</returns>
@@ -324,12 +322,11 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Divides the look-ahead from a buffer position into regions: scene cuts first, then stable and highly varying
-    /// regions from the smoothed errors, then blending regions such as fades. Region indices start at the buffer
-    /// position. Reference: identify_regions() with an offset of 0.
+    /// Divides the look-ahead from a buffer position into regions: scene cuts first, then stable and highly varying regions from the smoothed
+    /// errors, then blending regions such as fades. Region indices start at the buffer position.
     /// </summary>
     /// <param name="origin">The buffer position of region index 0.</param>
-    /// <param name="totalFrames">The number of frames to analyse.</param>
+    /// <param name="totalFrames">The number of frames to analyze.</param>
     private void IdentifyRegions(int origin, int totalFrames)
     {
         // Fewer than two frames keep the previous regions.
@@ -420,7 +417,7 @@ internal sealed partial class Av1SecondPass
         int totalRegions = currentRegion;
         GetRegionStatistics(frames, this.regions, totalRegions);
 
-        // A very minor scene cut is a highly varying region.
+        // A very minor scene cut is a highly varying region. The test removes the noise share from the average correlation of the region.
         for (int k = 0; k < totalRegions; k++)
         {
             ref Region region = ref this.regions[k];
@@ -439,8 +436,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Smooths the intra and coded errors of a scene with a seven tap Gaussian that skips flashes; the coded error
-    /// also skips the frame after a flash. Reference: smooth_filter_stats().
+    /// Smooths the intra and coded errors of a scene with a seven tap Gaussian that skips flashes. The coded error also skips the frame after
+    /// a flash. The weights of the remaining taps normalize the result.
     /// </summary>
     /// <param name="frames">The statistics from region index 0.</param>
     /// <param name="start">The first frame.</param>
@@ -502,7 +499,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Computes the central difference gradient of a range. Reference: get_gradient().
+    /// Computes the central difference gradient of a range. The ends of the range use a one-sided difference.
     /// </summary>
     /// <param name="values">The values.</param>
     /// <param name="start">The first index.</param>
@@ -525,9 +522,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Finds the next scene cut: a frame whose coded to intra error ratio and coded error both exceed twice those
-    /// of its neighbourhood, and that the second reference does not predict well.
-    /// Reference: find_next_scenecut().
+    /// Finds the next scene cut: a frame that the second reference does not predict well, and whose ratio of coded to intra error or whose
+    /// coded error is at least twice the largest of its neighborhood. When the neighborhood ratios are almost zero, a ratio of 0.02 is enough.
     /// </summary>
     /// <param name="frames">The statistics from region index 0.</param>
     /// <param name="first">The first frame.</param>
@@ -550,7 +546,7 @@ internal sealed partial class Av1SecondPass
             double temporaryIntra = Math.Max(frames[i].IntraError, 0.01);
             double thisRatio = frames[i].CodedError / temporaryIntra;
 
-            // The largest ratio and coded error in the preceding neighbourhood.
+            // The largest ratio and coded error in the preceding neighborhood.
             double maximumPreviousRatio = 0;
             double maximumPreviousCoded = 0;
             for (int j = Math.Max(first, i - HalfWindow); j < i; j++)
@@ -573,8 +569,8 @@ internal sealed partial class Av1SecondPass
                 }
             }
 
-            // The largest ratio and coded error in the following neighbourhood. libaom tests the flashes of the
-            // candidate here, not of the neighbour.
+            // The largest ratio and coded error in the following neighborhood. The flash test reads the candidate, not the neighbor. The
+            // encoder keeps this test so that the scene cut decisions stay the same as other AV1 encoders.
             double maximumNextRatio = 0;
             double maximumNextCoded = 0;
             for (int j = i + 1; j <= Math.Min(i + HalfWindow, last); j++)
@@ -607,7 +603,8 @@ internal sealed partial class Av1SecondPass
             }
             else
             {
-                // The frame must have a larger ratio than its neighbourhood.
+                // A frame that the second reference predicts well is not a cut. Otherwise the ratio or the coded error must be at least twice
+                // the largest of the neighborhood.
                 double maximumSecondReference = frames[i].SecondReferenceCodedError;
                 if (i < last)
                 {
@@ -635,12 +632,11 @@ internal sealed partial class Av1SecondPass
 
     /// <summary>
     /// Removes a region by merging it into the previous region, the next region, or both.
-    /// Reference: remove_region().
     /// </summary>
     /// <param name="merge">0 to merge with the previous region, 1 with the next, 2 with both.</param>
     /// <param name="list">The regions.</param>
     /// <param name="count">The number of regions.</param>
-    /// <param name="nextRegion">The region to remove; receives the index of the region after it.</param>
+    /// <param name="nextRegion">The region to remove. Receives the index of the region after it.</param>
     private static void RemoveRegion(int merge, Span<Region> list, ref int count, ref int nextRegion)
     {
         int k = nextRegion;
@@ -684,14 +680,14 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Inserts a region inside the current region, splitting it. Reference: insert_region().
+    /// Inserts a region inside the current region and splits the current region around it.
     /// </summary>
     /// <param name="start">The first frame of the new region.</param>
     /// <param name="last">The last frame of the new region.</param>
     /// <param name="type">The type of the new region.</param>
     /// <param name="list">The regions.</param>
     /// <param name="count">The number of regions.</param>
-    /// <param name="currentRegion">The region to split; receives the last region split from it.</param>
+    /// <param name="currentRegion">The region to split. Receives the last region split from it.</param>
     private static void InsertRegion(int start, int last, RegionType type, Span<Region> list, ref int count, ref int currentRegion)
     {
         int k = currentRegion;
@@ -731,8 +727,9 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Averages the statistics of a region: the correlation, the second reference to coded error ratio, and the
-    /// intra and coded errors. Reference: analyze_region(), without the noise average that nothing reads.
+    /// Averages the statistics of a region: the correlation, the ratio of second reference error to coded error, and the intra and coded
+    /// errors. The first region skips the ratio of its first frame, because that frame has no frame before it. No code reads a noise average,
+    /// so the region keeps none.
     /// </summary>
     /// <param name="frames">The statistics from region index 0.</param>
     /// <param name="k">The region.</param>
@@ -763,7 +760,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Averages the statistics of every region. Reference: get_region_stats().
+    /// Averages the statistics of every region.
     /// </summary>
     /// <param name="frames">The statistics from region index 0.</param>
     /// <param name="list">The regions.</param>
@@ -778,8 +775,8 @@ internal sealed partial class Av1SecondPass
 
 #pragma warning disable CA1517 // False positive: https://github.com/dotnet/sdk/issues/53388
     /// <summary>
-    /// Classes each frame of a scene as stable or highly varying from the mean and variance of its errors in a
-    /// window, and starts a region at each change. Reference: find_stable_regions().
+    /// Classes each frame of a scene as stable or highly varying from the mean and variance of its errors in a window, and starts a region at
+    /// each change.
     /// </summary>
     /// <param name="frames">The statistics from region index 0.</param>
     /// <param name="codedGradient">The gradient of the smoothed coded error.</param>
@@ -793,7 +790,8 @@ internal sealed partial class Av1SecondPass
         list[k].Start = thisStart;
         for (int i = thisStart; i <= thisLast; i++)
         {
-            // The mean and the variance of the errors in the window.
+            // The mean and the mean square of the errors in the window, without flashes and the frames after flashes. A frame is stable when
+            // the mean square over the squared mean of each error stays near 1, and the coded error is small against the intra error.
             double meanIntra = 0.001;
             double varianceIntra = 0.001;
             double meanCoded = 0.001;
@@ -854,7 +852,6 @@ internal sealed partial class Av1SecondPass
 
     /// <summary>
     /// Merges consecutive regions of the same type, except scene cuts, and removes empty regions.
-    /// Reference: cleanup_regions().
     /// </summary>
     /// <param name="list">The regions.</param>
     /// <param name="count">The number of regions.</param>
@@ -876,8 +873,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Merges the regions of a type that are shorter than a length into their neighbours.
-    /// Reference: remove_short_regions().
+    /// Merges the regions of a type that are shorter than a length into their neighbors.
     /// </summary>
     /// <param name="list">The regions.</param>
     /// <param name="count">The number of regions.</param>
@@ -902,9 +898,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Removes very short regions, moves the bounds of the unstable regions onto frames that belong to the
-    /// neighbouring stable regions, and merges short regions whose errors or correlation do not stand out.
-    /// Reference: adjust_unstable_region_bounds().
+    /// Removes very short regions, moves the bounds of the unstable regions onto frames that belong to the neighboring stable regions, and
+    /// merges short regions whose errors or correlation do not stand out.
     /// </summary>
     /// <param name="frames">The statistics from region index 0.</param>
     /// <param name="list">The regions.</param>
@@ -926,7 +921,7 @@ internal sealed partial class Av1SecondPass
 
             if (k > 0)
             {
-                // Adjust the previous bound from the average intra error of the previous neighbourhood.
+                // Adjust the previous bound from the average intra error of the previous neighborhood.
                 double averageIntraError = 0;
                 int startIndex = Math.Max(list[k - 1].Last - WindowSize + 1, list[k - 1].Start + 1);
                 int lastIndex = list[k - 1].Last;
@@ -968,7 +963,7 @@ internal sealed partial class Av1SecondPass
 
             if (k < count - 1)
             {
-                // Adjust the next bound from the average intra error of the next neighbourhood.
+                // Adjust the next bound from the average intra error of the next neighborhood.
                 double averageIntraError = 0;
                 int startIndex = list[k + 1].Start;
                 int lastIndex = Math.Min(list[k + 1].Last - 1, list[k + 1].Start + WindowSize - 1);
@@ -983,7 +978,8 @@ internal sealed partial class Av1SecondPass
                 {
                     averageIntraError = Math.Max(averageIntraError / countIntra, 0.001);
 
-                    // At the bound the coded error is large, but the frame is still stable.
+                    // At the bound the coded error is large, but the frame is still stable. So the count allows one frame with a large coded
+                    // error or a low correlation.
                     int countCoded = 1;
                     const int countGradient = 1;
                     for (int j = startIndex - 1; j >= list[k].Start; j--)
@@ -1015,8 +1011,8 @@ internal sealed partial class Av1SecondPass
         RemoveShortRegions(list, ref count, RegionType.HighVariance, HalfWindow);
         GetRegionStatistics(frames, list, count);
 
-        // A short stable region with higher error or lower correlation than both neighbours merges into them, and
-        // so does a short varying region with lower error or higher correlation than both.
+        // A short stable region with higher error or lower correlation than both neighbors merges into them. A short varying region with
+        // lower error or higher correlation than both neighbors also merges into them.
         int m = 0;
         while (m < count && count > 1)
         {
@@ -1055,9 +1051,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Finds blending regions, such as fades, as runs of consistent large change of the intra error inside the
-    /// unstable regions, then merges or separates neighbouring blending regions.
-    /// Reference: find_blending_regions().
+    /// Finds blending regions, such as fades, as runs of consistent large change of the intra error inside the unstable regions. Then the
+    /// method merges or separates neighboring blending regions.
     /// </summary>
     /// <param name="frames">The statistics from region index 0.</param>
     /// <param name="list">The regions.</param>
@@ -1080,7 +1075,8 @@ internal sealed partial class Av1SecondPass
             int last;
             for (int i = list[k].Start; i <= list[k].Last; i++)
             {
-                // Mark the runs that have a consistent large change of intra error.
+                // Mark the runs that have a consistent large change of intra error. A change is large when it is more than 5 percent of the
+                // intra error.
                 if (k == 0 && i == list[k].Start)
                 {
                     continue;
@@ -1125,7 +1121,8 @@ internal sealed partial class Av1SecondPass
             k++;
         }
 
-        // A blending region with very low correlation cannot be used, so it is highly varying.
+        // A blending region of one frame, with very low correlation, or in a scene without a stable region cannot be used. It becomes highly
+        // varying.
         GetRegionStatistics(frames, list, count);
         for (k = 0; k < count; k++)
         {
@@ -1148,7 +1145,7 @@ internal sealed partial class Av1SecondPass
         {
             if (k < count - 1 && list[k].Type == RegionType.HighVariance)
             {
-                // A short varying region between two blending regions may be the middle of one blend.
+                // A short varying region between two blending regions can be the middle of one blend.
                 if (list[k - 1].Type == RegionType.Blending &&
                     list[k + 1].Type == RegionType.Blending &&
                     list[k].Last - list[k].Start < 3)
@@ -1218,7 +1215,7 @@ internal sealed partial class Av1SecondPass
                     continue;
                 }
 
-                // Two separate blends: the bound frame is a highly varying region between them.
+                // The regions are two separate blends. The bound frame becomes a highly varying region between them.
                 int previousRegion = k - 1;
                 InsertRegion(list[previousRegion].Last, list[previousRegion].Last, RegionType.HighVariance, list, ref count, ref previousRegion);
                 AnalyzeRegion(frames, previousRegion, list);
@@ -1233,8 +1230,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Removes blending regions shorter than five frames, and short varying regions between blending or stable
-    /// regions, merging each into the neighbour with the closer correlation. Reference: cleanup_blendings().
+    /// Removes blending regions shorter than five frames, and short varying regions between blending or stable regions. Each removed region
+    /// merges into the neighbor with the closer correlation.
     /// </summary>
     /// <param name="list">The regions.</param>
     /// <param name="count">The number of regions.</param>
@@ -1250,7 +1247,7 @@ internal sealed partial class Av1SecondPass
             int totalNeighbors = (k > 0 ? 1 : 0) + (k < count - 1 ? 1 : 0);
             if (shortBlending || (shortHighVariance && stableNeighbor + blendNeighbor >= totalNeighbors))
             {
-                // Merge with the neighbour whose correlation is closer.
+                // Merge with the neighbor whose correlation is closer.
                 double previousDifference = k > 0 ? Math.Abs(list[k].AverageCorrelationCoefficient - list[k - 1].AverageCorrelationCoefficient) : 1;
                 double nextDifference = k < count - 1 ? Math.Abs(list[k].AverageCorrelationCoefficient - list[k + 1].AverageCorrelationCoefficient) : 1;
                 int merge = previousDifference > nextDifference ? 1 : 0;
@@ -1266,7 +1263,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// A run of frames of one kind with its averaged statistics. Reference: REGIONS.
+    /// A run of frames of one kind with its averaged statistics.
     /// </summary>
     private struct Region
     {
@@ -1275,25 +1272,25 @@ internal sealed partial class Av1SecondPass
         /// </summary>
         public static readonly Region Empty;
 
-        /// <summary>Reference: start.</summary>
+        /// <summary>The first frame of the region.</summary>
         public int Start;
 
-        /// <summary>Reference: last.</summary>
+        /// <summary>The last frame of the region.</summary>
         public int Last;
 
-        /// <summary>Reference: avg_cor_coeff.</summary>
+        /// <summary>The average correlation coefficient of the frames.</summary>
         public double AverageCorrelationCoefficient;
 
-        /// <summary>Reference: avg_sr_fr_ratio.</summary>
+        /// <summary>The average ratio of second reference error to coded error.</summary>
         public double AverageSecondReferenceRatio;
 
-        /// <summary>Reference: avg_intra_err.</summary>
+        /// <summary>The average intra error of the frames.</summary>
         public double AverageIntraError;
 
-        /// <summary>Reference: avg_coded_err.</summary>
+        /// <summary>The average coded error of the frames.</summary>
         public double AverageCodedError;
 
-        /// <summary>Reference: type.</summary>
+        /// <summary>The kind of the region.</summary>
         public RegionType Type;
     }
 }

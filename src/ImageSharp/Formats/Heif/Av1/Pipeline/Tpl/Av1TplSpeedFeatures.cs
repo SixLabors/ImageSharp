@@ -8,27 +8,24 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 
 /// <summary>
 /// The speed features that the temporal dependency model reads in good-quality usage. The model runs before the frame
-/// level speed features are set, so it sees the features the previous coded frame left: the size-independent and
-/// size-dependent speed choices, and the quantizer-dependent overrides at the previous frame's quantizer.
-/// Reference: TPL_SPEED_FEATURES with the selective_ref_frame field of INTER_MODE_SPEED_FEATURES.
+/// sets its own speed features. Thus it sees the features that the previous coded frame left: the size-independent and
+/// size-dependent speed choices, and the quantizer-dependent overrides at the quantizer of the previous frame.
 /// </summary>
 internal readonly struct Av1TplSpeedFeatures
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1TplSpeedFeatures"/> struct. Reference: init_tpl_sf(),
-    /// set_good_speed_features_framesize_independent(), set_good_speed_features_framesize_dependent() and
-    /// av1_set_speed_features_qindex_dependent().
+    /// Initializes a new instance of the <see cref="Av1TplSpeedFeatures"/> struct.
     /// </summary>
     /// <param name="speed">The good-quality speed, zero to six.</param>
     /// <param name="width">The frame width.</param>
     /// <param name="height">The frame height.</param>
     /// <param name="lastQIndex">
-    /// The base quantizer index of the most recent av1_set_speed_features_qindex_dependent() call, that is of the
-    /// previous coded frame, or -1 when no frame has been coded yet.
+    /// The base quantizer index of the most recent quantizer-dependent speed update, that is of the previous coded frame,
+    /// or -1 when no frame is coded yet.
     /// </param>
     /// <param name="lastTrialQIndex">
-    /// The quantizer of the screen content trial of the previous coded frame, whose update precedes the frame's own,
-    /// or -1 when that frame ran no trial.
+    /// The quantizer of the screen content trial of the previous coded frame, or -1 when that frame ran no trial. The trial
+    /// update comes before the update of the frame itself.
     /// </param>
     public Av1TplSpeedFeatures(HeifEncodingSpeed speed, int width, int height, int lastQIndex, int lastTrialQIndex)
     {
@@ -37,7 +34,7 @@ internal readonly struct Av1TplSpeedFeatures
         bool is720pOrLarger = minimumDimension >= 720;
         bool is1080pOrLarger = minimumDimension >= 1080;
 
-        // init_tpl_sf() defaults.
+        // The defaults of the model features.
         int gopLengthDecisionMethod = 0;
         bool pruneIntraModes = false;
         int pruneStartingMotionVector = 0;
@@ -52,7 +49,7 @@ internal readonly struct Av1TplSpeedFeatures
         bool reduceNumberOfFrames = false;
         int selectiveReferenceFrame;
 
-        // set_good_speed_features_framesize_independent().
+        // The choices that do not depend on the frame size. Each speed level adds to the choices of the slower levels.
         searchMethod = FullPixelSearchMethod.EightPointNStep;
         selectiveReferenceFrame = 1;
         if (speed >= HeifEncodingSpeed.Level1)
@@ -102,15 +99,15 @@ internal readonly struct Av1TplSpeedFeatures
             gopLengthDecisionMethod = 2;
         }
 
-        // set_good_speed_features_framesize_dependent().
+        // The choices that depend on the frame size.
         if (speed >= HeifEncodingSpeed.Level5 && is480pOrLarger)
         {
             reduceNumberOfFrames = true;
         }
 
-        // av1_set_speed_features_qindex_dependent(): coarse quantizers select a cheaper full-pixel pattern at the
-        // slower speeds. It has not run before the first frame is coded. A screen content trial calls it at its own
-        // quantizer before the frame calls it at the frame quantizer, and each call only overrides.
+        // The quantizer-dependent update: coarse quantizers select a cheaper full-pixel pattern at the slower speeds.
+        // No update exists before the first frame is coded. A screen content trial updates at its own quantizer before
+        // the frame updates at the frame quantizer. Each update only overrides.
         if (speed <= HeifEncodingSpeed.Level2)
         {
             if (lastTrialQIndex >= 0)
@@ -144,75 +141,74 @@ internal readonly struct Av1TplSpeedFeatures
     }
 
     /// <summary>
-    /// Gets the method that decides the golden group length from the model. Reference: gop_length_decision_method.
+    /// Gets the method that decides the golden group length from the model.
     /// </summary>
     public int GopLengthDecisionMethod { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the intra search stops before D45_PRED. Reference: prune_intra_modes.
+    /// Gets a value indicating whether the intra search stops before <see cref="Prediction.Av1PredictionMode.Directional45Degrees"/>.
     /// </summary>
     public bool PruneIntraModes { get; }
 
     /// <summary>
-    /// Gets the pruning level of the starting motion vectors. Reference: prune_starting_mv.
+    /// Gets the pruning level of the starting motion vectors.
     /// </summary>
     public int PruneStartingMotionVector { get; }
 
     /// <summary>
-    /// Gets the number of excluded initial search stages. Reference: reduce_first_step_size.
+    /// Gets the number of excluded initial search stages.
     /// </summary>
     public int ReduceFirstStepSize { get; }
 
     /// <summary>
-    /// Gets the level that skips starting vectors close to earlier ones. Reference: skip_alike_starting_mv.
+    /// Gets the level that skips starting vectors close to earlier ones.
     /// </summary>
     public int SkipAlikeStartingMotionVector { get; }
 
     /// <summary>
-    /// Gets the finest motion precision of the model search. Reference: subpel_force_stop.
+    /// Gets the finest motion precision of the model search.
     /// </summary>
     public SearchPrecision SubpelForceStop { get; }
 
     /// <summary>
-    /// Gets the full-pixel search method. Reference: search_method.
+    /// Gets the full-pixel search method.
     /// </summary>
     public FullPixelSearchMethod SearchMethod { get; }
 
     /// <summary>
     /// Gets a value indicating whether the selective reference pruning removes references of non-eligible frames.
-    /// Reference: prune_ref_frames_in_tpl.
     /// </summary>
     public bool PruneReferenceFrames { get; }
 
     /// <summary>
-    /// Gets a value indicating whether compound prediction is searched. Reference: allow_compound_pred.
+    /// Gets a value indicating whether the model searches compound prediction.
     /// </summary>
     public bool AllowCompoundPrediction { get; }
 
     /// <summary>
-    /// Gets a value indicating whether only luma contributes rate and distortion. Reference: use_y_only_rate_distortion.
+    /// Gets a value indicating whether only luma contributes rate and distortion.
     /// </summary>
     public bool LumaOnlyRateDistortion { get; }
 
     /// <summary>
-    /// Gets the level at which mode decisions compare absolute differences. Reference: use_sad_for_mode_decision.
+    /// Gets the level at which mode decisions compare absolute differences.
     /// </summary>
     public int UseSadForModeDecision { get; }
 
     /// <summary>
-    /// Gets a value indicating whether leaf frames are skipped. Reference: reduce_num_frames.
+    /// Gets a value indicating whether leaf frames are skipped.
     /// </summary>
     public bool ReduceNumberOfFrames { get; }
 
     /// <summary>
-    /// Gets the selective reference frame level. Reference: inter_sf.selective_ref_frame.
+    /// Gets the selective reference frame level.
     /// </summary>
     public int SelectiveReferenceFrame { get; }
 
     /// <summary>
-    /// Returns the model's full-pixel pattern after one quantizer-dependent update at speeds zero to two: coarse
-    /// quantizers select a cheaper pattern, and other quantizers keep the current one. Reference: the tpl_sf
-    /// search_method choices of av1_set_speed_features_qindex_dependent().
+    /// Returns the full-pixel pattern of the model after one quantizer-dependent update at speeds zero to two. Below 720p,
+    /// quantizers above the speed threshold select the clamped diamond. At 720p or larger, speed zero selects the
+    /// eight-point pattern above 200, and speeds one and two always select the diamond. Other cases keep the current pattern.
     /// </summary>
     /// <param name="speed">The good-quality speed, zero to two.</param>
     /// <param name="is720pOrLarger">Whether the shorter frame dimension is at least 720.</param>

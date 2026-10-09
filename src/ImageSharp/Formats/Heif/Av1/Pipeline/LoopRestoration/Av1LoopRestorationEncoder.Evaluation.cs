@@ -36,8 +36,12 @@ internal static partial class Av1LoopRestorationEncoder
             return bestError;
         }
 
+        // The coded range of the three outer taps of each half filter. The center tap follows from them.
         ReadOnlySpan<int> minimum = [-5, -23, -17];
         ReadOnlySpan<int> maximum = [10, 8, 46];
+
+        // The step halves from four to one. At each step, the search visits the horizontal taps and then the vertical taps.
+        // A five-tap window starts at tap one, because its tap zero is fixed at zero. A candidate replaces the unit when its error is not larger.
         for (int step = 4; step >= 1; step >>= 1)
         {
             for (int axis = 0; axis < 2; axis++)
@@ -78,8 +82,8 @@ internal static partial class Av1LoopRestorationEncoder
                         }
                     }
 
-                    // An accepted negative step ends this axis's tap sweep. At the coarsest step,
-                    // continue in that direction first; ties keep moving within the transmitted range.
+                    // An accepted decrease ends the tap sweep of this axis. At the coarsest step, the tap keeps moving in one direction
+                    // while the error does not increase. Equal errors also move the tap, inside the transmitted range.
                     if (movedNegative)
                     {
                         break;
@@ -188,6 +192,17 @@ internal static partial class Av1LoopRestorationEncoder
         /// <summary>
         /// Initializes a new instance of the <see cref="UnitSearchContext{TSample}"/> struct.
         /// </summary>
+        /// <param name="source">The original visible samples.</param>
+        /// <param name="reconstruction">The unfiltered reconstruction with addressable borders.</param>
+        /// <param name="trial">The separate trial destination, reused by every candidate.</param>
+        /// <param name="boundary">The saved pre-CDEF internal rows and post-CDEF frame edges.</param>
+        /// <param name="plane">The plane index.</param>
+        /// <param name="bitDepth">The significant component precision.</param>
+        /// <param name="subsamplingX">The horizontal chroma shift.</param>
+        /// <param name="subsamplingY">The vertical chroma shift.</param>
+        /// <param name="savedRows">The six temporary rows used while installing stripe context.</param>
+        /// <param name="wienerScratch">The two-pass Wiener convolution workspace.</param>
+        /// <param name="selfGuidedScratch">The self-guided processing-block workspace.</param>
         public UnitSearchContext(
             Av1PlaneRegion<TSample> source,
             Av1PlaneRegion<TSample> reconstruction,
@@ -270,8 +285,8 @@ internal static partial class Av1LoopRestorationEncoder
             ReadOnlySpan<TSample> source = this.Source.Samples[sourceOffset..];
             ReadOnlySpan<TSample> samples = candidate.Samples[candidateOffset..];
 
-            // Sample storage is fixed by the enclosing closed generic frame path. Dispatch once per
-            // unit to the existing vectorized error calculation; no sample conversion is required.
+            // The type test is constant for each closed generic type. Each unit makes one call to the vectorized error calculation,
+            // and the samples need no conversion.
             if (typeof(TSample) == typeof(byte))
             {
                 return Av1ResidualBuilder.SumSquaredError(

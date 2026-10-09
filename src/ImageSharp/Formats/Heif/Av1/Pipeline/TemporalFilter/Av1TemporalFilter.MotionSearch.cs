@@ -14,18 +14,17 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
 internal static partial class Av1TemporalFilter
 {
     /// <summary>
-    /// The number of sixteen-by-sixteen sub-blocks in a filter block, NUM_16X16.
+    /// The number of sixteen-by-sixteen sub-blocks in a filter block.
     /// </summary>
     internal const int SubblockCount = 16;
 
     /// <summary>
-    /// The largest component magnitude of a full-pixel motion vector, MAX_FULL_PEL_VAL.
+    /// The largest component magnitude of a full-pixel motion vector.
     /// </summary>
     private const int MaximumFullPixelComponent = 1023;
 
     /// <summary>
-    /// Fills the motion-vector rate storage with the L1 norm used by MV_COST_L1_LOWRES, MV_COST_L1_MIDRES and
-    /// MV_COST_L1_HDRES. Reference: the L1 branches of mvsad_err_cost() and mv_err_cost().
+    /// Fills the motion-vector rate storage so that the rate of a full-pixel vector is its L1 norm in whole samples.
     /// </summary>
     /// <param name="storage">The <see cref="Av1MotionVectorCosts.IntegerStorageLength"/> values of an integer-precision
     /// <see cref="Av1MotionVectorCosts"/>: four joint rates, then the row and the column rates of every signed
@@ -37,8 +36,8 @@ internal static partial class Av1TemporalFilter
     /// full-pixel vector. The search SAD cost (s * sadPerBit + 256) &gt;&gt; 9 is then exactly lambda * s when
     /// sadPerBit is 512 * lambda, and the variance cost (s * errorPerBit + 8192) &gt;&gt; 14 is exactly
     /// lambda * s when errorPerBit is 16384 * lambda. A zero lambda uses the smallest error-per-bit, one, for which
-    /// the cost stays zero because s is at most 2 * 1023 + 2 * 2047 samples. The fractional search uses that zero
-    /// cost as MV_COST_NONE.
+    /// the cost stays zero because s is at most 2 * 1023 + 2 * 2047 samples. The fractional search uses this zero cost, so it
+    /// measures the distortion only.
     /// </remarks>
     internal static void FillL1MotionCosts(Span<int> storage)
     {
@@ -57,7 +56,6 @@ internal static partial class Av1TemporalFilter
 
     /// <summary>
     /// Returns the smallest and the largest log variance of the four-by-four luma blocks of a filter block.
-    /// Reference: get_log_var_4x4sub_blk() with av1_calc_normalized_variance().
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TSearch">The motion search sample arithmetic.</typeparam>
@@ -98,18 +96,17 @@ internal static partial class Av1TemporalFilter
 
     /// <summary>
     /// Returns the variance of a block difference in the eight-bit error domain, with its squared difference.
-    /// Reference: aom_variance*() for eight bits, aom_highbd_10_variance*() and aom_highbd_12_variance*().
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TSearch">The motion search sample arithmetic.</typeparam>
-    /// <param name="first">The first block; the signed sum is taken as first minus second.</param>
+    /// <param name="first">The first block. The signed sum is first minus second.</param>
     /// <param name="firstStride">The first block row stride.</param>
     /// <param name="second">The second block.</param>
     /// <param name="secondStride">The second block row stride.</param>
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    /// <param name="squaredError">The rounded squared difference, the sse output of the variance function.</param>
+    /// <param name="squaredError">The squared difference, rounded to the eight-bit error domain.</param>
     /// <returns>The variance.</returns>
     internal static uint GetVariance<TSample, TSearch>(
         ReadOnlySpan<TSample> first,
@@ -127,13 +124,13 @@ internal static partial class Av1TemporalFilter
         int shift = bitDepth - 8;
         if (shift == 0)
         {
-            // variance(): the unsigned subtraction cannot wrap because the squared sum bounds the mean square.
+            // The unsigned subtraction cannot wrap, because the squared sum divided by the sample count is never more than the sum of squares.
             squaredError = (uint)squares;
             return (uint)squares - (uint)(((long)sum * sum) / (width * height));
         }
 
-        // highbd_10_variance() and highbd_12_variance() round both moments to eight bits, and the rounding can
-        // make the difference negative, which they clamp to zero.
+        // High bit depths round both moments to the eight-bit domain. The rounding can make the difference negative, so the
+        // variance clamps to zero.
         squaredError = (uint)((squares + (1L << ((2 * shift) - 1))) >> (2 * shift));
         long roundedSum = (sum + (1L << (shift - 1))) >> shift;
         long variance = squaredError - ((roundedSum * roundedSum) / (width * height));
@@ -142,7 +139,6 @@ internal static partial class Av1TemporalFilter
 
     /// <summary>
     /// Decides whether each 32x32 block and the whole filter block keep their sub-block motion or share one vector.
-    /// Reference: tf_determine_block_partition().
     /// </summary>
     /// <param name="blockVector">The vector of the whole block.</param>
     /// <param name="blockError">The mean squared error of the whole block.</param>
@@ -158,8 +154,8 @@ internal static partial class Av1TemporalFilter
         Span<Av1MotionVector> subblockVectors,
         Span<int> subblockErrors)
     {
-        // libaom multiplies int errors by int factors; an INT_MAX placeholder error wraps on the x64 build, and the
-        // unchecked products reproduce that before the comparison widens them to sixty-four bits.
+        // The int.MaxValue error of an unsearched block wraps when it is multiplied in 32-bit arithmetic. The unchecked products
+        // keep this wrap before the comparison widens them to 64 bits. This keeps the partition decisions the same as other AV1 encoders.
         for (int index = 0; index < 4; index++)
         {
             int minimum = int.MaxValue;
@@ -208,7 +204,6 @@ internal static partial class Av1TemporalFilter
 
     /// <summary>
     /// Rounds an eighth-sample vector to the nearest full-sample vector, halves away from zero.
-    /// Reference: get_fullmv_from_mv() with GET_MV_RAWPEL().
     /// </summary>
     /// <param name="vector">The eighth-sample vector.</param>
     /// <returns>The full-sample vector.</returns>
@@ -216,7 +211,7 @@ internal static partial class Av1TemporalFilter
         => new((vector.Column + 3 + (vector.Column >= 0 ? 1 : 0)) >> 3, (vector.Row + 3 + (vector.Row >= 0 ? 1 : 0)) >> 3);
 
     /// <summary>
-    /// Returns the rounded mean squared error of a search error. Reference: DIVIDE_AND_ROUND() on the unsigned error.
+    /// Returns the rounded mean squared error of a search error. The division is unsigned.
     /// </summary>
     /// <param name="error">The search error.</param>
     /// <param name="pixels">The number of block samples.</param>
@@ -225,8 +220,8 @@ internal static partial class Av1TemporalFilter
         => (int)((error + (uint)(pixels >> 1)) / (uint)pixels);
 
     /// <summary>
-    /// Searches the luma motion of the filter blocks of one reference frame, with the parameters that
-    /// tf_motion_search() and subblock_motion_search() give av1_full_pixel_search() and find_fractional_mv_step().
+    /// Searches the luma motion of the filter blocks of one reference frame with the shared full-pixel and fractional searches,
+    /// set up with the temporal filter parameters.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TSearch">The motion search sample arithmetic.</typeparam>
@@ -250,8 +245,7 @@ internal static partial class Av1TemporalFilter
         private readonly int stepParameter;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BlockMotionSearch{TSample, TSearch}"/> struct. Reference:
-        /// av1_make_default_fullpel_ms_params().
+        /// Initializes a new instance of the <see cref="BlockMotionSearch{TSample, TSearch}"/> struct.
         /// </summary>
         /// <param name="source">The complete bordered luma plane of the frame to filter.</param>
         /// <param name="sourceOrigin">The index of the top-left visible sample of <paramref name="source"/>.</param>
@@ -260,7 +254,7 @@ internal static partial class Av1TemporalFilter
         /// <param name="stride">The row stride of both planes.</param>
         /// <param name="fractionalBuffer">Scratch for fractional predictions.</param>
         /// <param name="zeros">At least 64 zero samples.</param>
-        /// <param name="searchSiteStorage">Storage for the NSTEP search sites, configured for <paramref name="stride"/>.</param>
+        /// <param name="searchSiteStorage">Storage for the n-step search sites, configured for <paramref name="stride"/>.</param>
         /// <param name="costStorage">The L1 motion-rate table from <see cref="FillL1MotionCosts"/>.</param>
         /// <param name="settings">The motion search speed features of the encoder.</param>
         /// <param name="context">The filter parameters of the frame.</param>
@@ -289,9 +283,8 @@ internal static partial class Av1TemporalFilter
             this.settings = settings;
             this.context = context;
 
-            // tf_motion_search() selects the L1 regularization by the shorter visible dimension. The SAD lambdas
-            // are SAD_LAMBDA_HDRES 8, SAD_LAMBDA_MIDRES 15 and SAD_LAMBDA_LOWRES 32; the variance lambdas are
-            // SSE_LAMBDA_HDRES 1, SSE_LAMBDA_MIDRES 0 and SSE_LAMBDA_LOWRES 2. See FillL1MotionCosts().
+            // The shorter visible dimension selects the L1 regularization. The SAD lambda is 8 from 720 samples, 15 from 480 samples
+            // and 32 below. The variance lambda is 1, 0 and 2 for the same ranges. FillL1MotionCosts() explains the scale factors.
             int minimumSize = Math.Min(context.FrameWidth, context.FrameHeight);
             int sadLambda = minimumSize >= 720 ? 8 : minimumSize >= 480 ? 15 : 32;
             int varianceLambda = minimumSize >= 720 ? 1 : minimumSize >= 480 ? 0 : 2;
@@ -302,7 +295,7 @@ internal static partial class Av1TemporalFilter
 
         /// <summary>
         /// Searches the whole filter block and, when allowed, its 32x32 and 16x16 sub-blocks, and decides the
-        /// partition. Reference: tf_motion_search().
+        /// partition.
         /// </summary>
         /// <param name="blockRow">The filter block row.</param>
         /// <param name="blockColumn">The filter block column.</param>
@@ -330,12 +323,12 @@ internal static partial class Av1TemporalFilter
             isDcDifferenceLarge = false;
             isLowContrast = false;
 
-            // av1_tf_do_filtering_row() initializes the outputs before every search: zero vectors and INT_MAX errors,
-            // which the partition decision reads when a forced integer search leaves the sub-blocks unsearched.
+            // Every search starts with zero vectors and int.MaxValue errors. The partition decision reads these values when a
+            // forced integer search leaves the sub-blocks unsearched.
             subblockVectors[..SubblockCount].Clear();
             subblockErrors[..SubblockCount].Fill(int.MaxValue);
 
-            // Only a nonzero sharpness measures the source variance; otherwise it stays INT32_MAX.
+            // Only a nonzero sharpness measures the source variance. Otherwise it stays int.MaxValue.
             long sourceVariance = int.MaxValue;
             if (parameters.Sharpness != 0)
             {
@@ -376,13 +369,13 @@ internal static partial class Av1TemporalFilter
                 blockVector = fractional.Vector;
                 referenceVector = fractional.Vector;
 
-                // Both terms are unsigned int; the product wraps as it does in libaom.
+                // Both terms are 32-bit unsigned values. The product wraps in 32 bits, which keeps this decision the same as other AV1 encoders.
                 isDcDifferenceLarge = unchecked(50u * error) < (uint)fractional.SquaredError;
                 isLowContrast = sourceVariance <= 2 * (long)fractional.Variance;
 
-                // High bit depth sharpness 3 keeps the zero vector for a region with no motion.
-                // That occurs when the zero-vector error is within one sixteenth of the searched error, or its mean is less than 16.
-                // The decisions above keep the searched error. Reference: the CONFIG_AV1_HIGHBITDEPTH zero motion override of tf_motion_search().
+                // A high bit depth with sharpness 3 keeps the zero vector for a region with no motion. That occurs when the zero-vector
+                // error is within one sixteenth of the searched error, or when its mean is less than 16. The decisions above keep the
+                // searched error.
                 if (parameters.BitDepth > 8 && parameters.Sharpness == 3)
                 {
                     ReadOnlySpan<TSample> referenceBlock = this.reference[(this.referenceOrigin + blockOffset)..];
@@ -447,7 +440,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Searches one 32x32 or 16x16 sub-block. Reference: subblock_motion_search().
+        /// Searches one 32x32 or 16x16 sub-block.
         /// </summary>
         /// <param name="block">The luma rectangle of the whole filter block.</param>
         /// <param name="subblock">The luma rectangle of the sub-block.</param>
@@ -461,17 +454,16 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Runs the full-pixel search of one block with the temporal filter parameters. Reference:
-        /// av1_make_default_fullpel_ms_params() with the overrides of tf_motion_search(), then av1_full_pixel_search().
+        /// Runs the full-pixel search of one block with the temporal filter parameters.
         /// </summary>
         /// <param name="block">The luma rectangle of the whole filter block, whose position sets the sharpness margins.</param>
         /// <param name="searched">The luma rectangle of the searched block.</param>
         /// <param name="start">The full-sample start of the search.</param>
         /// <returns>The integer winner with its variance and squared error.</returns>
         /// <remarks>
-        /// tf_motion_search() sets run_mesh_search, so libaom always follows the NSTEP search with the mesh search,
-        /// unless prune_mesh_search stops it: at PRUNE_MESH_SEARCH_LVL_1 the filter prunes when q exceeds 20 and the
-        /// winner is within two samples of the start, and at PRUNE_MESH_SEARCH_LVL_2 within four samples.
+        /// The filter always follows the n-step search with the mesh search, unless mesh pruning stops it. At pruning level 1, the
+        /// search prunes when the quantizer factor is more than 20 and the winner is within two samples of the start. At pruning
+        /// level 2, the search prunes when the winner is within four samples of the start.
         /// </remarks>
         private FullPixelResult SearchFullPixel(Rectangle block, Rectangle searched, Point start)
         {
@@ -494,9 +486,8 @@ internal static partial class Av1TemporalFilter
                 [],
                 []);
 
-            // cond_cost_list() publishes the integer neighborhood only for the pruned fractional trees with
-            // use_fullpel_costlist, which only real-time usage enables; the filter runs with a lookahead, in good
-            // quality usage, so it never has one.
+            // Only real-time usage gives the pruned fractional trees an integer neighborhood. The filter runs only in good-quality
+            // usage with look-ahead, so it never has one.
             Span<int> neighborhood = Span<int>.Empty;
             Av1MotionSearchSites sites = new(this.searchSiteStorage);
             int pruneDistance = this.settings.MeshPruningLevel == 2 ? 4 :
@@ -518,13 +509,12 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Refines a full-pixel winner to eighth-sample precision without motion-vector cost. Reference:
-        /// av1_make_default_subpel_ms_params() with the overrides of tf_motion_search(), then find_fractional_mv_step().
+        /// Refines a full-pixel winner to eighth-sample precision without motion-vector cost.
         /// </summary>
         /// <param name="block">The luma rectangle of the whole filter block, whose position sets the sharpness margins.</param>
         /// <param name="searched">The luma rectangle of the searched block.</param>
         /// <param name="fullResult">The full-pixel winner.</param>
-        /// <returns>The fractional winner; its cost is the variance alone.</returns>
+        /// <returns>The fractional winner. Its cost is the variance alone.</returns>
         private FractionalResult SearchFractional(Rectangle block, Rectangle searched, FullPixelResult fullResult)
         {
             TemporalFilterContext parameters = this.context;
@@ -533,7 +523,7 @@ internal static partial class Av1TemporalFilter
             Rectangle bounds = default(Av1MotionVector).GetSubpixelSearchBounds(frameBounds);
             if (parameters.Sharpness == 3)
             {
-                // The margins sit at the whole filter block's origin, with the searched block's size.
+                // The margins use the origin of the whole filter block and the size of the searched block.
                 bounds = Av1MotionVector.ClampToSharpnessMargins(
                     bounds, block.Location, searched.Size, new Size(parameters.FrameWidth, parameters.FrameHeight), Av1MotionVector.SubpixelScale);
             }
@@ -554,10 +544,9 @@ internal static partial class Av1TemporalFilter
                 [],
                 []);
 
-            // The filter sets best_mv_stats->err_cost to zero: the refinement starts from the integer variance alone,
-            // and the subpixel search type is USE_8_TAPS whatever use_accurate_subpel_search selects.
-            // Without use_fullpel_costlist the pruned trees have no integer neighborhood either. Reference:
-            // cond_cost_list_const() in av1_make_default_subpel_ms_params().
+            // The start has a zero motion-vector cost, so the refinement starts from the integer variance alone. The fractional search
+            // always uses the eight-tap filters, whatever the accurate search setting selects. The pruned trees have no integer
+            // neighborhood here either.
             FullPixelResult start = new(fullResult.Vector, fullResult.Variance, fullResult.SquaredError, 0);
             ReadOnlySpan<int> neighborhood = [];
             search.Search(
@@ -576,8 +565,8 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Returns the full-pixel search range of a block. Reference: av1_set_mv_row_limits(), av1_set_mv_col_limits(),
-        /// av1_set_mv_search_range() and the sharpness margins of av1_make_default_fullpel_ms_params().
+        /// Returns the full-pixel search range of a block: the frame border limits, the largest full-pixel vector range and, with sharpness 3,
+        /// the sharpness margins.
         /// </summary>
         /// <param name="block">The luma rectangle of the whole filter block.</param>
         /// <param name="searched">The luma rectangle of the searched block.</param>
@@ -596,8 +585,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Returns the displacement range that keeps a block's prediction inside the frame border.
-        /// Reference: av1_set_mv_row_limits() and av1_set_mv_col_limits() with the encoder border.
+        /// Returns the displacement range that keeps the prediction of a block inside the encoder frame border.
         /// </summary>
         /// <param name="block">The luma rectangle of the whole filter block.</param>
         /// <param name="searched">The luma rectangle of the searched block.</param>

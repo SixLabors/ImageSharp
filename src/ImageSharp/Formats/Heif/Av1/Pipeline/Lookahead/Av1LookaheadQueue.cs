@@ -5,15 +5,14 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 
 /// <summary>
 /// Holds the source frames that wait for coding, in display order, and the most recent frame that left the queue.
-/// The buffers are allocated once and reused as a ring. Reference: struct lookahead_ctx with av1_lookahead_init(),
-/// av1_lookahead_push(), av1_lookahead_pop(), and av1_lookahead_peek() for the encode stage.
+/// The buffers are allocated once and reused as a ring.
 /// </summary>
 /// <typeparam name="TSample">The component sample type.</typeparam>
 internal sealed class Av1LookaheadQueue<TSample> : IDisposable
     where TSample : unmanaged
 {
     /// <summary>
-    /// The number of earlier frames kept for backward peeks. Reference: MAX_PRE_FRAMES.
+    /// The number of earlier frames kept for backward peeks.
     /// </summary>
     private const int PreviousFrameCount = 1;
 
@@ -33,8 +32,7 @@ internal sealed class Av1LookaheadQueue<TSample> : IDisposable
     /// <param name="chromaPositionX">The horizontal chroma sample position.</param>
     /// <param name="chromaPositionY">The vertical chroma sample position.</param>
     /// <param name="lumaBorder">The luma border in samples.</param>
-    /// <param name="depth">The number of frames the queue must hold before the encode stage takes one.
-    /// Reference: the depth plus num_lap_buffers of av1_lookahead_init().</param>
+    /// <param name="depth">The number of frames that the queue must hold before the encode stage takes one.</param>
     public Av1LookaheadQueue(
         Configuration configuration,
         int width,
@@ -73,23 +71,22 @@ internal sealed class Av1LookaheadQueue<TSample> : IDisposable
     }
 
     /// <summary>
-    /// Gets the number of frames that wait for coding. Reference: read_ctxs[ENCODE_STAGE].sz.
+    /// Gets the number of frames that wait for coding.
     /// </summary>
     public int Count { get; private set; }
 
     /// <summary>
-    /// Gets the number of frames the queue holds when it is full. Reference: read_ctxs[ENCODE_STAGE].pop_sz.
+    /// Gets the number of frames that the queue holds when it is full.
     /// </summary>
     public int PopSize { get; }
 
     /// <summary>
-    /// Gets the number of frames pushed so far. Reference: push_frame_count.
+    /// Gets the number of frames pushed so far.
     /// </summary>
     public int PushCount { get; private set; }
 
     /// <summary>
     /// Gets a value indicating whether the queue holds as many frames as the encode stage waits for.
-    /// Reference: av1_lookahead_full().
     /// </summary>
     public bool IsFull => this.Count >= this.PopSize;
 
@@ -108,7 +105,7 @@ internal sealed class Av1LookaheadQueue<TSample> : IDisposable
     }
 
     /// <summary>
-    /// Adds the frame written into the buffer from <see cref="BeginPush"/>. Reference: av1_lookahead_push().
+    /// Adds the frame written into the buffer from <see cref="BeginPush"/>.
     /// </summary>
     public void EndPush()
     {
@@ -119,7 +116,7 @@ internal sealed class Av1LookaheadQueue<TSample> : IDisposable
     }
 
     /// <summary>
-    /// Returns a queued frame, or the frame that most recently left the queue. Reference: av1_lookahead_peek().
+    /// Returns a queued frame, or the frame that most recently left the queue.
     /// </summary>
     /// <param name="index">The position after the first queued frame, or -1 for the most recent frame that left.</param>
     /// <returns>The frame buffer, or <see langword="null"/> when no frame is at that position.</returns>
@@ -156,7 +153,7 @@ internal sealed class Av1LookaheadQueue<TSample> : IDisposable
     }
 
     /// <summary>
-    /// Returns the display index of a queued frame. Reference: the display_idx of struct lookahead_entry.
+    /// Returns the display index of a queued frame.
     /// </summary>
     /// <param name="index">The position after the first queued frame.</param>
     /// <returns>The display index of the frame.</returns>
@@ -173,7 +170,6 @@ internal sealed class Av1LookaheadQueue<TSample> : IDisposable
 
     /// <summary>
     /// Removes the first queued frame. It stays available to a backward peek until the next pop.
-    /// Reference: av1_lookahead_pop() with drain.
     /// </summary>
     public void Pop()
     {
@@ -195,5 +191,10 @@ internal sealed class Av1LookaheadQueue<TSample> : IDisposable
         }
     }
 
+    /// <summary>
+    /// Returns the ring position after a buffer position, which wraps to zero after the last buffer.
+    /// </summary>
+    /// <param name="index">The buffer position.</param>
+    /// <returns>The next buffer position.</returns>
     private int Next(int index) => index + 1 == this.buffers.Length ? 0 : index + 1;
 }

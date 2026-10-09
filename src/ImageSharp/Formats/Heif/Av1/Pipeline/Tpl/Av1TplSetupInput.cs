@@ -9,8 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 /// <summary>
 /// The encoder state that one run of the model reads: the golden group, the look-ahead sources, the reference slots, the
 /// rate control values and the speed features in force. The caller fills it before each call of
-/// <see cref="Av1TplModel{TSample, TSearchOperator, TSampleOperator}.SetupStatistics"/>. Reference: the AV1_COMP, AV1_PRIMARY
-/// and EncodeFrameParams fields that av1_tpl_setup_stats() reads.
+/// <see cref="Av1TplModel{TSample, TSearchOperator, TSampleOperator}.SetupStatistics"/>.
 /// </summary>
 /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
 internal sealed class Av1TplSetupInput<TSample>
@@ -35,19 +34,17 @@ internal sealed class Av1TplSetupInput<TSample>
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the frame that starts the group is a key frame. Reference:
-    /// frame_params->frame_type == KEY_FRAME.
+    /// Gets or sets a value indicating whether the frame that starts the group is a key frame.
     /// </summary>
     public bool IsKeyFrame { get; set; }
 
     /// <summary>
-    /// Gets or sets the display number of the frame that starts the group. Reference: cm->current_frame.frame_number.
+    /// Gets or sets the display number of the frame that starts the group.
     /// </summary>
     public int FrameNumber { get; set; }
 
     /// <summary>
     /// Gets the golden group. The model writes the update type and quantizer of look-ahead extension entries.
-    /// Reference: cpi->ppi->gf_group.
     /// </summary>
     public Av1TplGroup Group { get; }
 
@@ -58,18 +55,17 @@ internal sealed class Av1TplSetupInput<TSample>
 
     /// <summary>
     /// Gets the look-ahead source frames by offset from the frame that starts the group, with borders extended from the
-    /// visible size. Reference: the img of av1_lookahead_peek().
+    /// visible size.
     /// </summary>
     public Av1EncoderFrame<TSample>[] Lookahead { get; }
 
     /// <summary>
-    /// Gets or sets the number of frames available in <see cref="Lookahead"/>. Reference: the read_ctx sz of the lookahead.
+    /// Gets or sets the number of frames available in <see cref="Lookahead"/>.
     /// </summary>
     public int LookaheadCount { get; set; }
 
     /// <summary>
     /// Gets the temporally filtered source of each group entry that has one, with borders extended.
-    /// Reference: av1_tf_info_get_filtered_buf().
     /// </summary>
     public Av1EncoderFrame<TSample>[] FilteredFrames { get; }
 
@@ -79,65 +75,63 @@ internal sealed class Av1TplSetupInput<TSample>
     public bool[] HasFilteredFrame { get; }
 
     /// <summary>
-    /// Gets the reconstruction held by each reference slot. Ignored for a key frame. Reference: cm->ref_frame_map[i]->buf.
+    /// Gets the reconstruction held by each reference slot. The model ignores it for a key frame.
     /// </summary>
     public Av1EncoderFrame<TSample>[] SlotFrames { get; }
 
     /// <summary>
-    /// Gets the identity of the buffer in each slot; slots that hold the same buffer share it. Reference: the
-    /// RefCntBuffer pointers of cm->ref_frame_map.
+    /// Gets the identity of the buffer in each slot. Slots that hold the same buffer have the same identity.
     /// </summary>
     public int[] SlotBufferIds { get; }
 
     /// <summary>
-    /// Gets the display order of the frame in each slot. Reference: cm->ref_frame_map[i]->display_order_hint.
+    /// Gets the display order of the frame in each slot.
     /// </summary>
     public int[] SlotDisplayOrderHints { get; }
 
     /// <summary>
-    /// Gets the display order of the frame in each slot, or -1 for an empty or repeated slot. Reference:
-    /// init_ref_map_pair() disp_order.
+    /// Gets the display order of the frame in each slot, or -1 for an empty or repeated slot.
     /// </summary>
     public int[] PairDisplayOrders { get; }
 
     /// <summary>
-    /// Gets the pyramid level of the frame in each slot, or -1. Reference: init_ref_map_pair() pyr_level.
+    /// Gets the pyramid level of the frame in each slot, or -1.
     /// </summary>
     public int[] PairPyramidLevels { get; }
 
     /// <summary>
-    /// Gets or sets the configured look-ahead depth. Reference: oxcf->gf_cfg.lag_in_frames.
+    /// Gets or sets the configured look-ahead depth.
     /// </summary>
     public int LagInFrames { get; set; }
 
     /// <summary>
-    /// Gets or sets the number of frames to the next key frame. Reference: rc->frames_to_key.
+    /// Gets or sets the number of frames to the next key frame.
     /// </summary>
     public int FramesToKey { get; set; }
 
     /// <summary>
-    /// Gets or sets the golden interval of the group. Reference: p_rc->baseline_gf_interval.
+    /// Gets or sets the golden interval of the group.
     /// </summary>
     public int BaselineGoldenInterval { get; set; }
 
     /// <summary>
-    /// Gets or sets the golden boost in force when the model runs. Reference: p_rc->gfu_boost.
+    /// Gets or sets the golden boost in force when the model runs.
     /// </summary>
     public int GoldenBoost { get; set; }
 
     /// <summary>
-    /// Gets or sets the lowest quantizer index of the rate control. Reference: rc->best_quality.
+    /// Gets or sets the lowest quantizer index of the rate control.
     /// </summary>
     public int BestQuality { get; set; }
 
     /// <summary>
-    /// Gets or sets the highest quantizer index of the rate control. Reference: rc->worst_quality.
+    /// Gets or sets the highest quantizer index of the rate control.
     /// </summary>
     public int WorstQuality { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the rate control is in the constant-quality or the variable-bitrate
-    /// mode, where the leaf quantizer is lowered for the model. Reference: rc_cfg.mode == AOM_Q or AOM_VBR.
+    /// Gets or sets a value indicating whether the rate control is in the constant-quality or the variable-bitrate mode.
+    /// In these modes the model lowers the leaf quantizer.
     /// </summary>
     public bool AdjustLeafQuantizer { get; set; } = true;
 
@@ -147,91 +141,81 @@ internal sealed class Av1TplSetupInput<TSample>
     public Av1TplSpeedFeatures SpeedFeatures { get; set; }
 
     /// <summary>
-    /// Gets or sets the frame motion search features the model reuses: mesh patterns and thresholds, downsampled
-    /// absolute differences, the fractional search method and its iterations and taps. The model runs before the
-    /// frame sets its own speed features, so these are the features of the frame coded before it, except for the
-    /// first key frame, whose features are set first. The exhaustive search threshold drops to its screen-content
-    /// value when that earlier frame was classified as graphics or animation from its first-pass statistics, which
-    /// changes the vectors of the eight-point search at speeds 0 and 1. Reference: cpi->sf.mv_sf with
-    /// exhaustive_searches_thresh from cpi->twopass_frame.fr_content_type.
+    /// Gets or sets the frame motion search features that the model reuses: mesh patterns and thresholds, downsampled
+    /// absolute differences, and the fractional search method with its iterations and taps. The model runs before the
+    /// frame sets its own speed features. Thus these are the features of the frame coded before it. The first key frame
+    /// is the exception, because its features are set first. If the first-pass statistics classified that earlier frame
+    /// as graphics or animation, the exhaustive search threshold drops to its screen-content value. This changes the
+    /// vectors of the eight-point search at speeds 0 and 1.
     /// </summary>
     public Av1MotionSearchSettings MotionSettings { get; set; }
 
     /// <summary>
     /// Gets the entropy context whose motion vector distributions price the model search. For a key frame the model
-    /// resets it to the defaults. Reference: cm->fc->nmvc.
+    /// resets it to the defaults.
     /// </summary>
     public Av1MotionVectorContext MotionVectorContext { get; }
 
     /// <summary>
     /// Gets or sets a value indicating whether eighth-sample vectors are allowed, as the most recently coded inter frame
-    /// left the flag. Reference: cm->features.allow_high_precision_mv.
+    /// left the flag.
     /// </summary>
     public bool AllowHighPrecisionMotionVector { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether integer vectors are forced, as the previous frame left the flag.
-    /// Reference: cm->features.cur_frame_force_integer_mv.
     /// </summary>
     public bool ForceIntegerMotionVector { get; set; }
 
     /// <summary>
-    /// Gets or sets the superblock quantizer delta that the model's quantizers add to its quantizer: the delta of the
-    /// last superblock when the previous coded frame codes delta quantizers, and zero otherwise. Reference:
-    /// x->delta_qindex with cm->delta_q_info.delta_q_present_flag in the av1_init_plane_quantizers() call of
-    /// av1_frame_init_quantizer().
+    /// Gets or sets the superblock quantizer delta that the quantizers of the model add to its quantizer. It is the delta
+    /// of the last superblock when the previous coded frame codes delta quantizers, and zero otherwise.
     /// </summary>
     public int QuantizerDeltaQIndex { get; set; }
 
     /// <summary>
-    /// Gets or sets the mode-information row that ends the first tile of the frame. Reference: xd->tile.mi_row_end
-    /// after av1_tile_init(&amp;xd->tile, cm, 0, 0).
+    /// Gets or sets the mode-information row that ends the first tile of the frame.
     /// </summary>
     public int TileModeInfoRowEnd { get; set; }
 
     /// <summary>
-    /// Gets or sets the mode-information column that ends the first tile of the frame. Reference:
-    /// xd->tile.mi_col_end after av1_tile_init(&amp;xd->tile, cm, 0, 0).
+    /// Gets or sets the mode-information column that ends the first tile of the frame.
     /// </summary>
     public int TileModeInfoColumnEnd { get; set; }
 
     /// <summary>
-    /// Gets or sets the tune metric. Reference: oxcf->tune_cfg.tuning.
+    /// Gets or sets the tune metric.
     /// </summary>
     public Av1Tuning Tuning { get; set; }
 
     /// <summary>
-    /// Gets or sets the encoder sharpness, which at 3 keeps the motion search near the frame. Reference:
-    /// oxcf->algo_cfg.sharpness.
+    /// Gets or sets the encoder sharpness. At 3 it keeps the motion search near the frame.
     /// </summary>
     public int Sharpness { get; set; }
 
     /// <summary>
-    /// Gets or sets the sharpness of the quantizer tables, which sets the quantizer rounding. Reference: the
-    /// sharpness that av1_init_quantizer() last built cpi->enc_quant_dequant_params with.
+    /// Gets or sets the sharpness that the encoder last built the quantizer tables with. It sets the quantizer rounding.
     /// </summary>
     public int QuantizerSharpness { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the encoder consumes first-pass statistics, which applies the layer and
-    /// boost adjustments of the rate multiplier. One-pass good quality with look-ahead does. Reference:
-    /// is_stat_consumption_stage().
+    /// Gets or sets a value indicating whether the encoder consumes first-pass statistics. If it does, the rate multiplier
+    /// gets the layer and boost adjustments. One-pass good quality with look-ahead consumes them.
     /// </summary>
     public bool IsStatConsumptionStage { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the fixed quantizer offset mode. Reference: q_cfg.use_fixed_qp_offsets.
+    /// Gets or sets the fixed quantizer offset mode.
     /// </summary>
     public int UseFixedQpOffsets { get; set; }
 
     /// <summary>
-    /// Gets or sets the superblock size of the sequence. Reference: seq_params->sb_size.
+    /// Gets or sets the superblock size of the sequence.
     /// </summary>
     public Av1BlockSize SuperblockSize { get; set; } = Av1BlockSize.Block128x128;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the sequence enables the intra edge filter. Reference:
-    /// seq_params->enable_intra_edge_filter.
+    /// Gets or sets a value indicating whether the sequence enables the intra edge filter.
     /// </summary>
     public bool EnableIntraEdgeFilter { get; set; } = true;
 }

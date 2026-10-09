@@ -10,13 +10,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
 internal interface IAv1ArfBoostSource
 {
     /// <summary>
-    /// Returns the boost of the frame at a look-ahead offset from the first-pass statistics of the frames around it.
-    /// Reference: av1_calc_arf_boost() with no statistics counters, project_gfu_boost 0 and scale_max_boost set for
-    /// good-quality encoding.
+    /// Returns the boost of the frame at a look-ahead offset from the first-pass statistics of the frames around it. The boost
+    /// uses the good-quality scale limit and no projected group boost.
     /// </summary>
     /// <param name="offset">The look-ahead index of the frame.</param>
-    /// <param name="forwardFrames">The number of later frames to read, f_frames.</param>
-    /// <param name="backwardFrames">The number of earlier frames to read, b_frames.</param>
+    /// <param name="forwardFrames">The number of later frames to read.</param>
+    /// <param name="backwardFrames">The number of earlier frames to read.</param>
     /// <returns>The boost.</returns>
     public int CalculateArfBoost(int offset, int forwardFrames, int backwardFrames);
 }

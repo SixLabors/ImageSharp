@@ -8,19 +8,19 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 
 /// <summary>
 /// The film grain parameters of time ranges, read from the text format that starts with "filmgrn1". Each entry starts
-/// with "E", its time range, the apply flag, the random seed and the update flag. An entry that updates its
-/// parameters continues with the "p" line of shifts and chroma multipliers, the "sY", "sCb" and "sCr" scaling points,
-/// and the "cY", "cCb" and "cCr" autoregressive coefficients. Reference: aom_film_grain_table_t.
+/// with "E", its time range, the apply flag, the random seed and the update flag. An entry that updates its parameters
+/// continues with the "p" line of shifts and chroma multipliers, the "sY", "sCb" and "sCr" scaling points, and the "cY",
+/// "cCb" and "cCr" autoregressive coefficients.
 /// </summary>
 internal sealed class Av1FilmGrainTable
 {
     /// <summary>
-    /// The text that starts every table. Reference: kFileMagic.
+    /// The text that starts every table.
     /// </summary>
     private const string Header = "filmgrn1";
 
     /// <summary>
-    /// The entries in the order of the text. Reference: the head to tail list of aom_film_grain_table_t.
+    /// The entries in the order of the text.
     /// </summary>
     private readonly List<Entry> entries;
 
@@ -31,15 +31,13 @@ internal sealed class Av1FilmGrainTable
     private Av1FilmGrainTable(List<Entry> entries) => this.entries = entries;
 
     /// <summary>
-    /// Gets a parameter set with every field zero, as the lookup clears the running parameters to. The coefficients
-    /// hold their offset of 128, which is a zero coefficient. Reference: the memset() of
-    /// aom_film_grain_table_lookup().
+    /// Gets a parameter set with every field zero. The lookup clears the running parameters to this set. The coefficients
+    /// hold their offset of 128, which is a zero coefficient.
     /// </summary>
     private static ObuFilmGrainParameters Empty { get; } = CreateEmpty();
 
     /// <summary>
-    /// Reads a table from its text. Tokens may be separated by any white space. Reference:
-    /// aom_film_grain_table_read() and grain_table_entry_read().
+    /// Reads a table from its text. Any run of white space separates two tokens.
     /// </summary>
     /// <param name="text">The table text.</param>
     /// <returns>The table.</returns>
@@ -51,7 +49,7 @@ internal sealed class Av1FilmGrainTable
             throw new ArgumentException("The film grain table does not start with the filmgrn1 header.", nameof(text));
         }
 
-        // The reference reads with fscanf(), so every run of white space separates two tokens.
+        // Every run of white space separates two tokens. Thus spaces, tabs and line breaks have the same effect.
         string[] tokens = text[Header.Length..].Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         int position = 0;
         List<Entry> entries = [];
@@ -107,12 +105,11 @@ internal sealed class Av1FilmGrainTable
     }
 
     /// <summary>
-    /// Copies the parameters of the first entry whose time range holds a time stamp. A time stamp other than zero
-    /// keeps the running random seed. Without an entry the parameters are cleared. Reference:
-    /// aom_film_grain_table_lookup() without erasing.
+    /// Copies the parameters of the first entry whose time range holds a time stamp. A time stamp other than zero keeps
+    /// the running random seed. Without an entry, the parameters are cleared. The lookup does not remove the entry.
     /// </summary>
-    /// <param name="timeStamp">The frame's start time in ticks.</param>
-    /// <param name="parameters">The running parameters, replaced by the entry's.</param>
+    /// <param name="timeStamp">The start time of the frame in ticks.</param>
+    /// <param name="parameters">The running parameters, which the lookup replaces with the parameters of the entry.</param>
     /// <returns>Whether an entry holds the time stamp.</returns>
     public bool Lookup(long timeStamp, ObuFilmGrainParameters parameters)
     {
@@ -278,22 +275,22 @@ internal sealed class Av1FilmGrainTable
     }
 
     /// <summary>
-    /// One time range of the table and its parameters. Reference: aom_film_grain_table_entry_t.
+    /// One time range of the table and its parameters.
     /// </summary>
     private sealed class Entry
     {
         /// <summary>
-        /// Gets the first tick of the range. Reference: start_time.
+        /// Gets the first tick of the range.
         /// </summary>
         public long StartTime { get; init; }
 
         /// <summary>
-        /// Gets the tick after the range. Reference: end_time.
+        /// Gets the tick after the range.
         /// </summary>
         public long EndTime { get; init; }
 
         /// <summary>
-        /// Gets the film grain parameters of the range. Reference: params.
+        /// Gets the film grain parameters of the range.
         /// </summary>
         public ObuFilmGrainParameters Parameters { get; } = CreateEmpty();
     }

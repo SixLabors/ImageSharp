@@ -14,20 +14,17 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
 internal static partial class Av1TemporalFilter
 {
     /// <summary>
-    /// The reciprocal normalization of the combined error, 1 / ((TF_WINDOW_BLOCK_BALANCE_WEIGHT + 1) *
-    /// TF_SEARCH_ERROR_NORM_WEIGHT), the inv_factor of av1_apply_temporal_filter_c().
+    /// The reciprocal normalization of the combined error: 1 / ((window balance weight 5 + 1) * search error weight 20).
     /// </summary>
     internal const double InverseErrorNormalization = 1.0 / ((5 + 1) * 20);
 
     /// <summary>
-    /// The weight of the window error in the combined error, TF_WINDOW_BLOCK_BALANCE_WEIGHT * inv_factor, the
-    /// weight_factor of av1_apply_temporal_filter_c().
+    /// The weight of the window error in the combined error: the window balance weight 5 times <see cref="InverseErrorNormalization"/>.
     /// </summary>
     internal const double CombinedWindowWeight = 5.0 * InverseErrorNormalization;
 
     /// <summary>
     /// Stores the squared differences between a block of the frame to filter and its prediction.
-    /// Reference: compute_square_diff() and get_squared_error_avx2().
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
@@ -92,14 +89,13 @@ internal static partial class Av1TemporalFilter
     }
 
     /// <summary>
-    /// Sums the luma squared differences that each chroma sample covers. Reference: compute_luma_sq_error_sum() and
-    /// the luma_sse_sum loops of av1_apply_temporal_filter_avx2().
+    /// Sums the luma squared differences that each chroma sample covers.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
     /// <param name="lumaErrors">The luma squared differences, packed at the luma block width.</param>
     /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
-    /// <param name="subsamplingY">The vertical chroma subsampling shift; one only with horizontal subsampling.</param>
+    /// <param name="subsamplingY">The vertical chroma subsampling shift. It is one only when <paramref name="subsamplingX"/> is also one.</param>
     /// <param name="width">The chroma block width.</param>
     /// <param name="height">The chroma block height.</param>
     /// <param name="destination">The luma sums to write, packed at the chroma block width.</param>
@@ -200,13 +196,11 @@ internal static partial class Av1TemporalFilter
     /// <summary>
     /// Stores the window error of every sample: the sum of the squared differences in the clamped five-by-five
     /// window, plus the covered luma squared differences on chroma, scaled down to the eight-bit domain.
-    /// Reference: the acc_5x5_sse and diff_sse computation of apply_temporal_filter() and
-    /// highbd_apply_temporal_filter(), equal to the window loop of av1_apply_temporal_filter_c().
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
     /// <param name="errors">The squared differences of the plane, packed at the block width.</param>
-    /// <param name="lumaErrors">The luma sums per sample, packed at the block width; zeros on the luma plane.</param>
+    /// <param name="lumaErrors">The luma sums per sample, packed at the block width. The luma plane passes zeros.</param>
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
     /// <param name="shift">The high-bit-depth shift, 2 * (bit depth - 8).</param>
@@ -231,8 +225,8 @@ internal static partial class Av1TemporalFilter
         ref uint columnSums = ref Unsafe.Add(ref columnBase, HalfWindow);
         for (int row = 0; row < height; row++)
         {
-            // The window clamps its rows to the block: the first and last rows repeat, exactly as the x64 kernel
-            // copies its first row into two registers and reuses its last row after the bottom edge.
+            // The window clamps its rows to the block. The two rows above the block repeat the first row, and the two rows
+            // below the block repeat the last row.
             ref uint row0 = ref Unsafe.Add(ref errorBase, Math.Max(row - 2, 0) * width);
             ref uint row1 = ref Unsafe.Add(ref errorBase, Math.Max(row - 1, 0) * width);
             ref uint row2 = ref Unsafe.Add(ref errorBase, row * width);
@@ -295,8 +289,8 @@ internal static partial class Av1TemporalFilter
                     ref Unsafe.Add(ref columnSums, column));
             }
 
-            // Replicating the outer column sums twice on each side clamps the window columns, which is what the
-            // x64 kernel's shuffle masks do for its first and last four-column groups.
+            // Two copies of each outer column sum on each side clamp the window columns to the block, in the same way as
+            // the rows. Index 0 of the padded row is then the window start of column 0.
             columnBase = columnSums;
             Unsafe.Add(ref columnBase, 1) = columnSums;
             Unsafe.Add(ref columnSums, width) = Unsafe.Add(ref columnSums, width - 1);
@@ -340,8 +334,7 @@ internal static partial class Av1TemporalFilter
     }
 
     /// <summary>
-    /// Weighs a predicted block and adds it to the accumulators. Reference: the weight loops of apply_temporal_filter(),
-    /// highbd_apply_temporal_filter() and av1_apply_temporal_filter_c().
+    /// Weighs a predicted block and adds it to the accumulators.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
@@ -393,8 +386,8 @@ internal static partial class Av1TemporalFilter
                 int column = rowOffset + (segment * segmentWidth);
                 int end = column + segmentWidth;
 
-                // exp() has no vector form that rounds like the C library, so the first level, which the x64
-                // kernel also computes one sample at a time, runs only the scalar overload.
+                // Level zero uses the exact exponential. No vector form rounds the same way as the scalar exponential,
+                // so level zero runs only the scalar overload.
                 if (level != 0)
                 {
                     if (Vector512.IsHardwareAccelerated)
@@ -456,7 +449,6 @@ internal static partial class Av1TemporalFilter
 
     /// <summary>
     /// Adds a block of the frame to filter to the accumulators at the full weight.
-    /// Reference: tf_apply_temporal_filter_self().
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
@@ -521,12 +513,11 @@ internal static partial class Av1TemporalFilter
 
     /// <summary>
     /// Divides the accumulators of one plane block by their weight totals and writes the filtered samples.
-    /// Reference: tf_normalize_filtered_frame().
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
     /// <param name="accumulator">The weighted sums of the plane, packed at the block width.</param>
-    /// <param name="count">The weight totals of the plane, packed at the block width; every total is nonzero.</param>
+    /// <param name="count">The weight totals of the plane, packed at the block width. Every total is nonzero.</param>
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
     /// <param name="destination">The filtered frame samples at the block origin.</param>
@@ -587,8 +578,6 @@ internal static partial class Av1TemporalFilter
 
     /// <summary>
     /// Estimates the noise level of one plane from the Laplacian of its smooth samples.
-    /// Reference: av1_estimate_noise_from_single_plane_avx2() for eight-bit planes and
-    /// av1_highbd_estimate_noise_from_single_plane_c() for high-bit-depth planes, as the x64 build dispatches them.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
@@ -613,10 +602,10 @@ internal static partial class Av1TemporalFilter
         NoiseTerms terms = new(edgeThreshold, bitDepth);
         ref TSample planeBase = ref MemoryMarshal.GetReference(plane[..(((height - 1) * stride) + width)]);
 
-        // The eight-bit x64 kernel sums the columns 1 to w32 in thirty-two-bit lanes and reduces them to one
-        // thirty-two-bit value, so that part wraps modulo 2^32, while the remaining columns use sixty-four-bit
-        // scalar arithmetic. Integer wrapping does not depend on the lane assignment, so accumulating the same
-        // columns in wrapping int arithmetic reproduces it. High-bit-depth planes use the C function throughout.
+        // For eight-bit planes, the columns 1 to vectorEnd sum into one 32-bit value that wraps modulo 2^32. The remaining
+        // columns sum into a 64-bit value. Other AV1 encoders split the sum in this way, so the noise estimate stays the same.
+        // Integer wrapping does not depend on the lane assignment, so a wrapping int sum of the same columns gives the same
+        // result as any vector width. High-bit-depth planes sum all columns into the 64-bit value.
         int vectorEnd = bitDepth == 8 ? (width - 1) & ~31 : 0;
         int vectorSum = 0;
         int vectorCount = 0;
@@ -644,7 +633,6 @@ internal static partial class Av1TemporalFilter
 
     /// <summary>
     /// Returns the Laplacian total and the smooth-sample count of one row between two columns.
-    /// Reference: the column loops of av1_estimate_noise_from_single_plane_avx2().
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The sample arithmetic.</typeparam>

@@ -7,36 +7,32 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 
 /// <summary>
 /// The film grain a sequence signals: the running parameters, which each shown frame copies before its random seed
-/// moves on, and the parameters each reference slot keeps. Reference: cm->film_grain_params, cpi->film_grain_table and
-/// the film_grain_params of the reference buffers.
+/// moves on, the optional film grain table, and the parameters each reference slot keeps.
 /// </summary>
 internal sealed class Av1FilmGrainState
 {
     /// <summary>
-    /// The running parameters. Reference: cm->film_grain_params.
+    /// The running parameters.
     /// </summary>
     private readonly ObuFilmGrainParameters parameters = new();
 
     /// <summary>
-    /// The table that gives the parameters of each frame's time, or <see langword="null"/> with a preset. Reference:
-    /// cpi->film_grain_table.
+    /// The table that gives the parameters for the time of each frame, or <see langword="null"/> with a preset.
     /// </summary>
     private readonly Av1FilmGrainTable? table;
 
     /// <summary>
-    /// The parameters of the frame each reference slot holds. Reference: the film_grain_params of
-    /// cm->ref_frame_map.
+    /// The parameters of the frame each reference slot holds.
     /// </summary>
     private readonly ObuFilmGrainParameters[] slotParameters = new ObuFilmGrainParameters[Av1Constants.ReferenceFrameCount];
 
     /// <summary>
-    /// Whether the frame each reference slot holds signals film grain. Reference: the film_grain_params_present of
-    /// cm->ref_frame_map.
+    /// Whether the frame each reference slot holds signals film grain.
     /// </summary>
     private readonly bool[] slotPresent = new bool[Av1Constants.ReferenceFrameCount];
 
     /// <summary>
-    /// Whether the current frame signals film grain. Reference: cm->cur_frame->film_grain_params_present.
+    /// Whether the current frame signals film grain.
     /// </summary>
     private bool framePresent;
 
@@ -54,9 +50,7 @@ internal sealed class Av1FilmGrainState
             this.slotParameters[slot] = new ObuFilmGrainParameters();
         }
 
-        // A preset applies from the first key frame, a monochrome sequence drops its chroma grain, and full range
-        // samples are not clipped. Reference: av1_update_film_grain_parameters() with
-        // reset_film_grain_chroma_params().
+        // A preset applies from the first key frame. A monochrome sequence drops its chroma grain, and full-range samples are not clipped.
         if (preset != 0)
         {
             Av1FilmGrainPresets.Load(preset, this.parameters);
@@ -74,7 +68,7 @@ internal sealed class Av1FilmGrainState
 
     /// <summary>
     /// Creates the film grain state of a sequence, or returns <see langword="null"/> when it signals none. A preset
-    /// takes priority over a table. Reference: av1_update_film_grain_parameters_seq().
+    /// takes priority over a table.
     /// </summary>
     /// <param name="preset">The film grain preset from 1 to 16, or 0 for none.</param>
     /// <param name="table">The film grain table, or <see langword="null"/>.</param>
@@ -84,14 +78,12 @@ internal sealed class Av1FilmGrainState
         => preset == 0 && table is null ? null : new Av1FilmGrainState(preset, preset == 0 ? table : null, colorConfig);
 
     /// <summary>
-    /// Sets the film grain of a frame about to be coded. A table gives the parameters of the frame's time. A shown or
-    /// showable frame copies the running parameters, an intra frame always signals them in full, and an inter frame
-    /// that reuses them names a reference slot that holds them. The running random seed then moves on. Reference:
-    /// the aom_film_grain_table_lookup() call of av1_encode_strategy(), the film grain copy before the bitstream is
-    /// written, and the reference search of write_film_grain_params().
+    /// Sets the film grain of a frame before the encoder codes it. A table gives the parameters for the time of the frame.
+    /// A shown or showable frame copies the running parameters. An intra frame always signals them in full. An inter frame
+    /// that reuses them names a reference slot that holds them. Then the running random seed moves on.
     /// </summary>
     /// <param name="frameHeader">The frame header.</param>
-    /// <param name="timeStamp">The frame's start time in ticks. Reference: *time_stamp.</param>
+    /// <param name="timeStamp">The start time of the frame in ticks.</param>
     public void PrepareFrame(ObuFrameHeader frameHeader, long timeStamp)
     {
         this.framePresent = this.table is null || this.table.Lookup(timeStamp, this.parameters);
@@ -123,21 +115,20 @@ internal sealed class Av1FilmGrainState
             }
         }
 
-        // Reference: the random_seed step that follows the copy.
+        // The running seed advances by a fixed step after each copy. A zero seed is replaced by 7391, so the seed never stays zero.
         uint seed = (this.parameters.GrainSeed + 3381) & 0xFFFF;
         this.parameters.GrainSeed = seed == 0 ? 7391 : seed;
     }
 
     /// <summary>
-    /// Keeps the film grain of a coded frame in the reference slots it refreshes. Reference: the ref_frame_map update
-    /// with cm->cur_frame.
+    /// Keeps the film grain of a coded frame in the reference slots it refreshes.
     /// </summary>
     /// <param name="frameHeader">The coded frame header.</param>
     public void RefreshSlots(ObuFrameHeader frameHeader)
     {
-        // A frame that is neither shown nor showable keeps the parameters of the frame before it, where libaom keeps
-        // whatever its frame buffer last held. Only the reference search of a preset that reuses its grain reads
-        // them, and the LAST slot it tries first always holds a shown frame.
+        // A frame that is neither shown nor showable keeps the parameters of the frame before it. Only the reference search
+        // of a preset that reuses its grain reads these parameters, and the LAST slot that the search tries first always
+        // holds a shown frame.
         for (int slot = 0; slot < Av1Constants.ReferenceFrameCount; slot++)
         {
             if ((frameHeader.RefreshFrameFlags & (1U << slot)) != 0)
@@ -150,14 +141,14 @@ internal sealed class Av1FilmGrainState
 
     /// <summary>
     /// Returns whether two parameter sets signal the same grain, without the random seed and the update flag.
-    /// Reference: aom_check_grain_params_equiv().
     /// </summary>
     /// <param name="a">The first parameter set.</param>
     /// <param name="b">The second parameter set.</param>
     /// <returns>Whether the sets signal the same grain.</returns>
     private static bool AreEquivalent(ObuFilmGrainParameters a, ObuFilmGrainParameters b)
     {
-        // Only the points and coefficients in use are compared, as the reference compares their used length.
+        // The comparison covers only the points in use and the first 2L(L+1) coefficients of each plane, for lag L. It does not
+        // compare the extra luma-term coefficient of each chroma plane.
         int positions = (int)(2 * a.ArCoeffLag * (a.ArCoeffLag + 1));
         return a.ApplyGrain == b.ApplyGrain &&
             a.NumYPoints == b.NumYPoints &&
@@ -188,7 +179,7 @@ internal sealed class Av1FilmGrainState
     }
 
     /// <summary>
-    /// Removes the chroma grain. Reference: reset_film_grain_chroma_params().
+    /// Removes the chroma grain.
     /// </summary>
     /// <param name="parameters">The parameters whose chroma grain is removed.</param>
     private static void ResetChroma(ObuFilmGrainParameters parameters)
@@ -196,7 +187,7 @@ internal sealed class Av1FilmGrainState
         parameters.NumCbPoints = 0;
         parameters.NumCrPoints = 0;
 
-        // The offsets keep their values; they are only written with chroma points.
+        // The offsets keep their values. The bitstream contains them only when the plane has chroma points.
         parameters.CbMult = 0;
         parameters.CbLumaMult = 0;
         parameters.CrMult = 0;

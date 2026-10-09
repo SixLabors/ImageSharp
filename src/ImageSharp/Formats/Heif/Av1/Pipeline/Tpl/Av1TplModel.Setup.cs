@@ -15,10 +15,9 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     /// <summary>
     /// Measures and propagates the statistics of the golden group that starts at the current frame.
     /// An approximate evaluation measures only the lower alternate layers, and decides if the group stays long.
-    /// Reference: av1_tpl_setup_stats().
     /// </summary>
     /// <param name="input">The encoder state that the run reads.</param>
-    /// <param name="approximateEvaluation">False for the coding run. True for the length evaluation of the golden group. Reference: approx_gop_eval.</param>
+    /// <param name="approximateEvaluation">False for the coding run. True for the length evaluation of the golden group.</param>
     /// <returns>
     /// For an evaluation, one keeps the longer group and zero shortens it. A coding run gives zero, and a group with no alternate layers gives one.
     /// </returns>
@@ -27,8 +26,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         Av1TplGroup group = input.Group;
         int gopLengthDecisionMethod = input.SpeedFeatures.GopLengthDecisionMethod;
 
-        // av1_configure_buffer_updates() runs for every entry and leaves the frame type of the last entry in
-        // cm->current_frame.frame_type, which init_mc_flow_dispenser() passes to the rate multiplier.
+        // The group setup visits every entry and leaves the frame type of the last entry as the current frame type. The
+        // rate multiplier of the model reads that frame type.
         this.lastEntryIsKeyFrame = group.Size > 0 ? group.IsKeyFrame[group.Size - 1] : input.IsKeyFrame;
 
         // Only the external rate control reads the number of look-ahead frames past the group.
@@ -37,23 +36,21 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         this.MeasuredFrame = false;
         this.InitializeStatistics();
 
-        // A key frame restores the default vector distributions before the costs are captured. Reference:
-        // av1_init_mv_probs() and av1_fill_mv_costs().
+        // A key frame restores the default vector distributions before the costs are captured.
         this.FillMotionVectorCosts(input);
 
-        // Every block of the model takes its bounds from the first tile. Reference: av1_tile_init(&xd->tile, cm, 0, 0)
-        // in init_mc_flow_dispenser().
+        // Every block of the model takes its bounds from the first tile.
         this.tileModeInfoRowEnd = input.TileModeInfoRowEnd;
         this.tileModeInfoColumnEnd = input.TileModeInfoColumnEnd;
 
-        // As the model runs before the frame level speed features are set, the leaf frame reduction is disabled for
-        // the first group of a key frame interval here.
+        // The model runs before the frame sets its own speed features. Thus the leaf frame reduction is off here for the
+        // first group of a key frame interval, and for groups with a layer depth of two or less.
         bool reduceNumberOfFrames = input.SpeedFeatures.ReduceNumberOfFrames &&
             group.UpdateType[0] != Av1FrameUpdateType.Key &&
             group.MaximumLayerDepth > 2;
 
-        // Skipping the leaf frames changes the importance measure, which is compensated by a factor that corresponds
-        // to measuring about sixty percent of a group.
+        // A skip of the leaf frames changes the importance measure. A factor of 1.6 compensates, because the model then
+        // measures about sixty percent of a group.
         this.R0AdjustFactor = reduceNumberOfFrames ? 1.6 : 1.0;
 
         for (int frameIndex = 0; frameIndex < groupFrames; frameIndex++)
@@ -71,7 +68,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             this.GetReconstruction(frameIndex).ExtendBorders();
         }
 
-        // Backward propagation from the last frame to the second.
+        // Backward propagation from the last frame to the second. The first frame references nothing in the group.
         for (int frameIndex = groupFrames - 1; frameIndex >= 0; frameIndex--)
         {
             if (SkipFrame(group, frameIndex, gopLengthDecisionMethod, approximateEvaluation, reduceNumberOfFrames))
@@ -107,7 +104,6 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
     /// <summary>
     /// Decides the golden group length from the importance of the base alternate reference and of the next layer.
-    /// Reference: eval_gop_length().
     /// </summary>
     /// <param name="beta">The importance of the base alternate reference and of the next layer.</param>
     /// <param name="gopLengthDecisionMethod">The decision method of the speed, zero or one.</param>
@@ -117,7 +113,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         switch (gopLengthDecisionMethod)
         {
             case 0:
-                // Shorten the group, unless the base layer reference has a clearly higher and a sufficient dependency.
+                // Keep the long group only if the base layer importance is more than 1.4 and at least 0.1 above the next layer.
                 return (beta[0] < beta[1] + 0.1) || beta[0] <= 1.4 ? 0 : 1;
             case 1:
                 return beta[0] > 1.1 ? 1 : 0;
@@ -127,8 +123,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Returns whether a group entry is not measured: overlays always, higher layers and extension frames in an
-    /// approximate evaluation, and leaf frames when their measurement is reduced. Reference: skip_tpl_for_frame().
+    /// Returns whether a group entry is not measured. Overlays are never measured. An approximate evaluation skips higher
+    /// layers and extension frames. A reduced measurement skips the leaf frames of the group.
     /// </summary>
     /// <param name="group">The golden group.</param>
     /// <param name="frameIndex">The group entry.</param>
@@ -155,13 +151,20 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Returns the number of group entries the model can hold. Reference: get_gop_length().
+    /// Returns the number of group entries that the model can hold.
     /// </summary>
+    /// <param name="group">The golden group.</param>
+    /// <returns>The group size, at most one less than <see cref="Av1TplModelConstants.MaximumFrameIndex"/>.</returns>
     private static int GetGopLength(Av1TplGroup group) => Math.Min(group.Size, Av1TplModelConstants.MaximumFrameIndex - 1);
 
     /// <summary>
-    /// Returns the pyramid level that ranks a frame for reference mapping. Reference: get_true_pyr_level().
+    /// Returns the pyramid level that ranks a frame for reference mapping. The frame at display order zero gets the lowest
+    /// level. Layer depth 6 maps to the maximum layer depth of the group, and layer depth 7 maps to the lowest level.
     /// </summary>
+    /// <param name="frameLevel">The layer depth of the frame.</param>
+    /// <param name="frameOrder">The display order of the frame.</param>
+    /// <param name="maximumLayerDepth">The largest layer depth of the group.</param>
+    /// <returns>The pyramid level, at least one.</returns>
     private static int GetTruePyramidLevel(int frameLevel, int frameOrder, int maximumLayerDepth)
     {
         const int MaximumArfLayers = 6;
@@ -180,8 +183,10 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Returns the first slot of a refresh mask, or -1. Reference: av1_get_refresh_ref_frame_map().
+    /// Returns the first slot of a refresh mask, or -1.
     /// </summary>
+    /// <param name="refreshMask">The refresh mask, one bit per slot.</param>
+    /// <returns>The lowest set bit position, or -1 for an empty mask.</returns>
     private static int GetRefreshSlot(int refreshMask)
     {
         if (refreshMask == 0)
@@ -200,12 +205,11 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
     /// <summary>
     /// Assigns the source, the reconstruction, the statistics storage and the reference mapping of every frame of the
-    /// group and of the look-ahead frames past it, simulating the reference slot updates. Reference:
-    /// init_gop_frames_for_tpl().
+    /// group and of the look-ahead frames past it. It simulates the reference slot updates.
     /// </summary>
     /// <param name="input">The encoder state.</param>
-    /// <param name="groupFrames">Receives the number of model frames. Reference: tpl_group_frames.</param>
-    /// <param name="modelQIndex">Receives the leaf quantizer of the model. Reference: pframe_qindex.</param>
+    /// <param name="groupFrames">Receives the number of model frames.</param>
+    /// <param name="modelQIndex">Receives the leaf quantizer of the model.</param>
     /// <returns>The number of look-ahead frames past the group.</returns>
     private int InitializeGroupFrames(Av1TplSetupInput<TSample> input, out int groupFrames, out int modelQIndex)
     {
@@ -281,8 +285,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
                 leafQIndex = modelQIndex;
                 if (input.AdjustLeafQuantizer)
                 {
-                    // The model codes leaf frames at a lower quantizer: the step shrinks by up to one half as the
-                    // quantizer grows, and the result is kept in the model's working range.
+                    // The model codes leaf frames at a lower quantizer. The step shrinks by up to one half as the
+                    // quantizer grows, and the clamp keeps the result in the working range of the model.
                     double q = Av1TplRateDistortion.ConvertQIndexToQ(modelQIndex, this.bitDepth);
                     double qIndexRatio = (double)modelQIndex / Av1Constants.MaxQ;
                     double qStepRatio = 1.0 - (qIndexRatio * qIndexRatio * 0.5);
@@ -343,8 +347,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             groupFrames++;
         }
 
-        // Past the group, the model measures up to lag_in_frames - MAX_GF_INTERVAL more look-ahead frames as leaf frames
-        // that reference only the nearer frames.
+        // Past the group, the model measures more look-ahead frames as leaf frames that reference only the nearer frames.
+        // Their number is at most the look-ahead depth minus the longest golden interval, and they stop before the next key frame.
         int extension = input.LagInFrames - Av1TplModelConstants.MaximumGoldenInterval;
         int extendFrameCount = 0;
         int extendFrameLength = Math.Min(extension, input.FramesToKey - input.BaselineGoldenInterval);
@@ -367,7 +371,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
             group.UpdateType[groupIndex] = Av1FrameUpdateType.Last;
 
-            // The group keeps the unadjusted leaf quantizer for the ducky encoder.
+            // The extension entries record the unadjusted leaf quantizer, not the lower quantizer of the model.
             group.QIndex[groupIndex] = leafQIndex;
             int trueDisplay = frame.DisplayIndex;
             mapper.GetReferenceFrames(pairOrders, pairLevels, trueDisplay, groupIndex, remapped);
@@ -404,8 +408,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Lends a pool entry's statistics storage and reconstruction to a frame entry. Reference: the tpl_stats_pool and
-    /// tpl_rec_pool assignments of init_gop_frames_for_tpl().
+    /// Lends the statistics storage and the reconstruction of a pool entry to a frame entry.
     /// </summary>
     /// <param name="entry">The frame entry that receives the storage.</param>
     /// <param name="poolIndex">The pool entry that lends the storage.</param>
@@ -419,13 +422,17 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Returns the storage entry of a model frame index. Reference: the tpl_frame offset of REF_FRAMES + 1.
+    /// Returns the storage entry of a model frame index. The reserved entry and the reference slots come first.
     /// </summary>
+    /// <param name="frameIndex">The model frame index, -8 for the last reference slot.</param>
+    /// <returns>The storage entry.</returns>
     private static int GetEntry(int frameIndex) => frameIndex + Av1TplModelConstants.ReferenceFrameSlotCount + 1;
 
     /// <summary>
-    /// Propagates the dependencies of every block of a frame to the frames it references. Reference: mc_flow_synthesizer().
+    /// Propagates the dependencies of every block of a frame to the frames that it references. The first frame of the
+    /// group propagates nothing.
     /// </summary>
+    /// <param name="frameIndex">The group index of the frame.</param>
     private void SynthesizeFlow(int frameIndex)
     {
         if (frameIndex == 0)
@@ -440,7 +447,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         {
             for (int column = 0; column < this.ModeInfoColumns; column += step)
             {
-                // Reference: tpl_model_update().
+                // Each block propagates through its first and its second prediction.
                 ref Av1TplBlockStatistics block = ref blocks[GetBlockPosition(frame, row, column)];
                 this.UpdateBlock(frame, ref block, row, column, 0);
                 this.UpdateBlock(frame, ref block, row, column, 1);
@@ -460,7 +467,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
     /// <summary>
     /// Spreads the dependency of one prediction of a block over the up to four blocks of the referenced frame that its
-    /// motion-compensated footprint overlaps, weighted by the overlap area. Reference: tpl_model_update_b().
+    /// motion-compensated footprint overlaps. The overlap area weights each share.
     /// </summary>
     /// <param name="frame">The statistics of the frame of the block.</param>
     /// <param name="block">The statistics of the block.</param>
@@ -531,8 +538,15 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Returns the area two equal blocks share, or zero. Reference: av1_get_overlap_area().
+    /// Returns the area that two blocks of the same size share, or zero.
     /// </summary>
+    /// <param name="rowA">The top row of the first block.</param>
+    /// <param name="columnA">The left column of the first block.</param>
+    /// <param name="rowB">The top row of the second block.</param>
+    /// <param name="columnB">The left column of the second block.</param>
+    /// <param name="width">The width of both blocks.</param>
+    /// <param name="height">The height of both blocks.</param>
+    /// <returns>The overlap area in samples.</returns>
     private static int GetOverlapArea(int rowA, int columnA, int rowB, int columnB, int width, int height)
     {
         int minimumRow = Math.Max(rowA, rowB);
@@ -548,15 +562,20 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Returns the floor of a position divided by a block size. Reference: round_floor().
+    /// Returns the floor of a position divided by a block size. Integer division truncates toward zero, so negative
+    /// positions need their own branch.
     /// </summary>
+    /// <param name="position">The position in samples. It can be negative.</param>
+    /// <param name="blockSize">The block size in samples.</param>
+    /// <returns>The block index.</returns>
     private static int RoundFloor(int position, int blockSize)
         => position < 0 ? -(1 + ((-position - 1) / blockSize)) : position / blockSize;
 
     /// <summary>
-    /// Returns the rate that a referencing block's dependency costs, from the ratio of its source-reference and
-    /// reconstructed-reference distortions: an exponential model of the rate saved per sample, saturating when the
-    /// ratio exceeds ten. Reference: av1_delta_rate_cost().
+    /// Returns the rate that the dependency of a referencing block costs. The model is exponential in the rate saved per
+    /// sample and uses the ratio beta of the source-reference distortion to the reconstructed-reference distortion. The
+    /// cost saturates when beta times two to the power of twice the rate per sample is more than ten. Blocks with a
+    /// source distortion of 128 or less keep the accumulated rate.
     /// </summary>
     /// <param name="deltaRate">The accumulated dependency rate.</param>
     /// <param name="reconstructedDistortion">The reconstructed-reference distortion.</param>
@@ -590,14 +609,18 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     }
 
     /// <summary>
-    /// Converts an eighth-sample vector to whole samples, rounding halves away from zero. Reference:
-    /// get_fullmv_from_mv() with GET_MV_RAWPEL().
+    /// Converts an eighth-sample vector to whole samples, with halves rounded away from zero.
     /// </summary>
+    /// <param name="vector">The vector in eighth samples.</param>
+    /// <returns>The vector in whole samples, column first.</returns>
     private static Point ToFullPixel(Av1MotionVector vector)
         => new(RawPixel(vector.Column), RawPixel(vector.Row));
 
     /// <summary>
-    /// Rounds an eighth-sample component to whole samples, halves away from zero. Reference: GET_MV_RAWPEL().
+    /// Rounds an eighth-sample component to whole samples, with halves rounded away from zero. A positive value adds 4
+    /// before the arithmetic shift. A negative value adds 3, because the shift rounds toward negative infinity.
     /// </summary>
+    /// <param name="value">The component in eighth samples.</param>
+    /// <returns>The component in whole samples.</returns>
     private static int RawPixel(int value) => (value + 3 + (value >= 0 ? 1 : 0)) >> 3;
 }

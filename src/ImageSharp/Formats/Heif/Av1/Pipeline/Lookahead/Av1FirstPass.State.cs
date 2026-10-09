@@ -12,8 +12,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 internal sealed partial class Av1FirstPass<TSample, TOperator>
 {
     /// <summary>
-    /// The totals of one unit, or of a frame after accumulation. Errors are sums of squared differences with the
-    /// intra and vector surcharges; factors are sums of per-unit weights. Reference: FRAME_STATS.
+    /// The totals of one unit, or of a frame after accumulation. Errors are sums of squared differences with the intra and vector surcharges.
+    /// Factors are sums of per-unit weights.
     /// </summary>
     private struct FrameStatistics
     {
@@ -82,7 +82,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// The inclusive full-sample vector limits of a search. Reference: FullMvLimits.
+    /// The inclusive full-sample vector limits of a search.
     /// </summary>
     private struct FullMotionVectorLimits
     {

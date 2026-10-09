@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 
 /// <summary>
 /// Binds the model to the sample-type overloads of the shared prediction, residual and reconstruction kernels. Every
-/// member forwards to an existing SIMD operator traversal; the interface only closes the sample type.
+/// member forwards to an existing SIMD operator traversal. The interface only closes the sample type.
 /// </summary>
 /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
 internal interface IAv1TplSampleOperator<TSample>
@@ -29,8 +29,7 @@ internal interface IAv1TplSampleOperator<TSample>
     public static abstract int GetSampleValue(TSample sample);
 
     /// <summary>
-    /// Subtracts a prediction from its source into a packed residual. Reference: aom_subtract_block() and
-    /// aom_highbd_subtract_block().
+    /// Subtracts a prediction from its source into a packed residual.
     /// </summary>
     /// <param name="source">The source samples at the block origin.</param>
     /// <param name="sourceStride">The source row stride.</param>
@@ -49,7 +48,7 @@ internal interface IAv1TplSampleOperator<TSample>
         int height);
 
     /// <summary>
-    /// Predicts a DC block from prepared edges. Reference: the dc_pred table of build_non_directional_intra_predictors().
+    /// Predicts a DC block from prepared edges.
     /// </summary>
     /// <param name="hasLeft">Whether left samples are available.</param>
     /// <param name="hasAbove">Whether above samples are available.</param>
@@ -72,8 +71,7 @@ internal interface IAv1TplSampleOperator<TSample>
         int bitDepth);
 
     /// <summary>
-    /// Predicts a smooth or Paeth block from prepared edges. Reference: the pred table of
-    /// build_non_directional_intra_predictors().
+    /// Predicts a smooth or Paeth block from prepared edges.
     /// </summary>
     /// <param name="mode">The smooth, smooth-vertical, smooth-horizontal or Paeth mode.</param>
     /// <param name="destination">The prediction destination.</param>
@@ -92,17 +90,16 @@ internal interface IAv1TplSampleOperator<TSample>
         int height);
 
     /// <summary>
-    /// Filters and upsamples prepared directional edges. Reference: the edge filter and upsampling steps of
-    /// build_directional_and_filter_intra_predictors().
+    /// Filters and upsamples prepared directional edges.
     /// </summary>
     /// <param name="above">The above edge with its corner and prefix before it.</param>
     /// <param name="left">The left edge with its corner and prefix before it.</param>
     /// <param name="width">The transform width.</param>
     /// <param name="height">The transform height.</param>
     /// <param name="angle">The prediction angle.</param>
-    /// <param name="topCount">The number of available above samples. Reference: n_top_px.</param>
-    /// <param name="leftCount">The number of available left samples. Reference: n_left_px.</param>
-    /// <param name="filterType">Whether a neighbor uses a smooth mode. Reference: intra_edge_filter_type.</param>
+    /// <param name="topCount">The number of available above samples.</param>
+    /// <param name="leftCount">The number of available left samples.</param>
+    /// <param name="filterType">Whether a neighbor uses a smooth mode.</param>
     /// <param name="bitDepth">The sample precision.</param>
     /// <param name="scratch">The edge filter workspace.</param>
     /// <param name="upsampleAbove">Receives whether the above edge was upsampled.</param>
@@ -122,7 +119,7 @@ internal interface IAv1TplSampleOperator<TSample>
         out bool upsampleLeft);
 
     /// <summary>
-    /// Predicts a directional block from prepared edges. Reference: dr_predictor().
+    /// Predicts a directional block from prepared edges.
     /// </summary>
     /// <param name="destination">The prediction destination.</param>
     /// <param name="stride">The destination row stride.</param>
@@ -145,8 +142,7 @@ internal interface IAv1TplSampleOperator<TSample>
         Span<TSample> scratch);
 
     /// <summary>
-    /// Predicts one reference with the regular eight-tap filter, rounded to samples. Reference:
-    /// av1_enc_build_one_inter_predictor() with get_conv_params(0, 0, bd).
+    /// Predicts one reference with the regular eight-tap filter, rounded to samples.
     /// </summary>
     /// <param name="reference">The complete bordered reference plane.</param>
     /// <param name="referenceStride">The reference row stride.</param>
@@ -174,7 +170,6 @@ internal interface IAv1TplSampleOperator<TSample>
 
     /// <summary>
     /// Predicts one reference of a compound pair into the unrounded compound intermediate with the regular filter.
-    /// Reference: av1_enc_build_one_inter_predictor() with get_conv_params_no_round() and is_compound set.
     /// </summary>
     /// <param name="reference">The complete bordered reference plane.</param>
     /// <param name="referenceStride">The reference row stride.</param>
@@ -201,8 +196,7 @@ internal interface IAv1TplSampleOperator<TSample>
         Span<short> scratch);
 
     /// <summary>
-    /// Averages two compound intermediates into rounded samples. Reference: the do_average step of the compound
-    /// convolutions without distance weights.
+    /// Averages two compound intermediates with equal weights into rounded samples.
     /// </summary>
     /// <param name="destination">The prediction destination.</param>
     /// <param name="destinationStride">The destination row stride.</param>
@@ -221,8 +215,7 @@ internal interface IAv1TplSampleOperator<TSample>
         int bitDepth);
 
     /// <summary>
-    /// Adds the inverse transform of dequantized coefficients to a prediction in place. Reference:
-    /// av1_inverse_transform_block() with DCT_DCT.
+    /// Adds the inverse two-dimensional DCT of dequantized coefficients to a prediction in place.
     /// </summary>
     /// <param name="coefficients">The dequantized coefficients.</param>
     /// <param name="destination">The prediction, replaced by the reconstruction.</param>

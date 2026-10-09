@@ -7,17 +7,16 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 
 /// <summary>
-/// The encoder's mode-information records as the model sees them. The model borrows the frame's pointer grid and
-/// record allocation: each 4x4 grid position points to the record of the coded block that covers it, as the previous
-/// coded frame left them, and each model block lends its own record at its top-left position and writes into it. The
-/// model reads the partition of its own record, and the luma and chroma modes of the records that the grid positions
-/// above and to the left point to. Reference: mi_grid_base and mi_alloc, with set_mode_info_offsets() in
-/// mode_estimation() and the above, left and chroma neighbors of set_mi_row_col().
+/// The mode-information records of the encoder as the model sees them. The model borrows the pointer grid and the record
+/// allocation of the frame. Each 4x4 grid position points to the record of the coded block that covers it, as the previous
+/// coded frame left them. Each model block lends its own record at its top-left position and writes into it. The model
+/// reads the partition of its own record. It also reads the luma and chroma modes of the records that the grid positions
+/// above and to the left point to.
 /// </summary>
 internal sealed class Av1TplModeInfoGrid
 {
     /// <summary>
-    /// The grid value of a position no record covers. Reference: a NULL mi_grid_base entry.
+    /// The grid value of a position that no record covers.
     /// </summary>
     private const int NoRecord = -1;
 
@@ -60,7 +59,7 @@ internal sealed class Av1TplModeInfoGrid
     public int ModeInfoRows { get; }
 
     /// <summary>
-    /// Clears the grid and zeroes every record. Reference: enc_setup_mi().
+    /// Clears the grid and zeroes every record.
     /// </summary>
     public void Reset()
     {
@@ -73,7 +72,8 @@ internal sealed class Av1TplModeInfoGrid
     }
 
     /// <summary>
-    /// Takes the grid and the records a coded frame left.
+    /// Takes the grid and the records that a coded frame left. If the frame disallows 4x4 blocks, one record covers each
+    /// 8x8 area.
     /// </summary>
     /// <param name="picture">The coded picture.</param>
     public void Capture(Av1PictureControlSet picture)
@@ -102,7 +102,7 @@ internal sealed class Av1TplModeInfoGrid
     }
 
     /// <summary>
-    /// Points the grid position of a model block to the block's own record. Reference: set_mi_offsets().
+    /// Points the grid position of a model block to the own record of the block.
     /// </summary>
     /// <param name="modeInfoRow">The 4x4 row of the block.</param>
     /// <param name="modeInfoColumn">The 4x4 column of the block.</param>
@@ -110,7 +110,7 @@ internal sealed class Av1TplModeInfoGrid
         => this.grid[(modeInfoRow * this.ModeInfoColumns) + modeInfoColumn] = this.GetRecordIndex(modeInfoRow, modeInfoColumn);
 
     /// <summary>
-    /// Gets the partition field of a model block's own record. Reference: mbmi->partition.
+    /// Gets the partition field of the own record of a model block.
     /// </summary>
     /// <param name="modeInfoRow">The 4x4 row of the block.</param>
     /// <param name="modeInfoColumn">The 4x4 column of the block.</param>
@@ -119,7 +119,8 @@ internal sealed class Av1TplModeInfoGrid
         => (Av1PartitionType)this.partition[this.GetRecordIndex(modeInfoRow, modeInfoColumn)];
 
     /// <summary>
-    /// Writes the luma mode field of a model block's own record. The compound search of the model writes NEW_NEWMV.
+    /// Writes the luma mode field of the own record of a model block. The compound search of the model writes
+    /// <see cref="Av1PredictionMode.NewNewMotionVector"/>.
     /// </summary>
     /// <param name="modeInfoRow">The 4x4 row of the block.</param>
     /// <param name="modeInfoColumn">The 4x4 column of the block.</param>
@@ -128,7 +129,7 @@ internal sealed class Av1TplModeInfoGrid
         => this.lumaMode[this.GetRecordIndex(modeInfoRow, modeInfoColumn)] = (byte)mode;
 
     /// <summary>
-    /// Writes whether the first reference field of a model block's own record names an inter reference.
+    /// Writes whether the first reference field of the own record of a model block names an inter reference.
     /// </summary>
     /// <param name="modeInfoRow">The 4x4 row of the block.</param>
     /// <param name="modeInfoColumn">The 4x4 column of the block.</param>
@@ -137,9 +138,8 @@ internal sealed class Av1TplModeInfoGrid
         => this.isInter[this.GetRecordIndex(modeInfoRow, modeInfoColumn)] = inter;
 
     /// <summary>
-    /// Returns whether the record a grid position points to selects the smooth intra edge filter for a plane. A
-    /// position without a record does not. Reference: is_smooth() on the neighbor that get_intra_edge_filter_type()
-    /// reads.
+    /// Returns whether the record that a grid position points to selects the smooth intra edge filter for a plane. A
+    /// position outside the frame or without a record does not.
     /// </summary>
     /// <param name="modeInfoRow">The 4x4 row of the neighbor position.</param>
     /// <param name="modeInfoColumn">The 4x4 column of the neighbor position.</param>
@@ -164,8 +164,8 @@ internal sealed class Av1TplModeInfoGrid
             return mode is Av1PredictionMode.Smooth or Av1PredictionMode.SmoothVertical or Av1PredictionMode.SmoothHorizontal;
         }
 
-        // The chroma mode is not set for inter blocks, so an inter reference field excludes it, as does the intra
-        // block copy flag the model never writes. Reference: is_inter_block() with is_intrabc_block().
+        // Inter blocks do not set the chroma mode, so an inter reference field excludes the record. The intra block copy
+        // flag excludes it too. The model never writes that flag.
         if (this.isInter[index] || this.intraBlockCopy[index])
         {
             return false;
@@ -176,14 +176,20 @@ internal sealed class Av1TplModeInfoGrid
     }
 
     /// <summary>
-    /// Returns the record index of a 4x4 position. Reference: get_alloc_mi_idx().
+    /// Returns the record index of a 4x4 position at the current allocation granularity.
     /// </summary>
+    /// <param name="modeInfoRow">The 4x4 row.</param>
+    /// <param name="modeInfoColumn">The 4x4 column.</param>
+    /// <returns>The record index.</returns>
     private int GetRecordIndex(int modeInfoRow, int modeInfoColumn)
         => ((modeInfoRow >> this.recordShift) * this.recordStride) + (modeInfoColumn >> this.recordShift);
 
     /// <summary>
-    /// Sizes the record storage for an allocation granularity, keeping it when it already fits.
+    /// Sizes the record storage for an allocation granularity. It keeps the storage when the record count does not change.
     /// </summary>
+    /// <param name="shift">The base-two logarithm of the record size in 4x4 units.</param>
+    /// <param name="stride">The number of records per row.</param>
+    /// <param name="rows">The number of record rows.</param>
     private void AllocateRecords(int shift, int stride, int rows)
     {
         this.recordShift = shift;

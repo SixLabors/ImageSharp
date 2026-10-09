@@ -25,7 +25,7 @@ internal static partial class Av1FrameResizer
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<int> MultiplyAdd(Vector128<int> sum, ref byte source, Vector128<int> coefficient)
         {
-            // Four bytes widen through 16-bit lanes to four 32-bit lanes.
+            // The read is exactly four bytes, so it stays inside the row. The bytes widen through 16-bit lanes to four 32-bit lanes.
             Vector128<byte> bytes = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<uint>(ref source)).AsByte();
             Vector128<int> samples = Vector128.WidenLower(Vector128.WidenLower(bytes)).AsInt32();
             return sum + (samples * coefficient);
@@ -35,7 +35,7 @@ internal static partial class Av1FrameResizer
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<int> MultiplyAdd(Vector256<int> sum, ref byte source, Vector256<int> coefficient)
         {
-            // Eight bytes widen to eight 16-bit lanes, whose halves widen to the two halves of the 32-bit lanes.
+            // The read is exactly eight bytes. They widen to eight 16-bit lanes, whose halves widen to the two halves of the 32-bit lanes.
             Vector128<byte> bytes = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref source)).AsByte();
             Vector128<ushort> words = Vector128.WidenLower(bytes);
             Vector256<int> samples = Vector256.Create(Vector128.WidenLower(words), Vector128.WidenUpper(words)).AsInt32();
@@ -66,7 +66,8 @@ internal static partial class Av1FrameResizer
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Store(ref byte destination, Vector128<int> sum, Vector128<int> maximum)
         {
-            // The clamped lanes fit in a byte, so the two narrowing steps keep every value.
+            // The arithmetic shift equals the scalar `>>`. The clamped lanes fit in a byte, so the two truncating narrows keep every
+            // value. The write is exactly four bytes.
             Vector128<int> clamped = Vector128.Min(Vector128.Max(Vector128.ShiftRightArithmetic(sum, FilterBits), Vector128<int>.Zero), maximum);
             Vector128<ushort> words = Vector128.Narrow(clamped.AsUInt32(), clamped.AsUInt32());
             Vector128<byte> bytes = Vector128.Narrow(words, words);
@@ -77,7 +78,8 @@ internal static partial class Av1FrameResizer
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Store(ref byte destination, Vector256<int> sum, Vector256<int> maximum)
         {
-            // The clamped lanes fit in a byte, so the two narrowing steps keep every value.
+            // The arithmetic shift equals the scalar `>>`. The clamped lanes fit in a byte, so the two truncating narrows keep every
+            // value. The write is exactly eight bytes.
             Vector256<int> clamped = Vector256.Min(Vector256.Max(Vector256.ShiftRightArithmetic(sum, FilterBits), Vector256<int>.Zero), maximum);
             Vector128<ushort> words = Vector128.Narrow(clamped.GetLower().AsUInt32(), clamped.GetUpper().AsUInt32());
             Vector128<byte> bytes = Vector128.Narrow(words, words);

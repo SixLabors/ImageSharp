@@ -26,8 +26,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         public static abstract int Count { get; }
 
         /// <summary>
-        /// Loads one row of horizontally adjacent blocks, scaled by four, with the lanes of each column holding
-        /// the blocks. Reference: the input scaling of dyadic_analyze_53_uint8_input().
+        /// Loads one row of horizontally adjacent blocks, scaled by four. The lanes of each column hold the blocks.
         /// </summary>
         /// <param name="source">The source plane.</param>
         /// <param name="index">The source index of the row in the first block.</param>
@@ -35,7 +34,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         public static abstract void LoadRow(ReadOnlySpan<TSample> source, int index, Span<TLanes> row);
 
         /// <summary>
-        /// Adds lanes. Reference: analysis_53_row().
+        /// Adds lanes.
         /// </summary>
         /// <param name="left">The first addend.</param>
         /// <param name="right">The second addend.</param>
@@ -43,7 +42,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         public static abstract TLanes Add(TLanes left, TLanes right);
 
         /// <summary>
-        /// Subtracts lanes. Reference: analysis_53_row().
+        /// Subtracts lanes.
         /// </summary>
         /// <param name="left">The minuend.</param>
         /// <param name="right">The subtrahend.</param>
@@ -51,7 +50,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         public static abstract TLanes Subtract(TLanes left, TLanes right);
 
         /// <summary>
-        /// Shifts lanes right with sign extension, which floors the division. Reference: analysis_53_row().
+        /// Shifts lanes right with sign extension, which floors the division.
         /// </summary>
         /// <param name="value">The lanes.</param>
         /// <param name="count">The shift count.</param>
@@ -59,7 +58,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         public static abstract TLanes ShiftRight(TLanes value, int count);
 
         /// <summary>
-        /// Adds a constant to every lane. Reference: analysis_53_row().
+        /// Adds a constant to every lane.
         /// </summary>
         /// <param name="value">The lanes.</param>
         /// <param name="constant">The constant.</param>
@@ -67,7 +66,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         public static abstract TLanes AddConstant(TLanes value, int constant);
 
         /// <summary>
-        /// Takes the absolute value of every lane. Reference: haar_ac_sad().
+        /// Takes the absolute value of every lane.
         /// </summary>
         /// <param name="value">The lanes.</param>
         /// <returns>The magnitudes.</returns>
@@ -82,9 +81,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Measures the wavelet AC energy of horizontally adjacent 8x8 blocks, walking the widest register that the
-    /// remaining blocks fill before the scalar tail. Reference: haar_ac_sad_8x8_uint8_input() for each block of
-    /// av1_haar_ac_sad_mxn_uint8_input().
+    /// Measures the wavelet AC energy of horizontally adjacent 8x8 blocks. Each step uses the widest register that the remaining blocks fill.
+    /// The scalar tail measures the blocks that remain.
     /// </summary>
     /// <param name="source">The source plane.</param>
     /// <param name="index">The source index of the first block origin.</param>
@@ -125,9 +123,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Transforms 8x8 blocks with three levels of the 5/3 wavelet, rows before columns at each level, and sums
-    /// the magnitudes outside the 4x4 low band. Reference: haar_ac_sad_8x8_uint8_input() with
-    /// av1_fdwt8x8_uint8_input_c() and haar_ac_sad().
+    /// Transforms 8x8 blocks with three levels of the 5/3 wavelet, rows before columns at each level. Then it sums the magnitudes outside the
+    /// top-left 4x4 band.
     /// </summary>
     /// <typeparam name="TLanes">The lane type.</typeparam>
     /// <typeparam name="TWaveletOperator">The lane arithmetic.</typeparam>
@@ -146,7 +143,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
             TWaveletOperator.LoadRow(source, index + (row * stride), coefficients.Slice(row * 8, 8));
         }
 
-        // Each level halves the band it transforms; the level that would leave a single sample stops.
+        // Each level halves the band that it transforms. The loop stops when a side of the band has fewer than two samples.
         int height = 8;
         int width = 8;
         while (height >= 2 && width >= 2)
@@ -178,7 +175,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
             width = lowWidth;
         }
 
-        // Each block's sum is exact in its own lane, so the lanes add in any order.
+        // Each block has its own lane and integer sums are exact, so the order of the additions does not change the energy.
         TLanes energy = default;
         for (int row = 0; row < 8; row++)
         {
@@ -192,7 +189,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Splits one row into a doubled low band and a high band by lifting. Reference: analysis_53_row().
+    /// Splits one row into a doubled low band and a high band by lifting.
     /// </summary>
     /// <typeparam name="TLanes">The lane type.</typeparam>
     /// <typeparam name="TWaveletOperator">The lane arithmetic.</typeparam>
@@ -222,9 +219,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Splits one column into a low band and a high band by lifting, with the high band halved and rounded.
-    /// The column is read from the second half of the buffer and written to its first half.
-    /// Reference: analysis_53_col().
+    /// Splits one column into a low band and a high band by lifting, with the high band halved and rounded. The column is read from the second
+    /// half of the buffer and written to its first half.
     /// </summary>
     /// <typeparam name="TLanes">The lane type.</typeparam>
     /// <typeparam name="TWaveletOperator">The lane arithmetic.</typeparam>
@@ -255,8 +251,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
     }
 
     /// <summary>
-    /// Adds the rounded mean of the neighboring high-band values to each low-band value, repeating the first
-    /// high-band value before the band. Reference: the update loop of analysis_53_row() and analysis_53_col().
+    /// Adds the rounded mean of the neighboring high-band values to each low-band value. The first high-band value repeats before the band.
     /// </summary>
     /// <typeparam name="TLanes">The lane type.</typeparam>
     /// <typeparam name="TWaveletOperator">The lane arithmetic.</typeparam>
@@ -279,15 +274,14 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
 
 #pragma warning disable CA1517 // False positive: https://github.com/dotnet/sdk/issues/53388
     /// <summary>
-    /// Adds the wavelet AC energy of every unit of one row to its record. The energy covers the whole unit even
-    /// where the measured block is smaller. Reference: the av1_haar_ac_sad_mxn_uint8_input() call of
-    /// firstpass_intra_prediction().
+    /// Adds the wavelet AC energy of every unit of one row to its record. The energy covers the whole unit even where the measured block is
+    /// smaller.
     /// </summary>
     /// <param name="frame">The frame being measured.</param>
     /// <param name="unitRow">The unit row.</param>
     /// <param name="unitColumnStart">The first unit column of the tile.</param>
     /// <param name="unitCount">The number of units in the row of the tile.</param>
-    /// <param name="records">The records of the row's units in the tile.</param>
+    /// <param name="records">The records of the units of the row in the tile.</param>
     private void AddWaveletEnergies(ref FrameContext frame, int unitRow, int unitColumnStart, int unitCount, Span<FrameStatistics> records)
     {
         // The units of a row lie side by side, so each row of 8x8 blocks runs across all of them.
@@ -356,8 +350,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LoadRow(ReadOnlySpan<TSample> source, int index, Span<Vector128<int>> row)
         {
-            // Each block row loads as two halves of four samples; transposing each set of halves turns the
-            // blocks into lanes.
+            // Each block row loads as two halves of four samples. A 4x4 transpose of each set of halves turns the blocks into lanes, so entry c
+            // of the row holds column c of the four blocks.
             for (int half = 0; half < 2; half++)
             {
                 int start = index + (half * 4);
@@ -404,7 +398,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LoadRow(ReadOnlySpan<TSample> source, int index, Span<Vector256<int>> row)
         {
-            // Transposing the eight block rows turns the blocks into lanes.
+            // An 8x8 transpose of the eight block rows turns the blocks into lanes, so entry c of the row holds column c of the eight blocks.
             Vector256<int> block0 = TOperator.LoadWidened(source, index, default(Vector256<int>));
             Vector256<int> block1 = TOperator.LoadWidened(source, index + 8, default(Vector256<int>));
             Vector256<int> block2 = TOperator.LoadWidened(source, index + 16, default(Vector256<int>));

@@ -14,9 +14,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 /// <typeparam name="TSample">The native sample type.</typeparam>
 /// <remarks>
 /// The decoder closes this operator over <see cref="byte"/> for eight-bit planes and <see cref="ushort"/> for
-/// high-bit-depth planes. The JIT removes the unused type branch, so widening and narrowing remain branch-free in the
-/// row loops. All arithmetic uses signed 32-bit lanes; decoded samples are nonnegative and at most twelve bits, making
-/// the intermediate signed 16-bit views safe wherever pairwise operations require them.
+/// high-bit-depth planes. The JIT removes the unused type branch, so widening and narrowing stay branch-free in the row
+/// loops. All arithmetic uses signed 32-bit lanes. Decoded samples are nonnegative and at most twelve bits. Thus the
+/// intermediate signed 16-bit views are safe where pairwise operations need them.
 /// </remarks>
 internal readonly struct Av1FilmGrainSampleOperations<TSample>
     where TSample : unmanaged
@@ -35,8 +35,7 @@ internal readonly struct Av1FilmGrainSampleOperations<TSample>
             ref byte sourceBytes = ref Unsafe.As<TSample, byte>(ref source);
             ulong packed = Unsafe.ReadUnaligned<ulong>(ref sourceBytes);
 
-            // Eight bytes widen to sixteen-bit lanes and then to the thirty-two bit lanes the
-            // scaling lookup indexes with.
+            // The eight bytes widen to sixteen-bit lanes, then to the 32-bit lanes that the scaling lookup uses as indices.
             Vector128<short> narrow = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsByte()).AsInt16();
             return Vector256_.Widen(narrow);
         }
@@ -57,13 +56,14 @@ internal readonly struct Av1FilmGrainSampleOperations<TSample>
     {
         if (typeof(TSample) == typeof(byte))
         {
-            // The source occupies only the low four byte lanes; two lower-half widens preserve their original order.
+            // Reading exactly four bytes fills only the low four byte lanes. Two lower-half widens keep their original order.
             ref byte sourceBytes = ref Unsafe.As<TSample, byte>(ref source);
             uint packedBytes = Unsafe.ReadUnaligned<uint>(ref sourceBytes);
             Vector128<ushort> widened = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packedBytes).AsByte());
             return Vector128.WidenLower(widened).AsInt32();
         }
 
+        // Reading exactly four UInt16 values (eight bytes) stays inside the row. The upper four lanes are zero before the widen.
         ref ushort sourceValues = ref Unsafe.As<TSample, ushort>(ref source);
         ulong packedValues = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref sourceValues));
         Vector64<ushort> packedSamples = Vector64.CreateScalarUnsafe(packedValues).AsUInt16();
@@ -97,7 +97,8 @@ internal readonly struct Av1FilmGrainSampleOperations<TSample>
             lumaPairs = Vector256.LoadUnsafe(ref sourceValues).AsInt16();
         }
 
-        // Horizontal 4:2:x chroma uses the rounded mean of each adjacent luma pair.
+        // The sixteen 16-bit lanes hold eight adjacent luma pairs. Horizontally subsampled chroma uses the rounded mean of each
+        // pair. A multiply-add with unit weights adds each pair into one 32-bit lane, then (sum + 1) >> 1 rounds the mean.
         return (Vector256_.MultiplyAddAdjacent(lumaPairs, Vector256.Create((short)1)) + Vector256<int>.One) >> 1;
     }
 
@@ -128,7 +129,8 @@ internal readonly struct Av1FilmGrainSampleOperations<TSample>
             lumaPairs = Vector128.LoadUnsafe(ref sourceValues).AsInt16();
         }
 
-        // Multiply-add with unity coefficients collapses four adjacent pairs without scalar deinterleaving.
+        // The eight 16-bit lanes hold four adjacent luma pairs. A multiply-add with unit weights adds each pair into one 32-bit
+        // lane without a scalar deinterleave. Then (sum + 1) >> 1 gives the rounded mean.
         return (Vector128_.MultiplyAddAdjacent(lumaPairs, Vector128.Create((short)1)) + Vector128<int>.One) >> 1;
     }
 
@@ -140,8 +142,8 @@ internal readonly struct Av1FilmGrainSampleOperations<TSample>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Store8(ref TSample destination, Vector256<int> values)
     {
-        // AddNoise has already clipped every lane to the native sample range. Unsigned narrowing is therefore exact
-        // and serves only to repack lane width; it does not supply saturation or alter out-of-range values.
+        // The caller clips every lane to the native sample range before this store. Thus the truncating unsigned narrow is exact.
+        // It only repacks the lane width. It does not saturate, so an out-of-range value loses its high bits.
         Vector128<ushort> packed = Vector128.Narrow(values.GetLower().AsUInt32(), values.GetUpper().AsUInt32());
         if (typeof(TSample) == typeof(byte))
         {
@@ -162,8 +164,8 @@ internal readonly struct Av1FilmGrainSampleOperations<TSample>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Store4(ref TSample destination, Vector128<int> values)
     {
-        // Only four destination samples are valid. Narrow through the low half, then write four bytes or four UInt16
-        // values so the store cannot overwrite the next row or an adjacent plane allocation.
+        // Only four destination samples are valid. The code narrows through the low half, then writes four bytes or four
+        // UInt16 values. Thus the store cannot overwrite the next row or an adjacent plane allocation.
         Vector64<ushort> packed = Vector128.Narrow(values.AsUInt32(), Vector128<uint>.Zero).GetLower();
         if (typeof(TSample) == typeof(byte))
         {

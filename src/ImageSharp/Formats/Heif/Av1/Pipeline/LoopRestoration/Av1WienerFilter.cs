@@ -77,14 +77,16 @@ internal static partial class Av1WienerFilter
         int intermediateBitCount = bitDepth + FilterBits - horizontalRoundBits + 2;
         if (intermediateBitCount > 16)
         {
-            // Twelve-bit input would otherwise exceed the unsigned 16-bit intermediate used by
-            // the normative two-pass convolution, so AV1 transfers those excess bits to pass two.
+            // For twelve-bit input, the intermediate otherwise exceeds the unsigned 16-bit range of the normative two-pass convolution.
+            // Thus AV1 moves those excess bits to pass two.
             horizontalRoundBits += intermediateBitCount - 16;
         }
 
         int verticalRoundBits = (FilterBits * 2) - horizontalRoundBits;
         int intermediateMaximum = (1 << (bitDepth + 1 + FilterBits - horizontalRoundBits)) - 1;
         int intermediateHeight = height + IntermediateRowExtension;
+
+        // The bias keeps the first-pass result positive and adds the rounding term of the first pass.
         int horizontalBias = (1 << (bitDepth + FilterBits - 1)) + (1 << (horizontalRoundBits - 1));
         FilterRows<TSample, ushort, WienerOperator>(
             source,
@@ -99,8 +101,8 @@ internal static partial class Av1WienerFilter
             horizontalRoundBits,
             intermediateMaximum);
 
-        // The first pass adds a positive bias before clipping to its intermediate precision. Remove that
-        // bias only after the vertical convolution; clipping or subtracting it earlier changes edge samples.
+        // The first pass adds a positive bias before it clips to its intermediate precision. The vertical bias removes that bias only
+        // after the vertical convolution. A clip or a subtraction before that point changes edge samples.
         int maximumSample = (1 << bitDepth) - 1;
         int verticalBias = (1 << (verticalRoundBits - 1)) - (1 << (bitDepth + verticalRoundBits - 1));
         FilterRows<ushort, TSample, WienerOperator>(
@@ -131,14 +133,14 @@ internal static partial class Av1WienerFilter
         filter[1] = (short)middle;
         filter[2] = (short)inner;
 
-        // Including the implicit center weight makes both passes the same seven-tap operation.
-        // The full kernel sums to 128; the caller supplies each pass's distinct offset and rounding.
+        // The implicit center weight makes both passes the same seven-tap operation.
+        // The full kernel sums to 128, and the caller supplies the offset and rounding of each pass.
         filter[TransmittedCoefficientCount] = (short)((1 << FilterBits) - (2 * (outer + middle + inner)));
         filter[4] = (short)inner;
         filter[5] = (short)middle;
         filter[6] = (short)outer;
 
-        // The eighth interpolation slot contributes no sample to this seven-tap kernel.
+        // The eighth slot pads the kernel to eight taps and adds nothing to this seven-tap filter.
         filter[7] = 0;
     }
 }

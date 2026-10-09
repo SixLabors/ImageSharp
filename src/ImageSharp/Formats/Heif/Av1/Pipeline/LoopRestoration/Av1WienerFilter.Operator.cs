@@ -191,9 +191,8 @@ internal static partial class Av1WienerFilter
         ref TDestination destinationBase = ref MemoryMarshal.GetReference(destination);
         int column = 0;
 
-        // Each batch visits a vertical strip of independent output columns. Complete the wider strips
-        // first, then narrower strips and a scalar tail. Coefficients are broadcast once per used width,
-        // and the horizontal intermediate is complete before the vertical pass can consume it.
+        // Each batch visits a vertical strip of independent output columns. The widest strips run first, then the narrower strips and a
+        // scalar tail. Each used width broadcasts the coefficients once. The horizontal intermediate is complete before the vertical pass reads it.
         if (Vector512.IsHardwareAccelerated && width - column >= Vector512<ushort>.Count)
         {
             Vector512<int> coefficient0 = Vector512.Create((int)filter[0]);

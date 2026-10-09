@@ -9,52 +9,49 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 internal sealed partial class Av1SecondPass
 {
     /// <summary>
-    /// The smallest boost per frame of a golden frame group. Reference: GF_MIN_BOOST.
+    /// The smallest boost per frame of a golden frame group.
     /// </summary>
     private const int GoldenMinimumBoost = 50;
 
     /// <summary>
-    /// The largest boost of one frame in the alternate reference boost. Reference: GF_MAX_BOOST.
+    /// The largest boost of one frame in the alternate reference boost.
     /// </summary>
     private const double GoldenMaximumFrameBoost = 90.0;
 
     /// <summary>
-    /// The largest golden boost of a group without an alternate reference. Reference: MAX_GF_BOOST.
+    /// The largest golden boost of a group without an alternate reference.
     /// </summary>
     private const int MaximumGoldenBoost = 5400;
 
     /// <summary>
-    /// The base boost of the alternate reference boost. Reference: NORMAL_BOOST.
+    /// The base boost of the alternate reference boost.
     /// </summary>
     private const int NormalBoost = 100;
 
     /// <summary>
-    /// The smallest length of a shrunken golden interval. Reference: MIN_SHRINK_LEN.
+    /// The smallest length of a shrunken golden interval.
     /// </summary>
     private const int MinimumShrinkLength = 6;
 
     /// <summary>
     /// The number of frames of the key frame group that the region analysis covers.
-    /// Reference: MAX_FIRSTPASS_ANALYSIS_FRAMES.
     /// </summary>
     private const int MaximumAnalysisFrames = 150;
 
     /// <summary>
     /// Gets the error per macroblock that bounds the boost of frames with little intra error.
-    /// Reference: baseline_err_per_mb().
     /// </summary>
     private double BaselineErrorPerMacroblock => (uint)this.height * (uint)this.width <= 640 * 360 ? 500.0 : 1000.0;
 
     /// <summary>
-    /// Adds a small bias away from zero to a divisor. Reference: DOUBLE_DIVIDE_CHECK.
+    /// Adds a small bias away from zero to a divisor, so that a zero divisor does not cause a division by zero.
     /// </summary>
     /// <param name="x">The divisor.</param>
     /// <returns>The biased divisor.</returns>
     private static double DoubleDivideCheck(double x) => x < 0 ? x - 0.000001 : x + 0.000001;
 
     /// <summary>
-    /// Returns how much the prediction from the second reference decays against the last frame, with a penalty for
-    /// intra coding. Reference: get_sr_decay_rate().
+    /// Returns how much the prediction from the second reference decays against the last frame, with a penalty for intra coding.
     /// </summary>
     /// <param name="frame">The frame's statistics.</param>
     /// <returns>The decay rate, at least 0.75.</returns>
@@ -64,7 +61,7 @@ internal sealed partial class Av1SecondPass
         double secondReferenceDecay = 1.0;
         double modifiedPercentInter = frame.PercentInter;
 
-        // Reference: LOW_CODED_ERR_PER_MB and NCOUNT_FRAME_II_THRESH.
+        // When the frame has a coded error and a low intra to inter error ratio, neutral blocks do not count as inter blocks.
         if (frame.CodedError > 0.01 && frame.IntraError / DoubleDivideCheck(frame.CodedError) < 5.0)
         {
             modifiedPercentInter = frame.PercentInter - frame.PercentNeutral;
@@ -72,20 +69,19 @@ internal sealed partial class Av1SecondPass
 
         double modifiedPercentIntra = 100 * (1.0 - modifiedPercentInter);
 
-        // Reference: LOW_SR_DIFF_TRHESH and INTRA_PART.
+        // A second reference error above the coded error lowers the rate in proportion to the intra error. The intra share lowers it too.
         if (secondReferenceDifference > 0.01)
         {
             double secondReferencePart = secondReferenceDifference * 0.25 / frame.IntraError;
             secondReferenceDecay = 1.0 - secondReferencePart - (0.005 * modifiedPercentIntra);
         }
 
-        // Reference: DEFAULT_DECAY_LIMIT.
+        // The decay rate never falls below 0.75.
         return Math.Max(secondReferenceDecay, 0.75);
     }
 
     /// <summary>
     /// Returns the smaller of the second reference decay and the share of zero motion blocks.
-    /// Reference: get_zero_motion_factor().
     /// </summary>
     /// <param name="frame">The frame's statistics.</param>
     /// <returns>The factor.</returns>
@@ -97,7 +93,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns how badly the prediction quality decays from frame to frame. Reference: get_prediction_decay_rate().
+    /// Returns how badly the prediction quality decays from frame to frame.
     /// </summary>
     /// <param name="frame">The frame's statistics.</param>
     /// <returns>The decay rate.</returns>
@@ -105,7 +101,7 @@ internal sealed partial class Av1SecondPass
     {
         double secondReferenceDecay = GetSecondReferenceDecayRate(frame);
 
-        // Reference: DEFAULT_ZM_FACTOR.
+        // Half the zero motion share, clamped to the range 0 to 1, moves the decay rate toward 1.
         double zeroMotionFactor = 0.5 * (frame.PercentInter - frame.PercentMotion);
         if (zeroMotionFactor > 1.0)
         {
@@ -120,8 +116,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Updates the motion measures of a group from one frame: the balance of inward and outward motion and how
-    /// uniform the motion field is. Reference: accumulate_frame_motion_stats().
+    /// Updates the motion measures of a group from one frame: the balance of inward and outward motion and how uniform the motion field is.
     /// </summary>
     /// <param name="frame">The frame's statistics.</param>
     /// <param name="groupStatistics">The group measures.</param>
@@ -151,7 +146,6 @@ internal sealed partial class Av1SecondPass
 
     /// <summary>
     /// Returns the share of the frame that is not blank border or very flat, between 0.5 and 1.
-    /// Reference: calculate_active_area().
     /// </summary>
     /// <param name="frame">The frame's statistics.</param>
     /// <returns>The active area.</returns>
@@ -162,10 +156,10 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Reads the statistics at the read position and advances it. Reference: input_stats().
+    /// Reads the statistics at the read position and advances it.
     /// </summary>
     /// <param name="frame">Receives the statistics.</param>
-    /// <returns>False at the end of the buffer.</returns>
+    /// <returns>True when a frame was read. False at the end of the buffer.</returns>
     private bool InputStatistics(out Av1FirstPassStatistics frame)
     {
         if (this.statisticsPosition >= this.statisticsCount)
@@ -179,8 +173,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Detects a flash from the frame after it: a high second reference share shows that the prediction from
-    /// before the flash recovers. Reference: detect_flash() with read_frame_stats().
+    /// Detects a flash from the frame after it: a high second reference share shows that the prediction from before the flash recovers.
     /// </summary>
     /// <param name="basePosition">The buffer position the offset is relative to.</param>
     /// <param name="offset">The offset of the frame after the possible flash.</param>
@@ -198,8 +191,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Detects a complex transition followed by a static section, such as a fade between slides, from the ring
-    /// of unmodified statistics. Reference: detect_transition_to_still().
+    /// Detects a complex transition followed by a static section, such as a fade between slides, from the ring of unmodified statistics.
     /// </summary>
     /// <param name="nextIndex">The offset of the first frame to test from the current frame.</param>
     /// <param name="frameInterval">The number of frames since the group start.</param>
@@ -235,7 +227,7 @@ internal sealed partial class Av1SecondPass
 
     /// <summary>
     /// Updates the measures of a golden frame group from its next frame. A flash does not count toward the decay.
-    /// Reference: accumulate_next_frame_stats(), without the averages that only the rate targets read.
+    /// Of the group averages, only the second reference error and the raw error deviation are summed.
     /// </summary>
     /// <param name="frame">The frame's statistics.</param>
     /// <param name="flashDetected">Whether the frame is a flash.</param>
@@ -267,8 +259,7 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the boost of one frame from its intra to inter error ratio, scaled by the recent quantizer and by
-    /// the motion into or out of the frame. Reference: calc_frame_boost().
+    /// Returns the boost of one frame from its intra to inter error ratio, scaled by the recent quantizer and by the motion into or out of the frame.
     /// </summary>
     /// <param name="frame">The frame's statistics.</param>
     /// <param name="thisFrameMotionInOut">The frame's motion balance, from -1 to 1.</param>
@@ -281,12 +272,11 @@ internal sealed partial class Av1SecondPass
         double boostQCorrection = Math.Min(0.5 + (lastQ * 0.015), 1.5);
         double activeArea = this.CalculateActiveArea(frame);
 
-        // The underlying boost is the ratio of intra to inter error. Reference: BOOST_FACTOR.
+        // The underlying boost is the ratio of intra to inter error, scaled by 12.5.
         double frameBoost = Math.Max(this.BaselineErrorPerMacroblock * activeArea, frame.IntraError * activeArea) / DoubleDivideCheck(frame.CodedError);
         frameBoost = frameBoost * 12.5 * boostQCorrection;
 
-        // New content coming into the frame raises the boost; a net motion out of the frame lowers it, at most
-        // by half.
+        // New content that comes into the frame raises the boost. A net motion out of the frame lowers it, at most by half.
         if (thisFrameMotionInOut > 0.0)
         {
             frameBoost += frameBoost * (thisFrameMotionInOut * 2.0);
@@ -304,8 +294,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the boost of an alternate reference or golden frame from the decaying boosts of the frames after
-    /// and before it, optionally projected to frames the look-ahead did not cover. Reference: av1_calc_arf_boost().
+    /// Returns the boost of an alternate reference or golden frame from the decaying boosts of the frames after and before it.
+    /// The boost can also be projected to frames that the look-ahead did not cover.
     /// </summary>
     /// <param name="basePosition">The buffer position the offset is relative to.</param>
     /// <param name="offset">The offset of the boosted frame.</param>
@@ -335,7 +325,7 @@ internal sealed partial class Av1SecondPass
             // A flash frame and the recovery frame after it both score poorly, so neither counts.
             bool flashDetected = this.DetectFlash(basePosition, i + offset) || this.DetectFlash(basePosition, i + offset + 1);
 
-            // Accumulate the effect of the prediction quality decay. Reference: MIN_DECAY_FACTOR.
+            // Accumulate the effect of the prediction quality decay. The accumulator never falls below 0.01.
             if (!flashDetected)
             {
                 groupStatistics.DecayAccumulator *= GetPredictionDecayRate(frame);
@@ -394,7 +384,6 @@ internal sealed partial class Av1SecondPass
 
     /// <summary>
     /// Scales a golden boost from the frames the look-ahead covered to the frames the boost was meant to cover.
-    /// Reference: get_projected_gfu_boost().
     /// </summary>
     /// <param name="boost">The boost.</param>
     /// <param name="framesToProject">The frames the boost was meant to cover.</param>
@@ -414,9 +403,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Decides whether a golden interval ends at a frame: after a transition to still, after strong or zooming
-    /// motion past the minimum interval, or past the maximum interval. Reference: detect_gf_cut() in good-quality
-    /// mode.
+    /// Decides whether a golden interval ends at a frame: after a transition to still, after strong or zooming motion past the minimum
+    /// interval, or past the maximum interval.
     /// </summary>
     /// <param name="frameIndex">The frame's index from the group start.</param>
     /// <param name="currentStart">The index of the frame before the group.</param>
@@ -449,8 +437,8 @@ internal sealed partial class Av1SecondPass
             }
         }
 
-        // Break out after the minimum interval on an odd length, away from the next key frame, on strong motion or
-        // zoom. Reference: ARF_ABS_ZOOM_THRESH.
+        // Break out after the minimum interval on an odd length, away from the next key frame, on strong motion or zoom.
+        // An absolute motion balance above 4.4 shows a zoom.
         if (frameIndex - currentStart >= activeMinimumInterval &&
             this.framesToKey - frameIndex >= this.minimumGoldenInterval &&
             ((frameIndex - currentStart) & 0x01) != 0 &&
@@ -464,10 +452,9 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Decides the next golden interval from the look-ahead: it ends at a key frame, at the end of the statistics,
-    /// or at a cut, and a cut may move back to a scene cut region or to the frame whose neighbourhood makes the best
-    /// alternate reference. Reference: calculate_gf_length() in the one-pass look-ahead stage, which decides one
-    /// interval.
+    /// Decides the next golden interval from the look-ahead. The interval ends at a key frame, at the end of the statistics, or at a cut.
+    /// A cut can move back to a scene cut region or to the frame whose neighbourhood makes the best alternate reference.
+    /// Each call decides one interval.
     /// </summary>
     /// <param name="maximumGopLength">The largest interval.</param>
     private void CalculateGoldenLength(int maximumGopLength)
@@ -560,9 +547,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Moves the end of a golden interval back to a scene cut region inside it, or to the frame whose neighbourhood
-    /// of correlated, low noise frames makes the best alternate reference.
-    /// Reference: the shrinking part of calculate_gf_length().
+    /// Moves the end of a golden interval back to a scene cut region inside it, or to the frame whose neighbourhood of correlated, low noise
+    /// frames makes the best alternate reference.
     /// </summary>
     /// <param name="statisticsBase">The buffer position of index 0.</param>
     /// <param name="offset">The offset of the region indices from the interval indices.</param>
@@ -615,14 +601,14 @@ internal sealed partial class Av1SecondPass
 
         if (sceneCutIndex != -1)
         {
-            // A minor scene cut is part of the interval; a major one starts the next.
+            // A minor scene cut is part of the interval. A major scene cut starts the next interval.
             ref readonly Region sceneCut = ref this.regions[sceneCutIndex];
             ref readonly Av1FirstPassStatistics cutStatistics = ref this.statistics[statisticsBase + sceneCut.Start - offset];
             bool minorSceneCut = sceneCut.AverageCorrelationCoefficient * (1 - (cutStatistics.NoiseVariance / sceneCut.AverageIntraError)) > 0.6;
             return sceneCut.Last - offset - (minorSceneCut ? 0 : 1);
         }
 
-        // Close to the end of the analysed frames a shrink could leave intervals that are too short.
+        // Close to the end of the analysed frames, a shrink can leave intervals that are too short.
         bool lastAnalysed = lastRegion == count - 1 && currentLast + offset == this.GetRegion(lastRegion).Last;
         bool notEnoughRegions = lastRegion - startRegion <= 1 + (this.GetRegion(startRegion).Type == RegionType.SceneCut ? 1 : 0);
         if (lastAnalysed && notEnoughRegions)
@@ -692,8 +678,7 @@ internal sealed partial class Av1SecondPass
 
             lastBlending = false;
 
-            // Add how well the neighbourhood of the candidate predicts: the correlation and the share of signal
-            // in the next three frames and the frames before.
+            // Add how well the neighbourhood of the candidate predicts: the correlation and the share of signal in the next three frames and the frames before.
             double thisScore = arfLengthFactor * baseScore;
             double accumulatedCoefficient = 1.0;
             int countForward = 0;
@@ -723,7 +708,7 @@ internal sealed partial class Av1SecondPass
                 thisScore += accumulatedCoefficient * Math.Sqrt(Math.Max(0.5, 1 - (frame.NoiseVariance / Math.Max(frame.IntraError, 0.001))));
             }
 
-            // Slightly relax the condition for videos that start with frozen frames.
+            // A video that starts with frozen frames adds 0.5 to each score, which slightly relaxes the condition.
             if (thisScore + (staticFrames ? 0.5 : 0) > bestScore)
             {
                 bestScore = thisScore;
@@ -731,7 +716,7 @@ internal sealed partial class Av1SecondPass
             }
         }
 
-        // In a blending area, move one more frame in case the first blending frame was missed.
+        // In a blending area, the end moves one more frame in case the analysis missed the first blending frame.
         int bestRegion = this.FindRegionsIndex(bestIndex + offset);
         if (bestRegion < count - 1 && bestRegion > 0)
         {
@@ -764,9 +749,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Measures the golden frame group of the current interval: its coded error, skip and inactive sums, its
-    /// motion, its decay, its static share and its second reference error. Reference: accumulate_gop_stats(),
-    /// without the modified error sum that a look-ahead replaces by the group length.
+    /// Measures the golden frame group of the current interval: its coded error, skip and inactive sums, its motion, its decay, its static
+    /// share and its second reference error. The modified error is not summed, because the look-ahead uses the group length in its place.
     /// </summary>
     /// <param name="intraOnly">Whether the group starts with a key frame.</param>
     /// <param name="startPosition">The buffer position of the group start.</param>
@@ -778,7 +762,7 @@ internal sealed partial class Av1SecondPass
         this.statisticsPosition = startPosition;
 
         // The key frame, or the overlay of the previous alternate reference, is already accounted for.
-        // accumulate_this_frame_stats(): the error sums of the frames of the group, which only a bit budget reads.
+        // Sum the errors of the frames of the group. Only a bit budget reads these sums.
         int i = intraOnly ? 1 : 0;
         while (this.UsesBitBudget && i < this.goldenIntervals[this.currentGoldenIndex])
         {
@@ -810,7 +794,7 @@ internal sealed partial class Av1SecondPass
 
         i = this.goldenIntervals[this.currentGoldenIndex];
 
-        // average_gf_stats().
+        // Average the second reference error over the interval and the raw error deviation over the frames that have one.
         if (i != 0)
         {
             groupStatistics.AverageSecondReferenceCodedError /= i;
@@ -825,9 +809,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Defines the golden frame group of the current interval: whether it uses an alternate reference and internal
-    /// alternate references, a one frame length reduction before a short last group, its structure and its boost.
-    /// Reference: define_gf_group() in the one-pass look-ahead stage.
+    /// Defines the golden frame group of the current interval: whether it uses an alternate reference and internal alternate references,
+    /// a one frame length reduction before a short last group, its structure and its boost.
     /// </summary>
     /// <param name="finalPass">Whether this is the final definition of the group, not a trial.</param>
     private void DefineGoldenGroup(bool finalPass)
@@ -846,8 +829,8 @@ internal sealed partial class Av1SecondPass
         this.CorrectFramesToKey();
         int i = this.AccumulateGopStatistics(intraOnly, startPosition, out GroupStatistics groupStatistics);
 
-        // Still groups do not use internal alternate references. Reference: MIN_ZERO_MOTION, MAX_SR_CODED_ERROR
-        // and MAX_RAW_ERR_VAR.
+        // Still groups do not use internal alternate references. A still group has almost only zero motion, a low second reference error
+        // and a low raw error deviation.
         if (MinimumPyramidHeight <= 1 &&
             groupStatistics.ZeroMotionAccumulator > 0.95 &&
             groupStatistics.AverageSecondReferenceCodedError < 40 &&
@@ -864,8 +847,7 @@ internal sealed partial class Av1SecondPass
         bool allowLengthReduction = ((!this.UsesBitBudget && this.cqLevel <= 128) || !this.internalAltrefAllowed) && !this.lossless;
         if (allowLengthReduction && useAltRef)
         {
-            // Shorten a long group when only one overlay would be left, or when the next group would be much
-            // shorter. Reference: REDUCE_GF_LENGTH_THRESH, REDUCE_GF_LENGTH_TO_KEY_THRESH and REDUCE_GF_LENGTH_BY.
+            // Shorten a long group by one frame when only one overlay is left after it, or when the next group is much shorter.
             int nextGoldenLength = this.framesToKey - i;
             bool singleOverlayLeft = nextGoldenLength == 0 && i > 4;
             bool unbalancedGroup = i > 9 && nextGoldenLength + 1 < 9 && nextGoldenLength + 1 >= this.minimumGoldenInterval;
@@ -883,7 +865,7 @@ internal sealed partial class Av1SecondPass
             }
         }
 
-        // update_gop_length().
+        // A final definition moves to the next golden interval.
         if (finalPass)
         {
             this.currentGoldenIndex++;
@@ -895,7 +877,7 @@ internal sealed partial class Av1SecondPass
         this.SetupGopStructure();
         this.SetGopBoost(i, intraOnly, finalPass, useAltRef, altOffset, startPosition);
 
-        // The rest of set_gop_bits_boost(): the bits of the group.
+        // Allocate the bits of the group.
         this.AllocateGoldenGroupBits(
             finalPass,
             useAltRef,
@@ -905,9 +887,8 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Sets the golden boost of the group, its average over the key frame group, and the reduced alternate
-    /// reference boost of the last group of a key frame group.
-    /// Reference: the boost part of set_gop_bits_boost() in good-quality mode.
+    /// Sets the golden boost of the group, its average over the key frame group, and the reduced alternate reference boost of the last group
+    /// of a key frame group.
     /// </summary>
     /// <param name="interval">The golden interval.</param>
     /// <param name="intraOnly">Whether the group starts with a key frame.</param>
@@ -917,8 +898,7 @@ internal sealed partial class Av1SecondPass
     /// <param name="startPosition">The buffer position of the group start.</param>
     private void SetGopBoost(int interval, bool intraOnly, bool finalPass, bool useAltRef, int altOffset, int startPosition)
     {
-        // The average boost of the golden intervals of a new key frame group. Its frame boosts do not scale the
-        // largest boost.
+        // The average boost of the golden intervals of a new key frame group. Its frame boosts do not scale the largest boost.
         int savedPosition = this.statisticsPosition;
         if (this.framesSinceKey == 0)
         {
@@ -980,7 +960,7 @@ internal sealed partial class Av1SecondPass
         }
 
         // The alternate reference of the last group of a key frame group has a reduced boost.
-        // Reference: LAST_ALR_BOOST_FACTOR, a float constant.
+        // The factor keeps the single precision value of 0.2, so that the quantizer decisions stay the same as other AV1 encoders.
         this.arfBoostFactor = 1.0;
         if (useAltRef && !this.lossless)
         {
@@ -998,16 +978,15 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// Returns the lowest quantizer of an inter frame: for leaves and overlays the constant-quality level, or under
-    /// a bit budget the inter floor of the highest quantizer; the golden floor for golden frames and alternate
-    /// references; and for internal alternate references the alternate reference quantizer, or the golden floor in
-    /// the variable-bitrate mode, moved halfway to the highest quantizer per layer. The constrained-quality mode keeps
-    /// every floor at or above its level and lowers the golden floor slightly.
-    /// Reference: get_active_best_quality().
+    /// Returns the lowest quantizer of an inter frame. Leaves and overlays use the constant-quality level, or under a bit budget the inter
+    /// floor of the highest quantizer. Golden frames and alternate references use the golden floor. Internal alternate references use the
+    /// alternate reference quantizer, or the golden floor in the variable-bitrate mode, moved halfway to the highest quantizer per layer.
+    /// The constrained-quality mode raises the leaf floor and the golden input quantizer to at least its level, and lowers the golden floor
+    /// slightly.
     /// </summary>
     /// <param name="activeWorst">The highest quantizer.</param>
     /// <param name="groupIndex">The frame's index in the group.</param>
-    /// <param name="constantQualityLevel">The active constant-quality level. Reference: get_active_cq_level().</param>
+    /// <param name="constantQualityLevel">The active constant-quality level, from <see cref="GetActiveConstantQualityLevel"/> under a bit budget.</param>
     /// <returns>The lowest quantizer.</returns>
     private int GetActiveBestQuality(int activeWorst, int groupIndex, int constantQualityLevel)
     {
@@ -1074,54 +1053,54 @@ internal sealed partial class Av1SecondPass
     }
 
     /// <summary>
-    /// The measures of a golden frame group. Reference: GF_GROUP_STATS.
+    /// The measures of a golden frame group.
     /// </summary>
     private struct GroupStatistics
     {
-        /// <summary>Reference: gf_group_raw_error.</summary>
+        /// <summary>The coded error summed over the frames of the group.</summary>
         public double RawError;
 
-        /// <summary>Reference: gf_group_skip_pct.</summary>
+        /// <summary>The intra skip share summed over the frames of the group.</summary>
         public double SkipPercent;
 
-        /// <summary>Reference: gf_group_inactive_zone_rows.</summary>
+        /// <summary>The inactive rows summed over the frames of the group.</summary>
         public double InactiveZoneRows;
 
-        /// <summary>Reference: mv_ratio_accumulator.</summary>
+        /// <summary>The ratio of the mean absolute motion to the mean motion, weighted by the motion share and summed over the frames.</summary>
         public double MotionRatioAccumulator;
 
-        /// <summary>Reference: decay_accumulator.</summary>
+        /// <summary>The product of the prediction decay rates of the frames.</summary>
         public double DecayAccumulator;
 
-        /// <summary>Reference: zero_motion_accumulator.</summary>
+        /// <summary>The smallest zero motion factor of the frames.</summary>
         public double ZeroMotionAccumulator;
 
-        /// <summary>Reference: loop_decay_rate.</summary>
+        /// <summary>The prediction decay rate of the latest frame.</summary>
         public double LoopDecayRate;
 
-        /// <summary>Reference: last_loop_decay_rate.</summary>
+        /// <summary>The prediction decay rate of the frame before the latest frame.</summary>
         public double LastLoopDecayRate;
 
-        /// <summary>Reference: this_frame_mv_in_out.</summary>
+        /// <summary>The motion balance of the latest frame. A positive value shows motion into the frame.</summary>
         public double ThisFrameMotionInOut;
 
-        /// <summary>Reference: mv_in_out_accumulator.</summary>
+        /// <summary>The sum of the motion balances of the frames.</summary>
         public double MotionInOutAccumulator;
 
-        /// <summary>Reference: abs_mv_in_out_accumulator.</summary>
+        /// <summary>The sum of the absolute motion balances of the frames.</summary>
         public double AbsoluteMotionInOutAccumulator;
 
-        /// <summary>Reference: avg_sr_coded_error.</summary>
+        /// <summary>The second reference coded error, summed and then averaged over the interval.</summary>
         public double AverageSecondReferenceCodedError;
 
-        /// <summary>Reference: avg_raw_err_stdev.</summary>
+        /// <summary>The raw error standard deviation, summed and then averaged over the frames with a nonzero deviation.</summary>
         public double AverageRawErrorDeviation;
 
-        /// <summary>Reference: non_zero_stdev_count.</summary>
+        /// <summary>The number of frames with a nonzero raw error deviation.</summary>
         public int NonZeroDeviationCount;
 
         /// <summary>
-        /// Returns the initial measures. Reference: init_gf_stats().
+        /// Returns the initial measures. The decay, zero motion and loop decay measures start at 1.
         /// </summary>
         /// <returns>The measures.</returns>
         public static GroupStatistics Create() => new()

@@ -10,19 +10,16 @@ internal static partial class Av1FrameResizer
 {
     /// <summary>
     /// Gets the half of the symmetric eight-tap filter that halves an even-length line, from the center outwards.
-    /// Reference: av1_down2_symeven_half_filter.
     /// </summary>
     private static ReadOnlySpan<short> Down2SymmetricEvenHalfFilter => [56, 12, -3, -1];
 
     /// <summary>
     /// Gets the half of the symmetric seven-tap filter that halves an odd-length line, from the center outwards.
-    /// Reference: av1_down2_symodd_half_filter.
     /// </summary>
     private static ReadOnlySpan<short> Down2SymmetricOddHalfFilter => [64, 35, 0, -3];
 
     /// <summary>
     /// Gets the interpolation kernels for a reduction to between 0.5 and 0.5625 of the length, 64 phases of 8 taps.
-    /// Reference: filteredinterp_filters500.
     /// </summary>
     private static ReadOnlySpan<short> Interpolation500 =>
     [
@@ -62,7 +59,6 @@ internal static partial class Av1FrameResizer
 
     /// <summary>
     /// Gets the interpolation kernels for a reduction to between 0.5625 and 0.6875 of the length, 64 phases of 8 taps.
-    /// Reference: filteredinterp_filters625.
     /// </summary>
     private static ReadOnlySpan<short> Interpolation625 =>
     [
@@ -102,7 +98,6 @@ internal static partial class Av1FrameResizer
 
     /// <summary>
     /// Gets the interpolation kernels for a reduction to between 0.6875 and 0.8125 of the length, 64 phases of 8 taps.
-    /// Reference: filteredinterp_filters750.
     /// </summary>
     private static ReadOnlySpan<short> Interpolation750 =>
     [
@@ -142,7 +137,6 @@ internal static partial class Av1FrameResizer
 
     /// <summary>
     /// Gets the interpolation kernels for a reduction to between 0.8125 and 1 of the length, 64 phases of 8 taps.
-    /// Reference: filteredinterp_filters875.
     /// </summary>
     private static ReadOnlySpan<short> Interpolation875 =>
     [
@@ -182,8 +176,7 @@ internal static partial class Av1FrameResizer
 
     /// <summary>
     /// Gets the interpolation kernels for an enlargement or no change, 64 phases of 8 taps. They are the kernels of the
-    /// normative super-resolution upscaler. Reference: av1_resize_filter_normative, which libaom names
-    /// filteredinterp_filters1000.
+    /// normative super-resolution upscaler.
     /// </summary>
     private static ReadOnlySpan<short> Interpolation1000 =>
     [
@@ -223,7 +216,7 @@ internal static partial class Av1FrameResizer
 
     /// <summary>
     /// Returns the interpolation kernel bank for a length change: the larger the reduction, the narrower the band of
-    /// the kernels. Reference: choose_interp_filter().
+    /// the kernels.
     /// </summary>
     /// <param name="length">The input line length.</param>
     /// <param name="targetLength">The output line length.</param>

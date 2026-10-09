@@ -25,7 +25,7 @@ internal static partial class Av1FrameResizer
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<int> MultiplyAdd(Vector128<int> sum, ref ushort source, Vector128<int> coefficient)
         {
-            // Four 16-bit samples widen to four 32-bit lanes.
+            // The read is exactly four 16-bit samples, so it stays inside the row. They widen to four 32-bit lanes.
             Vector128<ushort> words = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref source))).AsUInt16();
             return sum + (Vector128.WidenLower(words).AsInt32() * coefficient);
         }
@@ -59,7 +59,8 @@ internal static partial class Av1FrameResizer
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Store(ref ushort destination, Vector128<int> sum, Vector128<int> maximum)
         {
-            // The clamped lanes fit in 16 bits, so narrowing keeps every value.
+            // The arithmetic shift equals the scalar `>>`. The clamped lanes fit in 16 bits, so the truncating narrow keeps every
+            // value. The write is exactly four 16-bit samples.
             Vector128<int> clamped = Vector128.Min(Vector128.Max(Vector128.ShiftRightArithmetic(sum, FilterBits), Vector128<int>.Zero), maximum);
             Vector128<ushort> words = Vector128.Narrow(clamped.AsUInt32(), clamped.AsUInt32());
             Unsafe.WriteUnaligned(ref Unsafe.As<ushort, byte>(ref destination), words.AsUInt64().ToScalar());

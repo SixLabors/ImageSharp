@@ -9,28 +9,27 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 internal sealed partial class Av1SecondPass
 {
     /// <summary>
-    /// Gets the number of frames shown since the last key frame. Reference: current_frame.frame_number.
+    /// Gets the number of frames shown since the last key frame.
     /// </summary>
     public int FrameNumber => this.frameNumber;
 
     /// <summary>
-    /// Gets the effective look-ahead depth, which raises a request of 32 to 38 frames to 39. Reference:
-    /// gf_cfg->lag_in_frames after set_encoder_config().
+    /// Gets the effective look-ahead depth. A request of 32 to 38 frames becomes 39.
     /// </summary>
     public int LagInFrames => this.lagInFrames;
 
     /// <summary>
-    /// Gets the golden interval of the current group. Reference: p_rc->baseline_gf_interval.
+    /// Gets the golden interval of the current group.
     /// </summary>
     public int BaselineGoldenInterval => this.baselineGoldenInterval;
 
     /// <summary>
-    /// Gets the lowest allowed quantizer index. Reference: rc->best_quality.
+    /// Gets the lowest allowed quantizer index.
     /// </summary>
     public int BestQuality => this.bestQuality;
 
     /// <summary>
-    /// Gets the highest allowed quantizer index. Reference: rc->worst_quality.
+    /// Gets the highest allowed quantizer index.
     /// </summary>
     public int WorstQuality => this.worstQuality;
 
@@ -41,17 +40,14 @@ internal sealed partial class Av1SecondPass
     public void AttachGopLengthEvaluator(IGopLengthEvaluator evaluator) => this.gopLengthEvaluator = evaluator;
 
     /// <summary>
-    /// Records the screen content type that the quantizer choices read, which an intra frame decides before its
-    /// filtering and its temporal dependency model. Reference: cpi->is_screen_content_type, as
-    /// av1_set_screen_content_options() sets it in av1_encode_strategy().
+    /// Records the screen content type that the quantizer choices read. An intra frame sets this type before its filtering and its temporal dependency model.
     /// </summary>
     /// <param name="screenContent">Whether the frames are classified as screen content.</param>
     public void SetScreenContentType(bool screenContent) => this.screenContentType = screenContent;
 
     /// <summary>
-    /// Estimates the quantizer of every frame of the group from the current frame on, which the model codes each
-    /// frame at. The group length test reads the screen content type of the last coded frame, the coding run that
-    /// of the current frame. Reference: av1_tpl_preload_rc_estimate().
+    /// Estimates the quantizer of every frame of the group from the current frame on. The temporal dependency model codes each frame at this quantizer.
+    /// The group length test reads the screen content type of the last coded frame. The coding run reads the type of the current frame.
     /// </summary>
     public void PreloadTplQuantizers()
     {

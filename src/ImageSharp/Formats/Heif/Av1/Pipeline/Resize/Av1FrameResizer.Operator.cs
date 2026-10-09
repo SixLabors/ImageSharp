@@ -18,9 +18,8 @@ internal static partial class Av1FrameResizer
     /// <para>
     /// Every resize pass computes, for each output row and each column, a sum of eight weighted input samples taken from
     /// the same column of eight chosen input rows, then rounds the sum by seven bits and clips it to the sample range.
-    /// The traversal holds the sums in 32-bit lanes, one lane per column, because an eight-bit sample times a Q7
-    /// coefficient summed over eight taps can reach about 46,000, beyond a 16-bit lane, and a 12-bit sample reaches
-    /// about 740,000.
+    /// The traversal holds the sums in 32-bit lanes, one lane per column. For eight-bit samples, a sum of eight Q7 products
+    /// can exceed 40,000, which is beyond a signed 16-bit lane. For 12-bit samples, a sum can exceed 700,000.
     /// </para>
     /// <para>
     /// Each overload performs the same lane-wise arithmetic at one register width, and the scalar overload performs
@@ -133,7 +132,7 @@ internal static partial class Av1FrameResizer
         ReadOnlySpan<int> rows = plan.Rows;
         ReadOnlySpan<short> coefficients = plan.Coefficients;
 
-        // The sums start at the rounding offset of the seven-bit shift. Reference: ROUND_POWER_OF_TWO(sum, FILTER_BITS).
+        // The sums start at the rounding offset of the seven-bit shift, so the store only shifts and clips.
         const int rounding = 1 << (FilterBits - 1);
         for (int row = 0; row < plan.Count; row++)
         {

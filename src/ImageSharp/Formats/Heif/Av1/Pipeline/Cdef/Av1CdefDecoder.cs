@@ -154,8 +154,8 @@ internal sealed class Av1CdefDecoder : IDisposable
         IMemoryOwner<ushort>? scratchOwner = this.scratchOwner;
         if (scratchOwner is null || this.scratchLength != scratchLength)
         {
-            // Frame dimensions and sampling determine border storage. Reuse it across equal-size frames;
-            // release the previous allocation before resizing so a failed allocation cannot leave a stale owner.
+            // Frame dimensions and sampling determine border storage. The decoder reuses it across equal-size frames.
+            // It releases the previous allocation before it resizes, so a failed allocation cannot leave a stale owner.
             this.Dispose();
             scratchOwner = this.allocator.Allocate<ushort>(scratchLength);
             this.scratchOwner = scratchOwner;
@@ -455,7 +455,7 @@ internal sealed class Av1CdefDecoder : IDisposable
         int primaryStrength = (codedStrength / 4) << coefficientShift;
         int secondaryStrength = codedStrength % 4;
 
-        // The two-bit secondary field leaves value three unused and represents strength four instead.
+        // The two-bit secondary field codes strength four as value three. Strength three is not available.
         secondaryStrength += secondaryStrength == 3 ? 1 : 0;
         secondaryStrength <<= coefficientShift;
         int damping = parameters.Damping + coefficientShift - (plane == Av1Plane.Y ? 0 : 1);
@@ -491,8 +491,8 @@ internal sealed class Av1CdefDecoder : IDisposable
                 continue;
             }
 
-            // Secondary-only filtering uses direction zero; otherwise chroma remaps the
-            // luma direction into its asymmetrically subsampled sample grid when required.
+            // When the coded primary strength is zero, the filter uses direction zero. Otherwise chroma remaps the luma direction
+            // into its own sample grid when the horizontal and vertical subsampling differ.
             int direction = primaryStrength != 0
                 ? Av1CdefFilter.ConvertDirection(directions[blockIndex], subsamplingX, subsamplingY)
                 : 0;
@@ -660,8 +660,7 @@ internal sealed class Av1CdefDecoder : IDisposable
         int unitColumn = (modeInfoColumn % superblockModeInfoSize) / CdefUnitModeInfoSize;
         int unitRow = (modeInfoRow % superblockModeInfoSize) / CdefUnitModeInfoSize;
 
-        // A 128x128 superblock stores four raster-ordered 64x64 selections; the same
-        // expression naturally resolves to index zero for a 64x64 superblock.
+        // A 128x128 superblock stores four raster-ordered 64x64 selections. The same expression gives index zero for a 64x64 superblock.
         int unitIndex = unitColumn + (unitRow << 1);
         return frameInfo.GetCdefStrength(superblockPosition)[unitIndex];
     }
@@ -672,7 +671,7 @@ internal sealed class Av1CdefDecoder : IDisposable
     /// <param name="frameInfo">The block decisions for this frame.</param>
     /// <param name="modeInfoColumn">The block's frame-relative column in 4x4 luma units.</param>
     /// <param name="modeInfoRow">The block's frame-relative row in 4x4 luma units.</param>
-    /// <returns><see langword="true"/> when the complete 8x8 block is skipped; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when the complete 8x8 block is skipped. Otherwise, <see langword="false"/>.</returns>
     private static bool IsBlockSkipped(Av1FrameInfo frameInfo, int modeInfoColumn, int modeInfoRow)
     {
         for (int row = 0; row < 2; row++)

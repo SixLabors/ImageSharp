@@ -61,9 +61,8 @@ internal static partial class Av1CdefEncoder
             return;
         }
 
-        // Adaptive CDEF follows the constant-quality level, so it applies only in the constant-quality and
-        // constrained-quality modes. It turns CDEF off up to quantizer index 32, which was best for still pictures;
-        // the damping keeps its earlier value. Reference: apply_adaptive_cdef of av1_cdef_search().
+        // Adaptive CDEF follows the constant-quality level, so it applies only in the constant-quality and constrained-quality modes.
+        // It turns CDEF off up to quantizer index 32, which was best for still pictures. The damping keeps its earlier value.
         Av1EncoderOptions options = picture.Parent.EncoderOptions;
         bool adaptive = options.CdefControl == Av1CdefControl.Adaptive && options.UsesConstantQualityLevel;
         int qualityIndex = picture.Parent.ConstantQualityIndex;
@@ -92,8 +91,8 @@ internal static partial class Av1CdefEncoder
             }
         }
 
-        // The unit workspace is shared across candidates and planes. Direction state and the compact
-        // block list remain live across all three planes; no candidate owns an allocation.
+        // All candidates and planes share the unit workspace. Direction state and the compact block list stay live across all three planes.
+        // No candidate owns an allocation.
         int outputLength = candidates.IsEmpty ? 0 : 128 * 128 * Unsafe.SizeOf<TSample>() / sizeof(ushort);
         int directionLength = MaximumBlockCount * sizeof(int) / sizeof(ushort);
         int stateOffset = SourceLength + outputLength;
@@ -177,13 +176,11 @@ internal static partial class Av1CdefEncoder
 
             int qIndex = header.QuantizationParameters.BaseQIndex + header.QuantizationParameters.DeltaQDc[0];
 
-            // The strength search reads the frame multiplier. Reference: the cpi->rd.RDMULT that loopfilter_frame()
-            // copies to td.mb.rdmult before av1_cdef_search().
+            // The strength search uses the frame rate multiplier.
             int rateMultiplier = picture.Parent.GetRateMultiplier(qIndex, sequence.ColorConfig.BitDepth);
 
-            // Adaptive CDEF halves the strengths up to quantizer index 220, and at low quantizers also zeroes the low
-            // strengths, for which it searches at least one signaling bit. Reference: zero_low_cdef_strengths in
-            // av1_set_speed_features_qindex_dependent().
+            // Adaptive CDEF halves the strengths up to quantizer index 220. If the base quantizer index is 140 or less and the encoder uses
+            // all-intra usage or image tuning, it also zeroes the low strengths. The search then starts at one signaling bit.
             bool reduce = adaptive && qualityIndex <= 220;
             bool zeroLowStrengths = reduce &&
                 (options.IsAllIntra || options.Tuning.IsImageTuning()) &&
@@ -300,10 +297,9 @@ internal static partial class Av1CdefEncoder
         int shift = reconstruction.LumaBitDepth - 8;
         int planeCount = source.IsMonochrome ? 1 : 3;
 
-        // With unequal chroma subsampling the search converts the shared directions in place: the first chroma
-        // plane once for every candidate with a strength, and the second plane reads what the first left. The
-        // zero strength copies its input before the conversion. Reference: the conv422 and conv440 loop of
-        // av1_cdef_filter_fb(), which get_filt_error() calls with the superblock's dir array for each candidate.
+        // With unequal chroma subsampling, the search converts one copy of the luma directions in place. The first chroma plane converts
+        // it again for every nonzero candidate, so the conversions accumulate. The second chroma plane uses the directions that the first
+        // plane left. The zero strength does not convert. The encoder keeps this order so that its strength decisions match other AV1 encoders.
         Span<int> chromaDirections = stackalloc int[directions.Length];
         bool convertsChroma = !source.IsMonochrome && reconstruction.ChromaSubsamplingX != reconstruction.ChromaSubsamplingY;
         for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
@@ -338,9 +334,8 @@ internal static partial class Av1CdefEncoder
                 int strength = candidates[candidate];
                 if (strength == 0)
                 {
-                    // The zero strength leaves the reconstruction unfiltered, so its error is measured against the
-                    // reconstruction itself, without a filter pass. A zero primary and a zero secondary strength change no
-                    // sample, so the filter pass would only copy its input.
+                    // The zero strength leaves the reconstruction unfiltered, so the search measures its error against the reconstruction
+                    // itself, without a filter pass. A zero primary and a zero secondary strength change no sample, so a filter pass only copies.
                     long unfilteredError = 0;
                     foreach (ushort block in blocks)
                     {
@@ -397,8 +392,8 @@ internal static partial class Av1CdefEncoder
                         blockHeight);
                 }
 
-                // Normalize once after summing a plane's blocks. Truncating each block separately
-                // would bias high-bit-depth candidates when their discarded low bits accumulate.
+                // The error is normalized once, after the sum of all blocks in the plane. A separate truncation for each block
+                // biases high-bit-depth candidates, because their discarded low bits accumulate.
                 ulong normalizedError = (ulong)(error >> (2 * shift));
                 errors[candidate] = planeIndex == 2 ? errors[candidate] + normalizedError : normalizedError;
             }
@@ -414,10 +409,10 @@ internal static partial class Av1CdefEncoder
     /// <param name="storage">The samples of <paramref name="plane"/>, which the caller reads once outside its unit loop.</param>
     /// <param name="x">The unit's plane column.</param>
     /// <param name="y">The unit's plane row.</param>
-    /// <param name="width">The unit width.</param>
-    /// <param name="height">The unit height.</param>
-    /// <param name="planeWidth">The coded mode-grid width.</param>
-    /// <param name="planeHeight">The coded mode-grid height.</param>
+    /// <param name="width">The unit width in plane samples.</param>
+    /// <param name="height">The unit height in plane samples.</param>
+    /// <param name="planeWidth">The coded plane width in samples.</param>
+    /// <param name="planeHeight">The coded plane height in samples.</param>
     /// <param name="input">The bordered filtering workspace.</param>
     private static void CopyUnit<TSample, TOperator>(
         Av1PlaneRegion<TSample> plane,
@@ -503,8 +498,8 @@ internal static partial class Av1CdefEncoder
         where TSample : unmanaged
         where TOperator : struct, IEncodingOperator<TSample>
     {
-        // Secondary code three represents strength four. Sample precision scales both strengths;
-        // damping follows that scale, with chroma damping one level below luma.
+        // Secondary code three represents strength four. Sample precision scales both strengths. Damping follows that scale,
+        // and chroma damping is one level below luma.
         int primary = (strength >> 2) << shift;
         int secondary = strength & 3;
         secondary = (secondary + (secondary == 3 ? 1 : 0)) << shift;

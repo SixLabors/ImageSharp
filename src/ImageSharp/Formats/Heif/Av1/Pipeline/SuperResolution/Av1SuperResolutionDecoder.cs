@@ -125,8 +125,8 @@ internal sealed class Av1SuperResolutionDecoder
         int sourceStart = Av1SuperResolutionFilter.SourceBorder;
         int bitDepth = this.frameBuffer.BitDepth.GetBitCount();
 
-        // the reference decoder partitions the same continuous phase progression by tile column but does not pad
-        // internal boundaries. Filtering the complete row therefore produces the identical samples.
+        // The phase progression is continuous across tile columns, and internal tile boundaries get no padding.
+        // Filtering the complete row therefore gives the same samples as a pass for each tile column.
         for (int row = 0; row < height; row++)
         {
             int planeOffset = stride + (row * stride);

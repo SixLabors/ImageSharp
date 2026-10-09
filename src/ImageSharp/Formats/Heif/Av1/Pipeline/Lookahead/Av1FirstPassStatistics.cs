@@ -5,7 +5,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 
 /// <summary>
 /// The first-pass statistics of one frame, or the sum of a section of frames.
-/// Reference: FIRSTPASS_STATS.
 /// </summary>
 internal struct Av1FirstPassStatistics
 {
@@ -48,7 +47,7 @@ internal struct Av1FirstPassStatistics
     /// <summary>The number of rows of blank image border at the top and bottom.</summary>
     public double InactiveZoneRows;
 
-    /// <summary>The number of columns of blank image border; not measured.</summary>
+    /// <summary>The number of columns of blank image border. The first pass does not measure it.</summary>
     public double InactiveZoneColumns;
 
     /// <summary>The mean row motion.</summary>

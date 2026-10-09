@@ -28,29 +28,29 @@ internal static partial class Av1TemporalFilter
         private const double DoubleExponentValue = 4503599627370496.0;
 
         /// <summary>
-        /// The filter weight given to a sample of the frame to filter and the scale of every other weight,
-        /// TF_WEIGHT_SCALE.
+        /// The filter weight given to a sample of the frame to filter and the scale of every other weight.
         /// </summary>
         private const int WeightScale = 1000;
 
         /// <summary>
-        /// The largest scaled error; larger errors give the same smallest weight.
+        /// The largest scaled error. Larger errors give the same smallest weight.
         /// </summary>
         private const float MaximumScaledError = 7f;
 
         /// <summary>
-        /// The multiplier of approx_exp(): (1 &lt;&lt; 23) / ln(2), evaluated in single precision as libaom does.
+        /// The multiplier of the approximated exponential: (1 &lt;&lt; 23) / ln(2) in single precision. The single-precision value
+        /// keeps the weights the same as other AV1 encoders.
         /// </summary>
         private const float ExponentMultiplier = (1 << 23) / 0.69314718056f;
 
         /// <summary>
-        /// The integer offset of approx_exp(): the IEEE single-precision exponent bias 127 shifted into the exponent
+        /// The integer offset of the approximated exponential: the IEEE single-precision exponent bias 127 shifted into the exponent
         /// field, less the accuracy constant 60801.
         /// </summary>
         private const int ExponentOffset = (127 << 23) - 60801;
 
         /// <summary>
-        /// Loads four bytes and widens them to thirty-two-bit lanes. Reference: the widening loads of apply_temporal_filter().
+        /// Loads four bytes and widens them to thirty-two-bit lanes.
         /// </summary>
         /// <param name="source">The first byte.</param>
         /// <param name="lanes">The overload-selection value.</param>
@@ -64,7 +64,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Loads eight bytes and widens them to thirty-two-bit lanes. Reference: the widening loads of apply_temporal_filter().
+        /// Loads eight bytes and widens them to thirty-two-bit lanes.
         /// </summary>
         /// <param name="source">The first byte.</param>
         /// <param name="lanes">The overload-selection value.</param>
@@ -77,7 +77,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Loads sixteen bytes and widens them to thirty-two-bit lanes. Reference: the widening loads of apply_temporal_filter().
+        /// Loads sixteen bytes and widens them to thirty-two-bit lanes.
         /// </summary>
         /// <param name="source">The first byte.</param>
         /// <param name="lanes">The overload-selection value.</param>
@@ -90,7 +90,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Loads eight bytes and widens them to signed sixteen-bit lanes. Reference: the widening loads of apply_temporal_filter().
+        /// Loads eight bytes and widens them to signed sixteen-bit lanes.
         /// </summary>
         /// <param name="source">The first byte.</param>
         /// <param name="lanes">The overload-selection value.</param>
@@ -100,7 +100,7 @@ internal static partial class Av1TemporalFilter
             => Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref source)).AsByte()).AsInt16();
 
         /// <summary>
-        /// Loads sixteen bytes and widens them to signed sixteen-bit lanes. Reference: the widening loads of apply_temporal_filter().
+        /// Loads sixteen bytes and widens them to signed sixteen-bit lanes.
         /// </summary>
         /// <param name="source">The first byte.</param>
         /// <param name="lanes">The overload-selection value.</param>
@@ -110,7 +110,7 @@ internal static partial class Av1TemporalFilter
             => Vector256.WidenLower(Vector128.LoadUnsafe(ref source).ToVector256Unsafe()).AsInt16();
 
         /// <summary>
-        /// Loads thirty-two bytes and widens them to signed sixteen-bit lanes. Reference: the widening loads of apply_temporal_filter().
+        /// Loads thirty-two bytes and widens them to signed sixteen-bit lanes.
         /// </summary>
         /// <param name="source">The first byte.</param>
         /// <param name="lanes">The overload-selection value.</param>
@@ -120,7 +120,7 @@ internal static partial class Av1TemporalFilter
             => Vector512.WidenLower(Vector256.LoadUnsafe(ref source).ToVector512Unsafe()).AsInt16();
 
         /// <summary>
-        /// Loads four words and widens them to thirty-two-bit lanes. Reference: the widening loads of apply_temporal_filter().
+        /// Loads four words and widens them to thirty-two-bit lanes.
         /// </summary>
         /// <param name="source">The first word.</param>
         /// <param name="lanes">The overload-selection value.</param>
@@ -130,7 +130,7 @@ internal static partial class Av1TemporalFilter
             => Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref source))).AsUInt16());
 
         /// <summary>
-        /// Loads eight words and widens them to thirty-two-bit lanes. Reference: the widening loads of apply_temporal_filter().
+        /// Loads eight words and widens them to thirty-two-bit lanes.
         /// </summary>
         /// <param name="source">The first word.</param>
         /// <param name="lanes">The overload-selection value.</param>
@@ -140,7 +140,7 @@ internal static partial class Av1TemporalFilter
             => Vector256.WidenLower(Vector128.LoadUnsafe(ref source).ToVector256Unsafe());
 
         /// <summary>
-        /// Loads sixteen words and widens them to thirty-two-bit lanes. Reference: the widening loads of apply_temporal_filter().
+        /// Loads sixteen words and widens them to thirty-two-bit lanes.
         /// </summary>
         /// <param name="source">The first word.</param>
         /// <param name="lanes">The overload-selection value.</param>
@@ -150,7 +150,7 @@ internal static partial class Av1TemporalFilter
             => Vector512.WidenLower(Vector256.LoadUnsafe(ref source).ToVector512Unsafe());
 
         /// <summary>
-        /// Returns the squared differences of four lanes. Reference: get_squared_error_avx2().
+        /// Returns the squared differences of four lanes.
         /// </summary>
         /// <param name="frame">The widened samples of the frame to filter.</param>
         /// <param name="prediction">The widened predicted samples.</param>
@@ -158,15 +158,14 @@ internal static partial class Av1TemporalFilter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<uint> SquaredErrors(Vector128<uint> frame, Vector128<uint> prediction)
         {
-            // A twelve-bit difference squares to less than 2^24, so the low thirty-two bits of the product are
-            // the whole square. The eight-bit x64 kernel squares an unsigned byte difference in sixteen-bit lanes,
-            // which also holds every square below 2^16 exactly.
+            // A twelve-bit difference squares to less than 2^24, so the low thirty-two bits of the product are the whole square.
+            // An eight-bit square is below 2^16, so a sixteen-bit lane also holds it exactly and gives the same result.
             Vector128<int> difference = frame.AsInt32() - prediction.AsInt32();
             return (difference * difference).AsUInt32();
         }
 
         /// <summary>
-        /// Returns the squared differences of eight lanes. Reference: get_squared_error_avx2().
+        /// Returns the squared differences of eight lanes.
         /// </summary>
         /// <param name="frame">The widened samples of the frame to filter.</param>
         /// <param name="prediction">The widened predicted samples.</param>
@@ -179,7 +178,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Returns the squared differences of sixteen lanes. Reference: get_squared_error_avx2().
+        /// Returns the squared differences of sixteen lanes.
         /// </summary>
         /// <param name="frame">The widened samples of the frame to filter.</param>
         /// <param name="prediction">The widened predicted samples.</param>
@@ -192,7 +191,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Returns the squared difference of one sample pair. Reference: get_squared_error_avx2().
+        /// Returns the squared difference of one sample pair.
         /// </summary>
         /// <param name="frame">The sample of the frame to filter.</param>
         /// <param name="prediction">The predicted sample.</param>
@@ -205,7 +204,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Adds four samples at the full weight. Reference: tf_apply_temporal_filter_self().
+        /// Adds four samples at the full weight.
         /// </summary>
         /// <param name="samples">The widened samples.</param>
         /// <param name="accumulator">The first weighted sum to update.</param>
@@ -215,14 +214,14 @@ internal static partial class Av1TemporalFilter
         {
             (Vector128.LoadUnsafe(ref accumulator) + (samples * (uint)WeightScale)).StoreUnsafe(ref accumulator);
 
-            // Four sixteen-bit totals occupy one sixty-four-bit word; the lane addition keeps them separate.
+            // Four sixteen-bit totals occupy one sixty-four-bit word. The lane addition keeps them separate.
             ref byte countBytes = ref Unsafe.As<ushort, byte>(ref count);
             Vector128<ushort> counts = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref countBytes)).AsUInt16();
             Unsafe.WriteUnaligned(ref countBytes, (counts + Vector128.Create((ushort)WeightScale)).AsUInt64().ToScalar());
         }
 
         /// <summary>
-        /// Adds eight samples at the full weight. Reference: tf_apply_temporal_filter_self().
+        /// Adds eight samples at the full weight.
         /// </summary>
         /// <param name="samples">The widened samples.</param>
         /// <param name="accumulator">The first weighted sum to update.</param>
@@ -235,7 +234,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Adds sixteen samples at the full weight. Reference: tf_apply_temporal_filter_self().
+        /// Adds sixteen samples at the full weight.
         /// </summary>
         /// <param name="samples">The widened samples.</param>
         /// <param name="accumulator">The first weighted sum to update.</param>
@@ -248,7 +247,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Adds one sample at the full weight. Reference: tf_apply_temporal_filter_self().
+        /// Adds one sample at the full weight.
         /// </summary>
         /// <param name="sample">The sample.</param>
         /// <param name="accumulator">The weighted sum to update.</param>
@@ -261,7 +260,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Weighs four samples with two 128-bit double registers. Reference: apply_temporal_filter().
+        /// Weighs four samples with two 128-bit double registers.
         /// </summary>
         /// <param name="errors">The four window errors.</param>
         /// <param name="predictions">The four widened predicted samples.</param>
@@ -275,12 +274,12 @@ internal static partial class Av1TemporalFilter
             Vector128<double> lower = ScaleErrors(ToDouble(Vector128.WidenLower(errors)), in terms);
             Vector128<double> upper = ScaleErrors(ToDouble(Vector128.WidenUpper(errors)), in terms);
 
-            // _mm256_cvtpd_ps() rounds each double to the nearest float, which Narrow() also does.
+            // Narrow() rounds each double to the nearest float before the single-precision exponential, as the wider overloads do.
             AddWeights(GetWeights(Vector128.Narrow(lower, upper)), predictions, ref accumulator, ref count);
         }
 
         /// <summary>
-        /// Weighs four samples with one 256-bit double register. Reference: apply_temporal_filter().
+        /// Weighs four samples with one 256-bit double register.
         /// </summary>
         /// <param name="errors">The four window errors.</param>
         /// <param name="predictions">The four widened predicted samples.</param>
@@ -296,7 +295,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Weighs eight samples with one 512-bit double register. Reference: apply_temporal_filter().
+        /// Weighs eight samples with one 512-bit double register.
         /// </summary>
         /// <param name="errors">The eight window errors.</param>
         /// <param name="predictions">The eight widened predicted samples.</param>
@@ -309,13 +308,13 @@ internal static partial class Av1TemporalFilter
             Vector512<double> scaled = ScaleErrors(ToDouble(Vector512.WidenLower(errors.ToVector512Unsafe())), in terms);
             Vector256<int> weights = GetWeights(Vector256.Narrow(scaled.GetLower(), scaled.GetUpper()));
 
-            // A weight is at most TF_WEIGHT_SCALE, so the truncating narrow equals the saturating _mm_packus_epi32().
+            // A weight is from 0 to WeightScale, so the truncating narrow to sixteen bits gives the same value as a saturating narrow.
             (Vector128.LoadUnsafe(ref count) + Vector128.Narrow(weights.GetLower().AsUInt32(), weights.GetUpper().AsUInt32())).StoreUnsafe(ref count);
             (Vector256.LoadUnsafe(ref accumulator) + (weights.AsUInt32() * predictions)).StoreUnsafe(ref accumulator);
         }
 
         /// <summary>
-        /// Weighs one sample and adds it to the accumulators. Reference: av1_apply_temporal_filter_c().
+        /// Weighs one sample and adds it to the accumulators.
         /// </summary>
         /// <param name="windowError">The window error.</param>
         /// <param name="prediction">The predicted sample.</param>
@@ -325,8 +324,8 @@ internal static partial class Av1TemporalFilter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AccumulateWeights(uint windowError, int prediction, ref uint accumulator, ref ushort count, in WeightTerms terms)
         {
-            // The expressions keep libaom's evaluation order; every product and sum is a separately rounded
-            // double operation, as in the C and x64 kernels.
+            // Every product and sum is a separately rounded double operation in a fixed order. The vector overloads use the same
+            // order, so all paths give the same weights. This order also keeps the weights the same as other AV1 encoders.
             double windowErrorScaled = windowError * terms.InverseReferenceCount;
             double combinedError = (CombinedWindowWeight * windowErrorScaled) + terms.BlockError;
             double scaledError = combinedError * terms.FirstFactor * terms.SecondFactor;
@@ -338,7 +337,7 @@ internal static partial class Av1TemporalFilter
             }
             else
             {
-                // approx_exp() builds the float bit pattern from the scaled exponent; iroundpf() rounds half up.
+                // The approximated exponential builds the float bit pattern from the scaled exponent. The weight then rounds half up.
                 float exponent = BitConverter.Int32BitsToSingle((int)((float)-scaledError * ExponentMultiplier) + ExponentOffset);
                 weight = (int)((exponent * WeightScale) + 0.5f);
             }
@@ -348,7 +347,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Divides four accumulators by their totals with two 128-bit double registers. Reference: tf_normalize_filtered_frame().
+        /// Divides four accumulators by their totals with two 128-bit double registers.
         /// </summary>
         /// <param name="accumulator">The first weighted sum.</param>
         /// <param name="count">The first weight total.</param>
@@ -365,7 +364,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Divides four accumulators by their totals with one 256-bit double register. Reference: tf_normalize_filtered_frame().
+        /// Divides four accumulators by their totals with one 256-bit double register.
         /// </summary>
         /// <param name="accumulator">The first weighted sum.</param>
         /// <param name="count">The first weight total.</param>
@@ -384,7 +383,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Divides eight accumulators by their totals with one 512-bit double register. Reference: tf_normalize_filtered_frame().
+        /// Divides eight accumulators by their totals with one 512-bit double register.
         /// </summary>
         /// <param name="accumulator">The first weighted sum.</param>
         /// <param name="count">The first weight total.</param>
@@ -402,7 +401,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Divides one accumulator by its total with rounding. Reference: OD_DIVU(), which is exact integer division.
+        /// Divides one accumulator by its total with rounding.
         /// </summary>
         /// <param name="accumulator">The weighted sum.</param>
         /// <param name="count">The weight total.</param>
@@ -412,7 +411,7 @@ internal static partial class Av1TemporalFilter
             => (accumulator + (uint)(count >> 1)) / count;
 
         /// <summary>
-        /// Stores the low byte of four quotients. Reference: tf_normalize_filtered_frame().
+        /// Stores the low byte of four quotients.
         /// </summary>
         /// <param name="values">The quotients, each below 256.</param>
         /// <param name="destination">The first byte to write.</param>
@@ -424,7 +423,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Stores the low byte of eight quotients. Reference: tf_normalize_filtered_frame().
+        /// Stores the low byte of eight quotients.
         /// </summary>
         /// <param name="values">The quotients, each below 256.</param>
         /// <param name="destination">The first byte to write.</param>
@@ -436,7 +435,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Stores the low word of four quotients. Reference: tf_normalize_filtered_frame().
+        /// Stores the low word of four quotients.
         /// </summary>
         /// <param name="values">The quotients, each below 4096.</param>
         /// <param name="destination">The first word to write.</param>
@@ -445,7 +444,7 @@ internal static partial class Av1TemporalFilter
             => Unsafe.WriteUnaligned(ref Unsafe.As<ushort, byte>(ref destination), Vector128.Narrow(values, values).AsUInt64().ToScalar());
 
         /// <summary>
-        /// Stores the low word of eight quotients. Reference: tf_normalize_filtered_frame().
+        /// Stores the low word of eight quotients.
         /// </summary>
         /// <param name="values">The quotients, each below 4096.</param>
         /// <param name="destination">The first word to write.</param>
@@ -454,7 +453,7 @@ internal static partial class Av1TemporalFilter
             => Vector128.Narrow(values.GetLower(), values.GetUpper()).StoreUnsafe(ref destination);
 
         /// <summary>
-        /// Adds the Laplacian magnitudes of the smooth samples of eight columns. Reference: av1_estimate_noise_from_single_plane_avx2().
+        /// Adds the Laplacian magnitudes of the smooth samples of eight columns.
         /// </summary>
         /// <param name="a">The above-left samples.</param>
         /// <param name="b">The above samples.</param>
@@ -503,7 +502,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Adds the Laplacian magnitudes of the smooth samples of sixteen columns. Reference: av1_estimate_noise_from_single_plane_avx2().
+        /// Adds the Laplacian magnitudes of the smooth samples of sixteen columns.
         /// </summary>
         /// <param name="a">The above-left samples.</param>
         /// <param name="b">The above samples.</param>
@@ -546,7 +545,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Adds the Laplacian magnitudes of the smooth samples of thirty-two columns. Reference: av1_estimate_noise_from_single_plane_avx2().
+        /// Adds the Laplacian magnitudes of the smooth samples of thirty-two columns.
         /// </summary>
         /// <param name="a">The above-left samples.</param>
         /// <param name="b">The above samples.</param>
@@ -589,7 +588,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Adds the Laplacian magnitude of one sample when its gradient marks it as smooth. Reference: av1_estimate_noise_from_single_plane_c().
+        /// Adds the Laplacian magnitude of one sample when its gradient marks it as smooth.
         /// </summary>
         /// <param name="a">The above-left sample.</param>
         /// <param name="b">The above sample.</param>
@@ -618,7 +617,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Stores the sums of five rows of four values. Reference: apply_temporal_filter().
+        /// Stores the sums of five rows of four values.
         /// </summary>
         /// <param name="row0">The first value of the top row.</param>
         /// <param name="row1">The first value of the second row.</param>
@@ -633,7 +632,7 @@ internal static partial class Av1TemporalFilter
                 + Vector128.LoadUnsafe(ref row3) + Vector128.LoadUnsafe(ref row4)).StoreUnsafe(ref destination);
 
         /// <summary>
-        /// Stores the sums of five rows of eight values. Reference: apply_temporal_filter().
+        /// Stores the sums of five rows of eight values.
         /// </summary>
         /// <param name="row0">The first value of the top row.</param>
         /// <param name="row1">The first value of the second row.</param>
@@ -648,7 +647,7 @@ internal static partial class Av1TemporalFilter
                 + Vector256.LoadUnsafe(ref row3) + Vector256.LoadUnsafe(ref row4)).StoreUnsafe(ref destination);
 
         /// <summary>
-        /// Stores the sums of five rows of sixteen values. Reference: apply_temporal_filter().
+        /// Stores the sums of five rows of sixteen values.
         /// </summary>
         /// <param name="row0">The first value of the top row.</param>
         /// <param name="row1">The first value of the second row.</param>
@@ -663,7 +662,7 @@ internal static partial class Av1TemporalFilter
                 + Vector512.LoadUnsafe(ref row3) + Vector512.LoadUnsafe(ref row4)).StoreUnsafe(ref destination);
 
         /// <summary>
-        /// Stores four window errors from five overlapping column-sum loads. Reference: xx_mask_and_hadd().
+        /// Stores four window errors from five overlapping column-sum loads.
         /// </summary>
         /// <param name="columns">The column sum two columns left of the first output.</param>
         /// <param name="luma">The first luma error.</param>
@@ -683,7 +682,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Stores eight window errors from five overlapping column-sum loads. Reference: xx_mask_and_hadd().
+        /// Stores eight window errors from five overlapping column-sum loads.
         /// </summary>
         /// <param name="columns">The column sum two columns left of the first output.</param>
         /// <param name="luma">The first luma error.</param>
@@ -701,7 +700,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Stores sixteen window errors from five overlapping column-sum loads. Reference: xx_mask_and_hadd().
+        /// Stores sixteen window errors from five overlapping column-sum loads.
         /// </summary>
         /// <param name="columns">The column sum two columns left of the first output.</param>
         /// <param name="luma">The first luma error.</param>
@@ -719,7 +718,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Stores one window error from five adjacent column sums. Reference: av1_apply_temporal_filter_c().
+        /// Stores one window error from five adjacent column sums.
         /// </summary>
         /// <param name="columns">The column sum two columns left of the output.</param>
         /// <param name="luma">The luma error.</param>
@@ -731,7 +730,7 @@ internal static partial class Av1TemporalFilter
                 + Unsafe.Add(ref columns, 4) + luma) >> shift;
 
         /// <summary>
-        /// Stores four sums of adjacent value pairs. Reference: compute_luma_sq_error_sum().
+        /// Stores four sums of adjacent value pairs.
         /// </summary>
         /// <param name="row">The first value.</param>
         /// <param name="destination">The first pair sum to write.</param>
@@ -741,7 +740,7 @@ internal static partial class Av1TemporalFilter
             => SumPairs(Vector128.LoadUnsafe(ref row), Vector128.LoadUnsafe(ref Unsafe.Add(ref row, 4))).StoreUnsafe(ref destination);
 
         /// <summary>
-        /// Stores eight sums of adjacent value pairs. Reference: compute_luma_sq_error_sum().
+        /// Stores eight sums of adjacent value pairs.
         /// </summary>
         /// <param name="row">The first value.</param>
         /// <param name="destination">The first pair sum to write.</param>
@@ -751,7 +750,7 @@ internal static partial class Av1TemporalFilter
             => SumPairs(Vector256.LoadUnsafe(ref row), Vector256.LoadUnsafe(ref Unsafe.Add(ref row, 8))).StoreUnsafe(ref destination);
 
         /// <summary>
-        /// Stores sixteen sums of adjacent value pairs. Reference: compute_luma_sq_error_sum().
+        /// Stores sixteen sums of adjacent value pairs.
         /// </summary>
         /// <param name="row">The first value.</param>
         /// <param name="destination">The first pair sum to write.</param>
@@ -761,7 +760,7 @@ internal static partial class Av1TemporalFilter
             => SumPairs(Vector512.LoadUnsafe(ref row), Vector512.LoadUnsafe(ref Unsafe.Add(ref row, 16))).StoreUnsafe(ref destination);
 
         /// <summary>
-        /// Stores four sums of two-by-two value blocks. Reference: compute_luma_sq_error_sum().
+        /// Stores four sums of two-by-two value blocks.
         /// </summary>
         /// <param name="upper">The first value of the upper row.</param>
         /// <param name="lower">The first value of the lower row.</param>
@@ -774,7 +773,7 @@ internal static partial class Av1TemporalFilter
                 Vector128.LoadUnsafe(ref Unsafe.Add(ref upper, 4)) + Vector128.LoadUnsafe(ref Unsafe.Add(ref lower, 4))).StoreUnsafe(ref destination);
 
         /// <summary>
-        /// Stores eight sums of two-by-two value blocks. Reference: compute_luma_sq_error_sum().
+        /// Stores eight sums of two-by-two value blocks.
         /// </summary>
         /// <param name="upper">The first value of the upper row.</param>
         /// <param name="lower">The first value of the lower row.</param>
@@ -787,7 +786,7 @@ internal static partial class Av1TemporalFilter
                 Vector256.LoadUnsafe(ref Unsafe.Add(ref upper, 8)) + Vector256.LoadUnsafe(ref Unsafe.Add(ref lower, 8))).StoreUnsafe(ref destination);
 
         /// <summary>
-        /// Stores sixteen sums of two-by-two value blocks. Reference: compute_luma_sq_error_sum().
+        /// Stores sixteen sums of two-by-two value blocks.
         /// </summary>
         /// <param name="upper">The first value of the upper row.</param>
         /// <param name="lower">The first value of the lower row.</param>
@@ -800,7 +799,7 @@ internal static partial class Av1TemporalFilter
                 Vector512.LoadUnsafe(ref Unsafe.Add(ref upper, 16)) + Vector512.LoadUnsafe(ref Unsafe.Add(ref lower, 16))).StoreUnsafe(ref destination);
 
         /// <summary>
-        /// Returns the ordered sums of adjacent lane pairs of two vectors. Reference: the _mm256_hadd_epi32() of av1_apply_temporal_filter_avx2().
+        /// Returns the ordered sums of adjacent lane pairs of two vectors.
         /// </summary>
         /// <param name="first">The first eight values: four pairs.</param>
         /// <param name="second">The next eight values: four pairs.</param>
@@ -818,7 +817,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Returns the ordered sums of adjacent lane pairs of two vectors. Reference: the _mm256_hadd_epi32() of av1_apply_temporal_filter_avx2().
+        /// Returns the ordered sums of adjacent lane pairs of two vectors.
         /// </summary>
         /// <param name="first">The first sixteen values: eight pairs.</param>
         /// <param name="second">The next sixteen values: eight pairs.</param>
@@ -833,7 +832,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Returns the ordered sums of adjacent lane pairs of two vectors. Reference: the _mm256_hadd_epi32() of av1_apply_temporal_filter_avx2().
+        /// Returns the ordered sums of adjacent lane pairs of two vectors.
         /// </summary>
         /// <param name="first">The first thirty-two values: sixteen pairs.</param>
         /// <param name="second">The next thirty-two values: sixteen pairs.</param>
@@ -848,7 +847,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Converts two zero-extended thirty-two-bit integers to <see cref="double"/> exactly. Reference: _mm256_cvtepi32_pd() in apply_temporal_filter().
+        /// Converts two zero-extended thirty-two-bit integers to <see cref="double"/> exactly.
         /// </summary>
         /// <param name="values">The integers, each below 2^32.</param>
         /// <returns>The converted values.</returns>
@@ -857,7 +856,7 @@ internal static partial class Av1TemporalFilter
             => (values | Vector128.Create(DoubleExponentBits)).AsDouble() - Vector128.Create(DoubleExponentValue);
 
         /// <summary>
-        /// Converts four zero-extended thirty-two-bit integers to <see cref="double"/> exactly. Reference: _mm256_cvtepi32_pd() in apply_temporal_filter().
+        /// Converts four zero-extended thirty-two-bit integers to <see cref="double"/> exactly.
         /// </summary>
         /// <param name="values">The integers, each below 2^32.</param>
         /// <returns>The converted values.</returns>
@@ -866,7 +865,7 @@ internal static partial class Av1TemporalFilter
             => (values | Vector256.Create(DoubleExponentBits)).AsDouble() - Vector256.Create(DoubleExponentValue);
 
         /// <summary>
-        /// Converts eight zero-extended thirty-two-bit integers to <see cref="double"/> exactly. Reference: _mm256_cvtepi32_pd() in apply_temporal_filter().
+        /// Converts eight zero-extended thirty-two-bit integers to <see cref="double"/> exactly.
         /// </summary>
         /// <param name="values">The integers, each below 2^32.</param>
         /// <returns>The converted values.</returns>
@@ -875,8 +874,7 @@ internal static partial class Av1TemporalFilter
             => (values | Vector512.Create(DoubleExponentBits)).AsDouble() - Vector512.Create(DoubleExponentValue);
 
         /// <summary>
-        /// Returns the scaled errors of two samples: the window error and the block error combined, then multiplied
-        /// by the sub-block factors. Reference: apply_temporal_filter().
+        /// Returns the scaled errors of two samples: the window error and the block error combined, then multiplied by the sub-block factors.
         /// </summary>
         /// <param name="windowErrors">The window errors.</param>
         /// <param name="terms">The sub-block error terms.</param>
@@ -884,14 +882,14 @@ internal static partial class Av1TemporalFilter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<double> ScaleErrors(Vector128<double> windowErrors, in WeightTerms terms)
         {
-            // Separate multiplications and additions keep each rounding of _mm256_mul_pd() and _mm256_add_pd();
-            // .NET does not contract them into fused multiply-adds.
+            // Each multiplication and addition rounds separately. .NET does not contract them into fused multiply-adds, so the
+            // result is the same as the scalar overload.
             Vector128<double> combined = (windowErrors * terms.InverseReferenceCount * CombinedWindowWeight) + Vector128.Create(terms.BlockError);
             return combined * terms.FirstFactor * terms.SecondFactor;
         }
 
         /// <summary>
-        /// Returns the scaled errors of four samples. Reference: apply_temporal_filter().
+        /// Returns the scaled errors of four samples.
         /// </summary>
         /// <param name="windowErrors">The window errors.</param>
         /// <param name="terms">The sub-block error terms.</param>
@@ -904,7 +902,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Returns the scaled errors of eight samples. Reference: apply_temporal_filter().
+        /// Returns the scaled errors of eight samples.
         /// </summary>
         /// <param name="windowErrors">The window errors.</param>
         /// <param name="terms">The sub-block error terms.</param>
@@ -917,24 +915,24 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Returns the filter weights of four scaled errors with approx_exp(). Reference: approx_exp_avx2().
+        /// Returns the filter weights of four scaled errors with the approximated exponential.
         /// </summary>
         /// <param name="scaledErrors">The scaled errors in single precision.</param>
         /// <returns>The integer weights, each at most <see cref="WeightScale"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<int> GetWeights(Vector128<float> scaledErrors)
         {
-            // approx_exp_avx2(): multiply the negated error by 2^23 / ln(2), truncate, add the biased exponent, and
-            // reinterpret the integer as a float. The weight is then truncated after adding one half, which is
-            // iroundpf() for the nonnegative scaled exponential. Every value is far inside the int32 range, so the
-            // native truncating conversion equals _mm256_cvttps_epi32().
+            // The approximated exponential multiplies the negated error by 2^23 / ln(2), truncates, adds the biased exponent and
+            // reinterprets the integer as a float. The weight then truncates after the addition of one half. For the nonnegative
+            // exponential, this rounds half up. Every value is far inside the int32 range, so the native conversion truncates
+            // in the same way as the scalar casts.
             Vector128<float> negated = Vector128<float>.Zero - Vector128.Min(scaledErrors, Vector128.Create(MaximumScaledError));
             Vector128<int> exponent = Vector128.ConvertToInt32Native(negated * ExponentMultiplier) + Vector128.Create(ExponentOffset);
             return Vector128.ConvertToInt32Native((exponent.AsSingle() * WeightScale) + Vector128.Create(0.5f));
         }
 
         /// <summary>
-        /// Returns the filter weights of eight scaled errors with approx_exp(). Reference: approx_exp_avx2().
+        /// Returns the filter weights of eight scaled errors with the approximated exponential.
         /// </summary>
         /// <param name="scaledErrors">The scaled errors in single precision.</param>
         /// <returns>The integer weights, each at most <see cref="WeightScale"/>.</returns>
@@ -947,7 +945,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Adds four weights and weighted predictions to the accumulators. Reference: apply_temporal_filter().
+        /// Adds four weights and weighted predictions to the accumulators.
         /// </summary>
         /// <param name="weights">The integer weights.</param>
         /// <param name="predictions">The widened predicted samples.</param>
@@ -964,7 +962,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Returns the rounded-down quotients of two exactly represented integer vectors. Reference: OD_DIVU().
+        /// Returns the rounded-down quotients of two exactly represented integer vectors.
         /// </summary>
         /// <param name="numerators">The numerators, each below 2^32.</param>
         /// <param name="denominators">The denominators, each nonzero and below 2^16.</param>
@@ -979,7 +977,7 @@ internal static partial class Av1TemporalFilter
         }
 
         /// <summary>
-        /// Returns the rounded-down quotients of two exactly represented integer vectors. Reference: OD_DIVU().
+        /// Returns the rounded-down quotients of two exactly represented integer vectors.
         /// </summary>
         /// <param name="numerators">The numerators, each below 2^32.</param>
         /// <param name="denominators">The denominators, each nonzero and below 2^16.</param>
@@ -989,7 +987,7 @@ internal static partial class Av1TemporalFilter
             => (Vector256.Floor(numerators / denominators) + Vector256.Create(DoubleExponentValue)).AsUInt64();
 
         /// <summary>
-        /// Returns the rounded-down quotients of two exactly represented integer vectors. Reference: OD_DIVU().
+        /// Returns the rounded-down quotients of two exactly represented integer vectors.
         /// </summary>
         /// <param name="numerators">The numerators, each below 2^32.</param>
         /// <param name="denominators">The denominators, each nonzero and below 2^16.</param>

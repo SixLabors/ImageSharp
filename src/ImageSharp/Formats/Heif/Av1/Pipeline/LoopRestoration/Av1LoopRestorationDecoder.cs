@@ -96,9 +96,8 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
             destination.ResizeRestoration(sequenceHeader, frameBuffer);
         }
 
-        // Planes run sequentially and chroma processing units never exceed the luma dimensions.
-        // One capacity calculation therefore covers the complete frame. Keep successful rents reachable
-        // from the session if a later allocation fails, and release old capacity before growing it.
+        // Planes run one after another, and chroma processing units are never larger than the luma dimensions. Thus one capacity calculation
+        // covers the full frame. If a later allocation fails, the owners that exist stay in this object for Dispose. Old capacity is released first.
         int maximumBlockWidth = Math.Min(Av1LoopRestorationBoundary.ProcessingStripeSize, frameHeader.FrameSize.SuperResolutionUpscaledWidth);
         int maximumStripeHeight = Av1LoopRestorationBoundary.ProcessingStripeSize;
         int wienerScratchLength = Av1WienerFilter.GetScratchLength(maximumBlockWidth, maximumStripeHeight);
@@ -186,8 +185,8 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
                 selfGuidedScratch);
         }
 
-        // Publish only restored planes, after every unit has consumed the original reconstruction.
-        // Frame-region views carry the physical byte width, including high-bit-depth samples.
+        // Copy back only the restored planes, after every unit reads the original reconstruction.
+        // Frame-region views give the physical byte width, which includes high-bit-depth samples.
         for (int planeIndex = 0; planeIndex < colorConfig.PlaneCount; planeIndex++)
         {
             if (frameHeader.LoopRestorationParameters.Items[planeIndex].Type == ObuRestorationType.None)
@@ -253,8 +252,8 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
 
         Span<TSample> source = MemoryMarshal.Cast<byte, TSample>(sourceStorage);
 
-        // The frame view includes one preceding row. Starting it above and left of the visible plane
-        // keeps every temporary boundary replacement inside the existing reconstruction allocation.
+        // The frame view includes one preceding row. The view starts above and left of the visible plane,
+        // so every temporary boundary replacement stays inside the reconstruction allocation.
         int sourceOrigin = ((FilterBorder + 1) * sourceStride) + horizontalBorder;
         int extendedRowWidth = planeWidth + (2 * FilterBorder);
         for (int row = 0; row < planeHeight; row++)
@@ -266,8 +265,8 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
             source.Slice(offset + planeWidth, FilterBorder).Fill(last);
         }
 
-        // Only frame edges replicate samples. Internal unit/stripe edges will borrow preserved
-        // deblocked rows, while their horizontal context continues through adjacent reconstructed units.
+        // Only frame edges replicate samples. Internal stripe edges use the preserved deblocked rows.
+        // At internal unit edges, the horizontal context comes from the adjacent reconstructed units.
         ReadOnlySpan<TSample> top = source.Slice(sourceOrigin - FilterBorder, extendedRowWidth);
         ReadOnlySpan<TSample> bottom = source.Slice(sourceOrigin + ((planeHeight - 1) * sourceStride) - FilterBorder, extendedRowWidth);
         for (int row = 1; row <= FilterBorder; row++)
@@ -283,13 +282,12 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
             subsamplingY,
             out int destinationStride);
 
-        // The frame's block view begins one row before its visible origin. Advance by logical samples
-        // after selecting the physical type, preserving the aligned destination stride.
+        // The block view of the frame starts one row before its visible origin. The slice skips that row in
+        // logical samples after the cast to the physical type, so the aligned destination stride stays the same.
         Span<TSample> destination = MemoryMarshal.Cast<byte, TSample>(destinationStorage)[destinationStride..];
 
-        // Preserve only the three overwritten rows on each side of the active stripe. The fixed
-        // ushort storage accommodates either physical precision; its row stride remains unchanged
-        // when a byte frame uses half of each row's byte capacity.
+        // The save buffer holds only the three overwritten rows on each side of the active stripe. The fixed ushort storage holds
+        // either physical precision. A byte frame uses half of the byte capacity of each row, and the row stride stays the same.
         Span<TSample> savedRows = MemoryMarshal.Cast<ushort, TSample>(boundary.GetStripeSaveBuffer());
 
         int extendedUnitSize = (unitSize * 3) / 2;
@@ -304,8 +302,8 @@ internal sealed class Av1LoopRestorationDecoder : IDisposable
             int verticalEnd = unitY + unadjustedUnitHeight;
             int verticalOffset = Av1LoopRestorationBoundary.ProcessingStripeOffset >> subsamplingY;
 
-            // Syntax owns the unshifted grid; filtering begins eight luma rows above it, except at
-            // the frame edge. The final unit absorbs a remainder smaller than half a nominal unit.
+            // The syntax uses the unshifted unit grid. Filtering starts eight luma rows above that grid, except at the frame edges.
+            // The last unit also takes a remainder of less than half a nominal unit.
             verticalStart = Math.Max(0, verticalStart - verticalOffset);
             if (verticalEnd < planeHeight)
             {

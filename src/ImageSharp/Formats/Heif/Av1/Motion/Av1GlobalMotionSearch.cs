@@ -55,10 +55,10 @@ internal static partial class Av1GlobalMotionSearch
     private const double EarlyErrorAdvantageThreshold = 0.70;
 
     /// <summary>
-    /// Defines the sample-specific parts of the warped error measure.
+    /// Defines the sample-specific parts of the global motion search: the pyramid fill and the warped error measure.
     /// </summary>
     /// <typeparam name="TSample">The component sample type.</typeparam>
-    internal interface IAv1GlobalMotionOperator<TSample>
+    internal interface IAv1GlobalMotionOperator<TSample> : Av1GlobalMotionEstimator.IAv1PyramidFillOperator<TSample>
         where TSample : unmanaged
     {
         /// <summary>
@@ -585,10 +585,14 @@ internal static partial class Av1GlobalMotionSearch
     }
 
     /// <summary>
-    /// Measures one warped block of 8-bit samples.
+    /// Fills the pyramid and measures one warped block of 8-bit samples.
     /// </summary>
     internal readonly struct ByteOperator : IAv1GlobalMotionOperator<byte>
     {
+        /// <inheritdoc/>
+        public static int Fill(Av1ImagePyramid pyramid, ReadOnlySpan<byte> source, int stride, int bitDepth, int levels)
+            => pyramid.Fill(source, stride, levels);
+
         /// <inheritdoc/>
         public static void PredictWarped(
             ReadOnlySpan<byte> source,
@@ -626,10 +630,14 @@ internal static partial class Av1GlobalMotionSearch
     }
 
     /// <summary>
-    /// Measures one warped block of high-bit-depth samples.
+    /// Fills the pyramid and measures one warped block of high-bit-depth samples.
     /// </summary>
     internal readonly struct UInt16Operator : IAv1GlobalMotionOperator<ushort>
     {
+        /// <inheritdoc/>
+        public static int Fill(Av1ImagePyramid pyramid, ReadOnlySpan<ushort> source, int stride, int bitDepth, int levels)
+            => pyramid.Fill(source, stride, bitDepth, levels);
+
         /// <inheritdoc/>
         public static void PredictWarped(
             ReadOnlySpan<ushort> source,

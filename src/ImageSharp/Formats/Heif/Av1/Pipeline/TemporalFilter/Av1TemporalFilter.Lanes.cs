@@ -12,7 +12,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
 internal static partial class Av1TemporalFilter
 {
     /// <summary>
-    /// Holds the lane arithmetic of the temporal filter kernels, independent of the sample storage type.
+    /// Holds the lane arithmetic of the temporal filter kernels, independent of the sample storage type. The noise kernels read
+    /// their samples through the <see cref="ITemporalFilterOperator{TSample}"/> loads.
     /// </summary>
     private static class TemporalFilterLanes
     {
@@ -48,106 +49,6 @@ internal static partial class Av1TemporalFilter
         /// field, less the accuracy constant 60801.
         /// </summary>
         private const int ExponentOffset = (127 << 23) - 60801;
-
-        /// <summary>
-        /// Loads four bytes and widens them to thirty-two-bit lanes.
-        /// </summary>
-        /// <param name="source">The first byte.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        /// <returns>The widened values in increasing order.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<uint> LoadBytes(ref byte source, Vector128<uint> lanes)
-        {
-            // Exactly four bytes are read, so the last group of a row never reads the next row.
-            Vector128<byte> bytes = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<uint>(ref source)).AsByte();
-            return Vector128.WidenLower(Vector128.WidenLower(bytes));
-        }
-
-        /// <summary>
-        /// Loads eight bytes and widens them to thirty-two-bit lanes.
-        /// </summary>
-        /// <param name="source">The first byte.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        /// <returns>The widened values in increasing order.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<uint> LoadBytes(ref byte source, Vector256<uint> lanes)
-        {
-            Vector128<ushort> words = Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref source)).AsByte());
-            return Vector256.WidenLower(words.ToVector256Unsafe());
-        }
-
-        /// <summary>
-        /// Loads sixteen bytes and widens them to thirty-two-bit lanes.
-        /// </summary>
-        /// <param name="source">The first byte.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        /// <returns>The widened values in increasing order.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<uint> LoadBytes(ref byte source, Vector512<uint> lanes)
-        {
-            Vector256<ushort> words = Vector256.WidenLower(Vector128.LoadUnsafe(ref source).ToVector256Unsafe());
-            return Vector512.WidenLower(words.ToVector512Unsafe());
-        }
-
-        /// <summary>
-        /// Loads eight bytes and widens them to signed sixteen-bit lanes.
-        /// </summary>
-        /// <param name="source">The first byte.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        /// <returns>The widened values in increasing order.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<short> LoadBytes(ref byte source, Vector128<short> lanes)
-            => Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref source)).AsByte()).AsInt16();
-
-        /// <summary>
-        /// Loads sixteen bytes and widens them to signed sixteen-bit lanes.
-        /// </summary>
-        /// <param name="source">The first byte.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        /// <returns>The widened values in increasing order.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<short> LoadBytes(ref byte source, Vector256<short> lanes)
-            => Vector256.WidenLower(Vector128.LoadUnsafe(ref source).ToVector256Unsafe()).AsInt16();
-
-        /// <summary>
-        /// Loads thirty-two bytes and widens them to signed sixteen-bit lanes.
-        /// </summary>
-        /// <param name="source">The first byte.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        /// <returns>The widened values in increasing order.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<short> LoadBytes(ref byte source, Vector512<short> lanes)
-            => Vector512.WidenLower(Vector256.LoadUnsafe(ref source).ToVector512Unsafe()).AsInt16();
-
-        /// <summary>
-        /// Loads four words and widens them to thirty-two-bit lanes.
-        /// </summary>
-        /// <param name="source">The first word.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        /// <returns>The widened values in increasing order.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<uint> LoadWords(ref ushort source, Vector128<uint> lanes)
-            => Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref source))).AsUInt16());
-
-        /// <summary>
-        /// Loads eight words and widens them to thirty-two-bit lanes.
-        /// </summary>
-        /// <param name="source">The first word.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        /// <returns>The widened values in increasing order.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<uint> LoadWords(ref ushort source, Vector256<uint> lanes)
-            => Vector256.WidenLower(Vector128.LoadUnsafe(ref source).ToVector256Unsafe());
-
-        /// <summary>
-        /// Loads sixteen words and widens them to thirty-two-bit lanes.
-        /// </summary>
-        /// <param name="source">The first word.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        /// <returns>The widened values in increasing order.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<uint> LoadWords(ref ushort source, Vector512<uint> lanes)
-            => Vector512.WidenLower(Vector256.LoadUnsafe(ref source).ToVector512Unsafe());
 
         /// <summary>
         /// Returns the squared differences of four lanes.
@@ -411,77 +312,37 @@ internal static partial class Av1TemporalFilter
             => (accumulator + (uint)(count >> 1)) / count;
 
         /// <summary>
-        /// Stores the low byte of four quotients.
-        /// </summary>
-        /// <param name="values">The quotients, each below 256.</param>
-        /// <param name="destination">The first byte to write.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void StoreBytes(Vector128<uint> values, ref byte destination)
-        {
-            Vector128<ushort> words = Vector128.Narrow(values, values);
-            Unsafe.WriteUnaligned(ref destination, Vector128.Narrow(words, words).AsUInt32().ToScalar());
-        }
-
-        /// <summary>
-        /// Stores the low byte of eight quotients.
-        /// </summary>
-        /// <param name="values">The quotients, each below 256.</param>
-        /// <param name="destination">The first byte to write.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void StoreBytes(Vector256<uint> values, ref byte destination)
-        {
-            Vector128<ushort> words = Vector128.Narrow(values.GetLower(), values.GetUpper());
-            Unsafe.WriteUnaligned(ref destination, Vector128.Narrow(words, words).AsUInt64().ToScalar());
-        }
-
-        /// <summary>
-        /// Stores the low word of four quotients.
-        /// </summary>
-        /// <param name="values">The quotients, each below 4096.</param>
-        /// <param name="destination">The first word to write.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void StoreWords(Vector128<uint> values, ref ushort destination)
-            => Unsafe.WriteUnaligned(ref Unsafe.As<ushort, byte>(ref destination), Vector128.Narrow(values, values).AsUInt64().ToScalar());
-
-        /// <summary>
-        /// Stores the low word of eight quotients.
-        /// </summary>
-        /// <param name="values">The quotients, each below 4096.</param>
-        /// <param name="destination">The first word to write.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void StoreWords(Vector256<uint> values, ref ushort destination)
-            => Vector128.Narrow(values.GetLower(), values.GetUpper()).StoreUnsafe(ref destination);
-
-        /// <summary>
         /// Adds the Laplacian magnitudes of the smooth samples of eight columns.
         /// </summary>
-        /// <param name="a">The above-left samples.</param>
-        /// <param name="b">The above samples.</param>
-        /// <param name="c">The above-right samples.</param>
-        /// <param name="d">The left samples.</param>
-        /// <param name="e">The center samples.</param>
-        /// <param name="f">The right samples.</param>
-        /// <param name="g">The below-left samples.</param>
-        /// <param name="h">The below samples.</param>
-        /// <param name="i">The below-right samples.</param>
+        /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
+        /// <typeparam name="TOperator">The sample loads.</typeparam>
+        /// <param name="center">The first center sample.</param>
+        /// <param name="stride">The plane row stride.</param>
         /// <param name="terms">The edge threshold and the bit-depth rounding.</param>
         /// <param name="sum">The running Laplacian total.</param>
         /// <param name="count">The running smooth-sample total.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateNoise(
-            Vector128<short> a,
-            Vector128<short> b,
-            Vector128<short> c,
-            Vector128<short> d,
-            Vector128<short> e,
-            Vector128<short> f,
-            Vector128<short> g,
-            Vector128<short> h,
-            Vector128<short> i,
+        public static void AccumulateNoise<TSample, TOperator>(
+            ref TSample center,
+            int stride,
             in NoiseTerms terms,
             ref Vector128<int> sum,
             ref Vector128<int> count)
+            where TSample : unmanaged
+            where TOperator : struct, ITemporalFilterOperator<TSample>
         {
+            // Each of the nine neighbor positions loads eight samples from its offset to the center into sixteen-bit lanes:
+            // a, b and c are the row above, d, e and f the center row, and g, h and i the row below.
+            Vector128<short> a = TOperator.Load(ref Unsafe.Add(ref center, -stride - 1), default(Vector128<short>));
+            Vector128<short> b = TOperator.Load(ref Unsafe.Add(ref center, -stride), default(Vector128<short>));
+            Vector128<short> c = TOperator.Load(ref Unsafe.Add(ref center, -stride + 1), default(Vector128<short>));
+            Vector128<short> d = TOperator.Load(ref Unsafe.Add(ref center, -1), default(Vector128<short>));
+            Vector128<short> e = TOperator.Load(ref center, default(Vector128<short>));
+            Vector128<short> f = TOperator.Load(ref Unsafe.Add(ref center, 1), default(Vector128<short>));
+            Vector128<short> g = TOperator.Load(ref Unsafe.Add(ref center, stride - 1), default(Vector128<short>));
+            Vector128<short> h = TOperator.Load(ref Unsafe.Add(ref center, stride), default(Vector128<short>));
+            Vector128<short> i = TOperator.Load(ref Unsafe.Add(ref center, stride + 1), default(Vector128<short>));
+
             // Each Sobel gradient of a twelve-bit plane is at most 4 * 4095 in magnitude, so their sum is at most
             // 32760 and fits a signed lane. The rounding bias can carry that sum to 32768, so the rounding shift
             // treats the lanes as unsigned. The Laplacian 4E - 2(B+D+F+H) + (A+C+G+I) also stays within +/-32760
@@ -504,33 +365,33 @@ internal static partial class Av1TemporalFilter
         /// <summary>
         /// Adds the Laplacian magnitudes of the smooth samples of sixteen columns.
         /// </summary>
-        /// <param name="a">The above-left samples.</param>
-        /// <param name="b">The above samples.</param>
-        /// <param name="c">The above-right samples.</param>
-        /// <param name="d">The left samples.</param>
-        /// <param name="e">The center samples.</param>
-        /// <param name="f">The right samples.</param>
-        /// <param name="g">The below-left samples.</param>
-        /// <param name="h">The below samples.</param>
-        /// <param name="i">The below-right samples.</param>
+        /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
+        /// <typeparam name="TOperator">The sample loads.</typeparam>
+        /// <param name="center">The first center sample.</param>
+        /// <param name="stride">The plane row stride.</param>
         /// <param name="terms">The edge threshold and the bit-depth rounding.</param>
         /// <param name="sum">The running Laplacian total.</param>
         /// <param name="count">The running smooth-sample total.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateNoise(
-            Vector256<short> a,
-            Vector256<short> b,
-            Vector256<short> c,
-            Vector256<short> d,
-            Vector256<short> e,
-            Vector256<short> f,
-            Vector256<short> g,
-            Vector256<short> h,
-            Vector256<short> i,
+        public static void AccumulateNoise<TSample, TOperator>(
+            ref TSample center,
+            int stride,
             in NoiseTerms terms,
             ref Vector256<int> sum,
             ref Vector256<int> count)
+            where TSample : unmanaged
+            where TOperator : struct, ITemporalFilterOperator<TSample>
         {
+            Vector256<short> a = TOperator.Load(ref Unsafe.Add(ref center, -stride - 1), default(Vector256<short>));
+            Vector256<short> b = TOperator.Load(ref Unsafe.Add(ref center, -stride), default(Vector256<short>));
+            Vector256<short> c = TOperator.Load(ref Unsafe.Add(ref center, -stride + 1), default(Vector256<short>));
+            Vector256<short> d = TOperator.Load(ref Unsafe.Add(ref center, -1), default(Vector256<short>));
+            Vector256<short> e = TOperator.Load(ref center, default(Vector256<short>));
+            Vector256<short> f = TOperator.Load(ref Unsafe.Add(ref center, 1), default(Vector256<short>));
+            Vector256<short> g = TOperator.Load(ref Unsafe.Add(ref center, stride - 1), default(Vector256<short>));
+            Vector256<short> h = TOperator.Load(ref Unsafe.Add(ref center, stride), default(Vector256<short>));
+            Vector256<short> i = TOperator.Load(ref Unsafe.Add(ref center, stride + 1), default(Vector256<short>));
+
             Vector256<ushort> bias = Vector256.Create((ushort)terms.Bias);
             Vector256<short> gx = (a - c) + (g - i) + ((d - f) << 1);
             Vector256<short> gy = (a - g) + (c - i) + ((b - h) << 1);
@@ -547,33 +408,33 @@ internal static partial class Av1TemporalFilter
         /// <summary>
         /// Adds the Laplacian magnitudes of the smooth samples of thirty-two columns.
         /// </summary>
-        /// <param name="a">The above-left samples.</param>
-        /// <param name="b">The above samples.</param>
-        /// <param name="c">The above-right samples.</param>
-        /// <param name="d">The left samples.</param>
-        /// <param name="e">The center samples.</param>
-        /// <param name="f">The right samples.</param>
-        /// <param name="g">The below-left samples.</param>
-        /// <param name="h">The below samples.</param>
-        /// <param name="i">The below-right samples.</param>
+        /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
+        /// <typeparam name="TOperator">The sample loads.</typeparam>
+        /// <param name="center">The first center sample.</param>
+        /// <param name="stride">The plane row stride.</param>
         /// <param name="terms">The edge threshold and the bit-depth rounding.</param>
         /// <param name="sum">The running Laplacian total.</param>
         /// <param name="count">The running smooth-sample total.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateNoise(
-            Vector512<short> a,
-            Vector512<short> b,
-            Vector512<short> c,
-            Vector512<short> d,
-            Vector512<short> e,
-            Vector512<short> f,
-            Vector512<short> g,
-            Vector512<short> h,
-            Vector512<short> i,
+        public static void AccumulateNoise<TSample, TOperator>(
+            ref TSample center,
+            int stride,
             in NoiseTerms terms,
             ref Vector512<int> sum,
             ref Vector512<int> count)
+            where TSample : unmanaged
+            where TOperator : struct, ITemporalFilterOperator<TSample>
         {
+            Vector512<short> a = TOperator.Load(ref Unsafe.Add(ref center, -stride - 1), default(Vector512<short>));
+            Vector512<short> b = TOperator.Load(ref Unsafe.Add(ref center, -stride), default(Vector512<short>));
+            Vector512<short> c = TOperator.Load(ref Unsafe.Add(ref center, -stride + 1), default(Vector512<short>));
+            Vector512<short> d = TOperator.Load(ref Unsafe.Add(ref center, -1), default(Vector512<short>));
+            Vector512<short> e = TOperator.Load(ref center, default(Vector512<short>));
+            Vector512<short> f = TOperator.Load(ref Unsafe.Add(ref center, 1), default(Vector512<short>));
+            Vector512<short> g = TOperator.Load(ref Unsafe.Add(ref center, stride - 1), default(Vector512<short>));
+            Vector512<short> h = TOperator.Load(ref Unsafe.Add(ref center, stride), default(Vector512<short>));
+            Vector512<short> i = TOperator.Load(ref Unsafe.Add(ref center, stride + 1), default(Vector512<short>));
+
             Vector512<ushort> bias = Vector512.Create((ushort)terms.Bias);
             Vector512<short> gx = (a - c) + (g - i) + ((d - f) << 1);
             Vector512<short> gy = (a - g) + (c - i) + ((b - h) << 1);
@@ -590,21 +451,28 @@ internal static partial class Av1TemporalFilter
         /// <summary>
         /// Adds the Laplacian magnitude of one sample when its gradient marks it as smooth.
         /// </summary>
-        /// <param name="a">The above-left sample.</param>
-        /// <param name="b">The above sample.</param>
-        /// <param name="c">The above-right sample.</param>
-        /// <param name="d">The left sample.</param>
-        /// <param name="e">The center sample.</param>
-        /// <param name="f">The right sample.</param>
-        /// <param name="g">The below-left sample.</param>
-        /// <param name="h">The below sample.</param>
-        /// <param name="i">The below-right sample.</param>
+        /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
+        /// <typeparam name="TOperator">The sample conversion.</typeparam>
+        /// <param name="center">The center sample.</param>
+        /// <param name="stride">The plane row stride.</param>
         /// <param name="terms">The edge threshold and the bit-depth rounding.</param>
         /// <param name="sum">The running Laplacian total.</param>
         /// <param name="count">The running smooth-sample total.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateNoise(int a, int b, int c, int d, int e, int f, int g, int h, int i, in NoiseTerms terms, ref int sum, ref int count)
+        public static void AccumulateNoise<TSample, TOperator>(ref TSample center, int stride, in NoiseTerms terms, ref int sum, ref int count)
+            where TSample : unmanaged
+            where TOperator : struct, ITemporalFilterOperator<TSample>
         {
+            int a = TOperator.ToInt32(Unsafe.Add(ref center, -stride - 1));
+            int b = TOperator.ToInt32(Unsafe.Add(ref center, -stride));
+            int c = TOperator.ToInt32(Unsafe.Add(ref center, -stride + 1));
+            int d = TOperator.ToInt32(Unsafe.Add(ref center, -1));
+            int e = TOperator.ToInt32(center);
+            int f = TOperator.ToInt32(Unsafe.Add(ref center, 1));
+            int g = TOperator.ToInt32(Unsafe.Add(ref center, stride - 1));
+            int h = TOperator.ToInt32(Unsafe.Add(ref center, stride));
+            int i = TOperator.ToInt32(Unsafe.Add(ref center, stride + 1));
+
             int gx = (a - c) + (g - i) + (2 * (d - f));
             int gy = (a - g) + (c - i) + (2 * (b - h));
             int gradient = (Math.Abs(gx) + Math.Abs(gy) + terms.Bias) >> terms.Shift;
@@ -660,6 +528,19 @@ internal static partial class Av1TemporalFilter
         public static void SumRows(ref uint row0, ref uint row1, ref uint row2, ref uint row3, ref uint row4, ref uint destination, Vector512<uint> lanes)
             => (Vector512.LoadUnsafe(ref row0) + Vector512.LoadUnsafe(ref row1) + Vector512.LoadUnsafe(ref row2)
                 + Vector512.LoadUnsafe(ref row3) + Vector512.LoadUnsafe(ref row4)).StoreUnsafe(ref destination);
+
+        /// <summary>
+        /// Stores the sum of five rows of one value.
+        /// </summary>
+        /// <param name="row0">The value of the top row.</param>
+        /// <param name="row1">The value of the second row.</param>
+        /// <param name="row2">The value of the center row.</param>
+        /// <param name="row3">The value of the fourth row.</param>
+        /// <param name="row4">The value of the bottom row.</param>
+        /// <param name="destination">The sum to write.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void SumRows(uint row0, uint row1, uint row2, uint row3, uint row4, ref uint destination)
+            => destination = row0 + row1 + row2 + row3 + row4;
 
         /// <summary>
         /// Stores four window errors from five overlapping column-sum loads.
@@ -760,6 +641,15 @@ internal static partial class Av1TemporalFilter
             => SumPairs(Vector512.LoadUnsafe(ref row), Vector512.LoadUnsafe(ref Unsafe.Add(ref row, 16))).StoreUnsafe(ref destination);
 
         /// <summary>
+        /// Stores one sum of an adjacent value pair.
+        /// </summary>
+        /// <param name="row">The first value of the pair.</param>
+        /// <param name="destination">The pair sum to write.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void SumLumaPairs(ref uint row, ref uint destination)
+            => destination = row + Unsafe.Add(ref row, 1);
+
+        /// <summary>
         /// Stores four sums of two-by-two value blocks.
         /// </summary>
         /// <param name="upper">The first value of the upper row.</param>
@@ -797,6 +687,16 @@ internal static partial class Av1TemporalFilter
             => SumPairs(
                 Vector512.LoadUnsafe(ref upper) + Vector512.LoadUnsafe(ref lower),
                 Vector512.LoadUnsafe(ref Unsafe.Add(ref upper, 16)) + Vector512.LoadUnsafe(ref Unsafe.Add(ref lower, 16))).StoreUnsafe(ref destination);
+
+        /// <summary>
+        /// Stores one sum of a two-by-two value block.
+        /// </summary>
+        /// <param name="upper">The first value of the upper row.</param>
+        /// <param name="lower">The first value of the lower row.</param>
+        /// <param name="destination">The block sum to write.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void SumLumaQuads(ref uint upper, ref uint lower, ref uint destination)
+            => destination = upper + Unsafe.Add(ref upper, 1) + lower + Unsafe.Add(ref lower, 1);
 
         /// <summary>
         /// Returns the ordered sums of adjacent lane pairs of two vectors.

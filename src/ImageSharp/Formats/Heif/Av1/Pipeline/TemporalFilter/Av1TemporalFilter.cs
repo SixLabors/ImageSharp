@@ -167,7 +167,7 @@ internal static partial class Av1TemporalFilter
     /// Estimates the noise level of one plane of a frame.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The sample loads and stores.</typeparam>
     /// <param name="frame">The frame.</param>
     /// <param name="plane">The plane.</param>
     /// <returns>The noise level, or -1 when the plane has fewer than sixteen smooth samples.</returns>
@@ -195,7 +195,7 @@ internal static partial class Av1TemporalFilter
     /// Filters one frame of the look-ahead buffer with its neighbors and writes the filtered frame.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The temporal filter sample loads and stores.</typeparam>
     /// <typeparam name="TSearch">The motion search sample arithmetic.</typeparam>
     /// <param name="workspace">The prediction, error and accumulator buffers of the filter.</param>
     /// <param name="lookahead">The look-ahead frames in display order. Index <c>i</c> holds the frame at look-ahead offset <c>i</c>.
@@ -223,7 +223,7 @@ internal static partial class Av1TemporalFilter
         Av1SecondPass arfBoost,
         Av1EncoderFrame<TSample> output)
         where TSample : unmanaged
-        where TOperator : struct, ITemporalFilterOperator<TSample>, ISharpPredictionOperator<TSample>
+        where TOperator : struct, ITemporalFilterOperator<TSample>
         where TSearch : struct, IMotionSearchOperator<TSample>
     {
         Av1EncoderFrame<TSample> frameToFilter = lookahead[filterIndex];
@@ -274,7 +274,7 @@ internal static partial class Av1TemporalFilter
     /// Chooses the frames before and after the filtered frame and estimates its noise levels.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The temporal filter sample loads and stores.</typeparam>
     /// <param name="lookahead">The look-ahead frames.</param>
     /// <param name="filterIndex">The look-ahead index of the frame to filter.</param>
     /// <param name="settings">The filter settings.</param>
@@ -436,7 +436,7 @@ internal static partial class Av1TemporalFilter
     /// Filters one row of 64x64 blocks and accumulates the source-to-filtered luma differences.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The temporal filter sample loads and stores.</typeparam>
     /// <typeparam name="TSearch">The motion search sample arithmetic.</typeparam>
     /// <param name="workspace">The prediction, error and accumulator buffers of the filter.</param>
     /// <param name="frames">The frames filtered together.</param>
@@ -462,7 +462,7 @@ internal static partial class Av1TemporalFilter
         ref long differenceSum,
         ref long differenceSquares)
         where TSample : unmanaged
-        where TOperator : struct, ITemporalFilterOperator<TSample>, ISharpPredictionOperator<TSample>
+        where TOperator : struct, ITemporalFilterOperator<TSample>
         where TSearch : struct, IMotionSearchOperator<TSample>
     {
         Av1EncoderFrame<TSample> frameToFilter = frames[filterFrame];
@@ -609,7 +609,7 @@ internal static partial class Av1TemporalFilter
     /// Adds one block of the frame to filter to the accumulators of every plane at the full weight.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The temporal filter sample loads and stores.</typeparam>
     /// <param name="frame">The frame to filter.</param>
     /// <param name="frameLuma">The luma samples of <paramref name="frame"/>, which the caller reads once outside its block loop.</param>
     /// <param name="frameBlue">The blue-difference samples of <paramref name="frame"/>, which the caller reads once outside its block loop.</param>
@@ -658,7 +658,7 @@ internal static partial class Av1TemporalFilter
     /// Weighs the prediction of one block from one reference frame and adds it to the accumulators of every plane.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The temporal filter sample loads and stores.</typeparam>
     /// <param name="workspace">The filter buffers holding the prediction and the accumulators.</param>
     /// <param name="frameToFilter">The frame to filter.</param>
     /// <param name="frameToFilterLuma">The luma samples of <paramref name="frameToFilter"/>, which the caller reads once outside its block loop.</param>
@@ -770,12 +770,12 @@ internal static partial class Av1TemporalFilter
             // plane uses the same sums again.
             if (plane == (int)Av1Plane.U)
             {
-                SumLumaErrors<TSample, TOperator>(workspace.SquaredErrors, subsamplingX, subsamplingY, width, height, lumaErrors);
+                SumLumaErrors(workspace.SquaredErrors, subsamplingX, subsamplingY, width, height, lumaErrors);
             }
 
             ReadOnlySpan<TSample> planePrediction = prediction.Slice(planeOffset, width * height);
             BuildSquaredErrors<TSample, TOperator>(samples, stride, planePrediction, width, height, workspace.SquaredErrors);
-            BuildWindowErrors<TSample, TOperator>(
+            BuildWindowErrors(
                 workspace.SquaredErrors,
                 plane == 0 ? workspace.ZeroLumaErrors : lumaErrors,
                 width,
@@ -805,7 +805,7 @@ internal static partial class Av1TemporalFilter
     /// Writes the filtered samples of one block of every plane.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The temporal filter sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The temporal filter sample loads and stores.</typeparam>
     /// <param name="output">The filtered frame.</param>
     /// <param name="outputLuma">The luma samples of <paramref name="output"/>, which the caller reads once outside its block loop.</param>
     /// <param name="outputBlue">The blue-difference samples of <paramref name="output"/>, which the caller reads once outside its block loop.</param>

@@ -188,7 +188,7 @@ internal static partial class Av1FrameEncoder
             where TSample : unmanaged
             where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
             where TTextureOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
-            where TGlobalMotionOperator : struct, IGlobalMotionSearchOperator<TSample>
+            where TGlobalMotionOperator : struct, Av1GlobalMotionSearch.IAv1GlobalMotionOperator<TSample>
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
             Av1PictureControlSet picture = this.PictureBuffer.Picture;
@@ -413,10 +413,9 @@ internal static partial class Av1FrameEncoder
         /// <typeparam name="TPixel">The pixel type.</typeparam>
         /// <typeparam name="TSample">The sample type.</typeparam>
         /// <typeparam name="TStorer">The sample conversion.</typeparam>
-        /// <typeparam name="TFirstPassOperator">The first-pass arithmetic.</typeparam>
         /// <typeparam name="TFilterOperator">The temporal filter arithmetic.</typeparam>
         /// <typeparam name="TSearchOperator">The motion search arithmetic.</typeparam>
-        /// <typeparam name="TTplOperator">The temporal dependency model arithmetic.</typeparam>
+        /// <typeparam name="TTplOperator">The first-pass and temporal dependency model arithmetic.</typeparam>
         /// <param name="coder">The frame coder of the sample type.</param>
         /// <param name="image">The image that holds the frames.</param>
         /// <param name="firstFrameIndex">The index of the first frame to encode.</param>
@@ -426,7 +425,7 @@ internal static partial class Av1FrameEncoder
         /// <param name="sampleEnds">Receives the stream length after each sample, one per frame.</param>
         /// <param name="syncSamples">Receives whether each sample holds a shown key frame.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        private protected void EncodeLagged<TPixel, TSample, TStorer, TFirstPassOperator, TFilterOperator, TSearchOperator, TTplOperator>(
+        private protected void EncodeLagged<TPixel, TSample, TStorer, TFilterOperator, TSearchOperator, TTplOperator>(
             ILaggedFrameCoder<TSample, TFilterOperator, TSearchOperator, TTplOperator> coder,
             Image<TPixel> image,
             int firstFrameIndex,
@@ -439,8 +438,7 @@ internal static partial class Av1FrameEncoder
             where TPixel : unmanaged, IPixel<TPixel>
             where TSample : unmanaged
             where TStorer : struct, IHeifSampleConverter<TSample>
-            where TFirstPassOperator : struct, Av1FirstPassOperator.IOperator<TSample>
-            where TFilterOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>, Av1TemporalFilter.ISharpPredictionOperator<TSample>
+            where TFilterOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>
             where TSearchOperator : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
             where TTplOperator : struct, IAv1TplSampleOperator<TSample>
         {
@@ -459,7 +457,7 @@ internal static partial class Av1FrameEncoder
                 lumaBorder,
                 secondPass.LookaheadDepth);
 
-            using Av1FirstPass<TSample, TFirstPassOperator> firstPass = new(
+            using Av1FirstPass<TSample, TTplOperator> firstPass = new(
                 this.Configuration,
                 image.Width,
                 image.Height,
@@ -822,7 +820,6 @@ internal static partial class Av1FrameEncoder
     private sealed partial class SampleSequenceEncoder<
         TSample,
         TStorer,
-        TFirstPassOperator,
         TFilterOperator,
         TSearchOperator,
         TTplOperator,
@@ -846,7 +843,7 @@ internal static partial class Av1FrameEncoder
             Span<long> sampleEnds,
             Span<bool> syncSamples,
             CancellationToken cancellationToken)
-            => this.EncodeLagged<TPixel, TSample, TStorer, TFirstPassOperator, TFilterOperator, TSearchOperator, TTplOperator>(
+            => this.EncodeLagged<TPixel, TSample, TStorer, TFilterOperator, TSearchOperator, TTplOperator>(
                 this, image, firstFrameIndex, frameCount, frameDurationTicks, stream, sampleEnds, syncSamples, cancellationToken);
 
         /// <inheritdoc/>

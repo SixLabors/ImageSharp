@@ -8,7 +8,7 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 
 /// <summary>
-/// Measures OBMC motion search candidates and builds the OBMC search target with the arithmetic of an <see cref="IObmcOperator{TSample}"/>.
+/// Measures OBMC motion search candidates and builds the OBMC search target. An <see cref="IObmcOperator{TSample}"/> supplies the sample loads.
 /// </summary>
 /// <remarks>
 /// The weighted source and the mask are packed at the block width, one thirty-two-bit value per luma sample.
@@ -21,7 +21,7 @@ internal static partial class Av1ObmcSearch
     /// Returns the OBMC sum of absolute differences of a prediction.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The sample loads.</typeparam>
     /// <param name="prediction">The prediction samples at the block origin.</param>
     /// <param name="predictionStride">The prediction row stride.</param>
     /// <param name="weightedSource">The weighted source, packed at the block width.</param>
@@ -60,8 +60,11 @@ internal static partial class Av1ObmcSearch
             {
                 for (; column <= width - Vector512<int>.Count; column += Vector512<int>.Count)
                 {
-                    total512 = TOperator.AccumulateAbsoluteDifferences(
-                        ref Unsafe.Add(ref predictionRow, column), ref Unsafe.Add(ref sourceRow, column), ref Unsafe.Add(ref maskRow, column), total512);
+                    total512 = ObmcLanes.AccumulateAbsoluteDifferences(
+                        TOperator.Load(ref Unsafe.Add(ref predictionRow, column), default(Vector512<int>)),
+                        Vector512.LoadUnsafe(ref Unsafe.Add(ref sourceRow, column)),
+                        Vector512.LoadUnsafe(ref Unsafe.Add(ref maskRow, column)),
+                        total512);
                 }
             }
 
@@ -69,8 +72,11 @@ internal static partial class Av1ObmcSearch
             {
                 for (; column <= width - Vector256<int>.Count; column += Vector256<int>.Count)
                 {
-                    total256 = TOperator.AccumulateAbsoluteDifferences(
-                        ref Unsafe.Add(ref predictionRow, column), ref Unsafe.Add(ref sourceRow, column), ref Unsafe.Add(ref maskRow, column), total256);
+                    total256 = ObmcLanes.AccumulateAbsoluteDifferences(
+                        TOperator.Load(ref Unsafe.Add(ref predictionRow, column), default(Vector256<int>)),
+                        Vector256.LoadUnsafe(ref Unsafe.Add(ref sourceRow, column)),
+                        Vector256.LoadUnsafe(ref Unsafe.Add(ref maskRow, column)),
+                        total256);
                 }
             }
 
@@ -78,15 +84,18 @@ internal static partial class Av1ObmcSearch
             {
                 for (; column <= width - Vector128<int>.Count; column += Vector128<int>.Count)
                 {
-                    total128 = TOperator.AccumulateAbsoluteDifferences(
-                        ref Unsafe.Add(ref predictionRow, column), ref Unsafe.Add(ref sourceRow, column), ref Unsafe.Add(ref maskRow, column), total128);
+                    total128 = ObmcLanes.AccumulateAbsoluteDifferences(
+                        TOperator.Load(ref Unsafe.Add(ref predictionRow, column), default(Vector128<int>)),
+                        Vector128.LoadUnsafe(ref Unsafe.Add(ref sourceRow, column)),
+                        Vector128.LoadUnsafe(ref Unsafe.Add(ref maskRow, column)),
+                        total128);
                 }
             }
 
             for (; column < width; column++)
             {
-                total = TOperator.AccumulateAbsoluteDifferences(
-                    Unsafe.Add(ref predictionRow, column), Unsafe.Add(ref sourceRow, column), Unsafe.Add(ref maskRow, column), total);
+                total = ObmcLanes.AccumulateAbsoluteDifferences(
+                    TOperator.ToInt32(Unsafe.Add(ref predictionRow, column)), Unsafe.Add(ref sourceRow, column), Unsafe.Add(ref maskRow, column), total);
             }
         }
 
@@ -112,7 +121,7 @@ internal static partial class Av1ObmcSearch
     /// Returns the signed sum and the squared sum of the rounded OBMC differences of a prediction.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The sample loads.</typeparam>
     /// <param name="prediction">The prediction samples at the block origin.</param>
     /// <param name="predictionStride">The prediction row stride.</param>
     /// <param name="weightedSource">The weighted source, packed at the block width.</param>
@@ -160,8 +169,12 @@ internal static partial class Av1ObmcSearch
                 Vector512<uint> rowSquares = Vector512<uint>.Zero;
                 for (; column <= width - Vector512<int>.Count; column += Vector512<int>.Count)
                 {
-                    TOperator.AccumulateMoments(
-                        ref Unsafe.Add(ref predictionRow, column), ref Unsafe.Add(ref sourceRow, column), ref Unsafe.Add(ref maskRow, column), ref sum512, ref rowSquares);
+                    ObmcLanes.AccumulateMoments(
+                        TOperator.Load(ref Unsafe.Add(ref predictionRow, column), default(Vector512<int>)),
+                        Vector512.LoadUnsafe(ref Unsafe.Add(ref sourceRow, column)),
+                        Vector512.LoadUnsafe(ref Unsafe.Add(ref maskRow, column)),
+                        ref sum512,
+                        ref rowSquares);
                 }
 
                 (Vector512<ulong> lower, Vector512<ulong> upper) = Vector512.Widen(rowSquares);
@@ -173,8 +186,12 @@ internal static partial class Av1ObmcSearch
                 Vector256<uint> rowSquares = Vector256<uint>.Zero;
                 for (; column <= width - Vector256<int>.Count; column += Vector256<int>.Count)
                 {
-                    TOperator.AccumulateMoments(
-                        ref Unsafe.Add(ref predictionRow, column), ref Unsafe.Add(ref sourceRow, column), ref Unsafe.Add(ref maskRow, column), ref sum256, ref rowSquares);
+                    ObmcLanes.AccumulateMoments(
+                        TOperator.Load(ref Unsafe.Add(ref predictionRow, column), default(Vector256<int>)),
+                        Vector256.LoadUnsafe(ref Unsafe.Add(ref sourceRow, column)),
+                        Vector256.LoadUnsafe(ref Unsafe.Add(ref maskRow, column)),
+                        ref sum256,
+                        ref rowSquares);
                 }
 
                 (Vector256<ulong> lower, Vector256<ulong> upper) = Vector256.Widen(rowSquares);
@@ -186,8 +203,12 @@ internal static partial class Av1ObmcSearch
                 Vector128<uint> rowSquares = Vector128<uint>.Zero;
                 for (; column <= width - Vector128<int>.Count; column += Vector128<int>.Count)
                 {
-                    TOperator.AccumulateMoments(
-                        ref Unsafe.Add(ref predictionRow, column), ref Unsafe.Add(ref sourceRow, column), ref Unsafe.Add(ref maskRow, column), ref sum128, ref rowSquares);
+                    ObmcLanes.AccumulateMoments(
+                        TOperator.Load(ref Unsafe.Add(ref predictionRow, column), default(Vector128<int>)),
+                        Vector128.LoadUnsafe(ref Unsafe.Add(ref sourceRow, column)),
+                        Vector128.LoadUnsafe(ref Unsafe.Add(ref maskRow, column)),
+                        ref sum128,
+                        ref rowSquares);
                 }
 
                 (Vector128<ulong> lower, Vector128<ulong> upper) = Vector128.Widen(rowSquares);
@@ -196,8 +217,12 @@ internal static partial class Av1ObmcSearch
 
             for (; column < width; column++)
             {
-                TOperator.AccumulateMoments(
-                    Unsafe.Add(ref predictionRow, column), Unsafe.Add(ref sourceRow, column), Unsafe.Add(ref maskRow, column), ref sum, ref squares);
+                ObmcLanes.AccumulateMoments(
+                    TOperator.ToInt32(Unsafe.Add(ref predictionRow, column)),
+                    Unsafe.Add(ref sourceRow, column),
+                    Unsafe.Add(ref maskRow, column),
+                    ref sum,
+                    ref squares);
             }
         }
 
@@ -224,7 +249,7 @@ internal static partial class Av1ObmcSearch
     /// Writes one row of the above-neighbor term of the OBMC search target.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The sample loads.</typeparam>
     /// <param name="prediction">The above-neighbor prediction row.</param>
     /// <param name="weight">The weight of the block's own prediction on this row.</param>
     /// <param name="weightedSource">The weighted source row to write.</param>
@@ -248,7 +273,11 @@ internal static partial class Av1ObmcSearch
             Vector512<int> weights = Vector512.Create(weight);
             for (; column <= width - Vector512<int>.Count; column += Vector512<int>.Count)
             {
-                TOperator.WeightAbove(ref Unsafe.Add(ref predictionRow, column), weights, ref Unsafe.Add(ref sourceRow, column), ref Unsafe.Add(ref maskRow, column));
+                ObmcLanes.WeightAbove(
+                    TOperator.Load(ref Unsafe.Add(ref predictionRow, column), default(Vector512<int>)),
+                    weights,
+                    ref Unsafe.Add(ref sourceRow, column),
+                    ref Unsafe.Add(ref maskRow, column));
             }
         }
 
@@ -257,7 +286,11 @@ internal static partial class Av1ObmcSearch
             Vector256<int> weights = Vector256.Create(weight);
             for (; column <= width - Vector256<int>.Count; column += Vector256<int>.Count)
             {
-                TOperator.WeightAbove(ref Unsafe.Add(ref predictionRow, column), weights, ref Unsafe.Add(ref sourceRow, column), ref Unsafe.Add(ref maskRow, column));
+                ObmcLanes.WeightAbove(
+                    TOperator.Load(ref Unsafe.Add(ref predictionRow, column), default(Vector256<int>)),
+                    weights,
+                    ref Unsafe.Add(ref sourceRow, column),
+                    ref Unsafe.Add(ref maskRow, column));
             }
         }
 
@@ -266,13 +299,18 @@ internal static partial class Av1ObmcSearch
             Vector128<int> weights = Vector128.Create(weight);
             for (; column <= width - Vector128<int>.Count; column += Vector128<int>.Count)
             {
-                TOperator.WeightAbove(ref Unsafe.Add(ref predictionRow, column), weights, ref Unsafe.Add(ref sourceRow, column), ref Unsafe.Add(ref maskRow, column));
+                ObmcLanes.WeightAbove(
+                    TOperator.Load(ref Unsafe.Add(ref predictionRow, column), default(Vector128<int>)),
+                    weights,
+                    ref Unsafe.Add(ref sourceRow, column),
+                    ref Unsafe.Add(ref maskRow, column));
             }
         }
 
         for (; column < width; column++)
         {
-            TOperator.WeightAbove(Unsafe.Add(ref predictionRow, column), weight, ref Unsafe.Add(ref sourceRow, column), ref Unsafe.Add(ref maskRow, column));
+            ObmcLanes.WeightAbove(
+                TOperator.ToInt32(Unsafe.Add(ref predictionRow, column)), weight, ref Unsafe.Add(ref sourceRow, column), ref Unsafe.Add(ref maskRow, column));
         }
     }
 
@@ -280,7 +318,7 @@ internal static partial class Av1ObmcSearch
     /// Blends one row of the left-neighbor term into the OBMC search target.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The sample loads.</typeparam>
     /// <param name="prediction">The left-neighbor prediction row.</param>
     /// <param name="weights">The column weights of the block's own prediction, one per overlapped column.</param>
     /// <param name="weightedSource">The weighted source row to update.</param>
@@ -303,12 +341,11 @@ internal static partial class Av1ObmcSearch
         {
             for (; column <= width - Vector512<int>.Count; column += Vector512<int>.Count)
             {
-                TOperator.WeightLeft(
-                    ref Unsafe.Add(ref predictionRow, column),
-                    ref Unsafe.Add(ref weightRow, column),
+                ObmcLanes.WeightLeft(
+                    TOperator.Load(ref Unsafe.Add(ref predictionRow, column), default(Vector512<int>)),
+                    ObmcLanes.LoadBytes(ref Unsafe.Add(ref weightRow, column), default(Vector512<int>)),
                     ref Unsafe.Add(ref sourceRow, column),
-                    ref Unsafe.Add(ref maskRow, column),
-                    default(Vector512<int>));
+                    ref Unsafe.Add(ref maskRow, column));
             }
         }
 
@@ -316,12 +353,11 @@ internal static partial class Av1ObmcSearch
         {
             for (; column <= width - Vector256<int>.Count; column += Vector256<int>.Count)
             {
-                TOperator.WeightLeft(
-                    ref Unsafe.Add(ref predictionRow, column),
-                    ref Unsafe.Add(ref weightRow, column),
+                ObmcLanes.WeightLeft(
+                    TOperator.Load(ref Unsafe.Add(ref predictionRow, column), default(Vector256<int>)),
+                    ObmcLanes.LoadBytes(ref Unsafe.Add(ref weightRow, column), default(Vector256<int>)),
                     ref Unsafe.Add(ref sourceRow, column),
-                    ref Unsafe.Add(ref maskRow, column),
-                    default(Vector256<int>));
+                    ref Unsafe.Add(ref maskRow, column));
             }
         }
 
@@ -329,18 +365,21 @@ internal static partial class Av1ObmcSearch
         {
             for (; column <= width - Vector128<int>.Count; column += Vector128<int>.Count)
             {
-                TOperator.WeightLeft(
-                    ref Unsafe.Add(ref predictionRow, column),
-                    ref Unsafe.Add(ref weightRow, column),
+                ObmcLanes.WeightLeft(
+                    TOperator.Load(ref Unsafe.Add(ref predictionRow, column), default(Vector128<int>)),
+                    ObmcLanes.LoadBytes(ref Unsafe.Add(ref weightRow, column), default(Vector128<int>)),
                     ref Unsafe.Add(ref sourceRow, column),
-                    ref Unsafe.Add(ref maskRow, column),
-                    default(Vector128<int>));
+                    ref Unsafe.Add(ref maskRow, column));
             }
         }
 
         for (; column < width; column++)
         {
-            TOperator.WeightLeft(Unsafe.Add(ref predictionRow, column), Unsafe.Add(ref weightRow, column), ref Unsafe.Add(ref sourceRow, column), ref Unsafe.Add(ref maskRow, column));
+            ObmcLanes.WeightLeft(
+                TOperator.ToInt32(Unsafe.Add(ref predictionRow, column)),
+                Unsafe.Add(ref weightRow, column),
+                ref Unsafe.Add(ref sourceRow, column),
+                ref Unsafe.Add(ref maskRow, column));
         }
     }
 
@@ -348,7 +387,7 @@ internal static partial class Av1ObmcSearch
     /// Scales the whole OBMC search target by the maximum blend weight between the above and the left neighbor passes.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The sample loads. The scale reads no samples, so it does not use them.</typeparam>
     /// <param name="weightedSource">The weighted source to update.</param>
     /// <param name="mask">The prediction weights to update.</param>
     public static void Scale<TSample, TOperator>(Span<int> weightedSource, Span<int> mask)
@@ -363,7 +402,7 @@ internal static partial class Av1ObmcSearch
         {
             for (; index <= length - Vector512<int>.Count; index += Vector512<int>.Count)
             {
-                TOperator.Scale(ref Unsafe.Add(ref sourceBase, index), ref Unsafe.Add(ref maskBase, index), default(Vector512<int>));
+                ObmcLanes.Scale(ref Unsafe.Add(ref sourceBase, index), ref Unsafe.Add(ref maskBase, index), default(Vector512<int>));
             }
         }
 
@@ -371,7 +410,7 @@ internal static partial class Av1ObmcSearch
         {
             for (; index <= length - Vector256<int>.Count; index += Vector256<int>.Count)
             {
-                TOperator.Scale(ref Unsafe.Add(ref sourceBase, index), ref Unsafe.Add(ref maskBase, index), default(Vector256<int>));
+                ObmcLanes.Scale(ref Unsafe.Add(ref sourceBase, index), ref Unsafe.Add(ref maskBase, index), default(Vector256<int>));
             }
         }
 
@@ -379,13 +418,13 @@ internal static partial class Av1ObmcSearch
         {
             for (; index <= length - Vector128<int>.Count; index += Vector128<int>.Count)
             {
-                TOperator.Scale(ref Unsafe.Add(ref sourceBase, index), ref Unsafe.Add(ref maskBase, index), default(Vector128<int>));
+                ObmcLanes.Scale(ref Unsafe.Add(ref sourceBase, index), ref Unsafe.Add(ref maskBase, index), default(Vector128<int>));
             }
         }
 
         for (; index < length; index++)
         {
-            TOperator.Scale(ref Unsafe.Add(ref sourceBase, index), ref Unsafe.Add(ref maskBase, index));
+            ObmcLanes.Scale(ref Unsafe.Add(ref sourceBase, index), ref Unsafe.Add(ref maskBase, index));
         }
     }
 
@@ -393,7 +432,7 @@ internal static partial class Av1ObmcSearch
     /// Replaces one row of neighbor terms with the source scaled by 64 * 64 minus the term.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The sample loads.</typeparam>
     /// <param name="source">The source row.</param>
     /// <param name="weightedSource">The weighted source row to update.</param>
     public static void SubtractFromSource<TSample, TOperator>(ReadOnlySpan<TSample> source, Span<int> weightedSource)
@@ -408,7 +447,8 @@ internal static partial class Av1ObmcSearch
         {
             for (; column <= width - Vector512<int>.Count; column += Vector512<int>.Count)
             {
-                TOperator.SubtractFromSource(ref Unsafe.Add(ref sourceRow, column), ref Unsafe.Add(ref targetRow, column), default(Vector512<int>));
+                ObmcLanes.SubtractFromSource(
+                    TOperator.Load(ref Unsafe.Add(ref sourceRow, column), default(Vector512<int>)), ref Unsafe.Add(ref targetRow, column));
             }
         }
 
@@ -416,7 +456,8 @@ internal static partial class Av1ObmcSearch
         {
             for (; column <= width - Vector256<int>.Count; column += Vector256<int>.Count)
             {
-                TOperator.SubtractFromSource(ref Unsafe.Add(ref sourceRow, column), ref Unsafe.Add(ref targetRow, column), default(Vector256<int>));
+                ObmcLanes.SubtractFromSource(
+                    TOperator.Load(ref Unsafe.Add(ref sourceRow, column), default(Vector256<int>)), ref Unsafe.Add(ref targetRow, column));
             }
         }
 
@@ -424,13 +465,14 @@ internal static partial class Av1ObmcSearch
         {
             for (; column <= width - Vector128<int>.Count; column += Vector128<int>.Count)
             {
-                TOperator.SubtractFromSource(ref Unsafe.Add(ref sourceRow, column), ref Unsafe.Add(ref targetRow, column), default(Vector128<int>));
+                ObmcLanes.SubtractFromSource(
+                    TOperator.Load(ref Unsafe.Add(ref sourceRow, column), default(Vector128<int>)), ref Unsafe.Add(ref targetRow, column));
             }
         }
 
         for (; column < width; column++)
         {
-            TOperator.SubtractFromSource(Unsafe.Add(ref sourceRow, column), ref Unsafe.Add(ref targetRow, column));
+            ObmcLanes.SubtractFromSource(TOperator.ToInt32(Unsafe.Add(ref sourceRow, column)), ref Unsafe.Add(ref targetRow, column));
         }
     }
 }

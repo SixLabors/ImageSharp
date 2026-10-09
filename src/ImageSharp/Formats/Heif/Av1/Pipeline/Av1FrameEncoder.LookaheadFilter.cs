@@ -20,7 +20,7 @@ internal static partial class Av1FrameEncoder
     /// <typeparam name="TSearch">The motion search arithmetic.</typeparam>
     internal sealed class LookaheadTemporalFilter<TSample, TOperator, TSearch> : IDisposable
         where TSample : unmanaged
-        where TOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>, Av1TemporalFilter.ISharpPredictionOperator<TSample>
+        where TOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>
         where TSearch : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
     {
         /// <summary>

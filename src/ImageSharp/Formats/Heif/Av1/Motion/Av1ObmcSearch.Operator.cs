@@ -7,496 +7,105 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 
 /// <content>
-/// Defines the sample-width-specific arithmetic used by the <see cref="Av1ObmcSearch"/> traversals.
+/// Defines the sample-width-specific loads used by the <see cref="Av1ObmcSearch"/> traversals.
 /// </content>
 internal static partial class Av1ObmcSearch
 {
     /// <summary>
-    /// Defines the OBMC search arithmetic for one sample storage type across hardware widths.
+    /// Defines how the OBMC search reads one sample storage type across hardware widths.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
     /// <remarks>
     /// <para>
     /// One lane is one sample, widened to thirty-two bits because the weighted source and the mask are thirty-two-bit arrays.
-    /// A vector overload reads as many samples as its register has thirty-two-bit lanes: four, eight or sixteen.
-    /// The narrowest overload therefore covers the four-sample overlap of an eight-sample block, and no OBMC row is left to the scalar overload.
+    /// A load reads as many samples as its register has thirty-two-bit lanes: four, eight or sixteen.
+    /// The narrowest load therefore covers the four-sample overlap of an eight-sample block, and no OBMC row is left to the scalar form.
     /// </para>
     /// <para>
-    /// A measure returns a lane-shaped total, not a scalar one, so that the traversal reduces each total once and never inside its loop.
-    /// The spread of a total across the lanes is not defined. Only the sum of all lanes is.
+    /// The OBMC arithmetic does not depend on the storage type once the samples are widened, so <see cref="Av1ObmcSearch"/>
+    /// writes it once. This operator supplies only the widening loads and the scalar conversion.
     /// </para>
     /// </remarks>
     internal interface IObmcOperator<TSample>
         where TSample : unmanaged
     {
         /// <summary>
-        /// Adds the rounded OBMC absolute differences of four samples to a running total.
+        /// Loads four samples and widens them to thirty-two-bit lanes.
         /// </summary>
-        /// <param name="prediction">The first prediction sample.</param>
-        /// <param name="weightedSource">The first weighted source value.</param>
-        /// <param name="mask">The first prediction weight.</param>
-        /// <param name="total">The running total.</param>
-        /// <returns>The updated running total.</returns>
-        public static abstract Vector128<uint> AccumulateAbsoluteDifferences(ref TSample prediction, ref int weightedSource, ref int mask, Vector128<uint> total);
-
-        /// <summary>
-        /// Adds the rounded OBMC absolute differences of eight samples to a running total.
-        /// </summary>
-        /// <param name="prediction">The first prediction sample.</param>
-        /// <param name="weightedSource">The first weighted source value.</param>
-        /// <param name="mask">The first prediction weight.</param>
-        /// <param name="total">The running total.</param>
-        /// <returns>The updated running total.</returns>
-        public static abstract Vector256<uint> AccumulateAbsoluteDifferences(ref TSample prediction, ref int weightedSource, ref int mask, Vector256<uint> total);
-
-        /// <summary>
-        /// Adds the rounded OBMC absolute differences of sixteen samples to a running total.
-        /// </summary>
-        /// <param name="prediction">The first prediction sample.</param>
-        /// <param name="weightedSource">The first weighted source value.</param>
-        /// <param name="mask">The first prediction weight.</param>
-        /// <param name="total">The running total.</param>
-        /// <returns>The updated running total.</returns>
-        public static abstract Vector512<uint> AccumulateAbsoluteDifferences(ref TSample prediction, ref int weightedSource, ref int mask, Vector512<uint> total);
-
-        /// <summary>
-        /// Adds the rounded OBMC absolute difference of one sample to a running total.
-        /// </summary>
-        /// <param name="prediction">The prediction sample.</param>
-        /// <param name="weightedSource">The weighted source value.</param>
-        /// <param name="mask">The prediction weight.</param>
-        /// <param name="total">The running total.</param>
-        /// <returns>The updated running total.</returns>
-        public static abstract uint AccumulateAbsoluteDifferences(TSample prediction, int weightedSource, int mask, uint total);
-
-        /// <summary>
-        /// Adds the rounded OBMC differences of four samples, and their squares, to two running totals.
-        /// </summary>
-        /// <param name="prediction">The first prediction sample.</param>
-        /// <param name="weightedSource">The first weighted source value.</param>
-        /// <param name="mask">The first prediction weight.</param>
-        /// <param name="sum">The running signed total.</param>
-        /// <param name="squares">The running squared total.</param>
-        public static abstract void AccumulateMoments(ref TSample prediction, ref int weightedSource, ref int mask, ref Vector128<int> sum, ref Vector128<uint> squares);
-
-        /// <summary>
-        /// Adds the rounded OBMC differences of eight samples, and their squares, to two running totals.
-        /// </summary>
-        /// <param name="prediction">The first prediction sample.</param>
-        /// <param name="weightedSource">The first weighted source value.</param>
-        /// <param name="mask">The first prediction weight.</param>
-        /// <param name="sum">The running signed total.</param>
-        /// <param name="squares">The running squared total.</param>
-        public static abstract void AccumulateMoments(ref TSample prediction, ref int weightedSource, ref int mask, ref Vector256<int> sum, ref Vector256<uint> squares);
-
-        /// <summary>
-        /// Adds the rounded OBMC differences of sixteen samples, and their squares, to two running totals.
-        /// </summary>
-        /// <param name="prediction">The first prediction sample.</param>
-        /// <param name="weightedSource">The first weighted source value.</param>
-        /// <param name="mask">The first prediction weight.</param>
-        /// <param name="sum">The running signed total.</param>
-        /// <param name="squares">The running squared total.</param>
-        public static abstract void AccumulateMoments(ref TSample prediction, ref int weightedSource, ref int mask, ref Vector512<int> sum, ref Vector512<uint> squares);
-
-        /// <summary>
-        /// Adds the rounded OBMC difference of one sample, and its square, to two running totals.
-        /// </summary>
-        /// <param name="prediction">The prediction sample.</param>
-        /// <param name="weightedSource">The weighted source value.</param>
-        /// <param name="mask">The prediction weight.</param>
-        /// <param name="sum">The running signed total.</param>
-        /// <param name="squares">The running squared total.</param>
-        public static abstract void AccumulateMoments(TSample prediction, int weightedSource, int mask, ref int sum, ref ulong squares);
-
-        /// <summary>
-        /// Writes the above-neighbor term of four target values, all at one row weight.
-        /// </summary>
-        /// <param name="prediction">The first sample of the above-neighbor prediction.</param>
-        /// <param name="weight">The weight of the block's own prediction, in every lane.</param>
-        /// <param name="weightedSource">The first weighted source value to write.</param>
-        /// <param name="mask">The first prediction weight to write.</param>
-        public static abstract void WeightAbove(ref TSample prediction, Vector128<int> weight, ref int weightedSource, ref int mask);
-
-        /// <summary>
-        /// Writes the above-neighbor term of eight target values, all at one row weight.
-        /// </summary>
-        /// <param name="prediction">The first sample of the above-neighbor prediction.</param>
-        /// <param name="weight">The weight of the block's own prediction, in every lane.</param>
-        /// <param name="weightedSource">The first weighted source value to write.</param>
-        /// <param name="mask">The first prediction weight to write.</param>
-        public static abstract void WeightAbove(ref TSample prediction, Vector256<int> weight, ref int weightedSource, ref int mask);
-
-        /// <summary>
-        /// Writes the above-neighbor term of sixteen target values, all at one row weight.
-        /// </summary>
-        /// <param name="prediction">The first sample of the above-neighbor prediction.</param>
-        /// <param name="weight">The weight of the block's own prediction, in every lane.</param>
-        /// <param name="weightedSource">The first weighted source value to write.</param>
-        /// <param name="mask">The first prediction weight to write.</param>
-        public static abstract void WeightAbove(ref TSample prediction, Vector512<int> weight, ref int weightedSource, ref int mask);
-
-        /// <summary>
-        /// Writes the above-neighbor term of one target value.
-        /// </summary>
-        /// <param name="prediction">The above-neighbor prediction sample.</param>
-        /// <param name="weight">The weight of the block's own prediction.</param>
-        /// <param name="weightedSource">The weighted source value to write.</param>
-        /// <param name="mask">The prediction weight to write.</param>
-        public static abstract void WeightAbove(TSample prediction, int weight, ref int weightedSource, ref int mask);
-
-        /// <summary>
-        /// Blends the left-neighbor term into four target values, one column weight per value.
-        /// </summary>
-        /// <param name="prediction">The first sample of the left-neighbor prediction.</param>
-        /// <param name="weights">The first column weight of the block's own prediction.</param>
-        /// <param name="weightedSource">The first weighted source value to update.</param>
-        /// <param name="mask">The first prediction weight to update.</param>
+        /// <param name="source">The first sample.</param>
         /// <param name="lanes">The overload-selection value.</param>
-        public static abstract void WeightLeft(ref TSample prediction, ref byte weights, ref int weightedSource, ref int mask, Vector128<int> lanes);
+        /// <returns>The widened samples in increasing order.</returns>
+        public static abstract Vector128<int> Load(ref TSample source, Vector128<int> lanes);
 
         /// <summary>
-        /// Blends the left-neighbor term into eight target values, one column weight per value.
+        /// Loads eight samples and widens them to thirty-two-bit lanes.
         /// </summary>
-        /// <param name="prediction">The first sample of the left-neighbor prediction.</param>
-        /// <param name="weights">The first column weight of the block's own prediction.</param>
-        /// <param name="weightedSource">The first weighted source value to update.</param>
-        /// <param name="mask">The first prediction weight to update.</param>
+        /// <param name="source">The first sample.</param>
         /// <param name="lanes">The overload-selection value.</param>
-        public static abstract void WeightLeft(ref TSample prediction, ref byte weights, ref int weightedSource, ref int mask, Vector256<int> lanes);
+        /// <returns>The widened samples in increasing order.</returns>
+        public static abstract Vector256<int> Load(ref TSample source, Vector256<int> lanes);
 
         /// <summary>
-        /// Blends the left-neighbor term into sixteen target values, one column weight per value.
+        /// Loads sixteen samples and widens them to thirty-two-bit lanes.
         /// </summary>
-        /// <param name="prediction">The first sample of the left-neighbor prediction.</param>
-        /// <param name="weights">The first column weight of the block's own prediction.</param>
-        /// <param name="weightedSource">The first weighted source value to update.</param>
-        /// <param name="mask">The first prediction weight to update.</param>
+        /// <param name="source">The first sample.</param>
         /// <param name="lanes">The overload-selection value.</param>
-        public static abstract void WeightLeft(ref TSample prediction, ref byte weights, ref int weightedSource, ref int mask, Vector512<int> lanes);
+        /// <returns>The widened samples in increasing order.</returns>
+        public static abstract Vector512<int> Load(ref TSample source, Vector512<int> lanes);
 
         /// <summary>
-        /// Blends the left-neighbor term into one target value.
+        /// Returns the value of one sample.
         /// </summary>
-        /// <param name="prediction">The left-neighbor prediction sample.</param>
-        /// <param name="weight">The column weight of the block's own prediction.</param>
-        /// <param name="weightedSource">The weighted source value to update.</param>
-        /// <param name="mask">The prediction weight to update.</param>
-        public static abstract void WeightLeft(TSample prediction, int weight, ref int weightedSource, ref int mask);
-
-        /// <summary>
-        /// Scales four weighted source values and prediction weights by the maximum blend weight.
-        /// </summary>
-        /// <param name="weightedSource">The first weighted source value to update.</param>
-        /// <param name="mask">The first prediction weight to update.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        public static abstract void Scale(ref int weightedSource, ref int mask, Vector128<int> lanes);
-
-        /// <summary>
-        /// Scales eight weighted source values and prediction weights by the maximum blend weight.
-        /// </summary>
-        /// <param name="weightedSource">The first weighted source value to update.</param>
-        /// <param name="mask">The first prediction weight to update.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        public static abstract void Scale(ref int weightedSource, ref int mask, Vector256<int> lanes);
-
-        /// <summary>
-        /// Scales sixteen weighted source values and prediction weights by the maximum blend weight.
-        /// </summary>
-        /// <param name="weightedSource">The first weighted source value to update.</param>
-        /// <param name="mask">The first prediction weight to update.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        public static abstract void Scale(ref int weightedSource, ref int mask, Vector512<int> lanes);
-
-        /// <summary>
-        /// Scales one weighted source value and prediction weight by the maximum blend weight.
-        /// </summary>
-        /// <param name="weightedSource">The weighted source value to update.</param>
-        /// <param name="mask">The prediction weight to update.</param>
-        public static abstract void Scale(ref int weightedSource, ref int mask);
-
-        /// <summary>
-        /// Replaces four neighbor terms with the scaled source minus the neighbor term.
-        /// </summary>
-        /// <param name="source">The first source sample.</param>
-        /// <param name="weightedSource">The first weighted source value to update.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        public static abstract void SubtractFromSource(ref TSample source, ref int weightedSource, Vector128<int> lanes);
-
-        /// <summary>
-        /// Replaces eight neighbor terms with the scaled source minus the neighbor term.
-        /// </summary>
-        /// <param name="source">The first source sample.</param>
-        /// <param name="weightedSource">The first weighted source value to update.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        public static abstract void SubtractFromSource(ref TSample source, ref int weightedSource, Vector256<int> lanes);
-
-        /// <summary>
-        /// Replaces sixteen neighbor terms with the scaled source minus the neighbor term.
-        /// </summary>
-        /// <param name="source">The first source sample.</param>
-        /// <param name="weightedSource">The first weighted source value to update.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        public static abstract void SubtractFromSource(ref TSample source, ref int weightedSource, Vector512<int> lanes);
-
-        /// <summary>
-        /// Replaces one neighbor term with the scaled source minus the neighbor term.
-        /// </summary>
-        /// <param name="source">The source sample.</param>
-        /// <param name="weightedSource">The weighted source value to update.</param>
-        public static abstract void SubtractFromSource(TSample source, ref int weightedSource);
+        /// <param name="sample">The sample.</param>
+        /// <returns>The sample value.</returns>
+        public static abstract int ToInt32(TSample sample);
     }
 
     /// <summary>
-    /// Widens eight-bit samples to thirty-two-bit lanes and applies the shared OBMC lane arithmetic.
+    /// Widens eight-bit samples to thirty-two-bit lanes for the shared OBMC lane arithmetic.
     /// </summary>
     internal readonly struct ByteOperator : IObmcOperator<byte>
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<uint> AccumulateAbsoluteDifferences(ref byte prediction, ref int weightedSource, ref int mask, Vector128<uint> total)
-            => ObmcLanes.AccumulateAbsoluteDifferences(ObmcLanes.LoadBytes(ref prediction, default(Vector128<int>)), Vector128.LoadUnsafe(ref weightedSource), Vector128.LoadUnsafe(ref mask), total);
+        public static Vector128<int> Load(ref byte source, Vector128<int> lanes) => ObmcLanes.LoadBytes(ref source, lanes);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<uint> AccumulateAbsoluteDifferences(ref byte prediction, ref int weightedSource, ref int mask, Vector256<uint> total)
-            => ObmcLanes.AccumulateAbsoluteDifferences(ObmcLanes.LoadBytes(ref prediction, default(Vector256<int>)), Vector256.LoadUnsafe(ref weightedSource), Vector256.LoadUnsafe(ref mask), total);
+        public static Vector256<int> Load(ref byte source, Vector256<int> lanes) => ObmcLanes.LoadBytes(ref source, lanes);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<uint> AccumulateAbsoluteDifferences(ref byte prediction, ref int weightedSource, ref int mask, Vector512<uint> total)
-            => ObmcLanes.AccumulateAbsoluteDifferences(ObmcLanes.LoadBytes(ref prediction, default(Vector512<int>)), Vector512.LoadUnsafe(ref weightedSource), Vector512.LoadUnsafe(ref mask), total);
+        public static Vector512<int> Load(ref byte source, Vector512<int> lanes) => ObmcLanes.LoadBytes(ref source, lanes);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint AccumulateAbsoluteDifferences(byte prediction, int weightedSource, int mask, uint total)
-            => ObmcLanes.AccumulateAbsoluteDifferences(prediction, weightedSource, mask, total);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateMoments(ref byte prediction, ref int weightedSource, ref int mask, ref Vector128<int> sum, ref Vector128<uint> squares)
-            => ObmcLanes.AccumulateMoments(ObmcLanes.LoadBytes(ref prediction, default(Vector128<int>)), Vector128.LoadUnsafe(ref weightedSource), Vector128.LoadUnsafe(ref mask), ref sum, ref squares);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateMoments(ref byte prediction, ref int weightedSource, ref int mask, ref Vector256<int> sum, ref Vector256<uint> squares)
-            => ObmcLanes.AccumulateMoments(ObmcLanes.LoadBytes(ref prediction, default(Vector256<int>)), Vector256.LoadUnsafe(ref weightedSource), Vector256.LoadUnsafe(ref mask), ref sum, ref squares);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateMoments(ref byte prediction, ref int weightedSource, ref int mask, ref Vector512<int> sum, ref Vector512<uint> squares)
-            => ObmcLanes.AccumulateMoments(ObmcLanes.LoadBytes(ref prediction, default(Vector512<int>)), Vector512.LoadUnsafe(ref weightedSource), Vector512.LoadUnsafe(ref mask), ref sum, ref squares);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateMoments(byte prediction, int weightedSource, int mask, ref int sum, ref ulong squares)
-            => ObmcLanes.AccumulateMoments(prediction, weightedSource, mask, ref sum, ref squares);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void WeightAbove(ref byte prediction, Vector128<int> weight, ref int weightedSource, ref int mask)
-            => ObmcLanes.WeightAbove(ObmcLanes.LoadBytes(ref prediction, default(Vector128<int>)), weight, ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void WeightAbove(ref byte prediction, Vector256<int> weight, ref int weightedSource, ref int mask)
-            => ObmcLanes.WeightAbove(ObmcLanes.LoadBytes(ref prediction, default(Vector256<int>)), weight, ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void WeightAbove(ref byte prediction, Vector512<int> weight, ref int weightedSource, ref int mask)
-            => ObmcLanes.WeightAbove(ObmcLanes.LoadBytes(ref prediction, default(Vector512<int>)), weight, ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void WeightAbove(byte prediction, int weight, ref int weightedSource, ref int mask)
-            => ObmcLanes.WeightAbove(prediction, weight, ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void WeightLeft(ref byte prediction, ref byte weights, ref int weightedSource, ref int mask, Vector128<int> lanes)
-            => ObmcLanes.WeightLeft(ObmcLanes.LoadBytes(ref prediction, lanes), ObmcLanes.LoadBytes(ref weights, lanes), ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void WeightLeft(ref byte prediction, ref byte weights, ref int weightedSource, ref int mask, Vector256<int> lanes)
-            => ObmcLanes.WeightLeft(ObmcLanes.LoadBytes(ref prediction, lanes), ObmcLanes.LoadBytes(ref weights, lanes), ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void WeightLeft(ref byte prediction, ref byte weights, ref int weightedSource, ref int mask, Vector512<int> lanes)
-            => ObmcLanes.WeightLeft(ObmcLanes.LoadBytes(ref prediction, lanes), ObmcLanes.LoadBytes(ref weights, lanes), ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void WeightLeft(byte prediction, int weight, ref int weightedSource, ref int mask)
-            => ObmcLanes.WeightLeft(prediction, weight, ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Scale(ref int weightedSource, ref int mask, Vector128<int> lanes)
-            => ObmcLanes.Scale(ref weightedSource, ref mask, lanes);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Scale(ref int weightedSource, ref int mask, Vector256<int> lanes)
-            => ObmcLanes.Scale(ref weightedSource, ref mask, lanes);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Scale(ref int weightedSource, ref int mask, Vector512<int> lanes)
-            => ObmcLanes.Scale(ref weightedSource, ref mask, lanes);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Scale(ref int weightedSource, ref int mask)
-            => ObmcLanes.Scale(ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SubtractFromSource(ref byte source, ref int weightedSource, Vector128<int> lanes)
-            => ObmcLanes.SubtractFromSource(ObmcLanes.LoadBytes(ref source, lanes), ref weightedSource);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SubtractFromSource(ref byte source, ref int weightedSource, Vector256<int> lanes)
-            => ObmcLanes.SubtractFromSource(ObmcLanes.LoadBytes(ref source, lanes), ref weightedSource);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SubtractFromSource(ref byte source, ref int weightedSource, Vector512<int> lanes)
-            => ObmcLanes.SubtractFromSource(ObmcLanes.LoadBytes(ref source, lanes), ref weightedSource);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SubtractFromSource(byte source, ref int weightedSource)
-            => ObmcLanes.SubtractFromSource(source, ref weightedSource);
+        public static int ToInt32(byte sample) => sample;
     }
 
     /// <summary>
-    /// Widens high-bit-depth samples to thirty-two-bit lanes and applies the shared OBMC lane arithmetic.
+    /// Widens high-bit-depth samples to thirty-two-bit lanes for the shared OBMC lane arithmetic.
     /// </summary>
     internal readonly struct UInt16Operator : IObmcOperator<ushort>
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<uint> AccumulateAbsoluteDifferences(ref ushort prediction, ref int weightedSource, ref int mask, Vector128<uint> total)
-            => ObmcLanes.AccumulateAbsoluteDifferences(ObmcLanes.LoadWords(ref prediction, default(Vector128<int>)), Vector128.LoadUnsafe(ref weightedSource), Vector128.LoadUnsafe(ref mask), total);
+        public static Vector128<int> Load(ref ushort source, Vector128<int> lanes)
+            => Vector128.WidenLower(Vector64.LoadUnsafe(ref source).ToVector128()).AsInt32();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<uint> AccumulateAbsoluteDifferences(ref ushort prediction, ref int weightedSource, ref int mask, Vector256<uint> total)
-            => ObmcLanes.AccumulateAbsoluteDifferences(ObmcLanes.LoadWords(ref prediction, default(Vector256<int>)), Vector256.LoadUnsafe(ref weightedSource), Vector256.LoadUnsafe(ref mask), total);
+        public static Vector256<int> Load(ref ushort source, Vector256<int> lanes)
+            => Vector256.WidenLower(Vector128.LoadUnsafe(ref source).ToVector256Unsafe()).AsInt32();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<uint> AccumulateAbsoluteDifferences(ref ushort prediction, ref int weightedSource, ref int mask, Vector512<uint> total)
-            => ObmcLanes.AccumulateAbsoluteDifferences(ObmcLanes.LoadWords(ref prediction, default(Vector512<int>)), Vector512.LoadUnsafe(ref weightedSource), Vector512.LoadUnsafe(ref mask), total);
+        public static Vector512<int> Load(ref ushort source, Vector512<int> lanes)
+            => Vector512.WidenLower(Vector256.LoadUnsafe(ref source).ToVector512Unsafe()).AsInt32();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint AccumulateAbsoluteDifferences(ushort prediction, int weightedSource, int mask, uint total)
-            => ObmcLanes.AccumulateAbsoluteDifferences(prediction, weightedSource, mask, total);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateMoments(ref ushort prediction, ref int weightedSource, ref int mask, ref Vector128<int> sum, ref Vector128<uint> squares)
-            => ObmcLanes.AccumulateMoments(ObmcLanes.LoadWords(ref prediction, default(Vector128<int>)), Vector128.LoadUnsafe(ref weightedSource), Vector128.LoadUnsafe(ref mask), ref sum, ref squares);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateMoments(ref ushort prediction, ref int weightedSource, ref int mask, ref Vector256<int> sum, ref Vector256<uint> squares)
-            => ObmcLanes.AccumulateMoments(ObmcLanes.LoadWords(ref prediction, default(Vector256<int>)), Vector256.LoadUnsafe(ref weightedSource), Vector256.LoadUnsafe(ref mask), ref sum, ref squares);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateMoments(ref ushort prediction, ref int weightedSource, ref int mask, ref Vector512<int> sum, ref Vector512<uint> squares)
-            => ObmcLanes.AccumulateMoments(ObmcLanes.LoadWords(ref prediction, default(Vector512<int>)), Vector512.LoadUnsafe(ref weightedSource), Vector512.LoadUnsafe(ref mask), ref sum, ref squares);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateMoments(ushort prediction, int weightedSource, int mask, ref int sum, ref ulong squares)
-            => ObmcLanes.AccumulateMoments(prediction, weightedSource, mask, ref sum, ref squares);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void WeightAbove(ref ushort prediction, Vector128<int> weight, ref int weightedSource, ref int mask)
-            => ObmcLanes.WeightAbove(ObmcLanes.LoadWords(ref prediction, default(Vector128<int>)), weight, ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void WeightAbove(ref ushort prediction, Vector256<int> weight, ref int weightedSource, ref int mask)
-            => ObmcLanes.WeightAbove(ObmcLanes.LoadWords(ref prediction, default(Vector256<int>)), weight, ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void WeightAbove(ref ushort prediction, Vector512<int> weight, ref int weightedSource, ref int mask)
-            => ObmcLanes.WeightAbove(ObmcLanes.LoadWords(ref prediction, default(Vector512<int>)), weight, ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void WeightAbove(ushort prediction, int weight, ref int weightedSource, ref int mask)
-            => ObmcLanes.WeightAbove(prediction, weight, ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void WeightLeft(ref ushort prediction, ref byte weights, ref int weightedSource, ref int mask, Vector128<int> lanes)
-            => ObmcLanes.WeightLeft(ObmcLanes.LoadWords(ref prediction, lanes), ObmcLanes.LoadBytes(ref weights, lanes), ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void WeightLeft(ref ushort prediction, ref byte weights, ref int weightedSource, ref int mask, Vector256<int> lanes)
-            => ObmcLanes.WeightLeft(ObmcLanes.LoadWords(ref prediction, lanes), ObmcLanes.LoadBytes(ref weights, lanes), ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void WeightLeft(ref ushort prediction, ref byte weights, ref int weightedSource, ref int mask, Vector512<int> lanes)
-            => ObmcLanes.WeightLeft(ObmcLanes.LoadWords(ref prediction, lanes), ObmcLanes.LoadBytes(ref weights, lanes), ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void WeightLeft(ushort prediction, int weight, ref int weightedSource, ref int mask)
-            => ObmcLanes.WeightLeft(prediction, weight, ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Scale(ref int weightedSource, ref int mask, Vector128<int> lanes)
-            => ObmcLanes.Scale(ref weightedSource, ref mask, lanes);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Scale(ref int weightedSource, ref int mask, Vector256<int> lanes)
-            => ObmcLanes.Scale(ref weightedSource, ref mask, lanes);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Scale(ref int weightedSource, ref int mask, Vector512<int> lanes)
-            => ObmcLanes.Scale(ref weightedSource, ref mask, lanes);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Scale(ref int weightedSource, ref int mask)
-            => ObmcLanes.Scale(ref weightedSource, ref mask);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SubtractFromSource(ref ushort source, ref int weightedSource, Vector128<int> lanes)
-            => ObmcLanes.SubtractFromSource(ObmcLanes.LoadWords(ref source, lanes), ref weightedSource);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SubtractFromSource(ref ushort source, ref int weightedSource, Vector256<int> lanes)
-            => ObmcLanes.SubtractFromSource(ObmcLanes.LoadWords(ref source, lanes), ref weightedSource);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SubtractFromSource(ref ushort source, ref int weightedSource, Vector512<int> lanes)
-            => ObmcLanes.SubtractFromSource(ObmcLanes.LoadWords(ref source, lanes), ref weightedSource);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SubtractFromSource(ushort source, ref int weightedSource)
-            => ObmcLanes.SubtractFromSource(source, ref weightedSource);
+        public static int ToInt32(ushort sample) => sample;
     }
 
     /// <summary>
@@ -529,7 +138,7 @@ internal static partial class Av1ObmcSearch
         private const int MaximumAlpha = 1 << AlphaShift;
 
         /// <summary>
-        /// Loads four bytes and widens them to thirty-two-bit lanes.
+        /// Loads four bytes and widens them to thirty-two-bit lanes. Eight-bit samples and the column weights use this load.
         /// </summary>
         /// <param name="source">The first byte.</param>
         /// <param name="lanes">The overload-selection value.</param>
@@ -543,7 +152,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Loads eight bytes and widens them to thirty-two-bit lanes.
+        /// Loads eight bytes and widens them to thirty-two-bit lanes. Eight-bit samples and the column weights use this load.
         /// </summary>
         /// <param name="source">The first byte.</param>
         /// <param name="lanes">The overload-selection value.</param>
@@ -557,7 +166,7 @@ internal static partial class Av1ObmcSearch
         }
 
         /// <summary>
-        /// Loads sixteen bytes and widens them to thirty-two-bit lanes.
+        /// Loads sixteen bytes and widens them to thirty-two-bit lanes. Eight-bit samples and the column weights use this load.
         /// </summary>
         /// <param name="source">The first byte.</param>
         /// <param name="lanes">The overload-selection value.</param>
@@ -569,36 +178,6 @@ internal static partial class Av1ObmcSearch
             Vector256<ushort> words = Vector256.WidenLower(Vector128.LoadUnsafe(ref source).ToVector256Unsafe());
             return Vector512.WidenLower(words.ToVector512Unsafe()).AsInt32();
         }
-
-        /// <summary>
-        /// Loads four words and widens them to thirty-two-bit lanes.
-        /// </summary>
-        /// <param name="source">The first word.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        /// <returns>The widened values in increasing order.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<int> LoadWords(ref ushort source, Vector128<int> lanes)
-            => Vector128.WidenLower(Vector64.LoadUnsafe(ref source).ToVector128()).AsInt32();
-
-        /// <summary>
-        /// Loads eight words and widens them to thirty-two-bit lanes.
-        /// </summary>
-        /// <param name="source">The first word.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        /// <returns>The widened values in increasing order.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<int> LoadWords(ref ushort source, Vector256<int> lanes)
-            => Vector256.WidenLower(Vector128.LoadUnsafe(ref source).ToVector256Unsafe()).AsInt32();
-
-        /// <summary>
-        /// Loads sixteen words and widens them to thirty-two-bit lanes.
-        /// </summary>
-        /// <param name="source">The first word.</param>
-        /// <param name="lanes">The overload-selection value.</param>
-        /// <returns>The widened values in increasing order.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<int> LoadWords(ref ushort source, Vector512<int> lanes)
-            => Vector512.WidenLower(Vector256.LoadUnsafe(ref source).ToVector512Unsafe()).AsInt32();
 
         /// <summary>
         /// Adds the rounded absolute differences of four lanes.

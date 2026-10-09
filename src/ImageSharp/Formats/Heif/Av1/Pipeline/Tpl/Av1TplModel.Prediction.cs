@@ -137,7 +137,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         out long sse)
     {
         int count = width * height;
-        TSampleOperator.Subtract(source, sourceStride, destination, destinationStride, this.residual, width, height);
+        TSampleOperator.Subtract(source, sourceStride, destination, destinationStride, this.residual, width, width, height);
         Av1ForwardTransformer.Transform2d(
             this.residual,
             this.coefficients,

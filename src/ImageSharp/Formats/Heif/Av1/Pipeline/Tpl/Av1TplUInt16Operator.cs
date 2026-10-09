@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -9,8 +11,8 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 
 /// <summary>
-/// Closes the model kernels over high-bit-depth samples. Valid samples stay below the sign bit, so the intra and
-/// reconstruction kernels read the unsigned storage through their signed overloads.
+/// Closes the first pass and the temporal dependency model kernels over high-bit-depth samples. Valid samples stay below the
+/// sign bit, so the intra and reconstruction kernels read the unsigned storage through their signed overloads.
 /// </summary>
 internal readonly struct Av1TplUInt16Operator : IAv1TplSampleOperator<ushort>
 {
@@ -18,7 +20,39 @@ internal readonly struct Av1TplUInt16Operator : IAv1TplSampleOperator<ushort>
     public static ushort CreateSample(int value) => (ushort)value;
 
     /// <inheritdoc/>
-    public static int GetSampleValue(ushort sample) => sample;
+    public static int ToInt32(ushort sample) => sample;
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<int> LoadWidened(ReadOnlySpan<ushort> source, int index, Vector128<int> lanes)
+        => Vector128.WidenLower(Vector128.CreateScalar(MemoryMarshal.Read<ulong>(MemoryMarshal.AsBytes(source.Slice(index, 4)))).AsUInt16()).AsInt32();
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<int> LoadWidened(ReadOnlySpan<ushort> source, int index, Vector256<int> lanes)
+        => Vector256.WidenLower(Vector128.Create(source.Slice(index, 8)).ToVector256Unsafe()).AsInt32();
+
+    /// <inheritdoc/>
+    public static int SumAbsoluteDifferences(
+        ReadOnlySpan<ushort> source,
+        int sourceStride,
+        ReadOnlySpan<ushort> reference,
+        int referenceStride,
+        int width,
+        int height)
+        => Av1ResidualBuilder.SumAbsoluteDifferences(source, sourceStride, reference, referenceStride, width, height, 1);
+
+    /// <inheritdoc/>
+    public static void GetMoments(
+        ReadOnlySpan<ushort> source,
+        int sourceStride,
+        ReadOnlySpan<ushort> reference,
+        int referenceStride,
+        int width,
+        int height,
+        out int sum,
+        out long squares)
+        => Av1ResidualBuilder.GetMoments(source, sourceStride, reference, referenceStride, width, height, out sum, out squares);
 
     /// <inheritdoc/>
     public static void Subtract(
@@ -27,9 +61,10 @@ internal readonly struct Av1TplUInt16Operator : IAv1TplSampleOperator<ushort>
         ReadOnlySpan<ushort> prediction,
         int predictionStride,
         Span<short> residual,
+        int residualStride,
         int width,
         int height)
-        => Av1ResidualBuilder.Subtract(source, sourceStride, prediction, predictionStride, residual, width, width, height);
+        => Av1ResidualBuilder.Subtract(source, sourceStride, prediction, predictionStride, residual, residualStride, width, height);
 
     /// <inheritdoc/>
     public static void PredictDc(
@@ -202,9 +237,18 @@ internal readonly struct Av1TplUInt16Operator : IAv1TplSampleOperator<ushort>
             stride,
             transformSize,
             Av1TransformType.DctDct,
-            0,
+            (int)Av1Plane.Y,
             endOfBlock,
             false,
             bitDepth,
             workspace);
+
+    /// <inheritdoc/>
+    public static bool DetectScreenContent(
+        Av1EncoderFrame<ushort> source,
+        HeifEncodingSpeed speed,
+        Av1Tuning tuning,
+        out bool allowScreenContentTools,
+        out bool allowIntraBlockCopy)
+        => Av1ScreenContentDetector.SetScreenContentOptions(source, false, speed, tuning, out allowScreenContentTools, out allowIntraBlockCopy);
 }

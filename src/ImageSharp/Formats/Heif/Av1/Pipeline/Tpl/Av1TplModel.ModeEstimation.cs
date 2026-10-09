@@ -1081,7 +1081,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
     private int GetSatdCost(ReadOnlySpan<TSample> source, int sourceStride, ReadOnlySpan<TSample> prediction, int predictionStride)
     {
         const int Size = Av1TplModelConstants.BlockSize;
-        TSampleOperator.Subtract(source, sourceStride, prediction, predictionStride, this.residual, Size, Size);
+        TSampleOperator.Subtract(source, sourceStride, prediction, predictionStride, this.residual, Size, Size, Size);
         Av1ForwardTransformer.Transform2d(
             this.residual,
             this.coefficients,

@@ -251,7 +251,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
                     }
                 }
 
-                TOperator.PredictDc(hasLeft, hasAbove, prediction, 4, above, left, 4, this.bitDepth.GetBitCount());
+                TOperator.PredictDc(hasLeft, hasAbove, prediction, 4, above, left, 4, 4, this.bitDepth.GetBitCount());
                 Span<short> residual = this.residual.AsSpan((row * blockWidth) + column);
                 TOperator.Subtract(frame.Source[index..], stride, prediction, 4, residual, blockWidth, 4, 4);
                 this.PadBorderResidual(residual, blockWidth, blockWidth, blockHeight, column, row, 4, 4);
@@ -307,7 +307,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
                 }
 
                 Span<TSample> reconstruction = frame.Reconstruction[index..];
-                TOperator.PredictDc(hasLeft, hasAbove, reconstruction, stride, above, left, 4, this.bitDepth.GetBitCount());
+                TOperator.PredictDc(hasLeft, hasAbove, reconstruction, stride, above, left, 4, 4, this.bitDepth.GetBitCount());
                 Span<short> residual = this.residual.AsSpan((row * blockWidth) + column);
                 TOperator.Subtract(
                     frame.Source[(sourceIndex + (row * sourceStride) + column)..], sourceStride, reconstruction, stride, residual, blockWidth, 4, 4);

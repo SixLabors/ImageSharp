@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
@@ -46,13 +47,13 @@ public class Av1WaveletEnergyTests
             }
 
             int[] energies = new int[blockCount];
-            Av1FirstPass<byte, Av1FirstPassOperator.ByteOperator>.GetWaveletEnergies(samples, 3, stride, energies);
+            Av1FirstPass<byte, Av1TplByteOperator>.GetWaveletEnergies(samples, 3, stride, energies);
             for (int block = 0; block < blockCount; block++)
             {
                 Assert.Equal(GetHaarAcSad(samples, 3 + (block * 8), stride), energies[block]);
             }
 
-            Av1FirstPass<ushort, Av1FirstPassOperator.UInt16Operator>.GetWaveletEnergies(wideSamples, 3, stride, energies);
+            Av1FirstPass<ushort, Av1TplUInt16Operator>.GetWaveletEnergies(wideSamples, 3, stride, energies);
             for (int block = 0; block < blockCount; block++)
             {
                 Assert.Equal(GetHaarAcSad(wideSamples, 3 + (block * 8), stride), energies[block]);

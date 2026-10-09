@@ -87,7 +87,7 @@ public class Av1TemporalFilterTests
 
     private static void RunApplyFilter<TSample, TOperator>(Random random, int bitDepth, Av1ColorFormat format, int level, bool extreme)
         where TSample : unmanaged
-        where TOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>, Av1TemporalFilter.ISharpPredictionOperator<TSample>
+        where TOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>
     {
         int maximum = (1 << bitDepth) - 1;
         using Av1EncoderFrameBuffer<TSample> buffer = new(Configuration.Default, 64, 64, bitDepth, format, 0, 0, 64);

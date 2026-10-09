@@ -84,34 +84,6 @@ internal static partial class Av1FrameEncoder
     }
 
     /// <summary>
-    /// Defines the sample-specific SIMD squared-error operation used by frame-level motion search.
-    /// </summary>
-    /// <typeparam name="TSample">The component sample type.</typeparam>
-    internal interface IGlobalMotionSearchOperator<TSample> :
-        Av1GlobalMotionEstimator.IAv1PyramidFillOperator<TSample>,
-        Av1GlobalMotionSearch.IAv1GlobalMotionOperator<TSample>
-        where TSample : unmanaged
-    {
-        /// <summary>
-        /// Calculates squared error between two equally sized strided sample regions.
-        /// </summary>
-        /// <param name="source">The first sample of the source region.</param>
-        /// <param name="sourceStride">The source distance, in samples, between adjacent rows.</param>
-        /// <param name="prediction">The first sample of the prediction region.</param>
-        /// <param name="predictionStride">The prediction distance, in samples, between adjacent rows.</param>
-        /// <param name="width">The number of samples compared in each row.</param>
-        /// <param name="height">The number of rows compared.</param>
-        /// <returns>The sum of squared component differences.</returns>
-        public static abstract long SumSquaredError(
-            ReadOnlySpan<TSample> source,
-            int sourceStride,
-            ReadOnlySpan<TSample> prediction,
-            int predictionStride,
-            int width,
-            int height);
-    }
-
-    /// <summary>
     /// Encodes one reduced-still-picture AV1 frame into a low-overhead OBU stream.
     /// </summary>
     /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
@@ -615,12 +587,11 @@ internal static partial class Av1FrameEncoder
             return new SampleSequenceEncoder<
                 byte,
                 HeifByteSampleConverter,
-                Av1FirstPassOperator.ByteOperator,
                 Av1TemporalFilter.ByteOperator,
                 Av1MotionSearchBase.ByteOperator,
                 Av1TplByteOperator,
                 Av1IntraSuperblockEncoder.ByteOperator,
-                ByteGlobalMotionSearchOperator,
+                Av1GlobalMotionSearch.ByteOperator,
                 Av1MotionVectorStatistics.ByteTextureOperator,
                 Av1DeblockingFilter.VerticalByteEdgeOperator,
                 Av1DeblockingFilter.HorizontalByteEdgeOperator,
@@ -630,12 +601,11 @@ internal static partial class Av1FrameEncoder
         return new SampleSequenceEncoder<
             ushort,
             HeifUShortSampleConverter,
-            Av1FirstPassOperator.UInt16Operator,
             Av1TemporalFilter.UInt16Operator,
             Av1MotionSearchBase.UInt16Operator,
             Av1TplUInt16Operator,
             Av1IntraSuperblockEncoder.UInt16Operator,
-            UInt16GlobalMotionSearchOperator,
+            Av1GlobalMotionSearch.UInt16Operator,
             Av1MotionVectorStatistics.UInt16TextureOperator,
             Av1DeblockingFilter.VerticalUInt16EdgeOperator,
             Av1DeblockingFilter.HorizontalUInt16EdgeOperator,
@@ -1686,126 +1656,6 @@ internal static partial class Av1FrameEncoder
     }
 
     /// <summary>
-    /// Routes byte samples through the SIMD-first shared residual operation.
-    /// </summary>
-    private readonly struct ByteGlobalMotionSearchOperator : IGlobalMotionSearchOperator<byte>
-    {
-        /// <inheritdoc/>
-        public static int Fill(Av1ImagePyramid pyramid, ReadOnlySpan<byte> source, int stride, int bitDepth, int levels)
-            => pyramid.Fill(source, stride, levels);
-
-        /// <inheritdoc/>
-        public static void PredictWarped(
-            ReadOnlySpan<byte> source,
-            int sourceStride,
-            int sourceWidth,
-            int sourceHeight,
-            Span<byte> destination,
-            int destinationStride,
-            Point position,
-            int width,
-            int height,
-            int bitDepth,
-            Av1GlobalMotionParameters parameters,
-            Span<short> intermediateTile)
-            => Av1GlobalMotionSearch.ByteOperator.PredictWarped(
-                source,
-                sourceStride,
-                sourceWidth,
-                sourceHeight,
-                destination,
-                destinationStride,
-                position,
-                width,
-                height,
-                bitDepth,
-                parameters,
-                intermediateTile);
-
-        /// <inheritdoc/>
-        public static int SumAbsoluteDifferences(
-            ReadOnlySpan<byte> source, int sourceStride, ReadOnlySpan<byte> prediction, int predictionStride, int width, int height)
-            => Av1GlobalMotionSearch.ByteOperator.SumAbsoluteDifferences(
-                source, sourceStride, prediction, predictionStride, width, height);
-
-        /// <inheritdoc/>
-        public static long SumSquaredError(
-            ReadOnlySpan<byte> source,
-            int sourceStride,
-            ReadOnlySpan<byte> prediction,
-            int predictionStride,
-            int width,
-            int height)
-            => Av1ResidualBuilder.SumSquaredError(
-                source,
-                sourceStride,
-                prediction,
-                predictionStride,
-                width,
-                height);
-    }
-
-    /// <summary>
-    /// Routes high-bit-depth samples through the SIMD-first shared residual operation.
-    /// </summary>
-    private readonly struct UInt16GlobalMotionSearchOperator : IGlobalMotionSearchOperator<ushort>
-    {
-        /// <inheritdoc/>
-        public static int Fill(Av1ImagePyramid pyramid, ReadOnlySpan<ushort> source, int stride, int bitDepth, int levels)
-            => pyramid.Fill(source, stride, bitDepth, levels);
-
-        /// <inheritdoc/>
-        public static void PredictWarped(
-            ReadOnlySpan<ushort> source,
-            int sourceStride,
-            int sourceWidth,
-            int sourceHeight,
-            Span<ushort> destination,
-            int destinationStride,
-            Point position,
-            int width,
-            int height,
-            int bitDepth,
-            Av1GlobalMotionParameters parameters,
-            Span<short> intermediateTile)
-            => Av1GlobalMotionSearch.UInt16Operator.PredictWarped(
-                source,
-                sourceStride,
-                sourceWidth,
-                sourceHeight,
-                destination,
-                destinationStride,
-                position,
-                width,
-                height,
-                bitDepth,
-                parameters,
-                intermediateTile);
-
-        /// <inheritdoc/>
-        public static int SumAbsoluteDifferences(
-            ReadOnlySpan<ushort> source, int sourceStride, ReadOnlySpan<ushort> prediction, int predictionStride, int width, int height)
-            => Av1GlobalMotionSearch.UInt16Operator.SumAbsoluteDifferences(
-                source, sourceStride, prediction, predictionStride, width, height);
-
-        /// <inheritdoc/>
-        public static long SumSquaredError(
-            ReadOnlySpan<ushort> source,
-            int sourceStride,
-            ReadOnlySpan<ushort> prediction,
-            int predictionStride,
-            int width,
-            int height)
-            => Av1ResidualBuilder.SumSquaredError(
-                source,
-                sourceStride,
-                prediction,
-                predictionStride,
-                width,
-                height);
-    }
-
-    /// <summary>
     /// Owns the fixed-size packed and planar row storage reused by every sample in one sequence track.
     /// </summary>
     internal sealed class Av1EncoderConversionWorkspace : IDisposable
@@ -2669,7 +2519,7 @@ internal static partial class Av1FrameEncoder
             Av1EncoderFrame<TSample>[] references,
             Av1PictureParentControlSet parent)
             where TSample : unmanaged
-            where TOperator : struct, IGlobalMotionSearchOperator<TSample>
+            where TOperator : struct, Av1GlobalMotionSearch.IAv1GlobalMotionOperator<TSample>
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
             Span<Av1GlobalMotionParameters> previous = frameHeader.GetPreviousGlobalMotionParameters();
@@ -3860,10 +3710,9 @@ internal static partial class Av1FrameEncoder
     /// </summary>
     /// <typeparam name="TSample">The native sample storage type, <see cref="byte"/> or <see cref="ushort"/>.</typeparam>
     /// <typeparam name="TStorer">The converter that stores normalized components as native samples.</typeparam>
-    /// <typeparam name="TFirstPassOperator">The first pass statistics operations.</typeparam>
     /// <typeparam name="TFilterOperator">The temporal filter operations.</typeparam>
     /// <typeparam name="TSearchOperator">The motion search error operations.</typeparam>
-    /// <typeparam name="TTplOperator">The temporal dependency model sample operations.</typeparam>
+    /// <typeparam name="TTplOperator">The first pass and temporal dependency model sample operations.</typeparam>
     /// <typeparam name="TBlockOperator">The block encoding operations.</typeparam>
     /// <typeparam name="TGlobalMotionOperator">The global motion search operations.</typeparam>
     /// <typeparam name="TTextureOperator">The motion vector statistics texture operations.</typeparam>
@@ -3873,7 +3722,6 @@ internal static partial class Av1FrameEncoder
     private sealed partial class SampleSequenceEncoder<
         TSample,
         TStorer,
-        TFirstPassOperator,
         TFilterOperator,
         TSearchOperator,
         TTplOperator,
@@ -3885,12 +3733,11 @@ internal static partial class Av1FrameEncoder
         TCdefOperator> : SequenceEncoder
         where TSample : unmanaged
         where TStorer : struct, IHeifSampleConverter<TSample>
-        where TFirstPassOperator : struct, Av1FirstPassOperator.IOperator<TSample>
-        where TFilterOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>, Av1TemporalFilter.ISharpPredictionOperator<TSample>
+        where TFilterOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>
         where TSearchOperator : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
         where TTplOperator : struct, IAv1TplSampleOperator<TSample>
         where TBlockOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
-        where TGlobalMotionOperator : struct, IGlobalMotionSearchOperator<TSample>
+        where TGlobalMotionOperator : struct, Av1GlobalMotionSearch.IAv1GlobalMotionOperator<TSample>
         where TTextureOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
         where TVerticalEdgeOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
         where THorizontalEdgeOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
@@ -3985,7 +3832,7 @@ internal static partial class Av1FrameEncoder
         private Av1EncoderReferencePool<TSample> referencePool;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SampleSequenceEncoder{TSample, TStorer, TFirstPassOperator, TFilterOperator, TSearchOperator,
+        /// Initializes a new instance of the <see cref="SampleSequenceEncoder{TSample, TStorer, TFilterOperator, TSearchOperator,
         /// TTplOperator, TBlockOperator, TGlobalMotionOperator, TTextureOperator, TVerticalEdgeOperator, THorizontalEdgeOperator, TCdefOperator}"/> class.
         /// </summary>
         /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>

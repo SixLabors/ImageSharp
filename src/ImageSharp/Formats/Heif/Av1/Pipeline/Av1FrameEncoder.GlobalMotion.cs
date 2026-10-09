@@ -35,7 +35,7 @@ internal static partial class Av1FrameEncoder
         Av1BitDepth bitDepth,
         in GlobalMotionSearchInputs search)
         where TSample : unmanaged
-        where TOperator : struct, IGlobalMotionSearchOperator<TSample>
+        where TOperator : struct, Av1GlobalMotionSearch.IAv1GlobalMotionOperator<TSample>
     {
         // Every model starts as the identity. A frame that does not search, or a reference that the search skips, keeps the identity.
         Span<Av1GlobalMotionParameters> models = frameHeader.GetGlobalMotionParameters();
@@ -254,7 +254,7 @@ internal static partial class Av1FrameEncoder
         Av1BitDepth bitDepth,
         Av1EncoderSpeedSettings speedSettings)
         where TSample : unmanaged
-        where TOperator : struct, IGlobalMotionSearchOperator<TSample>
+        where TOperator : struct, Av1GlobalMotionSearch.IAv1GlobalMotionOperator<TSample>
     {
         // The search measures the visible frame, not its coded extent.
         Av1PlaneRegion<TSample> sourceLuma = source.CodedView.GetPlane(Av1Plane.Y);

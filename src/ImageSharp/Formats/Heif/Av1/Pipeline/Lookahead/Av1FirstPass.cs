@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Tpl;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
 
@@ -21,10 +22,10 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 /// three stage references, and zero motion against the previous source. The stage reads only luma, so every chroma format gives the same result.
 /// </remarks>
 /// <typeparam name="TSample">The unsigned component storage type.</typeparam>
-/// <typeparam name="TOperator">The operator closing the sample work over <typeparamref name="TSample"/>.</typeparam>
+/// <typeparam name="TOperator">The operator closing the sample work over <typeparamref name="TSample"/>, shared with the temporal dependency model.</typeparam>
 internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
     where TSample : unmanaged
-    where TOperator : struct, Av1FirstPassOperator.IOperator<TSample>
+    where TOperator : struct, IAv1TplSampleOperator<TSample>
 {
     /// <summary>
     /// The real quantizer of the first pass.

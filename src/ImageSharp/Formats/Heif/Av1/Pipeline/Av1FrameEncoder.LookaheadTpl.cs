@@ -26,7 +26,7 @@ internal static partial class Av1FrameEncoder
         /// <typeparam name="TTplOperator">The temporal dependency model arithmetic.</typeparam>
         internal interface ILaggedFrameCoder<TSample, TFilterOperator, TSearchOperator, TTplOperator>
             where TSample : unmanaged
-            where TFilterOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>, Av1TemporalFilter.ISharpPredictionOperator<TSample>
+            where TFilterOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>
             where TSearchOperator : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
             where TTplOperator : struct, IAv1TplSampleOperator<TSample>
         {
@@ -77,7 +77,7 @@ internal static partial class Av1FrameEncoder
         internal sealed class LookaheadTemporalModel<TSample, TFilterOperator, TSearchOperator, TTplOperator>
             : Av1SecondPass.IGopLengthEvaluator, IAv1TplReferenceMapper, IDisposable
             where TSample : unmanaged
-            where TFilterOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>, Av1TemporalFilter.ISharpPredictionOperator<TSample>
+            where TFilterOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>
             where TSearchOperator : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
             where TTplOperator : struct, IAv1TplSampleOperator<TSample>
         {

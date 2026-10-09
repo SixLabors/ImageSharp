@@ -8,7 +8,7 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.TemporalFilter;
 
 /// <content>
-/// Defines the per-sample traversals of the temporal filter. Each walks the widest accelerated operator overload first
+/// Defines the per-sample traversals of the temporal filter. Each walks the widest accelerated lane overload first
 /// and finishes in the scalar overload.
 /// </content>
 internal static partial class Av1TemporalFilter
@@ -27,7 +27,7 @@ internal static partial class Av1TemporalFilter
     /// Stores the squared differences between a block of the frame to filter and its prediction.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The sample loads and stores.</typeparam>
     /// <param name="frame">The frame samples at the block origin.</param>
     /// <param name="frameStride">The frame row stride.</param>
     /// <param name="prediction">The prediction, packed at the block width.</param>
@@ -58,8 +58,9 @@ internal static partial class Av1TemporalFilter
             {
                 for (; column <= width - Vector512<uint>.Count; column += Vector512<uint>.Count)
                 {
-                    TOperator.StoreSquaredErrors(
-                        ref Unsafe.Add(ref frameRow, column), ref Unsafe.Add(ref predictionRow, column), ref Unsafe.Add(ref errorRow, column), default(Vector512<uint>));
+                    TemporalFilterLanes.SquaredErrors(
+                        TOperator.Load(ref Unsafe.Add(ref frameRow, column), default(Vector512<uint>)),
+                        TOperator.Load(ref Unsafe.Add(ref predictionRow, column), default(Vector512<uint>))).StoreUnsafe(ref Unsafe.Add(ref errorRow, column));
                 }
             }
 
@@ -67,8 +68,9 @@ internal static partial class Av1TemporalFilter
             {
                 for (; column <= width - Vector256<uint>.Count; column += Vector256<uint>.Count)
                 {
-                    TOperator.StoreSquaredErrors(
-                        ref Unsafe.Add(ref frameRow, column), ref Unsafe.Add(ref predictionRow, column), ref Unsafe.Add(ref errorRow, column), default(Vector256<uint>));
+                    TemporalFilterLanes.SquaredErrors(
+                        TOperator.Load(ref Unsafe.Add(ref frameRow, column), default(Vector256<uint>)),
+                        TOperator.Load(ref Unsafe.Add(ref predictionRow, column), default(Vector256<uint>))).StoreUnsafe(ref Unsafe.Add(ref errorRow, column));
                 }
             }
 
@@ -76,14 +78,16 @@ internal static partial class Av1TemporalFilter
             {
                 for (; column <= width - Vector128<uint>.Count; column += Vector128<uint>.Count)
                 {
-                    TOperator.StoreSquaredErrors(
-                        ref Unsafe.Add(ref frameRow, column), ref Unsafe.Add(ref predictionRow, column), ref Unsafe.Add(ref errorRow, column), default(Vector128<uint>));
+                    TemporalFilterLanes.SquaredErrors(
+                        TOperator.Load(ref Unsafe.Add(ref frameRow, column), default(Vector128<uint>)),
+                        TOperator.Load(ref Unsafe.Add(ref predictionRow, column), default(Vector128<uint>))).StoreUnsafe(ref Unsafe.Add(ref errorRow, column));
                 }
             }
 
             for (; column < width; column++)
             {
-                TOperator.StoreSquaredErrors(Unsafe.Add(ref frameRow, column), Unsafe.Add(ref predictionRow, column), ref Unsafe.Add(ref errorRow, column));
+                Unsafe.Add(ref errorRow, column) = TemporalFilterLanes.SquaredError(
+                    TOperator.ToInt32(Unsafe.Add(ref frameRow, column)), TOperator.ToInt32(Unsafe.Add(ref predictionRow, column)));
             }
         }
     }
@@ -91,23 +95,19 @@ internal static partial class Av1TemporalFilter
     /// <summary>
     /// Sums the luma squared differences that each chroma sample covers.
     /// </summary>
-    /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
     /// <param name="lumaErrors">The luma squared differences, packed at the luma block width.</param>
     /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
     /// <param name="subsamplingY">The vertical chroma subsampling shift. It is one only when <paramref name="subsamplingX"/> is also one.</param>
     /// <param name="width">The chroma block width.</param>
     /// <param name="height">The chroma block height.</param>
     /// <param name="destination">The luma sums to write, packed at the chroma block width.</param>
-    internal static void SumLumaErrors<TSample, TOperator>(
+    internal static void SumLumaErrors(
         ReadOnlySpan<uint> lumaErrors,
         int subsamplingX,
         int subsamplingY,
         int width,
         int height,
         Span<uint> destination)
-        where TSample : unmanaged
-        where TOperator : struct, ITemporalFilterOperator<TSample>
     {
         if (subsamplingX == 0)
         {
@@ -131,7 +131,8 @@ internal static partial class Av1TemporalFilter
                 {
                     for (; column <= width - Vector512<uint>.Count; column += Vector512<uint>.Count)
                     {
-                        TOperator.SumLumaPairs(ref Unsafe.Add(ref upper, column << 1), ref Unsafe.Add(ref destinationRow, column), default(Vector512<uint>));
+                        TemporalFilterLanes.SumLumaPairs(
+                            ref Unsafe.Add(ref upper, column << 1), ref Unsafe.Add(ref destinationRow, column), default(Vector512<uint>));
                     }
                 }
 
@@ -139,7 +140,8 @@ internal static partial class Av1TemporalFilter
                 {
                     for (; column <= width - Vector256<uint>.Count; column += Vector256<uint>.Count)
                     {
-                        TOperator.SumLumaPairs(ref Unsafe.Add(ref upper, column << 1), ref Unsafe.Add(ref destinationRow, column), default(Vector256<uint>));
+                        TemporalFilterLanes.SumLumaPairs(
+                            ref Unsafe.Add(ref upper, column << 1), ref Unsafe.Add(ref destinationRow, column), default(Vector256<uint>));
                     }
                 }
 
@@ -147,13 +149,14 @@ internal static partial class Av1TemporalFilter
                 {
                     for (; column <= width - Vector128<uint>.Count; column += Vector128<uint>.Count)
                     {
-                        TOperator.SumLumaPairs(ref Unsafe.Add(ref upper, column << 1), ref Unsafe.Add(ref destinationRow, column), default(Vector128<uint>));
+                        TemporalFilterLanes.SumLumaPairs(
+                            ref Unsafe.Add(ref upper, column << 1), ref Unsafe.Add(ref destinationRow, column), default(Vector128<uint>));
                     }
                 }
 
                 for (; column < width; column++)
                 {
-                    TOperator.SumLumaPairs(ref Unsafe.Add(ref upper, column << 1), ref Unsafe.Add(ref destinationRow, column));
+                    TemporalFilterLanes.SumLumaPairs(ref Unsafe.Add(ref upper, column << 1), ref Unsafe.Add(ref destinationRow, column));
                 }
 
                 continue;
@@ -163,7 +166,7 @@ internal static partial class Av1TemporalFilter
             {
                 for (; column <= width - Vector512<uint>.Count; column += Vector512<uint>.Count)
                 {
-                    TOperator.SumLumaQuads(
+                    TemporalFilterLanes.SumLumaQuads(
                         ref Unsafe.Add(ref upper, column << 1), ref Unsafe.Add(ref lower, column << 1), ref Unsafe.Add(ref destinationRow, column), default(Vector512<uint>));
                 }
             }
@@ -172,7 +175,7 @@ internal static partial class Av1TemporalFilter
             {
                 for (; column <= width - Vector256<uint>.Count; column += Vector256<uint>.Count)
                 {
-                    TOperator.SumLumaQuads(
+                    TemporalFilterLanes.SumLumaQuads(
                         ref Unsafe.Add(ref upper, column << 1), ref Unsafe.Add(ref lower, column << 1), ref Unsafe.Add(ref destinationRow, column), default(Vector256<uint>));
                 }
             }
@@ -181,14 +184,15 @@ internal static partial class Av1TemporalFilter
             {
                 for (; column <= width - Vector128<uint>.Count; column += Vector128<uint>.Count)
                 {
-                    TOperator.SumLumaQuads(
+                    TemporalFilterLanes.SumLumaQuads(
                         ref Unsafe.Add(ref upper, column << 1), ref Unsafe.Add(ref lower, column << 1), ref Unsafe.Add(ref destinationRow, column), default(Vector128<uint>));
                 }
             }
 
             for (; column < width; column++)
             {
-                TOperator.SumLumaQuads(ref Unsafe.Add(ref upper, column << 1), ref Unsafe.Add(ref lower, column << 1), ref Unsafe.Add(ref destinationRow, column));
+                TemporalFilterLanes.SumLumaQuads(
+                    ref Unsafe.Add(ref upper, column << 1), ref Unsafe.Add(ref lower, column << 1), ref Unsafe.Add(ref destinationRow, column));
             }
         }
     }
@@ -197,8 +201,6 @@ internal static partial class Av1TemporalFilter
     /// Stores the window error of every sample: the sum of the squared differences in the clamped five-by-five
     /// window, plus the covered luma squared differences on chroma, scaled down to the eight-bit domain.
     /// </summary>
-    /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
     /// <param name="errors">The squared differences of the plane, packed at the block width.</param>
     /// <param name="lumaErrors">The luma sums per sample, packed at the block width. The luma plane passes zeros.</param>
     /// <param name="width">The block width.</param>
@@ -206,7 +208,7 @@ internal static partial class Av1TemporalFilter
     /// <param name="shift">The high-bit-depth shift, 2 * (bit depth - 8).</param>
     /// <param name="columns">A buffer for one edge-padded row of column sums, at least <paramref name="width"/> + 4 values.</param>
     /// <param name="destination">The window errors to write, packed at the block width.</param>
-    internal static void BuildWindowErrors<TSample, TOperator>(
+    internal static void BuildWindowErrors(
         ReadOnlySpan<uint> errors,
         ReadOnlySpan<uint> lumaErrors,
         int width,
@@ -214,8 +216,6 @@ internal static partial class Av1TemporalFilter
         int shift,
         Span<uint> columns,
         Span<uint> destination)
-        where TSample : unmanaged
-        where TOperator : struct, ITemporalFilterOperator<TSample>
     {
         const int HalfWindow = 2;
         ref uint errorBase = ref MemoryMarshal.GetReference(errors[..(width * height)]);
@@ -237,7 +237,7 @@ internal static partial class Av1TemporalFilter
             {
                 for (; column <= width - Vector512<uint>.Count; column += Vector512<uint>.Count)
                 {
-                    TOperator.SumRows(
+                    TemporalFilterLanes.SumRows(
                         ref Unsafe.Add(ref row0, column),
                         ref Unsafe.Add(ref row1, column),
                         ref Unsafe.Add(ref row2, column),
@@ -252,7 +252,7 @@ internal static partial class Av1TemporalFilter
             {
                 for (; column <= width - Vector256<uint>.Count; column += Vector256<uint>.Count)
                 {
-                    TOperator.SumRows(
+                    TemporalFilterLanes.SumRows(
                         ref Unsafe.Add(ref row0, column),
                         ref Unsafe.Add(ref row1, column),
                         ref Unsafe.Add(ref row2, column),
@@ -267,7 +267,7 @@ internal static partial class Av1TemporalFilter
             {
                 for (; column <= width - Vector128<uint>.Count; column += Vector128<uint>.Count)
                 {
-                    TOperator.SumRows(
+                    TemporalFilterLanes.SumRows(
                         ref Unsafe.Add(ref row0, column),
                         ref Unsafe.Add(ref row1, column),
                         ref Unsafe.Add(ref row2, column),
@@ -280,7 +280,7 @@ internal static partial class Av1TemporalFilter
 
             for (; column < width; column++)
             {
-                TOperator.SumRows(
+                TemporalFilterLanes.SumRows(
                     Unsafe.Add(ref row0, column),
                     Unsafe.Add(ref row1, column),
                     Unsafe.Add(ref row2, column),
@@ -303,7 +303,7 @@ internal static partial class Av1TemporalFilter
             {
                 for (; column <= width - Vector512<uint>.Count; column += Vector512<uint>.Count)
                 {
-                    TOperator.SumWindow(
+                    TemporalFilterLanes.SumWindow(
                         ref Unsafe.Add(ref columnBase, column), ref Unsafe.Add(ref lumaRow, column), shift, ref Unsafe.Add(ref destinationRow, column), default(Vector512<uint>));
                 }
             }
@@ -312,7 +312,7 @@ internal static partial class Av1TemporalFilter
             {
                 for (; column <= width - Vector256<uint>.Count; column += Vector256<uint>.Count)
                 {
-                    TOperator.SumWindow(
+                    TemporalFilterLanes.SumWindow(
                         ref Unsafe.Add(ref columnBase, column), ref Unsafe.Add(ref lumaRow, column), shift, ref Unsafe.Add(ref destinationRow, column), default(Vector256<uint>));
                 }
             }
@@ -321,14 +321,15 @@ internal static partial class Av1TemporalFilter
             {
                 for (; column <= width - Vector128<uint>.Count; column += Vector128<uint>.Count)
                 {
-                    TOperator.SumWindow(
+                    TemporalFilterLanes.SumWindow(
                         ref Unsafe.Add(ref columnBase, column), ref Unsafe.Add(ref lumaRow, column), shift, ref Unsafe.Add(ref destinationRow, column), default(Vector128<uint>));
                 }
             }
 
             for (; column < width; column++)
             {
-                TOperator.SumWindow(ref Unsafe.Add(ref columnBase, column), Unsafe.Add(ref lumaRow, column), shift, ref Unsafe.Add(ref destinationRow, column));
+                TemporalFilterLanes.SumWindow(
+                    ref Unsafe.Add(ref columnBase, column), Unsafe.Add(ref lumaRow, column), shift, ref Unsafe.Add(ref destinationRow, column));
             }
         }
     }
@@ -337,7 +338,7 @@ internal static partial class Av1TemporalFilter
     /// Weighs a predicted block and adds it to the accumulators.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The sample loads and stores.</typeparam>
     /// <param name="windowErrors">The window errors, packed at the block width.</param>
     /// <param name="prediction">The prediction, packed at the block width.</param>
     /// <param name="accumulator">The weighted sums of the plane, packed at the block width.</param>
@@ -392,15 +393,15 @@ internal static partial class Av1TemporalFilter
                 {
                     if (Vector512.IsHardwareAccelerated)
                     {
+                        // The 512-bit form weighs eight samples, so it loads eight window errors and eight predicted samples.
                         for (; column <= end - Vector512<double>.Count; column += Vector512<double>.Count)
                         {
-                            TOperator.AccumulateWeights(
-                                ref Unsafe.Add(ref errorBase, column),
-                                ref Unsafe.Add(ref predictionBase, column),
+                            TemporalFilterLanes.AccumulateWeights(
+                                Vector256.LoadUnsafe(ref Unsafe.Add(ref errorBase, column)),
+                                TOperator.Load(ref Unsafe.Add(ref predictionBase, column), default(Vector256<uint>)),
                                 ref Unsafe.Add(ref accumulatorBase, column),
                                 ref Unsafe.Add(ref countBase, column),
-                                in terms,
-                                default(Vector512<double>));
+                                in terms);
                         }
                     }
 
@@ -408,9 +409,9 @@ internal static partial class Av1TemporalFilter
                     {
                         for (; column <= end - Vector256<double>.Count; column += Vector256<double>.Count)
                         {
-                            TOperator.AccumulateWeights(
-                                ref Unsafe.Add(ref errorBase, column),
-                                ref Unsafe.Add(ref predictionBase, column),
+                            TemporalFilterLanes.AccumulateWeights(
+                                Vector128.LoadUnsafe(ref Unsafe.Add(ref errorBase, column)),
+                                TOperator.Load(ref Unsafe.Add(ref predictionBase, column), default(Vector128<uint>)),
                                 ref Unsafe.Add(ref accumulatorBase, column),
                                 ref Unsafe.Add(ref countBase, column),
                                 in terms,
@@ -423,9 +424,9 @@ internal static partial class Av1TemporalFilter
                         // The 128-bit overload weighs four samples with two double registers.
                         for (; column <= end - Vector128<uint>.Count; column += Vector128<uint>.Count)
                         {
-                            TOperator.AccumulateWeights(
-                                ref Unsafe.Add(ref errorBase, column),
-                                ref Unsafe.Add(ref predictionBase, column),
+                            TemporalFilterLanes.AccumulateWeights(
+                                Vector128.LoadUnsafe(ref Unsafe.Add(ref errorBase, column)),
+                                TOperator.Load(ref Unsafe.Add(ref predictionBase, column), default(Vector128<uint>)),
                                 ref Unsafe.Add(ref accumulatorBase, column),
                                 ref Unsafe.Add(ref countBase, column),
                                 in terms,
@@ -436,9 +437,9 @@ internal static partial class Av1TemporalFilter
 
                 for (; column < end; column++)
                 {
-                    TOperator.AccumulateWeights(
+                    TemporalFilterLanes.AccumulateWeights(
                         Unsafe.Add(ref errorBase, column),
-                        Unsafe.Add(ref predictionBase, column),
+                        TOperator.ToInt32(Unsafe.Add(ref predictionBase, column)),
                         ref Unsafe.Add(ref accumulatorBase, column),
                         ref Unsafe.Add(ref countBase, column),
                         in terms);
@@ -451,7 +452,7 @@ internal static partial class Av1TemporalFilter
     /// Adds a block of the frame to filter to the accumulators at the full weight.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The sample loads and stores.</typeparam>
     /// <param name="frame">The frame samples at the block origin.</param>
     /// <param name="frameStride">The frame row stride.</param>
     /// <param name="accumulator">The weighted sums of the plane, packed at the block width.</param>
@@ -481,8 +482,10 @@ internal static partial class Av1TemporalFilter
             {
                 for (; column <= width - Vector512<uint>.Count; column += Vector512<uint>.Count)
                 {
-                    TOperator.AccumulateSelf(
-                        ref Unsafe.Add(ref frameRow, column), ref Unsafe.Add(ref accumulatorRow, column), ref Unsafe.Add(ref countRow, column), default(Vector512<uint>));
+                    TemporalFilterLanes.AccumulateSelf(
+                        TOperator.Load(ref Unsafe.Add(ref frameRow, column), default(Vector512<uint>)),
+                        ref Unsafe.Add(ref accumulatorRow, column),
+                        ref Unsafe.Add(ref countRow, column));
                 }
             }
 
@@ -490,8 +493,10 @@ internal static partial class Av1TemporalFilter
             {
                 for (; column <= width - Vector256<uint>.Count; column += Vector256<uint>.Count)
                 {
-                    TOperator.AccumulateSelf(
-                        ref Unsafe.Add(ref frameRow, column), ref Unsafe.Add(ref accumulatorRow, column), ref Unsafe.Add(ref countRow, column), default(Vector256<uint>));
+                    TemporalFilterLanes.AccumulateSelf(
+                        TOperator.Load(ref Unsafe.Add(ref frameRow, column), default(Vector256<uint>)),
+                        ref Unsafe.Add(ref accumulatorRow, column),
+                        ref Unsafe.Add(ref countRow, column));
                 }
             }
 
@@ -499,14 +504,17 @@ internal static partial class Av1TemporalFilter
             {
                 for (; column <= width - Vector128<uint>.Count; column += Vector128<uint>.Count)
                 {
-                    TOperator.AccumulateSelf(
-                        ref Unsafe.Add(ref frameRow, column), ref Unsafe.Add(ref accumulatorRow, column), ref Unsafe.Add(ref countRow, column), default(Vector128<uint>));
+                    TemporalFilterLanes.AccumulateSelf(
+                        TOperator.Load(ref Unsafe.Add(ref frameRow, column), default(Vector128<uint>)),
+                        ref Unsafe.Add(ref accumulatorRow, column),
+                        ref Unsafe.Add(ref countRow, column));
                 }
             }
 
             for (; column < width; column++)
             {
-                TOperator.AccumulateSelf(Unsafe.Add(ref frameRow, column), ref Unsafe.Add(ref accumulatorRow, column), ref Unsafe.Add(ref countRow, column));
+                TemporalFilterLanes.AccumulateSelf(
+                    TOperator.ToInt32(Unsafe.Add(ref frameRow, column)), ref Unsafe.Add(ref accumulatorRow, column), ref Unsafe.Add(ref countRow, column));
             }
         }
     }
@@ -515,7 +523,7 @@ internal static partial class Av1TemporalFilter
     /// Divides the accumulators of one plane block by their weight totals and writes the filtered samples.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The sample loads and stores.</typeparam>
     /// <param name="accumulator">The weighted sums of the plane, packed at the block width.</param>
     /// <param name="count">The weight totals of the plane, packed at the block width. Every total is nonzero.</param>
     /// <param name="width">The block width.</param>
@@ -543,10 +551,11 @@ internal static partial class Av1TemporalFilter
             int column = 0;
             if (Vector512.IsHardwareAccelerated)
             {
+                // The 512-bit form divides eight accumulators, so it stores eight samples.
                 for (; column <= width - Vector512<double>.Count; column += Vector512<double>.Count)
                 {
-                    TOperator.Normalize(
-                        ref Unsafe.Add(ref accumulatorRow, column), ref Unsafe.Add(ref countRow, column), ref Unsafe.Add(ref destinationRow, column), default(Vector512<double>));
+                    Vector256<uint> quotients = TemporalFilterLanes.Normalize(ref Unsafe.Add(ref accumulatorRow, column), ref Unsafe.Add(ref countRow, column));
+                    TOperator.Store(quotients, ref Unsafe.Add(ref destinationRow, column));
                 }
             }
 
@@ -554,8 +563,10 @@ internal static partial class Av1TemporalFilter
             {
                 for (; column <= width - Vector256<double>.Count; column += Vector256<double>.Count)
                 {
-                    TOperator.Normalize(
-                        ref Unsafe.Add(ref accumulatorRow, column), ref Unsafe.Add(ref countRow, column), ref Unsafe.Add(ref destinationRow, column), default(Vector256<double>));
+                    Vector128<uint> quotients = TemporalFilterLanes.Normalize(
+                        ref Unsafe.Add(ref accumulatorRow, column), ref Unsafe.Add(ref countRow, column), default(Vector256<double>));
+
+                    TOperator.Store(quotients, ref Unsafe.Add(ref destinationRow, column));
                 }
             }
 
@@ -564,14 +575,18 @@ internal static partial class Av1TemporalFilter
                 // The 128-bit overload divides four accumulators with two double registers.
                 for (; column <= width - Vector128<uint>.Count; column += Vector128<uint>.Count)
                 {
-                    TOperator.Normalize(
-                        ref Unsafe.Add(ref accumulatorRow, column), ref Unsafe.Add(ref countRow, column), ref Unsafe.Add(ref destinationRow, column), default(Vector128<double>));
+                    Vector128<uint> quotients = TemporalFilterLanes.Normalize(
+                        ref Unsafe.Add(ref accumulatorRow, column), ref Unsafe.Add(ref countRow, column), default(Vector128<double>));
+
+                    TOperator.Store(quotients, ref Unsafe.Add(ref destinationRow, column));
                 }
             }
 
             for (; column < width; column++)
             {
-                TOperator.Normalize(Unsafe.Add(ref accumulatorRow, column), Unsafe.Add(ref countRow, column), ref Unsafe.Add(ref destinationRow, column));
+                // The quotient is inside the sample range, so the conversion keeps it.
+                uint quotient = TemporalFilterLanes.Normalize(Unsafe.Add(ref accumulatorRow, column), Unsafe.Add(ref countRow, column));
+                Unsafe.Add(ref destinationRow, column) = TOperator.CreateSample((int)quotient);
             }
         }
     }
@@ -580,7 +595,7 @@ internal static partial class Av1TemporalFilter
     /// Estimates the noise level of one plane from the Laplacian of its smooth samples.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The sample loads and stores.</typeparam>
     /// <param name="plane">The plane samples, starting at the top-left visible sample.</param>
     /// <param name="stride">The plane row stride.</param>
     /// <param name="width">The visible plane width.</param>
@@ -635,7 +650,7 @@ internal static partial class Av1TemporalFilter
     /// Returns the Laplacian total and the smooth-sample count of one row between two columns.
     /// </summary>
     /// <typeparam name="TSample">The unsigned sample storage type.</typeparam>
-    /// <typeparam name="TOperator">The sample arithmetic.</typeparam>
+    /// <typeparam name="TOperator">The sample loads and stores.</typeparam>
     /// <param name="row">The first sample of the row.</param>
     /// <param name="stride">The plane row stride.</param>
     /// <param name="start">The first center column.</param>
@@ -657,7 +672,7 @@ internal static partial class Av1TemporalFilter
             Vector512<int> count512 = Vector512<int>.Zero;
             for (; column <= end - Vector512<short>.Count; column += Vector512<short>.Count)
             {
-                TOperator.AccumulateNoise(ref Unsafe.Add(ref row, column), stride, in terms, ref sum512, ref count512);
+                TemporalFilterLanes.AccumulateNoise<TSample, TOperator>(ref Unsafe.Add(ref row, column), stride, in terms, ref sum512, ref count512);
             }
 
             sum += Vector512.Sum(sum512);
@@ -670,7 +685,7 @@ internal static partial class Av1TemporalFilter
             Vector256<int> count256 = Vector256<int>.Zero;
             for (; column <= end - Vector256<short>.Count; column += Vector256<short>.Count)
             {
-                TOperator.AccumulateNoise(ref Unsafe.Add(ref row, column), stride, in terms, ref sum256, ref count256);
+                TemporalFilterLanes.AccumulateNoise<TSample, TOperator>(ref Unsafe.Add(ref row, column), stride, in terms, ref sum256, ref count256);
             }
 
             sum += Vector256.Sum(sum256);
@@ -683,7 +698,7 @@ internal static partial class Av1TemporalFilter
             Vector128<int> count128 = Vector128<int>.Zero;
             for (; column <= end - Vector128<short>.Count; column += Vector128<short>.Count)
             {
-                TOperator.AccumulateNoise(ref Unsafe.Add(ref row, column), stride, in terms, ref sum128, ref count128);
+                TemporalFilterLanes.AccumulateNoise<TSample, TOperator>(ref Unsafe.Add(ref row, column), stride, in terms, ref sum128, ref count128);
             }
 
             sum += Vector128.Sum(sum128);
@@ -692,7 +707,7 @@ internal static partial class Av1TemporalFilter
 
         for (; column < end; column++)
         {
-            TOperator.AccumulateNoise(ref Unsafe.Add(ref row, column), stride, in terms, ref sum, ref count);
+            TemporalFilterLanes.AccumulateNoise<TSample, TOperator>(ref Unsafe.Add(ref row, column), stride, in terms, ref sum, ref count);
         }
 
         return (sum, count);

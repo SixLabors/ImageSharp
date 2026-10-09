@@ -639,12 +639,9 @@ internal static partial class Av1MotionSearchBase
                 SearchPrecision precision = settings.GetEstimatedFractionalPrecision(
                     this.blockSize,
                     integerResult.Vector,
-                    referenceVector,
-                    start,
                     frameLowMotion,
                     sourceSad,
-                    sourceVariance,
-                    fullPixelPerformedWell);
+                    sourceVariance);
 
                 FractionalSearch<TSample, TOperator> fractionalSearch = new(
                     this.source,
@@ -711,12 +708,9 @@ internal static partial class Av1MotionSearchBase
             SearchPrecision precision = settings.GetEstimatedFractionalPrecision(
                 this.blockSize,
                 integerVector,
-                referenceVector,
-                Point.Empty,
                 frameLowMotion,
                 sourceSad,
-                sourceVariance,
-                false);
+                sourceVariance);
 
             FractionalSearch<TSample, TOperator> fractionalSearch = new(
                 this.source,

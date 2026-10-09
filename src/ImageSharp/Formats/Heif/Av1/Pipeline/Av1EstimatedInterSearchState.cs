@@ -109,11 +109,6 @@ internal struct Av1EstimatedInterSearchState
     public bool EndSearch { get; set; }
 
     /// <summary>
-    /// Gets or sets the smallest modeled chroma distortion among completed inter candidates.
-    /// </summary>
-    public long MinimumChromaDistortion { get; set; }
-
-    /// <summary>
     /// Initializes validity and comparison state for the next block.
     /// </summary>
     /// <param name="modeCosts">The mode rate tables of the tile.</param>
@@ -141,7 +136,6 @@ internal struct Av1EstimatedInterSearchState
         this.BestEarlyTermination = false;
         this.SuperblockMotionTested = false;
         this.EndSearch = false;
-        this.MinimumChromaDistortion = long.MaxValue;
         this.ReferenceCosts[(int)Av1ReferenceFrameType.Intra] = Av1SymbolEncoder.GetIsInterCost(modeCosts, false, intraInterContext);
         int baseCost = Av1SymbolEncoder.GetIsInterCost(modeCosts, true, intraInterContext);
         if (selectReferenceMode)

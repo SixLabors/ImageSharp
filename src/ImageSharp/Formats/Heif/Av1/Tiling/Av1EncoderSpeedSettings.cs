@@ -1551,25 +1551,28 @@ internal readonly struct Av1EncoderSpeedSettings
     /// <summary>
     /// Gets the comparison policy for merging four variance-selected leaves.
     /// </summary>
-    /// <param name="screenContent">Whether the frame contains screen content.</param>
     /// <returns>The merge comparison level, or zero when merging is disabled.</returns>
-    public int GetEstimatedPartitionMergeLevel(bool screenContent)
-        => !this.realtime ? 0 : this.Speed switch
+    public int GetEstimatedPartitionMergeLevel()
+    {
+        // All-intra usage enables the merge at speed 8 and turns it off at speed 9. A frame whose shorter side is below
+        // 480 samples uses level 2 at both speeds, because the frame-size setting is applied after the speed setting.
+        if (this.allIntra)
         {
-            HeifEncodingSpeed.Level7 => this.minimumDimension < 480 ? 2 : 3,
-            HeifEncodingSpeed.Level8 => screenContent ? 3 : 0,
-            _ => 0
-        };
+            return this.Speed < HeifEncodingSpeed.Level8 ? 0
+                : this.minimumDimension < 480 ? 2
+                : this.Speed == HeifEncodingSpeed.Level8 ? 1 : 0;
+        }
+
+        // Real-time usage merges at speed 7 only. Good-quality usage never merges.
+        return this.realtime && this.Speed == HeifEncodingSpeed.Level7 ? this.minimumDimension < 480 ? 2 : 3 : 0;
+    }
 
     /// <summary>
     /// Gets the large-partition preference for temporal variance partitioning.
     /// </summary>
-    /// <param name="screenChange">Whether screen content has a large temporal source change.</param>
-    /// <param name="nonReferenceFrame">Whether no decoded reference slot retains this frame.</param>
     /// <returns>The threshold adjustment level.</returns>
-    public int GetVariancePartitionPreference(bool screenChange, bool nonReferenceFrame)
-        => screenChange ? nonReferenceFrame ? 1 : 0
-            : this.Speed >= HeifEncodingSpeed.Level9 ? 3
+    public int GetVariancePartitionPreference()
+        => this.Speed >= HeifEncodingSpeed.Level9 ? 3
             : this.Speed == HeifEncodingSpeed.Level8 ? this.minimumDimension < 360 ? 1 : 0
             : this.minimumDimension < 360 ? 2 : this.minimumDimension < 720 ? 1 : 0;
 
@@ -1577,14 +1580,10 @@ internal readonly struct Av1EncoderSpeedSettings
     /// Gets the intra prediction modes admitted during estimated inter search.
     /// </summary>
     /// <param name="blockSize">The coding-block size.</param>
-    /// <param name="screenChange">Whether screen content has a large temporal source change.</param>
     /// <returns>The bit mask of prediction modes.</returns>
-    public int GetEstimatedIntraModeMask(Av1BlockSize blockSize, bool screenChange)
+    public int GetEstimatedIntraModeMask(Av1BlockSize blockSize)
     {
-        bool dcOnly = screenChange
-            ? blockSize > Av1BlockSize.Block32x32
-            : this.Speed >= HeifEncodingSpeed.Level9 || blockSize >= Av1BlockSize.Block32x32;
-
+        bool dcOnly = this.Speed >= HeifEncodingSpeed.Level9 || blockSize >= Av1BlockSize.Block32x32;
         return dcOnly ? 1 << (int)Av1PredictionMode.DC
             : (1 << (int)Av1PredictionMode.DC) | (1 << (int)Av1PredictionMode.Vertical) | (1 << (int)Av1PredictionMode.Horizontal);
     }
@@ -1592,10 +1591,9 @@ internal readonly struct Av1EncoderSpeedSettings
     /// <summary>
     /// Gets the reference pruning level for estimated mode search.
     /// </summary>
-    /// <param name="screenContent">Whether screen-content tuning is active.</param>
     /// <returns>The reference pruning level.</returns>
-    public int GetEstimatedReferencePruningLevel(bool screenContent)
-        => screenContent ? this.Speed >= HeifEncodingSpeed.Level9 ? 3 : 1 : this.Speed >= HeifEncodingSpeed.Level8 ? 2 : 1;
+    public int GetEstimatedReferencePruningLevel()
+        => this.Speed >= HeifEncodingSpeed.Level8 ? 2 : 1;
 
     /// <summary>
     /// Gets whether intra convolution pruning retains unsplit screen-content candidates. A frame-size speed feature.

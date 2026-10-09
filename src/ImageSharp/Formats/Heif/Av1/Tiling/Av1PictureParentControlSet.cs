@@ -241,7 +241,9 @@ internal class Av1PictureParentControlSet
     public int EncoderBorder { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether source analysis classifies this frame as screen content.
+    /// Gets or sets a value indicating whether the frame has the screen content type. The source detection of the last
+    /// intra frame sets it, and a key frame's screen content trial can raise it. The rate control and the adaptive quantization read it. It is not the
+    /// screen content tune, which the encoder never sets.
     /// </summary>
     public bool IsScreenContent { get; set; }
 
@@ -316,11 +318,6 @@ internal class Av1PictureParentControlSet
     /// Gets or sets the running mean temporal source SAD, including the current frame.
     /// </summary>
     public ulong AverageSourceSad { get; set; }
-
-    /// <summary>
-    /// Gets or sets the percentage of source blocks that changed from the preceding frame.
-    /// </summary>
-    public int SourceMotionPercentage { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether temporal source error rose sharply above its running average.

@@ -299,7 +299,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
         // av1_set_screen_content_options() call of av1_first_pass().
         if (intraOnly)
         {
-            this.isScreenContentType = TOperator.DetectScreenContent(source, out this.useScreenContentTools, out this.allowIntraBlockCopy);
+            this.isScreenContentType = TOperator.DetectScreenContent(
+                source, this.speed, this.tuning, out this.useScreenContentTools, out this.allowIntraBlockCopy);
         }
 
         int unitLog2 = GetFirstPassBlockSize(this.isScreenContentType) == Av1BlockSize.Block8x8 ? 1 : 2;

@@ -214,34 +214,6 @@ internal static partial class Av1CoefficientMeasures
         /// <param name="values">The coefficients.</param>
         /// <returns>The sign-extended low sixteen bits.</returns>
         public static abstract Vector512<int> TruncateToInt16(Vector512<int> values);
-
-        /// <summary>
-        /// Scales eight residuals by eight into thirty-two-bit coefficients.
-        /// </summary>
-        /// <param name="values">The residuals.</param>
-        /// <param name="destination">The first coefficient to write.</param>
-        public static abstract void StoreScaledResidual(Vector128<short> values, ref int destination);
-
-        /// <summary>
-        /// Scales sixteen residuals by eight into thirty-two-bit coefficients.
-        /// </summary>
-        /// <param name="values">The residuals.</param>
-        /// <param name="destination">The first coefficient to write.</param>
-        public static abstract void StoreScaledResidual(Vector256<short> values, ref int destination);
-
-        /// <summary>
-        /// Scales thirty-two residuals by eight into thirty-two-bit coefficients.
-        /// </summary>
-        /// <param name="values">The residuals.</param>
-        /// <param name="destination">The first coefficient to write.</param>
-        public static abstract void StoreScaledResidual(Vector512<short> values, ref int destination);
-
-        /// <summary>
-        /// Scales one residual by eight.
-        /// </summary>
-        /// <param name="value">The residual.</param>
-        /// <returns>The coefficient.</returns>
-        public static abstract int ScaleResidual(short value);
     }
 
     /// <summary>
@@ -455,36 +427,5 @@ internal static partial class Av1CoefficientMeasures
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<int> TruncateToInt16(Vector512<int> values)
             => Vector512.ShiftRightArithmetic(Vector512.ShiftLeft(values, 16), 16);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void StoreScaledResidual(Vector128<short> values, ref int destination)
-        {
-            (Vector128<int> lower, Vector128<int> upper) = Vector128.Widen(values);
-            Vector128.ShiftLeft(lower, 3).StoreUnsafe(ref destination);
-            Vector128.ShiftLeft(upper, 3).StoreUnsafe(ref destination, (nuint)Vector128<int>.Count);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void StoreScaledResidual(Vector256<short> values, ref int destination)
-        {
-            (Vector256<int> lower, Vector256<int> upper) = Vector256.Widen(values);
-            Vector256.ShiftLeft(lower, 3).StoreUnsafe(ref destination);
-            Vector256.ShiftLeft(upper, 3).StoreUnsafe(ref destination, (nuint)Vector256<int>.Count);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void StoreScaledResidual(Vector512<short> values, ref int destination)
-        {
-            (Vector512<int> lower, Vector512<int> upper) = Vector512.Widen(values);
-            Vector512.ShiftLeft(lower, 3).StoreUnsafe(ref destination);
-            Vector512.ShiftLeft(upper, 3).StoreUnsafe(ref destination, (nuint)Vector512<int>.Count);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ScaleResidual(short value) => value * 8;
     }
 }

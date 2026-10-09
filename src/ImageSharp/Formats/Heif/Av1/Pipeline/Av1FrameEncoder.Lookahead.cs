@@ -917,7 +917,6 @@ internal static partial class Av1FrameEncoder
             parent.SourceBlockSad = default;
             parent.HighSourceSad = false;
             parent.FrameSourceSad = 0;
-            parent.SourceMotionPercentage = 0;
 
             // The rate control keeps the key and golden counters. Reference: rc->frames_since_key and
             // rc->frames_since_golden.
@@ -1101,7 +1100,6 @@ internal static partial class Av1FrameEncoder
             parent.SourceBlockSad = default;
             parent.HighSourceSad = false;
             parent.FrameSourceSad = 0;
-            parent.SourceMotionPercentage = 0;
 
             // The rate control keeps the key and golden counters. Reference: rc->frames_since_key and
             // rc->frames_since_golden.

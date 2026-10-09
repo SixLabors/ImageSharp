@@ -23,7 +23,6 @@ internal static partial class Av1MotionSearchBase
     /// <param name="border">The allocated border in samples.</param>
     /// <param name="horizontalRange">The requested horizontal search radius.</param>
     /// <param name="verticalRange">The requested vertical search radius.</param>
-    /// <param name="screenContent">Whether every projected displacement is searched and motion is restricted to one axis.</param>
     /// <param name="scrollSuperblock">Whether the expanded superblock search replaces local two-dimensional refinement.</param>
     /// <param name="bounds">The permitted final full-sample displacements.</param>
     /// <param name="scratch">Reusable storage for the two prediction projections and two source projections.</param>
@@ -41,7 +40,6 @@ internal static partial class Av1MotionSearchBase
         int border,
         int horizontalRange,
         int verticalRange,
-        bool screenContent,
         bool scrollSuperblock,
         Rectangle bounds,
         Span<short> scratch,
@@ -99,27 +97,15 @@ internal static partial class Av1MotionSearchBase
         Av1IntegralProjection.ProjectColumns(sourceHorizontal, source, sourceStride, block.Width, block.Height, horizontalShift);
         Av1IntegralProjection.ProjectRows(sourceVertical, source, sourceStride, block.Width, block.Height, verticalShift);
 
-        int column = MatchProjection(horizontal, sourceHorizontal, left, right, screenContent, out int columnError);
-        int rowOffset = MatchProjection(vertical, sourceVertical, top, bottom, screenContent, out int rowError);
-        if (screenContent)
-        {
-            if (columnError < rowError)
-            {
-                rowOffset = 0;
-            }
-            else
-            {
-                column = 0;
-            }
-        }
-
+        int column = MatchProjection(horizontal, sourceHorizontal, left, right, out int columnError);
+        int rowOffset = MatchProjection(vertical, sourceVertical, top, bottom, out int rowError);
         Point selected = new(column, rowOffset);
         Point searchCenter = selected;
         int predictionOrigin = referenceOrigin + (selected.Y * referenceStride) + selected.X;
         uint bestSad = (uint)ByteOperator.SumAbsoluteDifferences(
             source, sourceStride, reference[predictionOrigin..], referenceStride, block.Width, block.Height, 1);
 
-        if (!screenContent && scrollSuperblock)
+        if (scrollSuperblock)
         {
             // Expanded motion compares its projected one-axis estimates with the two-axis SAD.
             // Keep those comparison domains and strict ties in their original decision order.
@@ -195,13 +181,13 @@ internal static partial class Av1MotionSearchBase
     }
 
     /// <summary>
-    /// Finds a projected displacement with either unit steps or a coarse-to-fine search.
+    /// Finds a projected displacement with a coarse-to-fine search: every sixteenth position first, then steps of
+    /// eight, four, two and one around the best position.
     /// </summary>
     /// <param name="reference">The complete projected search interval.</param>
     /// <param name="source">The projected source block.</param>
     /// <param name="before">The number of candidate positions before zero motion.</param>
     /// <param name="after">The number of candidate positions after zero motion.</param>
-    /// <param name="fullSearch">Whether every candidate position is evaluated.</param>
     /// <param name="error">The winning centered squared error.</param>
     /// <returns>The displacement from the zero-motion position.</returns>
     private static int MatchProjection(
@@ -209,14 +195,12 @@ internal static partial class Av1MotionSearchBase
         ReadOnlySpan<short> source,
         int before,
         int after,
-        bool fullSearch,
         out int error)
     {
         int limit = before + after;
         int center = 0;
         error = int.MaxValue;
-        int increment = fullSearch ? 1 : 16;
-        for (int position = 0; position <= limit; position += increment)
+        for (int position = 0; position <= limit; position += 16)
         {
             int candidate = GetProjectionVariance(reference[position..], source);
             if (candidate < error)
@@ -226,25 +210,22 @@ internal static partial class Av1MotionSearchBase
             }
         }
 
-        if (!fullSearch)
+        for (int step = 8; step != 0; step >>= 1)
         {
-            for (int step = 8; step != 0; step >>= 1)
+            int origin = center;
+            for (int offset = -step; offset <= step; offset += 2 * step)
             {
-                int origin = center;
-                for (int offset = -step; offset <= step; offset += 2 * step)
+                int position = origin + offset;
+                if ((uint)position > (uint)limit)
                 {
-                    int position = origin + offset;
-                    if ((uint)position > (uint)limit)
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    int candidate = GetProjectionVariance(reference[position..], source);
-                    if (candidate < error)
-                    {
-                        error = candidate;
-                        center = position;
-                    }
+                int candidate = GetProjectionVariance(reference[position..], source);
+                if (candidate < error)
+                {
+                    error = candidate;
+                    center = position;
                 }
             }
         }

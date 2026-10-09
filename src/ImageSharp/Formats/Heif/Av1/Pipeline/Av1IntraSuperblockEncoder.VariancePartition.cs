@@ -50,11 +50,9 @@ internal static partial class Av1IntraSuperblockEncoder
             const int resolution480 = 640 * 480;
             const int resolution720 = 1280 * 720;
             const int resolution1080 = 1920 * 1080;
-            const int resolution1440 = 2560 * 1440;
             const int largeBlockQuantizer = 100;
             Av1PictureParentControlSet parent = this.picture.Parent;
             int speed = (int)parent.EncodingSpeed;
-            bool screen = parent.IsScreenContent;
             bool nonReferenceFrame = parent.FrameHeader.RefreshFrameFlags == 0;
             int pixels = parent.FrameHeader.FrameSize.FrameWidth * parent.FrameHeader.FrameSize.FrameHeight;
             int frameQuantizer = this.quantization.QIndex[0];
@@ -70,8 +68,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     basis = (5 * basis) >> 1;
                 }
-                else if (noiseLevel == Av1NoiseEstimate.MediumLevel && parent.SpeedSettings.GetVariancePartitionPreference(
-                    parent.IsScreenContent && parent.HighSourceSad, nonReferenceFrame) == 0)
+                else if (noiseLevel == Av1NoiseEstimate.MediumLevel && parent.SpeedSettings.GetVariancePartitionPreference() == 0)
                 {
                     basis = (5 * basis) >> 2;
                 }
@@ -87,7 +84,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 basis = (5 * basis) >> 2;
             }
 
-            int splitShift = screen && speed >= 9 ? 10 : speed >= 9 ? 9 : speed >= 8 ? 8 : 7;
+            int splitShift = speed >= 9 ? 9 : speed >= 8 ? 8 : 7;
             thresholds[0] = basis >> 1;
             thresholds[1] = basis;
             thresholds[3] = basis << splitShift;
@@ -135,12 +132,10 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else
             {
-                thresholds[2] = screen
-                    ? ((pixels < resolution1440 ? 5 : 7) * basis) >> 1
-                    : (speed > 7 ? 6 : 3) * basis;
+                thresholds[2] = (speed > 7 ? 6 : 3) * basis;
             }
 
-            int preference = parent.SpeedSettings.GetVariancePartitionPreference(screen && parent.HighSourceSad, nonReferenceFrame);
+            int preference = parent.SpeedSettings.GetVariancePartitionPreference();
             if (preference >= 3)
             {
                 // These quantizer weights change in integer steps. Keeping the division integral
@@ -298,8 +293,7 @@ internal static partial class Av1IntraSuperblockEncoder
             long threshold = thresholds[7 - sizeLog2];
             Av1PictureParentControlSet parent = this.picture.Parent;
             int pixels = parent.FrameHeader.FrameSize.FrameWidth * parent.FrameHeader.FrameSize.FrameHeight;
-            int preference = parent.SpeedSettings.GetVariancePartitionPreference(
-                parent.IsScreenContent && parent.HighSourceSad, parent.FrameHeader.RefreshFrameFlags == 0);
+            int preference = parent.SpeedSettings.GetVariancePartitionPreference();
 
             // A forced child split propagates upward before variance-based merges. A parent's
             // low mean variance must not erase a small moving region inside one of its children.
@@ -583,7 +577,6 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="macroBlock">The superblock's neighboring syntax and frame edges.</param>
         /// <param name="origin">The superblock's luma origin.</param>
         /// <param name="predictionStride">The row stride of the returned luma prediction.</param>
-        /// <param name="lastSad">The selected LAST prediction's absolute-difference sum.</param>
         /// <returns>The borrowed luma prediction for partition moments.</returns>
         private ReadOnlySpan<TSample> PrepareInterVariancePrediction(
             Span<int> transformCoefficients,
@@ -600,8 +593,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> sourceRed,
             Av1MacroBlockD macroBlock,
             Point origin,
-            out int predictionStride,
-            out uint lastSad)
+            out int predictionStride)
         {
             Av1PictureParentControlSet parent = this.picture.Parent;
             Av1BlockSize blockSize = this.picture.Sequence.SequenceHeader.SuperblockSize;
@@ -638,7 +630,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             this.partitionMotion = default;
             this.usePartitionMotion = false;
-            int motionLevel = precisionShift != 0 ? 0 : parent.IsScreenContent ? 1 : parent.EncodingSpeed >= HeifEncodingSpeed.Level9 ? 3 : 2;
+            int motionLevel = precisionShift != 0 ? 0 : parent.EncodingSpeed >= HeifEncodingSpeed.Level9 ? 3 : 2;
             if (motionLevel > 2 && this.sourceSadLevel > Av1SourceSadLevel.Medium)
             {
                 motionLevel = 2;
@@ -650,16 +642,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 Math.Min(lastPlane.Bounds.X, lastPlane.Bounds.Y));
 
             Rectangle integerBounds = default(Av1MotionVector).GetFullPixelSearchBounds(frameBounds);
-            lastSad = uint.MaxValue;
-            if ((motionLevel == 1 || motionLevel == 2) && macroBlock.ToRightEdge >= 0 && macroBlock.ToBottomEdge >= 0 &&
+            uint lastSad = uint.MaxValue;
+            if (motionLevel == 2 && macroBlock.ToRightEdge >= 0 && macroBlock.ToBottomEdge >= 0 &&
                 spatialVariance > 100 && this.sourceSadLevel > Av1SourceSadLevel.Low)
             {
-                bool largeSearch = parent.IsScreenContent ||
-                    (this.sourceSadLevel > Av1SourceSadLevel.Medium && (long)frameSize.Width * frameSize.Height > 1280 * 720);
-
-                int maximumRange = parent.IsScreenContent ? 512 : 256;
-                int horizontalRange = largeSearch ? this.sourceSadLevel > Av1SourceSadLevel.Medium ? maximumRange : 96 : side >> 1;
-                int verticalRange = largeSearch ? this.sourceSadLevel > Av1SourceSadLevel.Medium ? maximumRange : 192 : side >> 1;
+                // A large search runs only for a large source change in a frame larger than 720p, so its range is
+                // always the widest one.
+                bool largeSearch = this.sourceSadLevel > Av1SourceSadLevel.Medium && (long)frameSize.Width * frameSize.Height > 1280 * 720;
+                int horizontalRange = largeSearch ? 256 : side >> 1;
+                int verticalRange = largeSearch ? 256 : side >> 1;
                 if ((long)frameSize.Width * frameSize.Height >= 3840 * 2160)
                 {
                     horizontalRange <<= 1;
@@ -679,7 +670,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     parent.EncoderBorder,
                     horizontalRange,
                     verticalRange,
-                    parent.IsScreenContent,
                     largeSearch,
                     integerBounds,
                     MemoryMarshal.Cast<int, short>(transformCoefficients),
@@ -767,7 +757,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             this.partitionReference = Av1ReferenceFrameType.Last;
-            this.estimatedReferencePruning = parent.SpeedSettings.GetEstimatedReferencePruningLevel(parent.IsScreenContent);
+            this.estimatedReferencePruning = parent.SpeedSettings.GetEstimatedReferencePruningLevel();
 
             // set_ref_frame_for_partition(): GOLDEN or ALTREF, whichever has the lower error, replaces LAST when
             // its error is below 0.9 of LAST's.
@@ -844,7 +834,6 @@ internal static partial class Av1IntraSuperblockEncoder
             this.superblockColorSensitivity[..].Clear();
             this.goldenColorSensitivity[..].Clear();
             this.alternateColorSensitivity[..].Clear();
-            this.superblockChromaSad[..].Clear();
             if (!this.source.IsMonochrome)
             {
                 // The screen branches of chroma_check() test the screen tune content, which libavif never sets,
@@ -888,7 +877,6 @@ internal static partial class Av1IntraSuperblockEncoder
                         height,
                         1) >> precisionShift;
 
-                    this.superblockChromaSad[index] = sad;
                     this.superblockColorSensitivity[index] = (byte)(sad > (lastSad >> upperShift) ? 1 : sad < (lastSad >> lowerShift) ? 0 : 2);
                     if (goldenSad != uint.MaxValue)
                     {
@@ -1130,7 +1118,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 Av1PictureParentControlSet parent = this.picture.Parent;
-                int side = this.picture.Sequence.SequenceHeader.SuperblockSize.GetWidth();
 
                 // A frame without the block errors of scene detection takes zero. Reference: the NULL
                 // src_sad_blk_64x64 test of av1_choose_var_based_partitioning().
@@ -1167,35 +1154,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     sourceRed,
                     macroBlock,
                     superblockOrigin,
-                    out int predictionStride,
-                    out uint lastSad);
-
-                // Only the base segment exits early, so a boosted segment keeps refreshing. Reference: the
-                // CR_SEGMENT_ID_BASE test of the part_early_exit_zeromv exit.
-                this.forceZeroMotionLevel = 0;
-                if (parent.IsScreenContent && parent.EncodingSpeed >= HeifEncodingSpeed.Level9 &&
-                    parent.FramesSinceKey > 30 && this.blockSegmentId == Av1CyclicRefresh.BaseSegment &&
-                    this.partitionReference == Av1ReferenceFrameType.Last &&
-                    this.partitionMotion.IsZero && this.sourceSadLevel == Av1SourceSadLevel.Zero)
-                {
-                    uint lumaThreshold = side == 128 ? 10000U : 5000U;
-                    uint chromaThreshold = (3 * lumaThreshold) >> 2;
-                    int column = superblockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
-                    int row = superblockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
-                    int modeInfoSide = side >> Av1Constants.ModeInfoSizeLog2;
-                    if (column + modeInfoSide <= macroBlock.Tile.ModeInfoColumnEnd &&
-                        row + modeInfoSide <= macroBlock.Tile.ModeInfoRowEnd && lastSad < lumaThreshold &&
-                        this.superblockChromaSad[0] < chromaThreshold && this.superblockChromaSad[1] < chromaThreshold)
-                    {
-                        this.forceZeroMotionLevel = 1;
-                        this.superblock.Workspace.PartitionSearchTypes[0] = (byte)Av1PartitionType.None;
-                        return;
-                    }
-
-                    // Stationary source can still contain reconstruction error. Keep partitioning
-                    // in that case and let individual leaves establish their own zero-motion skip.
-                    this.forceZeroMotionLevel = 2;
-                }
+                    out int predictionStride);
 
                 Span<VariancePartitionNode> temporalNodes = MemoryMarshal.Cast<int, VariancePartitionNode>(
                     Av1EncoderBlockWorkspace.GetPartitionAnalysisScratch(workspaceStorage));
@@ -1233,7 +1192,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (largePartitions)
             {
-                int splitShift = allIntra ? speed == 8 ? 8 : 7 : this.picture.Parent.IsScreenContent ? 10 : 9;
+                int splitShift = allIntra ? speed == 8 ? 8 : 7 : 9;
                 threshold <<= splitShift - (allIntra ? 7 : 8);
             }
 

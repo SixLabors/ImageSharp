@@ -14308,7 +14308,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 predictionMode,
                 Av1FilterIntraMode.AllFilterIntraModes,
                 derivedTransformType,
-                false,
                 costLimit,
                 false,
                 prediction,

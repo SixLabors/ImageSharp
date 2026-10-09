@@ -668,7 +668,6 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             frameHeader.QuantizationParameters.BaseQIndex,
             parent.ScreenContentTrialQIndex,
             parent.SpeedSettings.IsBoosted,
-            parent.IsScreenContent,
             parent.IsGraphicsAnimation || screenContentToolsBeforeTrial,
             parent.EncoderOptions.Tuning);
 

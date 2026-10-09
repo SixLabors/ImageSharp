@@ -53,28 +53,6 @@ internal static partial class Av1ScreenContentDetector
     }
 
     /// <summary>
-    /// Detects palette-friendly content in an eight-bit source frame.
-    /// </summary>
-    /// <param name="source">The converted source frame.</param>
-    /// <returns><see langword="true"/> when palette tools should be enabled; otherwise, <see langword="false"/>.</returns>
-    public static bool IsPaletteLikely(Av1EncoderFrame<byte> source)
-    {
-        Detect(source, out bool allowScreenContentTools, out _);
-        return allowScreenContentTools;
-    }
-
-    /// <summary>
-    /// Detects palette-friendly content in a high-bit-depth source frame.
-    /// </summary>
-    /// <param name="source">The converted source frame.</param>
-    /// <returns><see langword="true"/> when palette tools should be enabled; otherwise, <see langword="false"/>.</returns>
-    public static bool IsPaletteLikely(Av1EncoderFrame<ushort> source)
-    {
-        Detect(source, out bool allowScreenContentTools, out _);
-        return allowScreenContentTools;
-    }
-
-    /// <summary>
     /// Detects palette and intra-block-copy content in an eight-bit source frame.
     /// </summary>
     /// <param name="source">The converted source frame.</param>
@@ -172,6 +150,7 @@ internal static partial class Av1ScreenContentDetector
     /// <param name="source">The converted source frame.</param>
     /// <param name="allIntra">Whether the encoder runs the reference's all-intra mode.</param>
     /// <param name="speed">The encoder speed.</param>
+    /// <param name="tuning">The tune metric, which selects the anti-aliasing aware detection for the image tunes.</param>
     /// <param name="allowScreenContentTools">Receives whether palette syntax should be enabled.</param>
     /// <param name="allowIntraBlockCopy">Receives whether intra-block copy should be enabled.</param>
     /// <returns>Whether the frame is classified as screen content for encoder decisions.</returns>
@@ -179,9 +158,10 @@ internal static partial class Av1ScreenContentDetector
         Av1EncoderFrame<byte> source,
         bool allIntra,
         HeifEncodingSpeed speed,
+        Av1Tuning tuning,
         out bool allowScreenContentTools,
         out bool allowIntraBlockCopy)
-        => SetScreenContentOptions<byte, ByteSampleOperator>(source, allIntra, speed, out allowScreenContentTools, out allowIntraBlockCopy);
+        => SetScreenContentOptions<byte, ByteSampleOperator>(source, allIntra, speed, tuning, out allowScreenContentTools, out allowIntraBlockCopy);
 
     /// <summary>
     /// Decides the screen-content tools of a high-bit-depth frame, as <c>av1_set_screen_content_options</c> does
@@ -190,6 +170,7 @@ internal static partial class Av1ScreenContentDetector
     /// <param name="source">The converted source frame.</param>
     /// <param name="allIntra">Whether the encoder runs the reference's all-intra mode.</param>
     /// <param name="speed">The encoder speed.</param>
+    /// <param name="tuning">The tune metric, which selects the anti-aliasing aware detection for the image tunes.</param>
     /// <param name="allowScreenContentTools">Receives whether palette syntax should be enabled.</param>
     /// <param name="allowIntraBlockCopy">Receives whether intra-block copy should be enabled.</param>
     /// <returns>Whether the frame is classified as screen content for encoder decisions.</returns>
@@ -197,14 +178,30 @@ internal static partial class Av1ScreenContentDetector
         Av1EncoderFrame<ushort> source,
         bool allIntra,
         HeifEncodingSpeed speed,
+        Av1Tuning tuning,
         out bool allowScreenContentTools,
         out bool allowIntraBlockCopy)
-        => SetScreenContentOptions<ushort, UShortSampleOperator>(source, allIntra, speed, out allowScreenContentTools, out allowIntraBlockCopy);
+        => SetScreenContentOptions<ushort, UShortSampleOperator>(source, allIntra, speed, tuning, out allowScreenContentTools, out allowIntraBlockCopy);
 
+    /// <summary>
+    /// Decides the screen-content tools of a frame. Real-time encoding and the all-intra speeds that pick modes
+    /// without rate-distortion search never enable them. All-intra mode and the image tunes use the anti-aliasing
+    /// aware detection. Every other configuration uses the palette color count detection.
+    /// </summary>
+    /// <typeparam name="TSample">The native sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The native sample operations.</typeparam>
+    /// <param name="source">The converted source frame.</param>
+    /// <param name="allIntra">Whether the encoder runs the reference's all-intra mode.</param>
+    /// <param name="speed">The encoder speed.</param>
+    /// <param name="tuning">The tune metric.</param>
+    /// <param name="allowScreenContentTools">Receives whether palette syntax should be enabled.</param>
+    /// <param name="allowIntraBlockCopy">Receives whether intra-block copy should be enabled.</param>
+    /// <returns>Whether the frame is classified as screen content for encoder decisions.</returns>
     private static bool SetScreenContentOptions<TSample, TOperator>(
         Av1EncoderFrame<TSample> source,
         bool allIntra,
         HeifEncodingSpeed speed,
+        Av1Tuning tuning,
         out bool allowScreenContentTools,
         out bool allowIntraBlockCopy)
         where TSample : unmanaged
@@ -220,11 +217,12 @@ internal static partial class Av1ScreenContentDetector
             return false;
         }
 
-        // All-intra mode defaults to the anti-aliasing aware detection, sampling
-        // half of the blocks from speed 3.
-        return allIntra
+        // All-intra mode and the image tunes select the anti-aliasing aware detection. Every other configuration
+        // keeps the standard color count detection. Only the all-intra speed features sample half of the blocks,
+        // from speed 3.
+        return allIntra || tuning.IsImageTuning()
             ? DetectAntialiasingAware<TSample, TOperator>(
-                source, speed >= HeifEncodingSpeed.Level3, out allowScreenContentTools, out allowIntraBlockCopy)
+                source, allIntra && speed >= HeifEncodingSpeed.Level3, out allowScreenContentTools, out allowIntraBlockCopy)
             : Detect<TSample, TOperator>(source, out allowScreenContentTools, out allowIntraBlockCopy);
     }
 

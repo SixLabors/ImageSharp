@@ -15,7 +15,6 @@ internal readonly struct Av1MotionSearchSettings
     private readonly int fasterSearchMinimumDimension;
     private readonly int qIndex;
     private readonly int minimumDimension;
-    private readonly bool screenContent;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1MotionSearchSettings"/> struct.
@@ -25,7 +24,9 @@ internal readonly struct Av1MotionSearchSettings
     /// <param name="frameSize">The visible frame dimensions.</param>
     /// <param name="qIndex">The base quantizer index.</param>
     /// <param name="boostedFrame">Whether this is a key, golden, or alternate-reference frame with boosted quality.</param>
-    /// <param name="screenContent">Whether the content classification identifies graphics or screen content.</param>
+    /// <param name="screenContent">
+    /// Whether the frame is graphics content or uses the screen content tools, which lowers the mesh search threshold.
+    /// </param>
     /// <param name="tuning">The tune metric.</param>
     public Av1MotionSearchSettings(
         HeifEncodingSpeed speed,
@@ -35,7 +36,7 @@ internal readonly struct Av1MotionSearchSettings
         bool boostedFrame,
         bool screenContent,
         Av1Tuning tuning = Av1Tuning.Psnr)
-        : this(speed, intraOnly, frameSize, qIndex, -1, boostedFrame, screenContent, screenContent, tuning)
+        : this(speed, intraOnly, frameSize, qIndex, -1, boostedFrame, screenContent, tuning)
     {
     }
 
@@ -51,7 +52,6 @@ internal readonly struct Av1MotionSearchSettings
     /// <param name="qIndex">The base quantizer index, or -1 before the quantizer-dependent features first run.</param>
     /// <param name="trialQIndex">The quantizer of the screen content trial of the frame, or -1 without one.</param>
     /// <param name="boostedFrame">Whether this is a key, golden, or alternate-reference frame with boosted quality.</param>
-    /// <param name="screenContent">Whether the content classification identifies graphics or screen content.</param>
     /// <param name="lowMeshThreshold">
     /// Whether the frame is graphics or animation, or used the screen content tools when its speed features were set.
     /// Reference: the fr_content_type and use_screen_content_tools test of exhaustive_searches_thresh.
@@ -64,14 +64,12 @@ internal readonly struct Av1MotionSearchSettings
         int qIndex,
         int trialQIndex,
         bool boostedFrame,
-        bool screenContent,
         bool lowMeshThreshold,
         Av1Tuning tuning = Av1Tuning.Psnr)
     {
         this.speed = speed;
         this.qIndex = qIndex;
         this.minimumDimension = Math.Min(frameSize.Width, frameSize.Height);
-        this.screenContent = screenContent;
         this.FractionalPrecision = SearchPrecision.EighthSample;
         this.fullPixelMethod = FullPixelSearchMethod.NStep;
         this.FractionalMethod = FractionalSearchMethod.TwoLevelTree;
@@ -127,14 +125,10 @@ internal readonly struct Av1MotionSearchSettings
             this.MeshErrorThreshold = int.MaxValue;
             this.MotionCostUpdate = CostUpdateFrequency.SuperblockRow;
             this.UseRefiningObmcSearch = true;
-            this.AllowIntraBlockCopy = screenContent;
-            this.PruneIntraBlockCopyHashCandidates = screenContent;
-            this.LimitIntraBlockCopyHashBlockSize = screenContent;
-            this.UseFastIntraBlockCopySearch = screenContent;
-            if (screenContent && speed >= HeifEncodingSpeed.Level9)
-            {
-                this.FractionalMethod = FractionalSearchMethod.MorePrunedTree;
-            }
+
+            // Real-time usage searches intra block copy only with the screen content tune, which this encoder never
+            // sets. Detected screen content does not turn it on.
+            this.AllowIntraBlockCopy = false;
         }
         else
         {
@@ -521,7 +515,6 @@ internal readonly struct Av1MotionSearchSettings
     public FullPixelSearchMethod GetEstimatedFullPixelMethod(Av1BlockSize blockSize, Av1SourceSadLevel sourceSad)
     {
         bool useFasterSearch = this.speed == HeifEncodingSpeed.Level8
-            && !this.screenContent
             && this.qIndex < 192
             && sourceSad <= Av1SourceSadLevel.Medium
             && Math.Min(blockSize.GetWidth(), blockSize.GetHeight()) >= 16;
@@ -534,29 +527,20 @@ internal readonly struct Av1MotionSearchSettings
     /// </summary>
     /// <param name="blockSize">The prediction block size.</param>
     /// <param name="integerVector">The full-pixel search winner in whole samples.</param>
-    /// <param name="referenceVector">The coding predictor in eighth samples.</param>
-    /// <param name="startVector">The full-pixel search start in whole samples.</param>
     /// <param name="frameLowMotion">The percentage of low-motion blocks in the preceding frame.</param>
     /// <param name="sourceSad">The source-change classification.</param>
     /// <param name="sourceVariance">The normalized source variance.</param>
-    /// <param name="fullPixelPerformedWell">Whether the full-pixel result meets the block's cost threshold.</param>
     /// <returns>The finest displacement to examine.</returns>
     public SearchPrecision GetEstimatedFractionalPrecision(
         Av1BlockSize blockSize,
         Point integerVector,
-        Av1MotionVector referenceVector,
-        Point startVector,
         int frameLowMotion,
         Av1SourceSadLevel sourceSad,
-        uint sourceVariance,
-        bool fullPixelPerformedWell)
+        uint sourceVariance)
     {
-        int highMotionLevel = this.minimumDimension >= 1080 || this.screenContent ? 0
+        int highMotionLevel = this.minimumDimension >= 1080 ? 0
             : this.speed >= HeifEncodingSpeed.Level9 && this.minimumDimension >= 360 ? 2
             : this.minimumDimension >= 720 ? 1 : 0;
-
-        int lowComplexityLevel = this.screenContent && this.speed >= HeifEncodingSpeed.Level9 ? 1
-            : this.minimumDimension >= 720 && this.speed < HeifEncodingSpeed.Level9 ? 2 : 0;
 
         if (highMotionLevel != 0)
         {
@@ -579,24 +563,19 @@ internal readonly struct Av1MotionSearchSettings
 
         // Source activity controls precision only after displacement has had its first opportunity
         // to stop the search. Reversing these decisions can retain expensive small-step searches.
-        if (lowComplexityLevel == 2)
+        // Frames of at least 720 samples below speed 9 reduce precision for low-complexity blocks.
+        if (this.minimumDimension >= 720 && this.speed < HeifEncodingSpeed.Level9 &&
+            sourceSad <= Av1SourceSadLevel.VeryLow && blockSize > Av1BlockSize.Block16x16 && this.qIndex >= 64)
         {
-            if (sourceSad <= Av1SourceSadLevel.VeryLow && blockSize > Av1BlockSize.Block16x16 && this.qIndex >= 64)
+            if (sourceVariance < 500)
             {
-                if (sourceVariance < 500)
-                {
-                    return SearchPrecision.Integer;
-                }
-
-                if (sourceVariance < 5000)
-                {
-                    return SearchPrecision.HalfSample;
-                }
+                return SearchPrecision.Integer;
             }
-        }
-        else if (lowComplexityLevel == 1 && fullPixelPerformedWell && referenceVector.IsZero && startVector == Point.Empty)
-        {
-            return SearchPrecision.HalfSample;
+
+            if (sourceVariance < 5000)
+            {
+                return SearchPrecision.HalfSample;
+            }
         }
 
         return this.FractionalPrecision;

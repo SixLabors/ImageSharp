@@ -344,7 +344,6 @@ internal static partial class Av1IntraSuperblockEncoder
         private readonly bool filterTemporalSource;
         private Av1MotionVector partitionMotion;
         private Av1MotionVector superblockMotion;
-        private int forceZeroMotionLevel;
         private Av1ReferenceFrameType partitionReference;
         private bool usePartitionMotion;
 
@@ -367,7 +366,6 @@ internal static partial class Av1IntraSuperblockEncoder
         private InlineArray4<bool> cdefSkipUnits;
         private InlineArray2<byte> goldenColorSensitivity;
         private InlineArray2<byte> alternateColorSensitivity;
-        private InlineArray2<uint> superblockChromaSad;
 
         /// <summary>
         /// Whether the temporal dependency model keeps each reference type, INTRA to ALTREF, from the selective
@@ -732,7 +730,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     long variance = squaredError - meanSquaredError;
                     this.sourceLightingChange = variance < (squaredError >> 1) && meanSquaredError > 10000;
                     this.sourceLowSumDifference = squaredError != 0 && meanSquaredError < 5000;
-                    if (squaredError != 0 && !picture.Parent.IsScreenContent && !picture.Parent.HighSourceSad &&
+                    if (squaredError != 0 && !picture.Parent.HighSourceSad &&
                         picture.Parent.FrameSourceSad <= 20000 && !picture.Parent.FrameHeader.CodedLossless &&
                         !picture.Sequence.SequenceHeader.EnableSuperResolution)
                     {
@@ -757,7 +755,7 @@ internal static partial class Av1IntraSuperblockEncoder
             this.replayParentSize = Av1BlockSize.Invalid;
             bool searchesLeaves = SearchesVariancePartitionLeaves(picture);
             if (!picture.Parent.SpeedSettings.UseVarianceBasedPartition || searchesLeaves ||
-                (!picture.Parent.FrameHeader.IsIntra && picture.Parent.SpeedSettings.GetEstimatedPartitionMergeLevel(picture.Parent.IsScreenContent) != 0))
+                (!picture.Parent.FrameHeader.IsIntra && picture.Parent.SpeedSettings.GetEstimatedPartitionMergeLevel() != 0))
             {
                 int side = 1 << picture.Sequence.SequenceHeader.SuperblockSizeLog2;
                 int x = (superblock.Index % coefficientBuffer.SuperblockColumnCount) * side;
@@ -1040,7 +1038,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.replayParentSize = blockSize;
                 }
                 else if (variancePartition == Av1PartitionType.None && !this.picture.Parent.FrameHeader.IsIntra &&
-                    this.picture.Parent.SpeedSettings.GetEstimatedPartitionMergeLevel(this.picture.Parent.IsScreenContent) != 0 &&
+                    this.picture.Parent.SpeedSettings.GetEstimatedPartitionMergeLevel() != 0 &&
                     this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0).Snapshot.Ready)
                 {
                     this.replayNodeIndex = nodeIndex;
@@ -1217,7 +1215,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int nodeIndex)
         {
             Av1PictureParentControlSet parent = this.picture.Parent;
-            int mergeLevel = parent.SpeedSettings.GetEstimatedPartitionMergeLevel(parent.IsScreenContent);
+            int mergeLevel = parent.SpeedSettings.GetEstimatedPartitionMergeLevel();
 
             if (mergeLevel == 0)
             {
@@ -1478,7 +1476,7 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             bool largerQuantizer = this.picture.Parent.FrameHeader.QuantizationParameters.BaseQIndex > 100;
             bool doSplit = mergeLevel != 3 || blockSize <= Av1BlockSize.Block32x32 || (largerQuantizer && blockSize <= Av1BlockSize.Block64x64);
-            if (this.picture.Parent.IsScreenContent || mergeLevel < 2 || noneBoosted || !noneSkip)
+            if (mergeLevel < 2 || noneBoosted || !noneSkip)
             {
                 return doSplit;
             }
@@ -6430,10 +6428,6 @@ internal static partial class Av1IntraSuperblockEncoder
                         transformWorkspace,
                         transformTypeProbabilities,
                         estimationRowCoefficients,
-                        in interWorkspace,
-                        firstIntermediate,
-                        secondIntermediate,
-                        compoundMask,
                         in transformEdges,
                         in paletteEdges,
                         in lumaCoefficientEdges,
@@ -6441,9 +6435,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         in redCoefficientEdges,
                         modeInfoGrid,
                         modeInfoAllocation,
-                        displacementVectors,
                         superblockCoefficients,
-                        workspaceStorage,
                         sourceLuma,
                         sourceBlue,
                         sourceRed,
@@ -11088,10 +11080,6 @@ internal static partial class Av1IntraSuperblockEncoder
             lumaCoefficientEdges.Top.Slice(topIndex, contextWidth).CopyTo(topContexts);
             lumaCoefficientEdges.Left.Slice(leftIndex, contextHeight).CopyTo(leftContexts);
 
-            // The non-RD palette search of screen content codes DCT_DCT alone. Reference: dct_only_palette_nonrd.
-            bool dctOnlyPalette = paletteSize > 0 && !this.picture.Parent.FrameHeader.IsIntra &&
-                this.picture.Parent.IsScreenContent && this.picture.Parent.SpeedSettings.UseEstimatedInterModeDecision;
-
             // The edge filter strength depends on the neighbors of the block alone, so every transform block shares it.
             bool smoothEdges = blockState.SmoothEdges;
 
@@ -11366,7 +11354,6 @@ internal static partial class Av1IntraSuperblockEncoder
                                 mode,
                                 filterIntraMode,
                                 Av1TransformType.AllTransformTypes,
-                                dctOnlyPalette,
                                 remainingCostLimit,
                                 laterBlockPredicts,
                                 prediction,

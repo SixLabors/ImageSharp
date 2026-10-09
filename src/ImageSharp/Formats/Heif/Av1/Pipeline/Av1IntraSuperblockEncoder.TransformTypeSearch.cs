@@ -559,7 +559,6 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="mode">The prediction mode that selects the transform-type context.</param>
         /// <param name="filterIntraMode">The filter intra mode, or <see cref="Av1FilterIntraMode.AllFilterIntraModes"/>.</param>
         /// <param name="derivedTransformType">The type a chroma block derives, which it searches alone. Reference: av1_get_tx_type().</param>
-        /// <param name="dctOnly">Whether the search is restricted to DCT_DCT. Reference: dct_only_palette_nonrd.</param>
         /// <param name="costLimit">The budget left for the transform block. Reference: ref_best_rd.</param>
         /// <param name="reconstructWinner">
         /// Whether a later transform block of an intra block predicts from the winner. Reference: the position test of recon_intra().
@@ -592,7 +591,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PredictionMode mode,
             Av1FilterIntraMode filterIntraMode,
             Av1TransformType derivedTransformType,
-            bool dctOnly,
             long costLimit,
             bool reconstructWinner,
             scoped ReadOnlySpan<TSample> prediction,
@@ -683,7 +681,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ushort candidateTransformMask = 0;
             if (!predictedSkip)
             {
-                candidateTransformMask = dcOnlyBlock || dctOnly
+                candidateTransformMask = dcOnlyBlock
                     ? (ushort)1
                     : this.GetTransformMask(
                         writer,

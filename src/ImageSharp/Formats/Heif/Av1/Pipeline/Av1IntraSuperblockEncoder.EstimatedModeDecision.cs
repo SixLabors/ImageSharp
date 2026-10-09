@@ -3,13 +3,10 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
@@ -131,10 +128,6 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
         /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
         /// <param name="estimationRowCoefficients">The coefficients of one row of estimation transforms.</param>
-        /// <param name="interWorkspace">The inter prediction buffers of the block.</param>
-        /// <param name="firstIntermediate">The compound intermediate of the first reference.</param>
-        /// <param name="secondIntermediate">The compound intermediate of the second reference.</param>
-        /// <param name="compoundMask">The blend mask of a masked compound prediction.</param>
         /// <param name="transformEdges">The transform size context edges of the tile.</param>
         /// <param name="paletteEdges">The palette color context edges of the tile.</param>
         /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
@@ -142,9 +135,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="redCoefficientEdges">The red-difference coefficient context edges of the tile.</param>
         /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
         /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
-        /// <param name="displacementVectors">The displacement vectors of the picture, one per allocation entry.</param>
         /// <param name="superblockCoefficients">The coefficients and transform block states of the superblock.</param>
-        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
         /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
         /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
         /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
@@ -168,10 +159,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> transformWorkspace,
             ReadOnlySpan<int> transformTypeProbabilities,
             Span<int> estimationRowCoefficients,
-            in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
-            Span<ushort> firstIntermediate,
-            Span<ushort> secondIntermediate,
-            Span<byte> compoundMask,
             in Av1NeighborEdges<byte> transformEdges,
             in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
             in Av1NeighborEdges<byte> lumaCoefficientEdges,
@@ -179,9 +166,7 @@ internal static partial class Av1IntraSuperblockEncoder
             in Av1NeighborEdges<byte> redCoefficientEdges,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
-            Span<Av1EncoderDisplacementVector> displacementVectors,
             Span<int> superblockCoefficients,
-            Span<int> workspaceStorage,
             ReadOnlySpan<TSample> sourceLuma,
             ReadOnlySpan<TSample> sourceBlue,
             ReadOnlySpan<TSample> sourceRed,
@@ -359,7 +344,6 @@ internal static partial class Av1IntraSuperblockEncoder
                             this.quantization.DeltaQDc[0],
                             this.quantization.DeltaQAc[0],
                             this.bitDepth,
-                            false,
                             out int transformRate,
                             out long transformDistortion,
                             out bool transformSkip);
@@ -467,245 +451,42 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            bool copySelected = false;
-            Av1MotionVector copyVector = default;
-            if (!allIntra && this.picture.Parent.IsScreenContent &&
-                this.picture.Parent.FrameHeader.AllowIntraBlockCopy && blockSize <= Av1BlockSize.Block16x16 && paletteSelected)
-            {
-                Point position = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
-                InlineArray8<Av1MotionVector> referenceCandidates = default;
-                InlineArray8<int> referenceWeights = default;
-                Av1MotionVector reference = Av1IntraBlockCopy.FindReference(
-                    this.picture,
-                    modeInfoGrid,
-                    modeInfoAllocation,
-                    displacementVectors,
-                    macroBlock,
-                    position,
-                    blockSize,
-                    modeInfo.Block.PartitionType,
-                    referenceCandidates,
-                    referenceWeights);
-
-                // The displacement search reads the source frame, not the reconstruction. Reference: the
-                // xd->cur_buf, which is cpi->source, that av1_search_intrabc_nonrd() passes to
-                // av1_setup_pred_block().
-                if (this.picture.IntraBlockCopySearch.TryFindEstimatedCandidate<TSample, TOperator>(
-                    source,
-                    source,
-                    blockOrigin,
-                    blockSize,
-                    macroBlock.Tile,
-                    this.picture.Sequence.SequenceHeader,
-                    this.blockWorkspace.GetDisplacementVectorCosts(workspaceStorage),
-                    reference,
-                    this.blockQIndex,
-                    this.rateMultiplier,
-                    this.picture.Parent.MotionSearchSettings,
-                    out copyVector))
-                {
-                    this.PrepareInterPlanePrediction(
-                        copyVector,
-                        default,
-                        Av1Plane.Y,
-                        Av1PredictionMode.DC,
-                        Av1ReferenceFrameType.Intra,
-                        Av1ReferenceFrameType.None,
-                        false,
-                        Av1CompoundType.Average,
-                        0,
-                        false,
-                        Av1DifferenceWeightedMaskType.Type38,
-                        Av1InterpolationFilter.Bilinear,
-                        Av1InterpolationFilter.Bilinear,
-                        destination,
-                        destination,
-                        blockOrigin,
-                        0,
-                        0,
-                        blockSize,
-                        interWorkspace.LumaPrediction,
-                        interWorkspace.Residual,
-                        interWorkspace.FilterRows,
-                        firstIntermediate,
-                        secondIntermediate,
-                        compoundMask,
-                        modeInfoGrid,
-                        modeInfoAllocation,
-                        displacementVectors,
-                        sourceLuma,
-                        sourceBlue,
-                        sourceRed);
-
-                    Size extent = new(
-                        width + (Math.Min(0, macroBlock.ToRightEdge) >> 3),
-                        height + (Math.Min(0, macroBlock.ToBottomEdge) >> 3));
-
-                    // This candidate uses the transform estimate directly. It does not add the
-                    // full-search displacement and skip-symbol charges to the estimated residual.
-                    Av1IntraModeEstimator.Estimate(
-                        this.blockWorkspace,
-                        estimationRowCoefficients,
-                        searchDequantizedCoefficients,
-                        transformWorkspace,
-                        interWorkspace.Residual,
-                        width,
-                        extent,
-                        transformSize > Av1TransformSize.Size16x16 ? Av1TransformSize.Size16x16 : transformSize,
-                        this.blockQIndex,
-                        this.quantization.DeltaQDc[0],
-                        this.quantization.DeltaQAc[0],
-                        this.bitDepth,
-                        false,
-                        out int copyRate,
-                        out long copyDistortion,
-                        out _);
-
-                    if (block.HasChroma)
-                    {
-                        int subX = this.source.ChromaSubsamplingX;
-                        int subY = this.source.ChromaSubsamplingY;
-                        Point chromaOrigin = Av1TileWriter.GetChromaBlockOrigin(blockOrigin, subX, subY);
-                        for (int planeIndex = 1; planeIndex <= 2; planeIndex++)
-                        {
-                            Av1Plane plane = (Av1Plane)planeIndex;
-                            Av1PlaneRegion<TSample> reconstructedPlane = this.reconstruction.GetPlane(plane);
-                            Span<TSample> prediction = planeIndex == 1 ? interWorkspace.BluePrediction : interWorkspace.RedPrediction;
-                            this.PrepareInterPlanePrediction(
-                                copyVector,
-                                default,
-                                plane,
-                                Av1PredictionMode.DC,
-                                Av1ReferenceFrameType.Intra,
-                                Av1ReferenceFrameType.None,
-                                false,
-                                Av1CompoundType.Average,
-                                0,
-                                false,
-                                Av1DifferenceWeightedMaskType.Type38,
-                                Av1InterpolationFilter.Bilinear,
-                                Av1InterpolationFilter.Bilinear,
-                                reconstructedPlane,
-                                reconstructedPlane,
-                                new Point(chromaOrigin.X << subX, chromaOrigin.Y << subY),
-                                subX,
-                                subY,
-                                blockSize,
-                                prediction,
-                                interWorkspace.Residual,
-                                interWorkspace.FilterRows,
-                                firstIntermediate,
-                                secondIntermediate,
-                                compoundMask,
-                                modeInfoGrid,
-                                modeInfoAllocation,
-                                displacementVectors,
-                                sourceLuma,
-                                sourceBlue,
-                                sourceRed);
-                        }
-
-                        Av1RateDistortionStatistics chroma = this.EstimateInterChroma(
-                            sourceLuma, sourceBlue, sourceRed, blockOrigin, blockSize, interWorkspace.BluePrediction, interWorkspace.RedPrediction, true, true);
-
-                        copyRate += chroma.Rate;
-                        copyDistortion += chroma.Distortion;
-                    }
-
-                    Av1RateDistortionStatistics copyStatistics = new(this.rateMultiplier, copyRate, copyDistortion);
-                    if (copyStatistics.Cost < bestStatistics.Cost)
-                    {
-                        copySelected = true;
-                        bestStatistics = copyStatistics;
-                        bestMode = Av1PredictionMode.DC;
-                        paletteInfo = default;
-                    }
-                }
-            }
-
             modeInfo.Block.Mode = bestMode;
             modeInfo.Block.UvMode = Av1ChromaPredictionMode.DC;
             modeInfo.Block.TransformSize = transformSize;
             block.FilterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
             block.PredictionUnit.AngleDelta[0] = 0;
             block.PredictionUnit.AngleDelta[1] = 0;
-            if (copySelected)
-            {
-                modeInfo.Block.ReferenceFrame = Av1ReferenceFrameType.Intra;
-                modeInfo.Block.SecondaryReferenceFrame = Av1ReferenceFrameType.None;
-                modeInfo.Block.UseIntraBlockCopy = true;
-                modeInfo.Block.Skip = false;
-                modeInfo.Block.HorizontalInterpolationFilter = Av1InterpolationFilter.Bilinear;
-                modeInfo.Block.VerticalInterpolationFilter = Av1InterpolationFilter.Bilinear;
-                this.EncodeEstimatedInterWinner(
-                    writer,
-                    in tables,
-                    transformCoefficients,
-                    dequantizedCoefficients,
-                    transformWorkspace,
-                    in interWorkspace,
-                    firstIntermediate,
-                    secondIntermediate,
-                    compoundMask,
-                    in lumaCoefficientEdges,
-                    in blueCoefficientEdges,
-                    in redCoefficientEdges,
-                    modeInfoGrid,
-                    modeInfoAllocation,
-                    displacementVectors,
-                    superblockCoefficients,
-                    sourceLuma,
-                    sourceBlue,
-                    sourceRed,
-                    reconstructionLuma,
-                    reconstructionBlue,
-                    reconstructionRed,
-                    macroBlock,
-                    blockOrigin,
-                    ref modeInfo.Block,
-                    block,
-                    this.reconstruction,
-                    this.reconstruction,
-                    copyVector,
-                    default,
-                    interWorkspace.LumaPrediction,
-                    Av1TransformType.DctDct);
 
-                Point copyPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
-                this.picture.SetDisplacementVector(displacementVectors, copyPosition, copyVector);
-            }
-            else
-            {
-                // The search leaves only a candidate reconstruction behind, so the selected block is
-                // encoded again, palette included. Reference: the encode_b() that follows
-                // av1_nonrd_pick_intra_mode(), which reaches encode_block_intra().
-                this.EncodeSelectedIntraPlane(
-                    writer,
-                    in tables,
-                    in modeWorkspace,
-                    transformCoefficients,
-                    dequantizedCoefficients,
-                    transformWorkspace,
-                    in lumaCoefficientEdges,
-                    modeInfoGrid,
-                    modeInfoAllocation,
-                    superblockCoefficients,
-                    sourceLuma,
-                    sourceBlue,
-                    sourceRed,
-                    reconstructionLuma,
-                    reconstructionBlue,
-                    reconstructionRed,
-                    macroBlock,
-                    blockOrigin,
-                    blockSize,
-                    Av1Plane.Y,
-                    bestMode,
-                    transformSize,
-                    lumaOffset,
-                    false,
-                    paletteSelected ? paletteInfo.GetColors(Av1Plane.Y) : default);
-            }
+            // The search leaves only a candidate reconstruction behind, so the selected block is
+            // encoded again, palette included. Reference: the encode_b() that follows
+            // av1_nonrd_pick_intra_mode(), which reaches encode_block_intra().
+            this.EncodeSelectedIntraPlane(
+                writer,
+                in tables,
+                in modeWorkspace,
+                transformCoefficients,
+                dequantizedCoefficients,
+                transformWorkspace,
+                in lumaCoefficientEdges,
+                modeInfoGrid,
+                modeInfoAllocation,
+                superblockCoefficients,
+                sourceLuma,
+                sourceBlue,
+                sourceRed,
+                reconstructionLuma,
+                reconstructionBlue,
+                reconstructionRed,
+                macroBlock,
+                blockOrigin,
+                blockSize,
+                Av1Plane.Y,
+                bestMode,
+                transformSize,
+                lumaOffset,
+                false,
+                paletteSelected ? paletteInfo.GetColors(Av1Plane.Y) : default);
 
             codedExtent = GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0);
             this.codedAreaLuma += codedExtent.Width * codedExtent.Height;
@@ -717,60 +498,57 @@ internal static partial class Av1IntraSuperblockEncoder
                     ? Av1TransformSize.Size4x4
                     : blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
 
-                if (!copySelected)
-                {
-                    this.EncodeSelectedIntraPlane(
-                        writer,
-                        in tables,
-                        in modeWorkspace,
-                        transformCoefficients,
-                        dequantizedCoefficients,
-                        transformWorkspace,
-                        in blueCoefficientEdges,
-                        modeInfoGrid,
-                        modeInfoAllocation,
-                        superblockCoefficients,
-                        sourceLuma,
-                        sourceBlue,
-                        sourceRed,
-                        reconstructionLuma,
-                        reconstructionBlue,
-                        reconstructionRed,
-                        macroBlock,
-                        blockOrigin,
-                        blockSize,
-                        Av1Plane.U,
-                        Av1PredictionMode.DC,
-                        chromaTransform,
-                        this.codedAreaChroma,
-                        false);
+                this.EncodeSelectedIntraPlane(
+                    writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    transformWorkspace,
+                    in blueCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    superblockCoefficients,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
+                    macroBlock,
+                    blockOrigin,
+                    blockSize,
+                    Av1Plane.U,
+                    Av1PredictionMode.DC,
+                    chromaTransform,
+                    this.codedAreaChroma,
+                    false);
 
-                    this.EncodeSelectedIntraPlane(
-                        writer,
-                        in tables,
-                        in modeWorkspace,
-                        transformCoefficients,
-                        dequantizedCoefficients,
-                        transformWorkspace,
-                        in redCoefficientEdges,
-                        modeInfoGrid,
-                        modeInfoAllocation,
-                        superblockCoefficients,
-                        sourceLuma,
-                        sourceBlue,
-                        sourceRed,
-                        reconstructionLuma,
-                        reconstructionBlue,
-                        reconstructionRed,
-                        macroBlock,
-                        blockOrigin,
-                        blockSize,
-                        Av1Plane.V,
-                        Av1PredictionMode.DC,
-                        chromaTransform,
-                        this.codedAreaChroma,
-                        false);
-                }
+                this.EncodeSelectedIntraPlane(
+                    writer,
+                    in tables,
+                    in modeWorkspace,
+                    transformCoefficients,
+                    dequantizedCoefficients,
+                    transformWorkspace,
+                    in redCoefficientEdges,
+                    modeInfoGrid,
+                    modeInfoAllocation,
+                    superblockCoefficients,
+                    sourceLuma,
+                    sourceBlue,
+                    sourceRed,
+                    reconstructionLuma,
+                    reconstructionBlue,
+                    reconstructionRed,
+                    macroBlock,
+                    blockOrigin,
+                    blockSize,
+                    Av1Plane.V,
+                    Av1PredictionMode.DC,
+                    chromaTransform,
+                    this.codedAreaChroma,
+                    false);
 
                 Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(subX != 0, subY != 0);
                 Size chromaExtent = GetCodedTransformExtent(macroBlock, chromaBlockSize, chromaTransform, subX, subY);

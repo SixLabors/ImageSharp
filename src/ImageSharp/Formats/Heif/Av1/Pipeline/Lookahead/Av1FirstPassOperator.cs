@@ -153,14 +153,19 @@ internal static class Av1FirstPassOperator
             Span<int> workspace);
 
         /// <summary>
-        /// Classifies a key frame for screen-content tools. Reference: estimate_screen_content().
+        /// Classifies a key frame for screen-content tools with the same detection that the good-quality frame
+        /// encoder uses, so the tune selects the detection.
         /// </summary>
         /// <param name="source">The coded source frame.</param>
+        /// <param name="speed">The good-quality speed.</param>
+        /// <param name="tuning">The tune metric, which selects the detection.</param>
         /// <param name="allowScreenContentTools">Receives whether palette tools are enabled.</param>
         /// <param name="allowIntraBlockCopy">Receives whether intra block copy is enabled.</param>
         /// <returns>Whether the frame is screen content for encoder decisions.</returns>
         public static abstract bool DetectScreenContent(
             Av1EncoderFrame<TSample> source,
+            HeifEncodingSpeed speed,
+            Av1Tuning tuning,
             out bool allowScreenContentTools,
             out bool allowIntraBlockCopy);
     }
@@ -252,9 +257,11 @@ internal static class Av1FirstPassOperator
         /// <inheritdoc/>
         public static bool DetectScreenContent(
             Av1EncoderFrame<byte> source,
+            HeifEncodingSpeed speed,
+            Av1Tuning tuning,
             out bool allowScreenContentTools,
             out bool allowIntraBlockCopy)
-            => Av1ScreenContentDetector.Detect(source, out allowScreenContentTools, out allowIntraBlockCopy);
+            => Av1ScreenContentDetector.SetScreenContentOptions(source, false, speed, tuning, out allowScreenContentTools, out allowIntraBlockCopy);
     }
 
     /// <summary>
@@ -357,8 +364,10 @@ internal static class Av1FirstPassOperator
         /// <inheritdoc/>
         public static bool DetectScreenContent(
             Av1EncoderFrame<ushort> source,
+            HeifEncodingSpeed speed,
+            Av1Tuning tuning,
             out bool allowScreenContentTools,
             out bool allowIntraBlockCopy)
-            => Av1ScreenContentDetector.Detect(source, out allowScreenContentTools, out allowIntraBlockCopy);
+            => Av1ScreenContentDetector.SetScreenContentOptions(source, false, speed, tuning, out allowScreenContentTools, out allowIntraBlockCopy);
     }
 }

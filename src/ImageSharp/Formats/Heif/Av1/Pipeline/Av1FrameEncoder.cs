@@ -1114,7 +1114,7 @@ internal static partial class Av1FrameEncoder
             frameSize,
             frameHeader.QuantizationParameters.BaseQIndex,
             frameHeader.IsIntra,
-            isScreenContent,
+            frameHeader.AllowScreenContentTools,
             options.Tuning);
 
         int maximumHashBlockSize = motionSettings.LimitIntraBlockCopyHashBlockSize ? 8 : 1 << sequenceHeader.SuperblockSizeLog2;
@@ -1263,7 +1263,7 @@ internal static partial class Av1FrameEncoder
             frameSize,
             frameHeader.QuantizationParameters.BaseQIndex,
             frameHeader.IsIntra,
-            isScreenContent,
+            frameHeader.AllowScreenContentTools,
             options.Tuning);
 
         int maximumHashBlockSize = motionSettings.LimitIntraBlockCopyHashBlockSize ? 8 : 1 << sequenceHeader.SuperblockSizeLog2;
@@ -1401,6 +1401,7 @@ internal static partial class Av1FrameEncoder
             source,
             options.IsAllIntra,
             options.Speed,
+            options.Tuning,
             out bool allowScreenContentTools,
             out bool allowIntraBlockCopy);
 
@@ -1485,7 +1486,7 @@ internal static partial class Av1FrameEncoder
             sourceSize,
             frameHeader.QuantizationParameters.BaseQIndex,
             frameHeader.IsIntra,
-            decision.IsScreenContent,
+            frameHeader.AllowScreenContentTools,
             options.Tuning);
 
         frameHeader.AllowIntraBlockCopy =
@@ -1567,6 +1568,7 @@ internal static partial class Av1FrameEncoder
             source,
             options.IsAllIntra,
             options.Speed,
+            options.Tuning,
             out bool allowScreenContentTools,
             out bool allowIntraBlockCopy);
 
@@ -1866,7 +1868,6 @@ internal static partial class Av1FrameEncoder
             framesSinceKey > 2 && unchanged < unchangedLimit;
 
         parent.FrameSourceSad = average;
-        parent.SourceMotionPercentage = ((count - unchanged) * 100) / count;
         averageSourceSad = ((3 * averageSourceSad) + average) >> 2;
         parent.AverageSourceSad = averageSourceSad;
     }
@@ -2387,6 +2388,8 @@ internal static partial class Av1FrameEncoder
             {
                 // Screen-content eligibility follows the source classification. Reserve the
                 // optional state once for the fixed-geometry sequence so any classified frame can use legal tools.
+                // Intra block copy also needs the speed features to search it. They do not read the screen content
+                // decision, and real-time encoding never searches it.
                 bool allocateScreenContentState = true;
                 Av1MotionSearchSettings motionSettings = new(
                     options.Speed,
@@ -2394,7 +2397,7 @@ internal static partial class Av1FrameEncoder
                     new Size(width, height),
                     qIndex,
                     this.FrameHeader.IsIntra,
-                    screenContent: true,
+                    screenContent: false,
                     options.Tuning);
 
                 bool allocateIntraBlockCopySearch =
@@ -4307,7 +4310,6 @@ internal static partial class Av1FrameEncoder
             {
                 parent.HighSourceSad = false;
                 parent.FrameSourceSad = 0;
-                parent.SourceMotionPercentage = 0;
             }
 
             ulong previousAverageSourceSad = this.averageSourceSad;
@@ -4747,7 +4749,6 @@ internal static partial class Av1FrameEncoder
             {
                 parent.HighSourceSad = false;
                 parent.FrameSourceSad = 0;
-                parent.SourceMotionPercentage = 0;
             }
 
             ulong previousAverageSourceSad = this.averageSourceSad;

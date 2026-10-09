@@ -313,6 +313,10 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         }
 
         this.logicalScreenDescriptor = GifLogicalScreenDescriptor.Parse(this.buffer.Span);
+        if (this.logicalScreenDescriptor.Width == 0 || this.logicalScreenDescriptor.Height == 0)
+        {
+            GifThrowHelper.ThrowInvalidImageContentException("Width and height must be greater than 0.");
+        }
     }
 
     /// <summary>

@@ -2485,7 +2485,17 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         length = (int)Math.Min(length, this.currentStream.Length - this.currentStream.Position);
         IMemoryOwner<byte> buffer = this.configuration.MemoryAllocator.Allocate<byte>(length, AllocationOptions.Clean);
 
-        this.currentStream.Read(buffer.GetSpan(), 0, length);
+        try
+        {
+            this.currentStream.Read(buffer.GetSpan(), 0, length);
+        }
+        catch
+        {
+            // The read can throw before the caller takes ownership of the buffer (e.g. the stream
+            // observes a cancellation request), so dispose it here to avoid leaking the rented memory.
+            buffer.Dispose();
+            throw;
+        }
 
         return buffer;
     }

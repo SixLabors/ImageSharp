@@ -2555,7 +2555,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                 long squaredError = 0;
                                 for (int strip = 0; strip < 4; strip++)
                                 {
-                                    GetPartitionLeafGeometry(blockOrigin, blockSize, stripPartition, strip, out Point origin, out Av1BlockSize size);
+                                    Point origin = stripPartition.GetChildOrigin(blockOrigin, blockSize, strip);
+                                    Av1BlockSize size = stripPartition.GetChildBlockSize(blockSize, strip);
                                     this.SearchSimpleMotion(
                                         workspaceStorage,
                                         sourceLuma,
@@ -3876,7 +3877,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         false,
                         false).Cost != long.MaxValue;
 
-                    GetPartitionLeafGeometry(blockOrigin, blockSize, partition, 1, out Point secondOrigin, out _);
+                    Point secondOrigin = partition.GetChildOrigin(blockOrigin, blockSize, 1);
                     if (valid && this.IsBlockOriginInsideFrame(secondOrigin))
                     {
                         // The first half is encoded as a dry run before the second is searched, so the second predicts from it.
@@ -4559,7 +4560,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int rate = Av1TileWriter.GetPartitionCost(this.picture, writer, tables.ModeCosts, blockSize, partitionType, blockOrigin, in partitionEdges);
 
             Av1RateDistortionStatistics statistics = new(this.rateMultiplier, rate, 0);
-            int leafCount = GetPartitionLeafCount(partitionType);
+            int leafCount = partitionType.GetChildCount();
 
             // The sub-blocks of the asymmetric and four-way partitions are costed at their own rate multipliers. At the end, the sum
             // returns to the multiplier of the node.
@@ -4582,14 +4583,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     return Av1RateDistortionStatistics.Invalid;
                 }
 
-                GetPartitionLeafGeometry(
-                    blockOrigin,
-                    blockSize,
-                    partitionType,
-                    leafIndex,
-                    out Point leafOrigin,
-                    out Av1BlockSize leafSize);
-
+                Point leafOrigin = partitionType.GetChildOrigin(blockOrigin, blockSize, leafIndex);
+                Av1BlockSize leafSize = partitionType.GetChildBlockSize(blockSize, leafIndex);
                 if (!this.IsBlockOriginInsideFrame(leafOrigin))
                 {
                     continue;
@@ -5012,7 +5007,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return true;
             }
 
-            GetPartitionLeafGeometry(blockOrigin, blockSize, partitionType, leafIndex + 1, out Point siblingOrigin, out _);
+            Point siblingOrigin = partitionType.GetChildOrigin(blockOrigin, blockSize, leafIndex + 1);
             return this.IsBlockOriginInsideFrame(siblingOrigin);
         }
 
@@ -5072,17 +5067,11 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             Av1PartitionType partitionType)
         {
-            int leafCount = GetPartitionLeafCount(partitionType);
+            int leafCount = partitionType.GetChildCount();
             for (int leafIndex = 0; leafIndex < leafCount; leafIndex++)
             {
-                GetPartitionLeafGeometry(
-                    blockOrigin,
-                    blockSize,
-                    partitionType,
-                    leafIndex,
-                    out Point leafOrigin,
-                    out Av1BlockSize leafSize);
-
+                Point leafOrigin = partitionType.GetChildOrigin(blockOrigin, blockSize, leafIndex);
+                Av1BlockSize leafSize = partitionType.GetChildBlockSize(blockSize, leafIndex);
                 if (this.IsBlockOriginInsideFrame(leafOrigin))
                 {
                     // Mixed vertical partitions reconstruct square leaves in another order. The leaf keeps the parent decision, so the
@@ -5196,17 +5185,10 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
-            int leafCount = GetPartitionLeafCount(partitionType);
+            int leafCount = partitionType.GetChildCount();
             for (int leafIndex = 0; leafIndex < leafCount; leafIndex++)
             {
-                GetPartitionLeafGeometry(
-                    Point.Empty,
-                    blockSize,
-                    partitionType,
-                    leafIndex,
-                    out _,
-                    out Av1BlockSize leafSize);
-
+                Av1BlockSize leafSize = partitionType.GetChildBlockSize(blockSize, leafIndex);
                 if (leafSize.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY) ==
                     Av1BlockSize.Invalid)
                 {
@@ -5345,90 +5327,6 @@ internal static partial class Av1IntraSuperblockEncoder
                         vertical[leaf] = entry;
                         break;
                 }
-            }
-        }
-
-        private static int GetPartitionLeafCount(Av1PartitionType partitionType)
-            => partitionType switch
-            {
-                Av1PartitionType.None => 1,
-                Av1PartitionType.Horizontal or Av1PartitionType.Vertical => 2,
-                Av1PartitionType.HorizontalA or
-                    Av1PartitionType.HorizontalB or
-                    Av1PartitionType.VerticalA or
-                    Av1PartitionType.VerticalB => 3,
-                _ => 4
-            };
-
-        private static void GetPartitionLeafGeometry(
-            Point blockOrigin,
-            Av1BlockSize blockSize,
-            Av1PartitionType partitionType,
-            int leafIndex,
-            out Point leafOrigin,
-            out Av1BlockSize leafSize)
-        {
-            int halfWidth = blockSize.GetWidth() >> 1;
-            int halfHeight = blockSize.GetHeight() >> 1;
-            Av1BlockSize rectangularSize = partitionType.GetBlockSubSize(blockSize);
-            Av1BlockSize splitSize = Av1PartitionType.Split.GetBlockSubSize(blockSize);
-            switch (partitionType)
-            {
-                case Av1PartitionType.Horizontal:
-                    leafOrigin = blockOrigin + new Size(0, leafIndex * halfHeight);
-                    leafSize = rectangularSize;
-                    return;
-                case Av1PartitionType.Vertical:
-                    leafOrigin = blockOrigin + new Size(leafIndex * halfWidth, 0);
-                    leafSize = rectangularSize;
-                    return;
-                case Av1PartitionType.Split:
-                    leafOrigin = blockOrigin + new Size(
-                        (leafIndex & 1) * halfWidth,
-                        (leafIndex >> 1) * halfHeight);
-
-                    leafSize = splitSize;
-                    return;
-                case Av1PartitionType.HorizontalA:
-                    leafOrigin = leafIndex < 2
-                        ? blockOrigin + new Size(leafIndex * halfWidth, 0)
-                        : blockOrigin + new Size(0, halfHeight);
-
-                    leafSize = leafIndex < 2 ? splitSize : rectangularSize;
-                    return;
-                case Av1PartitionType.HorizontalB:
-                    leafOrigin = leafIndex == 0
-                        ? blockOrigin
-                        : blockOrigin + new Size((leafIndex - 1) * halfWidth, halfHeight);
-
-                    leafSize = leafIndex == 0 ? rectangularSize : splitSize;
-                    return;
-                case Av1PartitionType.VerticalA:
-                    leafOrigin = leafIndex < 2
-                        ? blockOrigin + new Size(0, leafIndex * halfHeight)
-                        : blockOrigin + new Size(halfWidth, 0);
-
-                    leafSize = leafIndex < 2 ? splitSize : rectangularSize;
-                    return;
-                case Av1PartitionType.VerticalB:
-                    leafOrigin = leafIndex == 0
-                        ? blockOrigin
-                        : blockOrigin + new Size(halfWidth, (leafIndex - 1) * halfHeight);
-
-                    leafSize = leafIndex == 0 ? rectangularSize : splitSize;
-                    return;
-                case Av1PartitionType.Horizontal4:
-                    leafOrigin = blockOrigin + new Size(0, leafIndex * (blockSize.GetHeight() >> 2));
-                    leafSize = rectangularSize;
-                    return;
-                case Av1PartitionType.Vertical4:
-                    leafOrigin = blockOrigin + new Size(leafIndex * (blockSize.GetWidth() >> 2), 0);
-                    leafSize = rectangularSize;
-                    return;
-                default:
-                    leafOrigin = blockOrigin;
-                    leafSize = blockSize;
-                    return;
             }
         }
 

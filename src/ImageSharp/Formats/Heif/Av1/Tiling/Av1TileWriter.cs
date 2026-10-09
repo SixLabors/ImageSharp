@@ -56,33 +56,6 @@ internal partial class Av1TileWriter
     private static readonly byte[] IntraModeContextLookup = [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];
 
     /// <summary>
-    /// Gets the number of children of each partition type, indexed by <see cref="Av1PartitionType"/>.
-    /// </summary>
-    private static ReadOnlySpan<byte> PartitionChildCounts => [1, 2, 2, 4, 3, 3, 3, 3, 4, 4];
-
-    /// <summary>
-    /// Gets the child origins of each partition type in coding order, indexed by <see cref="Av1PartitionType"/>.
-    /// </summary>
-    /// <remarks>
-    /// Each partition type owns eight entries: a column offset and a row offset for each of at most four children. The offsets count
-    /// quarters of the node width, because the four-strip partitions step by a quarter and all other partitions step by a half. Entries
-    /// after the last child of a partition type are zero and are never read.
-    /// </remarks>
-    private static ReadOnlySpan<byte> PartitionChildOffsets =>
-    [
-        0, 0, 0, 0, 0, 0, 0, 0, // None: one block that covers the node.
-        0, 0, 0, 2, 0, 0, 0, 0, // Horizontal: the top half, then the bottom half.
-        0, 0, 2, 0, 0, 0, 0, 0, // Vertical: the left half, then the right half.
-        0, 0, 2, 0, 0, 2, 2, 2, // Split: the four quarters in raster order.
-        0, 0, 2, 0, 0, 2, 0, 0, // HorizontalA: the top-left and top-right quarters, then the bottom half.
-        0, 0, 0, 2, 2, 2, 0, 0, // HorizontalB: the top half, then the bottom-left and bottom-right quarters.
-        0, 0, 0, 2, 2, 0, 0, 0, // VerticalA: the top-left and bottom-left quarters, then the right half.
-        0, 0, 2, 0, 2, 2, 0, 0, // VerticalB: the left half, then the top-right and bottom-right quarters.
-        0, 0, 0, 1, 0, 2, 0, 3, // Horizontal4: four horizontal strips from top to bottom.
-        0, 0, 1, 0, 2, 0, 3, 0, // Vertical4: four vertical strips from left to right.
-    ];
-
-    /// <summary>
     /// Writes a partition tree while producing each final block against the immediately preceding tile state.
     /// </summary>
     /// <typeparam name="TOperation">Selects whether symbols are written or only adapt the probabilities.</typeparam>
@@ -543,10 +516,10 @@ internal partial class Av1TileWriter
             EncodePartition<TOperation>(ref output, pcs, writer, blockSize, partition, blockOrigin, in partitionEdges);
         }
 
-        // The child table stores eight entries for each partition type: a column and a row offset, in quarters of the node width, for
-        // each of at most four children in coding order. The slice keeps only the children of the selected partition.
+        // The child offsets hold a column and a row offset, in quarters of the node width, for each child of the selected partition in
+        // coding order. Partition nodes are square, so one quarter size serves both axes.
         int quarterBlockSize = blockSize.GetWidth() >> 2;
-        ReadOnlySpan<byte> childOffsets = PartitionChildOffsets.Slice((int)partition * 8, PartitionChildCounts[(int)partition] * 2);
+        ReadOnlySpan<byte> childOffsets = partition.GetChildOffsets();
 
         // Only the children of a split node above 8x8 are partition nodes. AV1 codes no partition symbol below 8x8, so the four 4x4
         // children of a split 8x8 node are final blocks, as are the children of every other partition type.

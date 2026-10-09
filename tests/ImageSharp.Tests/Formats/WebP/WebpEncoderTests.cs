@@ -4,6 +4,7 @@
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
@@ -290,6 +291,44 @@ public class WebpEncoderTests
                     Assert.Equal(FrameDisposalMode.DoNotDispose, webpF.DisposalMode);
                     break;
             }
+        }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Heif.Animated8Bit, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromHeif<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        {
+            return;
+        }
+
+        using Image<TPixel> image = provider.GetImage(HeifDecoder.Instance);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, new WebpEncoder());
+        memStream.Position = 0;
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+        Assert.Equal(image.Frames.Count, output.Frames.Count);
+        ImageComparer.Exact.VerifySimilarity(output, image);
+
+        HeifMetadata heif = image.Metadata.GetHeifMetadata();
+        WebpMetadata webp = output.Metadata.GetWebpMetadata();
+
+        Assert.Equal(heif.RepeatCount, webp.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            HeifFrameMetadata heifF = image.Frames[i].Metadata.GetHeifMetadata();
+            WebpFrameMetadata webpF = output.Frames[i].Metadata.GetWebpMetadata();
+
+            Assert.Equal((uint)(heifF.FrameDelay.ToDouble() * 1000), webpF.FrameDelay);
+
+            // HEIF frames are complete images, so they replace the canvas and are not disposed.
+            Assert.Equal(FrameBlendMode.Source, webpF.BlendMode);
+            Assert.Equal(FrameDisposalMode.DoNotDispose, webpF.DisposalMode);
         }
     }
 

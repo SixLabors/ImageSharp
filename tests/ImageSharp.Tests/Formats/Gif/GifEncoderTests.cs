@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
@@ -345,6 +346,46 @@ public class GifEncoderTests
                     Assert.Equal(FrameDisposalMode.DoNotDispose, gifF.DisposalMode);
                     break;
             }
+        }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Heif.Animated8Bit, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromHeif<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        {
+            return;
+        }
+
+        using Image<TPixel> image = provider.GetImage(HeifDecoder.Instance);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, new GifEncoder());
+        memStream.Position = 0;
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+
+        // Each source frame has fewer colors than a gif palette holds, so the quantizer keeps every color and the comparison is exact.
+        Assert.Equal(image.Frames.Count, output.Frames.Count);
+        ImageComparer.Exact.VerifySimilarity(output, image);
+
+        HeifMetadata heif = image.Metadata.GetHeifMetadata();
+        GifMetadata gif = output.Metadata.GetGifMetadata();
+
+        Assert.Equal(heif.RepeatCount, gif.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            HeifFrameMetadata heifF = image.Frames[i].Metadata.GetHeifMetadata();
+            GifFrameMetadata gifF = output.Frames[i].Metadata.GetGifMetadata();
+
+            // GIF stores the frame delay in whole centiseconds.
+            Assert.Equal((int)Math.Round(heifF.FrameDelay.ToDouble() * 100), gifF.FrameDelay);
+
+            // HEIF frames are complete images, so they are not disposed.
+            Assert.Equal(FrameDisposalMode.DoNotDispose, gifF.DisposalMode);
         }
     }
 

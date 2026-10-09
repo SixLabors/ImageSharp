@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Text;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
@@ -13,6 +14,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -703,6 +705,117 @@ public class HeifEncoderTests
         Assert.Null(decoded.Metadata.IccProfile);
         Assert.Null(decoded.Metadata.ExifProfile);
         Assert.Null(decoded.Metadata.XmpProfile);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Leo, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromGif<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        {
+            return;
+        }
+
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, new HeifEncoder { Lossless = true, Speed = HeifEncodingSpeed.Level9 });
+        memStream.Position = 0;
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+
+        // The source is palette based, so it is encoded without loss. Lossless AV1 codes the RGB and alpha samples
+        // through the identity matrix, so every decoded frame matches the composited source frame exactly.
+        Assert.Equal(image.Frames.Count, output.Frames.Count);
+        ImageComparer.Exact.VerifySimilarity(output, image);
+
+        GifMetadata gif = image.Metadata.GetGifMetadata();
+        HeifMetadata heif = output.Metadata.GetHeifMetadata();
+
+        Assert.Equal(gif.RepeatCount, heif.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            GifFrameMetadata gifF = image.Frames[i].Metadata.GetGifMetadata();
+            HeifFrameMetadata heifF = output.Frames[i].Metadata.GetHeifMetadata();
+
+            Assert.Equal(gifF.FrameDelay / 100D, heifF.FrameDelay.ToDouble());
+        }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.APng, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromPng<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        {
+            return;
+        }
+
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, new HeifEncoder { Quality = 90, AlphaQuality = 90 });
+        memStream.Position = 0;
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+
+        // Lossy AV1 at quality 90 keeps the total difference of each frame within the tolerance that the
+        // other lossy HEIF tests use for that quality.
+        Assert.Equal(image.Frames.Count, output.Frames.Count);
+        GetLossyComparer(90).VerifySimilarity(output, image);
+
+        PngMetadata png = image.Metadata.GetPngMetadata();
+        HeifMetadata heif = output.Metadata.GetHeifMetadata();
+
+        Assert.Equal(png.RepeatCount, heif.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            PngFrameMetadata pngF = image.Frames[i].Metadata.GetPngMetadata();
+            HeifFrameMetadata heifF = output.Frames[i].Metadata.GetHeifMetadata();
+
+            Assert.Equal(pngF.FrameDelay.ToDouble(), heifF.FrameDelay.ToDouble());
+        }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Webp.Lossless.Animated, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromWebp<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        {
+            return;
+        }
+
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, new HeifEncoder { Quality = 90, AlphaQuality = 90, Speed = HeifEncodingSpeed.Level9 });
+        memStream.Position = 0;
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+
+        // Lossy AV1 at quality 90 keeps the total difference of each frame within the tolerance that the
+        // other lossy HEIF tests use for that quality.
+        Assert.Equal(image.Frames.Count, output.Frames.Count);
+        GetLossyComparer(90).VerifySimilarity(output, image);
+
+        WebpMetadata webp = image.Metadata.GetWebpMetadata();
+        HeifMetadata heif = output.Metadata.GetHeifMetadata();
+
+        Assert.Equal(webp.RepeatCount, heif.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            WebpFrameMetadata webpF = image.Frames[i].Metadata.GetWebpMetadata();
+            HeifFrameMetadata heifF = output.Frames[i].Metadata.GetHeifMetadata();
+
+            Assert.Equal(webpF.FrameDelay / 1000D, heifF.FrameDelay.ToDouble());
+        }
     }
 
     [Theory]

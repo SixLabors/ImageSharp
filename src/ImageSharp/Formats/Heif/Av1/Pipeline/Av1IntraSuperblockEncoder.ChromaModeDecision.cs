@@ -985,20 +985,10 @@ internal static partial class Av1IntraSuperblockEncoder
             ushort chromaModeMask = speedSettings.GetChromaModeMask(
                 blockSize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY));
 
-            // Directional evidence excludes the replicated border, unlike block variance. Chroma's
-            // normalized histogram is scaled by its sample area before evaluating the directional scores.
-            byte directionalModeSkipMask = hogLevel != 0
-                ? this.GetBlockDirectionalModeSkipMask(
-                    in modeWorkspace,
-                    Av1PlaneType.Uv,
-                    blueSource,
-                    sourceBlue,
-                    chromaOrigin,
-                    (blockSize.GetHeight() + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subsamplingY,
-                    (blockSize.GetWidth() + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subsamplingX,
-                    (1 + subsamplingX) * (1 + subsamplingY),
-                    hogThreshold)
-                : (byte)0;
+            // The gradient skip mask is built at the first directional mode that passes the cheaper checks, so a
+            // block that never reaches one never measures its gradients.
+            byte directionalModeSkipMask = 0;
+            bool directionalModeSkipMaskReady = hogLevel == 0;
 
             Av1ModeCosts modeCosts = tables.ModeCosts;
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
@@ -1466,6 +1456,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
+                int modeRate = Av1SymbolEncoder.GetChromaModeCost(modeCosts, chromaMode, chromaFromLumaAllowed, lumaMode);
+                if (Av1RateDistortion.GetCost(this.rateMultiplier, modeRate, 0) > bestStatistics.Cost)
+                {
+                    continue;
+                }
+
                 // Suppress smooth prediction only when both chroma planes have per-pixel variance below 20. Variance is
                 // normalized to eight-bit precision after accumulating the full-precision differences. Only the smooth
                 // mode reads it, so the planes are measured only when that mode is reached.
@@ -1477,20 +1473,33 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
-                if (blockSize >= Av1BlockSize.Block8x8 &&
-                    chromaMode is >= Av1ChromaPredictionMode.Vertical and <= Av1ChromaPredictionMode.Directional67Degrees &&
-                    (directionalModeSkipMask & (1 << ((int)chromaMode - (int)Av1ChromaPredictionMode.Vertical))) != 0)
-                {
-                    continue;
-                }
-
-                int modeRate = Av1SymbolEncoder.GetChromaModeCost(modeCosts, chromaMode, chromaFromLumaAllowed, lumaMode);
-                if (Av1RateDistortion.GetCost(this.rateMultiplier, modeRate, 0) > bestStatistics.Cost)
-                {
-                    continue;
-                }
-
                 bool directional = chromaMode is >= Av1ChromaPredictionMode.Vertical and <= Av1ChromaPredictionMode.Directional67Degrees;
+                if (directional && blockSize >= Av1BlockSize.Block8x8)
+                {
+                    // Directional evidence excludes the replicated border, unlike block variance. Chroma's normalized
+                    // histogram is scaled by its sample area before the directional scores are evaluated.
+                    if (!directionalModeSkipMaskReady)
+                    {
+                        directionalModeSkipMask = this.GetBlockDirectionalModeSkipMask(
+                            in modeWorkspace,
+                            Av1PlaneType.Uv,
+                            blueSource,
+                            sourceBlue,
+                            chromaOrigin,
+                            (blockSize.GetHeight() + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subsamplingY,
+                            (blockSize.GetWidth() + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subsamplingX,
+                            (1 + subsamplingX) * (1 + subsamplingY),
+                            hogThreshold);
+
+                        directionalModeSkipMaskReady = true;
+                    }
+
+                    if ((directionalModeSkipMask & (1 << ((int)chromaMode - (int)Av1ChromaPredictionMode.Vertical))) != 0)
+                    {
+                        continue;
+                    }
+                }
+
                 int angleCount = directional && blockSize >= Av1BlockSize.Block8x8 ? ChromaAngleSearchOrder.Length : 1;
                 angleCosts.Fill(long.MaxValue);
                 for (int angleIndex = 0; angleIndex < angleCount; angleIndex++)
@@ -1698,18 +1707,10 @@ internal static partial class Av1IntraSuperblockEncoder
             ushort chromaModeMask = speedSettings.GetChromaModeMask(
                 blockSize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY));
 
-            byte directionalModeSkipMask = hogLevel != 0
-                ? this.GetBlockDirectionalModeSkipMask(
-                    in modeWorkspace,
-                    Av1PlaneType.Uv,
-                    blueSource,
-                    blueSourceSamples,
-                    chromaOrigin,
-                    (blockSize.GetHeight() + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subsamplingY,
-                    (blockSize.GetWidth() + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subsamplingX,
-                    (1 + subsamplingX) * (1 + subsamplingY),
-                    hogThreshold)
-                : (byte)0;
+            // The gradient skip mask is built at the first directional mode that passes the cheaper checks, so a
+            // block that never reaches one never measures its gradients.
+            byte directionalModeSkipMask = 0;
+            bool directionalModeSkipMaskReady = hogLevel == 0;
 
             Av1ModeCosts modeCosts = tables.ModeCosts;
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
@@ -1736,6 +1737,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
+                int modeRate = Av1SymbolEncoder.GetChromaModeCost(modeCosts, chromaMode, false, lumaMode);
+                if (Av1RateDistortion.GetCost(this.rateMultiplier, modeRate, 0) > bestStatistics.Cost)
+                {
+                    continue;
+                }
+
                 // Only the smooth mode reads the variance prune, so the planes are measured only when it is reached.
                 if (chromaMode == Av1ChromaPredictionMode.Smooth &&
                     speedSettings.PruneChromaSmoothByVariance &&
@@ -1745,20 +1752,33 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
-                if (blockSize >= Av1BlockSize.Block8x8 &&
-                    chromaMode is >= Av1ChromaPredictionMode.Vertical and <= Av1ChromaPredictionMode.Directional67Degrees &&
-                    (directionalModeSkipMask & (1 << ((int)chromaMode - (int)Av1ChromaPredictionMode.Vertical))) != 0)
-                {
-                    continue;
-                }
-
-                int modeRate = Av1SymbolEncoder.GetChromaModeCost(modeCosts, chromaMode, false, lumaMode);
-                if (Av1RateDistortion.GetCost(this.rateMultiplier, modeRate, 0) > bestStatistics.Cost)
-                {
-                    continue;
-                }
-
                 bool directional = chromaMode is >= Av1ChromaPredictionMode.Vertical and <= Av1ChromaPredictionMode.Directional67Degrees;
+                if (directional && blockSize >= Av1BlockSize.Block8x8)
+                {
+                    // Directional evidence excludes the replicated border, unlike block variance. Chroma's normalized
+                    // histogram is scaled by its sample area before the directional scores are evaluated.
+                    if (!directionalModeSkipMaskReady)
+                    {
+                        directionalModeSkipMask = this.GetBlockDirectionalModeSkipMask(
+                            in modeWorkspace,
+                            Av1PlaneType.Uv,
+                            blueSource,
+                            blueSourceSamples,
+                            chromaOrigin,
+                            (blockSize.GetHeight() + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subsamplingY,
+                            (blockSize.GetWidth() + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subsamplingX,
+                            (1 + subsamplingX) * (1 + subsamplingY),
+                            hogThreshold);
+
+                        directionalModeSkipMaskReady = true;
+                    }
+
+                    if ((directionalModeSkipMask & (1 << ((int)chromaMode - (int)Av1ChromaPredictionMode.Vertical))) != 0)
+                    {
+                        continue;
+                    }
+                }
+
                 int angleCount = directional && blockSize >= Av1BlockSize.Block8x8 ? ChromaAngleSearchOrder.Length : 1;
                 angleCosts.Fill(long.MaxValue);
                 for (int angleIndex = 0; angleIndex < angleCount; angleIndex++)

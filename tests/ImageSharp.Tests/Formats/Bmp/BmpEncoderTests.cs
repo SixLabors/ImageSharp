@@ -15,7 +15,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp;
 
 [Trait("Format", "Bmp")]
-public class BmpEncoderTests
+public partial class BmpEncoderTests
 {
     private static BmpEncoder BmpEncoder => new();
 

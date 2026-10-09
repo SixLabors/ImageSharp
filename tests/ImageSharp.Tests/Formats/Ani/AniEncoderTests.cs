@@ -5,9 +5,10 @@ using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.Ani;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Icon;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Tests.TestDataIcc;
+using SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Ani;
 
@@ -137,16 +138,22 @@ public class AniEncoderTests
     }
 
     /// <summary>
-    /// Verifies that metadata suppression is propagated to every embedded resource encoder.
+    /// Verifies that embedded resource encoders omit resolution metadata but retain the ICC profile.
     /// </summary>
+    /// <param name="provider">The existing bitmap fixture.</param>
+    /// <param name="frameFormat">The embedded resource format.</param>
     [Theory]
-    [InlineData(AniFrameFormat.Ico)]
-    [InlineData(AniFrameFormat.Cur)]
-    [InlineData(AniFrameFormat.Bmp)]
-    public void AniEncoder_SkipMetadataPropagatesToEmbeddedEncoder(AniFrameFormat frameFormat)
+    [WithFile(TestImages.Bmp.Bit32Rgba, PixelTypes.Rgba32, AniFrameFormat.Ico)]
+    [WithFile(TestImages.Bmp.Bit32Rgba, PixelTypes.Rgba32, AniFrameFormat.Cur)]
+    [WithFile(TestImages.Bmp.Bit32Rgba, PixelTypes.Rgba32, AniFrameFormat.Bmp)]
+    public void AniEncoder_SkipMetadataPropagatesToEmbeddedEncoder(TestImageProvider<Rgba32> provider, AniFrameFormat frameFormat)
     {
-        using Image<Rgba32> image = new(16, 16, Color.Red.ToPixel<Rgba32>());
-        image.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.ProfileRandomArray);
+        using Image<Rgba32> image = provider.GetImage();
+        IccProfile profile = TestIccProfiles.GetProfile(TestIccProfiles.StandardRgbV2);
+        image.Metadata.IccProfile = profile;
+        image.Metadata.ResolutionUnits = PixelResolutionUnit.PixelsPerInch;
+        image.Metadata.HorizontalResolution = 96;
+        image.Metadata.VerticalResolution = 96;
 
         AniMetadata imageMetadata = image.Metadata.GetAniMetadata();
         imageMetadata.BitCount = 32;
@@ -172,9 +179,15 @@ public class AniEncoderTests
             dibOffset = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(resource[(IconDir.Size + IconDirEntry.Size - sizeof(uint))..]));
         }
 
-        // Metadata-free ICO/CUR bitmaps use BITMAPINFOHEADER, while raw transparent ANI bitmaps require BITMAPV4HEADER.
-        int expectedHeaderSize = frameFormat is AniFrameFormat.Bmp ? BmpInfoHeader.SizeV4 : BmpInfoHeader.SizeV3;
-        Assert.Equal(expectedHeaderSize, BinaryPrimitives.ReadInt32LittleEndian(resource[dibOffset..]));
+        // ICC requires a V5 header even when optional metadata is omitted. ProfileData is relative to this DIB header.
+        ReadOnlySpan<byte> dib = resource[dibOffset..];
+        Assert.Equal(BmpInfoHeader.SizeV5, BinaryPrimitives.ReadInt32LittleEndian(dib));
+
+        BmpInfoHeader header = BmpInfoHeader.ParseV5(dib);
+        Assert.Equal(0, header.XPelsPerMeter);
+        Assert.Equal(0, header.YPelsPerMeter);
+        Assert.Equal(BmpColorSpace.PROFILE_EMBEDDED, header.CsType);
+        Assert.Equal(profile.ToByteArray(), dib.Slice((int)header.ProfileData, (int)header.ProfileSize).ToArray());
     }
 
     /// <summary>

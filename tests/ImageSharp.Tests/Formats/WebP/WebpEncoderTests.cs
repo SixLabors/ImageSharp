@@ -295,7 +295,7 @@ public class WebpEncoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Heif.Animated8Bit, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.AnimatedLeo, PixelTypes.Rgba32)]
     public void Encode_AnimatedFormatTransform_FromHeif<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {

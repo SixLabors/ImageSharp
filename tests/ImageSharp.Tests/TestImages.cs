@@ -1311,6 +1311,9 @@ public static class TestImages
         public const string Animated8Bit = "Heif/colors-animated-8bpc.avif";
         public const string Animated8BitWithAudio = "Heif/colors-animated-8bpc-audio.avif";
         public const string Animated8BitWithAlphaExifXmp = "Heif/colors-animated-8bpc-alpha-exif-xmp.avif";
+
+        // Independently encoded from Gif.Leo with ffmpeg and libaom. It loops and keeps the source frame durations.
+        public const string AnimatedLeo = "Heif/leo-animated-libaom.avif";
         public const string Animated12BitWithKeyframes = "Heif/colors-animated-12bpc-keyframes-0-2-3.avif";
 
         // Sourced from libavif/tests/data under the licenses recorded in libavif's tests/data/README.md, and

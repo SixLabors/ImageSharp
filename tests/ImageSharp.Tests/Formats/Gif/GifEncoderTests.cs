@@ -350,7 +350,7 @@ public class GifEncoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Heif.Animated8Bit, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.AnimatedLeo, PixelTypes.Rgba32)]
     public void Encode_AnimatedFormatTransform_FromHeif<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -368,9 +368,9 @@ public class GifEncoderTests
         using Image<TPixel> output = Image.Load<TPixel>(memStream);
         File.WriteAllBytes(provider.Utility.GetTestOutputFileName("gif"), memStream.ToArray());
 
-        // Each source frame has fewer colors than a gif palette holds, so the quantizer keeps every color and the comparison is exact.
+        // The decoded AV1 frames hold more colors than a gif palette, so the quantizer changes some of them.
         Assert.Equal(image.Frames.Count, output.Frames.Count);
-        ImageComparer.Exact.VerifySimilarity(output, image);
+        ImageComparer.TolerantPercentage(0.92f).VerifySimilarity(output, image);
 
         HeifMetadata heif = image.Metadata.GetHeifMetadata();
         GifMetadata gif = output.Metadata.GetGifMetadata();

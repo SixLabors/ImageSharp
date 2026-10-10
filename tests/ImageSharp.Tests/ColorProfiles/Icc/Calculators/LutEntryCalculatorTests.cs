@@ -18,7 +18,7 @@ public class LutEntryCalculatorTests
     [MemberData(nameof(IccConversionDataLutEntry.Lut8ConversionTestData), MemberType = typeof(IccConversionDataLutEntry))]
     internal void LutEntryCalculator_WithLut8_ReturnsResult(IccLut8TagDataEntry lut, Vector4 input, Vector4 expected)
     {
-        LutEntryCalculator calculator = new(lut);
+        LutEntryCalculator calculator = new(lut, false);
 
         Vector4 result = calculator.Calculate(input);
 
@@ -29,7 +29,7 @@ public class LutEntryCalculatorTests
     [MemberData(nameof(IccConversionDataLutEntry.Lut16ConversionTestData), MemberType = typeof(IccConversionDataLutEntry))]
     internal void LutEntryCalculator_WithLut16_ReturnsResult(IccLut16TagDataEntry lut, Vector4 input, Vector4 expected)
     {
-        LutEntryCalculator calculator = new(lut);
+        LutEntryCalculator calculator = new(lut, false);
 
         Vector4 result = calculator.Calculate(input);
 

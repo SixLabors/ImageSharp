@@ -213,8 +213,13 @@ jobs:
         uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: actual_output_${{ runner.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
-          path: tests/Images/ActualOutput/
+          name: actual_output_${{ runner.os }}_${{ runner.arch }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
+          # ActualOutput holds the images that the tests write and the test runner log from ci-test.ps1.
+          # TestResults is the default results folder of dotnet test. When the test process crashes, --blame
+          # writes a sequence file there that lists the tests that ran before the crash.
+          path: |
+            tests/Images/ActualOutput/
+            tests/ImageSharp.Tests/TestResults/
 
   Publish:
     needs: [Build]

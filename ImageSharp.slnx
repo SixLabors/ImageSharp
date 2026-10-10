@@ -114,6 +114,11 @@
         <File Path="tests/Images/Input/Gif/issues/issue405_badappextlength252-2.gif" />
         <File Path="tests/Images/Input/Gif/issues/issue405_badappextlength252.gif" />
     </Folder>
+    <Folder Name="/tests/Images/Input/Heif/">
+        <File Path="tests/Images/Input/Heif/Irvine_CA.avif" />
+        <File Path="tests/Images/Input/Heif/jpeg444_xnconvert.avif" />
+        <File Path="tests/Images/Input/Heif/Orange4x4.avif" />
+    </Folder>
     <Folder Name="/tests/Images/Input/Icon/">
         <File Path="tests/Images/Input/Icon/aero_arrow.cur" />
         <File Path="tests/Images/Input/Icon/flutter.ico" />

@@ -21,10 +21,11 @@ internal partial class LutABCalculator : IVector4Calculator
     /// Initializes a new instance of the <see cref="LutABCalculator"/> class for an ICC <c>mAB</c> transform.
     /// </summary>
     /// <param name="entry">The parsed A-to-B LUT entry.</param>
-    public LutABCalculator(IccLutAToBTagDataEntry entry)
+    /// <param name="useTrilinearInterpolation">Whether a three-channel table uses trilinear interpolation.</param>
+    public LutABCalculator(IccLutAToBTagDataEntry entry, bool useTrilinearInterpolation)
     {
         Guard.NotNull(entry, nameof(entry));
-        this.Init(entry.CurveA, entry.CurveB, entry.CurveM, entry.Matrix3x1, entry.Matrix3x3, entry.ClutValues);
+        this.Init(entry.CurveA, entry.CurveB, entry.CurveM, entry.Matrix3x1, entry.Matrix3x3, entry.ClutValues, useTrilinearInterpolation);
         this.type = CalculationType.AtoB;
     }
 
@@ -32,10 +33,11 @@ internal partial class LutABCalculator : IVector4Calculator
     /// Initializes a new instance of the <see cref="LutABCalculator"/> class for an ICC <c>mBA</c> transform.
     /// </summary>
     /// <param name="entry">The parsed B-to-A LUT entry.</param>
-    public LutABCalculator(IccLutBToATagDataEntry entry)
+    /// <param name="useTrilinearInterpolation">Whether a three-channel table uses trilinear interpolation.</param>
+    public LutABCalculator(IccLutBToATagDataEntry entry, bool useTrilinearInterpolation)
     {
         Guard.NotNull(entry, nameof(entry));
-        this.Init(entry.CurveA, entry.CurveB, entry.CurveM, entry.Matrix3x1, entry.Matrix3x3, entry.ClutValues);
+        this.Init(entry.CurveA, entry.CurveB, entry.CurveM, entry.Matrix3x1, entry.Matrix3x3, entry.ClutValues, useTrilinearInterpolation);
         this.type = CalculationType.BtoA;
     }
 
@@ -117,7 +119,14 @@ internal partial class LutABCalculator : IVector4Calculator
     /// <remarks>
     /// The tag entry classes already validate channel continuity, so this method only materializes the available stages.
     /// </remarks>
-    private void Init(IccTagDataEntry[] curveA, IccTagDataEntry[] curveB, IccTagDataEntry[] curveM, Vector3? matrix3x1, Matrix4x4? matrix3x3, IccClut clut)
+    private void Init(
+        IccTagDataEntry[] curveA,
+        IccTagDataEntry[] curveB,
+        IccTagDataEntry[] curveM,
+        Vector3? matrix3x1,
+        Matrix4x4? matrix3x3,
+        IccClut clut,
+        bool useTrilinearInterpolation)
     {
         bool hasACurve = curveA != null;
         bool hasBCurve = curveB != null;
@@ -152,7 +161,7 @@ internal partial class LutABCalculator : IVector4Calculator
 
         if (hasClut)
         {
-            this.clutCalculator = new ClutCalculator(clut);
+            this.clutCalculator = new ClutCalculator(clut, useTrilinearInterpolation);
         }
     }
 }

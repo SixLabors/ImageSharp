@@ -4,9 +4,11 @@
 using System.Runtime.InteropServices;
 using ImageMagick;
 using ImageMagick.Formats;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Exr;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tiff;
@@ -45,6 +47,8 @@ public class MagickReferenceDecoder : ImageDecoder
 
     public static MagickReferenceDecoder Exr { get; } = new(ExrFormat.Instance);
 
+    public static MagickReferenceDecoder Heif { get; } = new(HeifFormat.Instance);
+
     protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         ImageMetadata metadata = new();
@@ -73,6 +77,14 @@ public class MagickReferenceDecoder : ImageDecoder
         List<ImageFrame<TPixel>> framesList = [];
         foreach (IMagickImage<ushort> magicFrame in magickImageCollection)
         {
+            if (this.imageFormat is HeifFormat
+                && options.ColorProfileHandling == ColorProfileHandling.Convert
+                && magicFrame.GetColorProfile() is not null)
+            {
+                // Use the decoder contract's target profile so the comparison isolates conversion behavior.
+                magicFrame.TransformColorSpace(new ColorProfile(CompactSrgbV4Profile.Profile.ToByteArray()));
+            }
+
             ImageFrame<TPixel> frame = new(configuration, imageWidth, imageHeight);
             framesList.Add(frame);
 
@@ -83,13 +95,13 @@ public class MagickReferenceDecoder : ImageDecoder
                 (int)magicFrame.Height);
 
             using IUnsafePixelCollection<ushort> pixels = magicFrame.GetPixelsUnsafe();
-            if (magicFrame.Depth is 12 or 10 or 8 or 6 or 5 or 4 or 3 or 2 or 1)
+            if (magicFrame.Depth is 8 or 6 or 5 or 4 or 3 or 2 or 1)
             {
                 byte[] data = pixels.ToByteArray(PixelMapping.RGBA);
 
                 FromRgba32Bytes(configuration, data, buffer);
             }
-            else if (magicFrame.Depth is 14 or 16 or 32)
+            else if (magicFrame.Depth is 10 or 12 or 14 or 16 or 32)
             {
                 if (this.imageFormat is PngFormat png)
                 {
@@ -97,6 +109,21 @@ public class MagickReferenceDecoder : ImageDecoder
                 }
 
                 ushort[] data = pixels.ToShortArray(PixelMapping.RGBA);
+                if (this.imageFormat is HeifFormat && magicFrame.Depth is 10 or 12)
+                {
+                    // The HEIF reader left-aligns native samples in its 16-bit channels. Recover the declared
+                    // sample values before expanding their full range to Rgba64; a shift alone leaves white
+                    // below 65535 and changes every nonzero component's normalized value.
+                    int depth = (int)magicFrame.Depth;
+                    int shift = 16 - depth;
+                    int maximum = (1 << depth) - 1;
+                    for (int i = 0; i < data.Length; i++)
+                    {
+                        int sample = data[i] >> shift;
+                        data[i] = (ushort)(((sample * 65535) + (maximum / 2)) / maximum);
+                    }
+                }
+
                 Span<byte> bytes = MemoryMarshal.Cast<ushort, byte>(data.AsSpan());
                 FromRgba64Bytes(configuration, bytes, buffer);
             }

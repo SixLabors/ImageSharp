@@ -74,6 +74,11 @@ public class ColorConversionOptions
     public IccProfile? TargetIccProfile { get; init; }
 
     /// <summary>
+    /// Gets the interpolation method used for ICC color lookup tables. Defaults to <see cref="IccInterpolationMethod.Auto"/>.
+    /// </summary>
+    public IccInterpolationMethod IccInterpolationMethod { get; init; }
+
+    /// <summary>
     /// Gets the transformation matrix used in conversion to perform chromatic adaptation.
     /// <see cref="KnownChromaticAdaptationMatrices"/> for further information. Default is Bradford.
     /// </summary>

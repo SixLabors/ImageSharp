@@ -1282,6 +1282,86 @@ public static class TestImages
         public const string Wikipedia008 = "Qoi/wikipedia_008.qoi";
     }
 
+    public static class Heif
+    {
+        // Downloaded from: https://github.com/AOMediaCodec/av1-avif/blob/master/testFiles/Microsoft/Irvine_CA.avif
+        public const string IrvineAvif = "Heif/Irvine_CA.avif";
+
+        public const string XnConvert = "Heif/jpeg444_xnconvert.avif";
+
+        // Extremely small image, 4x4 pixels with a single solid color.
+        public const string Orange4x4 = "Heif/Orange4x4.avif";
+
+        // Sourced from libavif/tests/data under libavif's BSD-2-Clause license. The AVIF was independently
+        // encoded from the paired PNG with avifenc and carries the same ICC, Exif, and XMP metadata.
+        public const string ParisIccExifXmpAvif = "Heif/paris_icc_exif_xmp.avif";
+        public const string ParisIccExifXmpPng = "Heif/paris_icc_exif_xmp.png";
+
+        // Independently encoded from Png.Icc.Perceptual. Unlike the
+        // canonical-sRGB Paris profile, this perceptual profile requires an observable color conversion.
+        public const string PerceptualIccAvif = "Heif/perceptual_icc.avif";
+        public const string PerceptualIccGridAvif = "Heif/perceptual_icc_grid.avif";
+        public const string PerceptualIccSequenceAvif = "Heif/perceptual_icc_sequence.avif";
+
+        // Independently encoded from Png.Ducky. The ROMM RGB profile is
+        // deliberately non-sRGB so that color conversion is observable while the auxiliary alpha item is composed.
+        public const string DuckyRommIccAlphaAvif = "Heif/ducky_romm_icc_alpha.avif";
+
+        // Sourced from libavif/tests/data under libavif's BSD-2-Clause license.
+        public const string Animated8Bit = "Heif/colors-animated-8bpc.avif";
+        public const string Animated8BitWithAudio = "Heif/colors-animated-8bpc-audio.avif";
+        public const string Animated8BitWithAlphaExifXmp = "Heif/colors-animated-8bpc-alpha-exif-xmp.avif";
+
+        // Independently encoded from Gif.Leo with ffmpeg and libaom. It loops and keeps the source frame durations.
+        public const string AnimatedLeo = "Heif/leo-animated-libaom.avif";
+        public const string Animated12BitWithKeyframes = "Heif/colors-animated-12bpc-keyframes-0-2-3.avif";
+
+        // Sourced from libavif/tests/data under the licenses recorded in libavif's tests/data/README.md, and
+        // encoded with libavif to exercise each AV1 coding tool.
+        public const string Av1Deblocking8BitAvif = "Heif/libavif-kodim23-8b.avif";
+        public const string Av1Deblocking10BitAvif = "Heif/libavif-cosmos1650-10b.avif";
+        public const string Av1Deblocking12BitAvif = "Heif/libavif-colors-12b.avif";
+        public const string Av1Progressive8BitAvif = "Heif/libavif-progressive-draw-points-8b.avif";
+        public const string Av1ScaledReferenceAvif = "Heif/libavif-webp-logo-scaled-reference.avif";
+        public const string Av1ScaledReferenceSelectedLayerAvif = "Heif/libavif-webp-logo-scaled-reference-lsel0.avif";
+        public const string Av1AverageCompoundSequenceAvif = "Heif/libavif-webp-logo-average-compound.avif";
+        public const string Av1DistanceWeightedCompoundSequenceAvif = "Heif/libavif-webp-logo-distance-weighted-compound.avif";
+        public const string Av1WedgeCompoundSequenceAvif = "Heif/libavif-webp-logo-wedge-compound.avif";
+        public const string Av1DifferenceWeightedCompoundSequenceAvif = "Heif/libavif-webp-logo-difference-weighted-compound.avif";
+        public const string Av1InterIntraSequenceAvif = "Heif/libavif-webp-logo-inter-intra.avif";
+        public const string Av1ObmcSequenceAvif = "Heif/libavif-webp-logo-obmc.avif";
+        public const string Av1LocalWarpSequenceAvif = "Heif/libavif-rotating-grid-local-warp.avif";
+        public const string Av1GlobalWarpSequenceAvif = "Heif/libavif-rotating-grid-global-warp.avif";
+        public const string Av1Cdef8BitAvif = "Heif/libavif-cdef-kodim23-8b.avif";
+        public const string Av1Cdef10BitAvif = "Heif/libavif-cdef-cosmos-10b.avif";
+        public const string Av1Cdef12BitAvif = "Heif/libavif-cdef-cosmos-12b.avif";
+        public const string Av1Profile8BitMonochromeAvif = "Heif/libavif-profile-8b-400.avif";
+        public const string Av1Profile8Bit420Avif = "Heif/libavif-profile-8b-420.avif";
+        public const string Av1Profile8Bit422Avif = "Heif/libavif-profile-8b-422.avif";
+        public const string Av1Profile8Bit444Avif = "Heif/libavif-profile-8b-444.avif";
+        public const string Av1Profile10BitMonochromeAvif = "Heif/libavif-profile-10b-400.avif";
+        public const string Av1Profile10Bit420Avif = "Heif/libavif-profile-10b-420.avif";
+        public const string Av1Profile10Bit422Avif = "Heif/libavif-profile-10b-422.avif";
+        public const string Av1Profile10Bit444Avif = "Heif/libavif-profile-10b-444.avif";
+        public const string Av1Profile12BitMonochromeAvif = "Heif/libavif-profile-12b-400.avif";
+        public const string Av1Profile12Bit420Avif = "Heif/libavif-profile-12b-420.avif";
+        public const string Av1Profile12Bit422Avif = "Heif/libavif-profile-12b-422.avif";
+        public const string Av1Profile12Bit444Avif = "Heif/libavif-profile-12b-444.avif";
+        public const string Av1Palette8BitAvif = "Heif/libavif-palette-draw-points-8b.avif";
+        public const string Av1IntraBlockCopy8BitAvif = "Heif/libavif-intrabc-abc-8b-444.avif";
+        public const string Av1IntraBlockCopy10BitAvif = "Heif/libavif-intrabc-abc-10b-444.avif";
+        public const string Av1IntraBlockCopy12BitAvif = "Heif/libavif-intrabc-abc-12b-444.avif";
+        public const string Av1Lossless8BitAvif = "Heif/libavif-lossless-circle-8b-444.avif";
+        public const string Av1Lossless10BitAvif = "Heif/libavif-lossless-circle-10b-444.avif";
+        public const string Av1Lossless12BitAvif = "Heif/libavif-lossless-circle-12b-444.avif";
+        public const string Av1SuperResolution8BitAvif = "Heif/libavif-superres-kodim23-8b.avif";
+        public const string Av1SuperResolution10BitAvif = "Heif/libavif-superres-cosmos-10b.avif";
+        public const string Av1SuperResolution12BitAvif = "Heif/libavif-superres-cosmos-12b.avif";
+        public const string Av1Restoration8BitAvif = "Heif/libavif-restoration-kodim23-8b.avif";
+        public const string Av1Restoration10BitAvif = "Heif/libavif-restoration-cosmos-10b.avif";
+        public const string Av1Restoration12BitAvif = "Heif/libavif-restoration-cosmos-12b.avif";
+    }
+
     public static class Ico
     {
         public const string Flutter = "Icon/flutter.ico";

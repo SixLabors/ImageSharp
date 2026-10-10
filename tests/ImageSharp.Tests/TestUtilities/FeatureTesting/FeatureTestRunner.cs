@@ -414,6 +414,14 @@ public static class FeatureTestRunner
                     // Not a COMPlus value. We filter in calling method.
                     features.Add(key, nameof(HwIntrinsics.AllowAll));
                     break;
+#if NET10_0_OR_GREATER
+                case nameof(HwIntrinsics.DisableAVX512F):
+
+                    // AVX-512's baseline features share one switch from .NET 10. The old F-only switch is
+                    // ignored, which would run 512-bit code again instead of exercising narrower vectors.
+                    features.Add(key, "EnableAVX512");
+                    break;
+#endif
 #if NET11_0_OR_GREATER
                 case nameof(HwIntrinsics.DisableSSE42):
 

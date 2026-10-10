@@ -1,0 +1,201 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+
+namespace SixLabors.ImageSharp.Formats.Heif;
+
+/// <summary>
+/// Owns the bounded image behavior retained from one HEIF image-sequence track.
+/// </summary>
+internal sealed class HeifSequenceTrack
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HeifSequenceTrack"/> class.
+    /// </summary>
+    public HeifSequenceTrack()
+    {
+    }
+
+    /// <summary>
+    /// Gets or sets the file-defined track identifier.
+    /// </summary>
+    public uint Id { get; set; }
+
+    /// <summary>
+    /// Gets or sets the displayed track width in pixels.
+    /// </summary>
+    public int Width { get; set; }
+
+    /// <summary>
+    /// Gets or sets the displayed track height in pixels.
+    /// </summary>
+    public int Height { get; set; }
+
+    /// <summary>
+    /// Gets or sets the coded sample width in pixels before track presentation transforms.
+    /// </summary>
+    public int CodedWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the coded sample height in pixels before track presentation transforms.
+    /// </summary>
+    public int CodedHeight { get; set; }
+
+    /// <summary>
+    /// Gets or sets the media time scale in units per second.
+    /// </summary>
+    public uint MediaTimescale { get; set; }
+
+    /// <summary>
+    /// Gets or sets the declared media duration in media-time-scale units.
+    /// </summary>
+    public ulong MediaDuration { get; set; }
+
+    /// <summary>
+    /// Gets or sets the total number of samples declared by the sample table.
+    /// </summary>
+    public uint TotalSampleCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the coded sample-entry type.
+    /// </summary>
+    public Heif4CharCode CodecType { get; set; }
+
+    /// <summary>
+    /// Gets or sets the parsed AV1 configuration when <see cref="CodecType"/> is <see cref="Heif4CharCode.Av01"/>.
+    /// </summary>
+    public Av1CodecConfiguration? Av1CodecConfiguration { get; set; }
+
+    /// <summary>
+    /// Gets or sets the ICC profile associated with the image sequence.
+    /// </summary>
+    public IccProfile? IccProfile { get; set; }
+
+    /// <summary>
+    /// Gets or sets the CICP color description associated with the image sequence.
+    /// </summary>
+    public CicpProfile? CicpProfile { get; set; }
+
+    /// <summary>
+    /// Gets or sets the content light-level information associated with the image sequence.
+    /// </summary>
+    public HeifContentLightLevel? ContentLightLevel { get; set; }
+
+    /// <summary>
+    /// Gets or sets the mastering-display color volume associated with the image sequence.
+    /// </summary>
+    public HeifMasteringDisplayColorVolume? MasteringDisplayColorVolume { get; set; }
+
+    /// <summary>
+    /// Gets or sets the content color volume associated with the image sequence.
+    /// </summary>
+    public HeifContentColorVolume? ContentColorVolume { get; set; }
+
+    /// <summary>
+    /// Gets or sets the nominal ambient viewing environment associated with the image sequence.
+    /// </summary>
+    public HeifAmbientViewingEnvironment? AmbientViewingEnvironment { get; set; }
+
+    /// <summary>
+    /// Gets or sets the reference mastering environment associated with the image sequence.
+    /// </summary>
+    public HeifReferenceViewingEnvironment? ReferenceViewingEnvironment { get; set; }
+
+    /// <summary>
+    /// Gets or sets the nominal diffuse-white description associated with the image sequence.
+    /// </summary>
+    public HeifNominalDiffuseWhite? NominalDiffuseWhite { get; set; }
+
+    /// <summary>
+    /// Gets or sets the relative pixel spacing associated with the image sequence.
+    /// </summary>
+    public HeifPixelAspectRatio? PixelAspectRatio { get; set; }
+
+    /// <summary>
+    /// Gets or sets the clean-aperture crop applied to each decoded sample.
+    /// </summary>
+    public HeifCleanAperture? CleanAperture { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of 90-degree counter-clockwise rotations applied to each decoded sample.
+    /// </summary>
+    public byte? RotationAngle { get; set; }
+
+    /// <summary>
+    /// Gets or sets the image-mirror axis, where zero is horizontal and one is vertical.
+    /// </summary>
+    public byte? MirrorAxis { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Exif and XMP item payloads implicitly associated with the image-sequence track.
+    /// </summary>
+    public HeifSequenceMetadata? Metadata { get; set; }
+
+    /// <summary>
+    /// Gets or sets the retained sample descriptors in decode order.
+    /// </summary>
+    public HeifSequenceSample[] Samples { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the compact zero-based sample indices referenced by retained samples.
+    /// </summary>
+    public int[] DirectReferenceSampleIndices { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the identifier of the master track served by this auxiliary track, or zero for a master track.
+    /// </summary>
+    public uint AuxiliaryForTrackId { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the track is an alpha auxiliary image sequence.
+    /// </summary>
+    public bool IsAlpha { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identifier of the alpha track that premultiplies this color track, or zero when color is unassociated.
+    /// </summary>
+    public uint PremultipliedByTrackId { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the color track is premultiplied by this auxiliary alpha track.
+    /// </summary>
+    public bool IsPremultiplied { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether every reference picture is intra coded.
+    /// </summary>
+    public bool AllReferencePicturesIntra { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether coded pictures use intra-picture prediction.
+    /// </summary>
+    public bool IntraPicturePredictionUsed { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum number of reference pictures permitted for one coded picture.
+    /// </summary>
+    public byte MaximumReferencesPerPicture { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of times the sequence is played. Zero indicates indefinite repetition.
+    /// </summary>
+    public ushort RepeatCount { get; set; } = 1;
+
+    /// <summary>
+    /// Gets or sets the track handler type.
+    /// </summary>
+    public Heif4CharCode HandlerType { get; set; }
+
+    /// <summary>
+    /// Gets or sets the track duration in movie-time-scale units.
+    /// </summary>
+    public ulong TrackDuration { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the track contains the edit list required for hidden samples.
+    /// </summary>
+    public bool HasEditList { get; set; }
+}

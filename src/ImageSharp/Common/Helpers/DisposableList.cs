@@ -1,0 +1,51 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+namespace SixLabors.ImageSharp.Common.Helpers;
+
+/// <summary>
+/// List of <see cref="IDisposable"/> objects, which is itself <see cref="IDisposable"/>.
+/// </summary>
+/// <typeparam name="TValue">Tye type of value, needs to implement <see cref="IDisposable"/>.</typeparam>
+public sealed class DisposableList<TValue> : List<TValue>, IDisposable
+    where TValue : IDisposable
+{
+    private bool disposedValue;
+
+    /// <inheritdoc />
+    public DisposableList()
+        : base()
+    {
+    }
+
+    /// <inheritdoc />
+    public DisposableList(int capacity)
+        : base(capacity)
+    {
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        this.Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (!this.disposedValue)
+        {
+            if (disposing)
+            {
+                foreach (TValue item in this)
+                {
+                    item?.Dispose();
+                }
+            }
+
+            this.Clear();
+            this.disposedValue = true;
+        }
+    }
+}

@@ -24,7 +24,8 @@ internal abstract partial class IccConverterBase
     /// <param name="toPcs">True if the conversion is to the Profile Connection Space.</param>
     /// <param name="renderingIntent">The wanted rendering intent. Can be ignored if not available.</param>
     /// <exception cref="InvalidIccProfileException">Invalid conversion method.</exception>
-    protected void Init(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent)
+    /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
+    protected void Init(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent, IccInterpolationMethod interpolationMethod)
         => this.calculator = GetConversionMethod(profile, renderingIntent) switch
         {
             ConversionMethod.D0 => toPcs ?
@@ -40,28 +41,45 @@ internal abstract partial class IccConverterBase
                                 InitD(profile, IccProfileTag.DToB3) :
                                 InitD(profile, IccProfileTag.BToD3),
             ConversionMethod.A0 => toPcs ?
-                                InitA(profile, IccProfileTag.AToB0) :
-                                InitA(profile, IccProfileTag.BToA0),
+                                InitA(profile, IccProfileTag.AToB0, interpolationMethod) :
+                                InitA(profile, IccProfileTag.BToA0, interpolationMethod),
             ConversionMethod.A1 => toPcs ?
-                                InitA(profile, IccProfileTag.AToB1) :
-                                InitA(profile, IccProfileTag.BToA1),
+                                InitA(profile, IccProfileTag.AToB1, interpolationMethod) :
+                                InitA(profile, IccProfileTag.BToA1, interpolationMethod),
             ConversionMethod.A2 => toPcs ?
-                                InitA(profile, IccProfileTag.AToB2) :
-                                InitA(profile, IccProfileTag.BToA2),
+                                InitA(profile, IccProfileTag.AToB2, interpolationMethod) :
+                                InitA(profile, IccProfileTag.BToA2, interpolationMethod),
             ConversionMethod.ColorTrc => InitColorTrc(profile, toPcs),
             ConversionMethod.GrayTrc => InitGrayTrc(profile, toPcs),
             _ => throw new InvalidIccProfileException("Invalid conversion method."),
         };
 
-    private static IVector4Calculator InitA(IccProfile profile, IccProfileTag tag)
-        => GetTag(profile, tag) switch
+    /// <summary>
+    /// Creates a LUT calculator with interpolation selected for its input color space and direction.
+    /// </summary>
+    /// <param name="profile">The profile containing the table.</param>
+    /// <param name="tag">The transform tag to evaluate.</param>
+    /// <returns>The configured table calculator.</returns>
+    /// <param name="interpolationMethod">The requested interpolation method.</param>
+    private static IVector4Calculator InitA(IccProfile profile, IccProfileTag tag, IccInterpolationMethod interpolationMethod)
+    {
+        // Lab-indexed output and linking tables use independent-axis interpolation.
+        // Device-to-PCS tables use tetrahedra in their final three input dimensions.
+        bool useTrilinearInterpolation = interpolationMethod == IccInterpolationMethod.Trilinear
+            || (interpolationMethod == IccInterpolationMethod.Auto
+                && profile.Header.ProfileConnectionSpace == IccColorSpaceType.CieLab
+                && (tag is IccProfileTag.BToA0 or IccProfileTag.BToA1 or IccProfileTag.BToA2
+                    || profile.Header.Class is IccProfileClass.DeviceLink or IccProfileClass.Abstract));
+
+        return GetTag(profile, tag) switch
         {
-            IccLut8TagDataEntry lut8 => new LutEntryCalculator(lut8),
-            IccLut16TagDataEntry lut16 => new LutEntryCalculator(lut16),
-            IccLutAToBTagDataEntry lutAtoB => new LutABCalculator(lutAtoB),
-            IccLutBToATagDataEntry lutBtoA => new LutABCalculator(lutBtoA),
+            IccLut8TagDataEntry lut8 => new LutEntryCalculator(lut8, useTrilinearInterpolation),
+            IccLut16TagDataEntry lut16 => new LutEntryCalculator(lut16, useTrilinearInterpolation),
+            IccLutAToBTagDataEntry lutAtoB => new LutABCalculator(lutAtoB, useTrilinearInterpolation),
+            IccLutBToATagDataEntry lutBtoA => new LutABCalculator(lutBtoA, useTrilinearInterpolation),
             _ => throw new InvalidIccProfileException($"Invalid entry {tag}."),
         };
+    }
 
     private static IVector4Calculator InitD(IccProfile profile, IccProfileTag tag)
     {

@@ -54,6 +54,36 @@ internal static class Vector128_
     }
 
     /// <summary>
+    /// Average packed unsigned 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, rounding up, and store the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 16-bit integers to average.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 16-bit integers to average.
+    /// </param>
+    /// <returns>
+    /// A vector containing (<paramref name="left"/> + <paramref name="right"/> + 1) &gt;&gt; 1 in each of its 8 lanes.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<ushort> Average(Vector128<ushort> left, Vector128<ushort> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.Average(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.FusedAddRoundedHalving(left, right);
+        }
+
+        // (a | b) - ((a ^ b) >> 1) equals (a + b + 1) >> 1 without the carry into a wider lane:
+        // a + b = 2 * (a & b) + (a ^ b), and the shared and differing bits round up together.
+        return (left | right) - ((left ^ right) >>> 1);
+    }
+
+    /// <summary>
     /// Creates a new vector by selecting values from an input vector using the control.
     /// </summary>
     /// <param name="vector">The input vector from which values are selected.</param>
@@ -347,6 +377,54 @@ internal static class Vector128_
     }
 
     /// <summary>
+    /// Adds the absolute differences of packed unsigned 8-bit integers in <paramref name="left"/> and
+    /// <paramref name="right"/> into <paramref name="accumulator"/>.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 8-bit integers to compare.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 8-bit integers to compare.
+    /// </param>
+    /// <param name="accumulator">
+    /// The running total that the differences are added to.
+    /// </param>
+    /// <returns>
+    /// A vector whose lanes together hold <paramref name="accumulator"/> plus the sixteen absolute differences
+    /// </returns>
+    /// <remarks>
+    /// The spread of the sums across the lanes is not defined, because each platform keeps the grouping
+    /// that its own instruction produces. Only the total across all lanes is defined, so the caller must
+    /// reduce the result with a horizontal sum and must not read one lane on its own. A lane holds a
+    /// 32-bit total, so it cannot overflow until more than sixteen million samples are added to it.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<uint> SumAbsoluteDifferences(Vector128<byte> left, Vector128<byte> right, Vector128<uint> accumulator)
+    {
+        if (Sse2.IsSupported)
+        {
+            // The instruction puts the two eight-byte totals in 16-bit lanes 0 and 4, which are 32-bit
+            // lanes 0 and 2, and leaves the rest zero.
+            return accumulator + Sse2.SumAbsoluteDifferences(left, right).AsUInt32();
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            // Two widening pairwise adds fold the sixteen 8-bit differences into four 32-bit lanes.
+            Vector128<ushort> pairs = AdvSimd.AddPairwiseWidening(AdvSimd.AbsoluteDifference(left, right));
+            return accumulator + AdvSimd.AddPairwiseWidening(pairs);
+        }
+
+        // Unsigned lanes make the absolute difference the larger value minus the smaller one, so the
+        // subtraction needs no widening and cannot wrap.
+        Vector128<byte> difference = Vector128.Max(left, right) - Vector128.Min(left, right);
+        (Vector128<ushort> lower, Vector128<ushort> upper) = Vector128.Widen(difference);
+        (Vector128<uint> first, Vector128<uint> second) = Vector128.Widen(lower);
+        (Vector128<uint> third, Vector128<uint> fourth) = Vector128.Widen(upper);
+        return accumulator + first + second + third + fourth;
+    }
+
+    /// <summary>
     /// Multiply packed signed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
     /// intermediate signed 32-bit integers. Horizontally add adjacent pairs of intermediate 32-bit integers, and
     /// pack the results.
@@ -401,6 +479,208 @@ internal static class Vector128_
 
             return v0 + v1 + v2 + v3;
         }
+    }
+
+    /// <summary>
+    /// Multiply packed unsigned 8-bit integers in <paramref name="left"/> by packed signed 8-bit integers in
+    /// <paramref name="right"/>, producing intermediate signed 16-bit integers. Horizontally add adjacent pairs of
+    /// intermediate integers and pack the saturated results.
+    /// </summary>
+    /// <param name="left">
+    /// The vector containing packed unsigned 8-bit integers to multiply and add.
+    /// </param>
+    /// <param name="right">
+    /// The vector containing packed signed 8-bit integers to multiply and add.
+    /// </param>
+    /// <returns>
+    /// A vector containing the saturated results of multiplying and adding adjacent pairs of packed 8-bit integers
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<short> MultiplyAddAdjacent(Vector128<byte> left, Vector128<sbyte> right)
+    {
+        if (Ssse3.IsSupported)
+        {
+            return Ssse3.MultiplyAddAdjacent(left, right);
+        }
+
+        // One product cannot leave a signed 16-bit lane, because the largest magnitude is 255 * -128,
+        // so the widened multiply is exact. A pair sum can leave it, so the pairs are added in 32-bit
+        // lanes and clamped before they narrow, which is the saturation the x86 instruction applies.
+        (Vector128<ushort> leftLower, Vector128<ushort> leftUpper) = Vector128.Widen(left);
+        (Vector128<short> rightLower, Vector128<short> rightUpper) = Vector128.Widen(right);
+        (Vector128<int> lowerFirst, Vector128<int> lowerSecond) = Vector128.Widen(leftLower.AsInt16() * rightLower);
+        (Vector128<int> upperFirst, Vector128<int> upperSecond) = Vector128.Widen(leftUpper.AsInt16() * rightUpper);
+
+        Vector128<int> min = Vector128.Create((int)short.MinValue);
+        Vector128<int> max = Vector128.Create((int)short.MaxValue);
+        return Vector128.Narrow(
+            Vector128.Clamp(HorizontalAdd(lowerFirst, lowerSecond), min, max),
+            Vector128.Clamp(HorizontalAdd(upperFirst, upperSecond), min, max));
+    }
+
+    /// <summary>
+    /// Horizontally add adjacent pairs of 32-bit integers in <paramref name="left"/> and <paramref name="right"/>, and
+    /// pack the signed 32-bit results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed signed 32-bit integers to add.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed signed 32-bit integers to add.
+    /// </param>
+    /// <returns>
+    /// A vector containing the results of horizontally adding adjacent pairs of packed signed 32-bit integers
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<int> HorizontalAdd(Vector128<int> left, Vector128<int> right)
+    {
+        if (Ssse3.IsSupported)
+        {
+            return Ssse3.HorizontalAdd(left, right);
+        }
+
+        if (AdvSimd.Arm64.IsSupported)
+        {
+            return AdvSimd.Arm64.AddPairwise(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            Vector64<int> leftPairs = AdvSimd.AddPairwise(left.GetLower(), left.GetUpper());
+            Vector64<int> rightPairs = AdvSimd.AddPairwise(right.GetLower(), right.GetUpper());
+            return Vector128.Create(leftPairs, rightPairs);
+        }
+
+        {
+            // Gather the even and the odd lanes of each source into the half of the result that
+            // source owns, then add. An out-of-range index zeroes the lanes the other source fills.
+            Vector128<int> v0 = Vector128.Shuffle(left, Vector128.Create(0, 2, 8, 8));
+            Vector128<int> v1 = Vector128.Shuffle(left, Vector128.Create(1, 3, 8, 8));
+            Vector128<int> v2 = Vector128.Shuffle(right, Vector128.Create(8, 8, 0, 2));
+            Vector128<int> v3 = Vector128.Shuffle(right, Vector128.Create(8, 8, 1, 3));
+
+            return v0 + v1 + v2 + v3;
+        }
+    }
+
+    /// <summary>
+    /// Horizontally adds adjacent pairs of single-precision values in <paramref name="left"/> and
+    /// <paramref name="right"/>.
+    /// </summary>
+    /// <param name="left">The vector whose pair sums fill the two lower lanes of the result.</param>
+    /// <param name="right">The vector whose pair sums fill the two upper lanes of the result.</param>
+    /// <returns>
+    /// The vector (left[0] + left[1], left[2] + left[3], right[0] + right[1], right[2] + right[3]).
+    /// </returns>
+    /// <remarks>
+    /// Each lane is one rounded addition of two adjacent values, so every path gives the same bits. The portable
+    /// form gathers the even and the odd values of both sources and adds the two vectors once. It must not add a
+    /// zero to a pair sum, because that would change a negative zero.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> HorizontalAdd(Vector128<float> left, Vector128<float> right)
+    {
+        if (Sse3.IsSupported)
+        {
+            return Sse3.HorizontalAdd(left, right);
+        }
+
+        if (AdvSimd.Arm64.IsSupported)
+        {
+            return AdvSimd.Arm64.AddPairwise(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            Vector64<float> leftPairs = AdvSimd.AddPairwise(left.GetLower(), left.GetUpper());
+            Vector64<float> rightPairs = AdvSimd.AddPairwise(right.GetLower(), right.GetUpper());
+            return Vector128.Create(leftPairs, rightPairs);
+        }
+
+        // Each shuffle puts the even values of a source in its lower half and the odd values in its upper half.
+        Vector128<float> leftSorted = Vector128.Shuffle(left, Vector128.Create(0, 2, 1, 3));
+        Vector128<float> rightSorted = Vector128.Shuffle(right, Vector128.Create(0, 2, 1, 3));
+        Vector128<float> even = Vector128.Create(leftSorted.GetLower(), rightSorted.GetLower());
+        Vector128<float> odd = Vector128.Create(leftSorted.GetUpper(), rightSorted.GetUpper());
+        return even + odd;
+    }
+
+    /// <summary>
+    /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector128{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<short> PackSignedSaturate(Vector128<int> left, Vector128<int> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.PackSignedSaturate(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            Vector64<short> lower = AdvSimd.ExtractNarrowingSaturateLower(left);
+            return AdvSimd.ExtractNarrowingSaturateUpper(lower, right);
+        }
+
+        Vector128<int> min = Vector128.Create((int)short.MinValue);
+        Vector128<int> max = Vector128.Create((int)short.MaxValue);
+        return Vector128.Narrow(Vector128.Clamp(left, min, max), Vector128.Clamp(right, min, max));
+    }
+
+    /// <summary>
+    /// Packs signed 16-bit integers to signed 8-bit integers and saturates.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector128{SByte}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<sbyte> PackSignedSaturate(Vector128<short> left, Vector128<short> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.PackSignedSaturate(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            Vector64<sbyte> lower = AdvSimd.ExtractNarrowingSaturateLower(left);
+            return AdvSimd.ExtractNarrowingSaturateUpper(lower, right);
+        }
+
+        Vector128<short> min = Vector128.Create((short)sbyte.MinValue);
+        Vector128<short> max = Vector128.Create((short)sbyte.MaxValue);
+        return Vector128.Narrow(Vector128.Clamp(left, min, max), Vector128.Clamp(right, min, max));
+    }
+
+    /// <summary>
+    /// Multiplies packed signed 16-bit integers, keeping the high 17 bits, rounds, and packs the
+    /// high 16 bits of each result.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector128{Int16}"/>.</returns>
+    /// <remarks>
+    /// The rounding term is added at bit 14 and the sum shifts right by 15, which is what the x86
+    /// instruction does. The product of two signed 16-bit values fits a 32-bit lane, so the widened
+    /// form is exact and needs no saturation.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<short> MultiplyHighRoundScale(Vector128<short> left, Vector128<short> right)
+    {
+        if (Ssse3.IsSupported)
+        {
+            return Ssse3.MultiplyHighRoundScale(left, right);
+        }
+
+        (Vector128<int> leftLower, Vector128<int> leftUpper) = Vector128.Widen(left);
+        (Vector128<int> rightLower, Vector128<int> rightUpper) = Vector128.Widen(right);
+        Vector128<int> rounding = Vector128.Create(1 << 14);
+        Vector128<int> lower = ((leftLower * rightLower) + rounding) >> 15;
+        Vector128<int> upper = ((leftUpper * rightUpper) + rounding) >> 15;
+        return Vector128.Narrow(lower, upper);
     }
 
     /// <summary>
@@ -898,5 +1178,69 @@ internal static class Vector128_
 
         Vector128<sbyte> unpacked = Vector128.Create(left.GetLower(), right.GetLower());
         return Vector128.ShuffleNative(unpacked, Vector128.Create(0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15));
+    }
+
+    /// <summary>
+    /// Multiply the signed 32-bit integers in the even lanes of <paramref name="left"/> and <paramref name="right"/>,
+    /// and store the signed 64-bit products. The odd lanes are ignored.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed signed 32-bit integers to multiply.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed signed 32-bit integers to multiply.
+    /// </param>
+    /// <returns>
+    /// A vector containing the 64-bit products of the even lanes.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<long> MultiplyWideningEven(Vector128<int> left, Vector128<int> right)
+    {
+        if (Sse41.IsSupported)
+        {
+            return Sse41.Multiply(left, right);
+        }
+
+        if (AdvSimd.Arm64.IsSupported)
+        {
+            return AdvSimd.MultiplyWideningLower(
+                AdvSimd.Arm64.UnzipEven(left, left).GetLower(),
+                AdvSimd.Arm64.UnzipEven(right, right).GetLower());
+        }
+
+        // Sign-extend the even lanes in place, then multiply the 64-bit lanes.
+        return ((left.AsInt64() << 32) >> 32) * ((right.AsInt64() << 32) >> 32);
+    }
+
+    /// <summary>
+    /// Reads four 32-bit values from a table, one per lane, at the given element indices.
+    /// </summary>
+    /// <param name="table">The first element of the table.</param>
+    /// <param name="indices">The element index of each lane.</param>
+    /// <returns>The <see cref="Vector128{Int32}"/>.</returns>
+    /// <remarks>
+    /// A gather has no portable form, so every path other than AVX2 reads the four elements one at a time. The
+    /// indices are stored once and the result is built once. The caller is responsible for keeping every index
+    /// inside the table.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe Vector128<int> Gather(ref int table, Vector128<int> indices)
+    {
+        if (Avx2.IsSupported)
+        {
+            fixed (int* pointer = &table)
+            {
+                return Avx2.GatherVector128(pointer, indices, sizeof(int));
+            }
+        }
+
+        InlineArray4<int> lanes = default;
+        ref int first = ref Unsafe.As<InlineArray4<int>, int>(ref lanes);
+        indices.StoreUnsafe(ref first);
+        return Vector128.Create(
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 0)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 1)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 2)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 3)));
     }
 }

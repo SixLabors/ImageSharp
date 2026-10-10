@@ -1057,16 +1057,6 @@ internal static class Numerics
         => (uint)span.Length / (uint)Vector512<TVector>.Count;
 
     /// <summary>
-    /// Gets the count of vectors that safely fit into length.
-    /// </summary>
-    /// <typeparam name="TVector">The type of the vector.</typeparam>
-    /// <param name="length">The given length.</param>
-    /// <returns>Count of vectors that safely fit into the length.</returns>
-    public static nuint Vector512Count<TVector>(int length)
-        where TVector : struct
-        => (uint)length / (uint)Vector512<TVector>.Count;
-
-    /// <summary>
     /// Gets the count of vectors that safely fit into a span whose element type matches the vector lane type.
     /// </summary>
     /// <typeparam name="TVector">The type of the span elements and vector lanes.</typeparam>
@@ -1095,6 +1085,26 @@ internal static class Numerics
     public static nuint Vector512Count<TVector>(this ReadOnlySpan<TVector> span)
         where TVector : struct
         => (uint)span.Length / (uint)Vector512<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given length.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="length">The given length.</param>
+    /// <returns>Count of vectors that safely fit into the length.</returns>
+    public static nuint Vector128Count<TVector>(int length)
+        where TVector : struct
+        => (uint)length / (uint)Vector128<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into length.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="length">The given length.</param>
+    /// <returns>Count of vectors that safely fit into the length.</returns>
+    public static nuint Vector512Count<TVector>(int length)
+        where TVector : struct
+        => (uint)length / (uint)Vector512<TVector>.Count;
 
     /// <summary>
     /// Clamps a floating-point component while mapping NaN to the lower bound.

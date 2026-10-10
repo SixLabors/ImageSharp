@@ -272,7 +272,7 @@ public partial class SimdUtilsTests
                 SimdUtils.PackFromRgbPlanes(r, g, b, actual));
 
     [Fact]
-    public void PackFromRgbPlanesAvx2Reduce_Rgb24()
+    public void PackFromRgbPlanesReduce_Rgb24()
     {
         if (!Avx2.IsSupported)
         {
@@ -282,15 +282,14 @@ public partial class SimdUtilsTests
         byte[] r = [.. Enumerable.Range(0, 32).Select(x => (byte)x)];
         byte[] g = [.. Enumerable.Range(100, 32).Select(x => (byte)x)];
         byte[] b = [.. Enumerable.Range(200, 32).Select(x => (byte)x)];
-        const int padding = 4;
-        Rgb24[] d = new Rgb24[32 + padding];
+        Rgb24[] d = new Rgb24[32];
 
         ReadOnlySpan<byte> rr = r.AsSpan();
         ReadOnlySpan<byte> gg = g.AsSpan();
         ReadOnlySpan<byte> bb = b.AsSpan();
         Span<Rgb24> dd = d.AsSpan();
 
-        SimdUtils.HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref rr, ref gg, ref bb, ref dd);
+        SimdUtils.HwIntrinsics.PackFromRgbPlanesReduce(ref rr, ref gg, ref bb, ref dd);
 
         for (int i = 0; i < 32; i++)
         {
@@ -302,11 +301,11 @@ public partial class SimdUtilsTests
         Assert.Equal(0, rr.Length);
         Assert.Equal(0, gg.Length);
         Assert.Equal(0, bb.Length);
-        Assert.Equal(padding, dd.Length);
+        Assert.Equal(0, dd.Length);
     }
 
     [Fact]
-    public void PackFromRgbPlanesAvx2Reduce_Rgba32()
+    public void PackFromRgbPlanesReduce_Rgba32()
     {
         if (!Avx2.IsSupported)
         {
@@ -324,7 +323,7 @@ public partial class SimdUtilsTests
         ReadOnlySpan<byte> bb = b.AsSpan();
         Span<Rgba32> dd = d.AsSpan();
 
-        SimdUtils.HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref rr, ref gg, ref bb, ref dd);
+        SimdUtils.HwIntrinsics.PackFromRgbPlanesReduce(ref rr, ref gg, ref bb, ref dd);
 
         for (int i = 0; i < 32; i++)
         {
@@ -354,10 +353,10 @@ public partial class SimdUtilsTests
             expected[i] = TPixel.FromRgb24(new Rgb24(r[i], g[i], b[i]));
         }
 
-        TPixel[] actual = new TPixel[count + 3]; // padding for Rgb24 AVX2
+        TPixel[] actual = new TPixel[count];
         packMethod(r, g, b, actual);
 
-        Assert.True(expected.AsSpan().SequenceEqual(actual.AsSpan()[..count]));
+        Assert.True(expected.AsSpan().SequenceEqual(actual));
     }
 
     private static void TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(

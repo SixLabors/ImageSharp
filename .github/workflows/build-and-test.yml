@@ -214,9 +214,7 @@ jobs:
         if: failure()
         with:
           name: actual_output_${{ runner.os }}_${{ runner.arch }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
-          path: |
-            tests/Images/ActualOutput/
-            tests/ImageSharp.Tests/TestResults/
+          path: tests/Images/ActualOutput/
 
   Publish:
     needs: [Build]

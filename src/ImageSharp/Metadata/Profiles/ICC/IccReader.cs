@@ -119,6 +119,7 @@ internal sealed class IccReader
         }
 
         List<IccTagTableEntry> table = new((int)tagCount);
+        uint dataLength = (uint)reader.DataLength;
         for (int i = 0; i < tagCount; i++)
         {
             uint tagSignature = reader.ReadUInt32();
@@ -126,7 +127,7 @@ internal sealed class IccReader
             uint tagSize = reader.ReadUInt32();
 
             // Exclude entries that have nonsense values and could cause exceptions further on
-            if (tagOffset < reader.DataLength && tagSize < reader.DataLength - 128)
+            if (tagSize >= 8 && tagOffset <= dataLength && tagSize <= dataLength - tagOffset)
             {
                 table.Add(new IccTagTableEntry((IccProfileTag)tagSignature, tagOffset, tagSize));
             }

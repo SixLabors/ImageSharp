@@ -34,7 +34,7 @@ internal abstract class BitReaderBase : IDisposable
     {
         IMemoryOwner<byte> data = memoryAllocator.Allocate<byte>(bytesToRead, AllocationOptions.Clean);
         Span<byte> dataSpan = data.Memory.Span;
-        input.Read(dataSpan[..bytesToRead], 0, bytesToRead);
+        input.Read(dataSpan[..bytesToRead]);
 
         return data;
     }

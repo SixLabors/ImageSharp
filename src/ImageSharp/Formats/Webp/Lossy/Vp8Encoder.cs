@@ -632,6 +632,7 @@ internal class Vp8Encoder : IDisposable
         it.Init();
         this.SetLoopParams(stats.Q);
         Vp8ModeScore info = new();
+        Vp8Residual residual = new();
         do
         {
             info.Clear();
@@ -642,7 +643,7 @@ internal class Vp8Encoder : IDisposable
                 ++this.Proba.NbSkip;
             }
 
-            this.RecordResiduals(it, info);
+            this.RecordResiduals(it, info, residual);
             size += info.R + info.H;
             sizeP0 += info.H;
             distortion += info.D;
@@ -1190,10 +1191,10 @@ internal class Vp8Encoder : IDisposable
     /// </summary>
     /// <param name="it">The iterator.</param>
     /// <param name="rd">The score accumulator.</param>
-    private void RecordResiduals(Vp8EncIterator it, Vp8ModeScore rd)
+    /// <param name="residual">The residual reused across the macroblocks of one pass.</param>
+    private void RecordResiduals(Vp8EncIterator it, Vp8ModeScore rd, Vp8Residual residual)
     {
         int x, y, ch;
-        Vp8Residual residual = new();
         bool i16 = it.CurrentMacroBlockInfo.MacroBlockType == Vp8MacroBlockType.I16X16;
 
         it.NzToBytes();

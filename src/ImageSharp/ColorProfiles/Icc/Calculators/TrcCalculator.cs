@@ -15,6 +15,10 @@ internal class TrcCalculator : IVector4Calculator
     public TrcCalculator(IccTagDataEntry[] entries, bool inverted)
     {
         Guard.NotNull(entries, nameof(entries));
+        if (entries.Length > 4)
+        {
+            throw new InvalidIccProfileException("ICC conversion supports at most four tone response curves.");
+        }
 
         this.calculators = new ISingleCalculator[entries.Length];
         for (int i = 0; i < entries.Length; i++)

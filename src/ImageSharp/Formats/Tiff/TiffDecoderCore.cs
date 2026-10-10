@@ -153,16 +153,16 @@ internal class TiffDecoderCore : ImageDecoderCore
     /// <inheritdoc/>
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
+        this.inputStream = stream;
+        DirectoryReader reader = new(stream, this.configuration.MemoryAllocator);
+        IList<ExifProfile> directories = reader.Read();
+        this.byteOrder = reader.ByteOrder;
+
         List<ImageFrame<TPixel>> frames = [];
         List<ImageFrameMetadata> framesMetadata = [];
+
         try
         {
-            this.inputStream = stream;
-            DirectoryReader reader = new(stream, this.configuration.MemoryAllocator);
-
-            IList<ExifProfile> directories = reader.Read();
-            this.byteOrder = reader.ByteOrder;
-
             Size? size = null;
             uint frameCount = 0;
             foreach (ExifProfile ifd in directories)

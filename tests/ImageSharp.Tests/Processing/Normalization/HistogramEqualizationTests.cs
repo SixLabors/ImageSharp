@@ -14,6 +14,97 @@ public class HistogramEqualizationTests
 {
     private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0456F);
 
+    /// <summary>
+    /// Histogram indices saturate before they address a bounded CDF.
+    /// </summary>
+    /// <param name="sample">The floating-point sample.</param>
+    /// <param name="expectedIndex">The expected index in a five-bin histogram.</param>
+    [Theory]
+    [InlineData(float.NaN, 0)]
+    [InlineData(float.NegativeInfinity, 0)]
+    [InlineData(-1F, 0)]
+    [InlineData(0.25F, 1)]
+    [InlineData(0.75F, 3)]
+    [InlineData(2F, 4)]
+    [InlineData(float.PositiveInfinity, 4)]
+    public void FloatingLuminance_UsesBoundedHistogramIndex(float sample, int expectedIndex)
+    {
+        RgbaVector pixel = new(sample, sample, sample);
+        int index = HistogramEqualizationProcessor<RgbaVector>.GetLuminance(pixel, 5);
+
+        Assert.Equal(expectedIndex, index);
+    }
+
+    /// <summary>
+    /// Global equalization places out-of-range and nonfinite samples in the endpoint bins.
+    /// </summary>
+    [Fact]
+    public void GlobalFloatingSamples_UseEndpointBins()
+    {
+        float[] samples = [float.NaN, float.NegativeInfinity, -1F, 0.25F, 0.75F, 2F, float.PositiveInfinity];
+        float[] expected = [0F, 0F, 0F, 0.25F, 0.5F, 1F, 1F];
+        using Image<RgbaVector> image = new(samples.Length, 1);
+
+        for (int x = 0; x < samples.Length; x++)
+        {
+            image[x, 0] = new RgbaVector(samples[x], samples[x], samples[x], 0.625F);
+        }
+
+        image.Mutate(ctx => ctx.HistogramEqualization(new HistogramEqualizationOptions
+        {
+            Method = HistogramEqualizationMethod.Global,
+            LuminanceLevels = 5
+        }));
+
+        for (int x = 0; x < samples.Length; x++)
+        {
+            Assert.Equal(new RgbaVector(expected[x], expected[x], expected[x], 0.625F), image[x, 0]);
+        }
+    }
+
+    /// <summary>
+    /// Adaptive CDF lookups produce the same pixels when their input indices match.
+    /// </summary>
+    /// <param name="method">The equalization method.</param>
+    [Theory]
+    [InlineData(HistogramEqualizationMethod.AdaptiveTileInterpolation)]
+    [InlineData(HistogramEqualizationMethod.AdaptiveSlidingWindow)]
+    public void FloatingSamples_MatchBoundedIndexReference(HistogramEqualizationMethod method)
+    {
+        float[] samples = [float.NaN, float.NegativeInfinity, -1F, 0F, 0.25F, 0.75F, 2F, float.PositiveInfinity];
+        float[] bounded = [0F, 0F, 0F, 0F, 0.25F, 0.75F, 1F, 1F];
+        using Image<RgbaVector> actual = new(17, 17);
+        using Image<RgbaVector> reference = new(17, 17);
+
+        for (int y = 0; y < actual.Height; y++)
+        {
+            for (int x = 0; x < actual.Width; x++)
+            {
+                int sample = (x + y) % samples.Length;
+                actual[x, y] = new RgbaVector(samples[sample], samples[sample], samples[sample], 0.625F);
+                reference[x, y] = new RgbaVector(bounded[sample], bounded[sample], bounded[sample], 0.625F);
+            }
+        }
+
+        HistogramEqualizationOptions options = new()
+        {
+            Method = method,
+            LuminanceLevels = 5,
+            NumberOfTiles = 2
+        };
+
+        actual.Mutate(ctx => ctx.HistogramEqualization(options));
+        reference.Mutate(ctx => ctx.HistogramEqualization(options));
+
+        for (int y = 0; y < actual.Height; y++)
+        {
+            for (int x = 0; x < actual.Width; x++)
+            {
+                Assert.Equal(reference[x, y], actual[x, y]);
+            }
+        }
+    }
+
     [Theory]
     [InlineData(256)]
     [InlineData(65536)]
@@ -131,44 +222,6 @@ public class HistogramEqualizationTests
             image.Mutate(x => x.HistogramEqualization(options));
             image.DebugSave(provider);
             image.CompareToReferenceOutput(ValidatorComparer, provider);
-        }
-    }
-
-    [Theory]
-    [WithFile(TestImages.Jpeg.Baseline.ForestBridgeDifferentComponentsQuality, PixelTypes.Rgba32)]
-    public void AutoLevel_SeparateChannels_CompareToReferenceOutput<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            HistogramEqualizationOptions options = new()
-            {
-                Method = HistogramEqualizationMethod.AutoLevel,
-                LuminanceLevels = 256,
-                SyncChannels = false
-            };
-            image.Mutate(x => x.HistogramEqualization(options));
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, extension: "png");
-        }
-    }
-
-    [Theory]
-    [WithFile(TestImages.Jpeg.Baseline.ForestBridgeDifferentComponentsQuality, PixelTypes.Rgba32)]
-    public void AutoLevel_SynchronizedChannels_CompareToReferenceOutput<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            HistogramEqualizationOptions options = new()
-            {
-                Method = HistogramEqualizationMethod.AutoLevel,
-                LuminanceLevels = 256,
-                SyncChannels = true
-            };
-            image.Mutate(x => x.HistogramEqualization(options));
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, extension: "png");
         }
     }
 

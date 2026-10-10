@@ -465,6 +465,12 @@ internal abstract class TiffCcittCompressor : TiffBaseCompressor
     /// <param name="compressedData">The destination buffer to write the code to.</param>
     protected void WriteCode(uint codeLength, uint code, Span<byte> compressedData)
     {
+        long availableBits = (((long)compressedData.Length - this.bytePosition) * 8) - this.bitPosition;
+        if (codeLength > availableBits)
+        {
+            throw new InvalidMemoryOperationException("The CCITT output buffer is too small for the encoded data.");
+        }
+
         while (codeLength > 0)
         {
             int bitNumber = (int)codeLength;
@@ -526,8 +532,20 @@ internal abstract class TiffCcittCompressor : TiffBaseCompressor
     /// <inheritdoc/>
     public override void Initialize(int rowsPerStrip)
     {
-        // This is too much memory allocated, but just 1 bit per pixel will not do, if the compression rate is not good.
-        int maxNeededBytes = this.Width * rowsPerStrip;
-        this.compressedDataBuffer = this.Allocator.Allocate<byte>(maxNeededBytes);
+        long maxNeededBits = this.GetMaximumEncodedBits(rowsPerStrip);
+        ulong maxNeededBytes = (ulong)((maxNeededBits + 7) / 8);
+        if (maxNeededBytes > int.MaxValue)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException(maxNeededBytes, int.MaxValue);
+        }
+
+        this.compressedDataBuffer = this.Allocator.Allocate<byte>((int)maxNeededBytes);
     }
+
+    /// <summary>
+    /// Gets an upper bound for the encoded strip length in bits.
+    /// </summary>
+    /// <param name="rowsPerStrip">The number of rows in the strip.</param>
+    /// <returns>The maximum encoded length.</returns>
+    protected abstract long GetMaximumEncodedBits(int rowsPerStrip);
 }

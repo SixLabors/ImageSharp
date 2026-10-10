@@ -143,6 +143,7 @@ internal abstract class BitWriterBase
     {
         if (exifProfile != null)
         {
+            // Serialization applies Parts even when the current profile has not been initialized.
             RiffHelper.WriteChunk(stream, (uint)WebpChunkType.Exif, exifProfile.ToByteArray());
         }
 

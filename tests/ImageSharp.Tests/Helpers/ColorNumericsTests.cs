@@ -7,21 +7,19 @@ namespace SixLabors.ImageSharp.Tests.Helpers;
 
 public class ColorNumericsTests
 {
+    /// <summary>
+    /// Grayscale luminance retains the source value even when it is outside the unit interval.
+    /// </summary>
+    /// <param name="value">The grayscale component value.</param>
     [Theory]
-    [InlineData(0.2f, 0.7f, 0.1f, 256, 140)]
-    [InlineData(0.5f, 0.5f, 0.5f, 256, 128)]
-    [InlineData(0.5f, 0.5f, 0.5f, 65536, 32768)]
-    [InlineData(0.2f, 0.7f, 0.1f, 65536, 36069)]
-    public void GetBT709Luminance_WithVector4(float x, float y, float z, int luminanceLevels, int expected)
+    [InlineData(-2F)]
+    [InlineData(0.5F)]
+    [InlineData(2F)]
+    public void GetBT709Luminance_PreservesUnboundedGrayscale(float value)
     {
-        // arrange
-        Vector4 vector = new(x, y, z, 0.0f);
+        Vector4 vector = new(value, value, value, 1F);
 
-        // act
-        int actual = ColorNumerics.GetBT709Luminance(vector, luminanceLevels);
-
-        // assert
-        Assert.Equal(expected, actual);
+        Assert.Equal(value, ColorNumerics.GetBT709Luminance(vector));
     }
 
     [Theory]

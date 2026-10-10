@@ -178,6 +178,8 @@ internal sealed class ExrEncoderCore
             throw new ImageFormatException("Image is too large to encode in EXR format.");
         }
 
+        PixelConversionModifiers modifiers = PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale;
+
         using IMemoryOwner<float> rgbBuffer = this.memoryAllocator.Allocate<float>(width * 4, AllocationOptions.Clean);
         using IMemoryOwner<byte> rowBlockBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock, AllocationOptions.Clean);
         Span<float> redBuffer = rgbBuffer.GetSpan()[..width];
@@ -204,16 +206,14 @@ internal sealed class ExrEncoderCore
             for (uint rowIndex = y; rowIndex < y + rowsPerBlock && rowIndex < height; rowIndex++)
             {
                 Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)rowIndex);
-                for (int x = 0; x < width; x++)
-                {
-                    // OpenEXR stores RGB associated with alpha. Use the native vector domain so floating-point and HDR component
-                    // ranges are preserved instead of being clamped through the scaled [0, 1] representation.
-                    Vector4 vector4 = pixelRowSpan[x].ToAssociatedVector4();
-                    redBuffer[x] = vector4.X;
-                    greenBuffer[x] = vector4.Y;
-                    blueBuffer[x] = vector4.Z;
-                    alphaBuffer[x] = vector4.W;
-                }
+                PixelOperations<TPixel>.Instance.UnpackToFloatPlanes(
+                    this.configuration,
+                    pixelRowSpan,
+                    redBuffer,
+                    greenBuffer,
+                    blueBuffer,
+                    alphaBuffer,
+                    modifiers);
 
                 // Write pixel data to row block buffer.
                 Span<byte> rowBlockSpan = rowBlockBuffer.GetSpan().Slice((int)(rowsInBlockCount * bytesPerRow), (int)bytesPerRow);
@@ -305,8 +305,10 @@ internal sealed class ExrEncoderCore
                 Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)rowIndex);
                 for (int x = 0; x < width; x++)
                 {
-                    // OpenEXR channels use associated alpha; the native vector conversion also preserves the integer channel range.
-                    Vector4 vector4 = pixelRowSpan[x].ToAssociatedVector4();
+                    // OpenEXR channels use associated alpha. Rgba128.FromVector4 expects components in [0, 1], which is the
+                    // scaled range. The native range of the source pixel format can differ, so read the scaled vector,
+                    // the same domain that the decoder writes.
+                    Vector4 vector4 = pixelRowSpan[x].ToAssociatedScaledVector4();
                     rgb = Rgba128.FromVector4(vector4);
 
                     redBuffer[x] = rgb.R;

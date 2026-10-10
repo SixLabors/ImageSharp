@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 // ReSharper disable InconsistentNaming
+using System.Numerics;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
@@ -24,6 +25,49 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
 public class TiffDecoderTests : TiffDecoderBaseTester
 {
     public static readonly string[] MultiframeTestImages = Multiframes;
+
+    /// <summary>
+    /// Decoded floating-point components retain their values in half-vector storage.
+    /// </summary>
+    /// <param name="hex">The encoded floating-point TIFF.</param>
+    /// <param name="intensity">The decoded intensity.</param>
+    [Theory]
+    [InlineData("49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
+                "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
+                "000020000000530103000100000003000000000000000000807F0000807F0000807F0000807F0000807F0000807F0000807F0000807F", float.PositiveInfinity)]
+    [InlineData("49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
+                "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
+                "000020000000530103000100000003000000000000000000C07F0000C07F0000C07F0000C07F0000C07F0000C07F0000C07F0000C07F", float.NaN)]
+    [InlineData("49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
+                "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
+                "000020000000530103000100000003000000000000000000004000000040000000400000004000000040000000400000004000000040", 2F)]
+    [InlineData("49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
+                "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
+                "000020000000530103000100000003000000000000000000003F0000003F0000003F0000003F0000003F0000003F0000003F0000003F", .5F)]
+    public void Decode_FloatingPointSamples_PreservesHalfVector4Values(string hex, float intensity)
+    {
+        byte[] data = Convert.FromHexString(hex);
+        using Image<HalfVector4> image = Image.Load<HalfVector4>(data);
+        Assert.Equal(new Size(8, 1), image.Size);
+
+        for (int x = 0; x < image.Width; x++)
+        {
+            Vector4 actual = image[x, 0].ToScaledVector4();
+
+            if (float.IsNaN(intensity))
+            {
+                // NaN needs an explicit assertion for each decoded component.
+                Assert.True(float.IsNaN(actual.X));
+                Assert.True(float.IsNaN(actual.Y));
+                Assert.True(float.IsNaN(actual.Z));
+                Assert.Equal(1F, actual.W);
+            }
+            else
+            {
+                Assert.Equal(new Vector4(intensity, intensity, intensity, 1F), actual);
+            }
+        }
+    }
 
     [Theory]
     [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
@@ -167,6 +211,17 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(RgbPaletteDeflate, PixelTypes.Rgba32)]
     [WithFile(PaletteUncompressed, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_WithPalette<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+    /// <summary>
+    /// Palette TIFFs with LZW compression and horizontal prediction preserve colors for both palette ranges.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <param name="provider">The TIFF image provider.</param>
+    [Theory]
+    [WithFile(Issue3182ColorMap16Bit, PixelTypes.Rgba64)]
+    [WithFile(Issue3182ColorMap8Bit, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_PaletteWithLzwAndPredictor<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
     [Theory]
@@ -368,6 +423,28 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         image.DebugSave(provider);
         image.CompareToReferenceOutput(provider);
         Assert.Null(image.Metadata.IccProfile);
+    }
+
+    /// <summary>
+    /// Verifies conversion of the reporter's CMYK profile using its relative-colorimetric intent.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <param name="provider">The image provider.</param>
+    [Theory]
+    [WithFile(Issue3198, PixelTypes.Rgba32)]
+    public void Decode_CmykIcc_Issue3198<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
+        image.DebugSave(provider);
+
+        // LittleCMS 2.19 generated the reference from the embedded profile to CompactSrgbV4Profile,
+        // using relative colorimetric intent without black-point compensation.
+        // Measured differences are at most one 8-bit channel value, totaling 0.000083% of the image.
+        image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.0001F), provider);
+        Assert.Null(image.Metadata.IccProfile);
+        Assert.Null(image.Frames.RootFrame.Metadata.IccProfile);
     }
 
     [Theory]

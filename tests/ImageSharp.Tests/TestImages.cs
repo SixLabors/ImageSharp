@@ -57,6 +57,7 @@ public static class TestImages
         public const string LowColorVariance = "Png/low-variance.png";
         public const string PngWithMetadata = "Png/PngWithMetaData.png";
         public const string InvalidTextData = "Png/InvalidTextData.png";
+        public const string DuplicateHeaderChunkResync = "Png/duplicate-header-chunk-resync.png";
         public const string David = "Png/david.png";
         public const string TestPattern31x31 = "Png/testpattern31x31.png";
         public const string TestPattern31x31HalfTransparent = "Png/testpattern31x31-halftransparent.png";
@@ -249,6 +250,7 @@ public static class TestImages
             public const string Perceptual = "Jpg/icc-profiles/Perceptual.jpg";
             public const string PerceptualcLUTOnly = "Jpg/icc-profiles/Perceptual-cLUT-only.jpg";
             public const string Issue3064 = "Jpg/icc-profiles/issue-3064.jpg";
+            public const string Issue3197 = "Jpg/icc-profiles/issue-3197.jpg";
         }
 
         public static class Progressive
@@ -1209,6 +1211,9 @@ public static class TestImages
 
         public const string Issue2909 = "Tiff/Issues/Issue2909.tiff";
         public const string Issue2983 = "Tiff/Issues/Issue2983.tiff";
+        public const string Issue3182ColorMap8Bit = "Tiff/Issues/Issue3182ColorMap8Bit.tiff";
+        public const string Issue3182ColorMap16Bit = "Tiff/Issues/Issue3182ColorMap16Bit.tiff";
+        public const string Issue3198 = "Tiff/Issues/Issue3198.tiff";
 
         public static readonly string[] Multiframes = [MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/
         ];
@@ -1414,6 +1419,7 @@ public static class TestImages
         public const string Uncompressed = "Exr/Calliphora_uncompressed.exr";
         public const string UncompressedRgba = "Exr/Calliphora_uncompressed_rgba.exr";
         public const string UncompressedFloatRgb = "Exr/Calliphora_float_uncompressed.exr";
+        public const string OpenExrHdrHalf = "Exr/openexr_comp_none.exr";
         public const string UncompressedUintRgb = "Exr/Calliphora_uint32_uncompressed.exr";
         public const string UintRgba = "Exr/rgba_uint_uncompressed.exr";
         public const string Zip = "Exr/Calliphora_zip.exr";

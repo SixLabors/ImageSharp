@@ -29,6 +29,8 @@ public class TiffMetadata : IFormatMetadata<TiffMetadata>
         this.FormatType = other.FormatType;
         this.BitsPerPixel = other.BitsPerPixel;
         this.BitsPerSample = other.BitsPerSample;
+        this.SampleFormat = other.SampleFormat;
+        this.ExtraSampleType = other.ExtraSampleType;
         this.Compression = other.Compression;
         this.PhotometricInterpretation = other.PhotometricInterpretation;
         this.Predictor = other.Predictor;
@@ -53,6 +55,16 @@ public class TiffMetadata : IFormatMetadata<TiffMetadata>
     /// Gets or sets number of bits per component. Derived from the root frame.
     /// </summary>
     public TiffBitsPerSample BitsPerSample { get; set; } = TiffConstants.DefaultBitsPerSample;
+
+    /// <summary>
+    /// Gets or sets the root frame's TIFF sample format.
+    /// </summary>
+    public TiffSampleFormat SampleFormat { get; set; } = TiffSampleFormat.UnsignedInteger;
+
+    /// <summary>
+    /// Gets or sets the root frame's interpretation of an extra sample.
+    /// </summary>
+    internal TiffExtraSampleType? ExtraSampleType { get; set; }
 
     /// <summary>
     /// Gets or sets the compression scheme used on the image data. Derived from the root frame.
@@ -135,35 +147,35 @@ public class TiffMetadata : IFormatMetadata<TiffMetadata>
         TiffBitsPerSample samples = this.BitsPerSample;
         PixelComponentInfo info = samples.Channels switch
         {
-            1 => PixelComponentInfo.Create(1, bpp, bpp),
-            2 => PixelComponentInfo.Create(2, bpp, bpp, samples.Channel0, samples.Channel1),
+            1 => PixelComponentInfo.Create(1, bpp, samples.Channel0),
+            2 => PixelComponentInfo.Create(2, bpp, samples.Channel0, samples.Channel1),
             3 => PixelComponentInfo.Create(3, bpp, samples.Channel0, samples.Channel1, samples.Channel2),
             _ => PixelComponentInfo.Create(4, bpp, samples.Channel0, samples.Channel1, samples.Channel2, samples.Channel3)
         };
 
-        PixelColorType colorType;
-        PixelAlphaRepresentation alpha = PixelAlphaRepresentation.None;
-        switch (this.BitsPerPixel)
+        // Total bit depth alone cannot distinguish one 32-bit grayscale sample from
+        // four 8-bit color samples. The photometric tag and sample count define the layout.
+        bool isGrayscale = this.PhotometricInterpretation is TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero;
+        PixelColorType colorType = this.PhotometricInterpretation switch
         {
-            case TiffBitsPerPixel.Bit1:
-                colorType = PixelColorType.Binary;
-                break;
-            case TiffBitsPerPixel.Bit4:
-            case TiffBitsPerPixel.Bit6:
-            case TiffBitsPerPixel.Bit8:
-                colorType = PixelColorType.Indexed;
-                break;
-            case TiffBitsPerPixel.Bit16:
-                colorType = PixelColorType.Luminance;
-                break;
-            case TiffBitsPerPixel.Bit32:
-            case TiffBitsPerPixel.Bit64:
-                colorType = PixelColorType.RGB | PixelColorType.Alpha;
-                alpha = PixelAlphaRepresentation.Unassociated;
-                break;
-            default:
-                colorType = PixelColorType.RGB;
-                break;
+            TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero => bpp == 1 ? PixelColorType.Binary : PixelColorType.Luminance,
+            TiffPhotometricInterpretation.PaletteColor => PixelColorType.Indexed,
+            TiffPhotometricInterpretation.Rgb => PixelColorType.RGB,
+            TiffPhotometricInterpretation.Separated => PixelColorType.CMYK,
+            TiffPhotometricInterpretation.YCbCr => PixelColorType.YCbCr,
+            _ => PixelColorType.Other
+        };
+
+        bool hasAlpha = (isGrayscale && samples.Channels == 2)
+            || (this.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb && samples.Channels == 4);
+
+        PixelAlphaRepresentation alpha = PixelAlphaRepresentation.None;
+        if (hasAlpha)
+        {
+            colorType |= PixelColorType.Alpha;
+            alpha = this.ExtraSampleType == TiffExtraSampleType.AssociatedAlphaData
+                ? PixelAlphaRepresentation.Associated
+                : PixelAlphaRepresentation.Unassociated;
         }
 
         return new PixelTypeInfo(bpp)

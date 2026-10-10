@@ -23,6 +23,12 @@ public class TiffEncoder : QuantizingImageEncoder
     public TiffBitsPerPixel? BitsPerPixel { get; init; }
 
     /// <summary>
+    /// Gets the format of the samples written to the TIFF image.
+    /// Floating-point samples use 32 bits per component.
+    /// </summary>
+    public TiffSampleFormat? SampleFormat { get; init; }
+
+    /// <summary>
     /// Gets the compression type to use.
     /// </summary>
     public TiffCompression? Compression { get; init; }

@@ -48,8 +48,6 @@ internal class Vp8BitWriter : BitWriterBase
 
     private uint pos;
 
-    private readonly int maxPos;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="Vp8BitWriter"/> class.
     /// </summary>
@@ -63,7 +61,6 @@ internal class Vp8BitWriter : BitWriterBase
         this.run = 0;
         this.nbBits = -8;
         this.pos = 0;
-        this.maxPos = 0;
 
         this.enc = enc;
     }
@@ -185,12 +182,15 @@ internal class Vp8BitWriter : BitWriterBase
     public override void BitWriterResize(int extraSize)
     {
         long neededSize = this.pos + extraSize;
-        if (neededSize <= this.maxPos)
+
+        // Compare against the current capacity and grow from it, so the buffer only reallocates
+        // when it is actually full and grows geometrically (libwebp tracks this as max_pos).
+        if (neededSize <= this.Buffer.Length)
         {
             return;
         }
 
-        this.ResizeBuffer(this.maxPos, (int)neededSize);
+        this.ResizeBuffer(this.Buffer.Length, (int)neededSize);
     }
 
     /// <inheritdoc/>

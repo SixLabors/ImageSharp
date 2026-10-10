@@ -91,14 +91,19 @@ public abstract partial class PixelConverterTests
                 return;
             }
 
-            // Scalar source and destination boundaries are the reference for the bulk operation: each format owns any representation conversion and destination quantization it requires.
+            bool bothAssociated = TSourcePixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated
+                && TDestinationPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated;
+
+            // Keep associated values associated when both formats store them, including stored color at zero alpha.
+            // Every other pair crosses the scalar unassociated boundary before destination storage.
             ref TDestinationPixel destRef = ref MemoryMarshal.GetReference(destinationPixels);
             for (int i = 0; i < count; i++)
             {
                 ref TSourcePixel sp = ref Unsafe.Add(ref sourceRef, i);
                 ref TDestinationPixel dp = ref Unsafe.Add(ref destRef, i);
-                Vector4 vector = sp.ToUnassociatedScaledVector4();
-                dp = TDestinationPixel.FromUnassociatedScaledVector4(vector);
+                dp = bothAssociated
+                    ? TDestinationPixel.FromAssociatedScaledVector4(sp.ToAssociatedScaledVector4())
+                    : TDestinationPixel.FromUnassociatedScaledVector4(sp.ToUnassociatedScaledVector4());
             }
         }
     }

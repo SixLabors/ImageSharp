@@ -1429,7 +1429,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             // > 108 bytes
             infoHeaderType = BmpInfoHeaderType.WinVersion5;
             this.infoHeader = BmpInfoHeader.ParseV5(buffer);
-            if (this.infoHeader.ProfileData != 0 && this.infoHeader.ProfileSize != 0)
+            if (!this.Options.SkipMetadata && this.infoHeader.ProfileData != 0 && this.infoHeader.ProfileSize != 0)
             {
                 long streamPosition = stream.Position;
                 this.ExecuteAncillarySegmentAction(() => this.ReadIccProfile(stream, this.metadata, infoHeaderStart));
@@ -1474,8 +1474,16 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     /// <param name="infoHeaderStart">The stream position where the info header begins.</param>
     private void ReadIccProfile(BufferedReadStream stream, ImageMetadata imageMetadata, long infoHeaderStart)
     {
+        long profileStart = infoHeaderStart + this.infoHeader.ProfileData;
+        if (this.infoHeader.ProfileData < 0 ||
+            this.infoHeader.ProfileSize <= 0 ||
+            !stream.IsReadRangeValid(profileStart, (uint)this.infoHeader.ProfileSize))
+        {
+            BmpThrowHelper.ThrowInvalidImageContentException("Not enough data to read BMP ICC profile.");
+        }
+
         byte[] iccProfileData = new byte[this.infoHeader.ProfileSize];
-        stream.Position = infoHeaderStart + this.infoHeader.ProfileData;
+        stream.Position = profileStart;
 
         if (stream.Read(iccProfileData) != iccProfileData.Length)
         {
@@ -1558,6 +1566,11 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         {
             inverted = true;
             this.infoHeader.Height = -this.infoHeader.Height;
+        }
+
+        if (this.infoHeader.Width <= 0 || this.infoHeader.Height <= 0)
+        {
+            BmpThrowHelper.ThrowInvalidImageContentException("Width and height must be greater than 0.");
         }
 
         int bytesPerColorMapEntry = 4;

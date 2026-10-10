@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.IO.Hashing;
 using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
@@ -106,6 +107,96 @@ public partial class PngDecoderTests
         InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(stream));
 
         Assert.Equal("The frame control chunk does not contain enough data!", exception.Message);
+    }
+
+    [Fact]
+    public void DecodeAndIdentify_WithDuplicateHeader_ThrowInvalidImageContentException()
+    {
+        using MemoryStream payloadStream = new();
+        payloadStream.Write(Raw1X1PngIhdrAndpHYs);
+        payloadStream.Write(Raw1X1PngIhdrAndpHYs.AsSpan(8, 25));
+        payloadStream.Write(Raw1X1PngIdatAndIend);
+        byte[] payload = payloadStream.ToArray();
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Load(payload));
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(payload));
+    }
+
+    /// <summary>
+    /// Chunk recovery must not replace the header after scanline storage has been sized.
+    /// </summary>
+    /// <param name="integrity">The segment integrity policy.</param>
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
+    public void DecodeAndIdentify_WithChunkRecovery_FollowIntegrityPolicy(SegmentIntegrityHandling integrity)
+    {
+        byte[] data = TestFile.Create(TestImages.Png.DuplicateHeaderChunkResync).Bytes;
+        DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Load<La16>(options, data));
+
+        if (integrity == SegmentIntegrityHandling.Strict)
+        {
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+        }
+        else
+        {
+            // Identify skips the image-data payload rather than decoding and resynchronizing within it.
+            Assert.Equal(new Size(1, 1), Image.Identify(options, data).Size);
+        }
+    }
+
+    /// <summary>
+    /// Corrupt compressed metadata follows the ancillary policy without preventing valid pixel decoding.
+    /// </summary>
+    /// <param name="chunkType">The compressed metadata chunk type.</param>
+    /// <param name="integrity">The segment integrity policy.</param>
+    [Theory]
+    [InlineData("iCCP", SegmentIntegrityHandling.Strict)]
+    [InlineData("iCCP", SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData("iCCP", SegmentIntegrityHandling.IgnoreImageData)]
+    [InlineData("zTXt", SegmentIntegrityHandling.Strict)]
+    [InlineData("zTXt", SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData("zTXt", SegmentIntegrityHandling.IgnoreImageData)]
+    [InlineData("iTXt", SegmentIntegrityHandling.Strict)]
+    [InlineData("iTXt", SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData("iTXt", SegmentIntegrityHandling.IgnoreImageData)]
+    public void Decode_InvalidCompressedMetadata_FollowsIntegrityPolicy(string chunkType, SegmentIntegrityHandling integrity)
+    {
+        // iTXt adds a compression flag and empty language/translated-keyword fields before the zlib stream.
+        byte[] fields = chunkType == "iTXt" ? [(byte)'p', 0, 1, 0, 0, 0] : [(byte)'p', 0, 0];
+
+        // The zlib header is valid, but the first deflate block uses reserved block type 3.
+        byte[] chunk = [.. Encoding.ASCII.GetBytes(chunkType), .. fields, 0x78, 0x9C, 0x07, 0, 0, 0, 0];
+        using MemoryStream stream = new();
+        stream.Write(Raw1X1PngIhdrAndpHYs);
+        Span<byte> buffer = stackalloc byte[4];
+        BinaryPrimitives.WriteInt32BigEndian(buffer, chunk.Length - 4);
+        stream.Write(buffer);
+        stream.Write(chunk);
+        Crc32 crc = new();
+        crc.Append(chunk);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, crc.GetCurrentHashAsUInt32());
+        stream.Write(buffer);
+        stream.Write(Raw1X1PngIdatAndIend);
+        byte[] data = stream.ToArray();
+        DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+
+        if (integrity == SegmentIntegrityHandling.Strict)
+        {
+            InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgb24>(options, data));
+            Assert.IsType<InvalidDataException>(exception.InnerException);
+        }
+        else
+        {
+            using Image<Rgb24> image = Image.Load<Rgb24>(options, data);
+            Assert.Equal(new Size(1, 1), image.Size);
+            Assert.Equal(default(Rgb24), image[0, 0]);
+            Assert.Null(image.Metadata.IccProfile);
+            Assert.Empty(image.Metadata.GetPngMetadata().TextData);
+        }
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/3079

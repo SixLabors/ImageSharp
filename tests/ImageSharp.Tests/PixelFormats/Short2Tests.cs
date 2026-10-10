@@ -47,6 +47,7 @@ public class Short2Tests
     {
         Assert.Equal(Vector2.One * 0x7FFF, new Short2(Vector2.One * 1234567.0f).ToVector2());
         Assert.Equal(Vector2.One * -0x8000, new Short2(Vector2.One * -1234567.0f).ToVector2());
+        Assert.Equal(0x7FFF8000U, Short2.FromScaledVector4(new Vector4(float.NaN, float.PositiveInfinity, 0F, 1F)).PackedValue);
     }
 
     [Fact]

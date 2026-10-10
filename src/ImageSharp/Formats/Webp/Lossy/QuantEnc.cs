@@ -36,8 +36,12 @@ internal static unsafe class QuantEnc
         int tlambda = dqm.TLambda;
         Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
         Span<int> scratch = it.Scratch3.AsSpan();
-        Vp8ModeScore rdTmp = new();
-        Vp8Residual res = new();
+
+        // Reuse the iterator scratch accumulator instead of allocating one per macroblock.
+        // Clear it so that it starts from the same zeroed state as a fresh instance.
+        Vp8ModeScore rdTmp = it.RdScratch;
+        rdTmp.Clear();
+        Vp8Residual res = it.ResidualScratch;
         Vp8ModeScore rdCur = rdTmp;
         Vp8ModeScore rdBest = rd;
         int mode;
@@ -80,6 +84,10 @@ internal static unsafe class QuantEnc
             }
         }
 
+        // The rejected accumulator becomes the scratch instance for the next macroblock. When the
+        // best result lives in the scratch instance, the caller's reference is exchanged for it so
+        // that no levels need to be copied.
+        it.RdScratch = rdCur;
         if (rdBest != rd)
         {
             rd = rdBest;
@@ -107,7 +115,11 @@ internal static unsafe class QuantEnc
         Span<byte> bestBlocks = it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc);
         Span<int> scratch = it.Scratch3.AsSpan();
         int totalHeaderBits = 0;
-        Vp8ModeScore rdBest = new();
+
+        // Reuse the iterator scratch accumulators instead of allocating per macroblock. rdBest
+        // collects the winning levels of every 4x4 block, so it must start zeroed like a fresh instance.
+        Vp8ModeScore rdBest = it.RdScratch2;
+        rdBest.Clear();
 
         if (maxI4HeaderBits == 0)
         {
@@ -118,9 +130,11 @@ internal static unsafe class QuantEnc
         rdBest.H = 211;  // '211' is the value of VP8BitCost(0, 145)
         rdBest.SetRdScore(dqm.LambdaMode);
         it.StartI4();
-        Vp8ModeScore rdi4 = new();
-        Vp8ModeScore rdTmp = new();
-        Vp8Residual res = new();
+
+        // Both accumulators are cleared inside the loops before they are read.
+        Vp8ModeScore rdi4 = it.RdScratch3;
+        Vp8ModeScore rdTmp = it.RdScratch;
+        Vp8Residual res = it.ResidualScratch;
         Span<short> tmpLevels = stackalloc short[16];
         do
         {
@@ -220,9 +234,12 @@ internal static unsafe class QuantEnc
         Span<byte> tmpDst = it.YuvOut2.AsSpan(Vp8EncIterator.UOffEnc);
         Span<byte> dst0 = it.YuvOut.AsSpan(Vp8EncIterator.UOffEnc);
         Span<byte> dst = dst0;
-        Vp8ModeScore rdBest = new();
-        Vp8ModeScore rdUv = new();
-        Vp8Residual res = new();
+
+        // Reuse the iterator scratch accumulators instead of allocating per macroblock. Only the
+        // scores of rdBest are read, and rdUv is cleared before every mode, so neither needs clearing here.
+        Vp8ModeScore rdBest = it.RdScratch2;
+        Vp8ModeScore rdUv = it.RdScratch3;
+        Vp8Residual res = it.ResidualScratch;
         int mode;
 
         rd.ModeUv = -1;

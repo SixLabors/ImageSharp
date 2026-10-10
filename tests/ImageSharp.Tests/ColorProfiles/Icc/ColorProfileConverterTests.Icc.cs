@@ -68,6 +68,63 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         AssertConversion(sourceProfile, targetProfile, actual, tolerance, testOutputHelper);
     }
 
+    /// <summary>
+    /// Verifies that both transforms use the source rendering intent when the profile headers disagree.
+    /// </summary>
+    /// <param name="targetFile">The destination profile, using either curves or a LUT.</param>
+    /// <param name="tolerance">The normalized tolerance for differences in reference interpolation.</param>
+    [Theory]
+    [InlineData(TestIccProfiles.StandardRgbV2, 0.0005)]
+    [InlineData(TestIccProfiles.StandardRgbV4, 1D / ushort.MaxValue)] // One 16-bit LUT code value for float versus double interpolation.
+    public void Convert_UsesSourceRenderingIntentForBothProfiles(string targetFile, double tolerance)
+    {
+        IccProfile sourceProfile = TestIccProfiles.GetProfile(TestIccProfiles.Fogra39).DeepClone();
+        sourceProfile.Header.RenderingIntent = IccRenderingIntent.MediaRelativeColorimetric;
+        IccProfile targetProfile = TestIccProfiles.GetProfile(targetFile);
+        ColorProfileConverter converter = new(new ColorConversionOptions
+        {
+            SourceIccProfile = sourceProfile,
+            TargetIccProfile = targetProfile
+        });
+
+        // Explicitly select the same intent in the independent reference converter. Its unspecified
+        // intent uses each profile's header, which would reproduce the conflicting-intent defect.
+        Wacton.Unicolour.Configuration sourceConfig = new(iccConfig: new IccConfiguration(
+            Path.Combine("TestDataIcc", "Profiles", TestIccProfiles.Fogra39), Intent.RelativeColorimetric));
+
+        Wacton.Unicolour.Configuration targetConfig = new(iccConfig: new IccConfiguration(
+            Path.Combine("TestDataIcc", "Profiles", targetFile), Intent.RelativeColorimetric));
+
+        Cmyk[] inputs =
+        [
+            new(0, 0, 0, 0), new(0, 0, 0, 1),
+            new(0, 1, 1, 0), new(1, 0, 1, 0), new(1, 1, 0, 0), new(0, 0, 1, 0),
+            new(0.25F, 0.5F, 0.75F, 0.125F)
+        ];
+
+        Rgb[] bulk = new Rgb[inputs.Length];
+        converter.Convert<Cmyk, Rgb>(inputs, bulk);
+
+        for (int i = 0; i < inputs.Length; i++)
+        {
+            Cmyk input = inputs[i];
+            Unicolour reference = new(sourceConfig, new Channels(input.C, input.M, input.Y, input.K));
+            Unicolour expected = reference.ConvertToConfiguration(targetConfig);
+            Assert.Null(expected.Icc.Error);
+            Vector4 scalar = converter.Convert<Cmyk, Rgb>(input).ToScaledVector4();
+            Vector4 span = bulk[i].ToScaledVector4();
+
+            for (int channel = 0; channel < 3; channel++)
+            {
+                Assert.Equal(expected.Icc.Values[channel], scalar[channel], tolerance);
+                Assert.Equal(expected.Icc.Values[channel], span[channel], tolerance);
+            }
+        }
+
+        // Conversion must not rewrite a profile that may be shared with other callers.
+        Assert.Equal(IccRenderingIntent.Perceptual, targetProfile.Header.RenderingIntent);
+    }
+
     private static void AssertConversion(string sourceProfile, string targetProfile, List<Vector4> actual, double tolerance, ITestOutputHelper testOutputHelper)
     {
         List<double[]> expected = Inputs.ConvertAll(input => GetExpectedTargetValues(sourceProfile, targetProfile, input, testOutputHelper));

@@ -311,6 +311,7 @@ public class WebpEncoderTests
         memStream.Position = 0;
 
         using Image<TPixel> output = Image.Load<TPixel>(memStream);
+        File.WriteAllBytes(provider.Utility.GetTestOutputFileName("webp"), memStream.ToArray());
         Assert.Equal(image.Frames.Count, output.Frames.Count);
         ImageComparer.Exact.VerifySimilarity(output, image);
 

@@ -572,6 +572,7 @@ public partial class PngEncoderTests
         memStream.Position = 0;
 
         using Image<TPixel> output = Image.Load<TPixel>(memStream);
+        File.WriteAllBytes(provider.Utility.GetTestOutputFileName("png"), memStream.ToArray());
         Assert.Equal(image.Frames.Count, output.Frames.Count);
         ImageComparer.Exact.VerifySimilarity(output, image);
 

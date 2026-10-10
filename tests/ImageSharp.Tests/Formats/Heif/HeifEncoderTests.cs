@@ -724,6 +724,7 @@ public class HeifEncoderTests
         memStream.Position = 0;
 
         using Image<TPixel> output = Image.Load<TPixel>(memStream);
+        File.WriteAllBytes(provider.Utility.GetTestOutputFileName("avif"), memStream.ToArray());
 
         // The source is palette based, so it is encoded without loss. Lossless AV1 codes the RGB and alpha samples
         // through the identity matrix, so every decoded frame matches the composited source frame exactly.
@@ -761,6 +762,7 @@ public class HeifEncoderTests
         memStream.Position = 0;
 
         using Image<TPixel> output = Image.Load<TPixel>(memStream);
+        File.WriteAllBytes(provider.Utility.GetTestOutputFileName("avif"), memStream.ToArray());
 
         // Lossy AV1 at quality 90 keeps the total difference of each frame within the tolerance that the
         // other lossy HEIF tests use for that quality.
@@ -798,6 +800,7 @@ public class HeifEncoderTests
         memStream.Position = 0;
 
         using Image<TPixel> output = Image.Load<TPixel>(memStream);
+        File.WriteAllBytes(provider.Utility.GetTestOutputFileName("avif"), memStream.ToArray());
 
         // Lossy AV1 at quality 90 keeps the total difference of each frame within the tolerance that the
         // other lossy HEIF tests use for that quality.

@@ -366,6 +366,7 @@ public class GifEncoderTests
         memStream.Position = 0;
 
         using Image<TPixel> output = Image.Load<TPixel>(memStream);
+        File.WriteAllBytes(provider.Utility.GetTestOutputFileName("gif"), memStream.ToArray());
 
         // Each source frame has fewer colors than a gif palette holds, so the quantizer keeps every color and the comparison is exact.
         Assert.Equal(image.Frames.Count, output.Frames.Count);

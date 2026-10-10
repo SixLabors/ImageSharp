@@ -272,7 +272,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     public static Rgb FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)
     {
         // Convert to linear rgb then compress.
-        Rgb linear = new(Vector3.Transform(source.AsVector3Unsafe(), GetCieXyzToRgbMatrix(options.TargetRgbWorkingSpace)));
+        Rgb linear = new(Vector3.Transform(source.AsVector3Unsafe(), options.TargetRgbWorkingSpace.CieXyzToRgbMatrix));
         return FromScaledVector4(options.TargetRgbWorkingSpace.Compress(linear.ToScaledVector4()));
     }
 
@@ -281,7 +281,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        Matrix4x4 matrix = GetCieXyzToRgbMatrix(options.TargetRgbWorkingSpace);
+        Matrix4x4 matrix = options.TargetRgbWorkingSpace.CieXyzToRgbMatrix;
         for (int i = 0; i < source.Length; i++)
         {
             // Convert to linear rgb then compress.
@@ -298,7 +298,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
         Rgb linear = FromScaledVector4(options.SourceRgbWorkingSpace.Expand(this.ToScaledVector4()));
 
         // Then convert to xyz
-        return new CieXyz(Vector3.Transform(linear.AsVector3Unsafe(), GetRgbToCieXyzMatrix(options.SourceRgbWorkingSpace)));
+        return new CieXyz(Vector3.Transform(linear.AsVector3Unsafe(), options.SourceRgbWorkingSpace.RgbToCieXyzMatrix));
     }
 
     /// <inheritdoc/>
@@ -306,7 +306,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        Matrix4x4 matrix = GetRgbToCieXyzMatrix(options.SourceRgbWorkingSpace);
+        Matrix4x4 matrix = options.SourceRgbWorkingSpace.RgbToCieXyzMatrix;
         for (int i = 0; i < source.Length; i++)
         {
             Rgb rgb = source[i];
@@ -370,68 +370,6 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
         => this.AsVector3Unsafe() == other.AsVector3Unsafe();
 
     internal Vector3 AsVector3Unsafe() => Unsafe.As<Rgb, Vector3>(ref Unsafe.AsRef(in this));
-
-    private static Matrix4x4 GetCieXyzToRgbMatrix(RgbWorkingSpace workingSpace)
-    {
-        Matrix4x4 matrix = GetRgbToCieXyzMatrix(workingSpace);
-        Matrix4x4.Invert(matrix, out Matrix4x4 inverseMatrix);
-        return inverseMatrix;
-    }
-
-    private static Matrix4x4 GetRgbToCieXyzMatrix(RgbWorkingSpace workingSpace)
-    {
-        DebugGuard.NotNull(workingSpace, nameof(workingSpace));
-        RgbPrimariesChromaticityCoordinates chromaticity = workingSpace.ChromaticityCoordinates;
-
-        float xr = chromaticity.R.X;
-        float xg = chromaticity.G.X;
-        float xb = chromaticity.B.X;
-        float yr = chromaticity.R.Y;
-        float yg = chromaticity.G.Y;
-        float yb = chromaticity.B.Y;
-
-        float mXr = xr / yr;
-        float mZr = (1 - xr - yr) / yr;
-
-        float mXg = xg / yg;
-        float mZg = (1 - xg - yg) / yg;
-
-        float mXb = xb / yb;
-        float mZb = (1 - xb - yb) / yb;
-
-        Matrix4x4 xyzMatrix = new()
-        {
-            M11 = mXr,
-            M21 = mXg,
-            M31 = mXb,
-            M12 = 1F,
-            M22 = 1F,
-            M32 = 1F,
-            M13 = mZr,
-            M23 = mZg,
-            M33 = mZb,
-            M44 = 1F
-        };
-
-        Matrix4x4.Invert(xyzMatrix, out Matrix4x4 inverseXyzMatrix);
-
-        Vector3 vector = Vector3.Transform(workingSpace.WhitePoint.AsVector3Unsafe(), inverseXyzMatrix);
-
-        // Use transposed Rows/Columns
-        return new Matrix4x4
-        {
-            M11 = vector.X * mXr,
-            M21 = vector.Y * mXg,
-            M31 = vector.Z * mXb,
-            M12 = vector.X,
-            M22 = vector.Y,
-            M32 = vector.Z,
-            M13 = vector.X * mZr,
-            M23 = vector.Y * mZg,
-            M33 = vector.Z * mZb,
-            M44 = 1F
-        };
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector512<float> ReadVector512(ref float src)

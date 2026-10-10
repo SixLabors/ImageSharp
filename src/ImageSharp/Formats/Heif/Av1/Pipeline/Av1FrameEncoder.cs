@@ -641,8 +641,8 @@ internal static partial class Av1FrameEncoder
             new Size(width, height),
             screenContent: false,
             frameSizeScreenContent: null,
-            sharpness: 0,
-            Av1Tuning.Psnr);
+            options.Sharpness,
+            options.Tuning);
 
         ObuSequenceProfile sequenceProfile = colorConfig.BitDepth == Av1BitDepth.TwelveBit ||
             colorFormat == Av1ColorFormat.Yuv422
@@ -954,8 +954,8 @@ internal static partial class Av1FrameEncoder
                 new Size(frameHeader.FrameSize.SuperResolutionUpscaledWidth, frameHeader.FrameSize.FrameHeight),
                 screenContent: false,
                 frameSizeScreenContent: null,
-                sharpness: 0,
-                Av1Tuning.Psnr);
+                options.Sharpness,
+                options.Tuning);
 
             frameHeader.AllowHighPrecisionMotionVector =
                 speedSettings.AllowHighPrecisionMotionVector && !frameHeader.ForceIntegerMotionVector;
@@ -1135,8 +1135,8 @@ internal static partial class Av1FrameEncoder
             frameSize,
             screenContent: false,
             frameSizeScreenContent: null,
-            sharpness: 0,
-            Av1Tuning.Psnr);
+            options.Sharpness,
+            options.Tuning);
 
         Av1MotionSearchSettings motionSettings = new(
             options.Speed,
@@ -2090,8 +2090,8 @@ internal static partial class Av1FrameEncoder
                     new Size(width, height),
                     screenContent: false,
                     frameSizeScreenContent: null,
-                    sharpness: 0,
-                    Av1Tuning.Psnr);
+                    options.Sharpness,
+                    options.Tuning);
 
                 this.PictureBuffer = new Av1EncoderPictureBuffer(
                     configuration,

@@ -1020,6 +1020,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     winner.Skip = skip;
                     return true;
                 }
+
+                // The palette won the luma search but lost after the reference and skip costs. The search already set the chroma mode to DC
+                // and the transform size to the size of the palette. The final mode restore brings back only the luma mode, the references and
+                // the palette, so the retained intra mode keeps both changes.
+                winner.UvMode = Av1ChromaPredictionMode.DC;
+                winner.TransformSize = transformSize;
             }
 
             palette = default;

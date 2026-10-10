@@ -478,7 +478,7 @@ internal static partial class Av1FrameEncoder
 
             // Before the first frame, the filter and the model read the motion settings of a key frame without any quantizer-dependent update.
             // High precision vectors are always allowed.
-            Av1MotionSearchSettings keyFrameMotionSettings = new(this.Options.Speed, false, image.Size, -1, true, false, Av1Tuning.Psnr);
+            Av1MotionSearchSettings keyFrameMotionSettings = new(this.Options.Speed, false, image.Size, -1, true, false, this.Options.Tuning);
             using LookaheadTemporalModel<TSample, TFilterOperator, TSearchOperator, TTplOperator>? temporalModel =
                 this.Options.LagInFrames > 1
                     ? new(this, lookahead, coder.ReferencePool, filter, image.Width, image.Height, colorFormat, secondPass.LagInFrames) { MotionSettings = keyFrameMotionSettings }

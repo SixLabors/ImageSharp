@@ -53,7 +53,7 @@ internal sealed class HeifTrackMetadataParser
         bool firstChild = true;
         while (stream.Position < metadataEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, metadataEnd, readBuffer, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, metadataEnd, readBuffer, out Heif4CharCode childType, topLevel: false);
             long childStart = stream.Position;
             if (firstChild && childType != Heif4CharCode.Hdlr)
             {
@@ -170,7 +170,7 @@ internal sealed class HeifTrackMetadataParser
                 throw new InvalidImageContentException("The track item-information entry count exceeds its bounded payload.");
             }
 
-            long entryLength = HeifBoxReader.ReadHeader(stream, itemInformationEnd, readBuffer, out Heif4CharCode entryType);
+            long entryLength = HeifBoxReader.ReadHeader(stream, itemInformationEnd, readBuffer, out Heif4CharCode entryType, topLevel: false);
             if (entryType != Heif4CharCode.Infe)
             {
                 throw new InvalidImageContentException($"The track item-information box contains unexpected child '{entryType}'.");

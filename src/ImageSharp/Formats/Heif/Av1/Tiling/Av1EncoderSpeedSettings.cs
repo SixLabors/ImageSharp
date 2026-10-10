@@ -48,10 +48,10 @@ internal readonly struct Av1EncoderSpeedSettings
         Av1FrameUpdateType updateType,
         int qIndex,
         Size frameSize,
-        bool screenContent = false,
-        bool? frameSizeScreenContent = null,
-        int sharpness = 0,
-        Av1Tuning tuning = Av1Tuning.Psnr)
+        bool screenContent,
+        bool? frameSizeScreenContent,
+        int sharpness,
+        Av1Tuning tuning)
     {
         // The image and SSIMULACRA 2 tunes search intra modes more thoroughly in inter frames, because a layered image
         // can code its key frame at a lower quality than its inter frames.

@@ -62,7 +62,7 @@ internal ref struct Av1SymbolReader
     /// </summary>
     /// <param name="span">The bounded entropy-coded bytes.</param>
     /// <param name="updateCdf">A value indicating whether decoded symbols adapt their distributions.</param>
-    public Av1SymbolReader(Span<byte> span, bool updateCdf = true)
+    public Av1SymbolReader(Span<byte> span, bool updateCdf)
     {
         this.buffer = span;
         this.updateCdf = updateCdf;

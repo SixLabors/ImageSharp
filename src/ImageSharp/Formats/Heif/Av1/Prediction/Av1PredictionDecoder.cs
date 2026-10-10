@@ -57,11 +57,13 @@ internal sealed class Av1PredictionDecoder
     /// </summary>
     /// <param name="sequenceHeader">The decoded sequence header for the current image.</param>
     /// <param name="frameHeader">The decoded frame header for the current image.</param>
-    /// <param name="paletteColorIndexMaps">The palette color-index maps of the decoder session. Palette prediction requires them.</param>
+    /// <param name="paletteColorIndexMaps">
+    /// The palette color-index maps of the decoder session, or <see langword="null"/> when no decoder session supplies them. Palette prediction requires them.
+    /// </param>
     public Av1PredictionDecoder(
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
-        Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps = null)
+        Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;

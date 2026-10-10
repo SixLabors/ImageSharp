@@ -320,7 +320,7 @@ public class Av1EntropyTests
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
-        Av1SymbolDecoder decoder = new(configuration, encoded.GetSpan(), BaseQIndex);
+        Av1SymbolDecoder decoder = new(configuration, encoded.GetSpan(), BaseQIndex, updateCdf: true);
         for (int paletteSize = 2; paletteSize <= Av1Constants.PaletteMaxSize; paletteSize++)
         {
             for (int plane = 0; plane < 2; plane++)
@@ -404,7 +404,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex, updateCdf: true);
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadPartitionType(context);
@@ -435,7 +435,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex, updateCdf: true);
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadSplitOrHorizontal(blockSize, context);
@@ -466,7 +466,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex, updateCdf: true);
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadSplitOrVertical(blockSize, context);
@@ -508,7 +508,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex, updateCdf: true);
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadSkip(context);
@@ -536,7 +536,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex, updateCdf: true);
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadTransformBlockSkip(transformSizeContext, skipContext);
@@ -589,7 +589,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex, updateCdf: true);
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadTransformType(transformSizeContext, true, false, false, true, filterIntraMode, intraDirection);
@@ -644,7 +644,7 @@ public class Av1EntropyTests
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
-        Av1SymbolDecoder decoder = new(configuration, encoded.GetSpan(), BaseQIndex);
+        Av1SymbolDecoder decoder = new(configuration, encoded.GetSpan(), BaseQIndex, updateCdf: true);
         for (int symbol = 0; symbol < transformTypeCount; symbol++)
         {
             Av1TransformType expected = Av1SymbolContextHelper.GetExtendedTransformType(transformSetType, symbol);
@@ -680,7 +680,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex, updateCdf: true);
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadGolomb();
@@ -716,7 +716,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex, updateCdf: true);
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadSegmentId(context);
@@ -744,7 +744,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex, updateCdf: true);
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadDeltaQuantizerIndex();
@@ -785,7 +785,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex, updateCdf: true);
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadFilterUltraMode(blockSize);

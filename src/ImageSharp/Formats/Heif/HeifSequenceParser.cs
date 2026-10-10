@@ -69,7 +69,7 @@ internal sealed class HeifSequenceParser
     /// <param name="boxLength">The validated movie payload length.</param>
     /// <param name="fileStartOffset">The absolute stream position at which the HEIF file begins.</param>
     /// <returns>The bounded image-sequence model required by the HEIF decoder.</returns>
-    public HeifSequence Parse(Stream stream, long boxLength, long fileStartOffset = 0)
+    public HeifSequence Parse(Stream stream, long boxLength, long fileStartOffset)
     {
         this.fileStartOffset = fileStartOffset;
         long movieStart = stream.Position;
@@ -85,7 +85,7 @@ internal sealed class HeifSequenceParser
         // from forcing codec configurations and sample tables into the image decoder's retained model.
         while (stream.Position < movieEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, movieEnd, readBuffer, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, movieEnd, readBuffer, out Heif4CharCode childType, topLevel: false);
             long childStart = stream.Position;
             if (childType == Heif4CharCode.Mvhd)
             {
@@ -126,7 +126,7 @@ internal sealed class HeifSequenceParser
         stream.Position = movieStart;
         while (stream.Position < movieEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, movieEnd, readBuffer, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, movieEnd, readBuffer, out Heif4CharCode childType, topLevel: false);
             long childStart = stream.Position;
             if (childType == Heif4CharCode.Trak)
             {
@@ -189,7 +189,7 @@ internal sealed class HeifSequenceParser
 
         while (stream.Position < trackEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, trackEnd, readBuffer, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, trackEnd, readBuffer, out Heif4CharCode childType, topLevel: false);
             long childStart = stream.Position;
             switch (childType)
             {
@@ -257,7 +257,7 @@ internal sealed class HeifSequenceParser
 
         while (stream.Position < trackEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, trackEnd, readBuffer, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, trackEnd, readBuffer, out Heif4CharCode childType, topLevel: false);
             long childStart = stream.Position;
             if (childType == Heif4CharCode.Edts)
             {
@@ -457,7 +457,7 @@ internal sealed class HeifSequenceParser
         long referenceEnd = checked(stream.Position + boxLength);
         while (stream.Position < referenceEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, referenceEnd, readBuffer, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, referenceEnd, readBuffer, out Heif4CharCode childType, topLevel: false);
             long childStart = stream.Position;
             if (childType is Heif4CharCode.Auxl or Heif4CharCode.Prem)
             {
@@ -510,7 +510,7 @@ internal sealed class HeifSequenceParser
         BoxReference handler = default;
         while (stream.Position < mediaEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, mediaEnd, readBuffer, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, mediaEnd, readBuffer, out Heif4CharCode childType, topLevel: false);
             long childStart = stream.Position;
             if (childType == Heif4CharCode.Hdlr)
             {
@@ -545,7 +545,7 @@ internal sealed class HeifSequenceParser
 
         while (stream.Position < mediaEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, mediaEnd, readBuffer, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, mediaEnd, readBuffer, out Heif4CharCode childType, topLevel: false);
             long childStart = stream.Position;
             switch (childType)
             {
@@ -646,7 +646,7 @@ internal sealed class HeifSequenceParser
         BoxReference sampleTable = default;
         while (stream.Position < informationEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, informationEnd, readBuffer, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, informationEnd, readBuffer, out Heif4CharCode childType, topLevel: false);
             long childStart = stream.Position;
             if (childType == Heif4CharCode.Dinf)
             {
@@ -683,7 +683,7 @@ internal sealed class HeifSequenceParser
         BoxReference dataReference = default;
         while (stream.Position < informationEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, informationEnd, readBuffer, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, informationEnd, readBuffer, out Heif4CharCode childType, topLevel: false);
             long childStart = stream.Position;
             if (childType == Heif4CharCode.Dref)
             {
@@ -707,7 +707,7 @@ internal sealed class HeifSequenceParser
             throw new InvalidImageContentException("A HEIF image-sequence track must contain exactly one data reference.");
         }
 
-        long locationLength = HeifBoxReader.ReadHeader(stream, referenceEnd, readBuffer, out Heif4CharCode locationType);
+        long locationLength = HeifBoxReader.ReadHeader(stream, referenceEnd, readBuffer, out Heif4CharCode locationType, topLevel: false);
         if (locationType != Heif4CharCode.Url || locationLength != 4)
         {
             throw new InvalidImageContentException("A HEIF image-sequence track uses an external data reference.");
@@ -744,7 +744,7 @@ internal sealed class HeifSequenceParser
 
         while (stream.Position < tableEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, tableEnd, readBuffer, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, tableEnd, readBuffer, out Heif4CharCode childType, topLevel: false);
             long childStart = stream.Position;
             switch (childType)
             {
@@ -884,7 +884,7 @@ internal sealed class HeifSequenceParser
             throw new InvalidImageContentException("A HEIF image-sequence track must contain exactly one sample description.");
         }
 
-        long entryLength = HeifBoxReader.ReadHeader(stream, descriptionEnd, readBuffer, out Heif4CharCode entryType);
+        long entryLength = HeifBoxReader.ReadHeader(stream, descriptionEnd, readBuffer, out Heif4CharCode entryType, topLevel: false);
         if (entryType != Heif4CharCode.Av01 || entryLength < 78)
         {
             throw new InvalidImageContentException($"The image-sequence sample entry '{entryType}' is unsupported or truncated.");
@@ -912,7 +912,7 @@ internal sealed class HeifSequenceParser
         bool auxiliaryTypeSeen = false;
         while (stream.Position < entryEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, entryEnd, readBuffer, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, entryEnd, readBuffer, out Heif4CharCode childType, topLevel: false);
             long childStart = stream.Position;
             switch (childType)
             {
@@ -2010,7 +2010,7 @@ internal sealed class HeifSequenceParser
         BoxReference editList = default;
         while (stream.Position < editEnd)
         {
-            long childLength = HeifBoxReader.ReadHeader(stream, editEnd, readBuffer, out Heif4CharCode childType);
+            long childLength = HeifBoxReader.ReadHeader(stream, editEnd, readBuffer, out Heif4CharCode childType, topLevel: false);
             long childStart = stream.Position;
             if (childType == Heif4CharCode.Elst)
             {

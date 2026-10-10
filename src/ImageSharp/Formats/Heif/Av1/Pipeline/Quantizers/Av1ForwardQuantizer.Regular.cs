@@ -37,8 +37,8 @@ internal static partial class Av1ForwardQuantizer
         int acDeltaQ,
         Av1BitDepth bitDepth,
         int sharpness,
-        ReadOnlySpan<byte> weights = default,
-        ReadOnlySpan<byte> inverseWeights = default)
+        ReadOnlySpan<byte> weights,
+        ReadOnlySpan<byte> inverseWeights)
     {
         // A quantization matrix uses the matrix path at every bit depth. Without a matrix, the bit depth selects the operator.
         if (!weights.IsEmpty)

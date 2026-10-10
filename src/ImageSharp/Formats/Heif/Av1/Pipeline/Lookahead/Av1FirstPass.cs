@@ -338,7 +338,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
 
             // The rate multiplier follows the first update type of the shared group. The statistics stage never applies the layer and boost
             // terms of a consuming stage.
-            RateMultiplier = Av1RateDistortion.GetRateMultiplier(this.qIndex, this.bitDepth, groupUpdateType, this.tuning),
+            RateMultiplier = Av1RateDistortion.GetRateMultiplier(this.qIndex, this.bitDepth, groupUpdateType, this.tuning, realtime: false),
 
             // Graphics content lowers the exhaustive-search threshold. The stage never classifies content as animation, so only the
             // screen-content tools lower it. Speed 1 and higher doubles the threshold.

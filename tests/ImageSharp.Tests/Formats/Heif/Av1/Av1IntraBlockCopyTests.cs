@@ -143,7 +143,7 @@ public class Av1IntraBlockCopyTests
             picture.ReferenceContexts.Span);
 
         using var encoded = writer.Exit();
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0, updateCdf: true);
         Assert.True(decoder.ReadUseIntraBlockCopy());
         Assert.Equal(
             displacement,

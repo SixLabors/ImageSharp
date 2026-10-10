@@ -622,7 +622,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 new Point(
                     (superblock.Index % coefficientBuffer.SuperblockColumnCount) * rootSize,
                     (superblock.Index / coefficientBuffer.SuperblockColumnCount) * rootSize),
-                picture.Sequence.SequenceHeader.SuperblockSize);
+                picture.Sequence.SequenceHeader.SuperblockSize,
+                segmentId: -1);
 
             this.sourceSadLevel = Av1SourceSadLevel.Medium;
             if (picture.Parent.SpeedSettings.UseEstimatedInterModeDecision && !picture.Parent.FrameHeader.IsIntra)
@@ -1270,7 +1271,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 noneContext,
                 long.MaxValue,
                 false,
-                true);
+                true,
+                intraEncodeFollows: false);
 
             this.estimatedLeafEncode = EstimatedLeafEncode.Output;
 
@@ -1375,7 +1377,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         childContext,
                         long.MaxValue,
                         child < 3,
-                        true);
+                        true,
+                        intraEncodeFollows: false);
 
                     this.estimatedLeafEncode = EstimatedLeafEncode.Output;
 
@@ -1609,8 +1612,8 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             this.rateMultiplier = costLimit.Cost < 0
-                ? this.GetBlockRateMultiplier(blockOrigin, blockSize)
-                : this.SetupBlockRateMultiplier(blockOrigin, blockSize);
+                ? this.GetBlockRateMultiplier(blockOrigin, blockSize, segmentId: -1)
+                : this.SetupBlockRateMultiplier(blockOrigin, blockSize, segmentId: -1);
 
             // The bound arrives at the multiplier of the parent, so its cost is measured again at the multiplier of this block.
             costLimit.UpdateCost(this.rateMultiplier);
@@ -1701,7 +1704,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             // The leaf search measures the remaining bound at its own multiplier.
-            remainingCost.UpdateCost(this.GetBlockRateMultiplier(leafOrigin, leafSize));
+            remainingCost.UpdateCost(this.GetBlockRateMultiplier(leafOrigin, leafSize, segmentId: -1));
 
             // A 4x4 child measures the bound at its own multiplier when its partition search opens. Its unsplit search tests the bound
             // again before the block setup.
@@ -1723,7 +1726,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockSize">The block size.</param>
         /// <param name="segmentId">The segment whose quantizer prices the block, or -1 for the superblock quantizer.</param>
         /// <returns>The rate multiplier, at least one.</returns>
-        private readonly int GetBlockRateMultiplier(Point blockOrigin, Av1BlockSize blockSize, int segmentId = -1)
+        private readonly int GetBlockRateMultiplier(Point blockOrigin, Av1BlockSize blockSize, int segmentId)
         {
             int multiplier = this.GetTunedRateMultiplier(blockOrigin, blockSize, segmentId);
 
@@ -1940,7 +1943,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockSize">The block size.</param>
         /// <param name="segmentId">The segment whose quantizer prices the block, or -1 for the superblock quantizer.</param>
         /// <returns>The rate multiplier, at least one.</returns>
-        private readonly int SetupBlockRateMultiplier(Point blockOrigin, Av1BlockSize blockSize, int segmentId = -1)
+        private readonly int SetupBlockRateMultiplier(Point blockOrigin, Av1BlockSize blockSize, int segmentId)
         {
             if (this.picture.Parent.SsimRateMultiplierFactors is not null)
             {
@@ -1958,7 +1961,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockSize">The block size.</param>
         /// <param name="segmentId">The segment whose quantizer prices the block, or -1 for the superblock quantizer.</param>
         /// <returns>The rate multiplier, at least zero.</returns>
-        private readonly int GetTunedRateMultiplier(Point blockOrigin, Av1BlockSize blockSize, int segmentId = -1)
+        private readonly int GetTunedRateMultiplier(Point blockOrigin, Av1BlockSize blockSize, int segmentId)
         {
             // A segment prices the block at the segment quantizer of the frame quantizer, unless the coding block multiplier replaces it.
             // Adaptive quantization then keeps the superblock multiplier. Cyclic refresh prices only a boosted block at the multiplier of
@@ -3588,8 +3591,8 @@ internal static partial class Av1IntraSuperblockEncoder
             // A block outside the frame skips the block setup.
             int savedRateMultiplier = this.rateMultiplier;
             this.rateMultiplier = this.IsBlockOriginInsideFrame(blockOrigin)
-                ? this.SetupBlockRateMultiplier(blockOrigin, blockSize)
-                : this.GetBlockRateMultiplier(blockOrigin, blockSize);
+                ? this.SetupBlockRateMultiplier(blockOrigin, blockSize, segmentId: -1)
+                : this.GetBlockRateMultiplier(blockOrigin, blockSize, segmentId: -1);
 
             bool result = this.SearchVariancePartitionCore(
                 writer,
@@ -3818,7 +3821,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.blockWorkspace.PartitionTree.GetContext(nodeIndex, Av1PartitionType.None, 0),
                         long.MaxValue,
                         false,
-                        false).Cost != long.MaxValue;
+                        false,
+                        intraEncodeFollows: false).Cost != long.MaxValue;
 
                     break;
 
@@ -3875,7 +3879,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         first,
                         long.MaxValue,
                         false,
-                        false).Cost != long.MaxValue;
+                        false,
+                        intraEncodeFollows: false).Cost != long.MaxValue;
 
                     Point secondOrigin = partition.GetChildOrigin(blockOrigin, blockSize, 1);
                     if (valid && this.IsBlockOriginInsideFrame(secondOrigin))
@@ -4019,7 +4024,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partition, 1),
                             long.MaxValue,
                             false,
-                            false).Cost != long.MaxValue;
+                            false,
+                            intraEncodeFollows: false).Cost != long.MaxValue;
                     }
 
                     break;
@@ -4594,7 +4600,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (asymmetric)
                 {
                     // Each asymmetric sub-block sets up its own multiplier and measures the bound at it.
-                    this.rateMultiplier = this.SetupBlockRateMultiplier(leafOrigin, leafSize);
+                    this.rateMultiplier = this.SetupBlockRateMultiplier(leafOrigin, leafSize, segmentId: -1);
                     leafLimit.UpdateCost(this.rateMultiplier);
                 }
 
@@ -4617,7 +4623,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // A replay of a finished subtree encodes every leaf at the multiplier of that leaf.
                 if (!searchChildren && !(partitionType == Av1PartitionType.Split && blockSize > Av1BlockSize.Block8x8))
                 {
-                    this.rateMultiplier = this.SetupBlockRateMultiplier(leafOrigin, leafSize);
+                    this.rateMultiplier = this.SetupBlockRateMultiplier(leafOrigin, leafSize, segmentId: -1);
                 }
 
                 Av1RateDistortionStatistics childStatistics = partitionType == Av1PartitionType.Split && blockSize > Av1BlockSize.Block8x8
@@ -7354,7 +7360,7 @@ internal static partial class Av1IntraSuperblockEncoder
             long costLimit,
             bool publishContexts,
             bool publishCoefficientContexts,
-            bool intraEncodeFollows = false)
+            bool intraEncodeFollows)
         {
             // A bound that is already negative returns before the block setup, so neither the block variance nor the error per bit changes.
             if (costLimit == NegativeLeafBound)
@@ -11520,7 +11526,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.Parent.SpeedSettings.UseChromaTrellisRateMultiplier,
                 true,
                 0,
-                ref state);
+                ref state,
+                dcOnly: false,
+                perPixelMean: 0);
 
             this.blockWorkspace.LumaNoisePattern = false;
             if (state.EndOfBlock > 0)

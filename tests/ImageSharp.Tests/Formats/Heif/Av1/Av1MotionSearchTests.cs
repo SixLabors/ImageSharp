@@ -52,7 +52,7 @@ public class Av1MotionSearchTests
         using Av1SymbolEncoder writer = new(Configuration.Default, QIndex, updateCdf: true);
         Av1MotionVectorCosts costs = workspace.GetMotionVectorCosts(Av1MotionVectorPrecision.EighthSample);
         writer.FillMotionVectorCosts(costs);
-        int multiplier = Av1RateDistortion.GetRateMultiplier(QIndex, bitDepth, Av1FrameUpdateType.Key);
+        int multiplier = Av1RateDistortion.GetRateMultiplier(QIndex, bitDepth, Av1FrameUpdateType.Key, tuning: Av1Tuning.Psnr, realtime: false);
         int sadPerBit = Av1RateDistortion.GetMotionSearchSadPerBit(QIndex, bitDepth);
         int[] costList = new int[5];
         foreach (int width in new[] { 8, 16, 64 })
@@ -68,7 +68,7 @@ public class Av1MotionSearchTests
 
                 Size frameSize = pattern is 2 or 5 ? new Size(1280, 720) : new Size(320, 240);
                 bool screenContent = pattern == 4;
-                Av1MotionSearchSettings settings = new(speed, false, frameSize, QIndex, false, screenContent);
+                Av1MotionSearchSettings settings = new(speed, false, frameSize, QIndex, false, screenContent, tuning: Av1Tuning.Psnr);
                 uint state = (uint)(173 + pattern);
                 for (int index = 0; index < reference.Length; index++)
                 {
@@ -122,7 +122,7 @@ public class Av1MotionSearchTests
                         []);
 
                     Av1MotionSearchBase.FullPixelResult result = search.Search(
-                        start, 5, method, sites, settings, false, false, false, costList, out Point? secondBest);
+                        start, 5, method, sites, settings, false, false, false, costList, out Point? secondBest, forceMesh: false, meshPruneDistance: null);
 
                     Assert.True(bounds.Contains(result.Vector));
                     if (secondBest.HasValue)
@@ -228,7 +228,8 @@ public class Av1MotionSearchTests
             bitDepth,
             multiplier,
             [],
-            []);
+            [],
+            scaledReference: default);
 
         foreach (FractionalSearchMethod method in Enum.GetValues<FractionalSearchMethod>())
         {

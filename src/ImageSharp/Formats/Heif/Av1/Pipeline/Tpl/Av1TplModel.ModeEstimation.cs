@@ -837,7 +837,9 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             false,
             false,
             Span<int>.Empty,
-            out _);
+            out _,
+            forceMesh: false,
+            meshPruneDistance: null);
 
         best = new Av1MotionVector(integer.Vector.Y * 8, integer.Vector.X * 8);
         if (speedFeatures.SubpelForceStop == SearchPrecision.Integer)
@@ -861,7 +863,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             this.bitDepth,
             this.rateMultiplier,
             [],
-            []);
+            [],
+            scaledReference: default);
 
         int cost = fractionalSearch.Search(
             best,
@@ -982,7 +985,8 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
                     this.bitDepth,
                     this.rateMultiplier,
                     secondPredictionSamples[..(Size * Size)],
-                    []);
+                    [],
+                    scaledReference: default);
 
                 bestError = fractionalSearch.Search(
                     bestVector,
@@ -1039,7 +1043,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         if (input.SpeedFeatures.SubpelForceStop != SearchPrecision.Integer)
         {
             Span<TSample> prediction = this.predictor;
-            this.PredictSingle(referenceFrame, 0, vector, x, y, prediction, Size, Size, Size);
+            this.PredictSingle(referenceFrame, 0, vector, x, y, prediction, Size, Size, Size, visibleSize: false);
             return usePredictionSad
                 ? this.GetSad(source, sourceStride, prediction, Size)
                 : this.GetSatdCost(source, sourceStride, prediction, Size);

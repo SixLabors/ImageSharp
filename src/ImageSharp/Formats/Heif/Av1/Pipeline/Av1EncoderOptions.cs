@@ -32,7 +32,7 @@ internal sealed class Av1EncoderOptions
     /// <param name="tuning">The tune metric.</param>
     /// <param name="enableRestoration">Whether loop restoration can be used. A caller can turn it off, for example for 12-bit images.</param>
     /// <param name="allIntra">Whether the encoder runs in all-intra usage. Single images use all-intra usage.</param>
-    public Av1EncoderOptions(HeifEncodingSpeed speed, Av1Tuning tuning, bool enableRestoration, bool allIntra = true)
+    public Av1EncoderOptions(HeifEncodingSpeed speed, Av1Tuning tuning, bool enableRestoration, bool allIntra)
     {
         this.Speed = speed;
         this.Tuning = tuning;
@@ -248,8 +248,8 @@ internal sealed class Av1EncoderOptions
     /// <returns>The options.</returns>
     public static Av1EncoderOptions Create(
         HeifEncodingSpeed speed,
-        Av1Tuning tuning = Av1Tuning.Psnr,
-        bool enableRestoration = true,
-        bool allIntra = true)
+        Av1Tuning tuning,
+        bool enableRestoration,
+        bool allIntra)
         => new(speed, tuning, enableRestoration, allIntra);
 }

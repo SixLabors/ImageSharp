@@ -30,7 +30,13 @@ public class Av1TilingTests
         const int codedItemOffset = 0x17A8;
         const int codedItemLength = 0x3AE4;
         using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> imagePlanes = decoder.DecodeFrameBuffer(content.AsSpan(codedItemOffset, codedItemLength), null, null, out _);
+        using Av1FrameBuffer<byte> imagePlanes = decoder.DecodeFrameBuffer(
+            content.AsSpan(codedItemOffset, codedItemLength),
+            null,
+            null,
+            out _,
+            layeredImageIndex: null);
+
         using Image<Rgba32> image = new(Configuration.Default, imagePlanes.Width, imagePlanes.Height);
         Av1YuvConverter.ConvertToRgb(
             Configuration.Default,
@@ -154,7 +160,7 @@ public class Av1TilingTests
         Av1BitStreamReader bitStreamReader = new(headerSpan);
         IAv1TileReader stub = new Av1TileDecoderStub();
         ObuReader obuReader = new();
-        obuReader.ReadAll(ref bitStreamReader, dataSize, () => stub);
+        obuReader.ReadAll(ref bitStreamReader, dataSize, () => stub, isAnnexB: false);
         Av1FrameDecoderStub frameDecoder = new();
         using Av1TileReader tileReader = new(
             Configuration.Default,

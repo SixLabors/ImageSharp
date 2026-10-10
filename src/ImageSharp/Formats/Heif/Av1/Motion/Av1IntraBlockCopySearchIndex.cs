@@ -453,7 +453,9 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                     fineMeshInterval: false,
                     intraBlockCopy: true,
                     Span<int>.Empty,
-                    out _);
+                    out _,
+                    forceMesh: false,
+                    meshPruneDistance: null);
 
                 if (result.Cost < bestCost)
                 {

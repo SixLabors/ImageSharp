@@ -93,7 +93,7 @@ internal sealed class Av1BlockDecoder
         Av1FrameBuffer<byte> frameBuffer,
         Av1ReferenceFrameStore referenceFrames,
         Memory<short> workspace,
-        Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps = null)
+        Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;

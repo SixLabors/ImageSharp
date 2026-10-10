@@ -112,7 +112,7 @@ public class Av1CoefficientsEntropyTests
             hasChroma: true);
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex, updateCdf: true);
         Assert.True(decoder.ReadPaletteYMode(BlockSizeContext, neighborContext: 2));
         Assert.Equal(3, decoder.ReadPaletteSize(BlockSizeContext, Av1PlaneType.Y));
         Span<ushort> decodedY = stackalloc ushort[3];
@@ -185,7 +185,7 @@ public class Av1CoefficientsEntropyTests
         using IMemoryOwner<byte> encoded = writer.Exit();
         writer.Dispose();
 
-        Av1SymbolDecoder reader = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        Av1SymbolDecoder reader = new(Configuration.Default, encoded.GetSpan(), BaseQIndex, updateCdf: true);
         Assert.Equal(
             Av1TransformSize.Size8x8,
             reader.ReadTransformSize(Av1BlockSize.Block16x32, context: 1));
@@ -319,7 +319,7 @@ public class Av1CoefficientsEntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex, updateCdf: true);
         using Av1LevelBuffer levels = new(Configuration.Default);
         int plane = Math.Min((int)componentType, 1);
         decoder.ReadCoefficients(

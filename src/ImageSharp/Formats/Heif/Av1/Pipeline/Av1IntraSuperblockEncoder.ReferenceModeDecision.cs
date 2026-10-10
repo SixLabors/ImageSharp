@@ -396,7 +396,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Av1BlockSize blockSize,
             Av1ReferenceFrameType primaryReference,
-            Av1ReferenceFrameType secondaryReference = Av1ReferenceFrameType.None)
+            Av1ReferenceFrameType secondaryReference)
         {
             int level = this.picture.Parent.SpeedSettings.ZeroVectorSsePruningLevel;
             if (level == 0)
@@ -760,7 +760,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     if (mode == Av1PredictionMode.GlobalMotionVector &&
-                        this.PrunesZeroVectorWithSse(sourceLuma, sourceBlue, sourceRed, blockOrigin, blockSize, reference))
+                        this.PrunesZeroVectorWithSse(sourceLuma, sourceBlue, sourceRed, blockOrigin, blockSize, reference, Av1ReferenceFrameType.None))
                     {
                         continue;
                     }
@@ -6351,7 +6351,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     false,
                     false,
                     [],
-                    out _);
+                    out _,
+                    forceMesh: false,
+                    meshPruneDistance: null);
 
                 Av1MotionVector trialVector = new(integer.Vector.Y * 8, integer.Vector.X * 8);
                 if (!this.picture.Parent.FrameHeader.ForceIntegerMotionVector)
@@ -10297,7 +10299,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         false,
                         false,
                         [],
-                        out second);
+                        out second,
+                        forceMesh: false,
+                        meshPruneDistance: null);
 
                     searchCost = integer.Cost;
                 }
@@ -10319,7 +10323,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         this.bitDepth,
                         this.rateMultiplier,
                         interWorkspace.BluePrediction,
-                        mask);
+                        mask,
+                        scaledReference: default);
 
                     searchCost = fractionalSearch.Search(
                         trial,

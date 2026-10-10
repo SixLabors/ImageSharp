@@ -114,7 +114,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 fineMeshInterval: this.UsesFineSearchInterval,
                 intraBlockCopy: false,
                 [],
-                out _);
+                out _,
+                forceMesh: false,
+                meshPruneDistance: null);
 
             Av1MotionVector vector = new(full.Vector.Y * 8, full.Vector.X * 8);
             squaredError = full.SquaredError;

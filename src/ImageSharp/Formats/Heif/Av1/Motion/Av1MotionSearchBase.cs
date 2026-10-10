@@ -226,8 +226,8 @@ internal static partial class Av1MotionSearchBase
             bool intraBlockCopy,
             Span<int> costList,
             out Point? secondBest,
-            bool forceMesh = false,
-            int? meshPruneDistance = null)
+            bool forceMesh,
+            int? meshPruneDistance)
         {
             Point clampedStart = ClampToBounds(start, this.bounds);
             int rowStep = 1;

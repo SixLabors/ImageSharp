@@ -3293,7 +3293,8 @@ internal partial class Av1TileWriter
                     regionColumn,
                     unitBottom,
                     unitRight,
-                    useRetainedContexts);
+                    useRetainedContexts,
+                    advanceBlueArea: false);
 
                 if (hasChroma)
                 {
@@ -3322,7 +3323,8 @@ internal partial class Av1TileWriter
                         chromaRegionColumn,
                         chromaUnitBottom,
                         chromaUnitRight,
-                        useRetainedContexts);
+                        useRetainedContexts,
+                        advanceBlueArea: false);
 
                     EncodeTransformCoefficientRegion<TOperation>(
                         ref output,
@@ -3342,7 +3344,8 @@ internal partial class Av1TileWriter
                         chromaRegionColumn,
                         chromaUnitBottom,
                         chromaUnitRight,
-                        useRetainedContexts);
+                        useRetainedContexts,
+                        advanceBlueArea: false);
                 }
             }
         }
@@ -3391,7 +3394,7 @@ internal partial class Av1TileWriter
         int unitBottom,
         int unitRight,
         bool useRetainedContexts,
-        bool advanceBlueArea = false)
+        bool advanceBlueArea)
         where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;

@@ -162,7 +162,7 @@ public class Av1EncoderFrameTests
             speed: HeifEncodingSpeed.Level9);
 
         using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(stream.ToArray(), null, null, out _);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(stream.ToArray(), null, null, out _, layeredImageIndex: null);
         using Image<L8> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
         Av1YuvConverter.ConvertToRgb(
             Configuration.Default,
@@ -195,7 +195,7 @@ public class Av1EncoderFrameTests
         using Image<L8> source = new(64, 64, new L8(128));
         using CancellationTokenSource cancellation = new();
         cancellation.Cancel();
-        Av1EncoderOptions options = new(HeifEncodingSpeed.Level9, Av1Tuning.Psnr, enableRestoration: false)
+        Av1EncoderOptions options = new(HeifEncodingSpeed.Level9, Av1Tuning.Psnr, enableRestoration: false, allIntra: true)
         {
             CancellationToken = cancellation.Token
         };
@@ -233,7 +233,7 @@ public class Av1EncoderFrameTests
         byte[] payload = stream.ToArray();
 
         using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _, layeredImageIndex: null);
         using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
         Av1YuvConverter.ConvertToRgb(
             Configuration.Default,
@@ -309,7 +309,7 @@ public class Av1EncoderFrameTests
         ObuSequenceHeader encodedHeader = encoder.SequenceHeader;
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _, layeredImageIndex: null);
         using Image<Rgba32> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
         Av1YuvConverter.ConvertToRgb(
             Configuration.Default,
@@ -852,7 +852,10 @@ public class Av1EncoderFrameTests
                 sample,
                 Av1QuantizationLookup.GetQIndex(quantizer),
                 bitRate ? quantizer - 4 : 0,
-                bitRate ? quantizer + 4 : 63);
+                bitRate ? quantizer + 4 : 63,
+                scaleNumerator: 1,
+                scaleDenominator: 1,
+                qualityChanged: true);
 
             decoder.DecodeSequenceReference(sample.ToArray(), null, null);
             if (bitRate)
@@ -912,7 +915,10 @@ public class Av1EncoderFrameTests
                 sample,
                 Av1QuantizationLookup.GetQIndex(quantizer),
                 realtime ? quantizer - 4 : 0,
-                realtime ? quantizer + 4 : 63);
+                realtime ? quantizer + 4 : 63,
+                scaleNumerator: 1,
+                scaleDenominator: 1,
+                qualityChanged: true);
 
             // Only the first layer starts the temporal unit with a temporal delimiter. Every later layer starts with
             // its frame, whose header carries the extension byte with the layer.
@@ -945,7 +951,15 @@ public class Av1EncoderFrameTests
             AssertDecodedLumaMatchesEncoder(encoder, decoder, width, height);
         }
 
-        Assert.Throws<InvalidOperationException>(() => encoder.EncodeLayer(image.Frames.RootFrame, sample, 100, 0, 63));
+        Assert.Throws<InvalidOperationException>(() => encoder.EncodeLayer(
+            image.Frames.RootFrame,
+            sample,
+            100,
+            0,
+            63,
+            scaleNumerator: 1,
+            scaleDenominator: 1,
+            qualityChanged: true));
     }
 
     [Theory]
@@ -991,7 +1005,8 @@ public class Av1EncoderFrameTests
                 realtime ? quantizer - 4 : 0,
                 realtime ? quantizer + 4 : 63,
                 numerator,
-                denominator);
+                denominator,
+                qualityChanged: true);
 
             decoder.DecodeSequenceReference(sample.ToArray(), null, null);
             ObuFrameHeader frameHeader = decoder.FrameHeader!;
@@ -1343,7 +1358,7 @@ public class Av1EncoderFrameTests
         byte[] payload = stream.ToArray();
 
         using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> actual = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Av1FrameBuffer<byte> actual = decoder.DecodeFrameBuffer(payload, null, null, out _, layeredImageIndex: null);
         ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
 
         Assert.Equal(width, actual.Width);
@@ -1381,7 +1396,7 @@ public class Av1EncoderFrameTests
         Av1FrameEncoder.Encode(Configuration.Default, source.Frames.RootFrame, stream, colorConfig, qIndex: 0, speed);
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(payload, null, null, out _, layeredImageIndex: null);
         Assert.Equal(width, decoded.Width);
         Assert.Equal(height, decoded.Height);
         Av1PlaneRegion<byte> actual = decoded.DeriveBlockPointer(Av1Plane.Y, 0, 0);
@@ -1421,7 +1436,7 @@ public class Av1EncoderFrameTests
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Av1FrameBuffer<byte> decodedPlanes = decoder.DecodeFrameBuffer(payload, null, null, out _, layeredImageIndex: null);
         using Image<Rgba64> decoded = new(Configuration.Default, decodedPlanes.Width, decodedPlanes.Height);
         Av1YuvConverter.ConvertToRgb(
             Configuration.Default,

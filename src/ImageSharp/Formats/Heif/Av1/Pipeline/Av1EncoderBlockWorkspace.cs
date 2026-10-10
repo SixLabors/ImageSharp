@@ -503,7 +503,8 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// <summary>
     /// Gets or sets the encoder configuration of the current picture.
     /// </summary>
-    public Av1EncoderOptions EncoderOptions { get; set; } = Av1EncoderOptions.Create(HeifEncodingSpeed.Level6);
+    public Av1EncoderOptions EncoderOptions { get; set; } =
+        Av1EncoderOptions.Create(HeifEncodingSpeed.Level6, Av1Tuning.Psnr, enableRestoration: true, allIntra: true);
 
     /// <summary>
     /// Gets or sets a value indicating whether the last transform candidate was quantized without its quantization matrices.

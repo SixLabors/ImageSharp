@@ -373,8 +373,10 @@ internal static partial class Av1FrameEncoder
                 parent.FrameUpdateType,
                 qIndex,
                 frameSize,
-                sharpness: this.Options.Sharpness,
-                tuning: this.Options.Tuning);
+                screenContent: false,
+                frameSizeScreenContent: null,
+                this.Options.Sharpness,
+                this.Options.Tuning);
 
             // Intra block copy stays as the last coding left it. The encoder sets this flag once per frame, and a coding that used no copy turns it off.
             this.ConfigureRecodedReferenceTools(parent);
@@ -476,7 +478,7 @@ internal static partial class Av1FrameEncoder
 
             // Before the first frame, the filter and the model read the motion settings of a key frame without any quantizer-dependent update.
             // High precision vectors are always allowed.
-            Av1MotionSearchSettings keyFrameMotionSettings = new(this.Options.Speed, false, image.Size, -1, true, false);
+            Av1MotionSearchSettings keyFrameMotionSettings = new(this.Options.Speed, false, image.Size, -1, true, false, Av1Tuning.Psnr);
             using LookaheadTemporalModel<TSample, TFilterOperator, TSearchOperator, TTplOperator>? temporalModel =
                 this.Options.LagInFrames > 1
                     ? new(this, lookahead, coder.ReferencePool, filter, image.Width, image.Height, colorFormat, secondPass.LagInFrames) { MotionSettings = keyFrameMotionSettings }
@@ -927,8 +929,10 @@ internal static partial class Av1FrameEncoder
                 parent.FrameUpdateType,
                 this.QIndex,
                 new Size(source.Frame.Width, source.Frame.Height),
-                sharpness: this.Options.Sharpness,
-                tuning: this.Options.Tuning);
+                screenContent: false,
+                frameSizeScreenContent: null,
+                this.Options.Sharpness,
+                this.Options.Tuning);
 
             parent.BorderPad = this.UsesBorderPad;
             this.BeginLaggedMotionVectorStatistics(in frame, parent, new Size(source.Frame.Width, source.Frame.Height));

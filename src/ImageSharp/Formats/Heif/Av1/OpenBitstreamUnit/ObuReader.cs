@@ -125,7 +125,7 @@ internal sealed class ObuReader
     /// <param name="dataSize">The number of bytes available for the bounded payload.</param>
     /// <param name="creator">Creates one tile reader when the first tile payload of each coded frame is encountered.</param>
     /// <param name="isAnnexB">A value indicating whether each OBU is prefixed by an Annex B length field.</param>
-    public void ReadAll(ref Av1BitStreamReader reader, int dataSize, Func<IAv1TileReader> creator, bool isAnnexB = false)
+    public void ReadAll(ref Av1BitStreamReader reader, int dataSize, Func<IAv1TileReader> creator, bool isAnnexB)
     {
         ArgumentNullException.ThrowIfNull(creator);
 
@@ -139,7 +139,7 @@ internal sealed class ObuReader
     /// <param name="dataSize">The number of bytes available for the bounded payload.</param>
     /// <param name="tileReader">The tile reader used for each coded frame in the payload.</param>
     /// <param name="isAnnexB">A value indicating whether each OBU is prefixed by an Annex B length field.</param>
-    public void ReadAll(ref Av1BitStreamReader reader, int dataSize, IAv1TileReader tileReader, bool isAnnexB = false)
+    public void ReadAll(ref Av1BitStreamReader reader, int dataSize, IAv1TileReader tileReader, bool isAnnexB)
     {
         ArgumentNullException.ThrowIfNull(tileReader);
 

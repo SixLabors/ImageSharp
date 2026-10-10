@@ -94,7 +94,7 @@ public class ObuFrameHeaderTests
         ObuReader obuReader = new();
 
         // Act
-        obuReader.ReadAll(ref reader, blockSize, () => decoder);
+        obuReader.ReadAll(ref reader, blockSize, () => decoder, isAnnexB: false);
 
         // Assert
         Assert.NotNull(obuReader.SequenceHeader);
@@ -117,7 +117,7 @@ public class ObuFrameHeaderTests
         ObuReader obuReader = new();
 
         // Act 1
-        obuReader.ReadAll(ref reader, blockSize, () => tileStub);
+        obuReader.ReadAll(ref reader, blockSize, () => tileStub, isAnnexB: false);
 
         // Assign 2
         MemoryStream encoded = new();
@@ -142,7 +142,7 @@ public class ObuFrameHeaderTests
         ObuSequenceHeader expected = GetDefaultSequenceHeader();
 
         // Act
-        obuReader.ReadAll(ref reader, bitStream.Length, () => tileDecoder);
+        obuReader.ReadAll(ref reader, bitStream.Length, () => tileDecoder, isAnnexB: false);
 
         // Assert
         Assert.NotNull(obuReader.SequenceHeader);
@@ -246,7 +246,7 @@ public class ObuFrameHeaderTests
         ObuReader obuReader = new();
         IAv1TileReader tileDecoder = new Av1TileDecoderStub();
 
-        obuReader.ReadAll(ref reader, bitStream.Length, tileDecoder);
+        obuReader.ReadAll(ref reader, bitStream.Length, tileDecoder, isAnnexB: false);
 
         Assert.True(obuReader.ContentLightLevel.HasValue);
         Assert.Equal((ushort)1_000, obuReader.ContentLightLevel.Value.MaximumContentLightLevel);
@@ -294,7 +294,7 @@ public class ObuFrameHeaderTests
         byte[] bitStream = stream.ToArray();
         Av1BitStreamReader reader = new(bitStream);
         ObuReader obuReader = new();
-        obuReader.ReadAll(ref reader, bitStream.Length, () => new Av1TileDecoderStub());
+        obuReader.ReadAll(ref reader, bitStream.Length, () => new Av1TileDecoderStub(), isAnnexB: false);
 
         ObuSequenceHeader output = obuReader.SequenceHeader;
         ObuTimingInfo outputTiming = output.GetTimingInfo();
@@ -349,7 +349,7 @@ public class ObuFrameHeaderTests
         ObuReader obuReader = new();
         Av1TileDecoderStub decodedTiles = new();
 
-        obuReader.ReadAll(ref reader, bitStream.Length, () => decodedTiles);
+        obuReader.ReadAll(ref reader, bitStream.Length, () => decodedTiles, isAnnexB: false);
 
         ObuTileGroupHeader actual = obuReader.FrameHeader.TilesInfo;
         Assert.False(actual.HasUniformTileSpacing);
@@ -571,7 +571,7 @@ public class ObuFrameHeaderTests
         ObuReader obuReader = new(operatingPointIndex);
         IAv1TileReader tileDecoder = new Av1TileDecoderStub();
 
-        obuReader.ReadAll(ref reader, bitStream.Length, () => tileDecoder);
+        obuReader.ReadAll(ref reader, bitStream.Length, () => tileDecoder, isAnnexB: false);
     }
 
     private static ObuFrameHeader GetKeyFrameHeader()

@@ -216,8 +216,8 @@ internal static class Av1RateDistortion
         int qIndex,
         Av1BitDepth bitDepth,
         Av1FrameUpdateType updateType,
-        Av1Tuning tuning = Av1Tuning.Psnr,
-        bool realtime = false)
+        Av1Tuning tuning,
+        bool realtime)
     {
         int quantizer = Av1QuantizationLookup.GetDcQuant(qIndex, 0, bitDepth);
         double baseWeight = updateType switch

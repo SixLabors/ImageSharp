@@ -96,7 +96,9 @@ public class Av1RegularQuantizerTests
                                 dcDelta,
                                 acDelta,
                                 bitDepth,
-                                sharpness);
+                                sharpness,
+                                weights: default,
+                                inverseWeights: default);
 
                             Assert.Equal(original, input);
                             Assert.Equal(int.MinValue, quantized[0]);

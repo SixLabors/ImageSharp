@@ -371,8 +371,8 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
         ref TSample bottomDestinationBase = ref MemoryMarshal.GetReference(bottomDestination);
 
         // The first and the last destination samples have only one source column. They therefore take the two-tap edge form, not the four-tap interior form.
-        int firstTop = ReadSample(ref topSourceBase);
-        int firstBottom = ReadSample(ref bottomSourceBase);
+        int firstTop = ReadSample(ref topSourceBase, 0);
+        int firstBottom = ReadSample(ref bottomSourceBase, 0);
         WriteSample(ref topDestinationBase, 0, ((3 * firstTop) + firstBottom + 2) >> 2);
         WriteSample(ref bottomDestinationBase, 0, (firstTop + (3 * firstBottom) + 2) >> 2);
 
@@ -427,7 +427,7 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
     /// <param name="offset">The sample offset.</param>
     /// <returns>The sample value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int ReadSample(ref TSample source, int offset = 0)
+    private static int ReadSample(ref TSample source, int offset)
     {
         ref TSample sample = ref Unsafe.Add(ref source, offset);
         return Unsafe.SizeOf<TSample>() == 1

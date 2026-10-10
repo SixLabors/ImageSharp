@@ -2307,7 +2307,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         bool skippedInterBlock = usesInterTransformSyntax && modeInfo.Skip;
         this.aboveNeighborContext.UpdateTransformation(aboveContextStorage, modeInfoLocation, tileInfo, transformSize, blockSize, skippedInterBlock);
         this.leftNeighborContext.UpdateTransformation(leftContextStorage, modeInfoLocation, superblockInfo, transformSize, blockSize, skippedInterBlock);
-        this.UpdateTransformInfo(ref partitionInfo, superblockInfo, transformInfoY, transformInfoUv, blockSize, transformSize);
+        this.UpdateTransformInfo(
+            ref partitionInfo,
+            superblockInfo,
+            transformInfoY,
+            transformInfoUv,
+            blockSize,
+            transformSize,
+            preserveLuma: false,
+            existingLumaTransformUnitCount: 0);
     }
 
     /// <summary>
@@ -2521,8 +2529,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Span<Av1TransformInfo> transformInfoUv,
         Av1BlockSize blockSize,
         Av1TransformSize transformSize,
-        bool preserveLuma = false,
-        int existingLumaTransformUnitCount = 0)
+        bool preserveLuma,
+        int existingLumaTransformUnitCount)
     {
         int transformInfoYIndex = partitionInfo.ModeInfo.GetFirstTransformLocation(Av1PlaneType.Y);
         int transformInfoUvIndex = partitionInfo.ModeInfo.GetFirstTransformLocation(Av1PlaneType.Uv);

@@ -537,7 +537,8 @@ internal static partial class Av1TemporalFilter
                 parameters.BitDepthKind,
                 MotionCostNoneRateMultiplier,
                 [],
-                []);
+                [],
+                scaledReference: default);
 
             // The start has a zero motion-vector cost, so the refinement starts from the integer variance alone. The fractional search
             // always uses the eight-tap filters, whatever the accurate search setting selects. The pruned trees have no integer

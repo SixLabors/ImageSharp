@@ -200,7 +200,7 @@ public class Av1IntraSuperblockEncoderTests
 
         byte[] payload = WriteCompleteTileObu(picture.Picture, tileWriter, width, Height);
         using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decodedFrame = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Av1FrameBuffer<byte> decodedFrame = decoder.DecodeFrameBuffer(payload, null, null, out _, layeredImageIndex: null);
         for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
         {
             Av1Plane plane = (Av1Plane)planeIndex;

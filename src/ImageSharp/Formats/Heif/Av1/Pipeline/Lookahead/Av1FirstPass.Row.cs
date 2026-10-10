@@ -380,7 +380,9 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
             0,
             0,
             this.bitDepth,
-            0);
+            0,
+            weights: default,
+            inverseWeights: default);
 
         if (endOfBlock > 0)
         {

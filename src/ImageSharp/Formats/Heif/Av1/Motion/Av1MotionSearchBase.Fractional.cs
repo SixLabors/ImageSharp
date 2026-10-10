@@ -173,7 +173,7 @@ internal static partial class Av1MotionSearchBase
             int rateMultiplier,
             ReadOnlySpan<TSample> secondPrediction,
             ReadOnlySpan<byte> mask,
-            ScaledReference<TSample> scaledReference = default)
+            ScaledReference<TSample> scaledReference)
         {
             this.scaledReference = scaledReference;
             this.source = source;

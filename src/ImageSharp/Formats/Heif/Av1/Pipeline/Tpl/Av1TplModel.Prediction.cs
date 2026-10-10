@@ -85,7 +85,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             }
             else
             {
-                this.PredictSingle(first.Frame, plane, vectors[0], lumaX, lumaY, destinationSamples, destination.Stride, width, height);
+                this.PredictSingle(first.Frame, plane, vectors[0], lumaX, lumaY, destinationSamples, destination.Stride, width, height, visibleSize: false);
             }
 
             PlaneAccess source = GetPlane(this.sourcePictures[entry], plane);
@@ -161,7 +161,9 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             0,
             0,
             this.bitDepth,
-            this.quantizerSharpness);
+            this.quantizerSharpness,
+            weights: default,
+            inverseWeights: default);
 
         // The error is first normalized to 8-bit precision. Below 32x32 transforms it is then divided by four.
         reconstructionError = Av1TransformBlockEncoder.GetTransformError(coefficientSpan, dequantizedSpan, transformSize, this.bitDepth, out sse);
@@ -221,7 +223,7 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         int destinationStride,
         int width,
         int height,
-        bool visibleSize = false)
+        bool visibleSize)
     {
         int subX = plane == 0 ? 0 : this.subsamplingX;
         int subY = plane == 0 ? 0 : this.subsamplingY;

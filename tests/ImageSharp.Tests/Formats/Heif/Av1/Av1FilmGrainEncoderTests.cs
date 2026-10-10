@@ -34,12 +34,12 @@ public class Av1FilmGrainEncoderTests
     public void StillImageSignalsThePresetGrain()
     {
         using Image<Rgb24> image = CreateGradient(32, 32, 0);
-        Av1EncoderOptions options = new(HeifEncodingSpeed.Level6, Av1Tuning.Psnr, enableRestoration: true) { FilmGrainPreset = 1 };
+        Av1EncoderOptions options = new(HeifEncodingSpeed.Level6, Av1Tuning.Psnr, enableRestoration: true, allIntra: true) { FilmGrainPreset = 1 };
         using MemoryStream stream = new();
         Av1FrameEncoder.Encode(Configuration.Default, image.Frames.RootFrame, stream, CreateColorConfig(), 100, options);
 
         using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(stream.ToArray(), null, null, out _);
+        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(stream.ToArray(), null, null, out _, layeredImageIndex: null);
         Assert.True(decoder.SequenceHeader!.AreFilmGrainingParametersPresent);
 
         // Preset 1 has fourteen luma points, the seed 45231 and restricted range clipping.

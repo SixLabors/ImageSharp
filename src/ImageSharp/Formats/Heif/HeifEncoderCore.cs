@@ -158,7 +158,7 @@ internal sealed partial class HeifEncoderCore
         using ChunkedMemoryStream compressedPixels = new(this.configuration.MemoryAllocator);
         if (image.Frames.Count > 1)
         {
-            Av1EncodingSettings settings = this.ResolveAv1Encoding(image, allIntra: false, cancellationToken);
+            Av1EncodingSettings settings = this.ResolveAv1Encoding(image, allIntra: false, layers: null, cancellationToken);
             bool animateRootFrame = this.encoder.AnimateRootFrame
                 ?? image.Metadata.GetHeifMetadata().AnimateRootFrame;
 
@@ -1114,7 +1114,7 @@ internal sealed partial class HeifEncoderCore
     /// <param name="quality">The lossy quality in the inclusive range zero through one hundred.</param>
     /// <param name="imageTune">Whether the encoding uses the image tune, which has its own quality curve.</param>
     /// <returns>The AV1 quantizer index.</returns>
-    public static int GetAv1QuantizerIndex(int quality, bool imageTune = false)
+    public static int GetAv1QuantizerIndex(int quality, bool imageTune)
         => Av1QuantizationLookup.GetQIndex(GetAv1Quantizer(quality, imageTune));
 
     /// <summary>
@@ -1124,7 +1124,7 @@ internal sealed partial class HeifEncoderCore
     /// <param name="quality">The lossy quality in the inclusive range zero through one hundred.</param>
     /// <param name="imageTune">Whether the encoding uses the image tune, which has its own quality curve.</param>
     /// <returns>The external quantizer.</returns>
-    public static int GetAv1Quantizer(int quality, bool imageTune = false)
+    public static int GetAv1Quantizer(int quality, bool imageTune)
     {
         int quantizer = imageTune ? ImageTuneQualityToQuantizer[quality] : (((100 - quality) * 63) + 50) / 100;
 
@@ -1151,7 +1151,7 @@ internal sealed partial class HeifEncoderCore
     {
         if (this.encoder.Layers is IReadOnlyList<HeifLayer> layers)
         {
-            Av1EncodingSettings layeredSettings = this.ResolveAv1Encoding(image, allIntra: false, cancellationToken, layers);
+            Av1EncodingSettings layeredSettings = this.ResolveAv1Encoding(image, allIntra: false, layers, cancellationToken);
             Av1ImageItemEncoding layeredEncoding = this.CompressAv1LayeredImageItem(
                 image.Frames.RootFrame,
                 stream,
@@ -1163,7 +1163,7 @@ internal sealed partial class HeifEncoderCore
             return;
         }
 
-        Av1EncodingSettings settings = this.ResolveAv1Encoding(image, allIntra: true, cancellationToken);
+        Av1EncodingSettings settings = this.ResolveAv1Encoding(image, allIntra: true, layers: null, cancellationToken);
         if (image.Width > Av1Constants.MaxFrameDimension || image.Height > Av1Constants.MaxFrameDimension)
         {
             this.CompressAv1GridPixels(image, stream, settings, items, links, cancellationToken);

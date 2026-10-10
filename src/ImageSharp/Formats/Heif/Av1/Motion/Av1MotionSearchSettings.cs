@@ -52,7 +52,7 @@ internal readonly struct Av1MotionSearchSettings
         int qIndex,
         bool boostedFrame,
         bool screenContent,
-        Av1Tuning tuning = Av1Tuning.Psnr)
+        Av1Tuning tuning)
         : this(speed, intraOnly, frameSize, qIndex, -1, boostedFrame, screenContent, tuning)
     {
     }
@@ -81,7 +81,7 @@ internal readonly struct Av1MotionSearchSettings
         int trialQIndex,
         bool boostedFrame,
         bool lowMeshThreshold,
-        Av1Tuning tuning = Av1Tuning.Psnr)
+        Av1Tuning tuning)
     {
         this.speed = speed;
         this.qIndex = qIndex;

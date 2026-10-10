@@ -130,14 +130,14 @@ internal sealed partial class HeifEncoderCore
     /// <typeparam name="TPixel">The source pixel type.</typeparam>
     /// <param name="image">The source image.</param>
     /// <param name="allIntra">Whether the encoding is a still image without layers, which codes every frame as a key frame.</param>
-    /// <param name="cancellationToken">The token that stops the encode, which the codec options carry.</param>
     /// <param name="layers">The layers of a layered still image, or <see langword="null"/> for an image without layers.</param>
+    /// <param name="cancellationToken">The token that stops the encode, which the codec options carry.</param>
     /// <returns>The resolved settings.</returns>
     private Av1EncodingSettings ResolveAv1Encoding<TPixel>(
         Image<TPixel> image,
         bool allIntra,
-        CancellationToken cancellationToken,
-        IReadOnlyList<HeifLayer>? layers = null)
+        IReadOnlyList<HeifLayer>? layers,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool layered = layers is not null;

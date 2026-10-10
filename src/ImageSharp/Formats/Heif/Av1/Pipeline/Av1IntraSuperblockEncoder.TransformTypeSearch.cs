@@ -116,7 +116,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // The squared error is normalized to eight-bit precision with rounding, then loses the transform
             // scale, so it has the same four fractional bits as pixel-domain distortion.
             long error = Av1TransformBlockEncoder.GetTransformError(
-                this.blockWorkspace, Av1ComponentType.Luminance, transformed, dequantized, size, type, this.bitDepth, out _);
+                this.blockWorkspace, Av1ComponentType.Luminance, transformed, dequantized, size, type, this.bitDepth, out _, useMatrix: true);
 
             return Av1RateDistortion.GetCost(this.rateMultiplier, rate, error);
         }

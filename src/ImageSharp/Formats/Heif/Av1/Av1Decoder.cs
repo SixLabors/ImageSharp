@@ -304,14 +304,14 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// </param>
     /// <param name="codecConfiguration">The AV1 codec configuration validated against the coded sequence header.</param>
     /// <param name="effectiveColorProfile">Receives the effective CICP description associated with the native planes.</param>
-    /// <param name="layeredImageIndex">The optional byte boundaries of a layered AV1 image item.</param>
+    /// <param name="layeredImageIndex">The byte boundaries of a layered AV1 image item, or <see langword="null"/>.</param>
     /// <returns>The reconstructed native frame buffer. Ownership transfers to the caller.</returns>
     public Av1FrameBuffer<byte> DecodeFrameBuffer(
         Span<byte> buffer,
         CicpProfile? containerColorProfile,
         Av1CodecConfiguration? codecConfiguration,
         out CicpProfile effectiveColorProfile,
-        Av1LayeredImageIndex? layeredImageIndex = null)
+        Av1LayeredImageIndex? layeredImageIndex)
         => this.DecodeFrameBuffer(
             buffer,
             containerColorProfile,

@@ -36,7 +36,7 @@ internal ref struct Av1SymbolDecoder
     /// <param name="tileData">The entropy-coded tile payload.</param>
     /// <param name="qIndex">The frame base quantizer index.</param>
     /// <param name="updateCdf">A value indicating whether decoded symbols adapt their tile distributions.</param>
-    public Av1SymbolDecoder(Configuration configuration, Span<byte> tileData, int qIndex, bool updateCdf = true)
+    public Av1SymbolDecoder(Configuration configuration, Span<byte> tileData, int qIndex, bool updateCdf)
         : this(configuration, tileData, new Av1FrameEntropyContext(qIndex), updateCdf)
     {
     }

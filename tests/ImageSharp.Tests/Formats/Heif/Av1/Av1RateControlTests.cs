@@ -123,7 +123,7 @@ public class Av1RateControlTests
             BitDepth = Av1BitDepth.EightBit
         };
 
-        Av1EncoderOptions options = new(HeifEncodingSpeed.Level9, Av1Tuning.Ssim, enableRestoration: true)
+        Av1EncoderOptions options = new(HeifEncodingSpeed.Level9, Av1Tuning.Ssim, enableRestoration: true, allIntra: true)
         {
             RateControlMode = mode,
             MinimumQuantizer = minimumQuantizer,
@@ -140,7 +140,7 @@ public class Av1RateControlTests
             options);
 
         using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(stream.ToArray(), null, null, out _);
+        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(stream.ToArray(), null, null, out _, layeredImageIndex: null);
         Assert.Equal(16, decoded.Width);
         return decoder.FrameHeader.QuantizationParameters.BaseQIndex;
     }

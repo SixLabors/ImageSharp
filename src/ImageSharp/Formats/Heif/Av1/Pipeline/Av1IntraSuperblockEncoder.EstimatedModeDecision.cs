@@ -518,7 +518,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1PredictionMode.DC,
                     chromaTransform,
                     this.codedAreaChroma,
-                    false);
+                    false,
+                    paletteColors: default);
 
                 this.EncodeSelectedIntraPlane(
                     writer,
@@ -544,7 +545,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1PredictionMode.DC,
                     chromaTransform,
                     this.codedAreaChroma,
-                    false);
+                    false,
+                    paletteColors: default);
 
                 Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(subX != 0, subY != 0);
                 Size chromaExtent = GetCodedTransformExtent(macroBlock, chromaBlockSize, chromaTransform, subX, subY);
@@ -607,7 +609,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformSize transformSize,
             int coefficientOffset,
             bool skipResidual,
-            ReadOnlySpan<ushort> paletteColors = default)
+            ReadOnlySpan<ushort> paletteColors)
         {
             int planeIndex = (int)plane;
             int subX = plane == Av1Plane.Y ? 0 : this.source.ChromaSubsamplingX;
@@ -787,7 +789,9 @@ internal static partial class Av1IntraSuperblockEncoder
                                     true,
                                     true,
                                     0,
-                                    ref state);
+                                    ref state,
+                                    dcOnly: false,
+                                    perPixelMean: 0);
 
                                 this.blockWorkspace.LumaNoisePattern = false;
                             }

@@ -102,7 +102,7 @@ internal static partial class Av1FrameEncoder
         int qIndex,
         HeifEncodingSpeed speed)
         where TPixel : unmanaged, IPixel<TPixel>
-        => Encode(configuration, image, stream, colorConfig, qIndex, Av1EncoderOptions.Create(speed));
+        => Encode(configuration, image, stream, colorConfig, qIndex, Av1EncoderOptions.Create(speed, Av1Tuning.Psnr, enableRestoration: true, allIntra: true));
 
     /// <summary>
     /// Encodes one reduced-still-picture AV1 frame into a low-overhead OBU stream.
@@ -190,7 +190,8 @@ internal static partial class Av1FrameEncoder
         int qIndex,
         HeifEncodingSpeed speed)
         where TPixel : unmanaged, IPixel<TPixel>
-        => EncodeAlpha(configuration, image, stream, colorConfig, qIndex, Av1EncoderOptions.Create(speed));
+        => EncodeAlpha(
+            configuration, image, stream, colorConfig, qIndex, Av1EncoderOptions.Create(speed, Av1Tuning.Psnr, enableRestoration: true, allIntra: true));
 
     /// <summary>
     /// Encodes one packed alpha channel as a reduced-still-picture monochrome AV1 frame.
@@ -276,7 +277,8 @@ internal static partial class Av1FrameEncoder
         ObuColorConfig colorConfig,
         int qIndex,
         HeifEncodingSpeed speed)
-        => CreateColorSequenceEncoder(configuration, width, height, colorConfig, qIndex, Av1EncoderOptions.Create(speed, allIntra: false));
+        => CreateColorSequenceEncoder(
+            configuration, width, height, colorConfig, qIndex, Av1EncoderOptions.Create(speed, Av1Tuning.Psnr, enableRestoration: true, allIntra: false));
 
     /// <summary>
     /// Creates an encoder that retains reconstructed color frames for prediction by later samples in the sequence.
@@ -314,7 +316,8 @@ internal static partial class Av1FrameEncoder
         ObuColorConfig colorConfig,
         int qIndex,
         HeifEncodingSpeed speed)
-        => CreateAlphaSequenceEncoder(configuration, width, height, colorConfig, qIndex, Av1EncoderOptions.Create(speed, allIntra: false));
+        => CreateAlphaSequenceEncoder(
+            configuration, width, height, colorConfig, qIndex, Av1EncoderOptions.Create(speed, Av1Tuning.Psnr, enableRestoration: true, allIntra: false));
 
     /// <summary>
     /// Creates an encoder that retains reconstructed alpha frames for prediction by later samples in the sequence.
@@ -630,7 +633,16 @@ internal static partial class Av1FrameEncoder
     {
         Av1ColorFormat colorFormat = colorConfig.GetColorFormat();
         Av1EncoderSpeedSettings speedSettings = new(
-            options.Speed, options.IsAllIntra, intraFrame: true, Av1FrameUpdateType.Key, qIndex: 0, new Size(width, height));
+            options.Speed,
+            options.IsAllIntra,
+            intraFrame: true,
+            Av1FrameUpdateType.Key,
+            qIndex: 0,
+            new Size(width, height),
+            screenContent: false,
+            frameSizeScreenContent: null,
+            sharpness: 0,
+            Av1Tuning.Psnr);
 
         ObuSequenceProfile sequenceProfile = colorConfig.BitDepth == Av1BitDepth.TwelveBit ||
             colorFormat == Av1ColorFormat.Yuv422
@@ -939,7 +951,11 @@ internal static partial class Av1FrameEncoder
                 intraFrame: false,
                 Av1FrameUpdateType.Last,
                 qIndex,
-                new Size(frameHeader.FrameSize.SuperResolutionUpscaledWidth, frameHeader.FrameSize.FrameHeight));
+                new Size(frameHeader.FrameSize.SuperResolutionUpscaledWidth, frameHeader.FrameSize.FrameHeight),
+                screenContent: false,
+                frameSizeScreenContent: null,
+                sharpness: 0,
+                Av1Tuning.Psnr);
 
             frameHeader.AllowHighPrecisionMotionVector =
                 speedSettings.AllowHighPrecisionMotionVector && !frameHeader.ForceIntegerMotionVector;
@@ -1116,7 +1132,11 @@ internal static partial class Av1FrameEncoder
             frameHeader.IsIntra,
             Av1FrameUpdateType.Key,
             frameHeader.QuantizationParameters.BaseQIndex,
-            frameSize);
+            frameSize,
+            screenContent: false,
+            frameSizeScreenContent: null,
+            sharpness: 0,
+            Av1Tuning.Psnr);
 
         Av1MotionSearchSettings motionSettings = new(
             options.Speed,
@@ -1160,7 +1180,8 @@ internal static partial class Av1FrameEncoder
             tileWorkspace,
             blockWorkspace,
             symbolEncoder,
-            true);
+            writeSequenceHeader: true,
+            writeTemporalDelimiter: true);
 
         return true;
     }
@@ -1429,7 +1450,7 @@ internal static partial class Av1FrameEncoder
         Av1EncoderBlockWorkspace blockWorkspace,
         Av1SymbolEncoder symbolEncoder,
         bool writeSequenceHeader,
-        bool writeTemporalDelimiter = true)
+        bool writeTemporalDelimiter)
         where TSample : unmanaged
         where TBlockOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
         where TVerticalEdgeOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
@@ -2066,7 +2087,11 @@ internal static partial class Av1FrameEncoder
                     this.FrameHeader.IsIntra,
                     Av1FrameUpdateType.Key,
                     qIndex,
-                    new Size(width, height));
+                    new Size(width, height),
+                    screenContent: false,
+                    frameSizeScreenContent: null,
+                    sharpness: 0,
+                    Av1Tuning.Psnr);
 
                 this.PictureBuffer = new Av1EncoderPictureBuffer(
                     configuration,
@@ -3503,9 +3528,9 @@ internal static partial class Av1FrameEncoder
             int qIndex,
             int minimumQuantizer,
             int maximumQuantizer,
-            int scaleNumerator = 1,
-            int scaleDenominator = 1,
-            bool qualityChanged = true)
+            int scaleNumerator,
+            int scaleDenominator,
+            bool qualityChanged)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             if (this.codedLayerCount >= this.Options.LayerCount)
@@ -4046,8 +4071,10 @@ internal static partial class Av1FrameEncoder
                 parent.FrameUpdateType,
                 this.QIndex,
                 this.FrameSize,
-                sharpness: this.Options.Sharpness,
-                tuning: this.Options.Tuning);
+                screenContent: false,
+                frameSizeScreenContent: null,
+                this.Options.Sharpness,
+                this.Options.Tuning);
 
             // Good-quality coding with the default objective delta-q mode and the temporal model on pads the border. Real-time coding does not.
             parent.BorderPad = this.UsesBorderPad;

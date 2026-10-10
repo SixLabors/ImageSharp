@@ -635,7 +635,7 @@ internal static partial class Av1MotionSearchBase
             int noSkipRate,
             int skipRate,
             Av1MotionVectorCosts motionCosts,
-            ScaledReference<TSample> scaledReference = default)
+            ScaledReference<TSample> scaledReference)
         {
             this.scaledReference = scaledReference;
             this.source = source;
@@ -766,7 +766,9 @@ internal static partial class Av1MotionSearchBase
                 false,
                 false,
                 costs,
-                out _);
+                out _,
+                forceMesh: false,
+                meshPruneDistance: null);
 
             // The reported motion rate is the vector rate scaled by 108/128, with rounding.
             Av1MotionVector vector = new(integerResult.Vector.Y * 8, integerResult.Vector.X * 8);
@@ -810,7 +812,8 @@ internal static partial class Av1MotionSearchBase
                     this.bitDepth,
                     this.rateMultiplier,
                     [],
-                    []);
+                    [],
+                    scaledReference: default);
 
                 fractionalSearch.Search(
                     vector,
@@ -878,7 +881,8 @@ internal static partial class Av1MotionSearchBase
                 this.bitDepth,
                 this.rateMultiplier,
                 [],
-                []);
+                [],
+                scaledReference: default);
 
             fractionalSearch.Search(
                 new Av1MotionVector(integerVector.Y * 8, integerVector.X * 8),
@@ -1064,7 +1068,9 @@ internal static partial class Av1MotionSearchBase
                     fineMeshInterval,
                     intraBlockCopy: false,
                     Span<int>.Empty,
-                    out Point? candidateSecond);
+                    out Point? candidateSecond,
+                    forceMesh: false,
+                    meshPruneDistance: null);
 
                 if (candidate.Cost < (hasBest ? best.Cost : int.MaxValue))
                 {

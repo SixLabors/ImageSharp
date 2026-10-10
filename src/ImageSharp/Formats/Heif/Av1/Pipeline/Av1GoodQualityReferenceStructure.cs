@@ -133,7 +133,7 @@ internal sealed class Av1GoodQualityReferenceStructure
     /// Whether the frame is a layer after the first. Its flags refresh only LAST, so the frame keeps the reference map of the frame before it and refreshes the
     /// slot of LAST.
     /// </param>
-    public void Configure(ObuFrameHeader frameHeader, int framesSinceKey, int framesToKey, bool usesLayerFlags = false)
+    public void Configure(ObuFrameHeader frameHeader, int framesSinceKey, int framesToKey, bool usesLayerFlags)
     {
         bool keyFrame = frameHeader.FrameType == ObuFrameType.KeyFrame;
         this.displayOrder = framesSinceKey;

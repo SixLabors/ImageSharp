@@ -381,7 +381,7 @@ internal static partial class Av1FrameEncoder
             int pyramidLevel,
             byte referenceFrameFlags,
             bool recodeAllowed,
-            bool disabledByStatistics = false)
+            bool disabledByStatistics)
         {
             this.ReferenceFrameFlags = referenceFrameFlags;
             this.RecodeAllowed = recodeAllowed;

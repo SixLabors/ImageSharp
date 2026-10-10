@@ -92,7 +92,9 @@ public class Av1ForwardQuantizerTests
                         -1,
                         3,
                         bitDepth,
-                        sharpness);
+                        sharpness,
+                        weights: default,
+                        inverseWeights: default);
 
                     Assert.Equal(expectedEndOfBlock, actualEndOfBlock);
                     Assert.Equal(expectedQuantized, actualQuantized);

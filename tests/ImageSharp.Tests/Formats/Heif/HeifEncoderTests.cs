@@ -168,7 +168,7 @@ public class HeifEncoderTests
         }
 
         List<HeifItemLink> links = [gridLink];
-        GridHeifItemDecoder<Rgba32> decoder = new(items.ToDictionary(item => item.Id), links, ReadItem);
+        GridHeifItemDecoder<Rgba32> decoder = new(items.ToDictionary(item => item.Id), links, ReadItem, tileItemIds: null);
         Span<byte> descriptor = [0, 0, 1, 1, 0, outputWidth, 0, outputHeight];
         using Image<Rgba32> result = new(outputWidth, outputHeight);
         decoder.DecodeItemData(
@@ -630,7 +630,13 @@ public class HeifEncoderTests
 
         using (Av1Decoder sampleDecoder = new(Configuration.Default))
         {
-            using Av1FrameBuffer<byte> decodedSamplePlanes = sampleDecoder.DecodeFrameBuffer(GetItemPayload(file, 1), null, null, out _);
+            using Av1FrameBuffer<byte> decodedSamplePlanes = sampleDecoder.DecodeFrameBuffer(
+                GetItemPayload(file, 1),
+                null,
+                null,
+                out _,
+                layeredImageIndex: null);
+
             using Image<Rgba32> decodedSample = new(Configuration.Default, decodedSamplePlanes.Width, decodedSamplePlanes.Height);
             Av1YuvConverter.ConvertToRgb(
                 Configuration.Default,
@@ -1015,7 +1021,7 @@ public class HeifEncoderTests
         image.Save(stream, encoder);
         Span<byte> payload = GetItemPayload(stream.ToArray(), 1);
         using Av1Decoder payloadDecoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> planes = payloadDecoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Av1FrameBuffer<byte> planes = payloadDecoder.DecodeFrameBuffer(payload, null, null, out _, layeredImageIndex: null);
 
         Assert.Equal(2, payloadDecoder.FrameHeader.TilesInfo.TileColumnCount);
         Assert.Equal(2, payloadDecoder.FrameHeader.TilesInfo.TileRowCount);
@@ -1038,7 +1044,7 @@ public class HeifEncoderTests
             if (boxType == Heif4CharCode.Moov)
             {
                 HeifSequenceParser parser = new(new DecoderOptions { MaxFrames = 32 });
-                return parser.Parse(stream, boxLength);
+                return parser.Parse(stream, boxLength, fileStartOffset: 0);
             }
 
             stream.Position = checked(boxStart + boxLength);
@@ -1077,7 +1083,7 @@ public class HeifEncoderTests
         image.Save(stream, new HeifEncoder { Quality = 90, Speed = HeifEncodingSpeed.Level9, Sharpness = sharpness });
         Span<byte> payload = GetItemPayload(stream.ToArray(), 1);
         using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> planes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Av1FrameBuffer<byte> planes = decoder.DecodeFrameBuffer(payload, null, null, out _, layeredImageIndex: null);
 
         Assert.Equal(expected, decoder.FrameHeader.LoopFilterParameters.SharpnessLevel);
     }
@@ -1197,7 +1203,7 @@ public class HeifEncoderTests
         image.Save(stream, new HeifEncoder { Quality = 90, Speed = HeifEncodingSpeed.Level9, Tuning = tuning });
         Span<byte> payload = GetItemPayload(stream.ToArray(), 1);
         using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> planes = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Av1FrameBuffer<byte> planes = decoder.DecodeFrameBuffer(payload, null, null, out _, layeredImageIndex: null);
 
         Assert.Equal(expectedMatrices, decoder.FrameHeader.QuantizationParameters.IsUsingQMatrix);
         Assert.Equal(expectedSharpness, decoder.FrameHeader.LoopFilterParameters.SharpnessLevel);
@@ -1390,7 +1396,7 @@ public class HeifEncoderTests
             });
 
         using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(GetItemPayload(stream.ToArray(), 1), null, null, out _);
+        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(GetItemPayload(stream.ToArray(), 1), null, null, out _, layeredImageIndex: null);
         ObuQuantizationParameters quantization = decoder.FrameHeader!.QuantizationParameters;
         Assert.Equal(expectedDelta, quantization.DeltaQDc[(int)Av1Plane.U]);
         Assert.Equal(expectedDelta, quantization.DeltaQAc[(int)Av1Plane.V]);
@@ -1429,7 +1435,7 @@ public class HeifEncoderTests
         if (rateControl is HeifRateControl.VariableBitRate or HeifRateControl.ConstantBitRate)
         {
             byte[] file = stream.ToArray();
-            int quantizer = HeifEncoderCore.GetAv1Quantizer(80);
+            int quantizer = HeifEncoderCore.GetAv1Quantizer(80, imageTune: false);
             using Av1Decoder decoder = new(Configuration.Default);
             foreach (HeifSequenceSample sample in ParseSequence(file).ColorTrack.Samples)
             {
@@ -1484,7 +1490,7 @@ public class HeifEncoderTests
         int[] qIndices = DecodeLayerQIndices(file, GetItemExtents(file, 1));
         for (int layer = 0; layer < qualities.Length; layer++)
         {
-            int quantizer = HeifEncoderCore.GetAv1Quantizer(qualities[layer]);
+            int quantizer = HeifEncoderCore.GetAv1Quantizer(qualities[layer], imageTune: false);
             Assert.InRange(qIndices[layer], Av1QuantizationLookup.GetQIndex(quantizer - 4), Av1QuantizationLookup.GetQIndex(quantizer + 4));
         }
     }
@@ -1615,7 +1621,7 @@ public class HeifEncoderTests
         image.Save(stream, new HeifEncoder { Lossless = true, RateControl = rateControl });
 
         using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(GetItemPayload(stream.ToArray(), 1), null, null, out _);
+        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(GetItemPayload(stream.ToArray(), 1), null, null, out _, layeredImageIndex: null);
         Assert.Equal(0, decoder.FrameHeader!.QuantizationParameters.BaseQIndex);
         Assert.True(decoder.FrameHeader.CodedLossless);
     }
@@ -1640,7 +1646,7 @@ public class HeifEncoderTests
         image.Save(stream, new HeifEncoder { Lossless = true, ChromaSubsampling = chromaSubsampling });
 
         using Av1Decoder decoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(GetItemPayload(stream.ToArray(), 1), null, null, out _);
+        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(GetItemPayload(stream.ToArray(), 1), null, null, out _, layeredImageIndex: null);
         Assert.NotEqual(ObuMatrixCoefficients.Identity, decoder.SequenceHeader!.ColorConfig.MatrixCoefficients);
         Assert.True(decoder.FrameHeader!.CodedLossless);
 
@@ -1758,7 +1764,11 @@ public class HeifEncoderTests
             {
                 int[] alphaQIndices = DecodeLayerQIndices(file, alpha);
                 Assert.Equal(
-                    [HeifEncoderCore.GetAv1QuantizerIndex(30), HeifEncoderCore.GetAv1QuantizerIndex(60), HeifEncoderCore.GetAv1QuantizerIndex(60)],
+                    [
+                        HeifEncoderCore.GetAv1QuantizerIndex(30, imageTune: false),
+                        HeifEncoderCore.GetAv1QuantizerIndex(60, imageTune: false),
+                        HeifEncoderCore.GetAv1QuantizerIndex(60, imageTune: false),
+                    ],
                     alphaQIndices);
             }
         }
@@ -1951,7 +1961,7 @@ public class HeifEncoderTests
         Span<byte> colorPayload = GetItemPayload(file, 1);
         Span<byte> alphaPayload = GetItemPayload(file, 2);
         using Av1Decoder colorDecoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> colorImagePlanes = colorDecoder.DecodeFrameBuffer(colorPayload, null, null, out _);
+        using Av1FrameBuffer<byte> colorImagePlanes = colorDecoder.DecodeFrameBuffer(colorPayload, null, null, out _, layeredImageIndex: null);
         using Image<Rgba32> colorImage = new(Configuration.Default, colorImagePlanes.Width, colorImagePlanes.Height);
         Av1YuvConverter.ConvertToRgb(
             Configuration.Default,
@@ -1974,7 +1984,7 @@ public class HeifEncoderTests
         Assert.Equal(76, colorFrameHeader.QuantizationParameters.BaseQIndex);
 
         using Av1Decoder alphaDecoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> alphaImagePlanes = alphaDecoder.DecodeFrameBuffer(alphaPayload, null, null, out _);
+        using Av1FrameBuffer<byte> alphaImagePlanes = alphaDecoder.DecodeFrameBuffer(alphaPayload, null, null, out _, layeredImageIndex: null);
         using Image<L8> alphaImage = new(Configuration.Default, alphaImagePlanes.Width, alphaImagePlanes.Height);
         Av1YuvConverter.ConvertToRgb(
             Configuration.Default,
@@ -2041,7 +2051,7 @@ public class HeifEncoderTests
         byte[] file = stream.ToArray();
         Span<byte> payload = GetItemPayload(file, 1);
         using Av1Decoder payloadDecoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> payloadImagePlanes = payloadDecoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Av1FrameBuffer<byte> payloadImagePlanes = payloadDecoder.DecodeFrameBuffer(payload, null, null, out _, layeredImageIndex: null);
         using Image<Rgb48> payloadImage = new(Configuration.Default, payloadImagePlanes.Width, payloadImagePlanes.Height);
         Av1YuvConverter.ConvertToRgb(
             Configuration.Default,
@@ -2102,7 +2112,7 @@ public class HeifEncoderTests
         image.Save(stream, encoder);
         Span<byte> payload = GetItemPayload(stream.ToArray(), 1);
         using Av1Decoder payloadDecoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> planes = payloadDecoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Av1FrameBuffer<byte> planes = payloadDecoder.DecodeFrameBuffer(payload, null, null, out _, layeredImageIndex: null);
 
         // The requested counts are capped at one tile per superblock in each direction.
         ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(payloadDecoder.SequenceHeader);
@@ -2148,7 +2158,7 @@ public class HeifEncoderTests
         byte[] file = stream.ToArray();
         Span<byte> payload = GetItemPayload(file, 1);
         using Av1Decoder payloadDecoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> payloadImagePlanes = payloadDecoder.DecodeFrameBuffer(payload, null, null, out _);
+        using Av1FrameBuffer<byte> payloadImagePlanes = payloadDecoder.DecodeFrameBuffer(payload, null, null, out _, layeredImageIndex: null);
         using Image<Rgb48> payloadImage = new(Configuration.Default, payloadImagePlanes.Width, payloadImagePlanes.Height);
         Av1YuvConverter.ConvertToRgb(
             Configuration.Default,
@@ -2226,7 +2236,7 @@ public class HeifEncoderTests
         Assert.Equal(fullRange, profile.FullRange);
         byte[] file = stream.ToArray();
         using Av1Decoder sampleDecoder = new(Configuration.Default);
-        using Av1FrameBuffer<byte> samplePlanes = sampleDecoder.DecodeFrameBuffer(GetItemPayload(file, 1), null, null, out _);
+        using Av1FrameBuffer<byte> samplePlanes = sampleDecoder.DecodeFrameBuffer(GetItemPayload(file, 1), null, null, out _, layeredImageIndex: null);
         using Image<Rgb24> sample = new(Configuration.Default, samplePlanes.Width, samplePlanes.Height);
         Av1YuvConverter.ConvertToRgb(
             Configuration.Default,
@@ -2758,7 +2768,12 @@ public class HeifEncoderTests
         tileItem.SetExtent(new Size(width, height));
         HeifItemLink gridLink = new(Heif4CharCode.Dimg, gridItem.Id);
         gridLink.DestinationIds.Add(tileItem.Id);
-        GridHeifItemDecoder<Rgba32> decoder = new(new Dictionary<uint, HeifItem> { [gridItem.Id] = gridItem, [tileItem.Id] = tileItem }, [gridLink], ReadItem);
+        GridHeifItemDecoder<Rgba32> decoder = new(
+            new Dictionary<uint, HeifItem> { [gridItem.Id] = gridItem, [tileItem.Id] = tileItem },
+            [gridLink],
+            ReadItem,
+            tileItemIds: null);
+
         byte[] descriptor = new byte[8];
         BinaryPrimitives.WriteUInt16BigEndian(descriptor.AsSpan(4), (ushort)width);
         BinaryPrimitives.WriteUInt16BigEndian(descriptor.AsSpan(6), (ushort)height);

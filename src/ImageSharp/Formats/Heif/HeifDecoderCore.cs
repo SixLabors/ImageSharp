@@ -925,7 +925,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         Dictionary<Heif4CharCode, (long Offset, long Length)> boxes = [];
         while (stream.Position < endPosition)
         {
-            long length = HeifBoxReader.ReadHeader(stream, endPosition, this.boxHeaderBuffer, out Heif4CharCode boxType);
+            long length = HeifBoxReader.ReadHeader(stream, endPosition, this.boxHeaderBuffer, out Heif4CharCode boxType, topLevel: false);
             if (MetadataParseOrder.Contains(boxType))
             {
                 // Association and location boxes can precede the item declarations they reference.
@@ -1288,7 +1288,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         List<(long Offset, long Length)> associations = [];
         while (stream.Position < endBoxPosition)
         {
-            long containerLength = HeifBoxReader.ReadHeader(stream, endBoxPosition, this.boxHeaderBuffer, out Heif4CharCode containerType);
+            long containerLength = HeifBoxReader.ReadHeader(stream, endBoxPosition, this.boxHeaderBuffer, out Heif4CharCode containerType, topLevel: false);
             if (containerType == Heif4CharCode.Ipco)
             {
                 if (propertyContainer.HasValue)
@@ -1334,7 +1334,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         long endPosition = stream.Position + boxLength;
         while (stream.Position < endPosition)
         {
-            long itemLength = HeifBoxReader.ReadHeader(stream, endPosition, this.boxHeaderBuffer, out Heif4CharCode itemType);
+            long itemLength = HeifBoxReader.ReadHeader(stream, endPosition, this.boxHeaderBuffer, out Heif4CharCode itemType, topLevel: false);
             if (this.Options.SkipMetadata && itemType is Heif4CharCode.Pasp
                 or Heif4CharCode.Clli
                 or Heif4CharCode.Mdcv
@@ -2680,7 +2680,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         Func<HeifItem, IMemoryOwner<byte>> itemDataReader)
         where TPixel : unmanaged, IPixel<TPixel>
         => item.Type == Heif4CharCode.Grid && this.FindDecodableGridTile<TPixel>(item) is not null
-            ? new GridHeifItemDecoder<TPixel>(this.items, this.itemLinks, itemDataReader)
+            ? new GridHeifItemDecoder<TPixel>(this.items, this.itemLinks, itemDataReader, tileItemIds: null)
             : HeifCompressionFactory.GetDecoder<TPixel>(item.Type);
 
     /// <summary>

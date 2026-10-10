@@ -181,7 +181,9 @@ internal static partial class Av1TransformBlockEncoder
             candidate.UseChromaWeights,
             false,
             blockMseQ8,
-            ref state);
+            ref state,
+            dcOnly: false,
+            perPixelMean: 0);
 
         if (useTransformDomainDistortion)
         {
@@ -633,8 +635,8 @@ internal static partial class Av1TransformBlockEncoder
         bool winnerEvaluation,
         uint blockMseQ8,
         ref Av1EncoderTransformBlockState state,
-        bool dcOnly = false,
-        long perPixelMean = 0)
+        bool dcOnly,
+        long perPixelMean)
     {
         // The coefficient buffers of this block.
         int coefficientCount = transformSize.GetAdjusted().GetSize2d();
@@ -1075,7 +1077,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformType transformType,
         Av1BitDepth bitDepth,
         out long sumOfSquares,
-        bool useMatrix = true)
+        bool useMatrix)
     {
         if (useMatrix && workspace.EncoderOptions.DistortionMetric == Av1DistortionMetric.QuantizationMatrixPsnr)
         {
@@ -1400,7 +1402,9 @@ internal static partial class Av1TransformBlockEncoder
                         dcDeltaQ,
                         0,
                         bitDepth,
-                        sharpness);
+                        sharpness,
+                        weights: default,
+                        inverseWeights: default);
                 }
 
                 int transformRate = writer.GetCoefficientCost(

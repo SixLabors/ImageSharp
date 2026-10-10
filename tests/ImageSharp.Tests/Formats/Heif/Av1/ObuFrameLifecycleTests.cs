@@ -67,7 +67,7 @@ public class ObuFrameLifecycleTests
         ObuReader obuReader = new(ProgressiveOperatingPointIndex, referenceFrames);
         LifecycleTileReaderFactory factory = new(obuReader, referenceFrames, NoFailingReaderIndex);
 
-        obuReader.ReadAll(ref reader, bitStream.Length, factory.Create);
+        obuReader.ReadAll(ref reader, bitStream.Length, factory.Create, isAnnexB: false);
 
         ObuFrameHeader secondFrameHeader = Assert.IsType<ObuFrameHeader>(factory.Readers[1].CompletedFrameHeader);
 
@@ -113,6 +113,7 @@ public class ObuFrameLifecycleTests
             null,
             null,
             false);
+
         using ImageFrame<Rgba32> existing = new(Configuration.Default, ProgressiveImageWidth, ProgressiveImageHeight);
         decoder.DecodeSequenceFrame(
             showExistingFrame,

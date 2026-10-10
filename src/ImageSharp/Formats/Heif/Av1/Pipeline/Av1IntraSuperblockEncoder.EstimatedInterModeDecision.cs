@@ -593,7 +593,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         (Av1PredictionMode)winner.UvMode,
                         chromaTransform,
                         this.codedAreaChroma,
-                        modeInfo.Block.Skip);
+                        modeInfo.Block.Skip,
+                        paletteColors: default);
 
                     this.EncodeSelectedIntraPlane(
                         writer,
@@ -619,7 +620,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         (Av1PredictionMode)winner.UvMode,
                         chromaTransform,
                         this.codedAreaChroma,
-                        modeInfo.Block.Skip);
+                        modeInfo.Block.Skip,
+                        paletteColors: default);
                 }
             }
 
@@ -1885,7 +1887,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             false,
                             true,
                             0,
-                            ref state);
+                            ref state,
+                            dcOnly: false,
+                            perPixelMean: 0);
 
                         // The inverse transform matches the forward transform, which the segment lossless flag selects.
                         if (state.EndOfBlock > 0)
@@ -2420,7 +2424,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     0,
                     Av1SymbolEncoder.GetSkipCost(modeCosts, false, skipContext),
                     Av1SymbolEncoder.GetSkipCost(modeCosts, true, skipContext),
-                    motionVectorCosts);
+                    motionVectorCosts,
+                    scaledReference: default);
 
                 Av1MotionSearchBase.FractionalResult result;
                 if (this.UsesProjectionMotionSearch(modeInfo.ReferenceFrame))

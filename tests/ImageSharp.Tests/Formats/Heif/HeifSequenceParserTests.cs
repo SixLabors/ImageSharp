@@ -206,7 +206,7 @@ public class HeifSequenceParserTests
         HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
         stream.Position = BoxHeaderLength;
 
-        HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data));
+        HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data), fileStartOffset: 0);
 
         Assert.Equal(SyntheticMovieTimescale, sequence.MovieTimescale);
         Assert.Null(sequence.AlphaTrack);
@@ -252,7 +252,7 @@ public class HeifSequenceParserTests
         HeifSequenceParser parser = CreateParser(retainedFrameLimit);
         stream.Position = BoxHeaderLength;
 
-        HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data));
+        HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data), fileStartOffset: 0);
 
         Assert.Equal(SyntheticSampleCount, sequence.ColorTrack.TotalSampleCount);
         HeifSequenceSample sample = Assert.Single(sequence.ColorTrack.Samples);
@@ -290,7 +290,7 @@ public class HeifSequenceParserTests
         stream.Position = BoxHeaderLength;
 
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
+        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data), fileStartOffset: 0));
         long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
 
         // One million retained sample descriptors need tens of megabytes. Rejecting the count first needs almost none.
@@ -309,7 +309,7 @@ public class HeifSequenceParserTests
         HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
         stream.Position = BoxHeaderLength;
 
-        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
+        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data), fileStartOffset: 0));
     }
 
     /// <summary>
@@ -333,7 +333,7 @@ public class HeifSequenceParserTests
         HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
         stream.Position = BoxHeaderLength;
 
-        HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data));
+        HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data), fileStartOffset: 0);
 
         Assert.NotNull(sequence.AlphaTrack);
         Assert.Equal(AlphaTrackId, sequence.AlphaTrack.Id);

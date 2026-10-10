@@ -40,8 +40,8 @@ internal static partial class Av1ForwardQuantizer
         int acDeltaQ,
         Av1BitDepth bitDepth,
         int sharpness,
-        ReadOnlySpan<byte> weights = default,
-        ReadOnlySpan<byte> inverseWeights = default)
+        ReadOnlySpan<byte> weights,
+        ReadOnlySpan<byte> inverseWeights)
     {
         // A quantization matrix uses the matrix path at every bit depth. Without a matrix, the bit depth selects the operator.
         if (!weights.IsEmpty)
@@ -54,11 +54,31 @@ internal static partial class Av1ForwardQuantizer
         if (bitDepth != Av1BitDepth.EightBit)
         {
             return Quantize<HighBitDepthFastQuantizationOperator>(
-                coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, inverseScan, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness);
+                coefficients,
+                quantizedCoefficients,
+                dequantizedCoefficients,
+                transformSize,
+                inverseScan,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                bitDepth,
+                sharpness,
+                scanOrder: false);
         }
 
         return Quantize<FastQuantizationOperator>(
-            coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, inverseScan, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness);
+            coefficients,
+            quantizedCoefficients,
+            dequantizedCoefficients,
+            transformSize,
+            inverseScan,
+            qIndex,
+            dcDeltaQ,
+            acDeltaQ,
+            bitDepth,
+            sharpness,
+            scanOrder: false);
     }
 
     /// <summary>
@@ -84,7 +104,8 @@ internal static partial class Av1ForwardQuantizer
             0,
             0,
             bitDepth,
-            0);
+            0,
+            scanOrder: false);
 
     /// <summary>
     /// Quantizes estimation coefficients in their specified scan order.
@@ -151,7 +172,7 @@ internal static partial class Av1ForwardQuantizer
         int acDeltaQ,
         Av1BitDepth bitDepth,
         int sharpness,
-        bool scanOrder = false)
+        bool scanOrder)
         where TOperator : struct, IForwardQuantizationOperator
     {
         int coefficientCount = transformSize.GetAdjusted().GetSize2d();

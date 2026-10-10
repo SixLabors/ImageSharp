@@ -77,13 +77,13 @@ internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
     /// <param name="itemLinks">The item-reference relationships in the containing HEIF file.</param>
     /// <param name="itemDataReader">Reads one selected encoded image payload on demand.</param>
     /// <param name="tileItemIds">
-    /// Optional row-major tile identifiers that replace the grid item's own derived-image references.
+    /// The row-major tile identifiers that replace the grid item's own derived-image references, or <see langword="null"/> to use those references.
     /// </param>
     public GridHeifItemDecoder(
         Dictionary<uint, HeifItem> items,
         IList<HeifItemLink> itemLinks,
         Func<HeifItem, IMemoryOwner<byte>> itemDataReader,
-        IReadOnlyList<uint>? tileItemIds = null)
+        IReadOnlyList<uint>? tileItemIds)
     {
         this.items = items;
         this.itemLinks = itemLinks;

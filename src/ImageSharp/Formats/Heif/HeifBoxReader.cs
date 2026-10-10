@@ -32,7 +32,7 @@ internal readonly struct HeifBoxReader
     /// <param name="boxType">Receives the box four-character code.</param>
     /// <param name="topLevel">Indicates whether a size-zero box can extend to the end of the file.</param>
     /// <returns>The number of payload bytes following the complete variable-length header.</returns>
-    public static long ReadHeader(Stream stream, long parentEndPosition, Span<byte> headerBuffer, out Heif4CharCode boxType, bool topLevel = false)
+    public static long ReadHeader(Stream stream, long parentEndPosition, Span<byte> headerBuffer, out Heif4CharCode boxType, bool topLevel)
     {
         if (parentEndPosition - stream.Position < 8)
         {

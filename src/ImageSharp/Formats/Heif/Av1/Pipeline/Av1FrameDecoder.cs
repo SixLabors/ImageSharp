@@ -64,7 +64,7 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder
         Av1FrameBuffer<byte> frameBuffer,
         Av1ReferenceFrameStore referenceFrames,
         Memory<short> reconstructionWorkspace,
-        Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps = null)
+        Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;

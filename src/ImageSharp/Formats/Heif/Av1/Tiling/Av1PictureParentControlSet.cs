@@ -135,7 +135,8 @@ internal class Av1PictureParentControlSet
     /// <summary>
     /// Gets or sets the encoder configuration of this picture.
     /// </summary>
-    public Av1EncoderOptions EncoderOptions { get; set; } = Av1EncoderOptions.Create(HeifEncodingSpeed.Level6);
+    public Av1EncoderOptions EncoderOptions { get; set; } =
+        Av1EncoderOptions.Create(HeifEncodingSpeed.Level6, Av1Tuning.Psnr, enableRestoration: true, allIntra: true);
 
     /// <summary>
     /// Gets or sets the configured quantizer index of constant-quality rate control.

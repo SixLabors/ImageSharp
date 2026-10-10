@@ -69,7 +69,8 @@ public class Av1CompoundBlockDecoderTests
             frameHeader,
             frameBuffer,
             referenceFrames,
-            workspace.Memory);
+            workspace.Memory,
+            paletteColorIndexMaps: null);
 
         decoder.UpdateSuperblock(superblockInfo);
         Span<short> decoderWorkspace = decoder.Workspace;
@@ -224,7 +225,8 @@ public class Av1CompoundBlockDecoderTests
             frameHeader,
             frameBuffer,
             referenceFrames,
-            workspace.Memory);
+            workspace.Memory,
+            paletteColorIndexMaps: null);
 
         decoder.UpdateSuperblock(superblockInfo);
         decoder.DecodeBlock(
@@ -309,7 +311,8 @@ public class Av1CompoundBlockDecoderTests
             frameHeader,
             frameBuffer,
             referenceFrames,
-            workspace.Memory);
+            workspace.Memory,
+            paletteColorIndexMaps: null);
 
         decoder.UpdateSuperblock(superblockInfo);
         decoder.DecodeBlock(

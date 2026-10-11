@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Ans;
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 
 /// <summary>
-/// Cluster encoder
+/// Histogram clustering &amp; utilities.
 /// </summary>
 internal static class JxlCluster
 {
@@ -31,7 +31,7 @@ internal static class JxlCluster
         Span<int> countsSpan = CollectionsMarshal.AsSpan(histogram.Counts);
         ref int countsRef = ref MemoryMarshal.GetReference(countsSpan);
 
-        for (int i = 0; i < countsSpan.Length; i += Vector<int>.Count)
+        for (int i = 0; i <= countsSpan.Length - Vector<int>.Count; i += Vector<int>.Count)
         {
             Vector<int> counts = Vector.LoadUnsafe(ref Unsafe.Add(ref countsRef, i));
             bool isNonZero = !Vector.AllWhereAllBitsSet(Vector.Equals(counts, Vector<int>.Zero));
@@ -66,7 +66,7 @@ internal static class JxlCluster
         Span<int> countsSpan = CollectionsMarshal.AsSpan(a.Counts);
         ref int countsRef = ref MemoryMarshal.GetReference(countsSpan);
 
-        for (int i = 0; i < countsSpan.Length; i += Vector<int>.Count)
+        for (int i = 0; i <= countsSpan.Length - Vector<int>.Count; i += Vector<int>.Count)
         {
             Vector<int> counts = Vector.LoadUnsafe(ref Unsafe.Add(ref countsRef, i));
             entropyLanes += Entropy(
@@ -95,7 +95,7 @@ internal static class JxlCluster
         Span<int> bCountsSpan = CollectionsMarshal.AsSpan(b.Counts);
         ref int bCountsRef = ref MemoryMarshal.GetReference(bCountsSpan);
 
-        for (int i = 0; i < Math.Max(aCountsSpan.Length, bCountsSpan.Length); i += Vector<int>.Count)
+        for (int i = 0; i <= Math.Max(aCountsSpan.Length, bCountsSpan.Length) - Vector<int>.Count; i += Vector<int>.Count)
         {
             Vector<int> aCounts = aCountsSpan.Length > i
                 ? Vector.LoadUnsafe(ref Unsafe.Add(ref aCountsRef, i))

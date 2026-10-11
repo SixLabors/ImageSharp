@@ -11,7 +11,7 @@ internal static class JxlAnsReader
 {
     private const int WindowSize = 1 << 20;
 
-    private const int NumSpecialDistances = 120;
+    public const int NumSpecialDistances = 120;
 
     // Prefer jagged arrays over multidimensional arrays
     // for performance. Collection expressions help represent
@@ -56,7 +56,7 @@ internal static class JxlAnsReader
     ];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int SpecialDistance(int index, int multiplier)
+    public static int SpecialDistance(int index, int multiplier)
     {
         Span<sbyte> indexDistance = SpecialDistances[index];
         int dist = indexDistance[0] + (multiplier * indexDistance[1]);

@@ -16,7 +16,7 @@ internal static class JxlExternalImageDecoder
         Vector<float> one = Vector<float>.One;
         Vector<float> scale = Vector.Create(mul);
 
-        for (int x = 0; x < num; x += Vector<float>.Count)
+        for (int x = 0; x <= num - Vector<float>.Count; x += Vector<float>.Count)
         {
             Vector<float> v = Vector.Create<float>(input[x..]);
             v = Vector.ClampNative(v, Vector<float>.Zero, one);

@@ -41,6 +41,104 @@ internal sealed class JxlFrameDecoder
     /// </summary>
     private bool ContainsDcGroupToDecode => this.decodedDcGroups.Any(x => x == 0);
 
+    public int References
+    {
+        get
+        {
+            if (!this.isFinalized)
+            {
+                return 0;
+            }
+
+            if (!this.HasEverything)
+            {
+                return 0;
+            }
+
+            int result = 0;
+
+            if (this.frameHeader.FrameType is JxlFrameType.RegularFrame or JxlFrameType.SkipProgressive)
+            {
+                bool cropped = this.frameHeader.CustomSizeOrOrigin;
+                if (cropped || this.frameHeader.BlendingInfo!.BlendMode != JxlBlendMode.Replace)
+                {
+                    result |= 1 << (int)this.frameHeader.BlendingInfo!.Source;
+                }
+
+                List<JxlBlendingInfo> extra = this.frameHeader.ExtraChannelBlendingInfo;
+                foreach (JxlBlendingInfo extraChannelBlendingInfo in extra)
+                {
+                    if (cropped || extraChannelBlendingInfo.BlendMode != JxlBlendMode.Replace)
+                    {
+                        result |= 1 << (int)extraChannelBlendingInfo.Source;
+                    }
+                }
+            }
+
+            // Patches
+            if ((this.frameHeader.Flags & (ulong)JxlFrameHeaderFlags.Patches) != 0)
+            {
+                result |= this.decoderState.Shared.ImageFeatures.PatchDictionary.GetReferences();
+            }
+
+            // DC Level
+            if ((this.frameHeader.Flags & (ulong)JxlFrameHeaderFlags.Dc) != 0)
+            {
+                // Reads from the next DC level
+                int dcLevel = (int)this.frameHeader.DcLevel + 1;
+
+                // Bits 16, 32, 64, 128 for DC level
+                result |= 16 << (dcLevel - 1);
+            }
+
+            return result;
+        }
+    }
+
+    public bool HasEverything
+    {
+        get
+        {
+            if (!this.decodedDcGlobal)
+            {
+                return false;
+            }
+
+            if (!this.decodedAcGlobal)
+            {
+                return false;
+            }
+
+            if (this.HasDcGroupToDecode)
+            {
+                return false;
+            }
+
+            if (this.decodedPassesPerAcGroup.Any(nbp => nbp < this.frameHeader.Passes.NumPasses))
+            {
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    public static int SavedAs(JxlFrameHeader header)
+    {
+        if (header.FrameType == JxlFrameType.DcFrame)
+        {
+            // Bits 16, 32, 64, 128 for DC level
+            return 16 << ((int)header.DcLevel - 1);
+        }
+        else if (header.CanBeReferenced)
+        {
+            // Bits 1, 2, 4 and 8 for the references
+            return 1 << (int)header.SaveAsReference;
+        }
+
+        return 0;
+    }
+
     private static int GetStride(int width, JxlPixelFormat format)
     {
         if (!JxlMath.SafeMultiply(BytesPerChannel(format.DataType), format.Channels, out int xStride))

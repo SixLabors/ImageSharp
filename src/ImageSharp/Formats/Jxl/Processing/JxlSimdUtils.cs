@@ -358,7 +358,7 @@ internal static partial class JxlSimdUtils
 
     public static Vector<T> Iota<T>(T start)
         where T : unmanaged, INumber<T>
-        => IotaMask<T>.IncrementMask + Vector.Create(start);
+        => IotaMask<T>.BaseMask + Vector.Create(start);
 
     /// <summary>
     /// Vectorized floating-point error function (precise approximate).
@@ -605,17 +605,21 @@ internal static partial class JxlSimdUtils
         where T : unmanaged, INumber<T>
     {
         public static readonly Vector<T> IncrementMask;
+        public static readonly Vector<T> BaseMask;
 
         static IotaMask()
         {
             Span<T> values = stackalloc T[Vector<T>.Count];
+            Span<T> baseValues = stackalloc T[Vector<T>.Count];
 
             for (int i = 0; i < Vector<T>.Count; i++)
             {
                 values[i] = T.CreateSaturating(i + 1);
+                baseValues[i] = T.CreateSaturating(i);
             }
 
             IncrementMask = Vector.Create<T>(values);
+            BaseMask = Vector.Create<T>(baseValues);
         }
     }
 }

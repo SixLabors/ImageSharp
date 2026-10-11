@@ -6,11 +6,15 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Ans;
 /// <summary>
 /// ANS histogram.
 /// </summary>
-internal sealed class JxlHistogram(int length)
+internal sealed class JxlHistogram
 {
     public const int Rounding = 8;
 
-    public List<int> Counts { get; set; } = new(length);
+    public JxlHistogram(int length) => this.Counts = new(length);
+
+    public JxlHistogram() => this.Counts = [];
+
+    public List<int> Counts { get; set; }
 
     public int TotalCount { get; set; }
 

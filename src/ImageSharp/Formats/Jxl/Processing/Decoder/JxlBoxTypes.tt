@@ -1,0 +1,47 @@
+<#@ template language="C#" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".Generated.cs" #>
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
+
+<#
+    string[] boxTypes = new[]
+    {
+        "FileType=ftyp",
+        "JxlCodeStream=jxlc",
+        "JxlPartialCodeStream=jxlp",
+        "Brob=brob",
+        "Xml=xml ",
+        "Exif=Exif",
+        "Jxl=jxl "
+    };
+#>
+/// <summary>
+/// Contains constants which represent JPEG XL container format
+/// box types as an integer.
+/// </summary>
+internal static class JxlBoxTypes
+{
+<#
+    foreach (string boxType in boxTypes)
+    {
+        string[] split = boxType.Split('=');
+        string name = split[0];
+        string fourCC = split[1];
+        uint boxNum = ((uint)fourCC[0] << 24) |
+           ((uint)fourCC[1] << 16) |
+           ((uint)fourCC[2] << 8) |
+           fourCC[3];
+        string hex = $"0x{boxNum:X8}";
+#>
+    /// <summary>
+    /// <#= fourCC #>
+    /// </summary>
+    public const int <#= name #> = <#= hex #>;
+
+<# } #>
+}

@@ -1,0 +1,13 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+namespace SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg;
+
+internal enum JpegReadMode : byte
+{
+    ReadHeader,
+
+    ReadTables,
+
+    ReadEverything
+}

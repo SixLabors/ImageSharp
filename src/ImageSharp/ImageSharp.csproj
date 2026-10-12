@@ -44,6 +44,11 @@
     <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
     <None Include="..\..\shared-infrastructure\branding\icons\imagesharp\sixlabors.imagesharp.128.png" Pack="true" PackagePath="" />
     <None Include="..\..\SixLabors.ImageSharp.props" Pack="true" PackagePath="build" />
+    <None Include="Formats\Jxl\Processing\JxlSimdUtils.StoreInterleaved.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>JxlSimdUtils.StoreInterleaved.tt</DependentUpon>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -56,6 +61,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>InlineArray.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Formats\Jxl\Processing\JxlSimdUtils.StoreInterleaved.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>JxlSimdUtils.StoreInterleaved.tt</DependentUpon>
     </Compile>
     <Compile Update="Formats\_Generated\ImageExtensions.Save.cs">
       <DesignTime>True</DesignTime>
@@ -163,6 +173,10 @@
     <None Update="Common\InlineArray.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>InlineArray.cs</LastGenOutput>
+    </None>
+    <None Update="Formats\Jxl\Processing\JxlSimdUtils.StoreInterleaved.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>JxlSimdUtils.StoreInterleaved.Generated.cs</LastGenOutput>
     </None>
     <None Update="Formats\_Generated\ImageMetadataExtensions.tt">
       <LastGenOutput>ImageMetadataExtensions.cs</LastGenOutput>

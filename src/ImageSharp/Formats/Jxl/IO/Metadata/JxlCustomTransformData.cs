@@ -8,9 +8,9 @@ namespace SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 
 internal sealed class JxlCustomTransformData : IJxlFields
 {
-    private InlineArray15<float> upsampling2Weights;
-    private InlineArray55<float> upsampling4Weights;
-    private InlineArray210<float> upsampling8Weights;
+    public InlineArray15<float> Upsampling2Weights;
+    public InlineArray55<float> Upsampling4Weights;
+    public InlineArray210<float> Upsampling8Weights;
     private uint customWeightsMask;
     private bool allDefault;
 
@@ -100,24 +100,6 @@ internal sealed class JxlCustomTransformData : IJxlFields
         set => this.customWeightsMask = value;
     }
 
-    public InlineArray15<float> Upsampling2Weights
-    {
-        get => this.upsampling2Weights;
-        set => this.upsampling2Weights = value;
-    }
-
-    public InlineArray55<float> Upsampling4Weights
-    {
-        get => this.upsampling4Weights;
-        set => this.upsampling4Weights = value;
-    }
-
-    public InlineArray210<float> Upsampling8Weights
-    {
-        get => this.upsampling8Weights;
-        set => this.upsampling8Weights = value;
-    }
-
     public bool Visit(JxlVisitor visitor)
     {
         if (visitor.AllDefault(this, ref this.allDefault))
@@ -143,7 +125,7 @@ internal sealed class JxlCustomTransformData : IJxlFields
         {
             for (int i = 0; i < 15; i++)
             {
-                if (!visitor.F16(Weights2[i], ref this.upsampling2Weights[i]))
+                if (!visitor.F16(Weights2[i], ref this.Upsampling2Weights[i]))
                 {
                     return false;
                 }
@@ -154,7 +136,7 @@ internal sealed class JxlCustomTransformData : IJxlFields
         {
             for (int i = 0; i < 55; i++)
             {
-                if (!visitor.F16(Weights4[i], ref this.upsampling4Weights[i]))
+                if (!visitor.F16(Weights4[i], ref this.Upsampling4Weights[i]))
                 {
                     return false;
                 }
@@ -165,7 +147,7 @@ internal sealed class JxlCustomTransformData : IJxlFields
         {
             for (int i = 0; i < 210; i++)
             {
-                if (!visitor.F16(Weights8[i], ref this.upsampling8Weights[i]))
+                if (!visitor.F16(Weights8[i], ref this.Upsampling8Weights[i]))
                 {
                     return false;
                 }

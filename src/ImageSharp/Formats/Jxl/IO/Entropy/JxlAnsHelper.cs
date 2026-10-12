@@ -6,6 +6,10 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
 
+/// <summary>
+/// Utilities for Asymmetric Numeral Systems, a kind of high-performance
+/// entropy coding used by the JPEG XL format.
+/// </summary>
 internal static class JxlAnsHelper
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -63,7 +67,7 @@ internal static class JxlAnsHelper
         return symbol;
     }
 
-    public static bool InitAliasTable(Span<int> preDistribution, uint logRange, int logAlphaSize, Span<JxlAnsEntry> entries)
+    public static bool InitAliasTable(Span<uint> preDistribution, uint logRange, int logAlphaSize, Span<JxlAnsEntry> entries)
     {
         DebugGuard.MustBeLessThan(logAlphaSize, (int)logRange, nameof(logAlphaSize));
 
@@ -79,11 +83,11 @@ internal static class JxlAnsHelper
 
         if (distributionPointer < 0)
         {
-            preDistribution[0] = range;
+            preDistribution[0] = (uint)range;
             distributionPointer = 0;
         }
 
-        Span<int> distribution = preDistribution[..(distributionPointer + 1)];
+        Span<uint> distribution = preDistribution[..(distributionPointer + 1)];
 
         if (distribution.Length > tableSize)
         {
@@ -92,11 +96,11 @@ internal static class JxlAnsHelper
 
         int entrySize = range >> logAlphaSize;
         int singleSymbol = -1;
-        int sum = 0;
+        uint sum = 0;
 
         for (int sym = 0; sym < distribution.Length; sym++)
         {
-            int value = distribution[sym];
+            uint value = distribution[sym];
             sum += value;
 
             if (value == JxlAnsConstants.AnsTableSize)
@@ -146,7 +150,7 @@ internal static class JxlAnsHelper
 
         for (int i = 0; i < distribution.Length; i++)
         {
-            uint currentCutoff = (uint)distribution[i];
+            uint currentCutoff = distribution[i];
 
             cutoffs[i] = currentCutoff;
 
@@ -226,9 +230,9 @@ internal static class JxlAnsHelper
                 entry.Cutoff = (byte)currentCutoff;
             }
 
-            int freq0 = i < distribution.Length ? distribution[(int)i] : 0;
+            uint freq0 = i < distribution.Length ? distribution[(int)i] : 0;
             int i1 = entry.RightValue;
-            int freq1 = i1 < distribution.Length ? distribution[i1] : 0;
+            uint freq1 = i1 < distribution.Length ? distribution[i1] : 0;
 
             entry.Frequency0 = (ushort)freq0;
             entry.Frequency1XorFrequency0 = (ushort)(freq1 ^ freq0);

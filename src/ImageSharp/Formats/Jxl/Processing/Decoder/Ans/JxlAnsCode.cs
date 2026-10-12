@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
 
 internal sealed class JxlAnsCode
 {
-    public List<JxlHuffmanDecodingData> HuffmanData { get; set; } = [];
+    public List<JxlHuffmanDecoder> HuffmanData { get; set; } = [];
 
     public List<JxlAnsHybridUIntConfiguration> UIntConfig { get; set; } = [];
 
@@ -21,6 +21,8 @@ internal sealed class JxlAnsCode
     public JxlAnsLz77Parameters Lz77 { get; set; } = new();
 
     public int MaxNumBits { get; set; }
+
+    public JxlAnsEntry[]? AliasTables { get; set; }
 
     public void UpdateMaxNumBits(int ctx, int symbol)
     {

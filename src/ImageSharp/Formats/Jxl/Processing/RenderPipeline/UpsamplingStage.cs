@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.RenderPipeline;
@@ -15,12 +16,53 @@ internal class UpsamplingStage : RenderPipelineStageBase
     private readonly int c;
     private readonly InlineArray3<List<Memory<byte>>> temp = default;
 
-    private void PreprocessRowImpl(Buffer2D<Memory<float>> inputRows, int x0, int length, int threadId)
+    public UpsamplingStage(JxlCustomTransformData upsFactors, int c, int shift)
     {
-        Span<float> colMin = MemoryMarshal.Cast<byte, float>(this.temp[0][threadId].Span);
-        Span<float> colMax = MemoryMarshal.Cast<byte, float>(this.temp[1][threadId].Span);
+        this.c = c;
+        this.Settings = RenderPipelineStageConfiguration.CreateSymmetric(shift, 2);
 
-        InlineArray5<Memory<float>> rows = default;
-        rows[0] = 
+        Span<float> kernel = this.kernel;
+
+        Span<float> weights = shift == 1 ? upsFactors.Upsampling2Weights
+            : shift == 2 ? upsFactors.Upsampling4Weights
+            : upsFactors.Upsampling8Weights;
+
+        int n = 1 << shift;
+        int h = n / 2;
+
+        for (int ky = 0; ky < h; ++ky)
+        {
+            for (int kx = 0; kx < h; ++kx)
+            {
+                int offset0 = ((ky * n) + kx) * 25;
+                int offset1 = ((ky * n) + (n - 1 - kx)) * 25;
+                int offset2 = (((n - 1 - ky) * n) + kx) * 25;
+                int offset3 = (((n - 1 - ky) * n) + (n - 1 - kx)) * 25;
+
+                for (int py = 0; py < 5; ++py)
+                {
+                    for (int px = 0; px < 5; ++px)
+                    {
+                        int j = (5 * ky) + py;
+                        int i = (5 * kx) + px;
+                        int my = Math.Min(i, j);
+                        int mx = Math.Max(i, j);
+                        float w = weights[(5 * h * my) - (my * (my - 1) / 2) + mx - my];
+
+                        kernel[offset0 + (py * 5) + px] = w;
+                        kernel[offset1 + (py * 5) + (4 - px)] = w;
+                        kernel[offset2 + ((4 - py) * 5) + px] = w;
+                        kernel[offset3 + ((4 - py) * 5) + (4 - px)] = w;
+                    }
+                }
+            }
+        }
     }
+
+    public override string Name => "Upsample";
+
+    public override RenderPipelineChannelMode GetChannelMode(int channel) =>
+        channel == this.c
+            ? RenderPipelineChannelMode.InOut
+            : RenderPipelineChannelMode.Ignored;
 }

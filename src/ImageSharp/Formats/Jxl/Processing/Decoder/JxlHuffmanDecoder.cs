@@ -15,7 +15,7 @@ internal sealed class JxlHuffmanDecoder
     /// <summary>
     /// Number of bits that a huffman table uses.
     /// </summary>
-    private const int HuffmanTableBits = 8;
+    public const int HuffmanTableBits = 8;
 
     private const int GoalSize = 1 << HuffmanTableBits;
 
@@ -33,6 +33,10 @@ internal sealed class JxlHuffmanDecoder
         new(2, 0), new(2, 4), new(2, 3), new(3, 2), new(2, 0), new(2, 4), new(2, 3), new(4, 1),
         new(2, 0), new(2, 4), new(2, 3), new(3, 2), new(2, 0), new(2, 4), new(2, 3), new(4, 5),
     ];
+
+    public JxlHuffmanDecoder()
+    {
+    }
 
     private static ReadOnlySpan<byte> CodeLengthCodeOrder =>
     [

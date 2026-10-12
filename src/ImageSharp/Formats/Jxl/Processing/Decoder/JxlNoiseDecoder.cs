@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Net.NetworkInformation;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -9,8 +8,6 @@ using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Noise;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
-using SixLabors.ImageSharp.Formats.Tiff.Utils;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 

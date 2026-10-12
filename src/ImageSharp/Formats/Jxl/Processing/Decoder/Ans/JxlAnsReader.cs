@@ -3,13 +3,17 @@
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Jxl.Fields;
+using SixLabors.ImageSharp.Formats.Jxl.IO;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
 
 internal static class JxlAnsReader
 {
-    private const int WindowSize = 1 << 20;
+    public const int WindowSize = 1 << 20;
 
     public const int NumSpecialDistances = 120;
 
@@ -277,5 +281,192 @@ internal static class JxlAnsReader
         }
 
         return counts;
+    }
+
+    public static void DecodeAnsCodes(Configuration configuration, int numHistograms, int maxAlphabetSize, JxlBitReader input, JxlAnsCode result)
+    {
+        result.DegenerateSymbols = new(numHistograms);
+        CollectionsMarshal.AsSpan(result.DegenerateSymbols).Fill(-1);
+
+        if (result.UsePrefixCode)
+        {
+            result.HuffmanData.Resize(numHistograms);
+            Span<ushort> alphabetSizes = stackalloc ushort[numHistograms];
+
+            for (int c = 0; c < numHistograms; c++)
+            {
+                alphabetSizes[c] = (ushort)(DecodeVariableLengthUint16(input) + 1);
+                if (alphabetSizes[c] > maxAlphabetSize)
+                {
+                    throw new InvalidOperationException($"Alphabet size is too long ({alphabetSizes[c]})");
+                }
+            }
+
+            for (int c = 0; c < numHistograms; c++)
+            {
+                if (alphabetSizes[c] > 1)
+                {
+                    if (!result.HuffmanData[c].ReadFromBitStream(alphabetSizes[c], input))
+                    {
+                        throw new InvalidOperationException($"Invalid huffman tree number: {c}, alphabet size = {alphabetSizes[c]}");
+                    }
+                }
+                else
+                {
+                    // 0-bit codes don't require extension tables
+                    result.HuffmanData[c].Table = new JxlHuffmanCode[1u << JxlHuffmanDecoder.HuffmanTableBits];
+                }
+
+                foreach (JxlHuffmanCode h in result.HuffmanData[c].Table)
+                {
+                    if (h.Bits <= JxlHuffmanDecoder.HuffmanTableBits)
+                    {
+                        result.UpdateMaxNumBits(c, h.Value);
+                    }
+                }
+            }
+        }
+        else
+        {
+            if (maxAlphabetSize > JxlAnsConstants.AnsMaxAlphabetSize)
+            {
+                throw new InvalidOperationException("Alphabet size overflows");
+            }
+
+            int size = numHistograms * (1 << result.LogAlphaSize);
+            result.AliasTables = new JxlAnsEntry[size];
+
+            Span<JxlAnsEntry> aliasTables = result.AliasTables.AsSpan();
+
+            for (int c = 0; c < numHistograms; c++)
+            {
+                using IMemoryOwner<uint>? countsMemory = ReadHistogram(configuration, JxlAnsConstants.AnsLogTableSize, input);
+                if (countsMemory is null)
+                {
+                    continue;
+                }
+
+                Span<uint> counts = countsMemory.GetSpan();
+                if (counts.Length > maxAlphabetSize)
+                {
+                    throw new InvalidOperationException("Alphabet size is too long");
+                }
+
+                while (counts.Length > 0 && counts[^1] == 0)
+                {
+                    counts = counts[..^1];
+                }
+
+                for (int s = 0; s < counts.Length; s++)
+                {
+                    if (counts[s] != 0)
+                    {
+                        result.UpdateMaxNumBits(c, s);
+                    }
+                }
+
+                int degenerateSymbol = counts.Length == 0 ? 0 : counts.Length - 1;
+                for (int s = 0; s < degenerateSymbol; ++s)
+                {
+                    if (counts[s] != 0)
+                    {
+                        degenerateSymbol = -1;
+                        break;
+                    }
+                }
+
+                result.DegenerateSymbols[c] = degenerateSymbol;
+
+                if (!JxlAnsHelper.InitAliasTable(
+                    counts,
+                    JxlAnsConstants.AnsLogTableSize,
+                    result.LogAlphaSize,
+                    aliasTables[(c * (1 << result.LogAlphaSize))..]))
+                {
+                    throw new InvalidOperationException("Could not initialize alias table");
+                }
+            }
+        }
+    }
+
+    public static void DecodeUIntConfiguration(int logAlphaSize, out JxlAnsHybridUIntConfiguration uintConfig, JxlBitReader br)
+    {
+        br.Refill();
+
+        uint splitExponent = br.ReadBits32((uint)JxlMath.CeilLog2Nonzero(logAlphaSize + 1));
+        uint msbInToken = 0;
+        uint lsbInToken = 0;
+
+        if (splitExponent != logAlphaSize)
+        {
+            uint numBits = JxlMath.CeilLog2Nonzero(splitExponent + 1);
+            msbInToken = br.ReadBits32(numBits);
+
+            if (msbInToken > splitExponent)
+            {
+                throw new InvalidOperationException("Invalid hybrid uint configuration");
+            }
+
+            numBits = JxlMath.CeilLog2Nonzero(splitExponent - msbInToken + 1);
+            lsbInToken = br.ReadBits32(numBits);
+        }
+
+        if (lsbInToken + msbInToken > splitExponent)
+        {
+            throw new InvalidOperationException("Invalid hybrid uint configuration");
+        }
+
+        uintConfig = new(splitExponent, msbInToken, lsbInToken);
+    }
+
+    public static void DecodeUIntConfigurations(int logAlphaSize, Span<JxlAnsHybridUIntConfiguration> uintConfig, JxlBitReader br)
+    {
+        for (int i = 0; i < uintConfig.Length; i++)
+        {
+            DecodeUIntConfiguration(logAlphaSize, out JxlAnsHybridUIntConfiguration currentCfg, br);
+            uintConfig[i] = currentCfg;
+        }
+    }
+
+    public static void DecodeHistograms(Configuration configuration, JxlBitReader br, int numContexts, JxlAnsCode code, ref List<byte> contextMap, bool disallowLz77)
+    {
+        if (!JxlBundle.Read(br, code.Lz77))
+        {
+            throw new InvalidOperationException("Could not decode lz77 parameters");
+        }
+
+        if (code.Lz77.Enabled)
+        {
+            numContexts++;
+            DecodeUIntConfiguration(8, out JxlAnsHybridUIntConfiguration cfg, br);
+            code.Lz77.LengthUintConfig = cfg;
+        }
+
+        if (code.Lz77.Enabled && disallowLz77)
+        {
+            throw new InvalidOperationException("Using LZ77 even though it is explicitly disallowed");
+        }
+
+        int numHistograms = 1;
+        contextMap.Resize(numContexts);
+
+        if (numContexts > 1)
+        {
+            JxlContextMapDecoder.DecodeContextMap(configuration, contextMap, ref numHistograms, br);
+        }
+
+        code.Lz77.NonserializedDistanceContext = contextMap[^1];
+        code.UsePrefixCode = br.ReadBoolean();
+
+        code.LogAlphaSize = code.UsePrefixCode
+            ? (byte)JxlAnsConstants.PrefixMaxBits
+            : (byte)(br.ReadBits32(2) + 5);
+
+        code.UIntConfig.Resize(numHistograms);
+
+        DecodeUIntConfigurations(code.LogAlphaSize, CollectionsMarshal.AsSpan(code.UIntConfig), br);
+
+        int maxAlphabetSize = 1 << code.LogAlphaSize;
+        DecodeAnsCodes(configuration, numHistograms, maxAlphabetSize, br, code);
     }
 }

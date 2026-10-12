@@ -967,7 +967,7 @@ internal class JpegWriter
                 {
                     codingState.Flush(bw);
 
-                    if (!bw.JumpToByteBoundary(ref state.PadBits))
+                    if (!bw.JumpToByteBoundary(ref state.PadBits.Span))
                     {
                         return JpegSerializationStatus.Error;
                     }

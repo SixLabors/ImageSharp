@@ -1130,7 +1130,7 @@ internal sealed class HeifSequenceParser
                 // IgnoreImageData permits the decoder to fall back to the coded sequence's color description.
             }
         }
-        else if ((profileType is Heif4CharCode.RICC or Heif4CharCode.Prof) && !this.options.SkipMetadata)
+        else if (profileType is Heif4CharCode.RICC or Heif4CharCode.Prof)
         {
             try
             {
@@ -1139,16 +1139,8 @@ internal sealed class HeifSequenceParser
                     throw new InvalidImageContentException("The image-sequence sample entry has duplicate ICC color properties.");
                 }
 
-                if (boxLength <= 4 || boxLength > int.MaxValue)
-                {
-                    throw new InvalidImageContentException("The ICC color-information property is empty or too large.");
-                }
-
-                // Read directly into the array that IccProfile keeps. Thus the generic box buffer does not make a
-                // second full-size copy of the profile.
-                byte[] profileData = new byte[(int)boxLength - 4];
-                HeifBoxReader.ReadExactly(stream, profileData, "Stream length is not sufficient for box content.");
-                track.IccProfile = HeifPropertyParser.ParseIccProfile(profileData);
+                // ICC determines sample colors even when optional metadata is skipped.
+                track.IccProfile = HeifPropertyParser.ParseIccProfile(stream, boxLength - 4);
             }
             catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.options, ex))
             {

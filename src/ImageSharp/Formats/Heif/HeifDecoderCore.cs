@@ -112,8 +112,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         this.chromaUpsampling = decoderOptions.ChromaUpsampling;
         this.configuration = options.Configuration;
 
-        // HEIF owns final presentation resizing and ICC conversion after item/grid composition and container-profile
-        // selection. Nested codecs retain every other general policy but must not apply either operation independently.
+        // Resize only the final presentation. Retain ICC until item/grid profile selection and native conversion
+        // finish; ImageDecoder then applies the caller's profile-retention policy.
         this.payloadOptions = options.TargetSize is null && options.ColorProfileHandling == ColorProfileHandling.Preserve
             ? options
             : new DecoderOptions
@@ -495,10 +495,9 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     colorSample.Duration,
                     colorTrack.MediaTimescale);
 
-                if (!animateRootFrame && !this.Options.SkipMetadata)
-                {
-                    presentedFrame.Metadata.IccProfile = colorTrack.IccProfile;
-                }
+                // Each timed frame uses the track profile, including when a separate still image owns the root.
+                // Keep it under SkipMetadata so later encoding can restore the source color space.
+                presentedFrame.Metadata.IccProfile = colorTrack.IccProfile;
 
                 decodedFrameCount++;
             }
@@ -565,11 +564,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         using IMemoryOwner<byte> sampleOwner = this.ReadSequenceSample(stream, track, sample);
         Span<byte> sampleData = sampleOwner.GetSpan()[..sample.Length];
 
-        IccProfile? profile = null;
-        if (!this.Options.SkipMetadata && this.Options.ColorProfileHandling == ColorProfileHandling.Convert)
-        {
-            IccProfile.TryGetIccProfileForColorConversion(track.IccProfile, out profile);
-        }
+        // Preserve and Convert both produce sRGB pixels. The base decoder controls profile retention.
+        IccProfile.TryGetIccProfileForColorConversion(track.IccProfile, out IccProfile? profile);
 
         decoder.ChromaUpsampling = this.chromaUpsampling;
         CicpProfile sourceProfile = decoder.DecodeSequenceFrame(
@@ -732,7 +728,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 throw new InvalidImageContentException($"The image-sequence sample entry '{colorTrack.CodecType}' is not supported.");
         }
 
-        if (this.Options.SkipMetadata || !animateRootFrame)
+        if (!animateRootFrame)
         {
             return;
         }
@@ -740,6 +736,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         // The selected track is decoder-private and no longer mutates after parsing. Reuse its profiles so the
         // returned metadata does not duplicate their storage.
         metadata.IccProfile = colorTrack.IccProfile;
+        if (this.Options.SkipMetadata)
+        {
+            // ICC remains required for color conversion; optional track metadata can be omitted.
+            return;
+        }
+
         metadata.CicpProfile = colorTrack.CicpProfile;
         heifMetadata.ContentLightLevel = colorTrack.ContentLightLevel;
         heifMetadata.MasteringDisplayColorVolume = colorTrack.MasteringDisplayColorVolume;
@@ -793,6 +795,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             }
 
             ImageFrameMetadata frameMetadata = new();
+            frameMetadata.IccProfile = track.IccProfile;
             frameMetadata.GetHeifMetadata().FrameDelay = new Rational(sample.Duration, track.MediaTimescale);
             result[frameIndex++] = frameMetadata;
         }
@@ -897,9 +900,9 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         meta.HasAlpha = this.FindAlphaItem(item) is not null
             || (item.Type == Heif4CharCode.Grid && this.FindGridAlphaTiles(item) is not null);
 
+        this.ApplyItemColorMetadata(metadata, item);
         if (!this.Options.SkipMetadata)
         {
-            this.ApplyItemColorMetadata(metadata, item);
             this.ApplyItemHdrMetadata(metadata, item);
             this.ApplyItemPixelAspectRatioMetadata(metadata, item);
         }
@@ -1350,24 +1353,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 continue;
             }
 
-            if (this.Options.SkipMetadata && itemType == Heif4CharCode.Colr && itemLength >= 4)
-            {
-                Span<byte> profileTypeBuffer = this.boxHeaderBuffer.AsSpan(0, 4);
-                HeifBoxReader.ReadExactly(stream, profileTypeBuffer, "The HEIF color-information property is truncated.");
-                Heif4CharCode profileType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(profileTypeBuffer);
-                if (profileType is Heif4CharCode.RICC or Heif4CharCode.Prof)
-                {
-                    // ICC bytes cannot affect reconstruction when metadata is skipped. Retain only the property index
-                    // and leave the potentially large profile payload out of the allocator entirely.
-                    HeifBoxReader.Skip(stream, itemLength - 4);
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Colr, IgnoredProperty));
-                    continue;
-                }
-
-                stream.Position -= 4;
-            }
-
-            if (!this.Options.SkipMetadata && itemType == Heif4CharCode.Colr && itemLength is >= 4 and <= int.MaxValue)
+            if (itemType == Heif4CharCode.Colr && itemLength >= 4)
             {
                 Span<byte> profileTypeBuffer = this.boxHeaderBuffer.AsSpan(0, 4);
                 HeifBoxReader.ReadExactly(stream, profileTypeBuffer, "The HEIF color-information property is truncated.");
@@ -1375,19 +1361,18 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                 if (profileType is Heif4CharCode.RICC or Heif4CharCode.Prof)
                 {
-                    // Read directly into the array that IccProfile keeps. Thus the generic box buffer does not make a
-                    // second full-size copy of the profile.
-                    byte[] profileData = new byte[(int)itemLength - 4];
-                    HeifBoxReader.ReadExactly(stream, profileData, "Stream length is not sufficient for box content.");
+                    long profileEnd = stream.Position + itemLength - 4;
                     IccProfile? iccProfile = null;
 
                     try
                     {
-                        iccProfile = HeifPropertyParser.ParseIccProfile(profileData);
+                        // ICC affects decoded colors under SkipMetadata too. Read without a separate box buffer.
+                        iccProfile = HeifPropertyParser.ParseIccProfile(stream, itemLength - 4);
                     }
                     catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
                     {
-                        // Keep the understood property index without retaining invalid ancillary metadata.
+                        // Length validation can fail before consuming the payload. Resume at the next property.
+                        HeifBoxReader.Skip(stream, profileEnd - stream.Position);
                     }
 
                     // A malformed ancillary profile can be ignored by policy while the physical property still
@@ -2377,24 +2362,23 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         try
         {
+            this.ApplyItemColorMetadata(image.Metadata, rootItem);
             if (!this.Options.SkipMetadata)
             {
-                this.ApplyItemColorMetadata(image.Metadata, rootItem);
                 this.ApplyItemHdrMetadata(image.Metadata, rootItem);
                 this.ApplyAssociatedMetadata(image.Metadata, rootItem, ItemDataReader);
             }
 
-            if (this.Options.ColorProfileHandling == ColorProfileHandling.Convert
-                && IccProfile.TryGetIccProfileForColorConversion(image.Metadata.IccProfile, out _))
+            if (!this.Options.SkipMetadata && IccProfile.TryGetIccProfileForColorConversion(image.Metadata.IccProfile, out _))
             {
                 // ICC conversion has already produced full-range sRGB pixels. The source YUV matrix and
                 // transfer description must not be reapplied when those pixels are written to another format.
                 image.Metadata.CicpProfile = new CicpProfile(1, 13, 0, true);
                 image.Frames.RootFrame.Metadata.CicpProfile = image.Metadata.CicpProfile;
             }
-            else if (image.Metadata.CicpProfile is not null)
+            else if (!this.Options.SkipMetadata && image.Metadata.CicpProfile is not null)
             {
-                // The packed pixels are full-range RGB even when the source ICC profile is preserved.
+                // Without an ICC transform, packed pixels retain the source primaries and transfer function.
                 // Keep the primaries and transfer description, but do not label RGB as encoded YUV.
                 CicpProfile sourceProfile = image.Metadata.CicpProfile;
                 image.Metadata.CicpProfile = new CicpProfile(
@@ -2414,9 +2398,10 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             HeifMetadata meta = image.Metadata.GetHeifMetadata();
             if (this.Options.SkipMetadata)
             {
-                // AV1 item decoders still parse encoded metadata to enforce codec/container equivalence and select
-                // the correct conversion. Remove the exposed values so the decoder option suppresses metadata.
+                // AV1 still needs encoded color information to reconstruct pixels. Omit its exposed CICP/HDR
+                // metadata, but retain ICC for restoring the original color space during encoding.
                 image.Metadata.CicpProfile = null;
+                image.Frames.RootFrame.Metadata.CicpProfile = null;
                 meta.ContentLightLevel = null;
                 meta.MasteringDisplayColorVolume = null;
                 meta.ContentColorVolume = null;
@@ -2436,7 +2421,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Applies the color profiles associated with a presented still-image item.
+    /// Retains the item's ICC profile and applies CICP metadata unless optional metadata is skipped.
     /// </summary>
     /// <param name="metadata">The image metadata receiving the profiles.</param>
     /// <param name="colorItem">The color image item whose pixels are presented.</param>
@@ -2457,7 +2442,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         }
 
         CicpProfile? cicpProfile = colorItem.CicpProfile ?? gridTile?.CicpProfile;
-        if (cicpProfile is not null)
+        if (!this.Options.SkipMetadata && cicpProfile is not null)
         {
             metadata.CicpProfile = cicpProfile;
         }
@@ -2712,16 +2697,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         try
         {
-            if (!this.Options.SkipMetadata)
-            {
-                this.ApplyItemColorMetadata(metadata, item);
-            }
+            this.ApplyItemColorMetadata(metadata, item);
 
-            IccProfile? profile = null;
-            if (this.Options.ColorProfileHandling == ColorProfileHandling.Convert)
-            {
-                IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out profile);
-            }
+            // The native decoder transforms before packing TPixel. Preserve retains the original profile,
+            // while Convert removes it in ImageDecoder; neither requires a second pass over image pixels.
+            IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? profile);
 
             Av1FrameBuffer<byte>? alpha = null;
             bool premultiplied = false;

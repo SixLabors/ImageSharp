@@ -255,12 +255,12 @@ public partial struct Rgb48
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<Rgb48> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToRgb48(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToRgb48(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

@@ -255,12 +255,12 @@ public partial struct Rgba64
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<Rgba64> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToRgba64(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToRgba64(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

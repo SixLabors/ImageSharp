@@ -316,18 +316,18 @@ public partial class PixelOperations<TPixel>
     }
 
     /// <summary>
-    /// Bulk operation that converts <paramref name="source"/> pixels from <typeparamref name="TSourcePixel"/> format to
+    /// Bulk operation that converts <paramref name="source"/> pixels from <typeparamref name="TPixelFrom"/> format to
     /// <typeparamref name="TPixel"/> destination pixels.
     /// </summary>
-    /// <typeparam name="TSourcePixel">The source pixel type.</typeparam>
+    /// <typeparam name="TPixelFrom">The source pixel type.</typeparam>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
-    /// <param name="source">The <see cref="ReadOnlySpan{TSourcePixel}"/> to the source pixels.</param>
+    /// <param name="source">The <see cref="ReadOnlySpan{TPixelFrom}"/> to the source pixels.</param>
     /// <param name="destination">The <see cref="Span{TPixel}"/> to the destination pixels.</param>
-    public virtual void From<TSourcePixel>(
+    public virtual void From<TPixelFrom>(
         Configuration configuration,
-        ReadOnlySpan<TSourcePixel> source,
+        ReadOnlySpan<TPixelFrom> source,
         Span<TPixel> destination)
-        where TSourcePixel : unmanaged, IPixel<TSourcePixel>
+        where TPixelFrom : unmanaged, IPixel<TPixelFrom>
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -342,7 +342,7 @@ public partial class PixelOperations<TPixel>
 
         using IMemoryOwner<Vector4> tempVectors = configuration.MemoryAllocator.Allocate<Vector4>(sliceLength);
         Span<Vector4> vectorSpan = tempVectors.GetSpan()[..sliceLength];
-        bool sourceAssociated = TSourcePixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated;
+        bool sourceAssociated = TPixelFrom.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated;
         bool destinationAssociated = TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated;
 
         // Retain associated vectors only when both formats store associated alpha, avoiding needless unassociation and lost precision.
@@ -352,17 +352,17 @@ public partial class PixelOperations<TPixel>
         for (int i = 0; i < numberOfSlices; i++)
         {
             int start = i * sliceLength;
-            ReadOnlySpan<TSourcePixel> s = source.Slice(start, sliceLength);
+            ReadOnlySpan<TPixelFrom> s = source.Slice(start, sliceLength);
             Span<TPixel> d = destination.Slice(start, sliceLength);
 
             if (preserveAssociatedRepresentation)
             {
-                PixelOperations<TSourcePixel>.Instance.ToAssociatedScaledVector4(configuration, s, vectorSpan);
+                PixelOperations<TPixelFrom>.Instance.ToAssociatedScaledVector4(configuration, s, vectorSpan);
                 this.FromAssociatedScaledVector4Destructive(configuration, vectorSpan, d);
             }
             else
             {
-                PixelOperations<TSourcePixel>.Instance.ToUnassociatedScaledVector4(configuration, s, vectorSpan);
+                PixelOperations<TPixelFrom>.Instance.ToUnassociatedScaledVector4(configuration, s, vectorSpan);
                 this.FromUnassociatedScaledVector4Destructive(configuration, vectorSpan, d);
             }
         }
@@ -371,18 +371,18 @@ public partial class PixelOperations<TPixel>
         int remainder = source.Length - endOfCompleteSlices;
         if (remainder > 0)
         {
-            ReadOnlySpan<TSourcePixel> s = source[endOfCompleteSlices..];
+            ReadOnlySpan<TPixelFrom> s = source[endOfCompleteSlices..];
             Span<TPixel> d = destination[endOfCompleteSlices..];
             vectorSpan = vectorSpan[..remainder];
 
             if (preserveAssociatedRepresentation)
             {
-                PixelOperations<TSourcePixel>.Instance.ToAssociatedScaledVector4(configuration, s, vectorSpan);
+                PixelOperations<TPixelFrom>.Instance.ToAssociatedScaledVector4(configuration, s, vectorSpan);
                 this.FromAssociatedScaledVector4Destructive(configuration, vectorSpan, d);
             }
             else
             {
-                PixelOperations<TSourcePixel>.Instance.ToUnassociatedScaledVector4(configuration, s, vectorSpan);
+                PixelOperations<TPixelFrom>.Instance.ToUnassociatedScaledVector4(configuration, s, vectorSpan);
                 this.FromUnassociatedScaledVector4Destructive(configuration, vectorSpan, d);
             }
         }
@@ -390,29 +390,29 @@ public partial class PixelOperations<TPixel>
 
     /// <summary>
     /// Bulk operation that copies the <paramref name="source"/> to <paramref name="destination"/> in
-    /// <typeparamref name="TDestinationPixel"/> format.
+    /// <typeparamref name="TPixelTo"/> format.
     /// </summary>
-    /// <typeparam name="TDestinationPixel">The destination pixel type.</typeparam>
+    /// <typeparam name="TPixelTo">The destination pixel type.</typeparam>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="source">The <see cref="ReadOnlySpan{TPixel}"/> to the source pixels.</param>
-    /// <param name="destination">The <see cref="Span{TDestinationPixel}"/> to the destination pixels.</param>
-    public virtual void To<TDestinationPixel>(
+    /// <param name="destination">The <see cref="Span{TPixelTo}"/> to the destination pixels.</param>
+    public virtual void To<TPixelTo>(
         Configuration configuration,
         ReadOnlySpan<TPixel> source,
-        Span<TDestinationPixel> destination)
-        where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>
+        Span<TPixelTo> destination)
+        where TPixelTo : unmanaged, IPixel<TPixelTo>
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        if (typeof(TPixel) == typeof(TDestinationPixel))
+        if (typeof(TPixel) == typeof(TPixelTo))
         {
             // An identical destination stores the same representation, including associated alpha, so copying preserves every packed component without a lossy representation round trip.
-            MemoryMarshal.Cast<TPixel, TDestinationPixel>(source).CopyTo(destination);
+            MemoryMarshal.Cast<TPixel, TPixelTo>(source).CopyTo(destination);
             return;
         }
 
-        PixelOperations<TDestinationPixel>.Instance.From(configuration, source, destination);
+        PixelOperations<TPixelTo>.Instance.From(configuration, source, destination);
     }
 
     /// <summary>

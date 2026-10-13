@@ -2,9 +2,11 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
@@ -18,7 +20,15 @@ internal abstract partial class WebpColorConverterBase
     {
         /// <inheritdoc />
         public override bool ConvertFromRgb<TPixel>(
-            Buffer2DRegion<TPixel> frame, Configuration configuration, MemoryAllocator memoryAllocator, Span<byte> y, Span<byte> u, Span<byte> v)
+            Buffer2DRegion<TPixel> frame,
+            Configuration configuration,
+            MemoryAllocator memoryAllocator,
+            ColorProfileConverter? converter,
+            Span<Vector4> vectors,
+            Span<Rgb> rgb,
+            Span<byte> y,
+            Span<byte> u,
+            Span<byte> v)
         {
             int width = frame.Width;
             int height = frame.Height;
@@ -40,8 +50,18 @@ internal abstract partial class WebpColorConverterBase
             {
                 Span<TPixel> rowSpan = frame.DangerousGetRowSpan(rowIndex);
                 Span<TPixel> nextRowSpan = frame.DangerousGetRowSpan(rowIndex + 1);
-                PixelOperations<TPixel>.Instance.ToBgra32(configuration, rowSpan, bgraRow0);
-                PixelOperations<TPixel>.Instance.ToBgra32(configuration, nextRowSpan, bgraRow1);
+                if (converter is null)
+                {
+                    PixelOperations<TPixel>.Instance.ToBgra32(configuration, rowSpan, bgraRow0);
+                    PixelOperations<TPixel>.Instance.ToBgra32(configuration, nextRowSpan, bgraRow1);
+                }
+                else
+                {
+                    // Apply ICC before the existing luma matrix and alpha-weighted chroma resampling.
+                    // The same float scratch is reused after each BGRA row has been packed.
+                    this.ConvertRgbRow<TPixel, Bgra32>(configuration, rowSpan, converter, vectors, rgb, bgraRow0);
+                    this.ConvertRgbRow<TPixel, Bgra32>(configuration, nextRowSpan, converter, vectors, rgb, bgraRow1);
+                }
 
                 // Both rows contribute to each chroma sample; transparency in either row requires alpha-weighted resampling.
                 bool rowsHaveAlpha = WebpCommonUtils.CheckNonOpaque(bgraRow0) || WebpCommonUtils.CheckNonOpaque(bgraRow1);
@@ -71,7 +91,16 @@ internal abstract partial class WebpColorConverterBase
             if ((height & 1) != 0)
             {
                 Span<TPixel> rowSpan = frame.DangerousGetRowSpan(rowIndex);
-                PixelOperations<TPixel>.Instance.ToBgra32(configuration, rowSpan, bgraRow0);
+                if (converter is null)
+                {
+                    PixelOperations<TPixel>.Instance.ToBgra32(configuration, rowSpan, bgraRow0);
+                }
+                else
+                {
+                    // For an odd height, convert the final row into the output profile before YCbCr encoding.
+                    this.ConvertRgbRow<TPixel, Bgra32>(configuration, rowSpan, converter, vectors, rgb, bgraRow0);
+                }
+
                 ConvertLumaRow(bgraRow0, y[(rowIndex * width)..]);
 
                 if (!WebpCommonUtils.CheckNonOpaque(bgraRow0))

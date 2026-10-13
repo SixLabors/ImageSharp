@@ -368,20 +368,20 @@ public sealed class Image<TPixel> : Image
     /// <summary>
     /// Returns a copy of the image in the given pixel format.
     /// </summary>
-    /// <typeparam name="TPixel2">The pixel format.</typeparam>
+    /// <typeparam name="TPixelTo">The pixel format.</typeparam>
     /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
-    /// <returns>The <see cref="Image{TPixel2}"/>.</returns>
-    public override Image<TPixel2> CloneAs<TPixel2>(Configuration configuration)
+    /// <returns>The <see cref="Image{TPixelTo}"/>.</returns>
+    public override Image<TPixelTo> CloneAs<TPixelTo>(Configuration configuration)
     {
         this.EnsureNotDisposed();
 
-        ImageFrame<TPixel2>[] clonedFrames = new ImageFrame<TPixel2>[this.frames.Count];
+        ImageFrame<TPixelTo>[] clonedFrames = new ImageFrame<TPixelTo>[this.frames.Count];
         for (int i = 0; i < clonedFrames.Length; i++)
         {
-            clonedFrames[i] = this.frames[i].CloneAs<TPixel2>(configuration);
+            clonedFrames[i] = this.frames[i].CloneAs<TPixelTo>(configuration);
         }
 
-        return new Image<TPixel2>(configuration, this.Metadata.DeepClone(), clonedFrames);
+        return new Image<TPixelTo>(configuration, this.Metadata.DeepClone(), clonedFrames);
     }
 
     /// <inheritdoc/>

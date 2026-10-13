@@ -85,12 +85,23 @@ internal abstract partial class WebpColorConverterBase
     /// <param name="frame">The source image region.</param>
     /// <param name="configuration">The pixel conversion configuration.</param>
     /// <param name="memoryAllocator">The allocator for temporary row storage.</param>
+    /// <param name="converter">The return transform from sRGB to the encoded RGB profile, or null.</param>
+    /// <param name="vectors">Reusable straight RGBA row scratch, empty when no transform is required.</param>
+    /// <param name="rgb">Reusable RGB transform scratch, empty when no transform is required.</param>
     /// <param name="y">The full-resolution luma plane.</param>
     /// <param name="u">The half-resolution Cb chroma plane.</param>
     /// <param name="v">The half-resolution Cr chroma plane.</param>
     /// <returns>Whether any source pixel is non-opaque.</returns>
     public abstract bool ConvertFromRgb<TPixel>(
-        Buffer2DRegion<TPixel> frame, Configuration configuration, MemoryAllocator memoryAllocator, Span<byte> y, Span<byte> u, Span<byte> v)
+        Buffer2DRegion<TPixel> frame,
+        Configuration configuration,
+        MemoryAllocator memoryAllocator,
+        ColorProfileConverter? converter,
+        Span<Vector4> vectors,
+        Span<Rgb> rgb,
+        Span<byte> y,
+        Span<byte> u,
+        Span<byte> v)
         where TPixel : unmanaged, IPixel<TPixel>;
 
     /// <summary>
@@ -121,23 +132,23 @@ internal abstract partial class WebpColorConverterBase
     /// <summary>
     /// Converts an RGB source row and packs its destination pixels.
     /// </summary>
-    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
-    /// <typeparam name="TSourcePixel">The source RGB pixel format.</typeparam>
-    /// <param name="configuration">The decoding configuration.</param>
+    /// <typeparam name="TPixelFrom">The source RGB pixel format.</typeparam>
+    /// <typeparam name="TPixelTo">The destination pixel format.</typeparam>
+    /// <param name="configuration">The pixel conversion configuration.</param>
     /// <param name="source">The source row in its pixel format's alpha representation.</param>
     /// <param name="converter">The configured ICC converter, or null for direct conversion.</param>
     /// <param name="vectors">Vector scratch for the row.</param>
     /// <param name="rgb">RGB scratch for the row.</param>
     /// <param name="destination">The destination pixels.</param>
-    public abstract void ConvertRgbRow<TPixel, TSourcePixel>(
+    public abstract void ConvertRgbRow<TPixelFrom, TPixelTo>(
         Configuration configuration,
-        ReadOnlySpan<TSourcePixel> source,
+        ReadOnlySpan<TPixelFrom> source,
         ColorProfileConverter? converter,
         Span<Vector4> vectors,
         Span<Rgb> rgb,
-        Span<TPixel> destination)
-        where TPixel : unmanaged, IPixel<TPixel>
-        where TSourcePixel : unmanaged, IPixel<TSourcePixel>;
+        Span<TPixelTo> destination)
+        where TPixelFrom : unmanaged, IPixel<TPixelFrom>
+        where TPixelTo : unmanaged, IPixel<TPixelTo>;
 
     /// <summary>
     /// Converts native lossy YCbCr output and packs the destination pixels.

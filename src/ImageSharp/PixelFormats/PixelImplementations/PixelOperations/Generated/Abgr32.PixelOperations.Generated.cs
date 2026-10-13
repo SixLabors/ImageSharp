@@ -381,12 +381,12 @@ public partial struct Abgr32
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<Abgr32> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToAbgr32(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToAbgr32(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

@@ -3,13 +3,16 @@
 #nullable disable
 
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
 using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Formats.Webp.ColorConverters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -311,7 +314,26 @@ internal class Vp8Encoder : IDisposable
     /// </summary>
     private int MbHeaderLimit { get; }
 
-    public WebpVp8X EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAlpha, bool hasAnimation)
+    /// <summary>
+    /// Writes the selected ICC profile and animation settings before lossy frame data.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="image">The image supplying dimensions and optional metadata.</param>
+    /// <param name="stream">The output stream.</param>
+    /// <param name="hasAlpha">Whether the encoded image includes alpha.</param>
+    /// <param name="hasAnimation">Whether animation frames follow.</param>
+    /// <param name="iccProfile">The profile matching the encoded RGB samples, or null.</param>
+    /// <param name="background">The resolved background in the encoded color space.</param>
+    /// <param name="repeatCount">The resolved animation repeat count.</param>
+    /// <returns>The extended header, if required.</returns>
+    public WebpVp8X EncodeHeader<TPixel>(
+        Image<TPixel> image,
+        Stream stream,
+        bool hasAlpha,
+        bool hasAnimation,
+        IccProfile iccProfile,
+        Color background,
+        ushort repeatCount)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Write bytes from the bitwriter buffer to the stream.
@@ -325,14 +347,13 @@ internal class Vp8Encoder : IDisposable
             (uint)image.Height,
             exifProfile,
             xmpProfile,
-            metadata.IccProfile,
+            iccProfile,
             hasAlpha,
             hasAnimation);
 
         if (hasAnimation)
         {
-            WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
-            BitWriterBase.WriteAnimationParameter(stream, webpMetadata.BackgroundColor, webpMetadata.RepeatCount);
+            BitWriterBase.WriteAnimationParameter(stream, background, repeatCount);
         }
 
         return vp8x;
@@ -360,10 +381,22 @@ internal class Vp8Encoder : IDisposable
     /// <param name="stream">The stream to encode the image data to.</param>
     /// <param name="bounds">The region of interest within the frame to encode.</param>
     /// <param name="frameMetadata">The frame metadata.</param>
+    /// <param name="iccProfile">The profile selected for the complete WebP resource.</param>
+    /// <param name="converter">The return transform from sRGB to the encoded profile, or null.</param>
+    /// <param name="vectors">Reusable straight RGBA row scratch.</param>
+    /// <param name="rgb">Reusable RGB transform scratch.</param>
     /// <returns>A <see cref="bool"/> indicating whether the frame contains an alpha channel.</returns>
-    public bool EncodeAnimation<TPixel>(ImageFrame<TPixel> frame, Stream stream, Rectangle bounds, WebpFrameMetadata frameMetadata)
+    public bool EncodeAnimation<TPixel>(
+        ImageFrame<TPixel> frame,
+        Stream stream,
+        Rectangle bounds,
+        WebpFrameMetadata frameMetadata,
+        IccProfile iccProfile,
+        ColorProfileConverter converter,
+        Span<Vector4> vectors,
+        Span<Rgb> rgb)
         where TPixel : unmanaged, IPixel<TPixel>
-        => this.Encode(stream, frame, bounds, frameMetadata, true, null);
+        => this.Encode(stream, frame, bounds, frameMetadata, true, null, iccProfile, converter, vectors, rgb);
 
     /// <summary>
     /// Encodes the static image frame to the specified stream.
@@ -371,11 +404,21 @@ internal class Vp8Encoder : IDisposable
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="stream">The stream to encode the image data to.</param>
     /// <param name="image">The image to encode from.</param>
-    public void EncodeStatic<TPixel>(Stream stream, Image<TPixel> image)
+    /// <param name="iccProfile">The profile matching the encoded RGB samples, or null.</param>
+    /// <param name="converter">The return transform from sRGB to the encoded profile, or null.</param>
+    /// <param name="vectors">Reusable straight RGBA row scratch.</param>
+    /// <param name="rgb">Reusable RGB transform scratch.</param>
+    public void EncodeStatic<TPixel>(
+        Stream stream,
+        Image<TPixel> image,
+        IccProfile iccProfile,
+        ColorProfileConverter converter,
+        Span<Vector4> vectors,
+        Span<Rgb> rgb)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         ImageFrame<TPixel> frame = image.Frames.RootFrame;
-        this.Encode(stream, frame, image.Bounds, frame.Metadata.GetWebpMetadata(), false, image);
+        this.Encode(stream, frame, image.Bounds, frame.Metadata.GetWebpMetadata(), false, image, iccProfile, converter, vectors, rgb);
     }
 
     /// <summary>
@@ -388,6 +431,10 @@ internal class Vp8Encoder : IDisposable
     /// <param name="frameMetadata">The frame metadata.</param>
     /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
     /// <param name="image">The image to encode from.</param>
+    /// <param name="iccProfile">The profile matching the encoded RGB samples, or null.</param>
+    /// <param name="converter">The return transform from sRGB to the encoded profile, or null.</param>
+    /// <param name="vectors">Reusable straight RGBA row scratch.</param>
+    /// <param name="rgb">Reusable RGB transform scratch.</param>
     /// <returns>A <see cref="bool"/> indicating whether the frame contains an alpha channel.</returns>
     private bool Encode<TPixel>(
         Stream stream,
@@ -395,7 +442,11 @@ internal class Vp8Encoder : IDisposable
         Rectangle bounds,
         WebpFrameMetadata frameMetadata,
         bool hasAnimation,
-        Image<TPixel> image)
+        Image<TPixel> image,
+        IccProfile iccProfile,
+        ColorProfileConverter converter,
+        Span<Vector4> vectors,
+        Span<Rgb> rgb)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = bounds.Width;
@@ -408,11 +459,12 @@ internal class Vp8Encoder : IDisposable
 
         Buffer2DRegion<TPixel> pixels = frame.PixelBuffer.GetRegion(bounds);
         WebpColorConverterBase colorConverter = WebpColorConverterBase.GetConverter(WebpColorType.Yuv);
-        bool hasAlpha = colorConverter.ConvertFromRgb(pixels, this.configuration, this.memoryAllocator, y, u, v);
+        bool hasAlpha = colorConverter.ConvertFromRgb(pixels, this.configuration, this.memoryAllocator, converter, vectors, rgb, y, u, v);
 
         if (!hasAnimation)
         {
-            this.EncodeHeader(image, stream, hasAlpha, false);
+            WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
+            this.EncodeHeader(image, stream, hasAlpha, false, iccProfile, webpMetadata.BackgroundColor, webpMetadata.RepeatCount);
         }
 
         int yStride = width;

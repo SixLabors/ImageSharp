@@ -29,7 +29,7 @@ internal abstract partial class WebpColorConverterBase
     /// Packs straight scaled vectors produced by an ICC conversion.
     /// </summary>
     /// <typeparam name="TPixel">The destination pixel format.</typeparam>
-    /// <param name="configuration">The decoding configuration.</param>
+    /// <param name="configuration">The pixel conversion configuration.</param>
     /// <param name="row">The converted straight RGB values.</param>
     /// <param name="alpha">The separate alpha row, or empty to preserve vector alpha.</param>
     /// <param name="destination">The destination pixels.</param>
@@ -1081,21 +1081,22 @@ internal abstract partial class WebpColorConverterBase
         }
 
         /// <inheritdoc />
-        public override void ConvertRgbRow<TPixel, TSourcePixel>(
+        public override void ConvertRgbRow<TPixelFrom, TPixelTo>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             ColorProfileConverter? converter,
             Span<Vector4> vectors,
             Span<Rgb> rgb,
-            Span<TPixel> destination)
+            Span<TPixelTo> destination)
         {
             if (converter is null)
             {
-                PixelOperations<TPixel>.Instance.From(configuration, source, destination);
+                PixelOperations<TPixelTo>.Instance.From(configuration, source, destination);
                 return;
             }
 
-            // The source pixel type supplies its alpha representation. Conversion leaves straight RGB for destination packing.
+            // Both encoding and decoding transform straight RGB. The configured profiles select the direction;
+            // packing applies the destination pixel format's precision and alpha representation.
             Span<Vector4> row = vectors[..source.Length];
             converter.Convert(configuration, source, row, rgb[..source.Length]);
             PackIccRgbRow(configuration, row, ReadOnlySpan<byte>.Empty, destination);

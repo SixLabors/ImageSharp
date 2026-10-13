@@ -304,12 +304,12 @@ public partial struct Rgba32
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<Rgba32> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToRgba32(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToRgba32(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

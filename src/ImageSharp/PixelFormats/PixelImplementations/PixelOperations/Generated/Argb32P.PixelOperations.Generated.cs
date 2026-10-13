@@ -117,9 +117,9 @@ public partial struct Argb32P
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(Configuration configuration, ReadOnlySpan<TSourcePixel> source, Span<Argb32P> destination)
+        public override void From<TPixelFrom>(Configuration configuration, ReadOnlySpan<TPixelFrom> source, Span<Argb32P> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToArgb32P(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToArgb32P(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

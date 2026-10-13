@@ -352,12 +352,12 @@ public partial struct Rgb24
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<Rgb24> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToRgb24(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToRgb24(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

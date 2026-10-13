@@ -255,12 +255,12 @@ public partial struct L16
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<L16> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToL16(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToL16(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

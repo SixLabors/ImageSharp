@@ -166,15 +166,15 @@ public abstract class AssociatedAlphaPixelOperations<TPixel> : PixelOperations<T
     /// <summary>
     /// Converts associated source pixels to an unassociated destination format.
     /// </summary>
-    /// <typeparam name="TDestinationPixel">The destination pixel format.</typeparam>
+    /// <typeparam name="TPixelTo">The destination pixel format.</typeparam>
     /// <param name="configuration">The configuration.</param>
     /// <param name="source">The source pixels.</param>
     /// <param name="destination">The destination pixels.</param>
-    private void ConvertToUnassociated<TDestinationPixel>(
+    private void ConvertToUnassociated<TPixelTo>(
         Configuration configuration,
         ReadOnlySpan<TPixel> source,
-        Span<TDestinationPixel> destination)
-        where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>
+        Span<TPixelTo> destination)
+        where TPixelTo : unmanaged, IPixel<TPixelTo>
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -189,7 +189,7 @@ public abstract class AssociatedAlphaPixelOperations<TPixel> : PixelOperations<T
 
         using IMemoryOwner<Vector4> tempVectors = configuration.MemoryAllocator.Allocate<Vector4>(sliceLength);
         Span<Vector4> vectorSpan = tempVectors.GetSpan()[..sliceLength];
-        PixelOperations<TDestinationPixel> destinationOperations = PixelOperations<TDestinationPixel>.Instance;
+        PixelOperations<TPixelTo> destinationOperations = PixelOperations<TPixelTo>.Instance;
 
         // Generated destination conversions can route back through this source operation, so read through the source hook directly.
         // The destination then applies its own alpha rules when it packs the straight vectors.
@@ -197,7 +197,7 @@ public abstract class AssociatedAlphaPixelOperations<TPixel> : PixelOperations<T
         {
             int start = i * sliceLength;
             ReadOnlySpan<TPixel> sourceSlice = source.Slice(start, sliceLength);
-            Span<TDestinationPixel> destinationSlice = destination.Slice(start, sliceLength);
+            Span<TPixelTo> destinationSlice = destination.Slice(start, sliceLength);
             this.ToUnassociatedScaledVector4(configuration, sourceSlice, vectorSpan);
             destinationOperations.FromUnassociatedScaledVector4Destructive(configuration, vectorSpan, destinationSlice);
         }
@@ -208,7 +208,7 @@ public abstract class AssociatedAlphaPixelOperations<TPixel> : PixelOperations<T
         if (remainder > 0)
         {
             ReadOnlySpan<TPixel> sourceSlice = source[endOfCompleteSlices..];
-            Span<TDestinationPixel> destinationSlice = destination.Slice(endOfCompleteSlices, remainder);
+            Span<TPixelTo> destinationSlice = destination.Slice(endOfCompleteSlices, remainder);
             vectorSpan = vectorSpan[..remainder];
             this.ToUnassociatedScaledVector4(configuration, sourceSlice, vectorSpan);
             destinationOperations.FromUnassociatedScaledVector4Destructive(configuration, vectorSpan, destinationSlice);

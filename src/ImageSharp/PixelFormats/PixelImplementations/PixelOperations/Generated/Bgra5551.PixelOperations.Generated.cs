@@ -255,12 +255,12 @@ public partial struct Bgra5551
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<Bgra5551> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToBgra5551(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToBgra5551(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

@@ -398,7 +398,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         this.isDisposed = true;
     }
 
-    internal override void CopyPixelsTo<TDestinationPixel>(Buffer2D<TDestinationPixel> destination)
+    internal override void CopyPixelsTo<TPixelTo>(Buffer2D<TPixelTo> destination)
     {
         Guard.NotNull(destination, nameof(destination));
         Guard.IsTrue(
@@ -406,13 +406,13 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
             nameof(destination),
             "Destination buffer must have the same dimensions as the source frame.");
 
-        if (typeof(TPixel) == typeof(TDestinationPixel))
+        if (typeof(TPixel) == typeof(TPixelTo))
         {
             for (int y = 0; y < this.Height; y++)
             {
                 Span<TPixel> sourceRow = this.PixelBuffer.DangerousGetRowSpan(y);
-                Span<TDestinationPixel> destinationRow = destination.DangerousGetRowSpan(y);
-                sourceRow.CopyTo(MemoryMarshal.Cast<TDestinationPixel, TPixel>(destinationRow));
+                Span<TPixelTo> destinationRow = destination.DangerousGetRowSpan(y);
+                sourceRow.CopyTo(MemoryMarshal.Cast<TPixelTo, TPixel>(destinationRow));
             }
 
             return;
@@ -421,7 +421,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         for (int y = 0; y < this.Height; y++)
         {
             Span<TPixel> sourceRow = this.PixelBuffer.DangerousGetRowSpan(y);
-            Span<TDestinationPixel> destinationRow = destination.DangerousGetRowSpan(y);
+            Span<TPixelTo> destinationRow = destination.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.To(this.Configuration, sourceRow, destinationRow);
         }
     }
@@ -445,27 +445,27 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <summary>
     /// Returns a copy of the image frame in the given pixel format.
     /// </summary>
-    /// <typeparam name="TPixel2">The pixel format.</typeparam>
-    /// <returns>The <see cref="ImageFrame{TPixel2}"/></returns>
-    internal ImageFrame<TPixel2>? CloneAs<TPixel2>()
-        where TPixel2 : unmanaged, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.Configuration);
+    /// <typeparam name="TPixelTo">The pixel format.</typeparam>
+    /// <returns>The <see cref="ImageFrame{TPixelTo}"/></returns>
+    internal ImageFrame<TPixelTo>? CloneAs<TPixelTo>()
+        where TPixelTo : unmanaged, IPixel<TPixelTo> => this.CloneAs<TPixelTo>(this.Configuration);
 
     /// <summary>
     /// Returns a copy of the image frame in the given pixel format.
     /// </summary>
-    /// <typeparam name="TPixel2">The pixel format.</typeparam>
+    /// <typeparam name="TPixelTo">The pixel format.</typeparam>
     /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
-    /// <returns>The <see cref="ImageFrame{TPixel2}"/></returns>
-    internal ImageFrame<TPixel2> CloneAs<TPixel2>(Configuration configuration)
-        where TPixel2 : unmanaged, IPixel<TPixel2>
+    /// <returns>The <see cref="ImageFrame{TPixelTo}"/></returns>
+    internal ImageFrame<TPixelTo> CloneAs<TPixelTo>(Configuration configuration)
+        where TPixelTo : unmanaged, IPixel<TPixelTo>
     {
-        if (typeof(TPixel2) == typeof(TPixel))
+        if (typeof(TPixelTo) == typeof(TPixel))
         {
-            return (this.Clone(configuration) as ImageFrame<TPixel2>)!;
+            return (this.Clone(configuration) as ImageFrame<TPixelTo>)!;
         }
 
-        ImageFrame<TPixel2> target = new(configuration, this.Width, this.Height, this.Metadata.DeepClone());
-        RowIntervalOperation<TPixel2> operation = new(this.PixelBuffer, target.PixelBuffer, configuration);
+        ImageFrame<TPixelTo> target = new(configuration, this.Width, this.Height, this.Metadata.DeepClone());
+        RowIntervalOperation<TPixelTo> operation = new(this.PixelBuffer, target.PixelBuffer, configuration);
 
         ParallelRowIterator.IterateRowIntervals(
             configuration,
@@ -501,18 +501,18 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <summary>
     /// A <see langword="struct"/> implementing the clone logic for <see cref="ImageFrame{TPixel}"/>.
     /// </summary>
-    /// <typeparam name="TPixel2">The type of the target pixel format.</typeparam>
-    private readonly struct RowIntervalOperation<TPixel2> : IRowIntervalOperation
-        where TPixel2 : unmanaged, IPixel<TPixel2>
+    /// <typeparam name="TPixelTo">The type of the target pixel format.</typeparam>
+    private readonly struct RowIntervalOperation<TPixelTo> : IRowIntervalOperation
+        where TPixelTo : unmanaged, IPixel<TPixelTo>
     {
         private readonly Buffer2D<TPixel> source;
-        private readonly Buffer2D<TPixel2> target;
+        private readonly Buffer2D<TPixelTo> target;
         private readonly Configuration configuration;
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public RowIntervalOperation(
             Buffer2D<TPixel> source,
-            Buffer2D<TPixel2> target,
+            Buffer2D<TPixelTo> target,
             Configuration configuration)
         {
             this.source = source;
@@ -527,7 +527,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
             for (int y = rows.Min; y < rows.Max; y++)
             {
                 Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
-                Span<TPixel2> targetRow = this.target.DangerousGetRowSpan(y);
+                Span<TPixelTo> targetRow = this.target.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.To(this.configuration, sourceRow, targetRow);
             }
         }

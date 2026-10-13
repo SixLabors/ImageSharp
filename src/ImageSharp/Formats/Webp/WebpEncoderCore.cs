@@ -1,10 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
+using System.Numerics;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -137,6 +141,7 @@ internal sealed class WebpEncoderCore
             WebpThrowHelper.ThrowDimensionsTooLarge(image.Width, image.Height);
         }
 
+        WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
         bool lossless;
         if (this.fileFormat is not null)
         {
@@ -144,14 +149,29 @@ internal sealed class WebpEncoderCore
         }
         else
         {
-            WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
             lossless = webpMetadata.FileFormat == WebpFileFormatType.Lossless;
         }
 
+        // WebP supplies RGB to ICC before lossless packing or lossy YCbCr conversion. One ICCP describes every frame.
+        IccProfile? sourceIccProfile = image.Frames.RootFrame.Metadata.IccProfile ?? image.Metadata.IccProfile;
+        IccProfile? outputIccProfile = IccProfile.GetIccProfileForEncoding(
+            sourceIccProfile, PixelColorType.RGB, this.memoryAllocator, out ColorProfileConverter? converter);
+
+        // Frame differencing uses working sRGB colors; encoder backgrounds override metadata.
+        // Only the ANIM output copy enters the retained profile's space.
+        bool hasAnimation = image.Frames.Count > 1;
+        Color background = this.backgroundColor ?? webpMetadata.BackgroundColor;
+        Color outputBackground = hasAnimation && converter is not null ? converter.Convert<Bgra32>(background) : background;
+        ushort repeatCount = this.repeatCount ?? webpMetadata.RepeatCount;
+
+        // Borrow the same row scratch for every frame and both compression paths. Direct sRGB packing needs no scratch.
+        using IMemoryOwner<Vector4>? vectorBuffer = converter is null ? null : this.memoryAllocator.Allocate<Vector4>(image.Width);
+        using IMemoryOwner<Rgb>? rgbBuffer = converter is null ? null : this.memoryAllocator.Allocate<Rgb>(image.Width);
+        Span<Vector4> vectors = vectorBuffer is null ? default : vectorBuffer.GetSpan();
+        Span<Rgb> rgb = rgbBuffer is null ? default : rgbBuffer.GetSpan();
+
         if (lossless)
         {
-            bool hasAnimation = image.Frames.Count > 1;
-
             using Vp8LEncoder encoder = new(
                 this.memoryAllocator,
                 this.configuration,
@@ -166,7 +186,7 @@ internal sealed class WebpEncoderCore
 
             long initialPosition = stream.Position;
             bool hasAlpha = false;
-            WebpVp8X vp8x = encoder.EncodeHeader(image, stream, hasAnimation, this.repeatCount);
+            WebpVp8X vp8x = encoder.EncodeHeader(image, stream, hasAnimation, outputIccProfile, outputBackground, repeatCount);
 
             // Encode the first frame.
             ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
@@ -174,7 +194,7 @@ internal sealed class WebpEncoderCore
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            hasAlpha |= encoder.Encode(previousFrame, previousFrame.Bounds, frameMetadata, stream, hasAnimation);
+            hasAlpha |= encoder.Encode(previousFrame, previousFrame.Bounds, frameMetadata, stream, hasAnimation, converter, vectors, rgb);
 
             if (hasAnimation)
             {
@@ -194,8 +214,8 @@ internal sealed class WebpEncoderCore
 
                     frameMetadata = currentFrame.Metadata.GetWebpMetadata();
                     bool blend = frameMetadata.BlendMode == FrameBlendMode.Over;
-                    Color background = frameMetadata.DisposalMode == FrameDisposalMode.RestoreToBackground
-                        ? this.backgroundColor ?? Color.Transparent
+                    Color replacement = frameMetadata.DisposalMode == FrameDisposalMode.RestoreToBackground
+                        ? background
                         : Color.Transparent;
 
                     (bool difference, Rectangle bounds) =
@@ -205,7 +225,7 @@ internal sealed class WebpEncoderCore
                             currentFrame,
                             nextFrame,
                             encodingFrame,
-                            background,
+                            replacement,
                             blend,
                             ClampingMode.Even);
 
@@ -221,7 +241,7 @@ internal sealed class WebpEncoderCore
                         this.nearLossless,
                         this.nearLosslessQuality);
 
-                    hasAlpha |= animatedEncoder.Encode(encodingFrame, bounds, frameMetadata, stream, hasAnimation);
+                    hasAlpha |= animatedEncoder.Encode(encodingFrame, bounds, frameMetadata, stream, hasAnimation, converter, vectors, rgb);
 
                     previousFrame = currentFrame;
                     previousDisposal = frameMetadata.DisposalMode;
@@ -248,17 +268,17 @@ internal sealed class WebpEncoderCore
             long initialPosition = stream.Position;
             bool hasAlpha = false;
             WebpVp8X vp8x = default;
-            if (image.Frames.Count > 1)
+            if (hasAnimation)
             {
                 // The alpha flag is updated following encoding.
-                vp8x = encoder.EncodeHeader(image, stream, false, true);
+                vp8x = encoder.EncodeHeader(image, stream, false, true, outputIccProfile, outputBackground, repeatCount);
 
                 // Encode the first frame.
                 ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
                 WebpFrameMetadata frameMetadata = previousFrame.Metadata.GetWebpMetadata();
                 FrameDisposalMode previousDisposal = frameMetadata.DisposalMode;
 
-                hasAlpha |= encoder.EncodeAnimation(previousFrame, stream, previousFrame.Bounds, frameMetadata);
+                hasAlpha |= encoder.EncodeAnimation(previousFrame, stream, previousFrame.Bounds, frameMetadata, outputIccProfile, converter, vectors, rgb);
 
                 // Encode additional frames
                 // This frame is reused to store de-duplicated pixel buffers.
@@ -274,8 +294,8 @@ internal sealed class WebpEncoderCore
 
                     frameMetadata = currentFrame.Metadata.GetWebpMetadata();
                     bool blend = frameMetadata.BlendMode == FrameBlendMode.Over;
-                    Color background = frameMetadata.DisposalMode == FrameDisposalMode.RestoreToBackground
-                        ? this.backgroundColor ?? Color.Transparent
+                    Color replacement = frameMetadata.DisposalMode == FrameDisposalMode.RestoreToBackground
+                        ? background
                         : Color.Transparent;
 
                     (bool difference, Rectangle bounds) =
@@ -285,7 +305,7 @@ internal sealed class WebpEncoderCore
                             currentFrame,
                             nextFrame,
                             encodingFrame,
-                            background,
+                            replacement,
                             blend,
                             ClampingMode.Even);
 
@@ -302,7 +322,7 @@ internal sealed class WebpEncoderCore
                         this.spatialNoiseShaping,
                         this.alphaCompression);
 
-                    hasAlpha |= animatedEncoder.EncodeAnimation(encodingFrame, stream, bounds, frameMetadata);
+                    hasAlpha |= animatedEncoder.EncodeAnimation(encodingFrame, stream, bounds, frameMetadata, outputIccProfile, converter, vectors, rgb);
 
                     previousFrame = currentFrame;
                     previousDisposal = frameMetadata.DisposalMode;
@@ -313,7 +333,7 @@ internal sealed class WebpEncoderCore
             else
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                encoder.EncodeStatic(stream, image);
+                encoder.EncodeStatic(stream, image, outputIccProfile, converter, vectors, rgb);
                 encoder.EncodeFooter(image, in vp8x, hasAlpha, stream, initialPosition);
             }
         }

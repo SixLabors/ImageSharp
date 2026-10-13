@@ -352,12 +352,12 @@ public partial struct Bgr24
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<Bgr24> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToBgr24(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToBgr24(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

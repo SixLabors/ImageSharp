@@ -476,28 +476,28 @@ internal sealed class BmpEncoderCore
     /// <summary>
     /// Writes bottom-up direct-color rows in the requested BMP sample layout.
     /// </summary>
-    /// <typeparam name="TPixel">The source pixel format.</typeparam>
-    /// <typeparam name="TStoredPixel">The packed BMP sample format.</typeparam>
+    /// <typeparam name="TPixelFrom">The source pixel format.</typeparam>
+    /// <typeparam name="TPixelTo">The packed BMP sample format.</typeparam>
     /// <param name="configuration">The pixel conversion configuration.</param>
     /// <param name="stream">The destination stream.</param>
     /// <param name="pixels">The source pixels, which remain unchanged.</param>
     /// <param name="converter">The converter from sRGB to the output profile, or null for unchanged samples.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    private void WriteDirectColorPixels<TPixel, TStoredPixel>(
+    private void WriteDirectColorPixels<TPixelFrom, TPixelTo>(
         Configuration configuration,
         Stream stream,
-        Buffer2D<TPixel> pixels,
+        Buffer2D<TPixelFrom> pixels,
         ColorProfileConverter? converter,
         CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
-        where TStoredPixel : unmanaged, IPixel<TStoredPixel>
+        where TPixelFrom : unmanaged, IPixel<TPixelFrom>
+        where TPixelTo : unmanaged, IPixel<TPixelTo>
     {
         int width = pixels.Width;
-        int bytesPerPixel = Unsafe.SizeOf<TStoredPixel>();
+        int bytesPerPixel = Unsafe.SizeOf<TPixelTo>();
         using IMemoryOwner<byte> row = this.AllocateRow(width, bytesPerPixel);
         Span<byte> rowSpan = row.GetSpan();
-        Span<TStoredPixel> packedRow = MemoryMarshal.Cast<byte, TStoredPixel>(rowSpan[..(width * bytesPerPixel)]);
-        PixelOperations<TStoredPixel> pixelOperations = PixelOperations<TStoredPixel>.Instance;
+        Span<TPixelTo> packedRow = MemoryMarshal.Cast<byte, TPixelTo>(rowSpan[..(width * bytesPerPixel)]);
+        PixelOperations<TPixelTo> pixelOperations = PixelOperations<TPixelTo>.Instance;
 
         // The destination's bulk From operation delegates to the existing BGR, BGRA or Bgra5551 source packer.
         // Keep alignment padding outside the pixel span, and allocate no ICC scratch for unchanged output.
@@ -507,7 +507,7 @@ internal sealed class BmpEncoderCore
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                ReadOnlySpan<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
+                ReadOnlySpan<TPixelFrom> pixelSpan = pixels.DangerousGetRowSpan(y);
                 pixelOperations.From(configuration, pixelSpan, packedRow);
                 stream.Write(rowSpan);
             }
@@ -525,7 +525,7 @@ internal sealed class BmpEncoderCore
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            ReadOnlySpan<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
+            ReadOnlySpan<TPixelFrom> pixelSpan = pixels.DangerousGetRowSpan(y);
             converter.Convert(configuration, pixelSpan, vectors, rgb);
 
             // ICC returns straight RGB and retains alpha. The destination pixel format performs the final quantization.

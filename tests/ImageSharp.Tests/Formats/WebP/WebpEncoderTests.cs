@@ -21,7 +21,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Webp;
 namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 
 [Trait("Format", "Webp")]
-public class WebpEncoderTests
+public partial class WebpEncoderTests
 {
     private static string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.NoFilter06);
 

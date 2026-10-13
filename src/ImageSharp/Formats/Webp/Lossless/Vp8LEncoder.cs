@@ -6,11 +6,14 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
 using SixLabors.ImageSharp.Formats.Webp.Chunks;
+using SixLabors.ImageSharp.Formats.Webp.ColorConverters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -226,7 +229,18 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     public Vp8LHashChain HashChain { get; }
 
-    public WebpVp8X EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAnimation, ushort? repeatCount)
+    /// <summary>
+    /// Writes the selected ICC profile and animation settings before lossless frame data.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="image">The image supplying dimensions and optional metadata.</param>
+    /// <param name="stream">The output stream.</param>
+    /// <param name="hasAnimation">Whether animation frames follow.</param>
+    /// <param name="iccProfile">The profile matching the encoded RGB samples, or null.</param>
+    /// <param name="background">The resolved background in the encoded color space.</param>
+    /// <param name="repeatCount">The resolved animation repeat count.</param>
+    /// <returns>The extended header, if required.</returns>
+    public WebpVp8X EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAnimation, IccProfile iccProfile, Color background, ushort repeatCount)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Write bytes from the bit-writer buffer to the stream.
@@ -241,14 +255,13 @@ internal class Vp8LEncoder : IDisposable
             (uint)image.Height,
             exifProfile,
             xmpProfile,
-            metadata.IccProfile,
+            iccProfile,
             false,
             hasAnimation);
 
         if (hasAnimation)
         {
-            WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
-            BitWriterBase.WriteAnimationParameter(stream, webpMetadata.BackgroundColor, repeatCount ?? webpMetadata.RepeatCount);
+            BitWriterBase.WriteAnimationParameter(stream, background, repeatCount);
         }
 
         return vp8x;
@@ -277,12 +290,23 @@ internal class Vp8LEncoder : IDisposable
     /// <param name="frameMetadata">The frame metadata.</param>
     /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
     /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
+    /// <param name="converter">The return transform from sRGB to the encoded profile, or null.</param>
+    /// <param name="vectors">Reusable straight RGBA row scratch.</param>
+    /// <param name="rgb">Reusable RGB transform scratch.</param>
     /// <returns>A <see cref="bool"/> indicating whether the frame contains an alpha channel.</returns>
-    public bool Encode<TPixel>(ImageFrame<TPixel> frame, Rectangle bounds, WebpFrameMetadata frameMetadata, Stream stream, bool hasAnimation)
+    public bool Encode<TPixel>(
+        ImageFrame<TPixel> frame,
+        Rectangle bounds,
+        WebpFrameMetadata frameMetadata,
+        Stream stream,
+        bool hasAnimation,
+        ColorProfileConverter converter,
+        Span<Vector4> vectors,
+        Span<Rgb> rgb)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Convert image pixels to bgra array.
-        bool hasAlpha = this.ConvertPixelsToBgra(frame.PixelBuffer.GetRegion(bounds));
+        bool hasAlpha = this.ConvertPixelsToBgra(frame.PixelBuffer.GetRegion(bounds), converter, vectors, rgb);
 
         // Write the image size.
         this.WriteImageSize(bounds.Width, bounds.Height);
@@ -338,7 +362,8 @@ internal class Vp8LEncoder : IDisposable
         int pixelCount = width * height;
 
         // Convert image pixels to bgra array.
-        this.ConvertPixelsToBgra(frame);
+        // ALPH stores coverage only; its lossless compression must not apply the image's RGB profile.
+        this.ConvertPixelsToBgra(frame, null, [], []);
 
         // The image-stream will NOT contain any headers describing the image dimension, the dimension is already known.
         this.EncodeStream(width, height);
@@ -493,19 +518,34 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixels.</typeparam>
     /// <param name="pixels">The frame pixel buffer to convert.</param>
+    /// <param name="converter">The return transform from sRGB to the encoded profile, or null.</param>
+    /// <param name="vectors">Reusable straight RGBA row scratch.</param>
+    /// <param name="rgb">Reusable RGB transform scratch.</param>
     /// <returns>true, if the image is non opaque.</returns>
-    public bool ConvertPixelsToBgra<TPixel>(Buffer2DRegion<TPixel> pixels)
+    public bool ConvertPixelsToBgra<TPixel>(Buffer2DRegion<TPixel> pixels, ColorProfileConverter converter, Span<Vector4> vectors, Span<Rgb> rgb)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool nonOpaque = false;
         Span<uint> bgra = this.Bgra.GetSpan();
         Span<byte> bgraBytes = MemoryMarshal.Cast<uint, byte>(bgra);
         int widthBytes = pixels.Width * 4;
+        WebpColorConverterBase colorConverter = converter is null ? null : WebpColorConverterBase.GetConverter(WebpColorType.Rgba);
+
         for (int y = 0; y < pixels.Height; y++)
         {
             Span<TPixel> rowSpan = pixels.DangerousGetRowSpan(y);
             Span<byte> rowBytes = bgraBytes.Slice(y * widthBytes, widthBytes);
-            PixelOperations<TPixel>.Instance.ToBgra32Bytes(this.configuration, rowSpan, rowBytes, pixels.Width);
+            if (converter is null)
+            {
+                // Keep the direct byte conversion when no profile transform is required.
+                PixelOperations<TPixel>.Instance.ToBgra32Bytes(this.configuration, rowSpan, rowBytes, pixels.Width);
+            }
+            else
+            {
+                // Transform the source precision before final BGRA byte packing; alpha uses the pixel API.
+                colorConverter.ConvertRgbRow<TPixel, Bgra32>(this.configuration, rowSpan, converter, vectors, rgb, MemoryMarshal.Cast<byte, Bgra32>(rowBytes));
+            }
+
             if (!nonOpaque)
             {
                 Span<Bgra32> rowBgra = MemoryMarshal.Cast<byte, Bgra32>(rowBytes);

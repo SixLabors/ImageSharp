@@ -255,12 +255,12 @@ public partial struct La32
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<La32> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToLa32(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToLa32(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

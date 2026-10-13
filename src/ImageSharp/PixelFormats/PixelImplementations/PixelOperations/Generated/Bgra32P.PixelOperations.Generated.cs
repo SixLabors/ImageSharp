@@ -117,9 +117,9 @@ public partial struct Bgra32P
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(Configuration configuration, ReadOnlySpan<TSourcePixel> source, Span<Bgra32P> destination)
+        public override void From<TPixelFrom>(Configuration configuration, ReadOnlySpan<TPixelFrom> source, Span<Bgra32P> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToBgra32P(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToBgra32P(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

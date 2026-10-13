@@ -164,7 +164,7 @@ public class YuvConversionTests
 
         // act
         WebpColorConverterBase converter = WebpColorConverterBase.GetConverter(WebpColorType.Yuv);
-        converter.ConvertFromRgb(image.Frames.RootFrame.PixelBuffer.GetRegion(), config, memoryAllocator, y, u, v);
+        converter.ConvertFromRgb(image.Frames.RootFrame.PixelBuffer.GetRegion(), config, memoryAllocator, null, [], [], y, u, v);
 
         // assert
         Assert.True(expectedY.AsSpan().SequenceEqual(y));
@@ -286,7 +286,7 @@ public class YuvConversionTests
 
         // act
         WebpColorConverterBase converter = WebpColorConverterBase.GetConverter(WebpColorType.Yuv);
-        converter.ConvertFromRgb(image.Frames.RootFrame.PixelBuffer.GetRegion(), config, memoryAllocator, y, u, v);
+        converter.ConvertFromRgb(image.Frames.RootFrame.PixelBuffer.GetRegion(), config, memoryAllocator, null, [], [], y, u, v);
 
         // assert
         Assert.True(expectedY.AsSpan().SequenceEqual(y));

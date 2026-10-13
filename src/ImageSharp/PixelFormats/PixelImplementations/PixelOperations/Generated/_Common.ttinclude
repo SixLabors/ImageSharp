@@ -60,15 +60,15 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
 
         /// <inheritdoc />
 <#+ if (pixelType.EndsWith("P")) { #>
-        public override void From<TSourcePixel>(Configuration configuration, ReadOnlySpan<TSourcePixel> source, Span<<#=pixelType#>> destination)
+        public override void From<TPixelFrom>(Configuration configuration, ReadOnlySpan<TPixelFrom> source, Span<<#=pixelType#>> destination)
 <#+ } else { #>
-        public override void From<TSourcePixel>(
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<<#=pixelType#>> destination)
 <#+ } #>
         {
-            PixelOperations<TSourcePixel>.Instance.To<#=pixelType#>(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.To<#=pixelType#>(configuration, source, destination.Slice(0, source.Length));
         }
 <#+
     }

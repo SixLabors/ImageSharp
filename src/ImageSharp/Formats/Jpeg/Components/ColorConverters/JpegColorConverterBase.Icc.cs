@@ -16,12 +16,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 internal abstract partial class JpegColorConverterBase
 {
     /// <summary>
+    /// The profile-free converter for the format-defined YCbCr-to-RGB and YccK-to-CMYK models. Its options never
+    /// change, so every image and thread shares it.
+    /// </summary>
+    private static readonly ColorProfileConverter ModelConverter = new();
+
+    /// <summary>
     /// Converts planar jpeg component values in <paramref name="values"/> to RGB color space in-place using the given ICC profile.
     /// </summary>
     /// <param name="configuration">The configuration instance to use for the conversion.</param>
     /// <param name="values">The input/output as a stack-only <see cref="ComponentValues"/> struct.</param>
-    /// <param name="profile">The ICC profile to use for the conversion.</param>
-    public void ConvertToRgbInPlaceWithIcc(Configuration configuration, in ComponentValues values, IccProfile profile)
+    /// <param name="profileConverter">
+    /// The converter from the embedded ICC profile to <see cref="CompactSrgbV4Profile"/>. Callers create it once per
+    /// image so its transforms are built once.
+    /// </param>
+    public void ConvertToRgbInPlaceWithIcc(Configuration configuration, in ComponentValues values, ColorProfileConverter profileConverter)
     {
         Span<float> c0 = values.Component0;
         Span<float> c1 = values.Component1;
@@ -34,6 +43,7 @@ internal abstract partial class JpegColorConverterBase
             or JpegColorSpace.Cmyk
             or JpegColorSpace.TiffYccK
             or JpegColorSpace.TiffCmyk;
+
         int packedComponentCount = hasFourthComponent ? 4 : 3;
 
         using IMemoryOwner<float> memoryOwner = configuration.MemoryAllocator.Allocate<float>(length * packedComponentCount);
@@ -47,14 +57,7 @@ internal abstract partial class JpegColorConverterBase
 
             Span<Y> source = MemoryMarshal.Cast<float, Y>(c0);
             Span<Rgb> destination = MemoryMarshal.Cast<float, Rgb>(packed);
-            ColorConversionOptions options = new()
-            {
-                SourceIccProfile = profile,
-                TargetIccProfile = CompactSrgbV4Profile.Profile,
-            };
-
-            ColorProfileConverter converter = new(options);
-            converter.Convert<Y, Rgb>(source, destination);
+            profileConverter.Convert<Y, Rgb>(source, destination);
             UnpackDeinterleave3(MemoryMarshal.Cast<float, Vector3>(packed)[..length], c0, c1, c2);
             return;
         }
@@ -75,10 +78,9 @@ internal abstract partial class JpegColorConverterBase
                 // source space first, and that packed RGB becomes the input to the profile transform below.
                 PackedNormalizeInterleave3(c0, c1, c2, packed, 1F / this.MaximumValue);
 
-                ColorProfileConverter yCbCrConverter = new();
                 Span<YCbCr> yCbCr = MemoryMarshal.Cast<float, YCbCr>(packed);
                 Span<Rgb> yCbCrDestination = MemoryMarshal.Cast<float, Rgb>(packed);
-                yCbCrConverter.Convert<YCbCr, Rgb>(yCbCr, yCbCrDestination);
+                ModelConverter.Convert<YCbCr, Rgb>(yCbCr, yCbCrDestination);
                 break;
 
             case JpegColorSpace.Cmyk:
@@ -97,9 +99,8 @@ internal abstract partial class JpegColorConverterBase
                 // Adobe-style JPEG YccK is inverted before its format-defined YccK-to-CMYK transform.
                 PackedInvertNormalizeInterleave4(c0, c1, c2, values.Component3, packed, this.MaximumValue);
 
-                ColorProfileConverter yccKConverter = new();
                 Span<Cmyk> yccKCmyk = MemoryMarshal.Cast<float, Cmyk>(packed);
-                yccKConverter.Convert<YccK, Cmyk>(MemoryMarshal.Cast<Cmyk, YccK>(yccKCmyk), yccKCmyk);
+                ModelConverter.Convert<YccK, Cmyk>(MemoryMarshal.Cast<Cmyk, YccK>(yccKCmyk), yccKCmyk);
                 profileSourceIsCmyk = true;
                 break;
 
@@ -107,20 +108,12 @@ internal abstract partial class JpegColorConverterBase
                 // TIFF JPEG YccK is non-inverted, but otherwise uses the same YccK-to-CMYK transform.
                 PackedNormalizeInterleave4(c0, c1, c2, values.Component3, packed, this.MaximumValue);
 
-                ColorProfileConverter tiffYccKConverter = new();
                 Span<Cmyk> tiffYccKCmyk = MemoryMarshal.Cast<float, Cmyk>(packed);
-                tiffYccKConverter.Convert<YccK, Cmyk>(MemoryMarshal.Cast<Cmyk, YccK>(tiffYccKCmyk), tiffYccKCmyk);
+                ModelConverter.Convert<YccK, Cmyk>(MemoryMarshal.Cast<Cmyk, YccK>(tiffYccKCmyk), tiffYccKCmyk);
                 profileSourceIsCmyk = true;
                 break;
         }
 
-        ColorConversionOptions profileOptions = new()
-        {
-            SourceIccProfile = profile,
-            TargetIccProfile = CompactSrgbV4Profile.Profile,
-        };
-
-        ColorProfileConverter profileConverter = new(profileOptions);
         Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(packed)[..length];
 
         if (profileSourceIsCmyk)

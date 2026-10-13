@@ -12,16 +12,18 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// <summary>
 /// Contains information about the pixels that make up an images visual data.
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="PixelTypeInfo"/> struct.
-/// </remarks>
-/// <param name="bitsPerPixel">Color depth, in number of bits per pixel.</param>
-public readonly struct PixelTypeInfo(int bitsPerPixel)
+public readonly struct PixelTypeInfo
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PixelTypeInfo"/> struct.
+    /// </summary>
+    /// <param name="bitsPerPixel">Color depth, in number of bits per pixel.</param>
+    public PixelTypeInfo(int bitsPerPixel) => this.BitsPerPixel = bitsPerPixel;
+
     /// <summary>
     /// Gets color depth, in number of bits per pixel.
     /// </summary>
-    public int BitsPerPixel { get; init; } = bitsPerPixel;
+    public int BitsPerPixel { get; init; }
 
     /// <summary>
     /// Gets the component bit depth and padding within the pixel.

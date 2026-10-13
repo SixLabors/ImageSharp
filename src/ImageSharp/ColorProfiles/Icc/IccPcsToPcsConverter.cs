@@ -15,11 +15,12 @@ internal class IccPcsToPcsConverter : IccConverterBase
     /// Initializes a new instance of the <see cref="IccPcsToPcsConverter"/> class.
     /// </summary>
     /// <param name="profile">The ICC profile to use for the conversions</param>
-    public IccPcsToPcsConverter(IccProfile profile)
+    /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
+    public IccPcsToPcsConverter(IccProfile profile, IccInterpolationMethod interpolationMethod)
 
         // The shared base constructor requires an intent. Pass the profile's header value;
         // Abstract transform selection uses CheckMethod2 and ignores rendering intent.
-        : base(profile, true, profile.Header.RenderingIntent)
+        : base(profile, true, profile.Header.RenderingIntent, interpolationMethod)
     {
     }
 }

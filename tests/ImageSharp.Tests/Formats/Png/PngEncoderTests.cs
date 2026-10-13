@@ -4,6 +4,7 @@
 // ReSharper disable InconsistentNaming
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
@@ -551,6 +552,45 @@ public partial class PngEncoderTests
                     Assert.Equal(FrameDisposalMode.DoNotDispose, pngF.DisposalMode);
                     break;
             }
+        }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Heif.AnimatedLeo, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromHeif<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        {
+            return;
+        }
+
+        using Image<TPixel> image = provider.GetImage(HeifDecoder.Instance);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, PngEncoder);
+        memStream.Position = 0;
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+        File.WriteAllBytes(provider.Utility.GetTestOutputFileName("png"), memStream.ToArray());
+        Assert.Equal(image.Frames.Count, output.Frames.Count);
+        ImageComparer.Exact.VerifySimilarity(output, image);
+
+        HeifMetadata heif = image.Metadata.GetHeifMetadata();
+        PngMetadata png = output.Metadata.GetPngMetadata();
+
+        Assert.Equal(heif.RepeatCount, png.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            HeifFrameMetadata heifF = image.Frames[i].Metadata.GetHeifMetadata();
+            PngFrameMetadata pngF = output.Frames[i].Metadata.GetPngMetadata();
+
+            Assert.Equal(heifF.FrameDelay.ToDouble(), pngF.FrameDelay.ToDouble());
+
+            // HEIF frames are complete images, so they replace the canvas and are not disposed.
+            Assert.Equal(FrameBlendMode.Source, pngF.BlendMode);
+            Assert.Equal(FrameDisposalMode.DoNotDispose, pngF.DisposalMode);
         }
     }
 

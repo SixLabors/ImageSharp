@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests;
@@ -42,6 +43,24 @@ public partial class ImageTests
 
             await Assert.ThrowsAsync<TaskCanceledException>(
                 async () => await image.SaveAsGifAsync(Stream.Null, new CancellationToken(canceled: true)));
+        }
+
+        [Fact]
+        public async Task Encode_PreCancellation_Heif()
+        {
+            using Image<Rgba32> image = new(10, 10);
+            await Assert.ThrowsAsync<TaskCanceledException>(
+                async () => await image.SaveAsync(Stream.Null, new HeifEncoder(), new CancellationToken(canceled: true)));
+        }
+
+        [Fact]
+        public async Task Encode_PreCancellation_Animated_Heif()
+        {
+            using Image<Rgba32> image = new(10, 10);
+            image.Frames.CreateFrame();
+
+            await Assert.ThrowsAsync<TaskCanceledException>(
+                async () => await image.SaveAsync(Stream.Null, new HeifEncoder(), new CancellationToken(canceled: true)));
         }
 
         [Fact]

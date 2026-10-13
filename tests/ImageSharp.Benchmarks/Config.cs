@@ -40,8 +40,7 @@ public partial class Config : ManualConfig
     public class Short : Config
     {
         public Short() => this.AddJob(
-                Job.Default
-                           .WithLaunchCount(1)
+                Job.Default.WithLaunchCount(1)
                            .WithWarmupCount(3)
                            .WithIterationCount(3)
                            .WithArguments([new MsBuildArgument("/p:DebugType=portable")]));

@@ -19,10 +19,11 @@ internal abstract partial class IccConverterBase
     /// <param name="profile">The ICC profile to use for the conversions</param>
     /// <param name="toPcs">True if the conversion is to the profile connection space (PCS); False if the conversion is to the data space</param>
     /// <param name="renderingIntent">The rendering intent selected for the profile connection.</param>
-    protected IccConverterBase(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent)
+    /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
+    protected IccConverterBase(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent, IccInterpolationMethod interpolationMethod)
     {
         Guard.NotNull(profile, nameof(profile));
-        this.Init(profile, toPcs, renderingIntent);
+        this.Init(profile, toPcs, renderingIntent, interpolationMethod);
     }
 
     /// <summary>

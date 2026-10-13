@@ -187,6 +187,50 @@ public partial class PixelOperations<TPixel>
     public PixelTypeInfo GetPixelTypeInfo() => TPixel.GetPixelTypeInfo();
 
     /// <summary>
+    /// Converts unassociated scaled planar floating-point components to a contiguous row of pixels.
+    /// An empty fourth plane supplies a value of 1 for each pixel.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="component0">The first component plane.</param>
+    /// <param name="component1">The second component plane.</param>
+    /// <param name="component2">The third component plane.</param>
+    /// <param name="component3">The fourth component plane, or an empty span to use 1 for every value.</param>
+    /// <param name="destination">The destination pixels.</param>
+    internal void PackFromUnassociatedScaledFloatPlanes(
+        Configuration configuration,
+        ReadOnlySpan<float> component0,
+        ReadOnlySpan<float> component1,
+        ReadOnlySpan<float> component2,
+        ReadOnlySpan<float> component3,
+        Span<TPixel> destination)
+    {
+        Guard.NotNull(configuration, nameof(configuration));
+        Guard.IsTrue(component1.Length == component0.Length, nameof(component1), "Components must be of same size!");
+        Guard.IsTrue(component2.Length == component0.Length, nameof(component2), "Components must be of same size!");
+        Guard.IsTrue(component3.IsEmpty || component3.Length == component0.Length, nameof(component3), "Components must be of same size!");
+        Guard.DestinationShouldNotBeTooShort(component0, destination, nameof(destination));
+
+        const int BlockSize = 64;
+        InlineArray64<Vector4> buffer = default;
+        Span<Vector4> vectors = buffer;
+
+        // Use the same bounded block as associated packing. Interleave straight samples once, then let the destination pixel operation apply its alpha rules.
+        for (int offset = 0; offset < component0.Length; offset += BlockSize)
+        {
+            int count = Math.Min(BlockSize, component0.Length - offset);
+            Span<Vector4> block = vectors[..count];
+            SimdUtils.InterleaveFloatPlanes(
+                component0.Slice(offset, count),
+                component1.Slice(offset, count),
+                component2.Slice(offset, count),
+                component3.IsEmpty ? ReadOnlySpan<float>.Empty : component3.Slice(offset, count),
+                block);
+
+            this.FromUnassociatedScaledVector4Destructive(configuration, block, destination.Slice(offset, count));
+        }
+    }
+
+    /// <summary>
     /// Converts associated scaled planar floating-point components to a contiguous row of pixels.
     /// An empty fourth plane supplies a value of 1 for each pixel.
     /// </summary>
@@ -211,7 +255,8 @@ public partial class PixelOperations<TPixel>
         Guard.DestinationShouldNotBeTooShort(component0, destination, nameof(destination));
 
         const int BlockSize = 64;
-        Span<Vector4> vectors = stackalloc Vector4[BlockSize];
+        InlineArray64<Vector4> buffer = default;
+        Span<Vector4> vectors = buffer;
 
         // The transposer and pixel converter share one bounded scratch block. Each pixel is
         // converted once, and the final short block follows the same numeric-domain path.
@@ -372,7 +417,7 @@ public partial class PixelOperations<TPixel>
 
     /// <summary>
     /// Bulk operation that packs 3 separate RGB channels to <paramref name="destination"/>.
-    /// The destination must have a padding of 3.
+    /// The destination must contain at least as many pixels as each source channel.
     /// </summary>
     /// <param name="redChannel">A <see cref="ReadOnlySpan{T}"/> to the red values.</param>
     /// <param name="greenChannel">A <see cref="ReadOnlySpan{T}"/> to the green values.</param>
@@ -448,6 +493,6 @@ public partial class PixelOperations<TPixel>
     {
         Guard.IsTrue(greenChannel.Length == count, nameof(greenChannel), "Channels must be of same size!");
         Guard.IsTrue(blueChannel.Length == count, nameof(blueChannel), "Channels must be of same size!");
-        Guard.IsTrue(destination.Length > count + 2, nameof(destination), "'destination' must contain a padding of 3 elements!");
+        Guard.IsTrue(destination.Length >= count, nameof(destination), "'destination' span should not be shorter than the source channels!");
     }
 }

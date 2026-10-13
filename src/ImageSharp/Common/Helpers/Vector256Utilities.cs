@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
@@ -20,6 +21,56 @@ namespace SixLabors.ImageSharp.Common.Helpers;
 internal static class Vector256_
 #pragma warning restore SA1649 // File name should match first type name
 {
+    /// <summary>
+    /// Average packed unsigned 8-bit integers in <paramref name="left"/> and <paramref name="right"/>, rounding up, and store the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 8-bit integers to average.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 8-bit integers to average.
+    /// </param>
+    /// <returns>
+    /// A vector containing (<paramref name="left"/> + <paramref name="right"/> + 1) &gt;&gt; 1 in each of its 32 lanes.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> Average(Vector256<byte> left, Vector256<byte> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.Average(left, right);
+        }
+
+        // (a | b) - ((a ^ b) >> 1) equals (a + b + 1) >> 1 without the carry into a wider lane:
+        // a + b = 2 * (a & b) + (a ^ b), and the shared and differing bits round up together.
+        return (left | right) - ((left ^ right) >>> 1);
+    }
+
+    /// <summary>
+    /// Average packed unsigned 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, rounding up, and store the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 16-bit integers to average.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 16-bit integers to average.
+    /// </param>
+    /// <returns>
+    /// A vector containing (<paramref name="left"/> + <paramref name="right"/> + 1) &gt;&gt; 1 in each of its 16 lanes.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<ushort> Average(Vector256<ushort> left, Vector256<ushort> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.Average(left, right);
+        }
+
+        // (a | b) - ((a ^ b) >> 1) equals (a + b + 1) >> 1 without the carry into a wider lane:
+        // a + b = 2 * (a & b) + (a ^ b), and the shared and differing bits round up together.
+        return (left | right) - ((left ^ right) >>> 1);
+    }
+
     /// <summary>
     /// Creates a new vector by selecting values from an input vector using a set of indices.
     /// </summary>
@@ -138,6 +189,67 @@ internal static class Vector256_
     }
 
     /// <summary>
+    /// Adds the absolute differences of packed unsigned 8-bit integers in <paramref name="left"/> and
+    /// <paramref name="right"/> into <paramref name="accumulator"/>.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 8-bit integers to compare.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 8-bit integers to compare.
+    /// </param>
+    /// <param name="accumulator">
+    /// The running total that the differences are added to.
+    /// </param>
+    /// <returns>
+    /// A vector whose lanes together hold <paramref name="accumulator"/> plus the thirty-two absolute differences
+    /// </returns>
+    /// <remarks>
+    /// The spread of the sums across the lanes is not defined, because each platform keeps the grouping
+    /// that its own instruction produces. Only the total across all lanes is defined, so the caller must
+    /// reduce the result with a horizontal sum and must not read one lane on its own. A lane holds a
+    /// 32-bit total, so it cannot overflow until more than sixteen million samples are added to it.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<uint> SumAbsoluteDifferences(Vector256<byte> left, Vector256<byte> right, Vector256<uint> accumulator)
+    {
+        if (Avx2.IsSupported)
+        {
+            return accumulator + Avx2.SumAbsoluteDifferences(left, right).AsUInt32();
+        }
+
+        return Vector256.Create(
+            Vector128_.SumAbsoluteDifferences(left.GetLower(), right.GetLower(), accumulator.GetLower()),
+            Vector128_.SumAbsoluteDifferences(left.GetUpper(), right.GetUpper(), accumulator.GetUpper()));
+    }
+
+    /// <summary>
+    /// Horizontally adds adjacent pairs of single-precision values in <paramref name="left"/> and
+    /// <paramref name="right"/> within each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The vector whose pair sums fill the two lower values of each 128-bit lane.</param>
+    /// <param name="right">The vector whose pair sums fill the two upper values of each 128-bit lane.</param>
+    /// <returns>
+    /// The vector (l0 + l1, l2 + l3, r0 + r1, r2 + r3, l4 + l5, l6 + l7, r4 + r5, r6 + r7).
+    /// </returns>
+    /// <remarks>
+    /// The pairs never cross a 128-bit lane, which is what the x86 instruction does. The portable form applies the
+    /// 128-bit operation to each half, so it gives the same bits.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> HorizontalAdd(Vector256<float> left, Vector256<float> right)
+    {
+        if (Avx.IsSupported)
+        {
+            return Avx.HorizontalAdd(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.HorizontalAdd(left.GetLower(), right.GetLower()),
+            Vector128_.HorizontalAdd(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
     /// Multiply packed signed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
     /// intermediate signed 32-bit integers. Horizontally add adjacent pairs of intermediate 32-bit integers, and
     /// pack the results.
@@ -162,6 +274,280 @@ internal static class Vector256_
         return Vector256.Create(
             Vector128_.MultiplyAddAdjacent(left.GetLower(), right.GetLower()),
             Vector128_.MultiplyAddAdjacent(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Multiply packed unsigned 8-bit integers in <paramref name="left"/> by packed signed 8-bit integers in
+    /// <paramref name="right"/>, producing intermediate signed 16-bit integers. Horizontally add adjacent pairs of
+    /// intermediate integers and pack the saturated results.
+    /// </summary>
+    /// <param name="left">
+    /// The vector containing packed unsigned 8-bit integers to multiply and add.
+    /// </param>
+    /// <param name="right">
+    /// The vector containing packed signed 8-bit integers to multiply and add.
+    /// </param>
+    /// <returns>
+    /// A vector containing the saturated results of multiplying and adding adjacent pairs of packed 8-bit integers
+    /// </returns>
+    /// <remarks>
+    /// The x86 instruction pairs within each 128-bit half, so composing the two halves of the
+    /// narrower form gives the same lane order on every path.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> MultiplyAddAdjacent(Vector256<byte> left, Vector256<sbyte> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.MultiplyAddAdjacent(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.MultiplyAddAdjacent(left.GetLower(), right.GetLower()),
+            Vector128_.MultiplyAddAdjacent(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Shifts each 128-bit lane right by a number of bytes, shifting in zeros.
+    /// </summary>
+    /// <param name="value">The value to shift.</param>
+    /// <param name="numBytes">The number of bytes to shift by.</param>
+    /// <returns>The <see cref="Vector256{Byte}"/>.</returns>
+    /// <remarks>
+    /// The shift stays inside each 128-bit lane, which is what the x86 instruction does. Composing
+    /// the two halves of the narrower shim reaches the same result on every other path.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> ShiftRightBytesInLane(Vector256<byte> value, [ConstantExpected(Max = (byte)15)] byte numBytes)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.ShiftRightLogical128BitLane(value, numBytes);
+        }
+
+        return Vector256.Create(
+            Vector128_.ShiftRightBytesInVector(value.GetLower(), numBytes),
+            Vector128_.ShiftRightBytesInVector(value.GetUpper(), numBytes));
+    }
+
+    /// <summary>
+    /// Shifts each 128-bit lane left by a number of bytes, shifting in zeros.
+    /// </summary>
+    /// <param name="value">The value to shift.</param>
+    /// <param name="numBytes">The number of bytes to shift by.</param>
+    /// <returns>The <see cref="Vector256{Byte}"/>.</returns>
+    /// <remarks>
+    /// The shift stays inside each 128-bit lane, which is what the x86 instruction does. Composing
+    /// the two halves of the narrower shim reaches the same result on every other path.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> ShiftLeftBytesInLane(Vector256<byte> value, [ConstantExpected(Max = (byte)15)] byte numBytes)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.ShiftLeftLogical128BitLane(value, numBytes);
+        }
+
+        return Vector256.Create(
+            Vector128_.ShiftLeftBytesInVector(value.GetLower(), numBytes),
+            Vector128_.ShiftLeftBytesInVector(value.GetUpper(), numBytes));
+    }
+
+    /// <summary>
+    /// Interleaves the upper signed 32-bit integers of each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{Int32}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<int> UnpackHigh(Vector256<int> left, Vector256<int> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.UnpackHigh(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.UnpackHigh(left.GetLower(), right.GetLower()),
+            Vector128_.UnpackHigh(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Interleaves the lower signed 64-bit integers of each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{Int64}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<long> UnpackLow(Vector256<long> left, Vector256<long> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.UnpackLow(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.UnpackLow(left.GetLower(), right.GetLower()),
+            Vector128_.UnpackLow(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Interleaves the upper signed 64-bit integers of each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{Int64}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<long> UnpackHigh(Vector256<long> left, Vector256<long> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.UnpackHigh(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.UnpackHigh(left.GetLower(), right.GetLower()),
+            Vector128_.UnpackHigh(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Interleaves the lower signed 16-bit integers of each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> UnpackLow(Vector256<short> left, Vector256<short> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.UnpackLow(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.UnpackLow(left.GetLower(), right.GetLower()),
+            Vector128_.UnpackLow(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Interleaves the upper signed 16-bit integers of each 128-bit lane.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> UnpackHigh(Vector256<short> left, Vector256<short> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.UnpackHigh(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.UnpackHigh(left.GetLower(), right.GetLower()),
+            Vector128_.UnpackHigh(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Widens sixteen unsigned 8-bit integers to signed 16-bit integers.
+    /// </summary>
+    /// <param name="value">The vector to widen.</param>
+    /// <returns>The <see cref="Vector256{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> Widen(Vector128<byte> value)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.ConvertToVector256Int16(value);
+        }
+
+        return Vector256.WidenLower(Vector256.Create(value, Vector128<byte>.Zero)).AsInt16();
+    }
+
+    /// <summary>
+    /// Multiplies packed signed 16-bit integers, keeping the high 17 bits, rounds, and packs the
+    /// high 16 bits of each result.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> MultiplyHighRoundScale(Vector256<short> left, Vector256<short> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.MultiplyHighRoundScale(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.MultiplyHighRoundScale(left.GetLower(), right.GetLower()),
+            Vector128_.MultiplyHighRoundScale(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Permutes the four 64-bit elements of one vector.
+    /// </summary>
+    /// <param name="value">The vector to permute.</param>
+    /// <param name="control">Two bits per destination element, selecting its source element.</param>
+    /// <returns>The <see cref="Vector256{Int64}"/>.</returns>
+    /// <remarks>
+    /// This crosses the two 128-bit lanes, which the portable shuffle also does when its indices
+    /// say so, so the control simply expands into an index vector.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<long> Permute4x64(Vector256<long> value, [ConstantExpected] byte control)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.Permute4x64(value, control);
+        }
+
+        return Vector256.Shuffle(
+            value,
+            Vector256.Create((long)(control & 3), (control >> 2) & 3, (control >> 4) & 3, (control >> 6) & 3));
+    }
+
+    /// <summary>
+    /// Reads eight 32-bit values from a table, one per lane, at the given element indices.
+    /// </summary>
+    /// <param name="table">The first element of the table.</param>
+    /// <param name="indices">The element index of each lane.</param>
+    /// <returns>The <see cref="Vector256{Int32}"/>.</returns>
+    /// <remarks>
+    /// A gather has no portable form, so every path other than AVX2 reads the eight elements one at
+    /// a time. The caller is responsible for keeping every index inside the table.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe Vector256<int> Gather(ref int table, Vector256<int> indices)
+    {
+        if (Avx2.IsSupported)
+        {
+            fixed (int* pointer = &table)
+            {
+                return Avx2.GatherVector256(pointer, indices, sizeof(int));
+            }
+        }
+
+        // A variable lane index defeats both vector accessors: each GetElement spills the index
+        // vector to the stack and reloads one value, and each WithElement spills and reloads the
+        // result. The indices are therefore stored once and the result is built once, which costs
+        // one store, eight loads and one construct.
+        //
+        // The scratch is an inline array rather than a stackalloc. This method is small enough to
+        // inline into a caller loop, and a stackalloc inside a loop body is not released per
+        // iteration, so it would grow the frame of the caller for as long as that method runs.
+        InlineArray8<int> lanes = default;
+        ref int first = ref Unsafe.As<InlineArray8<int>, int>(ref lanes);
+        indices.StoreUnsafe(ref first);
+        return Vector256.Create(
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 0)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 1)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 2)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 3)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 4)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 5)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 6)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 7)));
     }
 
     /// <summary>
@@ -396,5 +782,31 @@ internal static class Vector256_
         Vector128<byte> hi = Vector128_.UnpackLow(left.GetUpper(), right.GetUpper());
 
         return Vector256.Create(lo, hi);
+    }
+
+    /// <summary>
+    /// Multiply the signed 32-bit integers in the even lanes of <paramref name="left"/> and <paramref name="right"/>,
+    /// and store the signed 64-bit products. The odd lanes are ignored.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed signed 32-bit integers to multiply.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed signed 32-bit integers to multiply.
+    /// </param>
+    /// <returns>
+    /// A vector containing the 64-bit products of the even lanes.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<long> MultiplyWideningEven(Vector256<int> left, Vector256<int> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.Multiply(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.MultiplyWideningEven(left.GetLower(), right.GetLower()),
+            Vector128_.MultiplyWideningEven(left.GetUpper(), right.GetUpper()));
     }
 }

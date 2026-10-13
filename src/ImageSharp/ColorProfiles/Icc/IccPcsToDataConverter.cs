@@ -16,8 +16,9 @@ internal class IccPcsToDataConverter : IccConverterBase
     /// </summary>
     /// <param name="profile">The ICC profile to use for the conversions</param>
     /// <param name="renderingIntent">The rendering intent selected for the profile connection.</param>
-    public IccPcsToDataConverter(IccProfile profile, IccRenderingIntent renderingIntent)
-        : base(profile, false, renderingIntent)
+    /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
+    public IccPcsToDataConverter(IccProfile profile, IccRenderingIntent renderingIntent, IccInterpolationMethod interpolationMethod)
+        : base(profile, false, renderingIntent, interpolationMethod)
     {
     }
 }

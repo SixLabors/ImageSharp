@@ -12,6 +12,7 @@ using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Exr;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tiff;
@@ -50,6 +51,8 @@ public class MagickReferenceDecoder : ImageDecoder
     public static MagickReferenceDecoder WebP { get; } = new(WebpFormat.Instance);
 
     public static MagickReferenceDecoder Exr { get; } = new(ExrFormat.Instance);
+
+    public static MagickReferenceDecoder Heif { get; } = new(HeifFormat.Instance);
 
     protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
@@ -121,8 +124,11 @@ public class MagickReferenceDecoder : ImageDecoder
 
             using IUnsafePixelCollection<float> pixels = magicFrame.GetPixelsUnsafe();
 
-            bool isLowDepth = sourceDepth is 12 or 10 or 8 or 6 or 5 or 4 or 3 or 2 or 1;
-            bool isHighDepth = sourceDepth is 14 or 16 or 32;
+            // HEIF needs the ushort export below to recover its left-aligned ten- and twelve-bit samples.
+            // Other formats retain this branch's existing byte-reference path at those depths.
+            bool isHighDepthHeif = this.imageFormat is HeifFormat && sourceDepth is 10 or 12;
+            bool isLowDepth = !isHighDepthHeif && sourceDepth is 12 or 10 or 8 or 6 or 5 or 4 or 3 or 2 or 1;
+            bool isHighDepth = isHighDepthHeif || sourceDepth is 14 or 16 or 32;
 
             // ICC conversion changes the samples, not the PNG's declared bit depth.
             if (isHighDepth && this.imageFormat is PngFormat)
@@ -167,6 +173,21 @@ public class MagickReferenceDecoder : ImageDecoder
             else if (isHighDepth)
             {
                 ushort[] data = pixels.ToShortArray(PixelMapping.RGBA);
+                if (this.imageFormat is HeifFormat && magicFrame.Depth is 10 or 12)
+                {
+                    // The HEIF reader left-aligns native samples in its 16-bit channels. Recover the declared
+                    // sample values before expanding their full range to Rgba64; a shift alone leaves white
+                    // below 65535 and changes every nonzero component's normalized value.
+                    int depth = (int)magicFrame.Depth;
+                    int shift = 16 - depth;
+                    int maximum = (1 << depth) - 1;
+                    for (int i = 0; i < data.Length; i++)
+                    {
+                        int sample = data[i] >> shift;
+                        data[i] = (ushort)(((sample * 65535) + (maximum / 2)) / maximum);
+                    }
+                }
+
                 Span<byte> bytes = MemoryMarshal.Cast<ushort, byte>(data.AsSpan());
                 FromRgba64Bytes(configuration, bytes, buffer);
             }

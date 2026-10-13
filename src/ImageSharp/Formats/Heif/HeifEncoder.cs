@@ -1,0 +1,316 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
+
+namespace SixLabors.ImageSharp.Formats.Heif;
+
+/// <summary>
+/// Image encoder for writing an image to a stream in the HEIF format. The encoder compresses the image with AV1, so
+/// the output is an AVIF file.
+/// </summary>
+public sealed class HeifEncoder : AnimatedImageEncoder
+{
+    /// <summary>
+    /// Backing field for <see cref="Quality"/>.
+    /// </summary>
+    private int? quality;
+
+    /// <summary>
+    /// Backing field for <see cref="AlphaQuality"/>.
+    /// </summary>
+    private int? alphaQuality;
+
+    /// <summary>
+    /// Backing field for <see cref="KeyFrameInterval"/>.
+    /// </summary>
+    private int? keyFrameInterval;
+
+    /// <summary>
+    /// Backing field for <see cref="Sharpness"/>.
+    /// </summary>
+    private int? sharpness;
+
+    /// <summary>
+    /// Backing field for <see cref="FilmGrainPreset"/>.
+    /// </summary>
+    private int? filmGrainPreset;
+
+    /// <summary>
+    /// Backing field for <see cref="FilmGrainTable"/>.
+    /// </summary>
+    private string? filmGrainTable;
+
+    /// <summary>
+    /// Backing field for <see cref="Layers"/>.
+    /// </summary>
+    private IReadOnlyList<HeifLayer>? layers;
+
+    /// <summary>
+    /// Gets the lossy compression quality, or <see langword="null"/> to use the default quality of 60.
+    /// Valid values range from 0 for the lowest quality to 100 for the highest quality. A value of 100 does not
+    /// enable <see cref="Lossless"/> encoding.
+    /// </summary>
+    /// <exception cref="ArgumentException">The quality is outside the range 0 to 100.</exception>
+    public int? Quality
+    {
+        get => this.quality;
+        init
+        {
+            if (value is < 0 or > 100)
+            {
+                throw new ArgumentException("Quality must be in the range [0..100].");
+            }
+
+            this.quality = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets the lossy compression quality for the auxiliary alpha image, or <see langword="null"/> to use the
+    /// effective <see cref="Quality"/>. Valid values range from 0 for the lowest quality to 100 for the highest
+    /// quality. This option has no effect when the encoded image does not require an auxiliary alpha image.
+    /// </summary>
+    /// <exception cref="ArgumentException">The alpha quality is outside the range 0 to 100.</exception>
+    public int? AlphaQuality
+    {
+        get => this.alphaQuality;
+        init
+        {
+            if (value is < 0 or > 100)
+            {
+                throw new ArgumentException("Alpha quality must be in the range [0..100].");
+            }
+
+            this.alphaQuality = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the primary and auxiliary alpha images are encoded without loss. When
+    /// <see langword="true"/>, <see cref="Quality"/> and <see cref="AlphaQuality"/> do not affect the encoded image.
+    /// Defaults to <see langword="false"/>.
+    /// </summary>
+    public bool Lossless { get; init; }
+
+    /// <summary>
+    /// Gets the encoding speed. Higher levels encode faster but make a larger file.
+    /// Defaults to <see cref="HeifEncodingSpeed.Level6"/>.
+    /// </summary>
+    public HeifEncodingSpeed Speed { get; init; } = HeifEncodingSpeed.Level6;
+
+    /// <summary>
+    /// Gets the sharpness, from 0 to 7, or <see langword="null"/> to let the encoder decide. Higher values keep
+    /// more fine detail and sharper edges, and make a larger file. At lower quality the encoder reduces how much
+    /// the sharpness changes block edges.
+    /// </summary>
+    /// <exception cref="ArgumentException">The sharpness is outside the range 0 to 7.</exception>
+    public int? Sharpness
+    {
+        get => this.sharpness;
+        init
+        {
+            if (value is < 0 or > 7)
+            {
+                throw new ArgumentException("Sharpness must be in the range [0..7].");
+            }
+
+            this.sharpness = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets the quality measure that the encoder optimizes for, or <see langword="null"/> to let the encoder decide.
+    /// The setting applies to the primary and auxiliary alpha images. When it is <see langword="null"/>, the encoder
+    /// uses <see cref="HeifTuning.Psnr"/> for lossless images and for the auxiliary alpha image. Other still color
+    /// images, with or without <see cref="Layers"/>, use <see cref="HeifTuning.ImageQuality"/>, unless they are stored as
+    /// RGB. All other color images use <see cref="HeifTuning.Ssim"/>.
+    /// </summary>
+    public HeifTuning? Tuning { get; init; }
+
+    /// <summary>
+    /// Gets how the encoder varies the compression between areas of a frame. Only lossy animations use this setting.
+    /// <see cref="HeifAdaptiveQuantization.Variance"/> and <see cref="HeifAdaptiveQuantization.Complexity"/> apply to
+    /// the color frames at <see cref="HeifEncodingSpeed.Level0"/> to <see cref="HeifEncodingSpeed.Level6"/>.
+    /// <see cref="HeifAdaptiveQuantization.CyclicRefresh"/> applies to all frames at
+    /// <see cref="HeifEncodingSpeed.Level7"/> to <see cref="HeifEncodingSpeed.Level9"/>. At the other speeds, each
+    /// option changes the output slightly. Defaults to <see cref="HeifAdaptiveQuantization.None"/>.
+    /// </summary>
+    public HeifAdaptiveQuantization AdaptiveQuantization { get; init; }
+
+    /// <summary>
+    /// Gets how the encoder balances file size against the quality setting, or <see langword="null"/> to let the
+    /// encoder decide. When it is <see langword="null"/>, animations and images with <see cref="Layers"/> use
+    /// <see cref="HeifRateControl.ConstantBitRate"/> at <see cref="HeifEncodingSpeed.Level7"/> to
+    /// <see cref="HeifEncodingSpeed.Level9"/>, and all other images use <see cref="HeifRateControl.ConstantQuality"/>.
+    /// </summary>
+    public HeifRateControl? RateControl { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the color planes get a quality apart from the brightness plane, or
+    /// <see langword="null"/> to let the encoder decide. With <see cref="HeifTuning.ImageQuality"/> and
+    /// <see cref="HeifTuning.Ssimulacra2"/> the color quality follows the chroma subsampling: 4:2:0 color gets more
+    /// quality, and 4:2:2 and 4:4:4 color get less. With other tuning the color gets slightly less quality. When it is
+    /// <see langword="null"/>, only these two tunings separate the color quality. Lossless encoding ignores this
+    /// setting. Defaults to <see langword="null"/>.
+    /// </summary>
+    public bool? SeparateChromaQuality { get; init; }
+
+    /// <summary>
+    /// Gets the film grain preset, from 1 to 16, or <see langword="null"/> for no film grain. The decoder adds the
+    /// grain to the decoded image, so a grainy image keeps its look in a smaller file. Each preset gives a different
+    /// type of grain. The preset takes priority over <see cref="FilmGrainTable"/>. Defaults to
+    /// <see langword="null"/>.
+    /// </summary>
+    /// <exception cref="ArgumentException">The preset is outside the range 1 to 16.</exception>
+    public int? FilmGrainPreset
+    {
+        get => this.filmGrainPreset;
+        init
+        {
+            if (value is < 1 or > 16)
+            {
+                throw new ArgumentException("FilmGrainPreset must be in the range [1..16].");
+            }
+
+            this.filmGrainPreset = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets a film grain table as text in the common film grain table format, or <see langword="null"/> for no table.
+    /// The encoder uses the table entry for time 0 for every frame. Defaults to <see langword="null"/>.
+    /// </summary>
+    /// <exception cref="ArgumentException">The text is not a valid film grain table.</exception>
+    public string? FilmGrainTable
+    {
+        get => this.filmGrainTable;
+        init
+        {
+            this.ParsedFilmGrainTable = value is null ? null : Av1FilmGrainTable.Parse(value);
+            this.filmGrainTable = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets the film grain table that <see cref="FilmGrainTable"/> holds, read once.
+    /// </summary>
+    internal Av1FilmGrainTable? ParsedFilmGrainTable { get; private init; }
+
+    /// <summary>
+    /// Gets the layers of a layered image, from the first layer to the last, or <see langword="null"/> for an image
+    /// without layers. A viewer can show each layer as soon as it arrives. Thus the image appears quickly at a low
+    /// quality and then gets sharper. Each layer makes the file larger, so give the first layers a low quality. The list holds 2
+    /// to 4 layers. Only a still image can have layers. The image cannot be <see cref="Lossless"/> or wider or taller
+    /// than 65,536 pixels. Encoding any other image with layers throws a <see cref="NotSupportedException"/>. Defaults
+    /// to <see langword="null"/>.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// The list holds fewer than 2 or more than 4 layers or a null layer, a layer is less than half the width and
+    /// height of the layer before it, or the last layer does not have the size of the image.
+    /// </exception>
+    public IReadOnlyList<HeifLayer>? Layers
+    {
+        get => this.layers;
+        init
+        {
+            if (value is null)
+            {
+                this.layers = null;
+                return;
+            }
+
+            if (value.Count is < 2 or > 4)
+            {
+                throw new ArgumentException("Layers must hold 2 to 4 layers.");
+            }
+
+            // A read-only copy keeps later changes to the caller's list out of the encoder.
+            HeifLayer[] copy = new HeifLayer[value.Count];
+            for (int i = 0; i < copy.Length; i++)
+            {
+                copy[i] = value[i] ?? throw new ArgumentException("Layers must not hold a null layer.");
+
+                // AV1 lets a frame predict only from a reference that is at most twice its size.
+                if (i > 0)
+                {
+                    (int numerator, int denominator) = HeifLayer.GetFraction(copy[i].Scale);
+                    (int previousNumerator, int previousDenominator) = HeifLayer.GetFraction(copy[i - 1].Scale);
+                    if (2 * numerator * previousDenominator < previousNumerator * denominator)
+                    {
+                        throw new ArgumentException("A layer must be at least half the width and height of the layer before it.");
+                    }
+                }
+            }
+
+            if (copy[^1].Scale != HeifLayerScale.Full)
+            {
+                throw new ArgumentException("The last layer must have the size of the image.");
+            }
+
+            this.layers = Array.AsReadOnly(copy);
+        }
+    }
+
+    /// <summary>
+    /// Gets the encoded precision of each image component, or <see langword="null"/> to use the bit depth of the HEIF
+    /// metadata. Metadata that does not give a bit depth uses <see cref="HeifBitDepth.Bit8"/>.
+    /// </summary>
+    public HeifBitDepth? BitDepth { get; init; }
+
+    /// <summary>
+    /// Gets the encoded chroma sampling, or <see langword="null"/> to choose it from the source. A grayscale source
+    /// gets <see cref="HeifChromaSubsampling.Monochrome"/>. A HEIF or JPEG source keeps its own sampling, unless the
+    /// encoding is <see cref="Lossless"/>. All other sources get <see cref="HeifChromaSubsampling.Yuv444"/>. A still
+    /// image wider or taller than 65,536 pixels is stored as a grid of smaller images. If the grid cannot hold an odd
+    /// width or height with the requested sampling, the encoder uses <see cref="HeifChromaSubsampling.Yuv444"/>.
+    /// </summary>
+    public HeifChromaSubsampling? ChromaSubsampling { get; init; }
+
+    /// <summary>
+    /// Gets the largest number of frames from one key frame to the next in an animation, or <see langword="null"/>
+    /// to let the encoder decide. A value of 1 makes every frame a key frame. A player can start or seek only at a
+    /// key frame, and more key frames make a larger file. An image with <see cref="Layers"/> ignores this setting.
+    /// </summary>
+    /// <exception cref="ArgumentException">The interval is less than 1.</exception>
+    public int? KeyFrameInterval
+    {
+        get => this.keyFrameInterval;
+        init
+        {
+            if (value < 1)
+            {
+                throw new ArgumentException("Key frame interval must be 1 or more.");
+            }
+
+            this.keyFrameInterval = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets the largest number of tile rows. Small images get fewer rows. More tiles let a parallel decoder work
+    /// faster but compress less well. Defaults to <see cref="HeifTileCount.One"/>.
+    /// </summary>
+    public HeifTileCount TileRows { get; init; } = HeifTileCount.One;
+
+    /// <summary>
+    /// Gets the largest number of tile columns. Small images get fewer columns, and images wider than 4096 pixels
+    /// get more. More tiles let a parallel decoder work faster but compress less well.
+    /// Defaults to <see cref="HeifTileCount.One"/>.
+    /// </summary>
+    public HeifTileCount TileColumns { get; init; } = HeifTileCount.One;
+
+    /// <summary>
+    /// Gets a value indicating whether the encoder chooses the tile rows and columns from the image size.
+    /// When <see langword="true"/>, the encoder ignores <see cref="TileRows"/> and <see cref="TileColumns"/>.
+    /// Defaults to <see langword="false"/>.
+    /// </summary>
+    public bool AutoTiling { get; init; }
+
+    /// <inheritdoc/>
+    protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
+    {
+        HeifEncoderCore encoder = new(image.Configuration, this);
+        encoder.Encode(image, stream, cancellationToken);
+    }
+}

@@ -140,6 +140,10 @@ internal abstract class IconEncoderCore
                     ImageMetadata? metadata = this.encoder.SkipMetadata || encodingMetadata.Compression is not IconFrameCompression.Png ? null : image.Metadata.DeepClone();
                     encodingImage = new Image<TPixel>(image.Configuration, width, height, metadata);
 
+                    // Cropped and isolated resources still need their own profile under SkipMetadata.
+                    // The delegated PNG/BMP encoder converts the pixels and writes the selected profile.
+                    encodingImage.Frames.RootFrame.Metadata.IccProfile = frame.Metadata.IccProfile ?? image.Metadata.IccProfile;
+
                     for (int y = 0; y < height; y++)
                     {
                         frame.PixelBuffer.DangerousGetRowSpan(y)[..width].CopyTo(encodingImage.GetRootFramePixelBuffer().DangerousGetRowSpan(y));

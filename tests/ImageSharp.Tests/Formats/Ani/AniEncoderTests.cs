@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Ani;
 
 [Trait("Format", "Ani")]
 [ValidateDisposedMemoryAllocations]
-public class AniEncoderTests
+public partial class AniEncoderTests
 {
     /// <summary>
     /// Verifies that ANI resources, including multi-resolution CUR resources, survive an encode/decode round trip.

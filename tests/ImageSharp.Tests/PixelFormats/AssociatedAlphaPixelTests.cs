@@ -648,6 +648,10 @@ public class AssociatedAlphaPackedPixelConversionTests
         where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>
     {
         TDestinationPixel[] destination = new TDestinationPixel[source.Length + 1];
+
+        // A nonzero sentinel detects tail stores even when the converted pixel is transparent black.
+        TDestinationPixel sentinel = TDestinationPixel.FromRgba32P(new Rgba32P(19, 23, 29, 37));
+        destination[^1] = sentinel;
         PixelOperations<TDestinationPixel>.Instance.From(Configuration.Default, source, destination);
 
         for (int i = 0; i < source.Length; i++)
@@ -656,7 +660,7 @@ public class AssociatedAlphaPackedPixelConversionTests
         }
 
         // The source length defines the conversion. A SIMD tail must not overwrite the extra destination pixel.
-        Assert.Equal(default, destination[^1]);
+        Assert.Equal(sentinel, destination[^1]);
     }
 
     private static void AssertLosslessRoundTrip<TIntermediate>()

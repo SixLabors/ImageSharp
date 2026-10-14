@@ -180,6 +180,9 @@ internal sealed class PngEncoderCore : IDisposable
 
         ImageMetadata metadata = image.Metadata;
         PngMetadata pngMetadata = metadata.ClonePngMetadata();
+
+        // Use one resolved value for the animation count, cover image and first frame's IDAT/fdAT layout.
+        bool animateRootFrame = this.animateRootFrame ?? pngMetadata.AnimateRootFrame;
         this.SanitizeAndSetEncoderOptions<TPixel>(this.encoder, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
 
         // PNG emits one profile for the whole image, including every APNG frame. Frame metadata takes precedence for container resources.
@@ -241,13 +244,12 @@ internal sealed class PngEncoderCore : IDisposable
             {
                 this.WriteAnimationControlChunk(
                     stream,
-                    (uint)(image.Frames.Count - (pngMetadata.AnimateRootFrame ? 0 : 1)),
+                    (uint)(image.Frames.Count - (animateRootFrame ? 0 : 1)),
                     this.repeatCount ?? pngMetadata.RepeatCount);
             }
 
-            // If the first frame isn't animated, write it as usual and skip it when writing animated frames
-            bool userAnimateRootFrame = this.animateRootFrame == true;
-            if ((!userAnimateRootFrame && !pngMetadata.AnimateRootFrame) || image.Frames.Count == 1)
+            // A separate cover image uses IDAT without frame control. The animated sequence then begins with frame one.
+            if (!animateRootFrame || image.Frames.Count == 1)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 FrameControl frameControl = new((uint)this.width, (uint)this.height);
@@ -261,11 +263,33 @@ internal sealed class PngEncoderCore : IDisposable
                 currentFrame = image.Frames[currentFrameIndex];
                 currentFrameRegion = currentFrame.PixelBuffer.GetRegion();
 
+                // Capture the global palette for reuse on subsequent frames.
+                ReadOnlyMemory<TPixel> previousPalette = quantized?.Palette.ToArray();
+
+                if (!previousPalette.IsEmpty)
+                {
+                    // Use the previously derived global palette and a shared quantizer to
+                    // quantize the subsequent frames. This allows us to cache the color matching resolution.
+                    PaletteQuantizer<TPixel> framePaletteQuantizer = paletteQuantizer ?? new PaletteQuantizer<TPixel>(
+                        this.configuration,
+                        this.quantizer!.Options,
+                        previousPalette);
+
+                    paletteQuantizer = framePaletteQuantizer;
+                    if (!animateRootFrame && quantized is not null)
+                    {
+                        // The cover image and first animated frame share PLTE, but each needs its own palette indices.
+                        // The quantizer owns the copied palette, so disposing the cover's indices does not invalidate it.
+                        quantized.Dispose();
+                        quantized = framePaletteQuantizer.QuantizeFrame(currentFrame, currentFrame.Bounds);
+                    }
+                }
+
                 PngFrameMetadata frameMetadata = currentFrame.Metadata.GetPngMetadata();
                 FrameDisposalMode previousDisposal = frameMetadata.DisposalMode;
                 FrameControl frameControl = this.WriteFrameControlChunk(stream, frameMetadata, currentFrame.Bounds, 0);
                 uint sequenceNumber = 1;
-                if (pngMetadata.AnimateRootFrame)
+                if (animateRootFrame)
                 {
                     this.WriteDataChunks(in frameControl, in currentFrameRegion, quantized, stream, false, colorProfileConverter);
                 }
@@ -276,21 +300,8 @@ internal sealed class PngEncoderCore : IDisposable
 
                 currentFrameIndex++;
 
-                // Capture the global palette for reuse on subsequent frames.
-                ReadOnlyMemory<TPixel> previousPalette = quantized?.Palette.ToArray();
-
-                if (!previousPalette.IsEmpty)
-                {
-                    // Use the previously derived global palette and a shared quantizer to
-                    // quantize the subsequent frames. This allows us to cache the color matching resolution.
-                    paletteQuantizer ??= new PaletteQuantizer<TPixel>(
-                        this.configuration,
-                        this.quantizer!.Options,
-                        previousPalette);
-                }
-
-                // Write following frames.
-                ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
+                // Compare later frames with the first animated frame, which may differ from the separate cover image.
+                ImageFrame<TPixel> previousFrame = currentFrame;
 
                 // This frame is reused to store de-duplicated pixel buffers.
                 using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size);

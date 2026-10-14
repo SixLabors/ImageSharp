@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
@@ -40,6 +41,14 @@ public partial class BmpEncoderTests
         expected.Metadata.IccProfile = null;
         expected.Frames.RootFrame.Metadata.IccProfile = null;
 
+        // Decode both files normally. The profile-free reference needs the same profile-to-sRGB transform as the encoded BMP.
+        ColorProfileConverter decodeConverter = new(new ColorConversionOptions
+        {
+            SourceIccProfile = profile,
+            TargetIccProfile = CompactSrgbV4Profile.Profile,
+            MemoryAllocator = provider.Configuration.MemoryAllocator
+        });
+
         foreach (bool skipMetadata in new[] { false, true })
         {
             BmpEncoder encoder = new() { BitsPerPixel = bitsPerPixel, SupportTransparency = true, SkipMetadata = skipMetadata };
@@ -51,9 +60,10 @@ public partial class BmpEncoderTests
             source.Save(encoded, encoder);
 
             ImageInfo info = Image.Identify(encoded.ToArray());
-            using Image<Rgba32> expectedSamples = Image.Load<Rgba32>(reference.ToArray());
-            using Image<Rgba32> actual = DecodeBmpSamples(encoded.ToArray());
-            actual.DebugSave(provider, testOutputDetails: $"{bitsPerPixel}_{skipMetadata}");
+            using Image<RgbaVector> expectedSamples = Image.Load<RgbaVector>(reference.ToArray());
+            decodeConverter.Convert(expectedSamples);
+            using Image<RgbaVector> actual = Image.Load<RgbaVector>(encoded.ToArray());
+            source.DebugSave(provider, testOutputDetails: $"{bitsPerPixel}_{skipMetadata}", extension: "bmp", encoder: encoder);
 
             Assert.Equal(profile.ToByteArray(), info.Metadata.IccProfile.ToByteArray());
             Assert.Equal(BmpInfoHeaderType.WinVersion5, info.Metadata.GetBmpMetadata().InfoHeaderType);
@@ -102,6 +112,16 @@ public partial class BmpEncoderTests
 
         // Quantize first in sRGB, then transform those selected colors. Indices must still identify the same entries.
         converter.Convert(expected);
+
+        // The reference already has eight-bit profile samples. Return them to sRGB for comparison with normal BMP decoding.
+        ColorProfileConverter decodeConverter = new(new ColorConversionOptions
+        {
+            SourceIccProfile = profile,
+            TargetIccProfile = CompactSrgbV4Profile.Profile,
+            MemoryAllocator = provider.Configuration.MemoryAllocator
+        });
+
+        decodeConverter.Convert(expected);
         source.Metadata.IccProfile = profile;
 
         using MemoryStream encoded = new();
@@ -118,8 +138,8 @@ public partial class BmpEncoderTests
             referenceBytes.AsSpan(referenceHeader.Offset).ToArray(),
             encodedBytes.AsSpan(encodedHeader.Offset, referenceBytes.Length - referenceHeader.Offset).ToArray());
 
-        using Image<Rgba32> actual = DecodeBmpSamples(encodedBytes);
-        actual.DebugSave(provider, testOutputDetails: bitsPerPixel);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(encodedBytes);
+        source.DebugSave(provider, testOutputDetails: bitsPerPixel, extension: "bmp", encoder: encoder);
         ImageComparer.Exact.VerifySimilarity(expected, actual);
 
         Assert.Equal(originalPalette, source.Metadata.GetBmpMetadata().ColorTable?.ToArray());
@@ -166,21 +186,5 @@ public partial class BmpEncoderTests
         }
     }
 
-    /// <summary>
-    /// Decodes stored BMP samples without applying the profile a second time.
-    /// </summary>
-    /// <param name="encoded">An owned copy of V5 encoder output. Its profile header fields are cleared in place.</param>
-    /// <returns>The stored samples in the embedded profile's color space.</returns>
-    private static Image<Rgba32> DecodeBmpSamples(byte[] encoded)
-    {
-        // Clear only the profile reference in our copy of encoder output. Leave samples, palette, masks and profile bytes unchanged.
-        Span<byte> headerBytes = encoded.AsSpan(BmpFileHeader.Size, BmpInfoHeader.SizeV5);
-        BmpInfoHeader header = BmpInfoHeader.ParseV5(headerBytes);
-        header.ProfileData = 0;
-        header.ProfileSize = 0;
-        header.CsType = BmpColorSpace.LCS_sRGB;
-        header.WriteV5Header(headerBytes);
 
-        return Image.Load<Rgba32>(encoded);
-    }
 }

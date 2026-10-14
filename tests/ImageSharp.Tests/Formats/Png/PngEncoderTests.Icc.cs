@@ -1,8 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers.Binary;
+
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
@@ -71,7 +72,7 @@ public partial class PngEncoderTests
     }
 
     /// <summary>
-    /// Checks the encoded RGB samples against whole-image ICC conversion without a second decode transform.
+    /// Checks ICC conversion through normal PNG decoding without changing the source.
     /// </summary>
     /// <typeparam name="TPixel">The sample precision.</typeparam>
     /// <param name="provider">The existing RGB or alpha fixture.</param>
@@ -98,6 +99,17 @@ public partial class PngEncoderTests
 
         converter.Convert(expected);
 
+        // Whole-image conversion rounds to the same eight- or sixteen-bit samples as PNG encoding.
+        // Convert those reference samples back to sRGB so the comparison uses normal PNG decoding.
+        ColorProfileConverter decodeConverter = new(new ColorConversionOptions
+        {
+            SourceIccProfile = profile,
+            TargetIccProfile = CompactSrgbV4Profile.Profile,
+            MemoryAllocator = provider.Configuration.MemoryAllocator
+        });
+
+        decodeConverter.Convert(expected);
+
         foreach (PngInterlaceMode interlace in InterlaceMode)
         {
             foreach (bool skipMetadata in new[] { false, true })
@@ -114,12 +126,13 @@ public partial class PngEncoderTests
                 source.Save(encoded, encoder);
 
                 ImageInfo info = Image.Identify(encoded.ToArray());
-                using Image<TPixel> actual = DecodePngSamples<TPixel>(encoded.ToArray(), out List<PngChunkType> chunks);
-                actual.DebugSave(provider, testOutputDetails: $"{interlace}_{skipMetadata}");
+                using Image<TPixel> actual = Image.Load<TPixel>(encoded.ToArray());
+                source.DebugSave(provider, testOutputDetails: $"{interlace}_{skipMetadata}", extension: "png", encoder: encoder);
 
                 Assert.Equal(profile.ToByteArray(), info.Metadata.IccProfile.ToByteArray());
-                Assert.DoesNotContain(PngChunkType.Gamma, chunks);
-                Assert.DoesNotContain(PngChunkType.Cicp, chunks);
+                // ICC describes the encoded colors. Gamma and CICP metadata must not supply a conflicting description.
+                Assert.Equal(0F, info.Metadata.GetPngMetadata().Gamma);
+                Assert.Null(info.Metadata.CicpProfile);
 
                 ImageComparer.Exact.VerifySimilarity(expected, actual);
 
@@ -164,6 +177,15 @@ public partial class PngEncoderTests
 
         converter.Convert(expected);
 
+        // Palette entries are rounded to eight bits before the decoder returns them to sRGB.
+        ColorProfileConverter decodeConverter = new(new ColorConversionOptions
+        {
+            SourceIccProfile = profile,
+            TargetIccProfile = CompactSrgbV4Profile.Profile,
+            MemoryAllocator = provider.Configuration.MemoryAllocator
+        });
+
+        decodeConverter.Convert(expected);
         source.Metadata.IccProfile = profile;
 
         foreach (PngInterlaceMode interlace in InterlaceMode)
@@ -174,8 +196,8 @@ public partial class PngEncoderTests
             source.Save(encoded, encoder);
 
             ImageInfo info = Image.Identify(encoded.ToArray());
-            using Image<Rgba32> actual = DecodePngSamples<Rgba32>(encoded.ToArray(), out _);
-            actual.DebugSave(provider, testOutputDetails: interlace);
+            using Image<Rgba32> actual = Image.Load<Rgba32>(encoded.ToArray());
+            source.DebugSave(provider, testOutputDetails: interlace, extension: "png", encoder: encoder);
 
             Assert.Equal(profile.ToByteArray(), info.Metadata.IccProfile.ToByteArray());
             ImageComparer.Exact.VerifySimilarity(expected, actual);
@@ -235,39 +257,5 @@ public partial class PngEncoderTests
         }
     }
 
-    /// <summary>
-    /// Decodes encoder output without applying its ICC profile a second time.
-    /// </summary>
-    /// <typeparam name="TPixel">The decoded sample precision.</typeparam>
-    /// <param name="encoded">The PNG written by the encoder.</param>
-    /// <param name="chunks">The original chunk types.</param>
-    /// <returns>The encoded samples in their profile's color space.</returns>
-    private static Image<TPixel> DecodePngSamples<TPixel>(byte[] encoded, out List<PngChunkType> chunks)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        // Preserve every original chunk and its CRC except iCCP. This tests stored samples rather than a lossy profile round trip.
-        // This edits encoder output in memory; it does not generate an input fixture or fabricate profile data.
-        using MemoryStream samples = new();
-        samples.Write(encoded.AsSpan(0, PngConstants.HeaderBytes.Length));
 
-        ReadOnlySpan<byte> remaining = encoded.AsSpan(PngConstants.HeaderBytes.Length);
-        chunks = [];
-
-        while (!remaining.IsEmpty)
-        {
-            int payloadLength = BinaryPrimitives.ReadInt32BigEndian(remaining);
-            PngChunkType type = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(remaining.Slice(4, 4));
-            int chunkLength = payloadLength + 12; // Four bytes each for length, type and CRC.
-            chunks.Add(type);
-
-            if (type != PngChunkType.EmbeddedColorProfile)
-            {
-                samples.Write(remaining[..chunkLength]);
-            }
-
-            remaining = remaining[chunkLength..];
-        }
-
-        return Image.Load<TPixel>(samples.ToArray());
-    }
 }

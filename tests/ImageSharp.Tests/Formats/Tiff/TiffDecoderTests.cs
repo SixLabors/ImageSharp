@@ -966,10 +966,13 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         // libtiff recompressed Perceptual_RGB8 losslessly, retaining its source RGB samples and IFD profile.
         // Compare with the uncompressed source in TPixel to check the nested decoder's full output, including out-of-range float RGB.
         using Image<TPixel> uncompressed = Image.Load<TPixel>(options, TestFile.Create(Icc.PerceptualRgb8).Bytes);
-        ImageComparer.Tolerant(0.001F).VerifySimilarity(uncompressed, image);
+        // The same RGB samples and profile must agree per pixel. Allow one sixteen-bit code per RGB channel for float rounding.
+        ImageComparer.Tolerant(0F, 3).VerifySimilarity(uncompressed, image);
 
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, ImageComparer.Tolerant(0.001F), ReferenceDecoder, options);
+
+        // The independent CMM can round eight-bit source colors differently. No pixel may exceed three byte codes in total.
+        image.CompareToOriginal(provider, ImageComparer.Tolerant(0F, 3 * (ushort.MaxValue / byte.MaxValue)), ReferenceDecoder, options);
 
         Assert.Null(image.Metadata.IccProfile);
         Assert.Null(image.Frames.RootFrame.Metadata.IccProfile);

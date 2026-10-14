@@ -563,6 +563,7 @@ public static class TestImages
         public const string Global256NoTrans = "Gif/global-256-no-trans.gif";
 
         public const string ExifToolIcc = "Gif/exiftool-icc.gif";
+        public const string AdobeRgbIcc = "Gif/adobe-rgb-icc.gif";
 
         // Test images from: https://github.com/peterdn/gif-test-suite.git
         // Animated gif with 4 frames, looping forever, no transparency.

@@ -209,7 +209,9 @@ public class WebpDecoderTests
         using Image<Rgba32> reference = provider.GetImage(ReferenceDecoder);
 
         image.DebugSave(provider, intrinsics);
-        ImageComparer.Tolerant().VerifySimilarity(reference, image);
+
+        // Bound the independent decoder's byte rounding per pixel; opaque regions must not hide alpha errors.
+        ImageComparer.Tolerant(0F, 3 * (ushort.MaxValue / byte.MaxValue)).VerifySimilarity(reference, image);
     }
 
     [Theory]

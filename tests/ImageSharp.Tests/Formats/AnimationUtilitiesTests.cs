@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -109,7 +110,8 @@ public class AnimationUtilitiesTests
     private static void AssertNativeComparison<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> source = provider.GetImage();
+        // Decode all APNG frames. The default reference provider can load only the still image.
+        using Image<TPixel> source = provider.GetImage(PngDecoder.Instance);
 
         // Removing one column leaves a remainder at every SIMD width, including the four-pixel byte path.
         source.Mutate(x => x.Crop(new Rectangle(0, 0, source.Width - 1, source.Height)));

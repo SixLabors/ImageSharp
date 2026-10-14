@@ -16,7 +16,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 namespace SixLabors.ImageSharp.Tests.Formats.Gif;
 
 [Trait("Format", "Gif")]
-public class GifEncoderTests
+public partial class GifEncoderTests
 {
     private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
     private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0015F);

@@ -145,7 +145,8 @@ public class Av1IntraSuperblockEncoderTests
                 new Rectangle(0, 0, width, Height),
                 source.Frame.View,
                 in parameters,
-                mode);
+                mode,
+                null);
         }
 
         source.Frame.ExtendBorders();

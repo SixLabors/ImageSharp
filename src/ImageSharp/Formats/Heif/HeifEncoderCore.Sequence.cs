@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Text;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -129,12 +130,14 @@ internal sealed partial class HeifEncoderCore
     /// </summary>
     /// <typeparam name="TPixel">The source pixel type.</typeparam>
     /// <param name="image">The source image.</param>
+    /// <param name="colorFrameIndex">The frame that supplies the profile for this image item or color track.</param>
     /// <param name="allIntra">Whether the encoding is a still image without layers, which codes every frame as a key frame.</param>
     /// <param name="layers">The layers of a layered still image, or <see langword="null"/> for an image without layers.</param>
     /// <param name="cancellationToken">The token that stops the encode, which the codec options carry.</param>
     /// <returns>The resolved settings.</returns>
     private Av1EncodingSettings ResolveAv1Encoding<TPixel>(
         Image<TPixel> image,
+        int colorFrameIndex,
         bool allIntra,
         IReadOnlyList<HeifLayer>? layers,
         CancellationToken cancellationToken)
@@ -174,7 +177,31 @@ internal sealed partial class HeifEncoderCore
             _ => throw new NotSupportedException($"HEIF chroma sampling '{chromaSubsampling}' is not supported.")
         };
 
+        // A color track has one profile for all its samples. A separate primary image resolves its own profile.
+        IccProfile? sourceIccProfile = image.Frames[colorFrameIndex].Metadata.IccProfile ?? image.Metadata.IccProfile;
+        PixelColorType colorType = isMonochrome ? PixelColorType.Luminance : PixelColorType.RGB;
+        IccProfile? iccProfile = IccProfile.GetIccProfileForEncoding(
+            sourceIccProfile, colorType, this.configuration.MemoryAllocator, out ColorProfileConverter? profileConverter);
+
         CicpProfile? sourceColorProfile = image.Metadata.CicpProfile;
+        if (profileConverter is not null && sourceColorProfile is not null)
+        {
+            // ICC describes the transformed RGB primaries and transfer curves. Do not label these samples as working sRGB.
+            CicpMatrixCoefficients matrix = sourceColorProfile.MatrixCoefficients;
+            if (matrix is CicpMatrixCoefficients.ChromaDerivedNcl or CicpMatrixCoefficients.ChromaDerivedCl
+                or CicpMatrixCoefficients.ItuRBt2020_2_Cl or CicpMatrixCoefficients.ICtCp or CicpMatrixCoefficients.IptC2)
+            {
+                // These matrices require primaries or transfer fields. Use the existing fixed matrix when ICC supplies those fields.
+                matrix = CicpMatrixCoefficients.ItuRBt601_7_525;
+            }
+
+            sourceColorProfile = new CicpProfile(
+                (byte)CicpColorPrimaries.Unspecified,
+                (byte)CicpTransferCharacteristics.Unspecified,
+                (byte)matrix,
+                sourceColorProfile.FullRange);
+        }
+
         CicpProfile colorProfile;
         if (sourceColorProfile is null)
         {
@@ -327,16 +354,20 @@ internal sealed partial class HeifEncoderCore
             (tileRowsLog2, tileColumnsLog2) = GetAutomaticTileConfiguration(firstCellSize);
         }
 
+        Av1EncoderOptions colorOptions = CreateOptions(colorTuning, colorQuantizer, colorLag);
+        colorOptions.ColorProfileConverter = profileConverter;
+
         return new Av1EncodingSettings(
             bitDepth,
             chromaSubsampling,
             colorProfile,
+            iccProfile,
             colorConfig,
             alphaConfig,
             colorQIndex,
             alphaQIndex,
             hasAlpha,
-            CreateOptions(colorTuning, colorQuantizer, colorLag),
+            colorOptions,
             CreateOptions(alphaTuning, alphaQuantizer, 0));
 
         // Creates the codec options of the color or the alpha.
@@ -625,10 +656,11 @@ internal sealed partial class HeifEncoderCore
         }
 
         ReadOnlyMemory<byte> iccProfileData = ReadOnlyMemory<byte>.Empty;
-        IccProfile? iccProfile = image.Metadata.IccProfile;
-        if (!this.encoder.SkipMetadata && iccProfile is not null)
+
+        // The track profile describes its encoded color samples, including output with SkipMetadata.
+        if (settings.IccProfile is not null)
         {
-            iccProfileData = iccProfile.ToByteArray();
+            iccProfileData = settings.IccProfile.ToByteArray();
         }
 
         return new HeifSequenceEncoding(
@@ -1709,6 +1741,7 @@ internal sealed partial class HeifEncoderCore
         /// <param name="bitDepth">The encoded bit depth.</param>
         /// <param name="chromaSubsampling">The encoded chroma sampling.</param>
         /// <param name="colorProfile">The color description that the file signals.</param>
+        /// <param name="iccProfile">The ICC profile that describes the encoded color samples.</param>
         /// <param name="colorConfig">The color configuration of the color image.</param>
         /// <param name="alphaConfig">The color configuration of the alpha image.</param>
         /// <param name="colorQIndex">The quantizer index of the color image.</param>
@@ -1720,6 +1753,7 @@ internal sealed partial class HeifEncoderCore
             HeifBitDepth bitDepth,
             HeifChromaSubsampling chromaSubsampling,
             CicpProfile colorProfile,
+            IccProfile? iccProfile,
             ObuColorConfig colorConfig,
             ObuColorConfig alphaConfig,
             int colorQIndex,
@@ -1731,6 +1765,7 @@ internal sealed partial class HeifEncoderCore
             this.BitDepth = bitDepth;
             this.ChromaSubsampling = chromaSubsampling;
             this.ColorProfile = colorProfile;
+            this.IccProfile = iccProfile;
             this.ColorConfig = colorConfig;
             this.AlphaConfig = alphaConfig;
             this.ColorQIndex = colorQIndex;
@@ -1754,6 +1789,11 @@ internal sealed partial class HeifEncoderCore
         /// Gets the color description that the file signals.
         /// </summary>
         public CicpProfile ColorProfile { get; }
+
+        /// <summary>
+        /// Gets the ICC profile that describes the encoded color samples.
+        /// </summary>
+        public IccProfile? IccProfile { get; }
 
         /// <summary>
         /// Gets the color configuration of the color image.

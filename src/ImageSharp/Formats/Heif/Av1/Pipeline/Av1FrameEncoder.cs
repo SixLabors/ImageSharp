@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
@@ -413,7 +414,7 @@ internal static partial class Av1FrameEncoder
                 for (int x = 0; x < image.Width; x += cellSize.Width)
                 {
                     Rectangle cell = new(x, y, Math.Min(cellSize.Width, image.Width - x), Math.Min(cellSize.Height, image.Height - y));
-                    PrepareSource<TPixel, byte, HeifByteSampleConverter>(configuration, image, cell, buffer.Frame, colorConfig, true);
+                    PrepareSource<TPixel, byte, HeifByteSampleConverter>(configuration, image, cell, buffer.Frame, colorConfig, true, null);
                     if (!IsOpaque(buffer.Frame, cell.Size, byte.MaxValue))
                     {
                         return false;
@@ -441,7 +442,14 @@ internal static partial class Av1FrameEncoder
             for (int x = 0; x < image.Width; x += cellSize.Width)
             {
                 Rectangle cell = new(x, y, Math.Min(cellSize.Width, image.Width - x), Math.Min(cellSize.Height, image.Height - y));
-                PrepareSource<TPixel, ushort, HeifUShortSampleConverter>(configuration, image, cell, highBitDepthBuffer.Frame, colorConfig, true);
+                PrepareSource<TPixel, ushort, HeifUShortSampleConverter>(
+                    configuration,
+                    image,
+                    cell,
+                    highBitDepthBuffer.Frame,
+                    colorConfig,
+                    true,
+                    null);
                 if (!IsOpaque(highBitDepthBuffer.Frame, cell.Size, opaqueValue))
                 {
                     return false;
@@ -999,7 +1007,7 @@ internal static partial class Av1FrameEncoder
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Rectangle sourceRectangle = new(0, 0, image.Width, image.Height);
-        PrepareSource<TPixel, byte, HeifByteSampleConverter>(configuration, image, sourceRectangle, source, colorConfig, false);
+        PrepareSource<TPixel, byte, HeifByteSampleConverter>(configuration, image, sourceRectangle, source, colorConfig, false, null);
     }
 
     /// <summary>
@@ -1018,7 +1026,7 @@ internal static partial class Av1FrameEncoder
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Rectangle sourceRectangle = new(0, 0, image.Width, image.Height);
-        PrepareSource<TPixel, ushort, HeifUShortSampleConverter>(configuration, image, sourceRectangle, source, colorConfig, false);
+        PrepareSource<TPixel, ushort, HeifUShortSampleConverter>(configuration, image, sourceRectangle, source, colorConfig, false, null);
     }
 
     /// <summary>
@@ -1073,7 +1081,13 @@ internal static partial class Av1FrameEncoder
             lumaBorder: Av1EncoderFrame<TSample>.LumaBorder);
 
         PrepareSource<TPixel, TSample, TStorer>(
-            configuration, image, sourceRectangle, source.Frame, sequenceHeader.ColorConfig, encodingKind != FrameEncodingKind.StillColor);
+            configuration,
+            image,
+            sourceRectangle,
+            source.Frame,
+            sequenceHeader.ColorConfig,
+            encodingKind != FrameEncodingKind.StillColor,
+            options.ColorProfileConverter);
 
         // A single image whose converted alpha samples are all opaque gets no alpha item. The opaque value is the largest value of the coded depth.
         if (encodingKind == FrameEncodingKind.SingleImageAlpha && IsOpaque(source.Frame, sourceRectangle.Size, TSample.CreateTruncating((1 << bitDepth) - 1)))
@@ -1501,13 +1515,15 @@ internal static partial class Av1FrameEncoder
     /// <param name="source">The bordered frame that receives the converted samples.</param>
     /// <param name="colorConfig">The color configuration that selects the color conversion.</param>
     /// <param name="encodeAlpha">Whether to convert the alpha channel into the luma plane instead of the color channels.</param>
+    /// <param name="profileConverter">The converter to the output ICC profile, or null.</param>
     private static void PrepareSource<TPixel, TSample, TStorer>(
         Configuration configuration,
         ImageFrame<TPixel> image,
         Rectangle sourceRectangle,
         Av1EncoderFrame<TSample> source,
         ObuColorConfig colorConfig,
-        bool encodeAlpha)
+        bool encodeAlpha,
+        ColorProfileConverter? profileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
         where TSample : unmanaged
         where TStorer : struct, IHeifSampleConverter<TSample>
@@ -1547,7 +1563,8 @@ internal static partial class Av1FrameEncoder
                 sourceRectangle,
                 destination,
                 in parameters,
-                mode);
+                mode,
+                profileConverter);
         }
 
         // A short grid edge cell can fill only the top-left of its AV1 frame. Edge replication initializes the remaining coded cell
@@ -1684,6 +1701,9 @@ internal static partial class Av1FrameEncoder
         private readonly IMemoryOwner<float> storageOwner;
         private readonly Memory<float> componentMemory;
         private readonly Memory<float> packedMemory;
+        private readonly Memory<float> vectorMemory;
+        private readonly Memory<float> rgbMemory;
+        private readonly ColorProfileConverter? profileConverter;
         private readonly HeifColorConversionParameters parameters;
         private readonly HeifColorConverterBase colorConverter;
         private readonly bool encodeAlpha;
@@ -1696,13 +1716,15 @@ internal static partial class Av1FrameEncoder
         /// <param name="width">The fixed sequence width.</param>
         /// <param name="colorConfig">The native component layout.</param>
         /// <param name="encodeAlpha">Whether the workspace converts the auxiliary alpha track.</param>
-        /// <param name="usesHighBitDepth">Whether color conversion requires a packed <see cref="Rgb48"/> row.</param>
+        /// <param name="usesHighBitDepth">Whether the native color samples use more than eight bits.</param>
+        /// <param name="profileConverter">The converter for color samples, or null for alpha or unchanged RGB.</param>
         public Av1EncoderConversionWorkspace(
             Configuration configuration,
             int width,
             ObuColorConfig colorConfig,
             bool encodeAlpha,
-            bool usesHighBitDepth)
+            bool usesHighBitDepth,
+            ColorProfileConverter? profileConverter)
         {
             // The conversion parameters resolve before the storage rent. If the color description is not supported, the constructor throws before
             // it owns memory. The sequence encoder never receives a failed workspace, so it cannot dispose its storage.
@@ -1716,19 +1738,25 @@ internal static partial class Av1FrameEncoder
                     colorConfig.IsMonochrome,
                     subsamplingY);
 
-            int packedByteLength = usesHighBitDepth && !encodeAlpha
+            int packedByteLength = usesHighBitDepth && !encodeAlpha && profileConverter is null
                 ? width * Unsafe.SizeOf<Rgb48>()
                 : 0;
 
             int packedFloatLength = (int)Numerics.DivideCeil((uint)packedByteLength, sizeof(float));
-            this.storageOwner = configuration.MemoryAllocator.Allocate<float>(
-                componentLength + packedFloatLength);
+            int vectorLength = profileConverter is null ? 0 : width * 4;
+            int rgbLength = profileConverter is null ? 0 : width * 3;
+
+            // The track reuses one allocation for native rows and ICC scratch. Alpha has no color transform.
+            this.storageOwner = configuration.MemoryAllocator.Allocate<float>(componentLength + packedFloatLength + vectorLength + rgbLength);
 
             Memory<float> storage = this.storageOwner.Memory;
             this.componentMemory = storage[..componentLength];
             this.packedMemory = storage.Slice(componentLength, packedFloatLength);
+            this.vectorMemory = storage.Slice(componentLength + packedFloatLength, vectorLength);
+            this.rgbMemory = storage.Slice(componentLength + packedFloatLength + vectorLength, rgbLength);
+            this.profileConverter = profileConverter;
             this.encodeAlpha = encodeAlpha;
-            this.packedPixelCount = usesHighBitDepth && !encodeAlpha ? width : 0;
+            this.packedPixelCount = usesHighBitDepth && !encodeAlpha && profileConverter is null ? width : 0;
         }
 
         /// <summary>
@@ -1774,8 +1802,11 @@ internal static partial class Av1FrameEncoder
                 buffer,
                 in this.parameters,
                 this.colorConverter,
+                this.profileConverter,
                 packed,
-                this.componentMemory.Span);
+                this.componentMemory.Span,
+                MemoryMarshal.Cast<float, Vector4>(this.vectorMemory.Span),
+                MemoryMarshal.Cast<float, Rgb>(this.rgbMemory.Span));
         }
 
         /// <inheritdoc/>
@@ -2058,7 +2089,8 @@ internal static partial class Av1FrameEncoder
                 width,
                 colorConfig,
                 encodeAlpha,
-                usesHighBitDepth);
+                usesHighBitDepth,
+                encodeAlpha ? null : options.ColorProfileConverter);
 
             try
             {

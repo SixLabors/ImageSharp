@@ -4,6 +4,8 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Text;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Heif;
@@ -21,9 +23,10 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Tests.Memory;
-using SixLabors.ImageSharp.Tests.TestDataIcc;
+
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -32,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 
 [Trait("Format", "Heif")]
 [ValidateDisposedMemoryAllocations]
-public class HeifEncoderTests
+public partial class HeifEncoderTests
 {
     private const int Av1EightBit = (int)Av1BitDepth.EightBit;
     private const int Av1TenBit = (int)Av1BitDepth.TenBit;
@@ -286,8 +289,10 @@ public class HeifEncoderTests
         }
     }
 
-    [Fact]
-    public void Av1OversizedStillImageWritesAndDecodesGrid()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Av1OversizedStillImageWritesAndDecodesGrid(bool withIcc)
     {
         // 65537 is the narrowest width beyond the AV1 frame limit, so one lossless row at the fastest speed is
         // the cheapest image that must be written as a two-cell grid. Identity-matrix 4:4:4 keeps RGB exact.
@@ -298,12 +303,29 @@ public class HeifEncoderTests
         image[32769, 0] = new Rgb24(19, 23, 29);
         image[width - 1, 0] = new Rgb24(31, 37, 41);
         image.Metadata.CicpProfile = new CicpProfile(1, 13, 0, true);
+        using Image<Rgb24> reference = image.Clone();
+        IccProfile profile = withIcc ? TestIccProfiles.GetProfile(TestIccProfiles.RommRgb) : null;
+        if (profile is not null)
+        {
+            image.Metadata.IccProfile = profile;
+            ColorConversionOptions options = new()
+            {
+                SourceIccProfile = CompactSrgbV4Profile.Profile,
+                TargetIccProfile = profile
+            };
+
+            // Identity coding stores eight-bit RGB unchanged, so this reference rounds only at the final sample precision.
+            ColorProfileConverter converter = new(options);
+            converter.Convert(reference);
+        }
+
         using MemoryStream stream = new();
         HeifEncoder encoder = new()
         {
             Lossless = true,
             ChromaSubsampling = HeifChromaSubsampling.Yuv444,
             Speed = HeifEncodingSpeed.Level9,
+            SkipMetadata = true,
         };
 
         image.Save(stream, encoder);
@@ -331,7 +353,25 @@ public class HeifEncoderTests
         // The exact comparison covers the samples on both sides of the cell border at columns 32768 and 32769.
         stream.Position = 0;
         using Image<Rgb24> decoded = Image.Load<Rgb24>(stream);
-        Assert.Empty(ImageComparer.Exact.CompareImages(image, decoded));
+        using MemoryStream referenceStream = new();
+        reference.Save(referenceStream, encoder);
+        referenceStream.Position = 0;
+        using Image<Rgb24> expected = Image.Load<Rgb24>(referenceStream);
+        if (profile is not null)
+        {
+            ColorConversionOptions options = new()
+            {
+                SourceIccProfile = profile,
+                TargetIccProfile = CompactSrgbV4Profile.Profile
+            };
+
+            ColorProfileConverter converter = new(options);
+            converter.Convert(expected);
+            Assert.Equal(profile.ToByteArray(), Assert.IsType<IccProfile>(decoded.Metadata.IccProfile).ToByteArray());
+            Assert.Same(profile, image.Metadata.IccProfile);
+        }
+
+        ImageComparer.Exact.VerifySimilarity(expected, decoded);
     }
 
     [Theory]
@@ -608,7 +648,7 @@ public class HeifEncoderTests
         }
 
         image.Metadata.CicpProfile = new CicpProfile(1, 13, 0, true);
-        image.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.ProfileRandomArray);
+        image.Metadata.IccProfile = CompactSrgbV4Profile.Profile;
         ExifProfile exifProfile = new();
         exifProfile.SetValue(ExifTag.Software, "ImageSharp AV1 sequence");
         image.Metadata.ExifProfile = exifProfile;
@@ -667,7 +707,7 @@ public class HeifEncoderTests
         Assert.True(decoded.Metadata.GetHeifMetadata().AnimateRootFrame);
         Assert.Empty(ImageComparer.Exact.CompareImages(image, decoded));
         Assert.Equal(
-            IccTestDataProfiles.ProfileRandomArray,
+            CompactSrgbV4Profile.Profile.ToByteArray(),
             Assert.IsType<IccProfile>(decoded.Metadata.IccProfile).ToByteArray());
 
         ExifProfile decodedExif = Assert.IsType<ExifProfile>(decoded.Metadata.ExifProfile);
@@ -689,7 +729,7 @@ public class HeifEncoderTests
         image.Frames.AddFrame(image.Frames.RootFrame);
         image.Frames.RootFrame.Metadata.GetHeifMetadata().FrameDelay = new Rational(1, 10);
         image.Frames[1].Metadata.GetHeifMetadata().FrameDelay = new Rational(1, 20);
-        image.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.ProfileRandomArray);
+        image.Metadata.IccProfile = CompactSrgbV4Profile.Profile;
         image.Metadata.ExifProfile = new ExifProfile();
         image.Metadata.ExifProfile.SetValue(ExifTag.Software, "suppressed");
         image.Metadata.XmpProfile = new XmpProfile(Encoding.UTF8.GetBytes("<xmp>suppressed</xmp>"));
@@ -708,7 +748,7 @@ public class HeifEncoderTests
         using Image<Rgb24> decoded = Image.Load<Rgb24>(storage);
         Assert.Equal(image.Size, decoded.Size);
         Assert.Equal(image.Frames.Count, decoded.Frames.Count);
-        Assert.Null(decoded.Metadata.IccProfile);
+        Assert.Equal(CompactSrgbV4Profile.Profile.ToByteArray(), Assert.IsType<IccProfile>(decoded.Metadata.IccProfile).ToByteArray());
         Assert.Null(decoded.Metadata.ExifProfile);
         Assert.Null(decoded.Metadata.XmpProfile);
     }
@@ -2327,7 +2367,7 @@ public class HeifEncoderTests
     public void Av1PreservesIccExifAndXmpMetadata()
     {
         using Image<Rgb24> image = new(8, 8);
-        image.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.ProfileRandomArray);
+        image.Metadata.IccProfile = CompactSrgbV4Profile.Profile;
 
         ExifProfile generatedExif = new();
         generatedExif.SetValue(ExifTag.Software, "ImageSharp HEIF");
@@ -2398,7 +2438,7 @@ public class HeifEncoderTests
         DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
         using Image<Rgb24> decoded = Image.Load<Rgb24>(preserveOptions, file);
         Assert.Equal(
-            IccTestDataProfiles.ProfileRandomArray,
+            CompactSrgbV4Profile.Profile.ToByteArray(),
             Assert.IsType<IccProfile>(decoded.Metadata.IccProfile).ToByteArray());
 
         ExifProfile decodedExif = Assert.IsType<ExifProfile>(decoded.Metadata.ExifProfile);
@@ -2408,10 +2448,10 @@ public class HeifEncoderTests
     }
 
     [Fact]
-    public void Av1SkipMetadataSuppressesIccExifAndXmp()
+    public void Av1SkipMetadataRetainsIccAndSuppressesExifAndXmp()
     {
         using Image<Rgb24> image = new(8, 8);
-        image.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.ProfileRandomArray);
+        image.Metadata.IccProfile = CompactSrgbV4Profile.Profile;
         image.Metadata.ExifProfile = new ExifProfile();
         image.Metadata.ExifProfile.SetValue(ExifTag.Software, "ImageSharp HEIF");
         image.Metadata.XmpProfile = new XmpProfile(Encoding.UTF8.GetBytes("<xmp>ImageSharp HEIF</xmp>"));
@@ -2428,29 +2468,9 @@ public class HeifEncoderTests
         Span<byte> itemInfo = GetMetadataChild(file, Heif4CharCode.Iinf);
         Assert.Equal(1, BinaryPrimitives.ReadUInt16BigEndian(itemInfo[12..]));
 
-        Span<byte> itemProperties = GetMetadataChild(file, Heif4CharCode.Iprp);
-        const int IpcoOffset = 8;
-        int ipcoEnd = IpcoOffset + BinaryPrimitives.ReadInt32BigEndian(itemProperties[IpcoOffset..]);
-        int propertyOffset = IpcoOffset + 8;
-        while (propertyOffset < ipcoEnd)
-        {
-            int propertyLength = BinaryPrimitives.ReadInt32BigEndian(itemProperties[propertyOffset..]);
-            Heif4CharCode propertyType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(itemProperties[(propertyOffset + 4)..]);
-            if (propertyType == Heif4CharCode.Colr)
-            {
-                Assert.Equal(
-                    Heif4CharCode.Nclx,
-                    (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(itemProperties[(propertyOffset + 8)..]));
-            }
-
-            propertyOffset += propertyLength;
-        }
-
-        Assert.Equal(ipcoEnd, propertyOffset);
-
         DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
         using Image<Rgb24> decoded = Image.Load<Rgb24>(preserveOptions, file);
-        Assert.Null(decoded.Metadata.IccProfile);
+        Assert.Equal(CompactSrgbV4Profile.Profile.ToByteArray(), Assert.IsType<IccProfile>(decoded.Metadata.IccProfile).ToByteArray());
         Assert.Null(decoded.Metadata.ExifProfile);
         Assert.Null(decoded.Metadata.XmpProfile);
     }

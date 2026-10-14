@@ -252,7 +252,8 @@ internal static class Av1YuvConverter
                 image,
                 buffer,
                 in parameters,
-                mode);
+                mode,
+                null);
 
             return;
         }
@@ -263,7 +264,8 @@ internal static class Av1YuvConverter
             image,
             highBitDepthBuffer,
             in parameters,
-            mode);
+            mode,
+            null);
     }
 
     /// <summary>

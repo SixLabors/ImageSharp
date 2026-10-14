@@ -194,12 +194,14 @@ internal static class HeifPlanarColorConverter
     /// <param name="buffer">The destination component-plane buffer.</param>
     /// <param name="parameters">The resolved H.273 conversion parameters.</param>
     /// <param name="mode">The resolved H.273 conversion mode.</param>
+    /// <param name="profileConverter">The converter to the output ICC profile, or null.</param>
     public static void ConvertFromRgb<TPixel, TBuffer, TSample, TStorer>(
         Configuration configuration,
         ImageFrame<TPixel> image,
         TBuffer buffer,
         in HeifColorConversionParameters parameters,
-        HeifColorConversionMode mode)
+        HeifColorConversionMode mode,
+        ColorProfileConverter? profileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
         where TBuffer : struct, IHeifPlanarSampleBuffer<TSample>
         where TSample : unmanaged
@@ -212,7 +214,8 @@ internal static class HeifPlanarColorConverter
             sourceRectangle,
             buffer,
             in parameters,
-            mode);
+            mode,
+            profileConverter);
     }
 
     /// <summary>
@@ -228,13 +231,15 @@ internal static class HeifPlanarColorConverter
     /// <param name="buffer">The destination component-plane buffer.</param>
     /// <param name="parameters">The resolved H.273 conversion parameters.</param>
     /// <param name="mode">The resolved H.273 conversion mode.</param>
+    /// <param name="profileConverter">The converter to the output ICC profile, or null.</param>
     public static void ConvertFromRgb<TPixel, TBuffer, TSample, TStorer>(
         Configuration configuration,
         ImageFrame<TPixel> image,
         Rectangle sourceRectangle,
         TBuffer buffer,
         in HeifColorConversionParameters parameters,
-        HeifColorConversionMode mode)
+        HeifColorConversionMode mode,
+        ColorProfileConverter? profileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
         where TBuffer : struct, IHeifPlanarSampleBuffer<TSample>
         where TSample : unmanaged
@@ -247,18 +252,28 @@ internal static class HeifPlanarColorConverter
             image,
             sourceRectangle,
             colorConverter,
-            in parameters);
+            in parameters,
+            profileConverter);
 
-        using IMemoryOwner<float> componentOwner = configuration.MemoryAllocator.Allocate<float>(converter.ComponentBufferLength);
-        Span<float> components = componentOwner.GetSpan();
-        if (converter.UsesByteInput)
+        int componentLength = converter.ComponentBufferLength;
+        int vectorLength = profileConverter is null ? 0 : sourceRectangle.Width * 4;
+        int rgbLength = profileConverter is null ? 0 : sourceRectangle.Width * 3;
+
+        // Rent the component rows and ICC scratch together. Every source row reuses this storage.
+        using IMemoryOwner<float> componentOwner = configuration.MemoryAllocator.Allocate<float>(componentLength + vectorLength + rgbLength);
+        Span<float> storage = componentOwner.GetSpan();
+        Span<float> components = storage[..componentLength];
+        Span<Vector4> vectors = MemoryMarshal.Cast<float, Vector4>(storage.Slice(componentLength, vectorLength));
+        Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(storage.Slice(componentLength + vectorLength, rgbLength));
+
+        if (profileConverter is not null || converter.UsesByteInput)
         {
-            converter.Convert(Span<Rgb48>.Empty, components);
+            converter.Convert(Span<Rgb48>.Empty, components, vectors, rgb);
             return;
         }
 
         using IMemoryOwner<Rgb48> packedOwner = configuration.MemoryAllocator.Allocate<Rgb48>(sourceRectangle.Width);
-        converter.Convert(packedOwner.GetSpan()[..sourceRectangle.Width], components);
+        converter.Convert(packedOwner.GetSpan()[..sourceRectangle.Width], components, vectors, rgb);
     }
 
     /// <summary>
@@ -274,8 +289,11 @@ internal static class HeifPlanarColorConverter
     /// <param name="buffer">The destination component-plane buffer.</param>
     /// <param name="parameters">The resolved H.273 conversion parameters.</param>
     /// <param name="colorConverter">The retained converter matching <paramref name="parameters"/>.</param>
-    /// <param name="packed">The reusable high-bit-depth packed RGB row, or an empty span for eight-bit input.</param>
+    /// <param name="profileConverter">The converter to the output ICC profile, or null.</param>
+    /// <param name="packed">The reusable RGB staging row, or an empty span for ICC or eight-bit input.</param>
     /// <param name="components">The reusable planar component rows.</param>
+    /// <param name="vectors">The reusable straight RGBA row for ICC conversion.</param>
+    /// <param name="rgb">The reusable RGB scratch for ICC conversion.</param>
     public static void ConvertFromRgb<TPixel, TBuffer, TSample, TStorer>(
         Configuration configuration,
         ImageFrame<TPixel> image,
@@ -283,8 +301,11 @@ internal static class HeifPlanarColorConverter
         TBuffer buffer,
         in HeifColorConversionParameters parameters,
         HeifColorConverterBase colorConverter,
+        ColorProfileConverter? profileConverter,
         Span<Rgb48> packed,
-        Span<float> components)
+        Span<float> components,
+        Span<Vector4> vectors,
+        Span<Rgb> rgb)
         where TPixel : unmanaged, IPixel<TPixel>
         where TBuffer : struct, IHeifPlanarSampleBuffer<TSample>
         where TSample : unmanaged
@@ -296,9 +317,10 @@ internal static class HeifPlanarColorConverter
             image,
             sourceRectangle,
             colorConverter,
-            in parameters);
+            in parameters,
+            profileConverter);
 
-        converter.Convert(packed, components);
+        converter.Convert(packed, components, vectors, rgb);
     }
 
     /// <summary>
@@ -784,6 +806,11 @@ internal static class HeifPlanarColorConverter
         private readonly HeifColorConverterBase colorConverter;
 
         /// <summary>
+        /// The converter from working sRGB to the encoded ICC profile.
+        /// </summary>
+        private readonly ColorProfileConverter? profileConverter;
+
+        /// <summary>
         /// The largest encoded luma sample value.
         /// </summary>
         private readonly float lumaMaximum;
@@ -832,19 +859,22 @@ internal static class HeifPlanarColorConverter
         /// <param name="sourceRectangle">The source region mapped to the complete destination planes.</param>
         /// <param name="colorConverter">The selected H.273 color converter.</param>
         /// <param name="parameters">The resolved H.273 component ranges.</param>
+        /// <param name="profileConverter">The converter to the output ICC profile, or null.</param>
         public RgbToYuvRowConverter(
             Configuration configuration,
             TBuffer buffer,
             ImageFrame<TPixel> image,
             Rectangle sourceRectangle,
             HeifColorConverterBase colorConverter,
-            in HeifColorConversionParameters parameters)
+            in HeifColorConversionParameters parameters,
+            ColorProfileConverter? profileConverter)
         {
             this.configuration = configuration;
             this.buffer = buffer;
             this.image = image;
             this.sourceRectangle = sourceRectangle;
             this.colorConverter = colorConverter;
+            this.profileConverter = profileConverter;
             this.lumaMaximum = parameters.LumaSampleMaximum;
             this.chromaMaximum = parameters.ChromaSampleMaximum;
             this.subsamplingX = buffer.ChromaSubsamplingX;
@@ -871,9 +901,18 @@ internal static class HeifPlanarColorConverter
         /// </summary>
         /// <param name="packed">The reusable high-bit-depth RGB staging row.</param>
         /// <param name="components">The reusable planar component buffer.</param>
-        public void Convert(Span<Rgb48> packed, Span<float> components)
+        /// <param name="vectors">The reusable straight RGBA row for ICC conversion.</param>
+        /// <param name="rgb">The reusable RGB scratch for ICC conversion.</param>
+        public void Convert(Span<Rgb48> packed, Span<float> components, Span<Vector4> vectors, Span<Rgb> rgb)
         {
             int width = this.sourceRectangle.Width;
+            ColorProfileConverter? profileConverter = this.profileConverter;
+            if (profileConverter is not null)
+            {
+                vectors = vectors[..width];
+                rgb = rgb[..width];
+            }
+
             Span<float> luma0 = components[..width];
             Span<float> blue0 = components.Slice(width, width);
             Span<float> red0 = components.Slice(width * 2, width);
@@ -881,7 +920,15 @@ internal static class HeifPlanarColorConverter
             {
                 for (int y = 0; y < this.sourceRectangle.Height; y++)
                 {
-                    this.ConvertSourceRow(y, packed, luma0, blue0, red0);
+                    if (profileConverter is null)
+                    {
+                        this.ConvertSourceRow(y, packed, luma0, blue0, red0);
+                    }
+                    else
+                    {
+                        this.ConvertSourceRowWithIcc(y, profileConverter, luma0, blue0, red0, vectors, rgb);
+                    }
+
                     HeifSampleConversion.WriteSamples<TSample, TStorer>(
                         luma0,
                         this.buffer.GetLumaRowSpan(y),
@@ -907,7 +954,15 @@ internal static class HeifPlanarColorConverter
                 // A vertically subsampled chroma row is owned by one two-row luma cell. Processing that cell as a
                 // unit removes per-row state and lets the selected chroma position choose or average the two rows.
                 int sourceY = destinationY << 1;
-                this.ConvertSourceRow(sourceY, packed, luma0, blue0, red0);
+                if (profileConverter is null)
+                {
+                    this.ConvertSourceRow(sourceY, packed, luma0, blue0, red0);
+                }
+                else
+                {
+                    this.ConvertSourceRowWithIcc(sourceY, profileConverter, luma0, blue0, red0, vectors, rgb);
+                }
+
                 HeifSampleConversion.WriteSamples<TSample, TStorer>(
                     luma0,
                     this.buffer.GetLumaRowSpan(sourceY),
@@ -918,7 +973,15 @@ internal static class HeifPlanarColorConverter
                 bool hasSecondRow = sourceY + 1 < this.sourceRectangle.Height;
                 if (hasSecondRow)
                 {
-                    this.ConvertSourceRow(sourceY + 1, packed, luma1, blue1, red1);
+                    if (profileConverter is null)
+                    {
+                        this.ConvertSourceRow(sourceY + 1, packed, luma1, blue1, red1);
+                    }
+                    else
+                    {
+                        this.ConvertSourceRowWithIcc(sourceY + 1, profileConverter, luma1, blue1, red1, vectors, rgb);
+                    }
+
                     HeifSampleConversion.WriteSamples<TSample, TStorer>(
                         luma1,
                         this.buffer.GetLumaRowSpan(sourceY + 1),
@@ -973,6 +1036,37 @@ internal static class HeifPlanarColorConverter
             PixelOperations<TPixel>.Instance.ToRgb48(this.configuration, source, packed);
             HeifSampleConversion.DeinterleaveRgb48(packed, luma, chromaBlue, chromaRed);
             this.colorConverter.ConvertFromRgbInPlace(luma, chromaBlue, chromaRed, UShortMaximum);
+        }
+
+        /// <summary>
+        /// Converts one source row through ICC and then into native components.
+        /// </summary>
+        /// <param name="y">The source row index.</param>
+        /// <param name="converter">The converter from working sRGB to the encoded profile.</param>
+        /// <param name="luma">The destination luma or first component values.</param>
+        /// <param name="chromaBlue">The destination blue-difference or second component values.</param>
+        /// <param name="chromaRed">The destination red-difference or third component values.</param>
+        /// <param name="vectors">The reusable straight RGBA row.</param>
+        /// <param name="rgb">The reusable RGB scratch.</param>
+        private void ConvertSourceRowWithIcc(
+            int y,
+            ColorProfileConverter converter,
+            Span<float> luma,
+            Span<float> chromaBlue,
+            Span<float> chromaRed,
+            Span<Vector4> vectors,
+            Span<Rgb> rgb)
+        {
+            ReadOnlySpan<TPixel> source = this.image.PixelBuffer
+                .DangerousGetRowSpan(this.sourceRectangle.Y + y)
+                .Slice(this.sourceRectangle.X, this.sourceRectangle.Width);
+
+            // Transform straight float RGB before native sample rounding. The alpha encoder reads the source alpha separately.
+            converter.Convert(this.configuration, source, vectors, rgb);
+            SimdUtils.UnpackDeinterleave3(MemoryMarshal.Cast<Rgb, Vector3>(rgb), luma, chromaBlue, chromaRed);
+
+            // ICC produces normalized RGB. The existing operator converts these floats without an RGB staging quantization.
+            this.colorConverter.ConvertFromRgbInPlace(luma, chromaBlue, chromaRed, 1F);
         }
 
         /// <summary>

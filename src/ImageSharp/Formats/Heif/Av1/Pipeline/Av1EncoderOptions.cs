@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -71,6 +72,11 @@ internal sealed class Av1EncoderOptions
     /// Gets the encoding speed.
     /// </summary>
     public HeifEncodingSpeed Speed { get; init; }
+
+    /// <summary>
+    /// Gets or sets the converter from working sRGB to the encoded ICC profile.
+    /// </summary>
+    public ColorProfileConverter? ColorProfileConverter { get; set; }
 
     /// <summary>
     /// Gets the tune metric.

@@ -49,7 +49,7 @@ internal sealed class JxlQuantizer
     /// The maximum value for a quant. Quant cannot be greater than this -
     /// if attempted to, it will be limited to this value.
     /// </summary>
-    private const int MaxQuant = 256;
+    public const int MaxQuant = 256;
 
     /// <summary>
     /// Represents the multipliers for the DC coefficients.

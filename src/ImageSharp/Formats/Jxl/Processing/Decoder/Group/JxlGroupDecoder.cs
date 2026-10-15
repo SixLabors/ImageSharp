@@ -636,7 +636,7 @@ internal static class JxlGroupDecoder
         {
             groupDecCache.InitializeDcBufferOnce();
 
-            JxlYCbCrChromaSubsampling cs = frameHeader.ChromaSubsampling;
+            JxlYCbCrChromaSubsampling cs = frameHeader.ChromaSubsampling!;
 
             for (int c = 0; c < 3; c++)
             {
@@ -679,7 +679,7 @@ internal static class JxlGroupDecoder
                         (dcPlane.XSize >> hs) -
                         srcRect.X0();
 
-                    Span<float> row = groupDecCache.DcBuffer.Row(y);
+                    Span<float> row = groupDecCache.DcBuffer.GetRow(y);
 
                     for (int ix = 0; ix < 2; ix++)
                     {
@@ -826,12 +826,9 @@ internal static class JxlGroupDecoder
                 groupIndex,
                 frameHeader.Passes.Shift);
 
-        if (!groupDecCache.InitializeOnce(
+        groupDecCache.InitializeOnce(
             numPasses: 0,
-            usedAcs: (1 << JxlAcStrategy.NumberOfValidStrategies) - 1))
-        {
-            return false;
-        }
+            usedACStrategy: (1 << JxlAcStrategy.NumberOfValidStrategies) - 1);
 
         return DecodeGroupCore(
             frameHeader,

@@ -131,6 +131,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             }
 
             var table = new List<IccTagTableEntry>((int)tagCount);
+            uint dataLength = (uint)reader.DataLength;
             for (int i = 0; i < tagCount; i++)
             {
                 uint tagSignature = reader.ReadUInt32();
@@ -138,7 +139,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
                 uint tagSize = reader.ReadUInt32();
 
                 // Exclude entries that have nonsense values and could cause exceptions further on
-                if (tagOffset < reader.DataLength && tagSize < reader.DataLength - 128)
+                if (tagSize >= 8 && tagOffset <= dataLength && tagSize <= dataLength - tagOffset)
                 {
                     table.Add(new IccTagTableEntry((IccProfileTag)tagSignature, tagOffset, tagSize));
                 }

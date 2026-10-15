@@ -107,6 +107,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             }
         }
 
+        [Fact]
+        public void TiffDecoder_DirectoryEntryCountExceedsAvailableData_Throws()
+        {
+            byte[] data =
+            {
+                0x49, 0x49, 0x2B, 0x00, 0x08, 0x00, 0x00, 0x00,
+                0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0xF2, 0x05, 0x2A, 0x01, 0x00, 0x00, 0x00
+            };
+
+            Assert.Throws<InvalidImageContentException>(() => Image.Load(data));
+        }
+
         [Theory]
         [WithFile(BigTIFFSubIFD8, PixelTypes.Rgba32)]
         public void TiffDecoder_SubIfd8<TPixel>(TestImageProvider<TPixel> provider)

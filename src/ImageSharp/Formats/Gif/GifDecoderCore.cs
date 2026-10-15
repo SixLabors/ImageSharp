@@ -309,6 +309,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
 
             this.logicalScreenDescriptor = GifLogicalScreenDescriptor.Parse(this.buffer);
+            if (this.logicalScreenDescriptor.Width == 0 || this.logicalScreenDescriptor.Height == 0)
+            {
+                GifThrowHelper.ThrowInvalidImageContentException("Width and height must be greater than 0.");
+            }
         }
 
         /// <summary>

@@ -84,6 +84,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             { TestImages.Png.Rgba64Bpp, typeof(Image<Rgba64>) },
         };
 
+        [Fact]
+        public void CalculateScanlineLength_WithLargeGrayscaleWidth_ReturnsExpectedLength()
+        {
+            int length = PngDecoderCore.CalculateScanlineLength(536_870_913, 8, 1);
+
+            Assert.Equal(536_870_913, length);
+        }
+
+        [Fact]
+        public void CalculateScanlineLength_WithLargeRgbaWidth_ReturnsExpectedLength()
+        {
+            int length = PngDecoderCore.CalculateScanlineLength(33_554_432, 16, 8);
+
+            Assert.Equal(268_435_456, length);
+        }
+
         [Theory]
         [MemberData(nameof(PixelFormatRange))]
         public void Decode_NonGeneric_CreatesCorrectImageType(string path, Type type)

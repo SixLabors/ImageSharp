@@ -45,6 +45,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         /// <inheritdoc />
         public override TiffCompression Method => TiffCompression.CcittGroup4Fax;
 
+        /// <inheritdoc />
+        protected override long GetMaximumEncodedBits(int rowsPerStrip)
+        {
+            // Alternating pixels use at most 29 bits per two-pixel horizontal mode.
+            // Allow 16 bits per pixel, row transition overhead, and the final 24-bit EOFB.
+            return ((((long)this.Width * 16) + 24) * rowsPerStrip) + 24;
+        }
+
         /// <summary>
         /// Writes a image compressed with CCITT T6 to the output buffer.
         /// </summary>

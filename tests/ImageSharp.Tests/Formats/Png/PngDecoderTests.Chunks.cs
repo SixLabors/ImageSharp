@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Text;
@@ -57,6 +58,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 // IEND CRC
                 0xAE, 0x42, 0x60, 0x82
             };
+
+        [Fact]
+        public void DecodeAndIdentify_WithDuplicateHeader_ThrowInvalidImageContentException()
+        {
+            using MemoryStream payloadStream = new();
+            payloadStream.Write(Raw1X1PngIhdrAndpHYs);
+            payloadStream.Write(Raw1X1PngIhdrAndpHYs.AsSpan(8, 25));
+            payloadStream.Write(Raw1X1PngIdatAndIend);
+            byte[] payload = payloadStream.ToArray();
+
+            Assert.Throws<InvalidImageContentException>(() => Image.Load(payload));
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(payload));
+        }
 
         [Theory]
         [InlineData((uint)PngChunkType.Header)] // IHDR

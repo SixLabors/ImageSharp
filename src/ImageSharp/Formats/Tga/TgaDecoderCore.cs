@@ -92,9 +92,9 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     TgaThrowHelper.ThrowNotSupportedException($"Unknown tga colormap type {this.fileHeader.ColorMapType} found");
                 }
 
-                if (this.fileHeader.Width == 0 || this.fileHeader.Height == 0)
+                if (this.fileHeader.Width <= 0 || this.fileHeader.Height <= 0)
                 {
-                    throw new UnknownImageFormatException("Width or height cannot be 0");
+                    TgaThrowHelper.ThrowInvalidImageContentException("Width and height must be greater than 0.");
                 }
 
                 Image<TPixel> image = new(this.Configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);

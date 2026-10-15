@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                         int runLength = (int)bitReader.RunLength;
                         if (runLength > (uint)(scanline.Length - unpacked))
                         {
-                            TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error");
+                            TiffThrowHelper.ThrowImageFormatException("CCITT compression parsing error: decoded more pixels than the image width.");
                         }
 
                         scanline.Slice(unpacked, runLength).Fill(fillByte);
@@ -163,7 +163,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
                         runLength = (int)bitReader.RunLength;
                         if (runLength > (uint)(scanline.Length - unpacked))
                         {
-                            TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error");
+                            TiffThrowHelper.ThrowImageFormatException("CCITT compression parsing error: decoded more pixels than the image width.");
                         }
 
                         scanline.Slice(unpacked, runLength).Fill(fillByte);

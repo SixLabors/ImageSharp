@@ -1,5 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
@@ -8,61 +9,61 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
-    /// This block of bytes tells the application detailed information
-    /// about the image, which will be used to display the image on
-    /// the screen.
-    /// <see href="https://en.wikipedia.org/wiki/BMP_file_format"/>
+    ///     This block of bytes tells the application detailed information
+    ///     about the image, which will be used to display the image on
+    ///     the screen.
+    ///     <see href="https://en.wikipedia.org/wiki/BMP_file_format" />
     /// </summary>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal struct BmpInfoHeader
     {
         /// <summary>
-        /// Defines the size of the BITMAPCOREHEADER data structure in the bitmap file.
+        ///     Defines the size of the BITMAPCOREHEADER data structure in the bitmap file.
         /// </summary>
         public const int CoreSize = 12;
 
         /// <summary>
-        /// Defines the size of the short variant of the OS22XBITMAPHEADER data structure in the bitmap file.
+        ///     Defines the size of the short variant of the OS22XBITMAPHEADER data structure in the bitmap file.
         /// </summary>
         public const int Os22ShortSize = 16;
 
         /// <summary>
-        /// Defines the size of the BITMAPINFOHEADER (BMP Version 3) data structure in the bitmap file.
+        ///     Defines the size of the BITMAPINFOHEADER (BMP Version 3) data structure in the bitmap file.
         /// </summary>
         public const int SizeV3 = 40;
 
         /// <summary>
-        /// Special case of the BITMAPINFOHEADER V3 used by adobe where the color bitmasks are part of the info header instead of following it.
+        ///     Special case of the BITMAPINFOHEADER V3 used by adobe where the color bitmasks are part of the info header instead of following it.
         /// </summary>
         public const int AdobeV3Size = 52;
 
         /// <summary>
-        /// Special case of the BITMAPINFOHEADER V3 used by adobe where the color bitmasks (including the alpha channel) are part of the info header instead of following it.
+        ///     Special case of the BITMAPINFOHEADER V3 used by adobe where the color bitmasks (including the alpha channel) are part of the info header instead of following it.
         /// </summary>
         public const int AdobeV3WithAlphaSize = 56;
 
         /// <summary>
-        /// Size of a IBM OS/2 2.x bitmap header.
+        ///     Size of a IBM OS/2 2.x bitmap header.
         /// </summary>
         public const int Os2v2Size = 64;
 
         /// <summary>
-        /// Defines the size of the BITMAPINFOHEADER (BMP Version 4) data structure in the bitmap file.
+        ///     Defines the size of the BITMAPINFOHEADER (BMP Version 4) data structure in the bitmap file.
         /// </summary>
         public const int SizeV4 = 108;
 
         /// <summary>
-        /// Defines the size of the BITMAPINFOHEADER (BMP Version 5) data structure in the bitmap file.
+        ///     Defines the size of the BITMAPINFOHEADER (BMP Version 5) data structure in the bitmap file.
         /// </summary>
         public const int SizeV5 = 124;
 
         /// <summary>
-        /// Defines the size of the biggest supported header data structure in the bitmap file.
+        ///     Defines the size of the biggest supported header data structure in the bitmap file.
         /// </summary>
         public const int MaxHeaderSize = SizeV5;
 
         /// <summary>
-        /// Defines the size of the <see cref="HeaderSize"/> field.
+        ///     Defines the size of the <see cref="HeaderSize" /> field.
         /// </summary>
         public const int HeaderSizeSize = 4;
 
@@ -94,7 +95,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int blueZ = 0,
             int gammeRed = 0,
             int gammeGreen = 0,
-            int gammeBlue = 0)
+            int gammeBlue = 0,
+            BmpRenderingIntent intent = BmpRenderingIntent.Invalid,
+            int profileData = 0,
+            int profileSize = 0,
+            int reserved = 0)
         {
             this.HeaderSize = headerSize;
             this.Width = width;
@@ -124,161 +129,185 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.GammaRed = gammeRed;
             this.GammaGreen = gammeGreen;
             this.GammaBlue = gammeBlue;
+            this.Intent = intent;
+            this.ProfileData = profileData;
+            this.ProfileSize = profileSize;
+            this.Reserved = reserved;
         }
 
         /// <summary>
-        /// Gets or sets the size of this header.
+        ///     Gets or sets the size of this header.
         /// </summary>
         public int HeaderSize { get; set; }
 
         /// <summary>
-        /// Gets or sets the bitmap width in pixels (signed integer).
+        ///     Gets or sets the bitmap width in pixels (signed integer).
         /// </summary>
         public int Width { get; set; }
 
         /// <summary>
-        /// Gets or sets the bitmap height in pixels (signed integer).
+        ///     Gets or sets the bitmap height in pixels (signed integer).
         /// </summary>
         public int Height { get; set; }
 
         /// <summary>
-        /// Gets or sets the number of color planes being used. Must be set to 1.
+        ///     Gets or sets the number of color planes being used. Must be set to 1.
         /// </summary>
         public short Planes { get; set; }
 
         /// <summary>
-        /// Gets or sets the number of bits per pixel, which is the color depth of the image.
-        /// Typical values are 1, 4, 8, 16, 24 and 32.
+        ///     Gets or sets the number of bits per pixel, which is the color depth of the image.
+        ///     Typical values are 1, 4, 8, 16, 24 and 32.
         /// </summary>
         public short BitsPerPixel { get; set; }
 
         /// <summary>
-        /// Gets or sets the compression method being used.
-        /// See the next table for a list of possible values.
+        ///     Gets or sets the compression method being used.
+        ///     See the next table for a list of possible values.
         /// </summary>
         public BmpCompression Compression { get; set; }
 
         /// <summary>
-        /// Gets or sets the image size. This is the size of the raw bitmap data (see below),
-        /// and should not be confused with the file size.
+        ///     Gets or sets the image size. This is the size of the raw bitmap data (see below),
+        ///     and should not be confused with the file size.
         /// </summary>
         public int ImageSize { get; set; }
 
         /// <summary>
-        /// Gets or sets the horizontal resolution of the image.
-        /// (pixel per meter, signed integer)
+        ///     Gets or sets the horizontal resolution of the image.
+        ///     (pixel per meter, signed integer)
         /// </summary>
         public int XPelsPerMeter { get; set; }
 
         /// <summary>
-        /// Gets or sets the vertical resolution of the image.
-        /// (pixel per meter, signed integer)
+        ///     Gets or sets the vertical resolution of the image.
+        ///     (pixel per meter, signed integer)
         /// </summary>
         public int YPelsPerMeter { get; set; }
 
         /// <summary>
-        /// Gets or sets the number of colors in the color palette,
-        /// or 0 to default to 2^n.
+        ///     Gets or sets the number of colors in the color palette,
+        ///     or 0 to default to 2^n.
         /// </summary>
         public int ClrUsed { get; set; }
 
         /// <summary>
-        /// Gets or sets the number of important colors used,
-        /// or 0 when every color is important{ get; set; } generally ignored.
+        ///     Gets or sets the number of important colors used,
+        ///     or 0 when every color is important{ get; set; } generally ignored.
         /// </summary>
         public int ClrImportant { get; set; }
 
         /// <summary>
-        /// Gets or sets red color mask. This is used with the BITFIELDS decoding.
+        ///     Gets or sets red color mask. This is used with the BITFIELDS decoding.
         /// </summary>
         public int RedMask { get; set; }
 
         /// <summary>
-        /// Gets or sets green color mask. This is used with the BITFIELDS decoding.
+        ///     Gets or sets green color mask. This is used with the BITFIELDS decoding.
         /// </summary>
         public int GreenMask { get; set; }
 
         /// <summary>
-        /// Gets or sets blue color mask. This is used with the BITFIELDS decoding.
+        ///     Gets or sets blue color mask. This is used with the BITFIELDS decoding.
         /// </summary>
         public int BlueMask { get; set; }
 
         /// <summary>
-        /// Gets or sets alpha color mask. This is not used yet.
+        ///     Gets or sets alpha color mask. This is not used yet.
         /// </summary>
         public int AlphaMask { get; set; }
 
         /// <summary>
-        /// Gets or sets the Color space type. Not used yet.
+        ///     Gets or sets the Color space type. Not used yet.
         /// </summary>
         public int CsType { get; set; }
 
         /// <summary>
-        /// Gets or sets the X coordinate of red endpoint. Not used yet.
+        ///     Gets or sets the X coordinate of red endpoint. Not used yet.
         /// </summary>
         public int RedX { get; set; }
 
         /// <summary>
-        /// Gets or sets the Y coordinate of red endpoint. Not used yet.
+        ///     Gets or sets the Y coordinate of red endpoint. Not used yet.
         /// </summary>
         public int RedY { get; set; }
 
         /// <summary>
-        /// Gets or sets the Z coordinate of red endpoint. Not used yet.
+        ///     Gets or sets the Z coordinate of red endpoint. Not used yet.
         /// </summary>
         public int RedZ { get; set; }
 
         /// <summary>
-        /// Gets or sets the X coordinate of green endpoint. Not used yet.
+        ///     Gets or sets the X coordinate of green endpoint. Not used yet.
         /// </summary>
         public int GreenX { get; set; }
 
         /// <summary>
-        /// Gets or sets the Y coordinate of green endpoint. Not used yet.
+        ///     Gets or sets the Y coordinate of green endpoint. Not used yet.
         /// </summary>
         public int GreenY { get; set; }
 
         /// <summary>
-        /// Gets or sets the Z coordinate of green endpoint. Not used yet.
+        ///     Gets or sets the Z coordinate of green endpoint. Not used yet.
         /// </summary>
         public int GreenZ { get; set; }
 
         /// <summary>
-        /// Gets or sets the X coordinate of blue endpoint. Not used yet.
+        ///     Gets or sets the X coordinate of blue endpoint. Not used yet.
         /// </summary>
         public int BlueX { get; set; }
 
         /// <summary>
-        /// Gets or sets the Y coordinate of blue endpoint. Not used yet.
+        ///     Gets or sets the Y coordinate of blue endpoint. Not used yet.
         /// </summary>
         public int BlueY { get; set; }
 
         /// <summary>
-        /// Gets or sets the Z coordinate of blue endpoint. Not used yet.
+        ///     Gets or sets the Z coordinate of blue endpoint. Not used yet.
         /// </summary>
         public int BlueZ { get; set; }
 
         /// <summary>
-        /// Gets or sets the Gamma red coordinate scale value. Not used yet.
+        ///     Gets or sets the Gamma red coordinate scale value. Not used yet.
         /// </summary>
         public int GammaRed { get; set; }
 
         /// <summary>
-        /// Gets or sets the Gamma green coordinate scale value. Not used yet.
+        ///     Gets or sets the Gamma green coordinate scale value. Not used yet.
         /// </summary>
         public int GammaGreen { get; set; }
 
         /// <summary>
-        /// Gets or sets the Gamma blue coordinate scale value. Not used yet.
+        ///     Gets or sets the Gamma blue coordinate scale value. Not used yet.
         /// </summary>
         public int GammaBlue { get; set; }
 
         /// <summary>
-        /// Parses the BITMAPCOREHEADER (BMP Version 2) consisting of the headerSize, width, height, planes, and bitsPerPixel fields (12 bytes).
+        ///     Gets or sets the rendering intent for bitmap.
+        /// </summary>
+        public BmpRenderingIntent Intent { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the offset, in bytes, from the beginning of the BITMAPV5HEADER structure to the start of the profile data.
+        /// </summary>
+        public int ProfileData { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the size, in bytes, of embedded profile data.
+        /// </summary>
+        public int ProfileSize { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the reserved value.
+        /// </summary>
+        public int Reserved { get; set; }
+
+        /// <summary>
+        ///     Parses the BITMAPCOREHEADER (BMP Version 2) consisting of the headerSize, width, height, planes, and bitsPerPixel fields (12 bytes).
         /// </summary>
         /// <param name="data">The data to parse.</param>
         /// <returns>The parsed header.</returns>
-        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx"/>
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx" />
         public static BmpInfoHeader ParseCore(ReadOnlySpan<byte> data)
         {
             return new BmpInfoHeader(
@@ -290,12 +319,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Parses a short variant of the OS22XBITMAPHEADER. It is identical to the BITMAPCOREHEADER, except that the width and height
-        /// are 4 bytes instead of 2, resulting in 16 bytes total.
+        ///     Parses a short variant of the OS22XBITMAPHEADER. It is identical to the BITMAPCOREHEADER, except that the width and height
+        ///     are 4 bytes instead of 2, resulting in 16 bytes total.
         /// </summary>
         /// <param name="data">The data to parse.</param>
         /// <returns>The parsed header.</returns>
-        /// <seealso href="https://www.fileformat.info/format/os2bmp/egff.htm"/>
+        /// <seealso href="https://www.fileformat.info/format/os2bmp/egff.htm" />
         public static BmpInfoHeader ParseOs22Short(ReadOnlySpan<byte> data)
         {
             return new BmpInfoHeader(
@@ -307,11 +336,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Parses the full BMP Version 3 BITMAPINFOHEADER header (40 bytes).
+        ///     Parses the full BMP Version 3 BITMAPINFOHEADER header (40 bytes).
         /// </summary>
         /// <param name="data">The data to parse.</param>
         /// <returns>The parsed header.</returns>
-        /// <seealso href="http://www.fileformat.info/format/bmp/egff.htm"/>
+        /// <seealso href="http://www.fileformat.info/format/bmp/egff.htm" />
         public static BmpInfoHeader ParseV3(ReadOnlySpan<byte> data)
         {
             return new BmpInfoHeader(
@@ -329,13 +358,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Special case of the BITMAPINFOHEADER V3 used by adobe where the color bitmasks are part of the info header instead of following it.
-        /// 52 bytes without the alpha mask, 56 bytes with the alpha mask.
+        ///     Special case of the BITMAPINFOHEADER V3 used by adobe where the color bitmasks are part of the info header instead of following it.
+        ///     52 bytes without the alpha mask, 56 bytes with the alpha mask.
         /// </summary>
         /// <param name="data">The data to parse.</param>
         /// <param name="withAlpha">Indicates, if the alpha bitmask is present.</param>
         /// <returns>The parsed header.</returns>
-        /// <seealso href="https://forums.adobe.com/message/3272950#3272950"/>
+        /// <seealso href="https://forums.adobe.com/message/3272950#3272950" />
         public static BmpInfoHeader ParseAdobeV3(ReadOnlySpan<byte> data, bool withAlpha = true)
         {
             return new BmpInfoHeader(
@@ -357,13 +386,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Parses a OS/2 version 2 bitmap header (64 bytes). Only the first 40 bytes are parsed which are
-        /// very similar to the Bitmap v3 header. The other 24 bytes are ignored, but they do not hold any
-        /// useful information for decoding the image.
+        ///     Parses a OS/2 version 2 bitmap header (64 bytes). Only the first 40 bytes are parsed which are
+        ///     very similar to the Bitmap v3 header. The other 24 bytes are ignored, but they do not hold any
+        ///     useful information for decoding the image.
         /// </summary>
         /// <param name="data">The data to parse.</param>
         /// <returns>The parsed header.</returns>
-        /// <seealso href="https://www.fileformat.info/format/os2bmp/egff.htm"/>
+        /// <seealso href="https://www.fileformat.info/format/os2bmp/egff.htm" />
         public static BmpInfoHeader ParseOs2Version2(ReadOnlySpan<byte> data)
         {
             var infoHeader = new BmpInfoHeader(
@@ -408,23 +437,59 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Parses the full BMP Version 4 BITMAPINFOHEADER header (108 bytes).
+        ///     Parses the full BMP Version 4 BITMAPINFOHEADER header (108 bytes).
         /// </summary>
         /// <param name="data">The data to parse.</param>
         /// <returns>The parsed header.</returns>
-        /// <seealso href="http://www.fileformat.info/format/bmp/egff.htm"/>
-        public static BmpInfoHeader ParseV4(ReadOnlySpan<byte> data)
+        /// <seealso href="http://www.fileformat.info/format/bmp/egff.htm" />
+        public static BmpInfoHeader ParseV4(ReadOnlySpan<byte> data) => new(
+            headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
+            width: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4)),
+            height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
+            planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
+            bitsPerPixel: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(14, 2)),
+            compression: (BmpCompression)BinaryPrimitives.ReadInt32LittleEndian(data.Slice(16, 4)),
+            imageSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(20, 4)),
+            xPelsPerMeter: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(24, 4)),
+            yPelsPerMeter: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(28, 4)),
+            clrUsed: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(32, 4)),
+            clrImportant: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(36, 4)),
+            redMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(40, 4)),
+            greenMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(44, 4)),
+            blueMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(48, 4)),
+            alphaMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(52, 4)),
+            csType: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(56, 4)),
+            redX: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(60, 4)),
+            redY: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(64, 4)),
+            redZ: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(68, 4)),
+            greenX: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(72, 4)),
+            greenY: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(76, 4)),
+            greenZ: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(80, 4)),
+            blueX: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(84, 4)),
+            blueY: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(88, 4)),
+            blueZ: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(92, 4)),
+            gammeRed: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(96, 4)),
+            gammeGreen: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(100, 4)),
+            gammeBlue: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(104, 4)));
+
+        /// <summary>
+        ///     Parses the full BMP Version 4 BITMAPINFOHEADER header (108 bytes).
+        /// </summary>
+        /// <param name="data">The data to parse.</param>
+        /// <returns>The parsed header.</returns>
+        /// <seealso href="http://www.fileformat.info/format/bmp/egff.htm" />
+        public static BmpInfoHeader ParseV5(ReadOnlySpan<byte> data)
         {
-            if (data.Length < SizeV4)
+            if (data.Length < SizeV5)
             {
-                throw new ArgumentException(nameof(data), $"Must be {SizeV4} bytes. Was {data.Length} bytes.");
+                throw new ArgumentException($"Must be {SizeV5} bytes. Was {data.Length} bytes.", nameof(data));
             }
 
             return MemoryMarshal.Cast<byte, BmpInfoHeader>(data)[0];
         }
 
         /// <summary>
-        /// Writes a bitmap version 3 (Microsoft Windows NT) header to a buffer (40 bytes).
+        ///     Writes a bitmap version 3 (Microsoft Windows NT) header to a buffer (40 bytes).
         /// </summary>
         /// <param name="buffer">The buffer to write to.</param>
         public void WriteV3Header(Span<byte> buffer)
@@ -444,10 +509,47 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Writes a complete Bitmap V4 header to a buffer.
+        ///     Writes a complete Bitmap V4 header to a buffer.
         /// </summary>
         /// <param name="buffer">The buffer to write to.</param>
         public void WriteV4Header(Span<byte> buffer)
+        {
+            buffer.Clear();
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(0, 4), SizeV4);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(4, 4), this.Width);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(8, 4), this.Height);
+            BinaryPrimitives.WriteInt16LittleEndian(buffer.Slice(12, 2), this.Planes);
+            BinaryPrimitives.WriteInt16LittleEndian(buffer.Slice(14, 2), this.BitsPerPixel);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(16, 4), (int)this.Compression);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(20, 4), this.ImageSize);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(24, 4), this.XPelsPerMeter);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(28, 4), this.YPelsPerMeter);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(32, 4), this.ClrUsed);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(36, 4), this.ClrImportant);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(40, 4), this.RedMask);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(44, 4), this.GreenMask);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(48, 4), this.BlueMask);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(52, 4), this.AlphaMask);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(56, 4), (int)this.CsType);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(60, 4), this.RedX);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(64, 4), this.RedY);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(68, 4), this.RedZ);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(72, 4), this.GreenX);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(76, 4), this.GreenY);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(80, 4), this.GreenZ);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(84, 4), this.BlueX);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(88, 4), this.BlueY);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(92, 4), this.BlueZ);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(96, 4), this.GammaRed);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(100, 4), this.GammaGreen);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(104, 4), this.GammaBlue);
+        }
+
+        /// <summary>
+        ///     Writes a complete Bitmap V5 header to a buffer.
+        /// </summary>
+        /// <param name="buffer">The buffer to write to.</param>
+        public void WriteV5Header(Span<byte> buffer)
         {
             ref BmpInfoHeader dest = ref Unsafe.As<byte, BmpInfoHeader>(ref MemoryMarshal.GetReference(buffer));
 

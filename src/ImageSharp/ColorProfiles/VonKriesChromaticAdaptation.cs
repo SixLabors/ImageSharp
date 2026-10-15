@@ -61,7 +61,7 @@ public static class VonKriesChromaticAdaptation
     /// <param name="matrix">The chromatic adaptation matrix.</param>
     /// <param name="inverseMatrix">The inverse of <paramref name="matrix"/>.</param>
     /// <returns>The <see cref="CieXyz"/></returns>
-    internal static CieXyz Transform(
+    public static CieXyz Transform(
         in CieXyz source,
         (CieXyz From, CieXyz To) whitePoints,
         Matrix4x4 matrix,
@@ -98,7 +98,7 @@ public static class VonKriesChromaticAdaptation
     /// <param name="whitePoints">The conversion white points.</param>
     /// <param name="matrix">The chromatic adaptation matrix.</param>
     /// <param name="inverseMatrix">The inverse of <paramref name="matrix"/>.</param>
-    internal static void Transform(
+    public static void Transform(
         ReadOnlySpan<CieXyz> source,
         Span<CieXyz> destination,
         (CieXyz From, CieXyz To) whitePoints,

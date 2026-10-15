@@ -3,6 +3,7 @@
 #nullable disable
 
 using System.Buffers;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Memory;
@@ -58,6 +59,11 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     /// The converter from <see cref="iccConverterProfile"/> to sRGB, created on the first stride with a profile.
     /// </summary>
     private ColorProfileConverter iccConverter;
+
+    /// <summary>
+    /// Reusable ICC output and scratch storage, allocated only when decoding with a profile.
+    /// </summary>
+    private IMemoryOwner<float> iccRowBuffer;
 
     /// <summary>
     /// The profile <see cref="iccConverter"/> was built for.
@@ -161,6 +167,10 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             });
 
             this.iccConverterProfile = iccProfile;
+
+            // ICC reads the complete source into its PCS buffer before writing output, so RGB can reuse the source storage.
+            // Four floats per pixel fit every JPEG source model and the three-channel RGB result.
+            this.iccRowBuffer ??= this.Configuration.MemoryAllocator.Allocate<float>(width * 4);
         }
 
         for (int yy = this.pixelRowCounter; yy < maxY; yy++)
@@ -174,20 +184,24 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
             if (iccProfile != null)
             {
-                if (this.colorConverter.ColorSpace == JpegColorSpace.Grayscale)
-                {
-                    // Grayscale component spans alias luminance, so consume interleaved ICC RGB in the existing byte row instead of scattering into those aliases.
-                    Span<byte> grayscaleRgbBytes = this.rgbBuffer.GetSpan();
-                    this.colorConverter.ConvertToRgbInPlaceWithIcc(this.Configuration, in values, this.iccConverter, grayscaleRgbBytes);
-                    PixelOperations<TPixel>.Instance.FromRgb24Bytes(this.Configuration, grayscaleRgbBytes, this.pixelBuffer.DangerousGetRowSpan(yy), width);
-                    continue;
-                }
+                Span<float> row = this.iccRowBuffer.GetSpan();
+                Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(row[..(width * 3)]);
+                Span<float> scratch = row[..(width * 4)];
 
-                this.colorConverter.ConvertToRgbInPlaceWithIcc(this.Configuration, in values, this.iccConverter);
+                // Convert only visible samples. The explicit RGB destination also handles grayscale
+                // without writing through its aliased component planes.
+                this.colorConverter.ConvertToRgb(values.Slice(0, width), rgb, this.iccConverter, scratch);
+
+                // Keep the established JPEG packing behavior: quantize converted RGB to bytes,
+                // then let PixelOperations pack those opaque samples into the requested TPixel.
+                Span<byte> rgbBytes = this.rgbBuffer.GetSpan();
+                SimdUtils.NormalizedFloatToByteSaturate(MemoryMarshal.Cast<Rgb, float>(rgb), rgbBytes);
+                PixelOperations<TPixel>.Instance.FromRgb24Bytes(this.Configuration, rgbBytes, this.pixelBuffer.DangerousGetRowSpan(yy), width);
+                continue;
             }
             else
             {
-                this.colorConverter.ConvertToRgbInPlace(in values);
+                this.colorConverter.ConvertToRgb(in values);
             }
 
             values = values.Slice(0, width); // slice away Jpeg padding
@@ -322,6 +336,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             }
         }
 
+        this.iccRowBuffer?.Dispose();
         this.rgbBuffer?.Dispose();
         this.paddedProxyPixelRow?.Dispose();
         this.pixelBuffer?.Dispose();

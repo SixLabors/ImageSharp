@@ -46,12 +46,16 @@ public class YCbCrTests
     }
 
     /// <summary>
-    /// Verifies native YCbCr bulk conversion when the packed source and RGB destination share storage.
+    /// Verifies both bulk conversion directions when packed RGB and YCbCr share storage.
     /// </summary>
     [Theory]
     [InlineData(16)]
     [InlineData(31)]
-    public void ToProfileConnectionSpace_MixedSamplesSupportInPlaceConversion(int count) => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunMixedInPlaceConversion, count, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    public void ProfileConnectionSpace_MixedSamplesSupportInPlaceConversion(int count)
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunMixedInPlaceConversion,
+            count,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Compares aliased YCbCr/RGB rows after disabled SIMD features are selected in separate processes before JIT compilation.
@@ -82,9 +86,20 @@ public class YCbCrTests
         Span<Rgb> destination = MemoryMarshal.Cast<YCbCr, Rgb>(source.AsSpan());
         YCbCr.ToProfileConnectionSpace(options, source, destination);
 
+        YCbCr[] reverseExpected = new YCbCr[count];
+
         for (int i = 0; i < count; i++)
         {
             Assert.Equal(expected[i], destination[i], Comparer);
+            reverseExpected[i] = YCbCr.FromProfileConnectingSpace(options, in destination[i]);
+        }
+
+        // Reverse conversion must also permit in-place use without overwriting unread RGB triples.
+        YCbCr.FromProfileConnectionSpace(options, destination, source);
+
+        for (int i = 0; i < count; i++)
+        {
+            Assert.Equal(reverseExpected[i], source[i], Comparer);
         }
     }
 }

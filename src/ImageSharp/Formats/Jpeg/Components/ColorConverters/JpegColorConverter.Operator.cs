@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -136,13 +137,177 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="c2">The third converted component lanes.</param>
         /// <param name="c3">The fourth converted component lanes, if used.</param>
         public static abstract void ConvertFromRgb(Vector512<float> r, Vector512<float> g, Vector512<float> b, Vector512<float> maximumValue, Vector512<float> halfValue, Vector512<float> scale, out Vector512<float> c0, out Vector512<float> c1, out Vector512<float> c2, out Vector512<float> c3);
+
+        /// <summary>
+        /// Gets the normalized chroma offset used to encode profile components.
+        /// </summary>
+        /// <param name="maximumValue">The maximum JPEG sample code.</param>
+        /// <param name="halfValue">The integer JPEG chroma midpoint.</param>
+        /// <returns>The offset applied before scaling profile components to JPEG codes.</returns>
+        public static virtual float GetProfileChromaOffset(float maximumValue, float halfValue) => 0F;
+
+        /// <summary>
+        /// Converts JPEG component values to normalized profile components.
+        /// </summary>
+        /// <param name="c0">The first component, replaced in place.</param>
+        /// <param name="c1">The second component, replaced in place when used.</param>
+        /// <param name="c2">The third component, replaced in place when used.</param>
+        /// <param name="c3">The fourth component, replaced in place when used.</param>
+        /// <param name="maximumValue">The maximum JPEG sample code.</param>
+        /// <param name="halfValue">The integer JPEG chroma midpoint.</param>
+        /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
+        public static abstract void ConvertToProfile(ref float c0, ref float c1, ref float c2, ref float c3, float maximumValue, float halfValue, float scale);
+
+        /// <summary>
+        /// Converts JPEG component values to normalized profile components.
+        /// </summary>
+        /// <param name="c0">The first component lanes, replaced in place.</param>
+        /// <param name="c1">The second component lanes, replaced in place when used.</param>
+        /// <param name="c2">The third component lanes, replaced in place when used.</param>
+        /// <param name="c3">The fourth component lanes, replaced in place when used.</param>
+        /// <param name="maximumValue">The maximum JPEG sample code.</param>
+        /// <param name="halfValue">The integer JPEG chroma midpoint.</param>
+        /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
+        public static abstract void ConvertToProfile(
+            ref Vector128<float> c0,
+            ref Vector128<float> c1,
+            ref Vector128<float> c2,
+            ref Vector128<float> c3,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale);
+
+        /// <summary>
+        /// Converts JPEG component values to normalized profile components.
+        /// </summary>
+        /// <param name="c0">The first component lanes, replaced in place.</param>
+        /// <param name="c1">The second component lanes, replaced in place when used.</param>
+        /// <param name="c2">The third component lanes, replaced in place when used.</param>
+        /// <param name="c3">The fourth component lanes, replaced in place when used.</param>
+        /// <param name="maximumValue">The maximum JPEG sample code.</param>
+        /// <param name="halfValue">The integer JPEG chroma midpoint.</param>
+        /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
+        public static abstract void ConvertToProfile(
+            ref Vector256<float> c0,
+            ref Vector256<float> c1,
+            ref Vector256<float> c2,
+            ref Vector256<float> c3,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale);
+
+        /// <summary>
+        /// Converts JPEG component values to normalized profile components.
+        /// </summary>
+        /// <param name="c0">The first component lanes, replaced in place.</param>
+        /// <param name="c1">The second component lanes, replaced in place when used.</param>
+        /// <param name="c2">The third component lanes, replaced in place when used.</param>
+        /// <param name="c3">The fourth component lanes, replaced in place when used.</param>
+        /// <param name="maximumValue">The maximum JPEG sample code.</param>
+        /// <param name="halfValue">The integer JPEG chroma midpoint.</param>
+        /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
+        public static abstract void ConvertToProfile(
+            ref Vector512<float> c0,
+            ref Vector512<float> c1,
+            ref Vector512<float> c2,
+            ref Vector512<float> c3,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale);
+
+        /// <summary>
+        /// Converts normalized profile components to JPEG component values.
+        /// </summary>
+        /// <param name="c0">The first component, replaced in place.</param>
+        /// <param name="c1">The second component, replaced in place when used.</param>
+        /// <param name="c2">The third component, replaced in place when used.</param>
+        /// <param name="c3">The fourth component, replaced in place when used.</param>
+        /// <param name="maximumValue">The maximum JPEG sample code.</param>
+        /// <param name="halfValue">The normalized chroma offset selected by the operator.</param>
+        /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
+        public static abstract void ConvertFromProfile(ref float c0, ref float c1, ref float c2, ref float c3, float maximumValue, float halfValue, float scale);
+
+        /// <summary>
+        /// Converts normalized profile components to JPEG component values.
+        /// </summary>
+        /// <param name="c0">The first component lanes, replaced in place.</param>
+        /// <param name="c1">The second component lanes, replaced in place when used.</param>
+        /// <param name="c2">The third component lanes, replaced in place when used.</param>
+        /// <param name="c3">The fourth component lanes, replaced in place when used.</param>
+        /// <param name="maximumValue">The maximum JPEG sample code.</param>
+        /// <param name="halfValue">The normalized chroma offset selected by the operator.</param>
+        /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
+        public static abstract void ConvertFromProfile(
+            ref Vector128<float> c0,
+            ref Vector128<float> c1,
+            ref Vector128<float> c2,
+            ref Vector128<float> c3,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale);
+
+        /// <summary>
+        /// Converts normalized profile components to JPEG component values.
+        /// </summary>
+        /// <param name="c0">The first component lanes, replaced in place.</param>
+        /// <param name="c1">The second component lanes, replaced in place when used.</param>
+        /// <param name="c2">The third component lanes, replaced in place when used.</param>
+        /// <param name="c3">The fourth component lanes, replaced in place when used.</param>
+        /// <param name="maximumValue">The maximum JPEG sample code.</param>
+        /// <param name="halfValue">The normalized chroma offset selected by the operator.</param>
+        /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
+        public static abstract void ConvertFromProfile(
+            ref Vector256<float> c0,
+            ref Vector256<float> c1,
+            ref Vector256<float> c2,
+            ref Vector256<float> c3,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale);
+
+        /// <summary>
+        /// Converts normalized profile components to JPEG component values.
+        /// </summary>
+        /// <param name="c0">The first component lanes, replaced in place.</param>
+        /// <param name="c1">The second component lanes, replaced in place when used.</param>
+        /// <param name="c2">The third component lanes, replaced in place when used.</param>
+        /// <param name="c3">The fourth component lanes, replaced in place when used.</param>
+        /// <param name="maximumValue">The maximum JPEG sample code.</param>
+        /// <param name="halfValue">The normalized chroma offset selected by the operator.</param>
+        /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
+        public static abstract void ConvertFromProfile(
+            ref Vector512<float> c0,
+            ref Vector512<float> c1,
+            ref Vector512<float> c2,
+            ref Vector512<float> c3,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale);
+
+        /// <summary>
+        /// Applies the packed color-model transform before the source profile reads its components.
+        /// </summary>
+        /// <param name="samples">Normalized packed components, available for in-place conversion.</param>
+        /// <param name="profileSpace">The profile's data color space.</param>
+        public static virtual void ConvertToProfile(Span<float> samples, IccColorSpaceType profileSpace)
+        {
+        }
+
+        /// <summary>
+        /// Applies the packed color-model transform after the target profile writes its components.
+        /// </summary>
+        /// <param name="samples">Normalized packed components, available for in-place conversion.</param>
+        /// <param name="profileSpace">The profile's data color space.</param>
+        public static virtual void ConvertFromProfile(Span<float> samples, IccColorSpaceType profileSpace)
+        {
+        }
     }
 
     /// <summary>
     /// Converts a JPEG color model using a single operator-driven traversal for all SIMD widths.
     /// </summary>
     /// <typeparam name="TOperator">The color-model-specific arithmetic.</typeparam>
-    internal sealed class JpegColorConverter<TOperator> : JpegColorConverterBase
+    internal sealed partial class JpegColorConverter<TOperator> : JpegColorConverterBase
         where TOperator : struct, IJpegColorConverterOperator
     {
         /// <summary>
@@ -162,7 +327,7 @@ internal abstract partial class JpegColorConverterBase
             => Vector512.IsHardwareAccelerated ? Vector512<float>.Count : Vector256.IsHardwareAccelerated ? Vector256<float>.Count : Vector128.IsHardwareAccelerated ? Vector128<float>.Count : 1;
 
         /// <inheritdoc/>
-        public override void ConvertToRgbInPlace(in ComponentValues values)
+        public override void ConvertToRgb(in ComponentValues values)
         {
             // JPEG component processors own equally sized planar buffers. Capturing their first elements
             // as byrefs lets every width share the same offset without introducing Span bounds checks in
@@ -276,20 +441,20 @@ internal abstract partial class JpegColorConverterBase
         }
 
         /// <inheritdoc/>
-        public override void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+        public override void ConvertFromRgb(ReadOnlySpan<float> rLane, ReadOnlySpan<float> gLane, ReadOnlySpan<float> bLane, in ComponentValues destination)
         {
             // The encoder supplies equally sized RGB planes and destination component planes. Byrefs preserve
             // contiguous access and allow the same proven vector boundary to govern every participating lane.
             // Component3 is empty for three-component formats and is only written by four-component operators.
-            ref float c0Base = ref MemoryMarshal.GetReference(values.Component0);
-            ref float c1Base = ref MemoryMarshal.GetReference(values.Component1);
-            ref float c2Base = ref MemoryMarshal.GetReference(values.Component2);
-            ref float c3Base = ref MemoryMarshal.GetReference(values.Component3);
+            ref float c0Base = ref MemoryMarshal.GetReference(destination.Component0);
+            ref float c1Base = ref MemoryMarshal.GetReference(destination.Component1);
+            ref float c2Base = ref MemoryMarshal.GetReference(destination.Component2);
+            ref float c3Base = ref MemoryMarshal.GetReference(destination.Component3);
             ref float rBase = ref MemoryMarshal.GetReference(rLane);
             ref float gBase = ref MemoryMarshal.GetReference(gLane);
             ref float bBase = ref MemoryMarshal.GetReference(bLane);
 
-            int length = values.Component0.Length;
+            int length = destination.Component0.Length;
             int i = 0;
             float scale = 1F / this.MaximumValue;
 

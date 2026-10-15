@@ -27,6 +27,6 @@ public class CmykColorConversion : ColorConversionBenchmark
     {
         JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
 
-        this.converter.ConvertToRgbInPlace(values);
+        this.converter.ConvertToRgb(values);
     }
 }

@@ -232,6 +232,58 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(IccRenderingIntent.Perceptual, targetProfile.Header.RenderingIntent);
     }
 
+    /// <summary>
+    /// Checks that a curve-only source does not change the intent selected by a table-based profile on the return conversion.
+    /// </summary>
+    [Fact]
+    public void Convert_UsesTargetRenderingIntentForCurveSource()
+    {
+        IccProfile sourceProfile = TestIccProfiles.GetProfile(TestIccProfiles.StandardRgbV2);
+        IccProfile targetProfile = TestIccProfiles.GetProfile(TestIccProfiles.Fogra39).DeepClone();
+        targetProfile.Header.RenderingIntent = IccRenderingIntent.MediaRelativeColorimetric;
+
+        ColorProfileConverter converter = new(new ColorConversionOptions
+        {
+            SourceIccProfile = sourceProfile,
+            TargetIccProfile = targetProfile,
+            IccInterpolationMethod = IccInterpolationMethod.Trilinear
+        });
+
+        // The curve profile recommends perceptual intent. Select relative explicitly in the independent
+        // reference so this detects the previous use of the target's perceptual BToA0 table.
+        Wacton.Unicolour.Configuration sourceConfig = new(iccConfig: new IccConfiguration(
+            Path.Combine("TestDataIcc", "Profiles", TestIccProfiles.StandardRgbV2), Intent.RelativeColorimetric));
+
+        Wacton.Unicolour.Configuration targetConfig = new(iccConfig: new IccConfiguration(
+            Path.Combine("TestDataIcc", "Profiles", TestIccProfiles.Fogra39), Intent.RelativeColorimetric));
+
+        // Include the dark background that exposed the intent mismatch, plus neutral and colored samples.
+        Rgb[] inputs = [new(44F / 255F, 51F / 255F, 58F / 255F), new(0.5F, 0.5F, 0.5F), new(0.25F, 0.5F, 0.75F)];
+        Cmyk[] bulk = new Cmyk[inputs.Length];
+        converter.Convert<Rgb, Cmyk>(inputs, bulk);
+
+        for (int i = 0; i < inputs.Length; i++)
+        {
+            Rgb input = inputs[i];
+            Unicolour reference = new(sourceConfig, new Channels(input.R, input.G, input.B));
+            Unicolour expected = reference.ConvertToConfiguration(targetConfig);
+            Assert.Null(expected.Icc.Error);
+
+            Vector4 scalar = converter.Convert<Rgb, Cmyk>(input).ToScaledVector4();
+            Vector4 span = bulk[i].ToScaledVector4();
+
+            for (int channel = 0; channel < 4; channel++)
+            {
+                // Allow one sixteen-bit LUT code value for float versus double interpolation.
+                Assert.Equal(expected.Icc.Values[channel], scalar[channel], 1D / ushort.MaxValue);
+                Assert.Equal(expected.Icc.Values[channel], span[channel], 1D / ushort.MaxValue);
+            }
+        }
+
+        Assert.Equal(IccRenderingIntent.Perceptual, sourceProfile.Header.RenderingIntent);
+        Assert.Equal(IccRenderingIntent.MediaRelativeColorimetric, targetProfile.Header.RenderingIntent);
+    }
+
     private static void AssertConversion(string sourceProfile, string targetProfile, List<Vector4> actual, double tolerance, ITestOutputHelper testOutputHelper)
     {
         List<double[]> expected = Inputs.ConvertAll(input => GetExpectedTargetValues(sourceProfile, targetProfile, input, testOutputHelper));

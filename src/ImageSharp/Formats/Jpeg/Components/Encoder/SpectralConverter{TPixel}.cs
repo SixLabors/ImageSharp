@@ -2,6 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -19,18 +22,36 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
     private readonly Buffer2D<TPixel> pixelBuffer;
 
-    private readonly IMemoryOwner<float> redLane;
+    /// <summary>
+    /// The row storage: three ordinary RGB planes, or four vector components and three ICC source components per pixel.
+    /// </summary>
+    private readonly IMemoryOwner<float> rowBuffer;
 
-    private readonly IMemoryOwner<float> greenLane;
+    /// <summary>
+    /// The pixel conversion configuration.
+    /// </summary>
+    private readonly Configuration configuration;
 
-    private readonly IMemoryOwner<float> blueLane;
+    /// <summary>
+    /// The reusable return transform, or null for the ordinary JPEG path.
+    /// </summary>
+    private readonly ColorProfileConverter? colorProfileConverter;
 
     private readonly int alignedPixelWidth;
 
     private readonly JpegColorConverterBase colorConverter;
 
-    public SpectralConverter(JpegFrame frame, Image<TPixel> image, Block8x8F[] dequantTables)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SpectralConverter{TPixel}"/> class.
+    /// </summary>
+    /// <param name="frame">The configured JPEG frame.</param>
+    /// <param name="image">The source image, which remains unchanged.</param>
+    /// <param name="dequantTables">The quantization tables used by the component processors.</param>
+    /// <param name="colorProfileConverter">The selected return transform, or null for ordinary encoding.</param>
+    public SpectralConverter(JpegFrame frame, Image<TPixel> image, Block8x8F[] dequantTables, ColorProfileConverter? colorProfileConverter)
     {
+        this.configuration = image.Configuration;
+        this.colorProfileConverter = colorProfileConverter;
         MemoryAllocator allocator = image.Configuration.MemoryAllocator;
 
         // iteration data
@@ -58,9 +79,10 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
                 dequantTables[component.QuantizationTableIndex]);
         }
 
-        this.redLane = allocator.Allocate<float>(this.alignedPixelWidth, AllocationOptions.Clean);
-        this.greenLane = allocator.Allocate<float>(this.alignedPixelWidth, AllocationOptions.Clean);
-        this.blueLane = allocator.Allocate<float>(this.alignedPixelWidth, AllocationOptions.Clean);
+        // One owner holds all row storage and is reused for every baseline or full-image step.
+        // ICC extracts straight Vector4 samples and RGB input separately; its output can overwrite the vectors.
+        int components = colorProfileConverter is null ? 3 : 7;
+        this.rowBuffer = allocator.Allocate<float>(this.alignedPixelWidth * components, AllocationOptions.Clean);
 
         // color converter from Rgb24 to YCbCr
         this.colorConverter = JpegColorConverterBase.GetConverter(colorSpace: frame.ColorSpace, precision: 8);
@@ -88,6 +110,10 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         }
     }
 
+    /// <summary>
+    /// Converts the next padded row group to JPEG components and then spectral blocks.
+    /// </summary>
+    /// <param name="spectralStep">The destination block-row step.</param>
     private void ConvertStride(int spectralStep)
     {
         int start = this.pixelRowCounter;
@@ -99,28 +125,54 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         int paddingStartIndex = this.pixelBuffer.Width;
         int paddedPixelsCount = this.alignedPixelWidth - this.pixelBuffer.Width;
 
-        Span<float> rLane = this.redLane.GetSpan();
-        Span<float> gLane = this.greenLane.GetSpan();
-        Span<float> bLane = this.blueLane.GetSpan();
-
-        for (int yy = start; yy < end; yy++)
+        Span<float> buffer = this.rowBuffer.GetSpan();
+        ColorProfileConverter? converter = this.colorProfileConverter;
+        if (converter is null)
         {
-            int y = yy - this.pixelRowCounter;
+            Span<float> rLane = buffer[..this.alignedPixelWidth];
+            Span<float> gLane = buffer.Slice(this.alignedPixelWidth, this.alignedPixelWidth);
+            Span<float> bLane = buffer.Slice(this.alignedPixelWidth * 2, this.alignedPixelWidth);
 
-            // Unpack TPixel to r/g/b planes
-            // TODO: The individual implementation code would be much easier here if
-            // we scaled to [0-1] before passing to the individual converters.
-            int srcIndex = Math.Min(yy, pixelBufferLastVerticalIndex);
-            Span<TPixel> sourceRow = this.pixelBuffer.DangerousGetRowSpan(srcIndex);
-            PixelOperations<TPixel>.Instance.UnpackIntoRgbPlanes(rLane, gLane, bLane, sourceRow);
+            for (int yy = start; yy < end; yy++)
+            {
+                int y = yy - this.pixelRowCounter;
 
-            rLane.Slice(paddingStartIndex, paddedPixelsCount).Fill(rLane[paddingStartIndex - 1]);
-            gLane.Slice(paddingStartIndex, paddedPixelsCount).Fill(gLane[paddingStartIndex - 1]);
-            bLane.Slice(paddingStartIndex, paddedPixelsCount).Fill(bLane[paddingStartIndex - 1]);
+                // Unpack TPixel to r/g/b planes
+                // TODO: The individual implementation code would be much easier here if
+                // we scaled to [0-1] before passing to the individual converters.
+                int srcIndex = Math.Min(yy, pixelBufferLastVerticalIndex);
+                Span<TPixel> sourceRow = this.pixelBuffer.DangerousGetRowSpan(srcIndex);
+                PixelOperations<TPixel>.Instance.UnpackIntoRgbPlanes(rLane, gLane, bLane, sourceRow);
 
-            // Convert from rgb24 to target pixel type
-            JpegColorConverterBase.ComponentValues values = new(this.componentProcessors, y);
-            this.colorConverter.ConvertFromRgb(values, rLane, gLane, bLane);
+                rLane.Slice(paddingStartIndex, paddedPixelsCount).Fill(rLane[paddingStartIndex - 1]);
+                gLane.Slice(paddingStartIndex, paddedPixelsCount).Fill(gLane[paddingStartIndex - 1]);
+                bLane.Slice(paddingStartIndex, paddedPixelsCount).Fill(bLane[paddingStartIndex - 1]);
+
+                // Convert from rgb24 to target pixel type
+                JpegColorConverterBase.ComponentValues values = new(this.componentProcessors, y);
+                this.colorConverter.ConvertFromRgb(rLane, gLane, bLane, values);
+            }
+        }
+        else
+        {
+            Span<Vector4> vectors = MemoryMarshal.Cast<float, Vector4>(buffer[..(this.alignedPixelWidth * 4)]);
+            Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(buffer.Slice(this.alignedPixelWidth * 4, this.alignedPixelWidth * 3));
+
+            for (int yy = start; yy < end; yy++)
+            {
+                int srcIndex = Math.Min(yy, pixelBufferLastVerticalIndex);
+                ReadOnlySpan<TPixel> sourceRow = this.pixelBuffer.DangerousGetRowSpan(srcIndex);
+
+                // Keep native floating-point precision until DCT/quantization. PixelOperations handles
+                // the source's alpha representation; JPEG receives straight RGB and stores no alpha.
+                PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, vectors);
+                Rgb.FromScaledVector4(vectors[..sourceRow.Length], rgb[..sourceRow.Length]);
+
+                // Pad in the same source color space before ICC. Vertical padding reuses the last source row.
+                rgb[paddingStartIndex..].Fill(rgb[paddingStartIndex - 1]);
+                JpegColorConverterBase.ComponentValues values = new(this.componentProcessors, yy - start);
+                this.colorConverter.ConvertFromRgb(rgb, values, converter, MemoryMarshal.Cast<Vector4, float>(vectors));
+            }
         }
 
         // Convert pixels to spectral
@@ -140,8 +192,6 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             cpp.Dispose();
         }
 
-        this.redLane.Dispose();
-        this.greenLane.Dispose();
-        this.blueLane.Dispose();
+        this.rowBuffer.Dispose();
     }
 }

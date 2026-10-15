@@ -2,7 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -21,6 +23,154 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         public static int ComponentCount => 4;
+
+        /// <inheritdoc/>
+        public static float GetProfileChromaOffset(float maximumValue, float halfValue)
+        {
+            // TIFF writes chroma directly. Normalize the integer JPEG midpoint before applying the matrix.
+            return halfValue / maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(ref float c0, ref float c1, ref float c2, ref float c3, float maximumValue, float halfValue, float scale)
+        {
+            // TIFF stores the matrix of CMY complements and an unchanged K sample.
+            YCbCrOperator.ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+            c0 = 1F - (c0 * scale);
+            c1 = 1F - (c1 * scale);
+            c2 = 1F - (c2 * scale);
+            c3 = c3 * scale;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref Vector128<float> c0,
+            ref Vector128<float> c1,
+            ref Vector128<float> c2,
+            ref Vector128<float> c3,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale)
+        {
+            // TIFF stores the matrix of CMY complements and an unchanged K sample.
+            YCbCrOperator.ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+            c0 = Vector128<float>.One - (c0 * scale);
+            c1 = Vector128<float>.One - (c1 * scale);
+            c2 = Vector128<float>.One - (c2 * scale);
+            c3 = c3 * scale;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref Vector256<float> c0,
+            ref Vector256<float> c1,
+            ref Vector256<float> c2,
+            ref Vector256<float> c3,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale)
+        {
+            // TIFF stores the matrix of CMY complements and an unchanged K sample.
+            YCbCrOperator.ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+            c0 = Vector256<float>.One - (c0 * scale);
+            c1 = Vector256<float>.One - (c1 * scale);
+            c2 = Vector256<float>.One - (c2 * scale);
+            c3 = c3 * scale;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref Vector512<float> c0,
+            ref Vector512<float> c1,
+            ref Vector512<float> c2,
+            ref Vector512<float> c3,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale)
+        {
+            // TIFF stores the matrix of CMY complements and an unchanged K sample.
+            YCbCrOperator.ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+            c0 = Vector512<float>.One - (c0 * scale);
+            c1 = Vector512<float>.One - (c1 * scale);
+            c2 = Vector512<float>.One - (c2 * scale);
+            c3 = c3 * scale;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(ref float c0, ref float c1, ref float c2, ref float c3, float maximumValue, float halfValue, float scale)
+        {
+            // The YCbCr matrix changes CMY coding only. K keeps the value supplied by ICC.
+            YCbCrOperator.ConvertFromRgb(1F - c0, 1F - c1, 1F - c2, 1F, halfValue, 1F, out c0, out c1, out c2, out _);
+            c0 *= maximumValue;
+            c1 *= maximumValue;
+            c2 *= maximumValue;
+            c3 *= maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref Vector128<float> c0,
+            ref Vector128<float> c1,
+            ref Vector128<float> c2,
+            ref Vector128<float> c3,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale)
+        {
+            // The YCbCr matrix changes CMY coding only. K keeps the value supplied by ICC.
+            Vector128<float> one = Vector128<float>.One;
+            YCbCrOperator.ConvertFromRgb(one - c0, one - c1, one - c2, one, halfValue, one, out c0, out c1, out c2, out _);
+            c0 *= maximumValue;
+            c1 *= maximumValue;
+            c2 *= maximumValue;
+            c3 *= maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref Vector256<float> c0,
+            ref Vector256<float> c1,
+            ref Vector256<float> c2,
+            ref Vector256<float> c3,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale)
+        {
+            // The YCbCr matrix changes CMY coding only. K keeps the value supplied by ICC.
+            Vector256<float> one = Vector256<float>.One;
+            YCbCrOperator.ConvertFromRgb(one - c0, one - c1, one - c2, one, halfValue, one, out c0, out c1, out c2, out _);
+            c0 *= maximumValue;
+            c1 *= maximumValue;
+            c2 *= maximumValue;
+            c3 *= maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref Vector512<float> c0,
+            ref Vector512<float> c1,
+            ref Vector512<float> c2,
+            ref Vector512<float> c3,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale)
+        {
+            // The YCbCr matrix changes CMY coding only. K keeps the value supplied by ICC.
+            Vector512<float> one = Vector512<float>.One;
+            YCbCrOperator.ConvertFromRgb(one - c0, one - c1, one - c2, one, halfValue, one, out c0, out c1, out c2, out _);
+            c0 *= maximumValue;
+            c1 *= maximumValue;
+            c2 *= maximumValue;
+            c3 *= maximumValue;
+        }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

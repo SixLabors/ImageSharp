@@ -691,11 +691,14 @@ internal static class ColorProfileConverterExtensionsIcc
         /// <param name="options">The conversion options carrying both ICC profiles.</param>
         public IccTransform(ColorConversionOptions options)
         {
-            // The embedded source profile supplies the connection's intent. Use it for both transform
-            // selection and PCS adjustment; the destination header may recommend a different intent.
-            IccRenderingIntent renderingIntent = options.SourceIccProfile!.Header.RenderingIntent;
-            this.Source = new ConversionParams(options.SourceIccProfile, toPcs: true, renderingIntent, options.IccInterpolationMethod);
-            this.Target = new ConversionParams(options.TargetIccProfile!, toPcs: false, renderingIntent, options.IccInterpolationMethod);
+            IccProfile sourceProfile = options.SourceIccProfile!;
+            IccProfile targetProfile = options.TargetIccProfile!;
+
+            // Select one intent for both transform tables and PCS adjustment. A curve-only working profile
+            // must not select a different table when the same table-based profile becomes the destination.
+            IccRenderingIntent renderingIntent = IccConverterBase.GetRenderingIntent(sourceProfile, targetProfile);
+            this.Source = new ConversionParams(sourceProfile, toPcs: true, renderingIntent, options.IccInterpolationMethod);
+            this.Target = new ConversionParams(targetProfile, toPcs: false, renderingIntent, options.IccInterpolationMethod);
             this.PcsConverter = new ColorProfileConverter(new ColorConversionOptions
             {
                 MemoryAllocator = options.MemoryAllocator,

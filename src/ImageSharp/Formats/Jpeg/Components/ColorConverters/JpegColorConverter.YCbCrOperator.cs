@@ -2,8 +2,11 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -34,6 +37,11 @@ internal abstract partial class JpegColorConverterBase
         /// </summary>
         public const float BCbMult = 1.772F;
 
+        /// <summary>
+        /// The shared profile-free RGB/YCbCr model converter. Its options never change.
+        /// </summary>
+        private static readonly ColorProfileConverter ModelConverter = new();
+
         /// <inheritdoc/>
         public static JpegColorSpace ColorSpace => JpegColorSpace.YCbCr;
 
@@ -41,80 +49,291 @@ internal abstract partial class JpegColorConverterBase
         public static int ComponentCount => 3;
 
         /// <inheritdoc/>
+        public static void ConvertToProfile(Span<float> samples, IccColorSpaceType profileSpace)
+        {
+            if (profileSpace != IccColorSpaceType.YCbCr)
+            {
+                // An RGB profile reads RGB after the JPEG YCbCr model transform.
+                // A YCbCr profile reads the normalized stored components directly.
+                ModelConverter.Convert<YCbCr, Rgb>(MemoryMarshal.Cast<float, YCbCr>(samples), MemoryMarshal.Cast<float, Rgb>(samples));
+            }
+        }
+
+        /// <inheritdoc/>
+        public static void ConvertFromProfile(Span<float> samples, IccColorSpaceType profileSpace)
+        {
+            if (profileSpace != IccColorSpaceType.YCbCr)
+            {
+                // Reverse the decoder's model transform only for an RGB profile.
+                ModelConverter.Convert<Rgb, YCbCr>(MemoryMarshal.Cast<float, Rgb>(samples), MemoryMarshal.Cast<float, YCbCr>(samples));
+            }
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(ref float c0, ref float c1, ref float c2, ref float c3, float maximumValue, float halfValue, float scale)
+        {
+            c0 *= scale;
+            c1 *= scale;
+            c2 *= scale;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref Vector128<float> c0,
+            ref Vector128<float> c1,
+            ref Vector128<float> c2,
+            ref Vector128<float> c3,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale)
+        {
+            c0 *= scale;
+            c1 *= scale;
+            c2 *= scale;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref Vector256<float> c0,
+            ref Vector256<float> c1,
+            ref Vector256<float> c2,
+            ref Vector256<float> c3,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale)
+        {
+            c0 *= scale;
+            c1 *= scale;
+            c2 *= scale;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref Vector512<float> c0,
+            ref Vector512<float> c1,
+            ref Vector512<float> c2,
+            ref Vector512<float> c3,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale)
+        {
+            c0 *= scale;
+            c1 *= scale;
+            c2 *= scale;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(ref float c0, ref float c1, ref float c2, ref float c3, float maximumValue, float halfValue, float scale)
+        {
+            c0 *= maximumValue;
+            c1 *= maximumValue;
+            c2 *= maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref Vector128<float> c0,
+            ref Vector128<float> c1,
+            ref Vector128<float> c2,
+            ref Vector128<float> c3,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale)
+        {
+            c0 *= maximumValue;
+            c1 *= maximumValue;
+            c2 *= maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref Vector256<float> c0,
+            ref Vector256<float> c1,
+            ref Vector256<float> c2,
+            ref Vector256<float> c3,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale)
+        {
+            c0 *= maximumValue;
+            c1 *= maximumValue;
+            c2 *= maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref Vector512<float> c0,
+            ref Vector512<float> c1,
+            ref Vector512<float> c2,
+            ref Vector512<float> c3,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale)
+        {
+            c0 *= maximumValue;
+            c1 *= maximumValue;
+            c2 *= maximumValue;
+        }
+
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ConvertToRgb(ref float c0, ref float c1, ref float c2, float c3, float maximumValue, float halfValue, float scale)
+        {
+            ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+
+            // Ordinary JPEG conversion rounds in the sample domain before normalizing.
+            c0 = MathF.Round(c0, MidpointRounding.AwayFromZero) * scale;
+            c1 = MathF.Round(c1, MidpointRounding.AwayFromZero) * scale;
+            c2 = MathF.Round(c2, MidpointRounding.AwayFromZero) * scale;
+        }
+
+        /// <summary>
+        /// Applies the JPEG YCbCr matrix without rounding or normalizing its component values.
+        /// </summary>
+        /// <param name="c0">The Y samples, replaced by the first decoded channel.</param>
+        /// <param name="c1">The Cb samples, replaced by the second decoded channel.</param>
+        /// <param name="c2">The Cr samples, replaced by the third decoded channel.</param>
+        /// <param name="halfValue">The JPEG chroma midpoint.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToRgb(ref float c0, ref float c1, ref float c2, float halfValue)
         {
             float y = c0;
             float cb = c1 - halfValue;
             float cr = c2 - halfValue;
 
-            // c0/c1/c2 initially mean Y/Cb/Cr. Chroma is centered around zero before applying
-            // the BT.601 matrix, then integer-domain RGB is rounded away from zero and normalized
-            // to [nominally] 0..1. Values intentionally remain unclamped because quantizing RGB into the
-            // destination pixel format owns saturation; retaining overshoot avoids discarding color information.
-            c0 = MathF.Round(y + (RCrMult * cr), MidpointRounding.AwayFromZero) * scale;
-            c1 = MathF.Round(y - (GCbMult * cb) - (GCrMult * cr), MidpointRounding.AwayFromZero) * scale;
-            c2 = MathF.Round(y + (BCbMult * cb), MidpointRounding.AwayFromZero) * scale;
+            // Each lane is an independent sample. ICC needs the fractional device values, while
+            // the ordinary JPEG wrapper above applies its existing integer rounding afterward.
+            c0 = y + (RCrMult * cr);
+            c1 = y - (GCbMult * cb) - (GCrMult * cr);
+            c2 = y + (BCbMult * cb);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref Vector128<float> c0, ref Vector128<float> c1, ref Vector128<float> c2, Vector128<float> c3, Vector128<float> maximumValue, Vector128<float> halfValue, Vector128<float> scale)
+        public static void ConvertToRgb(
+            ref Vector128<float> c0,
+            ref Vector128<float> c1,
+            ref Vector128<float> c2,
+            Vector128<float> c3,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale)
+        {
+            ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+
+            // Ordinary JPEG conversion rounds in the sample domain before normalizing.
+            c0 = Vector128.Round(c0) * scale;
+            c1 = Vector128.Round(c1) * scale;
+            c2 = Vector128.Round(c2) * scale;
+        }
+
+        /// <summary>
+        /// Applies the JPEG YCbCr matrix without rounding or normalizing its component values.
+        /// </summary>
+        /// <param name="c0">The Y samples, replaced by the first decoded channel.</param>
+        /// <param name="c1">The Cb samples, replaced by the second decoded channel.</param>
+        /// <param name="c2">The Cr samples, replaced by the third decoded channel.</param>
+        /// <param name="halfValue">The JPEG chroma midpoint.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToRgb(ref Vector128<float> c0, ref Vector128<float> c1, ref Vector128<float> c2, Vector128<float> halfValue)
         {
             Vector128<float> y = c0;
             Vector128<float> cb = c1 - halfValue;
             Vector128<float> cr = c2 - halfValue;
 
-            // Lanes are four independent Y/Cb/Cr samples. MultiplyAddEstimate maps to FMA where available:
-            // R uses Cr, B uses Cb, and G subtracts both chroma contributions. Rounding occurs in the sample
-            // domain before the common normalization scale so all precisions use integer JPEG sample semantics.
-            Vector128<float> r = Vector128.MultiplyAddEstimate(cr, Vector128.Create(RCrMult), y);
-            Vector128<float> g = Vector128.MultiplyAddEstimate(cr, Vector128.Create(-GCrMult), Vector128.MultiplyAddEstimate(cb, Vector128.Create(-GCbMult), y));
-            Vector128<float> b = Vector128.MultiplyAddEstimate(cb, Vector128.Create(BCbMult), y);
-
-            c0 = Vector128.Round(r) * scale;
-            c1 = Vector128.Round(g) * scale;
-            c2 = Vector128.Round(b) * scale;
+            // Each lane is an independent sample. ICC needs the fractional device values, while
+            // the ordinary JPEG wrapper above applies its existing integer rounding afterward.
+            c0 = Vector128.MultiplyAddEstimate(cr, Vector128.Create(RCrMult), y);
+            c1 = Vector128.MultiplyAddEstimate(cr, Vector128.Create(-GCrMult), Vector128.MultiplyAddEstimate(cb, Vector128.Create(-GCbMult), y));
+            c2 = Vector128.MultiplyAddEstimate(cb, Vector128.Create(BCbMult), y);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref Vector256<float> c0, ref Vector256<float> c1, ref Vector256<float> c2, Vector256<float> c3, Vector256<float> maximumValue, Vector256<float> halfValue, Vector256<float> scale)
+        public static void ConvertToRgb(
+            ref Vector256<float> c0,
+            ref Vector256<float> c1,
+            ref Vector256<float> c2,
+            Vector256<float> c3,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale)
+        {
+            ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+
+            // Ordinary JPEG conversion rounds in the sample domain before normalizing.
+            c0 = Vector256.Round(c0) * scale;
+            c1 = Vector256.Round(c1) * scale;
+            c2 = Vector256.Round(c2) * scale;
+        }
+
+        /// <summary>
+        /// Applies the JPEG YCbCr matrix without rounding or normalizing its component values.
+        /// </summary>
+        /// <param name="c0">The Y samples, replaced by the first decoded channel.</param>
+        /// <param name="c1">The Cb samples, replaced by the second decoded channel.</param>
+        /// <param name="c2">The Cr samples, replaced by the third decoded channel.</param>
+        /// <param name="halfValue">The JPEG chroma midpoint.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToRgb(ref Vector256<float> c0, ref Vector256<float> c1, ref Vector256<float> c2, Vector256<float> halfValue)
         {
             Vector256<float> y = c0;
             Vector256<float> cb = c1 - halfValue;
             Vector256<float> cr = c2 - halfValue;
 
-            // These eight lanes have the same layout and BT.601 arithmetic as the Vector128 overload.
-            // Keeping an explicit overload allows the JIT to emit native YMM operations without a width
-            // switch or decomposing the vector into smaller values.
-            Vector256<float> r = Vector256.MultiplyAddEstimate(cr, Vector256.Create(RCrMult), y);
-            Vector256<float> g = Vector256.MultiplyAddEstimate(cr, Vector256.Create(-GCrMult), Vector256.MultiplyAddEstimate(cb, Vector256.Create(-GCbMult), y));
-            Vector256<float> b = Vector256.MultiplyAddEstimate(cb, Vector256.Create(BCbMult), y);
-
-            c0 = Vector256.Round(r) * scale;
-            c1 = Vector256.Round(g) * scale;
-            c2 = Vector256.Round(b) * scale;
+            // Each lane is an independent sample. ICC needs the fractional device values, while
+            // the ordinary JPEG wrapper above applies its existing integer rounding afterward.
+            c0 = Vector256.MultiplyAddEstimate(cr, Vector256.Create(RCrMult), y);
+            c1 = Vector256.MultiplyAddEstimate(cr, Vector256.Create(-GCrMult), Vector256.MultiplyAddEstimate(cb, Vector256.Create(-GCbMult), y));
+            c2 = Vector256.MultiplyAddEstimate(cb, Vector256.Create(BCbMult), y);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref Vector512<float> c0, ref Vector512<float> c1, ref Vector512<float> c2, Vector512<float> c3, Vector512<float> maximumValue, Vector512<float> halfValue, Vector512<float> scale)
+        public static void ConvertToRgb(
+            ref Vector512<float> c0,
+            ref Vector512<float> c1,
+            ref Vector512<float> c2,
+            Vector512<float> c3,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale)
+        {
+            ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+
+            // Ordinary JPEG conversion rounds in the sample domain before normalizing.
+            c0 = Vector512.Round(c0) * scale;
+            c1 = Vector512.Round(c1) * scale;
+            c2 = Vector512.Round(c2) * scale;
+        }
+
+        /// <summary>
+        /// Applies the JPEG YCbCr matrix without rounding or normalizing its component values.
+        /// </summary>
+        /// <param name="c0">The Y samples, replaced by the first decoded channel.</param>
+        /// <param name="c1">The Cb samples, replaced by the second decoded channel.</param>
+        /// <param name="c2">The Cr samples, replaced by the third decoded channel.</param>
+        /// <param name="halfValue">The JPEG chroma midpoint.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToRgb(ref Vector512<float> c0, ref Vector512<float> c1, ref Vector512<float> c2, Vector512<float> halfValue)
         {
             Vector512<float> y = c0;
             Vector512<float> cb = c1 - halfValue;
             Vector512<float> cr = c2 - halfValue;
 
-            // Sixteen independent samples occupy the ZMM lanes. The explicit constants are broadcasts;
-            // assembly inspection verifies the JIT hoists them from the loop and retains fused operations.
-            // The formula and rounding order remain identical to the narrower overloads.
-            Vector512<float> r = Vector512.MultiplyAddEstimate(cr, Vector512.Create(RCrMult), y);
-            Vector512<float> g = Vector512.MultiplyAddEstimate(cr, Vector512.Create(-GCrMult), Vector512.MultiplyAddEstimate(cb, Vector512.Create(-GCbMult), y));
-            Vector512<float> b = Vector512.MultiplyAddEstimate(cb, Vector512.Create(BCbMult), y);
-
-            c0 = Vector512.Round(r) * scale;
-            c1 = Vector512.Round(g) * scale;
-            c2 = Vector512.Round(b) * scale;
+            // Each lane is an independent sample. ICC needs the fractional device values, while
+            // the ordinary JPEG wrapper above applies its existing integer rounding afterward.
+            c0 = Vector512.MultiplyAddEstimate(cr, Vector512.Create(RCrMult), y);
+            c1 = Vector512.MultiplyAddEstimate(cr, Vector512.Create(-GCrMult), Vector512.MultiplyAddEstimate(cb, Vector512.Create(-GCbMult), y));
+            c2 = Vector512.MultiplyAddEstimate(cb, Vector512.Create(BCbMult), y);
         }
 
         /// <inheritdoc/>

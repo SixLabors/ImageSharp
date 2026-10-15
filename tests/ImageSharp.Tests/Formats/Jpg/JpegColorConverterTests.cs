@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -12,7 +14,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities;
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
 
 [Trait("Format", "Jpg")]
-public class JpegColorConverterTests
+public partial class JpegColorConverterTests
 {
     private const float MaxColorChannelValue = 255F;
     private const float ColorProfileTolerance = 0.1F / MaxColorChannelValue;
@@ -111,7 +113,7 @@ public class JpegColorConverterTests
         JpegColorConverterBase.ComponentValues actual = CreateRandomValues(length, componentCount, 8);
         JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(colorSpace, 8);
 
-        converter.ConvertToRgbInPlace(actual);
+        converter.ConvertToRgb(actual);
 
         for (int i = 0; i < length; i++)
         {
@@ -172,7 +174,7 @@ public class JpegColorConverterTests
     }
 
     /// <summary>
-    /// Verifies the flattened ICC traversal against independently composed color-model and profile conversions.
+    /// Verifies ICC decoding against independently composed color-model and profile conversions.
     /// </summary>
     /// <param name="colorSpace">The JPEG color space.</param>
     /// <param name="componentCount">The number of component planes owned by the color model.</param>
@@ -194,7 +196,7 @@ public class JpegColorConverterTests
     [InlineData(JpegColorSpace.TiffYccK, 4, 12)]
     internal void ConvertToRgbWithIccMatchesColorProfileDefinition(JpegColorSpace colorSpace, int componentCount, int precision)
     {
-        const int length = 8;
+        const int length = 65;
         JpegColorConverterBase.ComponentValues source = CreateRandomValues(length, componentCount, precision);
         JpegColorConverterBase.ComponentValues actual = CreateRandomValues(length, componentCount, precision);
         JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(colorSpace, precision);
@@ -217,7 +219,11 @@ public class JpegColorConverterTests
         };
 
         // The converter under test gets its own instance, so the reference below uses independently built transforms.
-        converter.ConvertToRgbInPlaceWithIcc(Configuration.Default, actual, new ColorProfileConverter(options));
+        float[] scratch = new float[length * 4];
+        Span<Rgb> actualRgb = MemoryMarshal.Cast<float, Rgb>(scratch.AsSpan())[..length];
+
+        // The decoder reuses packed profile storage for RGB. Cover overlap, including expanding one-channel grayscale.
+        converter.ConvertToRgb(actual, actualRgb, new ColorProfileConverter(options), scratch);
         ColorProfileConverter profileConverter = new(options);
         ColorProfileConverter modelConverter = new();
         float maximumValue = MathF.Pow(2, precision) - 1;
@@ -266,17 +272,18 @@ public class JpegColorConverterTests
                     break;
 
                 case JpegColorSpace.Ycck:
-                    Cmyk cmyk = modelConverter.Convert<YccK, Cmyk>(new YccK(1F - c0, 1F - c1, 1F - c2, 1F - c3));
-                    expected = profileConverter.Convert<Cmyk, Rgb>(cmyk);
+                case JpegColorSpace.TiffYccK:
+                    // Decode the chromatic matrix independently, without deriving a new K from its RGB result.
+                    float chromaShift = (MathF.Ceiling(maximumValue * .5F) / maximumValue) - .5F;
+                    YCbCr coded = YCbCr.FromScaledVector4(new Vector4(c0, c1 - chromaShift, c2 - chromaShift, 0F));
+                    Rgb device = modelConverter.Convert<YCbCr, Rgb>(coded);
+                    Vector4 ink = new(device.ToScaledVector3(), 1F - c3);
+                    ink = colorSpace == JpegColorSpace.Ycck ? ink : Vector4.One - ink;
+                    expected = profileConverter.Convert<Cmyk, Rgb>(Cmyk.FromScaledVector4(ink));
                     break;
 
                 case JpegColorSpace.TiffCmyk:
                     expected = profileConverter.Convert<Cmyk, Rgb>(new Cmyk(c0, c1, c2, c3));
-                    break;
-
-                case JpegColorSpace.TiffYccK:
-                    Cmyk tiffCmyk = modelConverter.Convert<YccK, Cmyk>(new YccK(c0, c1, c2, c3));
-                    expected = profileConverter.Convert<Cmyk, Rgb>(tiffCmyk);
                     break;
 
                 default:
@@ -284,18 +291,152 @@ public class JpegColorConverterTests
                     return;
             }
 
-            if (colorSpace == JpegColorSpace.Grayscale)
+            Assert.Equal(expected.R, actualRgb[i].R, ToRgbTolerance);
+            Assert.Equal(expected.G, actualRgb[i].G, ToRgbTolerance);
+            Assert.Equal(expected.B, actualRgb[i].B, ToRgbTolerance);
+        }
+    }
+
+    /// <summary>
+    /// Checks ICC encoding against independently composed profile and JPEG model conversions under each SIMD feature set.
+    /// </summary>
+    /// <param name="precision">The JPEG sample precision.</param>
+    [Theory]
+    [InlineData(8)]
+    [InlineData(12)]
+    public void IccEncodingMatchesProfileDefinition(int precision)
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertIccEncoding,
+            precision,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks fractional source samples, JPEG coding conventions and SIMD tails for each supported color model.
+    /// </summary>
+    /// <param name="serialized">The JPEG sample precision.</param>
+    private static void AssertIccEncoding(string serialized)
+    {
+        int precision = FeatureTestRunner.Deserialize<int>(serialized);
+        float maximumValue = (1 << precision) - 1;
+        JpegColorSpace[] spaces =
+        [
+            JpegColorSpace.Grayscale, JpegColorSpace.RGB, JpegColorSpace.YCbCr,
+            JpegColorSpace.Cmyk, JpegColorSpace.Ycck, JpegColorSpace.TiffCmyk, JpegColorSpace.TiffYccK
+        ];
+
+        // Include black, white, primary colors and fractional samples that an RGB byte intermediate would change.
+        Rgb[] colors = [new(0F, 0F, 0F), new(1F, 1F, 1F), new(1F, 0F, 0F), new(0F, 1F, 0F), new(0F, 0F, 1F), new(.123F, .456F, .789F)];
+        int[] lengths = [3, 17, 65];
+
+        foreach (JpegColorSpace space in spaces)
+        {
+            int componentCount = space == JpegColorSpace.Grayscale ? 1 : space is JpegColorSpace.RGB or JpegColorSpace.YCbCr ? 3 : 4;
+            IccProfile profile = componentCount switch
             {
-                // Grayscale exposes one physical component plane through all three component views. Deinterleaving
-                // therefore leaves the final blue write in that plane, matching the established converter contract.
-                Assert.Equal(expected.B, actual.Component0[i], ToRgbTolerance);
-            }
-            else
+                1 => CreateGrayProfile(),
+                4 => TestIccProfiles.GetProfile(TestIccProfiles.Fogra39),
+                _ => TestIccProfiles.GetProfile(TestIccProfiles.RommRgb)
+            };
+
+            ColorConversionOptions options = new()
             {
-                Assert.Equal(expected.R, actual.Component0[i], ToRgbTolerance);
-                Assert.Equal(expected.G, actual.Component1[i], ToRgbTolerance);
-                Assert.Equal(expected.B, actual.Component2[i], ToRgbTolerance);
+                SourceIccProfile = CompactSrgbV4Profile.Profile,
+                TargetIccProfile = profile
+            };
+
+            ColorProfileConverter actualConverter = new(options);
+            ColorProfileConverter referenceConverter = new(options);
+            ColorProfileConverter modelConverter = new();
+            JpegColorConverterBase jpegConverter = JpegColorConverterBase.GetConverter(space, precision);
+
+            foreach (int length in lengths)
+            {
+                Rgb[] source = new Rgb[length];
+                Vector4[] expected = new Vector4[length];
+
+                for (int i = 0; i < length; i++)
+                {
+                    source[i] = colors[i % colors.Length];
+                }
+
+                // Build device samples through the public profile API. The assertions below independently apply JPEG scaling and inversion.
+                if (componentCount == 1)
+                {
+                    Y[] luminance = new Y[length];
+                    referenceConverter.Convert<Rgb, Y>(source, luminance);
+
+                    for (int i = 0; i < length; i++)
+                    {
+                        expected[i] = luminance[i].ToScaledVector4();
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < length; i++)
+                    {
+                        if (componentCount == 4)
+                        {
+                            Cmyk cmyk = referenceConverter.Convert<Rgb, Cmyk>(source[i]);
+
+                            // Keep the ICC device values intact. YCCK changes their coding, not the CMYK separation.
+                            expected[i] = cmyk.ToScaledVector4();
+                        }
+                        else
+                        {
+                            Rgb rgb = referenceConverter.Convert<Rgb, Rgb>(source[i]);
+                            expected[i] = space == JpegColorSpace.YCbCr
+                                ? modelConverter.Convert<Rgb, YCbCr>(rgb).ToScaledVector4()
+                                : rgb.ToScaledVector4();
+                        }
+                    }
+                }
+
+                JpegColorConverterBase.ComponentValues actual = CreateRandomValues(length, componentCount, precision);
+                float[] scratch = new float[length * 4];
+
+                jpegConverter.ConvertFromRgb(source, actual, actualConverter, scratch);
+
+                bool inverted = space is JpegColorSpace.Cmyk or JpegColorSpace.Ycck;
+
+                for (int i = 0; i < length; i++)
+                {
+                    Vector4 code = (inverted ? Vector4.One - expected[i] : expected[i]) * maximumValue;
+                    if (space is JpegColorSpace.Ycck or JpegColorSpace.TiffYccK)
+                    {
+                        // Adobe projects CMY ink values; TIFF projects their RGB complements. K comes directly from ICC.
+                        Vector4 device = expected[i];
+                        Vector3 chromatic = new(device.X, device.Y, device.Z);
+                        chromatic = space == JpegColorSpace.Ycck ? chromatic : Vector3.One - chromatic;
+                        Rgb matrixInput = new(chromatic);
+                        YCbCr matrixOutput = modelConverter.Convert<Rgb, YCbCr>(matrixInput);
+                        code = matrixOutput.ToScaledVector4() * maximumValue;
+
+                        // The shared color model centers chroma at 0.5; JPEG uses the integer midpoint.
+                        float chromaOffset = MathF.Ceiling(maximumValue * .5F) - (maximumValue * .5F);
+                        code.Y += chromaOffset;
+                        code.Z += chromaOffset;
+                        code.W = (inverted ? 1F - device.W : device.W) * maximumValue;
+                    }
+
+                    Assert.Equal(code.X, actual.Component0[i], FromRgbTolerance);
+
+                    if (componentCount >= 3)
+                    {
+                        Assert.Equal(code.Y, actual.Component1[i], FromRgbTolerance);
+                        Assert.Equal(code.Z, actual.Component2[i], FromRgbTolerance);
+                    }
+
+                    if (componentCount == 4)
+                    {
+                        Assert.Equal(code.W, actual.Component3[i], FromRgbTolerance);
+                    }
+
+                    Assert.Equal(colors[i % colors.Length], source[i]);
+                }
             }
+
+            // Exercise the matching decode path in the same feature process, including overlapping scratch and RGB output.
+            new JpegColorConverterTests().ConvertToRgbWithIccMatchesColorProfileDefinition(space, componentCount, precision);
         }
     }
 
@@ -347,7 +488,7 @@ public class JpegColorConverterTests
             float[] k = new float[length];
             JpegColorConverterBase.ComponentValues values = new(4, y, cb, cr, k);
 
-            converter.ConvertFromRgb(values, r.AsSpan(0, length), g.AsSpan(0, length), b.AsSpan(0, length));
+            converter.ConvertFromRgb(r.AsSpan(0, length), g.AsSpan(0, length), b.AsSpan(0, length), values);
 
             for (int i = 0; i < length; i++)
             {
@@ -418,7 +559,7 @@ public class JpegColorConverterTests
             TOperator.ConvertToRgb(ref c0, ref c1, ref c2, c3, maximumValue, halfValue, scale);
         }
 
-        converter.ConvertToRgbInPlace(actual);
+        converter.ConvertToRgb(actual);
 
         // YCbCr conversion rounds in the integer sample domain before normalization. Fused SIMD arithmetic can
         // cross a half-way boundary differently from the scalar expression, so allow one source-sample quantum
@@ -470,7 +611,7 @@ public class JpegColorConverterTests
             }
         }
 
-        converter.ConvertFromRgb(actual, r, g, b);
+        converter.ConvertFromRgb(r, g, b, actual);
         CompareSequence(expected.Component0, actual.Component0, FromRgbTolerance);
 
         if (componentCount >= 2)

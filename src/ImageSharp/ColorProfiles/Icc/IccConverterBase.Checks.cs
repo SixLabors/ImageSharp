@@ -11,6 +11,31 @@ namespace SixLabors.ImageSharp.ColorProfiles.Conversion.Icc;
 /// </summary>
 internal abstract partial class IccConverterBase
 {
+    /// <summary>
+    /// Selects one rendering intent for both sides of a profile connection.
+    /// </summary>
+    /// <param name="source">The source profile.</param>
+    /// <param name="target">The target profile.</param>
+    /// <returns>The table-based profile's intent when paired with curves; otherwise, the source profile's intent.</returns>
+    public static IccRenderingIntent GetRenderingIntent(IccProfile source, IccProfile target)
+    {
+        IccRenderingIntent sourceIntent = source.Header.RenderingIntent;
+        IccRenderingIntent targetIntent = target.Header.RenderingIntent;
+
+        // Curve transforms have no separate tables for perceptual, relative or saturation intent.
+        // When only the target uses tables, let its header select the table. Reversing that connection
+        // then selects the same intent instead of changing the color mapping on the return trip.
+        // Reuse transform selection so a profile with both curves and tables still counts as table-based.
+        if (GetConversionMethod(source, sourceIntent) is ConversionMethod.ColorTrc or ConversionMethod.GrayTrc
+            && GetConversionMethod(target, targetIntent) is not (ConversionMethod.ColorTrc or ConversionMethod.GrayTrc or ConversionMethod.Invalid))
+        {
+            return targetIntent;
+        }
+
+        // Two table-based profiles can recommend different intents. Retain source precedence in that case.
+        return sourceIntent;
+    }
+
     private static ConversionMethod GetConversionMethod(IccProfile profile, IccRenderingIntent renderingIntent) => profile.Header.Class switch
     {
         IccProfileClass.InputDevice or

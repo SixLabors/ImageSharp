@@ -4,6 +4,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
@@ -72,6 +73,21 @@ internal sealed unsafe partial class JpegEncoderCore
         JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
         JpegFrameConfig frameConfig = this.GetFrameConfig(jpegMetadata);
 
+        IccProfile sourceIccProfile = image.Frames.RootFrame.Metadata.IccProfile ?? metadata.IccProfile;
+
+        // RGB profiles describe values before JPEG's YCbCr transform. YCbCr profiles describe the stored YCbCr values.
+        PixelColorType sampleColorType = frameConfig.ColorType switch
+        {
+            JpegColorSpace.Grayscale => PixelColorType.Luminance,
+            JpegColorSpace.Cmyk => PixelColorType.CMYK,
+            JpegColorSpace.Ycck => PixelColorType.YCCK,
+            JpegColorSpace.YCbCr when sourceIccProfile?.Header.DataColorSpace == IccColorSpaceType.YCbCr => PixelColorType.YCbCr,
+            _ => PixelColorType.RGB
+        };
+
+        IccProfile outputIccProfile = IccProfile.GetIccProfileForEncoding(
+            sourceIccProfile, sampleColorType, image.Configuration.MemoryAllocator, out ColorProfileConverter colorProfileConverter);
+
         bool interleaved = this.encoder.Interleaved ?? jpegMetadata.Interleaved;
         using JpegFrame frame = new(image, frameConfig, interleaved);
 
@@ -91,7 +107,7 @@ internal sealed unsafe partial class JpegEncoderCore
         }
 
         // Write Exif, XMP, ICC and IPTC profiles
-        this.WriteProfiles(metadata, buffer);
+        this.WriteProfiles(metadata, outputIccProfile, buffer);
 
         // Write comments
         this.WriteComments(image.Configuration, jpegMetadata);
@@ -110,7 +126,7 @@ internal sealed unsafe partial class JpegEncoderCore
         this.WriteDri(this.encoder.RestartInterval, buffer);
 
         // Write scans with actual pixel data
-        using SpectralConverter<TPixel> spectralConverter = new(frame, image, this.QuantizationTables);
+        using SpectralConverter<TPixel> spectralConverter = new(frame, image, this.QuantizationTables, colorProfileConverter);
         this.WriteHuffmanScans(frame, frameConfig, spectralConverter, scanEncoder, buffer, cancellationToken);
 
         // Write the End Of Image marker.
@@ -558,8 +574,9 @@ internal sealed unsafe partial class JpegEncoderCore
     /// Writes the metadata profiles to the image.
     /// </summary>
     /// <param name="metadata">The image metadata.</param>
+    /// <param name="iccProfile">The profile selected for the encoded component values.</param>
     /// <param name="buffer">Temporary buffer.</param>
-    private void WriteProfiles(ImageMetadata metadata, Span<byte> buffer)
+    private void WriteProfiles(ImageMetadata metadata, IccProfile iccProfile, Span<byte> buffer)
     {
         // For compatibility, place the profiles in the following order:
         // - APP1 EXIF
@@ -568,7 +585,7 @@ internal sealed unsafe partial class JpegEncoderCore
         // - APP13 IPTC
         this.WriteExifProfile(metadata.ExifProfile, buffer);
         this.WriteXmpProfile(metadata.XmpProfile, buffer);
-        this.WriteIccProfile(metadata.IccProfile, buffer);
+        this.WriteIccProfile(iccProfile, buffer);
         this.WriteIptcProfile(metadata.IptcProfile, buffer);
     }
 

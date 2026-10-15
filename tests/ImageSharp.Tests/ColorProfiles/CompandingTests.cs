@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// <summary>
 /// Tests various companding algorithms. Expanded numbers are hand calculated from formulas online.
 /// </summary>
-public class CompandingTests
+public partial class CompandingTests
 {
     private static readonly ApproximateFloatComparer Comparer = new(.000001F);
 

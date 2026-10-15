@@ -65,13 +65,17 @@ public class RgbAndCieXyzConversionTest
 
     [Theory]
     [InlineData(0.96422, 1.00000, 0.82521, 1, 1, 1)]
-    [InlineData(0.00000, 1.00000, 0.00000, 0, 1, 0)]
-    [InlineData(0.96422, 0.00000, 0.00000, 1, 0, 0.292064)]
-    [InlineData(0.00000, 0.00000, 0.82521, 0, 0.181415, 1)]
+    [InlineData(0.00000, 1.00000, 0.00000, -1.233843, 1.328345, -0.515835)]
+    [InlineData(0.96422, 0.00000, 0.00000, 1.617472, -0.974854, 0.292064)]
+    [InlineData(0.00000, 0.00000, 0.82521, -0.668818, 0.181415, 1.067149)]
     [InlineData(0, 0, 0, 0, 0, 0)]
     [InlineData(0.297676, 0.267854, 0.045504, 0.720315, 0.509999, 0.168112)]
     public void Convert_XYZ_D50_To_SRGB(float x, float y, float z, float r, float g, float b)
     {
+        // Expected RGB uses the sRGB primaries, Bradford D50-to-D65 adaptation and the signed sRGB curve.
+        // Out-of-gamut XYZ must retain negative and greater-than-one RGB components, rather than clip them.
+        // The conversion equations are also given in https://www.w3.org/TR/css-color-4/#color-conversion-code.
+
         // Arrange
         CieXyz input = new(x, y, z);
         ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D50, TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb };
@@ -98,13 +102,16 @@ public class RgbAndCieXyzConversionTest
 
     [Theory]
     [InlineData(0.950470, 1.000000, 1.088830, 1, 1, 1)]
-    [InlineData(0, 1.000000, 0, 0, 1, 0)]
-    [InlineData(0.950470, 0, 0, 1, 0, 0.254967)]
-    [InlineData(0, 0, 1.088830, 0, 0.235458, 1)]
+    [InlineData(0, 1.000000, 0, -1.206971, 1.316199, -0.489028)]
+    [InlineData(0.950470, 0, 0, 1.630825, -0.964557, 0.254967)]
+    [InlineData(0, 0, 1.088830, -0.762883, 0.235458, 1.063722)]
     [InlineData(0, 0, 0, 0, 0, 0)]
     [InlineData(0.297676, 0.267854, 0.045504, 0.754903, 0.501961, 0.099998)]
     public void Convert_XYZ_D65_To_SRGB(float x, float y, float z, float r, float g, float b)
     {
+        // Apply the inverse sRGB primary matrix and signed transfer curve without clipping the result.
+        // D65 already matches the sRGB white point, so these expected values need no chromatic adaptation.
+
         // Arrange
         CieXyz input = new(x, y, z);
         ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D65, TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb };

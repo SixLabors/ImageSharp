@@ -282,7 +282,15 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         private readonly Buffer2D<TPixel> targetPixels;
         private readonly Configuration configuration;
         private readonly float gamma;
+        private readonly int componentBitDepth;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ApplyGammaExposureRowOperation"/> struct.
+        /// </summary>
+        /// <param name="bounds">The processed rectangle.</param>
+        /// <param name="targetPixels">The pixels containing the expanded samples.</param>
+        /// <param name="configuration">The pixel conversion configuration.</param>
+        /// <param name="gamma">The expansion exponent.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public ApplyGammaExposureRowOperation(
             Rectangle bounds,
@@ -294,6 +302,9 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             this.targetPixels = targetPixels;
             this.configuration = configuration;
             this.gamma = gamma;
+
+            // Resolve the pixel precision once before row traversal. Unknown precision keeps analytic conversion.
+            this.componentBitDepth = TPixel.GetPixelTypeInfo().ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
         }
 
         /// <inheritdoc/>
@@ -308,8 +319,8 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
             PixelOperations<TPixel>.Instance.ToAssociatedScaledVector4(this.configuration, targetRowSpan[..span.Length], span);
 
-            // Input is premultiplied [0,1] so the LUT is safe here.
-            GammaCompanding.Expand(span[..this.bounds.Width], this.gamma);
+            // Keep eight-bit input on the table path. Higher-precision input uses analytic gamma conversion.
+            GammaCompanding.Expand(span[..this.bounds.Width], this.gamma, this.componentBitDepth);
 
             // The first convolution pass consumes these values as raw premultiplied numerics. Preserve them in the
             // native TPixel representation instead of quantizing through an alpha-association conversion.
@@ -368,7 +379,16 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         private readonly Buffer2D<Vector4> sourceValues;
         private readonly Configuration configuration;
         private readonly float gamma;
+        private readonly int componentBitDepth;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ApplyInverseGammaExposureRowOperation"/> struct.
+        /// </summary>
+        /// <param name="bounds">The processed rectangle.</param>
+        /// <param name="targetPixels">The destination pixels.</param>
+        /// <param name="sourceValues">The convolved floating-point samples.</param>
+        /// <param name="configuration">The pixel conversion configuration.</param>
+        /// <param name="gamma">The gamma value whose inverse compresses the samples.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public ApplyInverseGammaExposureRowOperation(
             Rectangle bounds,
@@ -382,6 +402,9 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             this.sourceValues = sourceValues;
             this.configuration = configuration;
             this.gamma = gamma;
+
+            // Resolve the pixel precision once before row traversal. Unknown precision keeps analytic conversion.
+            this.componentBitDepth = TPixel.GetPixelTypeInfo().ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
         }
 
         /// <inheritdoc/>
@@ -392,7 +415,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             Span<Vector4> sourceRowSpan = this.sourceValues.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
 
             Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(sourceRowSpan), 0, 1F);
-            GammaCompanding.Compress(sourceRowSpan, this.gamma);
+            GammaCompanding.Compress(sourceRowSpan, this.gamma, this.componentBitDepth);
 
             PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, sourceRowSpan, targetPixelSpan);
         }

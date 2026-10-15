@@ -128,6 +128,9 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
     /// <summary>
     /// Converts scaled vector RGB components in place while preserving their alpha components.
     /// </summary>
+    /// <remarks>
+    /// RGB remains unclipped. Destination pixel conversion applies integer bounds; floating-point pixels retain extended values.
+    /// </remarks>
     /// <param name="converter">The color profile converter configured with source and target ICC profiles.</param>
     /// <param name="row">The scaled vectors whose RGB components are converted.</param>
     /// <param name="rgbSpan">RGB scratch storage with the same length as <paramref name="row"/>.</param>

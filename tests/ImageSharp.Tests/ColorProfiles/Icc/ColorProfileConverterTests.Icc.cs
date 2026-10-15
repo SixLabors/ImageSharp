@@ -13,7 +13,7 @@ using Rgb = SixLabors.ImageSharp.ColorProfiles.Rgb;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
 
-public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
+public partial class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
 {
     // for 3-channel spaces, 4th item is ignored
     private static readonly List<float[]> Inputs =

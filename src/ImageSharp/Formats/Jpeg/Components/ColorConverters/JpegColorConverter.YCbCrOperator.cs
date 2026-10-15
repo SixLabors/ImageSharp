@@ -38,9 +38,9 @@ internal abstract partial class JpegColorConverterBase
         public const float BCbMult = 1.772F;
 
         /// <summary>
-        /// The shared profile-free RGB/YCbCr model converter. Its options never change.
+        /// The shared profile-free RGB/YCbCr matrix options. These options never change.
         /// </summary>
-        private static readonly ColorProfileConverter ModelConverter = new();
+        private static readonly ColorConversionOptions ModelOptions = new();
 
         /// <inheritdoc/>
         public static JpegColorSpace ColorSpace => JpegColorSpace.YCbCr;
@@ -55,7 +55,13 @@ internal abstract partial class JpegColorConverterBase
             {
                 // An RGB profile reads RGB after the JPEG YCbCr model transform.
                 // A YCbCr profile reads the normalized stored components directly.
-                ModelConverter.Convert<YCbCr, Rgb>(MemoryMarshal.Cast<float, YCbCr>(samples), MemoryMarshal.Cast<float, Rgb>(samples));
+                // Apply only the model matrix. A full profile conversion would expand RGB, pass through XYZ,
+                // and compress back into the same RGB space, adding six powers per color and temporary row buffers.
+                YCbCr.ToProfileConnectionSpace(ModelOptions, MemoryMarshal.Cast<float, YCbCr>(samples), MemoryMarshal.Cast<float, Rgb>(samples));
+
+                // JPEG's RGB device samples are bounded even when the YCbCr matrix overshoots.
+                // Clip before ICC curves, which can raise these samples to fractional powers.
+                Numerics.Clamp(samples, 0F, 1F);
             }
         }
 
@@ -65,7 +71,7 @@ internal abstract partial class JpegColorConverterBase
             if (profileSpace != IccColorSpaceType.YCbCr)
             {
                 // Reverse the decoder's model transform only for an RGB profile.
-                ModelConverter.Convert<Rgb, YCbCr>(MemoryMarshal.Cast<float, Rgb>(samples), MemoryMarshal.Cast<float, YCbCr>(samples));
+                YCbCr.FromProfileConnectionSpace(ModelOptions, MemoryMarshal.Cast<float, Rgb>(samples), MemoryMarshal.Cast<float, YCbCr>(samples));
             }
         }
 

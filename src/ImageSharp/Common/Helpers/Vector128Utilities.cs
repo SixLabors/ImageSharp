@@ -23,6 +23,33 @@ internal static class Vector128_
 #pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
+    /// Raises nonnegative component values to a fixed positive power.
+    /// </summary>
+    /// <param name="value">The nonnegative bases, including zero.</param>
+    /// <param name="exponent">The positive exponent selected by the caller's transfer formula.</param>
+    /// <returns>The powers in their original lanes.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> Pow(Vector128<float> value, float exponent)
+    {
+        Vector128<float> logarithm = Vector128.Log(value);
+        Vector128<float> powers = Vector128.Create(exponent);
+        Vector128<float> product = logarithm * powers;
+        Vector128<float> result = Vector128.Exp(product);
+
+        // Each lane computes exp(log(x) * exponent). FMA recovers the multiplication error
+        // discarded by the rounded product. Correcting that error avoids amplifying it through Exp.
+        Vector128<float> residual = Vector128.FusedMultiplyAdd(logarithm, powers, -product);
+
+        // A finite, nonzero Exp result bounds the product to the float exponential range.
+        // The omitted squared term in exp(residual) is smaller than float rounding error.
+        // Zero and infinity retain a unit correction, avoiding NaN from infinite intermediate values.
+        Vector128<float> finiteResult = Vector128.GreaterThan(result, Vector128<float>.Zero)
+            & Vector128.LessThan(result, Vector128.Create(float.PositiveInfinity));
+        residual = Vector128.ConditionalSelect(finiteResult, residual, Vector128<float>.Zero);
+        return result * (Vector128<float>.One + residual);
+    }
+
+    /// <summary>
     /// Average packed unsigned 8-bit integers in <paramref name="left"/> and <paramref name="right"/>, and store the results.
     /// </summary>
     /// <param name="left">

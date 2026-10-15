@@ -72,8 +72,17 @@ internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProces
         private readonly bool unpremultiply;
         private readonly bool associated;
         private readonly bool compand;
+        private readonly int componentBitDepth;
         private readonly TDelegate rowProcessor;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RowOperation"/> struct.
+        /// </summary>
+        /// <param name="startX">The first pixel processed in each row.</param>
+        /// <param name="source">The source pixel buffer.</param>
+        /// <param name="configuration">The pixel conversion configuration.</param>
+        /// <param name="modifiers">The requested vector conversion behavior.</param>
+        /// <param name="rowProcessor">The operation applied to each vector row.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public RowOperation(
             int startX,
@@ -89,10 +98,15 @@ internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProces
             this.premultiply = modifiers.IsDefined(PixelConversionModifiers.Premultiply);
             this.unpremultiply = modifiers.IsDefined(PixelConversionModifiers.UnPremultiply);
 
+            PixelTypeInfo pixelInfo = TPixel.GetPixelTypeInfo();
+
             // With no alpha flag, the pixel format keeps its native alpha representation.
             this.associated = this.premultiply
-                || (!this.unpremultiply && TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated);
+                || (!this.unpremultiply && pixelInfo.AlphaRepresentation == PixelAlphaRepresentation.Associated);
             this.compand = modifiers.IsDefined(PixelConversionModifiers.SRgbCompand);
+
+            // Resolve precision once per operation. Custom pixels without component information use analytic conversion.
+            this.componentBitDepth = pixelInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
             this.rowProcessor = rowProcessor;
         }
 
@@ -118,7 +132,7 @@ internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProces
                     PixelOperations<TPixel>.Instance.ToUnassociatedVector4(this.configuration, rowSpan, span);
                 }
 
-                SRgbCompanding.Expand(span);
+                SRgbCompanding.Expand(span, this.componentBitDepth);
 
                 if (this.associated)
                 {
@@ -168,7 +182,7 @@ internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProces
                     Numerics.UnPremultiply(span);
                 }
 
-                SRgbCompanding.Compress(span);
+                SRgbCompanding.Compress(span, this.componentBitDepth);
                 if (this.scaled)
                 {
                     PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, span, rowSpan);

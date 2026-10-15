@@ -1,8 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.ColorProfiles.Icc.Calculators;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using static SixLabors.ImageSharp.ColorProfiles.Icc.IccColorConverter;
 
 namespace SixLabors.ImageSharp.ColorProfiles.Conversion.Icc;
 
@@ -11,11 +12,47 @@ namespace SixLabors.ImageSharp.ColorProfiles.Conversion.Icc;
 /// </summary>
 internal abstract partial class IccConverterBase
 {
-    private IVector4Calculator calculator;
+    private IIccColorConverter calculator;
 
-    internal bool Is16BitLutEntry => this.calculator is LutEntryCalculator { Is16Bit: true };
+    internal bool Is16BitLutEntry => this.calculator.Is16BitLut;
 
-    internal bool IsTrc => this.calculator is ColorTrcCalculator or GrayTrcCalculator;
+    internal bool IsTrc => this.calculator.IsTrc;
+
+    /// <summary>
+    /// Selects a closed connection once, before row traversal. Each SIMD block then uses direct operator calls.
+    /// </summary>
+    /// <param name="target">The target profile converter.</param>
+    /// <param name="pcs">The connection's PCS encoding and adjustment rules.</param>
+    /// <returns>The converter for the complete profile connection.</returns>
+    internal IIccColorConverter Connect(IccConverterBase target, PcsOperator pcs)
+        => this.calculator switch
+        {
+            IccColorConverter<ColorTrcOperator> source => Connect(source.Operator, target.calculator, pcs),
+            IccColorConverter<GrayTrcOperator> source => Connect(source.Operator, target.calculator, pcs),
+            IccColorConverter<LutColorOperator> source => Connect(source.Operator, target.calculator, pcs),
+            _ => throw new InvalidIccProfileException("Unsupported ICC source operator.")
+        };
+
+    /// <summary>
+    /// Pairs the selected source operator with the target operator selected by this factory.
+    /// </summary>
+    /// <typeparam name="TSource">The closed source operator type.</typeparam>
+    /// <param name="source">The configured source transform.</param>
+    /// <param name="target">The target profile converter.</param>
+    /// <param name="pcs">The connection's PCS encoding and adjustment rules.</param>
+    /// <returns>The closed converter for both profile operators.</returns>
+    private static IIccColorConverter Connect<TSource>(TSource source, IIccColorConverter target, PcsOperator pcs)
+        where TSource : struct, IIccColorConverterOperator
+        => target switch
+        {
+            IccColorConverter<ColorTrcOperator> value =>
+                new IccColorConverter<ConnectionOperator<TSource, ColorTrcOperator>>(new(source, pcs, value.Operator)),
+            IccColorConverter<GrayTrcOperator> value =>
+                new IccColorConverter<ConnectionOperator<TSource, GrayTrcOperator>>(new(source, pcs, value.Operator)),
+            IccColorConverter<LutColorOperator> value =>
+                new IccColorConverter<ConnectionOperator<TSource, LutColorOperator>>(new(source, pcs, value.Operator)),
+            _ => throw new InvalidIccProfileException("Unsupported ICC target operator.")
+        };
 
     /// <summary>
     /// Checks the profile for available conversion methods and gathers all the information's necessary for it.
@@ -61,7 +98,7 @@ internal abstract partial class IccConverterBase
     /// <param name="tag">The transform tag to evaluate.</param>
     /// <returns>The configured table calculator.</returns>
     /// <param name="interpolationMethod">The requested interpolation method.</param>
-    private static IVector4Calculator InitA(IccProfile profile, IccProfileTag tag, IccInterpolationMethod interpolationMethod)
+    private static IccColorConverter<LutColorOperator> InitA(IccProfile profile, IccProfileTag tag, IccInterpolationMethod interpolationMethod)
     {
         // Lab-indexed output and linking tables use independent-axis interpolation.
         // Device-to-PCS tables use tetrahedra in their final three input dimensions.
@@ -73,15 +110,15 @@ internal abstract partial class IccConverterBase
 
         return GetTag(profile, tag) switch
         {
-            IccLut8TagDataEntry lut8 => new LutEntryCalculator(lut8, useTrilinearInterpolation),
-            IccLut16TagDataEntry lut16 => new LutEntryCalculator(lut16, useTrilinearInterpolation),
-            IccLutAToBTagDataEntry lutAtoB => new LutABCalculator(lutAtoB, useTrilinearInterpolation),
-            IccLutBToATagDataEntry lutBtoA => new LutABCalculator(lutBtoA, useTrilinearInterpolation),
+            IccLut8TagDataEntry lut8 => new IccColorConverter<LutColorOperator>(new LutColorOperator(lut8, useTrilinearInterpolation)),
+            IccLut16TagDataEntry lut16 => new IccColorConverter<LutColorOperator>(new LutColorOperator(lut16, useTrilinearInterpolation)),
+            IccLutAToBTagDataEntry lutAtoB => new IccColorConverter<LutColorOperator>(new LutColorOperator(lutAtoB, useTrilinearInterpolation)),
+            IccLutBToATagDataEntry lutBtoA => new IccColorConverter<LutColorOperator>(new LutColorOperator(lutBtoA, useTrilinearInterpolation)),
             _ => throw new InvalidIccProfileException($"Invalid entry {tag}."),
         };
     }
 
-    private static IVector4Calculator InitD(IccProfile profile, IccProfileTag tag)
+    private static IIccColorConverter InitD(IccProfile profile, IccProfileTag tag)
     {
         IccMultiProcessElementsTagDataEntry entry = GetTag<IccMultiProcessElementsTagDataEntry>(profile, tag)
             ?? throw new InvalidIccProfileException("Entry is null.");
@@ -89,7 +126,7 @@ internal abstract partial class IccConverterBase
         throw new NotImplementedException("Multi process elements are not supported");
     }
 
-    private static ColorTrcCalculator InitColorTrc(IccProfile profile, bool toPcs)
+    private static IccColorConverter<ColorTrcOperator> InitColorTrc(IccProfile profile, bool toPcs)
     {
         IccXyzTagDataEntry redMatrixColumn = GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.RedMatrixColumn);
         IccXyzTagDataEntry greenMatrixColumn = GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.GreenMatrixColumn);
@@ -109,19 +146,19 @@ internal abstract partial class IccConverterBase
             throw new InvalidIccProfileException("Missing matrix column or channel.");
         }
 
-        return new ColorTrcCalculator(
-            redMatrixColumn,
-            greenMatrixColumn,
-            blueMatrixColumn,
-            redTrc,
-            greenTrc,
-            blueTrc,
+        ColorTrcOperator colorOperator = new(
+            redMatrixColumn.Data[0],
+            greenMatrixColumn.Data[0],
+            blueMatrixColumn.Data[0],
+            [redTrc, greenTrc, blueTrc],
             toPcs);
+
+        return new IccColorConverter<ColorTrcOperator>(colorOperator);
     }
 
-    private static GrayTrcCalculator InitGrayTrc(IccProfile profile, bool toPcs)
+    private static IccColorConverter<GrayTrcOperator> InitGrayTrc(IccProfile profile, bool toPcs)
     {
         IccTagDataEntry entry = GetTag(profile, IccProfileTag.GrayTrc);
-        return new GrayTrcCalculator(entry, profile.Header.ProfileConnectionSpace, toPcs);
+        return new IccColorConverter<GrayTrcOperator>(new GrayTrcOperator(entry, profile.Header.ProfileConnectionSpace, toPcs));
     }
 }

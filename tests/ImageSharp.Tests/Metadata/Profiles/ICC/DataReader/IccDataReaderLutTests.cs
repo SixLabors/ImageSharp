@@ -109,4 +109,15 @@ public class IccDataReaderLutTests
     {
         return new IccDataReader(data);
     }
+
+    /// <summary>
+    /// Rejects table dimensions that do not match the supplied values before unchecked interpolation reads.
+    /// </summary>
+    [Fact]
+    public void Clut_WithInvalidStorage_ThrowsInvalidIccProfileException()
+    {
+        Assert.Throws<InvalidIccProfileException>(() => new IccClut(new float[7], [2, 2, 2], IccClutDataType.Float, 1));
+        Assert.Throws<InvalidIccProfileException>(() => new IccClut(new float[9], [2, 2, 2], IccClutDataType.Float, 1));
+        Assert.Throws<InvalidIccProfileException>(() => new IccClut([], [0], IccClutDataType.Float, 1));
+    }
 }

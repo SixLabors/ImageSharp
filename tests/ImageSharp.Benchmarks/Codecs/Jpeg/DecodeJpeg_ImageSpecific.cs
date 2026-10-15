@@ -4,6 +4,7 @@
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Tests;
+using SkiaSharp;
 using SDImage = System.Drawing.Image;
 using SDSize = System.Drawing.Size;
 
@@ -29,7 +30,10 @@ public class DecodeJpeg_ImageSpecific
         // is almost the same as the result for Jpeg420Exif,
         // which proves that the execution time for the most common YCbCr 420 path scales linearly.
         // TestImages.Jpeg.BenchmarkSuite.ExifGetString750Transform_Huge420YCbCr,
-        TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr)]
+        TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr,
+        TestImages.Jpeg.ICC.AdobeRgb,
+        TestImages.Jpeg.ICC.CMYK,
+        TestImages.Jpeg.ICC.YCCK)]
 
     public string TestImage { get; set; }
 
@@ -37,11 +41,13 @@ public class DecodeJpeg_ImageSpecific
     public void ReadImages()
         => this.jpegBytes ??= File.ReadAllBytes(this.TestImageFullPath);
 
-    [Benchmark(Baseline = true)]
+    [Benchmark]
     public SDSize SystemDrawing()
     {
         using MemoryStream memoryStream = new(this.jpegBytes);
-        using SDImage image = SDImage.FromStream(memoryStream);
+
+        // Request embedded-profile handling and image-data validation through GDI+.
+        using SDImage image = SDImage.FromStream(memoryStream, useEmbeddedColorManagement: true, validateImageData: true);
         return image.Size;
     }
 
@@ -53,16 +59,44 @@ public class DecodeJpeg_ImageSpecific
         return new Size(image.Width, image.Height);
     }
 
-    /*
-    |                         Method |            TestImage |       Mean |       Error |     StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 |  Allocated |
-    |------------------------------- |--------------------- |-----------:|------------:|-----------:|------:|--------:|------:|------:|------:|-----------:|
-    | 'Decode Jpeg - System.Drawing' | Jpg/b(...)e.jpg [21] |   5.122 ms |   1.3978 ms |  0.0766 ms |  1.00 |    0.00 |     - |     - |     - |      176 B |
-    |     'Decode Jpeg - ImageSharp' | Jpg/b(...)e.jpg [21] |  11.991 ms |   0.2514 ms |  0.0138 ms |  2.34 |    0.03 |     - |     - |     - |    15816 B |
-    |                                |                      |            |             |            |       |         |       |       |       |            |
-    | 'Decode Jpeg - System.Drawing' | Jpg/b(...)f.jpg [28] |  14.943 ms |   1.8410 ms |  0.1009 ms |  1.00 |    0.00 |     - |     - |     - |      176 B |
-    |     'Decode Jpeg - ImageSharp' | Jpg/b(...)f.jpg [28] |  29.759 ms |   1.5452 ms |  0.0847 ms |  1.99 |    0.01 |     - |     - |     - |    16824 B |
-    |                                |                      |            |             |            |       |         |       |       |       |            |
-    | 'Decode Jpeg - System.Drawing' | Jpg/i(...)e.jpg [43] | 388.229 ms | 382.8946 ms | 20.9877 ms |  1.00 |    0.00 |     - |     - |     - |      216 B |
-    |     'Decode Jpeg - ImageSharp' | Jpg/i(...)e.jpg [43] | 276.490 ms | 195.5104 ms | 10.7166 ms |  0.71 |    0.01 |     - |     - |     - | 36022368 B |
-     */
+    /// <summary>
+    /// Decodes all pixels and converts the embedded profile to sRGB with Skia.
+    /// </summary>
+    /// <returns>The decoded image size.</returns>
+    [Benchmark(Baseline = true)]
+    public Size SkiaSharp()
+    {
+        using MemoryStream memoryStream = new(this.jpegBytes);
+        using SKCodec codec = SKCodec.Create(memoryStream);
+        using SKColorSpace colorSpace = SKColorSpace.CreateSrgb();
+
+        // An explicit sRGB destination requests color conversion instead of retaining the source profile's samples.
+        SKImageInfo info = new(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul, colorSpace);
+        using SKBitmap image = SKBitmap.Decode(codec, info);
+        return new Size(image.Width, image.Height);
+    }
 }
+
+/*
+Measured 2026-10-16
+
+| Method     | TestImage                                   | Mean       | Error       | StdDev    | Ratio | RatioSD | Gen0      | Gen1      | Gen2      | Allocated  | Alloc Ratio |
+|----------- |-------------------------------------------- |-----------:|------------:|----------:|------:|--------:|----------:|----------:|----------:|-----------:|------------:|
+| **ImageSharp** | **Jpg/baseline/jpeg420exif.jpg**                |   **9.771 ms** |   **1.3728 ms** | **0.0753 ms** |  **0.59** |    **0.01** |   **15.6250** |   **15.6250** |   **15.6250** |   **19.44 KB** |        **7.44** |
+| SkiaSharp  | Jpg/baseline/jpeg420exif.jpg                |  16.534 ms |   5.1957 ms | 0.2848 ms |  1.00 |    0.02 |         - |         - |         - |    2.61 KB |        1.00 |
+|            |                                             |            |             |           |       |         |           |           |           |            |             |
+| **ImageSharp** | **Jpg/baseline/Lake.jpg**                       |  **20.598 ms** |   **2.7481 ms** | **0.1506 ms** |  **2.69** |    **0.02** |   **31.2500** |   **31.2500** |   **31.2500** |  **202.91 KB** |       **69.61** |
+| SkiaSharp  | Jpg/baseline/Lake.jpg                       |   7.648 ms |   0.6882 ms | 0.0377 ms |  1.00 |    0.01 |         - |         - |         - |    2.92 KB |        1.00 |
+|            |                                             |            |             |           |       |         |           |           |           |            |             |
+| **ImageSharp** | **Jpg/icc-profiles/issue_2723.jpg**             |  **31.567 ms** |   **5.0570 ms** | **0.2772 ms** |  **1.60** |    **0.02** |  **937.5000** |  **937.5000** |  **937.5000** | **5413.59 KB** |    **1,891.34** |
+| SkiaSharp  | Jpg/icc-profiles/issue_2723.jpg             |  19.732 ms |   3.1759 ms | 0.1741 ms |  1.00 |    0.01 |         - |         - |         - |    2.86 KB |        1.00 |
+|            |                                             |            |             |           |       |         |           |           |           |            |             |
+| **ImageSharp** | **Jpg/icc-profiles/issue-129.jpg**              | **247.858 ms** |  **38.1231 ms** | **2.0897 ms** |  **1.73** |    **0.02** |  **333.3333** |  **333.3333** |  **333.3333** |  **5576.7 KB** |    **1,958.35** |
+| SkiaSharp  | Jpg/icc-profiles/issue-129.jpg              | 143.155 ms |  20.0687 ms | 1.1000 ms |  1.00 |    0.01 |         - |         - |         - |    2.85 KB |        1.00 |
+|            |                                             |            |             |           |       |         |           |           |           |            |             |
+| **ImageSharp** | **Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg**    |   **4.986 ms** |   **0.0827 ms** | **0.0045 ms** |  **2.37** |    **0.08** |         **-** |         **-** |         **-** |  **128.57 KB** |       **46.16** |
+| SkiaSharp  | Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg    |   2.105 ms |   1.5835 ms | 0.0868 ms |  1.00 |    0.05 |         - |         - |         - |    2.79 KB |        1.00 |
+|            |                                             |            |             |           |       |         |           |           |           |            |             |
+| **ImageSharp** | **Jpg/issues/Issue518-Bad-RST-Progressive.jpg** | **148.005 ms** |  **40.7527 ms** | **2.2338 ms** |  **0.99** |    **0.04** | **1000.0000** | **1000.0000** | **1000.0000** |   **87.53 KB** |       **30.74** |
+| SkiaSharp  | Jpg/issues/Issue518-Bad-RST-Progressive.jpg | 150.396 ms | 122.0738 ms | 6.6913 ms |  1.00 |    0.05 |         - |         - |         - |    2.85 KB |        1.00 |
+*/

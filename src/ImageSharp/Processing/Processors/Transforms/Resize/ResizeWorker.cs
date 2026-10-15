@@ -30,6 +30,8 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
 
     private readonly bool compand;
 
+    private readonly int componentBitDepth;
+
     private readonly ResizeKernelMap horizontalKernelMap;
 
     private readonly Buffer2DRegion<TPixel> source;
@@ -77,6 +79,9 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
         this.source = source;
         this.sourceRectangle = source.Bounds;
         this.compand = compand;
+
+        // Resolve precision once for both passes. Missing custom-pixel precision requires analytic conversion.
+        this.componentBitDepth = TPixel.GetPixelTypeInfo().ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
         this.premultiply = premultiplyAlpha;
         this.horizontalKernelMap = horizontalKernelMap;
         this.verticalKernelMap = verticalKernelMap;
@@ -194,7 +199,7 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
                     Numerics.UnPremultiply(tempColSpan);
                 }
 
-                SRgbCompanding.Compress(tempColSpan);
+                SRgbCompanding.Compress(tempColSpan, this.componentBitDepth);
                 PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, tempColSpan, targetRowSpan);
             }
             else if (this.premultiply)
@@ -252,7 +257,7 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
             if (this.compand)
             {
                 PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, tempRowSpan);
-                SRgbCompanding.Expand(tempRowSpan);
+                SRgbCompanding.Expand(tempRowSpan, this.componentBitDepth);
 
                 // Interpolate in associated alpha only after expanding the straight color values.
                 if (this.premultiply)

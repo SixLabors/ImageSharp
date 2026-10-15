@@ -1065,7 +1065,8 @@ internal static class HeifPlanarColorConverter
             converter.Convert(this.configuration, source, vectors, rgb);
             SimdUtils.UnpackDeinterleave3(MemoryMarshal.Cast<Rgb, Vector3>(rgb), luma, chromaBlue, chromaRed);
 
-            // ICC produces normalized RGB. The existing operator converts these floats without an RGB staging quantization.
+            // Keep extended ICC RGB through the color-model conversion. WriteSamples applies the encoded component
+            // range and integer limits afterward; clipping RGB here would discard HDR values before encoding.
             this.colorConverter.ConvertFromRgbInPlace(luma, chromaBlue, chromaRed, 1F);
         }
 

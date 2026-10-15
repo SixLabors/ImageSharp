@@ -131,8 +131,10 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
     /// <inheritdoc/>
     public static Cmyk FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)
     {
-        // To CMY
-        Vector3 cmy = Vector3.One - source.AsVector3Unsafe();
+        // CMYK channels represent bounded ink amounts. Limit RGB before extracting black,
+        // so an HDR component above one cannot produce negative black and alter the other inks.
+        Vector3 rgb = Vector3.Clamp(source.AsVector3Unsafe(), Vector3.Zero, Vector3.One);
+        Vector3 cmy = Vector3.One - rgb;
 
         // To CMYK
         Vector3 k = new(MathF.Min(cmy.X, MathF.Min(cmy.Y, cmy.Z)));

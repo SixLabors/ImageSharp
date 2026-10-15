@@ -128,9 +128,12 @@ public readonly struct Hsl : IColorProfile<Hsl, Rgb>
     /// <inheritdoc/>
     public static Hsl FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)
     {
-        float r = source.R;
-        float g = source.G;
-        float b = source.B;
+        // HSL stores bounded SDR colors. Clip RGB at this boundary before calculating hue,
+        // saturation and lightness; clipping only the derived components distorts the result.
+        Vector3 rgb = Vector3.Clamp(source.AsVector3Unsafe(), Vector3.Zero, Vector3.One);
+        float r = rgb.X;
+        float g = rgb.Y;
+        float b = rgb.Z;
 
         float max = MathF.Max(r, MathF.Max(g, b));
         float min = MathF.Min(r, MathF.Min(g, b));

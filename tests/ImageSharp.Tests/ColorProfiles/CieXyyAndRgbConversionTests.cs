@@ -14,9 +14,12 @@ public class CieXyyAndRgbConversionTests
 
     [Theory]
     [InlineData(0, 0, 0, 0, 0, 0)]
-    [InlineData(0.360555, 0.936901, 0.1001514, 0, 0.4277014, 0)]
+    [InlineData(0.360555, 0.936901, 0.1001514, -0.1738959, 0.4277014, -0.2824399)]
     public void Convert_CieXyy_to_Rgb(float x, float y, float yl, float r, float g, float b)
     {
+        // Convert xyY to XYZ, adapt D50 to D65 with Bradford, then apply the sRGB matrix and signed curve.
+        // This color is outside the sRGB gamut. Its negative RGB components must survive conversion.
+
         // Arrange
         CieXyy input = new(x, y, yl);
         Rgb expected = new(r, g, b);

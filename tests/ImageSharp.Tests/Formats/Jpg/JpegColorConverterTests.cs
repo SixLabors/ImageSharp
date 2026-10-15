@@ -264,6 +264,8 @@ public partial class JpegColorConverterTests
 
                 case JpegColorSpace.YCbCr:
                     Rgb rgb = modelConverter.Convert<YCbCr, Rgb>(new YCbCr(c0, c1, c2));
+                    // JPEG device RGB is bounded before ICC, including overshoot from the YCbCr matrix.
+                    rgb = new Rgb(Vector3.Clamp(rgb.ToScaledVector3(), Vector3.Zero, Vector3.One));
                     expected = profileConverter.Convert<Rgb, Rgb>(rgb);
                     break;
 
@@ -384,6 +386,8 @@ public partial class JpegColorConverterTests
                         else
                         {
                             Rgb rgb = referenceConverter.Convert<Rgb, Rgb>(source[i]);
+                            // JPEG cannot store extended RGB. Bound device samples before its YCbCr matrix or direct RGB scaling.
+                            rgb = new Rgb(Vector3.Clamp(rgb.ToScaledVector3(), Vector3.Zero, Vector3.One));
                             expected[i] = space == JpegColorSpace.YCbCr
                                 ? modelConverter.Convert<Rgb, YCbCr>(rgb).ToScaledVector4()
                                 : rgb.ToScaledVector4();

@@ -13,6 +13,8 @@ internal abstract partial class HeifColorConverterBase
     /// </summary>
     /// <remarks>
     /// The result stays in <paramref name="vectors"/> as scaled, unassociated RGBA, ready for the final pixel conversion.
+    /// RGB remains unclipped so floating-point destination pixels retain values outside [0,1].
+    /// Integer destination pixels apply their own bounds during pixel conversion.
     /// A 4:0:0 frame reaches the profile as R = G = B. Thus a gray profile reads its luminance from the first component,
     /// and an RGB profile sees a neutral value.
     /// </remarks>

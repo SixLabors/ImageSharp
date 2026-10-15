@@ -1189,4 +1189,310 @@ internal static class Numerics
             value = Clamp(value, min, max);
         }
     }
+
+    /// <summary>
+    /// Evaluates 4 powers with SIMD range reduction and polynomial evaluation.
+    /// </summary>
+    /// <param name="value">The power bases.</param>
+    /// <param name="exponent">The curve's fixed exponent.</param>
+    /// <returns>The powers in the original lane order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> Pow(Vector128<float> value, float exponent)
+        => new TensorPrimitives_.PowOperator(exponent).Invoke(value);
+
+    /// <summary>
+    /// Evaluates finite powers with exponent classification supplied by the owning curve.
+    /// </summary>
+    /// <param name="value">The power bases.</param>
+    /// <param name="operation">The exponent and its precomputed IEEE sign rules.</param>
+    /// <returns>The powers in the original lane order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> PowFinite(Vector128<float> value, in TensorPrimitives_.PowOperator operation)
+    {
+        // Evaluate magnitudes together. Replacing zero by one keeps log(0) out of intermediate arithmetic.
+        // A signed lane must not force the other lanes through the scalar fallback.
+        Vector128<float> magnitude = Vector128.Abs(value);
+        Vector128<float> zero = Vector128.Equals(magnitude, Vector128<float>.Zero);
+        Vector128<float> positive = Vector128.ConditionalSelect(zero, Vector128<float>.One, magnitude);
+
+        // Double intermediates keep float rounding error small for subnormal and HDR values too.
+        Vector128<float> result = Vector128.Narrow(
+            PowSingle(Vector128.WidenLower(positive), operation.Exponent),
+            PowSingle(Vector128.WidenUpper(positive), operation.Exponent));
+
+        Vector128<float> zeroResult = Vector128.Create(operation.ZeroResult);
+        result = Vector128.ConditionalSelect(zero, zeroResult, result);
+
+        // Odd integer powers retain the base sign. Fractional powers reject finite negative bases.
+        // Masks are fixed for the complete curve, so this block performs no exponent tests.
+        Vector128<float> oddMask = Vector128.Create(operation.OddMask).AsSingle();
+        result = Vector128.ConditionalSelect(oddMask, Vector128.CopySign(result, value), result);
+        Vector128<float> negativeFinite = Vector128.LessThan(value, Vector128<float>.Zero)
+            & Vector128.LessThan(magnitude, Vector128.Create(float.PositiveInfinity));
+        negativeFinite &= ~Vector128.Create(operation.IntegerMask).AsSingle();
+        return Vector128.ConditionalSelect(negativeFinite, Vector128.Create(float.NaN), result);
+    }
+
+    /// <summary>
+    /// Evaluates 8 powers with SIMD range reduction and polynomial evaluation.
+    /// </summary>
+    /// <param name="value">The power bases.</param>
+    /// <param name="exponent">The curve's fixed exponent.</param>
+    /// <returns>The powers in the original lane order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Pow(Vector256<float> value, float exponent)
+        => new TensorPrimitives_.PowOperator(exponent).Invoke(value);
+
+    /// <summary>
+    /// Evaluates finite powers with exponent classification supplied by the owning curve.
+    /// </summary>
+    /// <param name="value">The power bases.</param>
+    /// <param name="operation">The exponent and its precomputed IEEE sign rules.</param>
+    /// <returns>The powers in the original lane order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> PowFinite(Vector256<float> value, in TensorPrimitives_.PowOperator operation)
+    {
+        // Evaluate magnitudes together. Replacing zero by one keeps log(0) out of intermediate arithmetic.
+        // A signed lane must not force the other lanes through the scalar fallback.
+        Vector256<float> magnitude = Vector256.Abs(value);
+        Vector256<float> zero = Vector256.Equals(magnitude, Vector256<float>.Zero);
+        Vector256<float> positive = Vector256.ConditionalSelect(zero, Vector256<float>.One, magnitude);
+
+        // Double intermediates keep float rounding error small for subnormal and HDR values too.
+        Vector256<float> result = Vector256.Narrow(
+            PowSingle(Vector256.WidenLower(positive), operation.Exponent),
+            PowSingle(Vector256.WidenUpper(positive), operation.Exponent));
+
+        Vector256<float> zeroResult = Vector256.Create(operation.ZeroResult);
+        result = Vector256.ConditionalSelect(zero, zeroResult, result);
+
+        // Odd integer powers retain the base sign. Fractional powers reject finite negative bases.
+        // Masks are fixed for the complete curve, so this block performs no exponent tests.
+        Vector256<float> oddMask = Vector256.Create(operation.OddMask).AsSingle();
+        result = Vector256.ConditionalSelect(oddMask, Vector256.CopySign(result, value), result);
+        Vector256<float> negativeFinite = Vector256.LessThan(value, Vector256<float>.Zero)
+            & Vector256.LessThan(magnitude, Vector256.Create(float.PositiveInfinity));
+        negativeFinite &= ~Vector256.Create(operation.IntegerMask).AsSingle();
+        return Vector256.ConditionalSelect(negativeFinite, Vector256.Create(float.NaN), result);
+    }
+
+    /// <summary>
+    /// Evaluates 16 powers with SIMD range reduction and polynomial evaluation.
+    /// </summary>
+    /// <param name="value">The power bases.</param>
+    /// <param name="exponent">The curve's fixed exponent.</param>
+    /// <returns>The powers in the original lane order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Pow(Vector512<float> value, float exponent)
+        => new TensorPrimitives_.PowOperator(exponent).Invoke(value);
+
+    /// <summary>
+    /// Evaluates finite powers with exponent classification supplied by the owning curve.
+    /// </summary>
+    /// <param name="value">The power bases.</param>
+    /// <param name="operation">The exponent and its precomputed IEEE sign rules.</param>
+    /// <returns>The powers in the original lane order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> PowFinite(Vector512<float> value, in TensorPrimitives_.PowOperator operation)
+    {
+        // Evaluate magnitudes together. Replacing zero by one keeps log(0) out of intermediate arithmetic.
+        // A signed lane must not force the other lanes through the scalar fallback.
+        Vector512<float> magnitude = Vector512.Abs(value);
+        Vector512<float> zero = Vector512.Equals(magnitude, Vector512<float>.Zero);
+        Vector512<float> positive = Vector512.ConditionalSelect(zero, Vector512<float>.One, magnitude);
+
+        // Double intermediates keep float rounding error small for subnormal and HDR values too.
+        Vector512<float> result = Vector512.Narrow(
+            PowSingle(Vector512.WidenLower(positive), operation.Exponent),
+            PowSingle(Vector512.WidenUpper(positive), operation.Exponent));
+
+        Vector512<float> zeroResult = Vector512.Create(operation.ZeroResult);
+        result = Vector512.ConditionalSelect(zero, zeroResult, result);
+
+        // Odd integer powers retain the base sign. Fractional powers reject finite negative bases.
+        // Masks are fixed for the complete curve, so this block performs no exponent tests.
+        Vector512<float> oddMask = Vector512.Create(operation.OddMask).AsSingle();
+        result = Vector512.ConditionalSelect(oddMask, Vector512.CopySign(result, value), result);
+        Vector512<float> negativeFinite = Vector512.LessThan(value, Vector512<float>.Zero)
+            & Vector512.LessThan(magnitude, Vector512.Create(float.PositiveInfinity));
+        negativeFinite &= ~Vector512.Create(operation.IntegerMask).AsSingle();
+        return Vector512.ConditionalSelect(negativeFinite, Vector512.Create(float.NaN), result);
+    }
+
+    /// <summary>
+    /// Evaluates positive float bases widened to double, with polynomial error below float precision.
+    /// </summary>
+    /// <param name="value">Positive float bases, represented exactly as doubles.</param>
+    /// <param name="exponent">The finite common exponent.</param>
+    /// <returns>Double intermediates ready for one final rounding to float.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<double> PowSingle(Vector128<double> value, double exponent)
+    {
+        const double logTwo = 0.69314718055994530942;
+        const double inverseLogTwo = 1.44269504088896340736;
+        const double squareRootTwo = 1.41421356237309504880;
+
+        // Widening normalizes even subnormal float inputs. Split each double into 2^e * m,
+        // then move m into [1/sqrt(2), sqrt(2)] to keep the logarithm series short.
+        Vector128<long> bits = value.AsInt64();
+        Vector128<long> binaryExponent = (bits >>> 52) - Vector128.Create(1023L);
+        Vector128<double> mantissa = ((bits & Vector128.Create(0x000FFFFFFFFFFFFFL)) | Vector128.Create(0x3FF0000000000000L)).AsDouble();
+        Vector128<double> upper = Vector128.GreaterThan(mantissa, Vector128.Create(squareRootTwo));
+        mantissa = Vector128.ConditionalSelect(upper, mantissa * Vector128.Create(0.5D), mantissa);
+        binaryExponent += upper.AsInt64() & Vector128.Create(1L);
+
+        // log(m) = 2*z*(1 + z^2/3 + z^4/5 + z^6/7 + z^8/9), z = (m-1)/(m+1).
+        // Here abs(z) <= 0.172. The omitted terms contribute less than 8e-10 to log(m).
+        // Double intermediates avoid amplifying float rounding when exponent times log(value) is large.
+        Vector128<double> z = (mantissa - Vector128<double>.One) / (mantissa + Vector128<double>.One);
+        Vector128<double> zSquared = z * z;
+        Vector128<double> logarithm = Vector128.MultiplyAddEstimate(Vector128.Create(1D / 9D), zSquared, Vector128.Create(1D / 7D));
+        logarithm = Vector128.MultiplyAddEstimate(logarithm, zSquared, Vector128.Create(1D / 5D));
+        logarithm = Vector128.MultiplyAddEstimate(logarithm, zSquared, Vector128.Create(1D / 3D));
+        logarithm = Vector128.MultiplyAddEstimate(logarithm, zSquared, Vector128<double>.One) * z * Vector128.Create(2D * inverseLogTwo);
+        Vector128<double> power = (Vector128.ConvertToDouble(binaryExponent) + logarithm) * Vector128.Create(exponent);
+
+        // Values below 2^-151 round to float zero; values above 2^129 overflow float.
+        // Bounding this exponent keeps integer conversion and double exponent construction valid.
+        power = Vector128.Min(Vector128.Max(power, Vector128.Create(-151D)), Vector128.Create(129D));
+        Vector128<double> integral = Vector128.Floor(power + Vector128.Create(0.5D));
+        Vector128<double> remainder = (power - integral) * Vector128.Create(logTwo);
+
+        // exp(remainder) uses the degree-eight Taylor polynomial. The remainder lies within +/-log(2)/2,
+        // where its truncation error is below 4e-10. Every coefficient is the reciprocal of its factorial.
+        Vector128<double> result = Vector128.MultiplyAddEstimate(Vector128.Create(1D / 40320D), remainder, Vector128.Create(1D / 5040D));
+        result = Vector128.MultiplyAddEstimate(result, remainder, Vector128.Create(1D / 720D));
+        result = Vector128.MultiplyAddEstimate(result, remainder, Vector128.Create(1D / 120D));
+        result = Vector128.MultiplyAddEstimate(result, remainder, Vector128.Create(1D / 24D));
+        result = Vector128.MultiplyAddEstimate(result, remainder, Vector128.Create(1D / 6D));
+        result = Vector128.MultiplyAddEstimate(result, remainder, Vector128.Create(0.5D));
+        result = Vector128.MultiplyAddEstimate(result, remainder, Vector128<double>.One);
+        result = Vector128.MultiplyAddEstimate(result, remainder, Vector128<double>.One);
+        Vector128<long> scaleBits = (Vector128.ConvertToInt64(integral) + Vector128.Create(1023L)) << 52;
+        result *= scaleBits.AsDouble();
+
+        // The outer float kernel handles signs and zero. Preserve positive infinity and NaN here;
+        // their exponent fields are not finite binary exponents for the range reduction above.
+        Vector128<double> infiniteResult = exponent > 0D ? Vector128.Create(double.PositiveInfinity) : Vector128<double>.Zero;
+        result = Vector128.ConditionalSelect(Vector128.Equals(value, Vector128.Create(double.PositiveInfinity)), infiniteResult, result);
+        return Vector128.ConditionalSelect(Vector128.Equals(value, value), result, value);
+    }
+
+    /// <summary>
+    /// Evaluates positive float bases widened to double, with polynomial error below float precision.
+    /// </summary>
+    /// <param name="value">Positive float bases, represented exactly as doubles.</param>
+    /// <param name="exponent">The finite common exponent.</param>
+    /// <returns>Double intermediates ready for one final rounding to float.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector256<double> PowSingle(Vector256<double> value, double exponent)
+    {
+        const double logTwo = 0.69314718055994530942;
+        const double inverseLogTwo = 1.44269504088896340736;
+        const double squareRootTwo = 1.41421356237309504880;
+
+        // Widening normalizes even subnormal float inputs. Split each double into 2^e * m,
+        // then move m into [1/sqrt(2), sqrt(2)] to keep the logarithm series short.
+        Vector256<long> bits = value.AsInt64();
+        Vector256<long> binaryExponent = (bits >>> 52) - Vector256.Create(1023L);
+        Vector256<double> mantissa = ((bits & Vector256.Create(0x000FFFFFFFFFFFFFL)) | Vector256.Create(0x3FF0000000000000L)).AsDouble();
+        Vector256<double> upper = Vector256.GreaterThan(mantissa, Vector256.Create(squareRootTwo));
+        mantissa = Vector256.ConditionalSelect(upper, mantissa * Vector256.Create(0.5D), mantissa);
+        binaryExponent += upper.AsInt64() & Vector256.Create(1L);
+
+        // log(m) = 2*z*(1 + z^2/3 + z^4/5 + z^6/7 + z^8/9), z = (m-1)/(m+1).
+        // Here abs(z) <= 0.172. The omitted terms contribute less than 8e-10 to log(m).
+        // Double intermediates avoid amplifying float rounding when exponent times log(value) is large.
+        Vector256<double> z = (mantissa - Vector256<double>.One) / (mantissa + Vector256<double>.One);
+        Vector256<double> zSquared = z * z;
+        Vector256<double> logarithm = Vector256.MultiplyAddEstimate(Vector256.Create(1D / 9D), zSquared, Vector256.Create(1D / 7D));
+        logarithm = Vector256.MultiplyAddEstimate(logarithm, zSquared, Vector256.Create(1D / 5D));
+        logarithm = Vector256.MultiplyAddEstimate(logarithm, zSquared, Vector256.Create(1D / 3D));
+        logarithm = Vector256.MultiplyAddEstimate(logarithm, zSquared, Vector256<double>.One) * z * Vector256.Create(2D * inverseLogTwo);
+        Vector256<double> power = (Vector256.ConvertToDouble(binaryExponent) + logarithm) * Vector256.Create(exponent);
+
+        // Values below 2^-151 round to float zero; values above 2^129 overflow float.
+        // Bounding this exponent keeps integer conversion and double exponent construction valid.
+        power = Vector256.Min(Vector256.Max(power, Vector256.Create(-151D)), Vector256.Create(129D));
+        Vector256<double> integral = Vector256.Floor(power + Vector256.Create(0.5D));
+        Vector256<double> remainder = (power - integral) * Vector256.Create(logTwo);
+
+        // exp(remainder) uses the degree-eight Taylor polynomial. The remainder lies within +/-log(2)/2,
+        // where its truncation error is below 4e-10. Every coefficient is the reciprocal of its factorial.
+        Vector256<double> result = Vector256.MultiplyAddEstimate(Vector256.Create(1D / 40320D), remainder, Vector256.Create(1D / 5040D));
+        result = Vector256.MultiplyAddEstimate(result, remainder, Vector256.Create(1D / 720D));
+        result = Vector256.MultiplyAddEstimate(result, remainder, Vector256.Create(1D / 120D));
+        result = Vector256.MultiplyAddEstimate(result, remainder, Vector256.Create(1D / 24D));
+        result = Vector256.MultiplyAddEstimate(result, remainder, Vector256.Create(1D / 6D));
+        result = Vector256.MultiplyAddEstimate(result, remainder, Vector256.Create(0.5D));
+        result = Vector256.MultiplyAddEstimate(result, remainder, Vector256<double>.One);
+        result = Vector256.MultiplyAddEstimate(result, remainder, Vector256<double>.One);
+        Vector256<long> scaleBits = (Vector256.ConvertToInt64(integral) + Vector256.Create(1023L)) << 52;
+        result *= scaleBits.AsDouble();
+
+        // The outer float kernel handles signs and zero. Preserve positive infinity and NaN here;
+        // their exponent fields are not finite binary exponents for the range reduction above.
+        Vector256<double> infiniteResult = exponent > 0D ? Vector256.Create(double.PositiveInfinity) : Vector256<double>.Zero;
+        result = Vector256.ConditionalSelect(Vector256.Equals(value, Vector256.Create(double.PositiveInfinity)), infiniteResult, result);
+        return Vector256.ConditionalSelect(Vector256.Equals(value, value), result, value);
+    }
+
+    /// <summary>
+    /// Evaluates positive float bases widened to double, with polynomial error below float precision.
+    /// </summary>
+    /// <param name="value">Positive float bases, represented exactly as doubles.</param>
+    /// <param name="exponent">The finite common exponent.</param>
+    /// <returns>Double intermediates ready for one final rounding to float.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector512<double> PowSingle(Vector512<double> value, double exponent)
+    {
+        const double logTwo = 0.69314718055994530942;
+        const double inverseLogTwo = 1.44269504088896340736;
+        const double squareRootTwo = 1.41421356237309504880;
+
+        // Widening normalizes even subnormal float inputs. Split each double into 2^e * m,
+        // then move m into [1/sqrt(2), sqrt(2)] to keep the logarithm series short.
+        Vector512<long> bits = value.AsInt64();
+        Vector512<long> binaryExponent = (bits >>> 52) - Vector512.Create(1023L);
+        Vector512<double> mantissa = ((bits & Vector512.Create(0x000FFFFFFFFFFFFFL)) | Vector512.Create(0x3FF0000000000000L)).AsDouble();
+        Vector512<double> upper = Vector512.GreaterThan(mantissa, Vector512.Create(squareRootTwo));
+        mantissa = Vector512.ConditionalSelect(upper, mantissa * Vector512.Create(0.5D), mantissa);
+        binaryExponent += upper.AsInt64() & Vector512.Create(1L);
+
+        // log(m) = 2*z*(1 + z^2/3 + z^4/5 + z^6/7 + z^8/9), z = (m-1)/(m+1).
+        // Here abs(z) <= 0.172. The omitted terms contribute less than 8e-10 to log(m).
+        // Double intermediates avoid amplifying float rounding when exponent times log(value) is large.
+        Vector512<double> z = (mantissa - Vector512<double>.One) / (mantissa + Vector512<double>.One);
+        Vector512<double> zSquared = z * z;
+        Vector512<double> logarithm = Vector512.MultiplyAddEstimate(Vector512.Create(1D / 9D), zSquared, Vector512.Create(1D / 7D));
+        logarithm = Vector512.MultiplyAddEstimate(logarithm, zSquared, Vector512.Create(1D / 5D));
+        logarithm = Vector512.MultiplyAddEstimate(logarithm, zSquared, Vector512.Create(1D / 3D));
+        logarithm = Vector512.MultiplyAddEstimate(logarithm, zSquared, Vector512<double>.One) * z * Vector512.Create(2D * inverseLogTwo);
+        Vector512<double> power = (Vector512.ConvertToDouble(binaryExponent) + logarithm) * Vector512.Create(exponent);
+
+        // Values below 2^-151 round to float zero; values above 2^129 overflow float.
+        // Bounding this exponent keeps integer conversion and double exponent construction valid.
+        power = Vector512.Min(Vector512.Max(power, Vector512.Create(-151D)), Vector512.Create(129D));
+        Vector512<double> integral = Vector512.Floor(power + Vector512.Create(0.5D));
+        Vector512<double> remainder = (power - integral) * Vector512.Create(logTwo);
+
+        // exp(remainder) uses the degree-eight Taylor polynomial. The remainder lies within +/-log(2)/2,
+        // where its truncation error is below 4e-10. Every coefficient is the reciprocal of its factorial.
+        Vector512<double> result = Vector512.MultiplyAddEstimate(Vector512.Create(1D / 40320D), remainder, Vector512.Create(1D / 5040D));
+        result = Vector512.MultiplyAddEstimate(result, remainder, Vector512.Create(1D / 720D));
+        result = Vector512.MultiplyAddEstimate(result, remainder, Vector512.Create(1D / 120D));
+        result = Vector512.MultiplyAddEstimate(result, remainder, Vector512.Create(1D / 24D));
+        result = Vector512.MultiplyAddEstimate(result, remainder, Vector512.Create(1D / 6D));
+        result = Vector512.MultiplyAddEstimate(result, remainder, Vector512.Create(0.5D));
+        result = Vector512.MultiplyAddEstimate(result, remainder, Vector512<double>.One);
+        result = Vector512.MultiplyAddEstimate(result, remainder, Vector512<double>.One);
+        Vector512<long> scaleBits = (Vector512.ConvertToInt64(integral) + Vector512.Create(1023L)) << 52;
+        result *= scaleBits.AsDouble();
+
+        // The outer float kernel handles signs and zero. Preserve positive infinity and NaN here;
+        // their exponent fields are not finite binary exponents for the range reduction above.
+        Vector512<double> infiniteResult = exponent > 0D ? Vector512.Create(double.PositiveInfinity) : Vector512<double>.Zero;
+        result = Vector512.ConditionalSelect(Vector512.Equals(value, Vector512.Create(double.PositiveInfinity)), infiniteResult, result);
+        return Vector512.ConditionalSelect(Vector512.Equals(value, value), result, value);
+    }
 }

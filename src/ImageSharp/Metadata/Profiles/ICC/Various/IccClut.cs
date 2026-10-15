@@ -99,13 +99,22 @@ internal sealed class IccClut : IEquatable<IccClut>
         Guard.MustBeBetweenOrEqualTo(this.InputChannelCount, 1, 15, nameof(this.InputChannelCount));
         Guard.MustBeBetweenOrEqualTo(this.OutputChannelCount, 1, 15, nameof(this.OutputChannelCount));
 
-        int length = 0;
-        for (int i = 0; i < this.InputChannelCount; i++)
+        // Each grid node stores one value per output channel. Validate the full product before
+        // interpolation uses unchecked gathers. Bound each multiplication by the available storage.
+        int length = this.OutputChannelCount;
+        foreach (byte gridPoints in this.GridPointCount)
         {
-            length += (int)Math.Pow(this.GridPointCount[i], this.InputChannelCount);
+            if (gridPoints == 0 || length > this.Values.Length / gridPoints)
+            {
+                throw new InvalidIccProfileException("The CLUT data is shorter than its declared dimensions.");
+            }
+
+            length *= gridPoints;
         }
 
-        // TODO: Disabled this check, not sure if this check is correct.
-        // Guard.IsTrue(this.Values.Length == length, nameof(this.Values), "Length of values array does not match the grid points");
+        if (length != this.Values.Length)
+        {
+            throw new InvalidIccProfileException("The CLUT data length does not match its declared dimensions.");
+        }
     }
 }

@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
+
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 
 internal sealed class JxlBitWriter(Stream stream)
@@ -68,6 +70,9 @@ internal sealed class JxlBitWriter(Stream stream)
 
         this.Write((int)remainderBits, 0);
     }
+
+    public bool WithMaxBits(ulong maxBits, JxlLayerType layer, JxlAuxiliaryOutput, Func<bool> func)
+        => this.WithMaxBits(maxBits, func);
 
     public bool WithMaxBits(ulong maxBits, Func<bool> func)
     {

@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
-namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
+namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Heuristics;
 
 internal static class JxlHeuristics
 {
@@ -417,6 +417,62 @@ internal static class JxlHeuristics
             Span<T> rowOut = output.GetRow(y);
 
             TensorPrimitives.Divide(row1, row2, rowOut);
+        }
+    }
+
+    public static void AntiUpsample(JxlImageF input, JxlImageF d)
+    {
+        int xsize = input.XSize;
+        int ysize = input.YSize;
+        int xsize2 = d.XSize;
+        int ysize2 = d.YSize;
+        int k0 = Size - 1;
+        int k1 = Size;
+
+        for (int y2 = 0; y2 < ysize2; ++y2)
+        {
+            Span<float> row = d.GetRow(y2);
+
+            for (int x2 = 0; x2 < xsize2; ++x2)
+            {
+                int x0 = (x2 * 2) - k0;
+                if (x0 < 0)
+                {
+                    x0 = 0;
+                }
+
+                int x1 = (x2 * 2) + k1 + 1;
+                if (x1 > xsize)
+                {
+                    x1 = xsize;
+                }
+
+                int y0 = (y2 * 2) - k0;
+                if (y0 < 0)
+                {
+                    y0 = 0;
+                }
+
+                int y1 = (y2 * 2) + k1 + 1;
+                if (y1 > ysize)
+                {
+                    y1 = ysize;
+                }
+
+                float sum = 0;
+                for (int y = y0; y < y1; ++y)
+                {
+                    Span<float> rowIn = input.GetRow(y);
+
+                    for (int x = x0; x < x1; ++x)
+                    {
+                        float deriv = UpsamplerDerivative(x2, y2, x, y);
+                        sum += deriv * rowIn[x];
+                    }
+                }
+
+                row[x2] = sum;
+            }
         }
     }
 

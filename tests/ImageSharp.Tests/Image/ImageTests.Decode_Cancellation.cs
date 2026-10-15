@@ -16,6 +16,7 @@ public partial class ImageTests
         public static readonly string[] TestFileForEachCodec =
         [
             TestImages.Jpeg.Baseline.Snake,
+            TestImages.Heif.IrvineAvif,
 
             // TODO: Figure out Unix cancellation failures, and validate cancellation for each decoder.
             //TestImages.Bmp.Car,

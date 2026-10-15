@@ -1,0 +1,3668 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using System.Buffers;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Memory;
+
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
+
+/// <summary>
+/// Encodes AV1 tile syntax elements and transform coefficients with tile-local adaptive distributions.
+/// </summary>
+internal sealed partial class Av1SymbolEncoder : IDisposable
+{
+    /// <summary>
+    /// The largest coefficient-context plane required after AV1 removes the uncoded half of 64-point transforms.
+    /// </summary>
+    private const int MaximumCoefficientContextCount = (Av1Constants.MaxTransformSize / 2) * (Av1Constants.MaxTransformSize / 2);
+
+    /// <summary>
+    /// The default partition distributions, which are the frame context of a frame without a primary reference.
+    /// </summary>
+    private static readonly Av1Distribution[] DefaultFramePartitionTypes = Av1DefaultDistributions.PartitionTypes;
+
+    /// <summary>
+    /// The retained primary-reference context every tile of the current frame starts from, or
+    /// <see langword="null"/> when tiles start from the normative defaults.
+    /// </summary>
+    private Av1FrameEntropyContext? frameBase;
+
+    /// <summary>
+    /// Owns every mutable tile distribution and restores normative defaults without rebuilding the object graph.
+    /// </summary>
+    private readonly Av1FrameEntropyContext entropyContext;
+
+    /// <summary>
+    /// The tile-adaptive intra-block-copy distribution.
+    /// </summary>
+    private readonly Av1Distribution tileIntraBlockCopy;
+
+    /// <summary>
+    /// The tile-adaptive integer displacement-vector context.
+    /// </summary>
+    private readonly Av1MotionVectorContext displacementVector;
+
+    /// <summary>
+    /// The tile-adaptive normal inter motion-vector context.
+    /// </summary>
+    private readonly Av1MotionVectorContext motionVector;
+
+    /// <summary>
+    /// The tile-adaptive NEWMV branch distributions.
+    /// </summary>
+    private readonly Av1Distribution[] newMotionVector;
+
+    /// <summary>
+    /// The tile-adaptive GLOBALMV branch distributions.
+    /// </summary>
+    private readonly Av1Distribution[] zeroMotionVector;
+
+    /// <summary>
+    /// The tile-adaptive NEARESTMV branch distributions.
+    /// </summary>
+    private readonly Av1Distribution[] referenceMotionVector;
+
+    /// <summary>
+    /// The tile-adaptive dynamic-reference-list distributions.
+    /// </summary>
+    private readonly Av1Distribution[] dynamicReferenceList;
+
+    /// <summary>
+    /// The tile-adaptive partition-type distributions.
+    /// </summary>
+    private readonly Av1Distribution[] tilePartitionTypes;
+
+    /// <summary>
+    /// The tile-adaptive key-frame luma-mode distributions.
+    /// </summary>
+    private readonly Av1Distribution[][] keyFrameYMode;
+
+    /// <summary>
+    /// The tile-adaptive inter-frame intra luma-mode distributions.
+    /// </summary>
+    private readonly Av1Distribution[] frameYMode;
+
+    /// <summary>
+    /// The tile-adaptive intra-versus-inter distributions.
+    /// </summary>
+    private readonly Av1Distribution[] intraInter;
+
+    /// <summary>
+    /// The tile-adaptive single-reference branch distributions.
+    /// </summary>
+    private readonly Av1Distribution[][] singleReference;
+
+    /// <summary>
+    /// The tile-adaptive single-versus-compound reference distributions.
+    /// </summary>
+    private readonly Av1Distribution[] compoundInter;
+
+    /// <summary>
+    /// The tile-adaptive compound reference-direction distributions.
+    /// </summary>
+    private readonly Av1Distribution[] compoundReferenceType;
+
+    /// <summary>
+    /// The tile-adaptive unidirectional compound-reference distributions.
+    /// </summary>
+    private readonly Av1Distribution[][] unidirectionalCompoundReference;
+
+    /// <summary>
+    /// The tile-adaptive bidirectional compound forward-reference distributions.
+    /// </summary>
+    private readonly Av1Distribution[][] compoundReference;
+
+    /// <summary>
+    /// The tile-adaptive bidirectional compound backward-reference distributions.
+    /// </summary>
+    private readonly Av1Distribution[][] compoundBackwardReference;
+
+    /// <summary>
+    /// The tile-adaptive compound motion-mode distributions.
+    /// </summary>
+    private readonly Av1Distribution[] interCompoundMode;
+
+    /// <summary>
+    /// The tile-adaptive masked compound-type distributions.
+    /// </summary>
+    private readonly Av1Distribution[] compoundType;
+
+    /// <summary>
+    /// The tile-adaptive wedge-index distributions.
+    /// </summary>
+    private readonly Av1Distribution[] wedgeIndex;
+
+    /// <summary>
+    /// The tile-adaptive inter-intra enable distributions.
+    /// </summary>
+    private readonly Av1Distribution[] interIntra;
+
+    /// <summary>
+    /// The tile-adaptive inter-intra mode distributions.
+    /// </summary>
+    private readonly Av1Distribution[] interIntraMode;
+
+    /// <summary>
+    /// The tile-adaptive inter-intra wedge-enable distributions.
+    /// </summary>
+    private readonly Av1Distribution[] wedgeInterIntra;
+
+    /// <summary>
+    /// The tile-adaptive unmasked compound-index distributions.
+    /// </summary>
+    private readonly Av1Distribution[] compoundIndex;
+
+    /// <summary>
+    /// The tile-adaptive three-way motion-mode distributions, indexed by block size.
+    /// </summary>
+    private readonly Av1Distribution[] motionMode;
+
+    /// <summary>
+    /// The tile-adaptive OBMC flag distributions, indexed by block size.
+    /// </summary>
+    private readonly Av1Distribution[] obmc;
+
+    /// <summary>
+    /// The tile-adaptive compound-group distributions.
+    /// </summary>
+    private readonly Av1Distribution[] compoundGroupIndex;
+
+    /// <summary>
+    /// The tile-adaptive chroma intra-mode distributions.
+    /// </summary>
+    private readonly Av1Distribution[][] uvMode;
+
+    /// <summary>
+    /// The tile-adaptive transform-block skip distributions selected for the frame base quantizer.
+    /// </summary>
+    private readonly Av1Distribution[][] transformBlockSkip;
+
+    /// <summary>
+    /// The tile-adaptive end-of-block token distributions selected for the frame base quantizer.
+    /// </summary>
+    private readonly Av1Distribution[][][] endOfBlockFlag;
+
+    /// <summary>
+    /// The tile-adaptive coefficient base-range distributions selected for the frame base quantizer.
+    /// </summary>
+    private readonly Av1Distribution[][][] coefficientsBaseRange;
+
+    /// <summary>
+    /// The tile-adaptive coefficient base-level distributions selected for the frame base quantizer.
+    /// </summary>
+    private readonly Av1Distribution[][][] coefficientsBase;
+
+    /// <summary>
+    /// The tile-adaptive final-nonzero coefficient distributions selected for the frame base quantizer.
+    /// </summary>
+    private readonly Av1Distribution[][][] coefficientsBaseEndOfBlock;
+
+    /// <summary>
+    /// The tile-adaptive filter-intra enable distributions.
+    /// </summary>
+    private readonly Av1Distribution[] filterIntra;
+
+    /// <summary>
+    /// The tile-adaptive filter-intra mode distribution.
+    /// </summary>
+    private readonly Av1Distribution filterIntraMode;
+
+    /// <summary>
+    /// The tile-adaptive absolute quantizer delta distribution.
+    /// </summary>
+    private readonly Av1Distribution deltaQuantizerAbsolute;
+
+    /// <summary>
+    /// The tile-adaptive DC sign distributions selected for the frame base quantizer.
+    /// </summary>
+    private readonly Av1Distribution[][] dcSign;
+
+    /// <summary>
+    /// The tile-adaptive end-of-block extra-bit distributions selected for the frame base quantizer.
+    /// </summary>
+    private readonly Av1Distribution[][][] endOfBlockExtra;
+
+    /// <summary>
+    /// The tile-adaptive intra transform-type distributions.
+    /// </summary>
+    private readonly Av1Distribution[][][] intraExtendedTransform;
+
+    /// <summary>
+    /// The tile-adaptive inter transform-type distributions used by intra-block copy.
+    /// </summary>
+    private readonly Av1Distribution[][] interExtendedTransform;
+
+    /// <summary>
+    /// The tile-adaptive fixed transform-size distributions.
+    /// </summary>
+    private readonly Av1Distribution[][] transformSize;
+
+    /// <summary>
+    /// The tile-adaptive variable-transform partition distributions.
+    /// </summary>
+    private readonly Av1Distribution[] transformPartition;
+
+    /// <summary>
+    /// The tile-adaptive spatial segment-identifier distributions.
+    /// </summary>
+    private readonly Av1Distribution[] segmentId;
+
+    /// <summary>
+    /// The tile-adaptive temporal segment-prediction flag distributions.
+    /// </summary>
+    private readonly Av1Distribution[] segmentIdPredicted;
+
+    /// <summary>
+    /// The tile-adaptive directional angle-delta distributions.
+    /// </summary>
+    private readonly Av1Distribution[] angleDelta;
+
+    /// <summary>
+    /// The tile-adaptive transform-skip distributions.
+    /// </summary>
+    private readonly Av1Distribution[] skip;
+
+    /// <summary>
+    /// The tile-adaptive skip-mode distributions.
+    /// </summary>
+    private readonly Av1Distribution[] skipMode;
+
+    /// <summary>
+    /// The tile-adaptive joint chroma-from-luma sign distribution.
+    /// </summary>
+    private readonly Av1Distribution chromaFromLumaSign;
+
+    /// <summary>
+    /// The tile-adaptive chroma-from-luma alpha-magnitude distributions.
+    /// </summary>
+    private readonly Av1Distribution[] chromaFromLumaAlpha;
+
+    /// <summary>
+    /// Indicates whether the encoder released the range writer and its workspace.
+    /// </summary>
+    private bool isDisposed;
+
+    /// <summary>
+    /// The reusable padded coefficient levels used to derive entropy contexts.
+    /// </summary>
+    private readonly Av1LevelBuffer levels;
+
+    /// <summary>
+    /// Owns retained mode and coefficient rates followed by the raster-order coefficient contexts for one transform.
+    /// </summary>
+    private readonly IMemoryOwner<int> entropyWorkspace;
+
+    /// <summary>
+    /// The range writer producing the current tile payload.
+    /// </summary>
+    private Av1SymbolWriter writer;
+
+    /// <summary>
+    /// The base quantizer used to select coefficient probability models. A sequence sets it for each frame, because
+    /// a rate-controlled frame can change the quantizer context of its defaults.
+    /// </summary>
+    private int modelQIndex;
+
+    /// <summary>
+    /// The adapted distributions of the context-update tile of a frame with more than one tile.
+    /// </summary>
+    private Av1FrameEntropyContext? contextUpdateTile;
+
+    /// <summary>
+    /// Whether <see cref="contextUpdateTile"/> holds a tile of the current frame.
+    /// </summary>
+    private bool hasContextUpdateTile;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1SymbolEncoder"/> class with reusable tile state.
+    /// </summary>
+    /// <param name="configuration">The configuration providing output and temporary memory.</param>
+    /// <param name="qIndex">The frame base quantizer index.</param>
+    /// <param name="updateCdf">A value indicating whether encoded symbols adapt their tile distributions.</param>
+    public Av1SymbolEncoder(Configuration configuration, int qIndex, bool updateCdf)
+    {
+        this.entropyContext = new Av1FrameEntropyContext(qIndex);
+
+        // The encoder and the decoder use the same mutable context shape. Every field aliases that single graph, so a sequence sample can restore
+        // the normative defaults without a replacement of any distribution or array.
+        this.tileIntraBlockCopy = this.entropyContext.IntraBlockCopy;
+        this.motionVector = this.entropyContext.MotionVector;
+        this.displacementVector = this.entropyContext.DisplacementVector;
+        this.tilePartitionTypes = this.entropyContext.PartitionTypes;
+        this.keyFrameYMode = this.entropyContext.KeyFrameYMode;
+        this.frameYMode = this.entropyContext.FrameYMode;
+        this.intraInter = this.entropyContext.IntraInter;
+        this.singleReference = this.entropyContext.SingleReference;
+        this.compoundInter = this.entropyContext.CompInter;
+        this.compoundReferenceType = this.entropyContext.CompoundReferenceType;
+        this.unidirectionalCompoundReference = this.entropyContext.UnidirectionalCompoundReference;
+        this.compoundReference = this.entropyContext.CompoundReference;
+        this.compoundBackwardReference = this.entropyContext.CompoundBackwardReference;
+        this.interCompoundMode = this.entropyContext.InterCompoundMode;
+        this.compoundType = this.entropyContext.CompoundType;
+        this.wedgeIndex = this.entropyContext.WedgeIndex;
+        this.interIntra = this.entropyContext.InterIntra;
+        this.interIntraMode = this.entropyContext.InterIntraMode;
+        this.wedgeInterIntra = this.entropyContext.WedgeInterIntra;
+        this.compoundIndex = this.entropyContext.CompoundIndex;
+        this.motionMode = this.entropyContext.MotionMode;
+        this.obmc = this.entropyContext.Obmc;
+        this.compoundGroupIndex = this.entropyContext.CompoundGroupIndex;
+        this.newMotionVector = this.entropyContext.NewMv;
+        this.zeroMotionVector = this.entropyContext.ZeroMv;
+        this.referenceMotionVector = this.entropyContext.RefMv;
+        this.dynamicReferenceList = this.entropyContext.Drl;
+        this.uvMode = this.entropyContext.UvMode;
+        this.filterIntra = this.entropyContext.FilterIntra;
+        this.filterIntraMode = this.entropyContext.FilterIntraMode;
+        this.deltaQuantizerAbsolute = this.entropyContext.DeltaQuantizerAbsolute;
+        this.intraExtendedTransform = this.entropyContext.IntraExtendedTransform;
+        this.interExtendedTransform = this.entropyContext.InterExtendedTransform;
+        this.transformSize = this.entropyContext.TransformSize;
+        this.transformPartition = this.entropyContext.TransformPartition;
+        this.segmentId = this.entropyContext.SegmentId;
+        this.segmentIdPredicted = this.entropyContext.SegmentIdPredicted;
+        this.angleDelta = this.entropyContext.AngleDelta;
+        this.skip = this.entropyContext.Skip;
+        this.skipMode = this.entropyContext.SkipMode;
+        this.chromaFromLumaSign = this.entropyContext.ChromaFromLumaSign;
+        this.chromaFromLumaAlpha = this.entropyContext.ChromaFromLumaAlpha;
+        this.transformBlockSkip = this.entropyContext.TransformBlockSkip;
+        this.endOfBlockFlag = this.entropyContext.EndOfBlockFlag;
+        this.coefficientsBaseRange = this.entropyContext.CoefficientsBaseRange;
+        this.coefficientsBase = this.entropyContext.CoefficientsBase;
+        this.coefficientsBaseEndOfBlock = this.entropyContext.BaseEndOfBlock;
+        this.dcSign = this.entropyContext.DcSign;
+        this.endOfBlockExtra = this.entropyContext.EndOfBlockExtra;
+
+        // The AV1 coefficient coding rules limit the transform dimensions. As a result, the size of the entropy workspace is known here, and the
+        // workspace stays valid for every transform of every sequence sample.
+        this.levels = new Av1LevelBuffer(configuration);
+        try
+        {
+            // Rates and coefficient contexts share one worker-lifetime allocation. The contexts follow the
+            // integer tables so both sections retain natural alignment without an additional buffer owner.
+            this.entropyWorkspace = configuration.MemoryAllocator.Allocate<int>(
+                Av1ModeCosts.StorageLength + Av1CoefficientCosts.StorageLength + (MaximumCoefficientContextCount / sizeof(int)));
+
+            this.RefreshCosts();
+            this.writer = new(configuration, updateCdf);
+            this.modelQIndex = qIndex;
+        }
+        catch
+        {
+            // The constructor already owns the level buffer here. After a later allocation failure, the caller cannot release it.
+            this.entropyWorkspace?.Dispose();
+            this.levels.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Defines how a syntax traversal handles one adaptive symbol or literal bit field.
+    /// </summary>
+    public interface ISymbolOperation
+    {
+        /// <summary>
+        /// Gets a value indicating whether this operation emits a bitstream.
+        /// </summary>
+        public static abstract bool WritesOutput { get; }
+
+        /// <summary>
+        /// Handles one symbol from an adaptive distribution.
+        /// </summary>
+        /// <param name="writer">The tile range writer.</param>
+        /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+        /// <param name="symbol">The zero-based symbol.</param>
+        /// <param name="distribution">The symbol distribution.</param>
+        /// <returns>The symbol's rate contribution.</returns>
+        public static abstract int ProcessSymbol(
+            ref Av1SymbolWriter writer,
+            ref Span<byte> output,
+            int symbol,
+            Av1Distribution distribution);
+
+        /// <summary>
+        /// Handles one binary symbol from an adaptive distribution.
+        /// </summary>
+        /// <param name="writer">The tile range writer.</param>
+        /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+        /// <param name="symbol">The binary symbol.</param>
+        /// <param name="distribution">The symbol distribution.</param>
+        /// <returns>The symbol's rate contribution.</returns>
+        public static abstract int ProcessSymbol(ref Av1SymbolWriter writer, ref Span<byte> output, bool symbol, Av1Distribution distribution);
+
+        /// <summary>
+        /// Handles one binary symbol with a fixed probability.
+        /// </summary>
+        /// <param name="writer">The tile range writer.</param>
+        /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+        /// <param name="value">The binary value.</param>
+        /// <param name="frequency">The probability of true, scaled by 32768.</param>
+        /// <returns>The symbol's rate contribution.</returns>
+        public static abstract int ProcessBoolean(ref Av1SymbolWriter writer, ref Span<byte> output, bool value, uint frequency);
+
+        /// <summary>
+        /// Handles one most-significant-bit-first literal field.
+        /// </summary>
+        /// <param name="writer">The tile range writer.</param>
+        /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+        /// <param name="value">The low-order literal bits.</param>
+        /// <param name="bitCount">The number of bits.</param>
+        /// <returns>The literal's rate contribution.</returns>
+        public static abstract int ProcessLiteral(
+            ref Av1SymbolWriter writer,
+            ref Span<byte> output,
+            uint value,
+            int bitCount);
+    }
+
+    /// <summary>
+    /// Defines how the shared palette-map traversal handles its uniform first index and adaptive remaining indices.
+    /// </summary>
+    private interface IPaletteColorMapOperation
+    {
+        /// <summary>
+        /// Gets a value indicating whether the traversal retains color tokens for later packing.
+        /// </summary>
+        static abstract bool RetainsTokens { get; }
+
+        /// <summary>
+        /// Handles the first uniformly coded palette index.
+        /// </summary>
+        /// <param name="encoder">The tile symbol encoder.</param>
+        /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+        /// <param name="paletteSize">The number of colors in the palette.</param>
+        /// <param name="colorIndex">The first palette index.</param>
+        /// <returns>The index's rate contribution.</returns>
+        public static abstract int ProcessFirstIndex(
+            Av1SymbolEncoder encoder,
+            ref Span<byte> output,
+            int paletteSize,
+            int colorIndex);
+
+        /// <summary>
+        /// Handles one context-adaptive palette color-order index.
+        /// </summary>
+        /// <param name="encoder">The tile symbol encoder.</param>
+        /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+        /// <param name="modeCosts">The mode rates, which the traversal reads once for the whole map.</param>
+        /// <param name="paletteSize">The number of colors in the palette.</param>
+        /// <param name="planeType">The luma or chroma plane class.</param>
+        /// <param name="colorContext">The spatial color-index context.</param>
+        /// <param name="colorOrderIndex">The index in the context-specific color order.</param>
+        /// <returns>The index's rate contribution.</returns>
+        public static abstract int ProcessColorIndex(
+            Av1SymbolEncoder encoder,
+            ref Span<byte> output,
+            scoped Av1ModeCosts modeCosts,
+            int paletteSize,
+            Av1PlaneType planeType,
+            int colorContext,
+            int colorOrderIndex);
+    }
+
+    /// <summary>
+    /// Gets the retained mode rates.
+    /// </summary>
+    public Av1ModeCosts ModeCosts => new(this.entropyWorkspace.Memory.Span[..Av1ModeCosts.StorageLength]);
+
+    /// <summary>
+    /// Gets or sets the native-valued encoder speed controlling coefficient optimization policy.
+    /// </summary>
+    public HeifEncodingSpeed EncodingSpeed { get; set; }
+
+    /// <summary>
+    /// Gets the motion vector distributions every tile of the frame starts from, or <see langword="null"/> when tiles
+    /// start from the defaults.
+    /// </summary>
+    public Av1MotionVectorContext? FrameMotionVectorContext => this.frameBase?.MotionVector;
+
+    /// <summary>
+    /// Gets the retained coefficient rates.
+    /// </summary>
+    public Av1CoefficientCosts CoefficientCosts => new(
+        this.entropyWorkspace.Memory.Span.Slice(Av1ModeCosts.StorageLength, Av1CoefficientCosts.StorageLength));
+
+    /// <summary>
+    /// Restores the initial tile distributions and range coder while retaining their complete object graph and buffers.
+    /// </summary>
+    public void Reset()
+    {
+        this.ResetDistributions();
+        this.RefreshCosts();
+        this.writer.Reset();
+    }
+
+    /// <summary>
+    /// Selects the context every tile of the next frame starts from, and resets the tile state to it.
+    /// </summary>
+    /// <param name="primaryReferenceContext">
+    /// The retained context of the frame's primary reference, or <see langword="null"/> for the normative defaults.
+    /// The context must stay unchanged while the frame is coded.
+    /// </param>
+    /// <param name="modelQIndex">
+    /// The base quantizer index that selects the default coefficient models. This is the base quantizer index of the frame, except during
+    /// the screen content tool search, which keeps the quantizer from before its trial quantizer.
+    /// </param>
+    public void BeginFrame(Av1FrameEntropyContext? primaryReferenceContext, int modelQIndex)
+    {
+        this.frameBase = primaryReferenceContext;
+        this.modelQIndex = modelQIndex;
+        this.hasContextUpdateTile = false;
+        this.Reset();
+    }
+
+    /// <summary>
+    /// Copies the adapted distributions of the context-update tile into a retained frame context, and resets the observation counters. The
+    /// context-update tile is the tile that <see cref="RetainContextUpdateTile"/> kept, or else the last coded tile.
+    /// </summary>
+    /// <param name="destination">The retained frame context that receives the snapshot.</param>
+    public void SnapshotTo(Av1FrameEntropyContext destination)
+        => (this.hasContextUpdateTile ? this.contextUpdateTile! : this.entropyContext).SnapshotTo(destination);
+
+    /// <summary>
+    /// Keeps the adapted distributions of the tile that the encoder coded last as the context-update tile of the frame. The frame context after
+    /// the frame comes from this tile.
+    /// </summary>
+    public void RetainContextUpdateTile()
+    {
+        this.contextUpdateTile ??= new Av1FrameEntropyContext(this.modelQIndex);
+        this.contextUpdateTile.CopyFrom(this.entropyContext);
+        this.hasContextUpdateTile = true;
+    }
+
+    /// <summary>
+    /// Retains mode and coefficient rates from the current distributions for subsequent candidate comparisons.
+    /// </summary>
+    public void RefreshCosts()
+    {
+        this.ModeCosts.Update(this.entropyContext);
+        this.CoefficientCosts.Update(this.entropyContext);
+    }
+
+    /// <summary>
+    /// Restores the initial tile distributions and begins a tile, which the range coder writes into the buffer of that tile.
+    /// </summary>
+    /// <param name="tileIndex">The index of the tile in the frame.</param>
+    public void Reset(int tileIndex)
+    {
+        this.ResetDistributions();
+        this.RefreshCosts();
+        this.writer.Reset(tileIndex);
+    }
+
+    /// <summary>
+    /// Gets the tile buffer of the range coder. The caller reads it once per tile and passes it to every write.
+    /// </summary>
+    /// <returns>The tile buffer.</returns>
+    public Span<byte> GetTileBuffer() => this.writer.GetTileBuffer();
+
+    /// <summary>
+    /// Restores the tile distributions to the frame context: the primary reference's retained context, or the
+    /// normative defaults for the frame quantizer.
+    /// </summary>
+    private void ResetDistributions()
+    {
+        if (this.frameBase is null)
+        {
+            this.entropyContext.ResetToDefaults(this.modelQIndex);
+        }
+        else
+        {
+            this.entropyContext.CopyFrom(this.frameBase);
+        }
+    }
+
+    /// <summary>
+    /// Writes an unsigned fixed-width literal to the tile entropy stream.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="value">The low-order literal bits.</param>
+    /// <param name="bitCount">The number of bits to write.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteLiteral<TOperation>(ref Span<byte> output, uint value, int bitCount)
+        where TOperation : struct, ISymbolOperation
+    {
+        if (TOperation.WritesOutput)
+        {
+            ref Av1SymbolWriter w = ref this.writer;
+            _ = TOperation.ProcessLiteral(ref w, ref output, value, bitCount);
+        }
+    }
+
+    /// <summary>
+    /// Writes a uniformly coded value from a non-power-of-two alphabet.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="valueCount">The number of possible values.</param>
+    /// <param name="value">The value in the range from zero through <paramref name="valueCount"/> minus one.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteUniform<TOperation>(ref Span<byte> output, int valueCount, int value)
+        where TOperation : struct, ISymbolOperation
+    {
+        if (TOperation.WritesOutput)
+        {
+            ref Av1SymbolWriter w = ref this.writer;
+            int bitCount = Av1Math.Log2(valueCount) + 1;
+            int threshold = (1 << bitCount) - valueCount;
+            if (value < threshold)
+            {
+                // The lower values use the short prefix. Every other value adds one final bit that tells two values apart.
+                _ = TOperation.ProcessLiteral(ref w, ref output, (uint)value, bitCount - 1);
+                return;
+            }
+
+            int offset = value - threshold;
+            _ = TOperation.ProcessLiteral(ref w, ref output, (uint)(threshold + (offset >> 1)), bitCount - 1);
+            _ = TOperation.ProcessLiteral(ref w, ref output, (uint)(offset & 1), 1);
+        }
+    }
+
+    /// <summary>
+    /// Gets the fixed-point rate of a uniformly coded value.
+    /// </summary>
+    /// <param name="valueCount">The number of possible values.</param>
+    /// <param name="value">The value in the range from zero through <paramref name="valueCount"/> minus one.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetUniformCost(int valueCount, int value)
+    {
+        int bitCount = Av1Math.Log2(valueCount) + 1;
+        int threshold = (1 << bitCount) - valueCount;
+        return Av1ProbabilityCost.GetLiteralCost(value < threshold ? bitCount - 1 : bitCount);
+    }
+
+    /// <summary>
+    /// Gets the fixed-point cost of the luma palette-mode flag from the given mode rates.
+    /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
+    /// <param name="usePalette">Indicates whether the block uses luma palette prediction.</param>
+    /// <param name="blockSizeContext">The block-area context in the range from zero through six.</param>
+    /// <param name="neighborContext">The number of available above and left luma neighbors that use palettes.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetPaletteYModeCost(Av1ModeCosts modeCosts, bool usePalette, int blockSizeContext, int neighborContext)
+        => modeCosts.GetPaletteYMode(blockSizeContext, neighborContext, usePalette ? 1 : 0);
+
+    /// <summary>
+    /// Writes the luma palette-mode flag.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="usePalette">Indicates whether the block uses luma palette prediction.</param>
+    /// <param name="blockSizeContext">The block-area context in the range from zero through six.</param>
+    /// <param name="neighborContext">The number of available above and left luma neighbors that use palettes.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WritePaletteYMode<TOperation>(ref Span<byte> output, bool usePalette, int blockSizeContext, int neighborContext)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, usePalette, this.entropyContext.PaletteYMode[blockSizeContext][neighborContext]);
+    }
+
+    /// <summary>
+    /// Gets the fixed-point cost of the chroma palette-mode flag from the given mode rates.
+    /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
+    /// <param name="usePalette">Indicates whether the block uses chroma palette prediction.</param>
+    /// <param name="hasLumaPalette">Indicates whether the current block uses a luma palette.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetPaletteUvModeCost(Av1ModeCosts modeCosts, bool usePalette, bool hasLumaPalette)
+        => modeCosts.GetPaletteUvMode(hasLumaPalette ? 1 : 0, usePalette ? 1 : 0);
+
+    /// <summary>
+    /// Writes the chroma palette-mode flag.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="usePalette">Indicates whether the block uses chroma palette prediction.</param>
+    /// <param name="hasLumaPalette">Indicates whether the current block uses a luma palette.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WritePaletteUvMode<TOperation>(ref Span<byte> output, bool usePalette, bool hasLumaPalette)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, usePalette, this.entropyContext.PaletteUvMode[hasLumaPalette ? 1 : 0]);
+    }
+
+    /// <summary>
+    /// Gets the fixed-point cost of a palette-size symbol from the given mode rates.
+    /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
+    /// <param name="paletteSize">The palette size in the range from two through eight.</param>
+    /// <param name="blockSizeContext">The block-area context in the range from zero through six.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetPaletteSizeCost(Av1ModeCosts modeCosts, int paletteSize, int blockSizeContext, Av1PlaneType planeType)
+        => planeType == Av1PlaneType.Y
+            ? modeCosts.GetPaletteYSize(blockSizeContext, paletteSize - 2)
+            : modeCosts.GetPaletteUvSize(blockSizeContext, paletteSize - 2);
+
+    /// <summary>
+    /// Writes a palette-size symbol.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="paletteSize">The palette size in the range from two through eight.</param>
+    /// <param name="blockSizeContext">The block-area context in the range from zero through six.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WritePaletteSize<TOperation>(ref Span<byte> output, int paletteSize, int blockSizeContext, Av1PlaneType planeType)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        Av1Distribution distribution = planeType == Av1PlaneType.Y
+            ? this.entropyContext.PaletteYSize[blockSizeContext]
+            : this.entropyContext.PaletteUvSize[blockSizeContext];
+
+        _ = TOperation.ProcessSymbol(ref w, ref output, paletteSize - 2, distribution);
+    }
+
+    /// <summary>
+    /// Writes a palette color-order index.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="colorOrderIndex">The index in the context-specific palette color order.</param>
+    /// <param name="paletteSize">The number of colors in the palette.</param>
+    /// <param name="colorContext">The color-index context derived from preceding spatial indices.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WritePaletteColorIndex<TOperation>(
+        ref Span<byte> output,
+        int colorOrderIndex,
+        int paletteSize,
+        int colorContext,
+        Av1PlaneType planeType)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        Av1Distribution distribution = planeType == Av1PlaneType.Y
+            ? this.entropyContext.PaletteYColorIndex[paletteSize - 2][colorContext]
+            : this.entropyContext.PaletteUvColorIndex[paletteSize - 2][colorContext];
+
+        _ = TOperation.ProcessSymbol(ref w, ref output, colorOrderIndex, distribution);
+    }
+
+    /// <summary>
+    /// Gets the fixed-point rate of the luma palette colors.
+    /// </summary>
+    /// <param name="colorCache">The sorted unique colors inherited from eligible neighbors.</param>
+    /// <param name="colors">The sorted luma palette colors.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetPaletteYColorCost(
+        ReadOnlySpan<ushort> colorCache,
+        ReadOnlySpan<ushort> colors,
+        int bitDepth)
+    {
+        Span<byte> cacheColorFound = stackalloc byte[Av1Constants.PaletteMaxSize * 2];
+        Span<ushort> uncachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+        int uncachedColorCount = IndexColorCache(
+            colorCache,
+            colors,
+            cacheColorFound,
+            uncachedColors);
+
+        // The palette rate model charges every available cache flag. The writer stops the flags when all colors match, so the model can charge more.
+        int bitCount = colorCache.Length +
+            GetDeltaEncodedColorBitCount(uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 1);
+
+        return Av1ProbabilityCost.GetLiteralCost(bitCount);
+    }
+
+    /// <summary>
+    /// Writes the luma palette colors using neighboring cache selections followed by sorted deltas.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="colorCache">The sorted unique colors inherited from eligible neighbors.</param>
+    /// <param name="colors">The sorted luma palette colors.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WritePaletteYColors<TOperation>(
+        ref Span<byte> output,
+        scoped ReadOnlySpan<ushort> colorCache,
+        scoped ReadOnlySpan<ushort> colors,
+        int bitDepth)
+        where TOperation : struct, ISymbolOperation
+    {
+        if (TOperation.WritesOutput)
+        {
+            Span<byte> cacheColorFound = stackalloc byte[Av1Constants.PaletteMaxSize * 2];
+            Span<ushort> uncachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+            int uncachedColorCount = IndexColorCache(
+                colorCache,
+                colors,
+                cacheColorFound,
+                uncachedColors);
+
+            int cachedColorCount = 0;
+            for (int i = 0; i < colorCache.Length && cachedColorCount < colors.Length; i++)
+            {
+                byte found = cacheColorFound[i];
+                this.WriteLiteral<TOperation>(ref output, found, 1);
+                cachedColorCount += found;
+            }
+
+            this.WriteDeltaEncodedColors<TOperation>(ref output, uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 1);
+        }
+    }
+
+    /// <summary>
+    /// Gets the fixed-point rate of the shared chroma palette colors.
+    /// </summary>
+    /// <param name="colorCache">The sorted unique U colors inherited from eligible neighbors.</param>
+    /// <param name="uColors">The sorted U palette colors.</param>
+    /// <param name="vColors">The V palette colors paired with <paramref name="uColors"/>.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetPaletteUvColorCost(
+        ReadOnlySpan<ushort> colorCache,
+        ReadOnlySpan<ushort> uColors,
+        ReadOnlySpan<ushort> vColors,
+        int bitDepth)
+    {
+        Span<byte> cacheColorFound = stackalloc byte[Av1Constants.PaletteMaxSize * 2];
+        Span<ushort> uncachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+        int uncachedColorCount = IndexColorCache(
+            colorCache,
+            uColors,
+            cacheColorFound,
+            uncachedColors);
+
+        // The palette rate model charges every available cache flag. The writer stops the flags when all colors match, so the model can charge more.
+        int bitCount = colorCache.Length +
+            GetDeltaEncodedColorBitCount(uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 0);
+
+        int deltaBits = GetPaletteVDeltaBitCount(vColors, bitDepth, out int zeroCount, out int minimumBits);
+        int deltaBitCount = 2 + bitDepth + ((deltaBits + 1) * (vColors.Length - 1)) - zeroCount;
+        int rawBitCount = bitDepth * vColors.Length;
+        bitCount += 1 + Math.Min(deltaBitCount, rawBitCount);
+        return Av1ProbabilityCost.GetLiteralCost(bitCount);
+    }
+
+    /// <summary>
+    /// Writes the shared chroma palette colors using cached U values and the cheaper V representation.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="colorCache">The sorted unique U colors inherited from eligible neighbors.</param>
+    /// <param name="uColors">The sorted U palette colors.</param>
+    /// <param name="vColors">The V palette colors paired with <paramref name="uColors"/>.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WritePaletteUvColors<TOperation>(
+        ref Span<byte> output,
+        scoped ReadOnlySpan<ushort> colorCache,
+        scoped ReadOnlySpan<ushort> uColors,
+        scoped ReadOnlySpan<ushort> vColors,
+        int bitDepth)
+        where TOperation : struct, ISymbolOperation
+    {
+        if (TOperation.WritesOutput)
+        {
+            Span<byte> cacheColorFound = stackalloc byte[Av1Constants.PaletteMaxSize * 2];
+            Span<ushort> uncachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+            int uncachedColorCount = IndexColorCache(
+                colorCache,
+                uColors,
+                cacheColorFound,
+                uncachedColors);
+
+            int cachedColorCount = 0;
+            for (int i = 0; i < colorCache.Length && cachedColorCount < uColors.Length; i++)
+            {
+                byte found = cacheColorFound[i];
+                this.WriteLiteral<TOperation>(ref output, found, 1);
+                cachedColorCount += found;
+            }
+
+            this.WriteDeltaEncodedColors<TOperation>(ref output, uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 0);
+
+            int deltaBits = GetPaletteVDeltaBitCount(vColors, bitDepth, out int zeroCount, out int minimumBits);
+            int deltaBitCount = 2 + bitDepth + ((deltaBits + 1) * (vColors.Length - 1)) - zeroCount;
+            int rawBitCount = bitDepth * vColors.Length;
+            bool useDelta = deltaBitCount < rawBitCount;
+            this.WriteLiteral<TOperation>(ref output, useDelta ? 1u : 0u, 1);
+            if (!useDelta)
+            {
+                for (int i = 0; i < vColors.Length; i++)
+                {
+                    this.WriteLiteral<TOperation>(ref output, vColors[i], bitDepth);
+                }
+
+                return;
+            }
+
+            this.WriteLiteral<TOperation>(ref output, (uint)(deltaBits - minimumBits), 2);
+            this.WriteLiteral<TOperation>(ref output, vColors[0], bitDepth);
+            int sampleRange = 1 << bitDepth;
+            for (int i = 1; i < vColors.Length; i++)
+            {
+                int signedDelta = vColors[i] - vColors[i - 1];
+                int delta = Math.Abs(signedDelta);
+
+                // Chroma wraps in its unsigned sample domain, so write the circular direction with the smaller magnitude.
+                if (delta <= sampleRange - delta)
+                {
+                    this.WriteLiteral<TOperation>(ref output, (uint)delta, deltaBits);
+                    if (delta != 0)
+                    {
+                        this.WriteLiteral<TOperation>(ref output, signedDelta < 0 ? 1u : 0u, 1);
+                    }
+                }
+                else
+                {
+                    this.WriteLiteral<TOperation>(ref output, (uint)(sampleRange - delta), deltaBits);
+                    this.WriteLiteral<TOperation>(ref output, signedDelta < 0 ? 0u : 1u, 1);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the current fixed-point rate of a complete palette color-index map.
+    /// </summary>
+    /// <param name="paletteSize">The number of colors in the palette.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <param name="rows">The number of coded map rows.</param>
+    /// <param name="columns">The number of coded map columns.</param>
+    /// <param name="colorIndexMap">The complete row-addressable color-index map.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetPaletteColorMapCost(
+        int paletteSize,
+        Av1PlaneType planeType,
+        int rows,
+        int columns,
+        Av1PlaneRegion<byte> colorIndexMap)
+    {
+        // A cost writes nothing, so it needs no tile buffer.
+        Span<byte> output = default;
+        return this.ProcessPaletteColorMap<PaletteColorMapCostOperation>(
+            ref output,
+            paletteSize,
+            planeType,
+            rows,
+            columns,
+            colorIndexMap,
+            Span<byte>.Empty);
+    }
+
+    /// <summary>
+    /// Writes a complete palette color-index map in AV1 diagonal wavefront order.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="paletteSize">The number of colors in the palette.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <param name="rows">The number of coded map rows.</param>
+    /// <param name="columns">The number of coded map columns.</param>
+    /// <param name="colorIndexMap">The complete row-addressable color-index map.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WritePaletteColorMap<TOperation>(
+        ref Span<byte> output,
+        int paletteSize,
+        Av1PlaneType planeType,
+        int rows,
+        int columns,
+        Av1PlaneRegion<byte> colorIndexMap)
+        where TOperation : struct, ISymbolOperation
+    {
+        _ = this.ProcessPaletteColorMap<PaletteColorMapWriteOperation<TOperation>>(
+            ref output,
+            paletteSize,
+            planeType,
+            rows,
+            columns,
+            colorIndexMap,
+            Span<byte>.Empty);
+    }
+
+    /// <summary>
+    /// Retains palette color tokens and updates their adaptive probabilities without writing output bytes.
+    /// </summary>
+    /// <param name="paletteSize">The number of colors in the palette.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <param name="rows">The number of coded map rows.</param>
+    /// <param name="columns">The number of coded map columns.</param>
+    /// <param name="colorIndexMap">The selected color-index map.</param>
+    /// <param name="tokens">The destination with one byte per coded sample.</param>
+    public void TokenizePaletteColorMap(
+        int paletteSize,
+        Av1PlaneType planeType,
+        int rows,
+        int columns,
+        Av1PlaneRegion<byte> colorIndexMap,
+        Span<byte> tokens)
+    {
+        // Tokens update the probabilities and write no bytes, so no tile buffer is needed.
+        Span<byte> output = default;
+        _ = this.ProcessPaletteColorMap<PaletteColorMapTokenOperation>(
+            ref output,
+            paletteSize,
+            planeType,
+            rows,
+            columns,
+            colorIndexMap,
+            tokens);
+    }
+
+    /// <summary>
+    /// Writes retained palette tokens in their previously selected order.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="paletteSize">The number of colors in the palette.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <param name="tokens">The raw first index followed by packed context and color-rank tokens.</param>
+    public void WritePaletteTokens(ref Span<byte> output, int paletteSize, Av1PlaneType planeType, ReadOnlySpan<byte> tokens)
+    {
+        this.WriteUniform<SymbolWriteOperation>(ref output, paletteSize, tokens[0]);
+        for (int i = 1; i < tokens.Length; i++)
+        {
+            byte token = tokens[i];
+            this.WritePaletteColorIndex<SymbolWriteOperation>(ref output, token & 7, paletteSize, token >> 4, planeType);
+        }
+    }
+
+    /// <summary>
+    /// Writes the frame-local intra-block-copy flag.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="value">Indicates whether intra-block copy is selected.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteUseIntraBlockCopy<TOperation>(ref Span<byte> output, bool value)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, value, this.tileIntraBlockCopy);
+    }
+
+    /// <summary>
+    /// Gets the fixed-point cost of the intra-block-copy flag from the given mode rates.
+    /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
+    /// <param name="value">Indicates whether intra-block copy is selected.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetUseIntraBlockCopyCost(Av1ModeCosts modeCosts, bool value)
+        => modeCosts.GetIntraBlockCopy(value ? 1 : 0);
+
+    /// <summary>
+    /// Writes an integer intra-block-copy displacement vector relative to a spatial reference.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="value">The displacement vector to encode.</param>
+    /// <param name="reference">The spatially derived reference vector.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteDisplacementVector<TOperation>(ref Span<byte> output, Av1MotionVector value, Av1MotionVector reference)
+        where TOperation : struct, ISymbolOperation
+        => this.displacementVector.Write<TOperation>(this.writer, ref output, value, reference, Av1MotionVectorPrecision.Integer);
+
+    /// <summary>
+    /// Captures integer displacement rates without adapting the coding distributions.
+    /// </summary>
+    /// <param name="costs">The worker's retained integer-rate storage.</param>
+    public void FillDisplacementVectorCosts(Av1MotionVectorCosts costs) => costs.Fill(this.displacementVector);
+
+    /// <summary>
+    /// Measures one switchable interpolation filter against its live tile distribution.
+    /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="filter">The regular, smooth, or sharp filter.</param>
+    /// <param name="context">The spatial filter context for the selected direction.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetSwitchableInterpolationFilterCost(Av1ModeCosts modeCosts, Av1InterpolationFilter filter, int context)
+        => modeCosts.GetSwitchableInterpolation(context, (int)filter);
+
+    /// <summary>
+    /// Writes one switchable interpolation filter and updates its live tile distribution.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="filter">The regular, smooth, or sharp filter.</param>
+    /// <param name="context">The spatial filter context for the selected direction.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteSwitchableInterpolationFilter<TOperation>(ref Span<byte> output, Av1InterpolationFilter filter, int context)
+        where TOperation : struct, ISymbolOperation
+        => TOperation.ProcessSymbol(ref this.writer, ref output, (int)filter, this.entropyContext.SwitchableInterpolation[context]);
+
+    /// <summary>
+    /// Measures a single-reference inter mode against the live branch distributions.
+    /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="mode">The new, global, nearest, or near motion-vector mode.</param>
+    /// <param name="modeContext">The packed context derived from the reference-vector stack.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetInterModeCost(Av1ModeCosts modeCosts, Av1PredictionMode mode, int modeContext)
+    {
+        bool isNotNew = mode != Av1PredictionMode.NewMotionVector;
+        int rate = modeCosts.GetNewMv(Av1SymbolContextHelper.GetNewMvContext(modeContext), isNotNew ? 1 : 0);
+
+        if (!isNotNew)
+        {
+            return rate;
+        }
+
+        bool isNotGlobal = mode != Av1PredictionMode.GlobalMotionVector;
+        rate += modeCosts.GetZeroMv(Av1SymbolContextHelper.GetZeroMvContext(modeContext), isNotGlobal ? 1 : 0);
+
+        if (!isNotGlobal)
+        {
+            return rate;
+        }
+
+        return rate + modeCosts.GetRefMv(Av1SymbolContextHelper.GetRefMvContext(modeContext), mode == Av1PredictionMode.NearMotionVector ? 1 : 0);
+    }
+
+    /// <summary>
+    /// Writes a single-reference inter mode through the NEWMV, GLOBALMV, and NEARESTMV branch tree.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="mode">The new, global, nearest, or near motion-vector mode.</param>
+    /// <param name="modeContext">The packed context derived from the reference-vector stack.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteInterMode<TOperation>(ref Span<byte> output, Av1PredictionMode mode, int modeContext)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        bool isNotNew = mode != Av1PredictionMode.NewMotionVector;
+        _ = TOperation.ProcessSymbol(ref w, ref output, isNotNew, this.newMotionVector[Av1SymbolContextHelper.GetNewMvContext(modeContext)]);
+        if (!isNotNew)
+        {
+            return;
+        }
+
+        bool isNotGlobal = mode != Av1PredictionMode.GlobalMotionVector;
+        _ = TOperation.ProcessSymbol(ref w, ref output, isNotGlobal, this.zeroMotionVector[Av1SymbolContextHelper.GetZeroMvContext(modeContext)]);
+        if (!isNotGlobal)
+        {
+            return;
+        }
+
+        _ = TOperation.ProcessSymbol(
+            ref w,
+            ref output,
+            mode == Av1PredictionMode.NearMotionVector,
+            this.referenceMotionVector[Av1SymbolContextHelper.GetRefMvContext(modeContext)]);
+    }
+
+    /// <summary>
+    /// Measures one dynamic-reference-list advance decision.
+    /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="advance">Whether selection advances to the next candidate.</param>
+    /// <param name="context">The candidate-weight context.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetDynamicReferenceListCost(Av1ModeCosts modeCosts, bool advance, int context)
+        => modeCosts.GetDrl(context, advance ? 1 : 0);
+
+    /// <summary>
+    /// Writes one dynamic-reference-list advance decision.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="advance">Whether selection advances to the next candidate.</param>
+    /// <param name="context">The candidate-weight context.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteDynamicReferenceList<TOperation>(ref Span<byte> output, bool advance, int context)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, advance, this.dynamicReferenceList[context]);
+    }
+
+    /// <summary>
+    /// Captures the current motion-vector distributions for a subsequent motion-search interval.
+    /// </summary>
+    /// <param name="costs">The worker-owned rate tables to refresh.</param>
+    public void FillMotionVectorCosts(Av1MotionVectorCosts costs) => costs.Fill(this.motionVector);
+
+    /// <summary>
+    /// Measures an inter motion vector relative to its selected stack reference.
+    /// </summary>
+    /// <param name="value">The selected motion vector.</param>
+    /// <param name="reference">The differential reference from the candidate stack.</param>
+    /// <param name="precision">The fractional precision selected by the frame header.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public int GetMotionVectorCost(
+        Av1MotionVector value,
+        Av1MotionVector reference,
+        Av1MotionVectorPrecision precision)
+        => this.motionVector.GetCost(this.writer, value, reference, precision);
+
+    /// <summary>
+    /// Writes an inter motion vector relative to its selected stack reference.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="value">The selected motion vector.</param>
+    /// <param name="reference">The differential reference from the candidate stack.</param>
+    /// <param name="precision">The fractional precision selected by the frame header.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteMotionVector<TOperation>(
+        ref Span<byte> output,
+        Av1MotionVector value,
+        Av1MotionVector reference,
+        Av1MotionVectorPrecision precision)
+        where TOperation : struct, ISymbolOperation
+        => this.motionVector.Write<TOperation>(this.writer, ref output, value, reference, precision);
+
+    /// <summary>
+    /// Gets the current fixed-point cost of a complete block partition symbol.
+    /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="partitionType">The partition type to measure.</param>
+    /// <param name="context">The partition probability context.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetPartitionTypeCost(Av1ModeCosts modeCosts, Av1PartitionType partitionType, int context)
+        => modeCosts.GetPartitionTypes(context, (int)partitionType);
+
+    /// <summary>
+    /// Writes a complete block partition type using the selected partition context.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="partitionType">The partition type to encode.</param>
+    /// <param name="context">The partition probability context.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WritePartitionType<TOperation>(ref Span<byte> output, Av1PartitionType partitionType, int context)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, (int)partitionType, this.tilePartitionTypes[context]);
+    }
+
+    /// <summary>
+    /// Writes the split-versus-horizontal boundary decision for a block clipped at the bottom tile edge.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="partitionType">The split or horizontal partition outcome.</param>
+    /// <param name="blockSize">The current block size.</param>
+    /// <param name="context">The partition probability context.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteSplitOrHorizontal<TOperation>(ref Span<byte> output, Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
+        where TOperation : struct, ISymbolOperation
+    {
+        if (TOperation.WritesOutput)
+        {
+            uint frequency = Av1SymbolDecoder.GetSplitOrHorizontalFrequency(this.tilePartitionTypes, blockSize, context);
+            bool value = partitionType == Av1PartitionType.Split;
+            ref Av1SymbolWriter w = ref this.writer;
+            _ = TOperation.ProcessBoolean(ref w, ref output, value, frequency);
+        }
+    }
+
+    /// <summary>
+    /// Gets the current fixed-point cost of the split-versus-horizontal boundary decision.
+    /// </summary>
+    /// <param name="partitionType">The split or horizontal partition outcome.</param>
+    /// <param name="blockSize">The current block size.</param>
+    /// <param name="context">The partition probability context.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetSplitOrHorizontalCost(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
+    {
+        // The rate of a block clipped at a frame edge comes from the frame context, not from the adapted tile distributions.
+        int frequency = (int)Av1SymbolDecoder.GetSplitOrHorizontalFrequency(
+            this.frameBase?.PartitionTypes ?? DefaultFramePartitionTypes,
+            blockSize,
+            context);
+
+        return Av1ProbabilityCost.GetSymbolCost(
+            partitionType == Av1PartitionType.Split
+                ? frequency
+                : Av1Distribution.ProbabilityTop - frequency);
+    }
+
+    /// <summary>
+    /// Writes the split-versus-vertical boundary decision for a block clipped at the right tile edge.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="partitionType">The split or vertical partition outcome.</param>
+    /// <param name="blockSize">The current block size.</param>
+    /// <param name="context">The partition probability context.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteSplitOrVertical<TOperation>(ref Span<byte> output, Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
+        where TOperation : struct, ISymbolOperation
+    {
+        if (TOperation.WritesOutput)
+        {
+            uint frequency = Av1SymbolDecoder.GetSplitOrVerticalFrequency(this.tilePartitionTypes, blockSize, context);
+            bool value = partitionType == Av1PartitionType.Split;
+            ref Av1SymbolWriter w = ref this.writer;
+            _ = TOperation.ProcessBoolean(ref w, ref output, value, frequency);
+        }
+    }
+
+    /// <summary>
+    /// Gets the current fixed-point cost of the split-versus-vertical boundary decision.
+    /// </summary>
+    /// <param name="partitionType">The split or vertical partition outcome.</param>
+    /// <param name="blockSize">The current block size.</param>
+    /// <param name="context">The partition probability context.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetSplitOrVerticalCost(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
+    {
+        // The rate of a block clipped at a frame edge comes from the frame context, not from the adapted tile distributions.
+        int frequency = (int)Av1SymbolDecoder.GetSplitOrVerticalFrequency(
+            this.frameBase?.PartitionTypes ?? DefaultFramePartitionTypes,
+            blockSize,
+            context);
+
+        return Av1ProbabilityCost.GetSymbolCost(
+            partitionType == Av1PartitionType.Split
+                ? frequency
+                : Av1Distribution.ProbabilityTop - frequency);
+    }
+
+    /// <summary>
+    /// Processes finalized coefficient symbols and returns the neighboring coefficient context.
+    /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="transformSize">The transform dimensions.</param>
+    /// <param name="transformType">The selected transform type.</param>
+    /// <param name="intraDirection">The luma prediction mode.</param>
+    /// <param name="coefficientBuffer">The quantized raster coefficients.</param>
+    /// <param name="componentType">The luma or chroma component.</param>
+    /// <param name="transformBlockContext">The neighboring skip and DC sign contexts.</param>
+    /// <param name="endOfBlock">The one-based final nonzero scan position, or zero for an empty transform.</param>
+    /// <param name="useReducedTransformSet">Whether the reduced transform set applies.</param>
+    /// <param name="filterIntraMode">The filter-intra prediction mode.</param>
+    /// <param name="usesInterTransformSet">Whether inter transform syntax applies.</param>
+    /// <param name="segmentQIndex">
+    /// The quantizer index of the block segment without the block delta. A transform type symbol is written only when it is above zero.
+    /// </param>
+    /// <returns>The coefficient context consumed by adjacent transforms.</returns>
+    public int WriteCoefficients<TOperation>(
+        ref Span<byte> output,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        Av1PredictionMode intraDirection,
+        ReadOnlySpan<int> coefficientBuffer,
+        Av1ComponentType componentType,
+        Av1TransformBlockContext transformBlockContext,
+        ushort endOfBlock,
+        bool useReducedTransformSet,
+        Av1FilterIntraMode filterIntraMode,
+        bool usesInterTransformSet,
+        int segmentQIndex)
+        where TOperation : struct, ISymbolOperation
+    {
+        Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
+
+        DebugGuard.MustBeLessThan((int)transformSizeContext, (int)Av1TransformSize.AllSizes, nameof(transformSizeContext));
+
+        _ = this.ProcessTransformBlockSkip<TOperation>(
+            ref output,
+            endOfBlock == 0,
+            transformSizeContext,
+            transformBlockContext.SkipContext);
+
+        if (endOfBlock == 0)
+        {
+            return 0;
+        }
+
+        Av1TransformSize adjustedTransformSize = transformSize.GetAdjusted();
+        int width = adjustedTransformSize.GetWidth();
+        int height = adjustedTransformSize.GetHeight();
+        Av1TransformClass transformClass = transformType.ToClass();
+        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
+
+        // The tables and the level storage are read once for this block.
+        Av1CoefficientTables tables = this.GetCoefficientTables();
+        Av1LevelBuffer levels = this.PrepareCoefficientLevels(
+            tables,
+            width,
+            height,
+            out Span<sbyte> coefficientContexts);
+
+        Span<byte> levelStorage = tables.LevelStorage;
+        levels.Initialize(levelStorage, coefficientBuffer);
+        Span<byte> activeLevels = levels.GetActiveLevels(levelStorage);
+        if (componentType == Av1ComponentType.Luminance)
+        {
+            _ = this.ProcessTransformType<TOperation>(
+                ref output,
+                transformType,
+                transformSize,
+                usesInterTransformSet,
+                useReducedTransformSet,
+                segmentQIndex,
+                filterIntraMode,
+                intraDirection);
+        }
+
+        _ = this.ProcessEndOfBlockPosition<TOperation>(
+            ref output,
+            endOfBlock,
+            componentType,
+            transformClass,
+            transformSize,
+            transformSizeContext);
+
+        Av1SymbolContextHelper.GetNzMapContexts(levels, activeLevels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
+        int limitedTransformSizeContext = Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
+
+        // The distributions of this transform size and component are fixed for the block, so the loops below index
+        // only the context. Selecting the rows once here keeps the outer table lookups out of the coefficient loop.
+        Av1Distribution[] baseEndOfBlockDistributions = this.coefficientsBaseEndOfBlock[(int)transformSizeContext][(int)componentType];
+        Av1Distribution[] baseDistributions = this.coefficientsBase[(int)transformSizeContext][(int)componentType];
+        Av1Distribution[] baseRangeDistributions = this.coefficientsBaseRange[limitedTransformSizeContext][(int)componentType];
+        Av1Distribution dcSignDistribution = this.dcSign[(int)componentType][transformBlockContext.DcSignContext];
+        ref Av1SymbolWriter w = ref this.writer;
+        ref byte levelBase = ref MemoryMarshal.GetReference(activeLevels);
+        int levelStride = levels.Stride;
+        int widthLog2 = levels.WidthLog2;
+        for (int c = endOfBlock - 1; c >= 0; --c)
+        {
+            short pos = scan[c];
+            int value = coefficientBuffer[pos];
+            short coefficientContext = coefficientContexts[pos];
+            int level = Math.Abs(value);
+
+            if (c == endOfBlock - 1)
+            {
+                _ = TOperation.ProcessSymbol(
+                    ref w,
+                    ref output,
+                    Math.Min(level, 3) - 1,
+                    baseEndOfBlockDistributions[coefficientContext]);
+            }
+            else
+            {
+                _ = TOperation.ProcessSymbol(
+                    ref w,
+                    ref output,
+                    Math.Min(level, 3),
+                    baseDistributions[coefficientContext]);
+            }
+
+            if (level > Av1Constants.BaseLevelsCount)
+            {
+                // Base-range symbols extend levels above the two base levels in fixed-size chunks.
+                int baseRange = level - 1 - Av1Constants.BaseLevelsCount;
+                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(
+                    ref Unsafe.Add(ref levelBase, Av1LevelBuffer.GetPaddedIndex(pos, widthLog2)),
+                    levelStride,
+                    pos,
+                    widthLog2,
+                    transformClass);
+
+                for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
+                {
+                    int symbol = Math.Min(baseRange - idx, Av1Constants.BaseRangeSizeMinus1);
+                    _ = TOperation.ProcessSymbol(
+                        ref w,
+                        ref output,
+                        symbol,
+                        baseRangeDistributions[baseRangeContext]);
+
+                    if (symbol < Av1Constants.BaseRangeSizeMinus1)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Signs follow every magnitude so the DC sign can use its neighboring context and AC signs remain literals.
+        int culLevel = 0;
+        for (int c = 0; c < endOfBlock; ++c)
+        {
+            short pos = scan[c];
+            int value = coefficientBuffer[pos];
+            int level = Math.Abs(value);
+            culLevel += level;
+
+            uint sign = value < 0 ? 1u : 0u;
+            if (level > 0)
+            {
+                if (c == 0)
+                {
+                    _ = TOperation.ProcessSymbol(
+                        ref w,
+                        ref output,
+                        (int)sign,
+                        dcSignDistribution);
+                }
+                else
+                {
+                    _ = TOperation.ProcessLiteral(ref w, ref output, sign, 1);
+                }
+
+                if (level > (Av1Constants.CoefficientBaseRange + Av1Constants.BaseLevelsCount))
+                {
+                    this.WriteGolomb<TOperation>(
+                        ref output,
+                        level - Av1Constants.CoefficientBaseRange - 1 - Av1Constants.BaseLevelsCount);
+                }
+            }
+        }
+
+        culLevel = Math.Min(Av1Constants.CoefficientContextMask, culLevel);
+
+        // The DC sign is packed above the magnitude bits so adjacent blocks can derive both contexts from one value.
+        Av1SymbolContextHelper.SetDcSign(ref culLevel, coefficientBuffer[0]);
+        return culLevel;
+    }
+
+    /// <summary>
+    /// Gets the complete rate of a transform block whose coefficient rate the trellis already measured. It uses the rate tables that the caller
+    /// read once for its search loop.
+    /// </summary>
+    /// <param name="tables">The rate tables and the context and level storage, from <see cref="GetCoefficientTables"/>.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="transformType">The transform type.</param>
+    /// <param name="intraDirection">The block's intra prediction mode.</param>
+    /// <param name="componentType">The luma or chroma component category.</param>
+    /// <param name="transformBlockContext">The neighboring skip and DC sign contexts.</param>
+    /// <param name="endOfBlock">The one-based final nonzero scan position, or zero for an empty block.</param>
+    /// <param name="coefficientRate">The coefficient and end-of-block rate that the trellis measured.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
+    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <param name="lossless">Indicates whether the segment of the block codes losslessly, which charges no transform type rate.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetOptimizedCoefficientCost(
+        in Av1CoefficientTables tables,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        Av1PredictionMode intraDirection,
+        Av1ComponentType componentType,
+        Av1TransformBlockContext transformBlockContext,
+        ushort endOfBlock,
+        int coefficientRate,
+        bool useReducedTransformSet,
+        Av1FilterIntraMode filterIntraMode,
+        bool usesInterTransformSet,
+        bool lossless)
+    {
+        Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
+        int rate = Av1CoefficientCosts.GetSkip(
+            tables.CoefficientCosts.GetPlane((int)transformSizeContext, (int)Av1ComponentType.Luminance),
+            transformBlockContext.SkipContext,
+            endOfBlock == 0 ? 1 : 0);
+
+        if (endOfBlock == 0)
+        {
+            return rate;
+        }
+
+        if (componentType == Av1ComponentType.Luminance)
+        {
+            rate += GetTransformTypeCost(
+                tables.ModeCosts,
+                transformType,
+                transformSize,
+                useReducedTransformSet,
+                lossless,
+                filterIntraMode,
+                intraDirection,
+                usesInterTransformSet);
+        }
+
+        return rate + coefficientRate;
+    }
+
+    /// <summary>
+    /// Gets the current fixed-point rate cost of the complete coefficient syntax of one transform block. It uses the rate tables that the caller
+    /// read once for its search loop.
+    /// </summary>
+    /// <param name="tables">The rate tables and the context and level storage, from <see cref="GetCoefficientTables"/>.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="transformType">The transform type selecting the scan and context class.</param>
+    /// <param name="intraDirection">The block's intra prediction mode.</param>
+    /// <param name="coefficientBuffer">The raster-ordered signed coefficient levels.</param>
+    /// <param name="componentType">The luma or chroma component category.</param>
+    /// <param name="transformBlockContext">The neighboring skip and DC sign contexts.</param>
+    /// <param name="endOfBlock">The one-based final nonzero scan position, or zero for an empty block.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
+    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <param name="lossless">Indicates whether the segment of the block codes losslessly, which charges no transform type rate.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetCoefficientCost(
+        in Av1CoefficientTables tables,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        Av1PredictionMode intraDirection,
+        ReadOnlySpan<int> coefficientBuffer,
+        Av1ComponentType componentType,
+        Av1TransformBlockContext transformBlockContext,
+        ushort endOfBlock,
+        bool useReducedTransformSet,
+        Av1FilterIntraMode filterIntraMode,
+        bool usesInterTransformSet,
+        bool lossless)
+    {
+        Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
+
+        DebugGuard.MustBeLessThan((int)transformSizeContext, (int)Av1TransformSize.AllSizes, nameof(transformSizeContext));
+
+        Av1CoefficientCosts allCosts = tables.CoefficientCosts;
+        ReadOnlySpan<int> costs = allCosts.GetPlane((int)transformSizeContext, (int)componentType);
+        int rate = Av1CoefficientCosts.GetSkip(
+            allCosts.GetPlane((int)transformSizeContext, 0),
+            transformBlockContext.SkipContext,
+            endOfBlock == 0 ? 1 : 0);
+
+        if (endOfBlock == 0)
+        {
+            return rate;
+        }
+
+        Av1TransformSize adjustedTransformSize = transformSize.GetAdjusted();
+        int width = adjustedTransformSize.GetWidth();
+        int height = adjustedTransformSize.GetHeight();
+        Av1TransformClass transformClass = transformType.ToClass();
+        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
+        bool needsLevelMap = endOfBlock > 1;
+        Av1LevelBuffer levels = this.PrepareCoefficientLevels(
+            tables,
+            width,
+            height,
+            out Span<sbyte> coefficientContexts);
+
+        // The final coefficient uses only scan-position contexts. Earlier coefficients need the complete forward-neighbor level map. As a
+        // result, a candidate with one coefficient does not initialize that plane.
+        Span<byte> levelStorage = tables.LevelStorage;
+        if (needsLevelMap)
+        {
+            levels.Initialize(levelStorage, coefficientBuffer);
+        }
+
+        if (componentType == Av1ComponentType.Luminance)
+        {
+            rate += GetTransformTypeCost(
+                tables.ModeCosts,
+                transformType,
+                transformSize,
+                useReducedTransformSet,
+                lossless,
+                filterIntraMode,
+                intraDirection,
+                usesInterTransformSet);
+        }
+
+        short endOfBlockPosition = Av1SymbolContextHelper.GetEndOfBlockPosition(endOfBlock, out int endOfBlockExtra);
+        rate += allCosts.GetEndOfBlock(
+            transformSize.GetLog2Minus4(),
+            (int)componentType,
+            transformClass == Av1TransformClass.Class2D ? 0 : 1,
+            endOfBlockPosition - 1);
+
+        int suffixBits = Av1SymbolContextHelper.EndOfBlockOffsetBits[endOfBlockPosition];
+        if (suffixBits > 0)
+        {
+            rate += Av1CoefficientCosts.GetExtra(costs, endOfBlockPosition - 3, Av1Math.GetBit(endOfBlockExtra, suffixBits - 1));
+            rate += Av1ProbabilityCost.GetLiteralCost(suffixBits - 1);
+        }
+
+        Span<byte> activeLevels = levels.GetActiveLevels(levelStorage);
+        Av1SymbolContextHelper.GetNzMapContexts(levels, activeLevels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
+        ref byte levelBase = ref MemoryMarshal.GetReference(activeLevels);
+        int levelStride = levels.Stride;
+        int widthLog2 = levels.WidthLog2;
+        int c = endOfBlock - 1;
+        int pos = scan[c];
+        int value = coefficientBuffer[pos];
+        int level = Math.Abs(value);
+        int coefficientContext = coefficientContexts[pos];
+        rate += Av1CoefficientCosts.GetBaseEndOfBlock(
+            costs,
+            coefficientContext,
+            Math.Min(level, 3) - 1);
+
+        if (level > Av1Constants.BaseLevelsCount)
+        {
+            int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContextEndOfBlock(pos, widthLog2, transformClass);
+
+            rate += GetBaseRangeCost(
+                level,
+                costs,
+                baseRangeContext);
+        }
+
+        if (c == 0)
+        {
+            return rate + Av1CoefficientCosts.GetSign(
+                costs,
+                transformBlockContext.DcSignContext,
+                value < 0 ? 1 : 0);
+        }
+
+        rate += Av1ProbabilityCost.GetLiteralCost(1);
+
+        // The scan, the coefficients, the contexts and the cost plane all have the size of this block. Arithmetic on `ref` locals keeps the loop
+        // free of range checks.
+        ref short scanBase = ref MemoryMarshal.GetReference(scan);
+        ref int coefficientBase = ref MemoryMarshal.GetReference(coefficientBuffer);
+        ref sbyte contextBase = ref MemoryMarshal.GetReference(coefficientContexts);
+        ref int costBase = ref MemoryMarshal.GetReference(costs);
+        for (c = endOfBlock - 2; c >= 1; --c)
+        {
+            pos = Unsafe.Add(ref scanBase, c);
+            value = Unsafe.Add(ref coefficientBase, pos);
+            level = value < 0 ? -value : value;
+            coefficientContext = Unsafe.Add(ref contextBase, pos);
+            rate += Unsafe.Add(ref costBase, Av1CoefficientCosts.BaseOffset + (coefficientContext * 8) + Math.Min(level, 3));
+
+            if (level == 0)
+            {
+                continue;
+            }
+
+            rate += Av1ProbabilityCost.GetLiteralCost(1);
+            if (level > Av1Constants.BaseLevelsCount)
+            {
+                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(
+                    ref Unsafe.Add(ref levelBase, Av1LevelBuffer.GetPaddedIndex(pos, widthLog2)),
+                    levelStride,
+                    pos,
+                    widthLog2,
+                    transformClass);
+
+                rate += GetBaseRangeCost(
+                    level,
+                    costs,
+                    baseRangeContext);
+            }
+        }
+
+        pos = scan[0];
+        value = coefficientBuffer[pos];
+        level = Math.Abs(value);
+        coefficientContext = coefficientContexts[pos];
+        rate += Av1CoefficientCosts.GetBase(
+            costs,
+            coefficientContext,
+            Math.Min(level, 3));
+
+        if (level > 0)
+        {
+            rate += Av1CoefficientCosts.GetSign(
+                costs,
+                transformBlockContext.DcSignContext,
+                value < 0 ? 1 : 0);
+
+            if (level > Av1Constants.BaseLevelsCount)
+            {
+                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(
+                    ref Unsafe.Add(ref levelBase, Av1LevelBuffer.GetPaddedIndex(pos, widthLog2)),
+                    levelStride,
+                    pos,
+                    widthLog2,
+                    transformClass);
+
+                rate += GetBaseRangeCost(
+                    level,
+                    costs,
+                    baseRangeContext);
+            }
+        }
+
+        return rate;
+    }
+
+    /// <summary>
+    /// Gets the rate tables and the context and level storage of the coefficient search. A search loop reads them once and
+    /// passes them to every trial, so no trial reads the encoder buffers again.
+    /// </summary>
+    /// <returns>The rate tables and the context and level storage.</returns>
+    public Av1CoefficientTables GetCoefficientTables() => new(this.entropyWorkspace.Memory.Span, this.levels.GetStorage());
+
+    /// <summary>
+    /// Selects the active size of the level plane and gets the coefficient context storage of one transform block from tables
+    /// that the caller read once.
+    /// </summary>
+    /// <param name="tables">The rate tables and the context and level storage, from <see cref="GetCoefficientTables"/>.</param>
+    /// <param name="width">The coded transform width.</param>
+    /// <param name="height">The coded transform height.</param>
+    /// <param name="coefficientContexts">The coefficient context storage of the block.</param>
+    /// <returns>The level buffer with its new active size.</returns>
+    private Av1LevelBuffer PrepareCoefficientLevels(
+        Av1CoefficientTables tables,
+        int width,
+        int height,
+        out Span<sbyte> coefficientContexts)
+    {
+        // AV1 omits the high-frequency coefficients after 32 samples on every 64-point transform dimension. The tile creates workspaces of the
+        // maximum size once. Then it changes only the active views for each new transform block. Level initialization writes the plane and all
+        // of its forward-neighbor padding, so the active layout needs no clear between transform blocks.
+        this.levels.Reset(new Size(width, height), clear: false);
+        coefficientContexts = tables.Contexts[..(width * height)];
+        return this.levels;
+    }
+
+    /// <summary>
+    /// Processes an end-of-block token and its context-coded and literal suffix bits.
+    /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="endOfBlock">The one-based final nonzero scan position.</param>
+    /// <param name="componentType">The luma or chroma component category.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <param name="transformSize">The signaled transform size selecting the token alphabet.</param>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <returns>The rate of the processed syntax, or zero for an operation that does not measure rate.</returns>
+    private int ProcessEndOfBlockPosition<TOperation>(
+        ref Span<byte> output,
+        ushort endOfBlock,
+        Av1ComponentType componentType,
+        Av1TransformClass transformClass,
+        Av1TransformSize transformSize,
+        Av1TransformSize transformSizeContext)
+        where TOperation : struct, ISymbolOperation
+    {
+        short endOfBlockPosition = Av1SymbolContextHelper.GetEndOfBlockPosition(endOfBlock, out int eobExtra);
+        int rate = this.ProcessEndOfBlockFlag<TOperation>(
+            ref output,
+            componentType,
+            transformClass,
+            transformSize,
+            endOfBlockPosition);
+
+        int eobOffsetBitCount = Av1SymbolContextHelper.EndOfBlockOffsetBits[endOfBlockPosition];
+        if (eobOffsetBitCount > 0)
+        {
+            ref Av1SymbolWriter w = ref this.writer;
+            int eobShift = eobOffsetBitCount - 1;
+            int bit = Av1Math.GetBit(eobExtra, eobShift);
+
+            // The first three tokens have no extra-bit distribution. Their placeholders let the encoded token index the later distributions directly.
+            int endOfBlockContext = endOfBlockPosition;
+            rate += TOperation.ProcessSymbol(
+                ref w,
+                ref output,
+                bit,
+                this.endOfBlockExtra[(int)transformSizeContext][(int)componentType][endOfBlockContext]);
+
+            // The symbol above codes the high bit with its context. The literal writer writes the remaining low-order suffix bits, most
+            // significant bit first. This keeps the AV1 syntax with one traversal call.
+            rate += TOperation.ProcessLiteral(ref w, ref output, (uint)eobExtra, eobOffsetBitCount - 1);
+        }
+
+        return rate;
+    }
+
+    /// <summary>
+    /// Gets the fixed-point cost of the luma transform-block skip flag from the given coefficient rates.
+    /// </summary>
+    /// <param name="coefficientCosts">The coefficient rates that the caller read once.</param>
+    /// <param name="skip">Indicates whether the transform block is empty.</param>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetTransformBlockSkipCost(Av1CoefficientCosts coefficientCosts, bool skip, Av1TransformSize transformSizeContext, int skipContext)
+        => GetTransformBlockSkipCost(coefficientCosts, skip, transformSizeContext, skipContext, Av1ComponentType.Luminance);
+
+    /// <summary>
+    /// Gets the rate of signaling whether a transform block of a component has no coded coefficients.
+    /// </summary>
+    /// <param name="coefficientCosts">The coefficient rates that the caller read once.</param>
+    /// <param name="skip">Indicates whether the transform block is empty.</param>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
+    /// <param name="componentType">The luma or chroma component.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
+    public static int GetTransformBlockSkipCost(
+        Av1CoefficientCosts coefficientCosts,
+        bool skip,
+        Av1TransformSize transformSizeContext,
+        int skipContext,
+        Av1ComponentType componentType)
+        => Av1CoefficientCosts.GetSkip(coefficientCosts.GetPlane((int)transformSizeContext, (int)componentType), skipContext, skip ? 1 : 0);
+
+    /// <summary>
+    /// Writes whether a transform block has no coded coefficients.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="skip">Indicates whether the transform block is empty.</param>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteTransformBlockSkip<TOperation>(ref Span<byte> output, bool skip, Av1TransformSize transformSizeContext, int skipContext)
+        where TOperation : struct, ISymbolOperation
+    {
+        _ = this.ProcessTransformBlockSkip<TOperation>(ref output, skip, transformSizeContext, skipContext);
+    }
+
+    /// <summary>
+    /// Processes whether a transform block has no coded coefficients.
+    /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="skip">Indicates whether the transform block is empty.</param>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
+    /// <returns>The rate of the processed symbol, or zero for an operation that does not measure rate.</returns>
+    private int ProcessTransformBlockSkip<TOperation>(
+        ref Span<byte> output,
+        bool skip,
+        Av1TransformSize transformSizeContext,
+        int skipContext)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        return TOperation.ProcessSymbol(
+            ref w,
+            ref output,
+            skip ? 1 : 0,
+            this.transformBlockSkip[(int)transformSizeContext][skipContext]);
+    }
+
+    /// <summary>
+    /// Gets the fixed-point cost of a transform-size subdivision depth from the given mode rates.
+    /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
+    /// <param name="blockSize">The block size defining the maximum transform.</param>
+    /// <param name="transformSize">The selected transform size.</param>
+    /// <param name="context">The neighboring transform-size context.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetTransformSizeCost(Av1ModeCosts modeCosts, Av1BlockSize blockSize, Av1TransformSize transformSize, int context)
+    {
+        int selectedDepth = GetTransformSizeDepth(blockSize, transformSize, out int categoryDepth);
+        return modeCosts.GetTransformSize(categoryDepth - 1, context, selectedDepth);
+    }
+
+    /// <summary>
+    /// Writes the selected transform size as its subdivision depth from the block maximum.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="blockSize">The block size defining the maximum transform.</param>
+    /// <param name="transformSize">The selected transform size.</param>
+    /// <param name="context">The neighboring transform-size context.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteTransformSize<TOperation>(ref Span<byte> output, Av1BlockSize blockSize, Av1TransformSize transformSize, int context)
+        where TOperation : struct, ISymbolOperation
+    {
+        int selectedDepth = GetTransformSizeDepth(blockSize, transformSize, out int categoryDepth);
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, selectedDepth, this.transformSize[categoryDepth - 1][context]);
+    }
+
+    /// <summary>
+    /// Gets the current fixed-point cost of one variable-transform partition decision.
+    /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="split">Indicates whether the current transform node is split.</param>
+    /// <param name="context">The neighboring variable-transform context.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetTransformPartitionCost(Av1ModeCosts modeCosts, bool split, int context)
+        => modeCosts.GetTransformPartition(context, split ? 1 : 0);
+
+    /// <summary>
+    /// Writes one variable-transform partition decision.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="split">Indicates whether the current transform node is split.</param>
+    /// <param name="context">The neighboring variable-transform context.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteTransformPartition<TOperation>(ref Span<byte> output, bool split, int context)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, split ? 1 : 0, this.transformPartition[context]);
+    }
+
+    /// <summary>
+    /// Gets the subdivision depth of a transform size below the maximum transform of a block.
+    /// </summary>
+    /// <param name="blockSize">The block size defining the maximum transform.</param>
+    /// <param name="transformSize">The selected transform size. It must be the maximum transform or one of its subdivisions.</param>
+    /// <param name="categoryDepth">The number of subdivisions from the maximum transform to 4x4, which selects the distribution category.</param>
+    /// <returns>The number of subdivisions from the maximum transform to <paramref name="transformSize"/>.</returns>
+    private static int GetTransformSizeDepth(
+        Av1BlockSize blockSize,
+        Av1TransformSize transformSize,
+        out int categoryDepth)
+    {
+        Av1TransformSize maximumTransformSize = blockSize.GetMaximumTransformSize();
+        Av1TransformSize currentTransformSize = maximumTransformSize;
+        categoryDepth = 0;
+        while (currentTransformSize != Av1TransformSize.Size4x4)
+        {
+            categoryDepth++;
+            currentTransformSize = currentTransformSize.GetSubSize();
+        }
+
+        int selectedDepth = 0;
+        currentTransformSize = maximumTransformSize;
+        while (currentTransformSize != transformSize && selectedDepth < Av1Constants.MaxVarTransform)
+        {
+            selectedDepth++;
+            currentTransformSize = currentTransformSize.GetSubSize();
+        }
+
+        DebugGuard.IsTrue(currentTransformSize == transformSize, nameof(transformSize));
+        return selectedDepth;
+    }
+
+    /// <summary>
+    /// Finalizes the range-coded tile payload and returns an owned exact-length copy.
+    /// </summary>
+    /// <returns>The memory owner containing the encoded tile bytes.</returns>
+    public IMemoryOwner<byte> Exit()
+        => this.writer.Exit();
+
+    /// <summary>
+    /// Finalizes the range-coded payload of the tile. Its bytes stay in the buffer of the tile.
+    /// </summary>
+    /// <returns>The number of encoded bytes of the tile.</returns>
+    public int ExitTile()
+        => this.writer.ExitTile();
+
+    /// <summary>
+    /// Gets the encoded bytes of a tile from its tile buffer, without a copy.
+    /// </summary>
+    /// <param name="tileIndex">The index of the tile in the frame.</param>
+    /// <param name="length">The number of encoded bytes that <see cref="ExitTile"/> returned for the tile.</param>
+    /// <returns>The bytes of the tile, valid until the tile is written again or this encoder is disposed.</returns>
+    public ReadOnlySpan<byte> GetTileOutput(int tileIndex, int length)
+        => this.writer.GetTileOutput(tileIndex, length);
+
+    /// <summary>
+    /// Releases the tile buffers of the range coder and the coefficient level and rate storage.
+    /// </summary>
+    public void Dispose()
+    {
+        if (!this.isDisposed)
+        {
+            this.entropyWorkspace.Dispose();
+            this.levels.Dispose();
+            this.writer.Dispose();
+            this.isDisposed = true;
+        }
+    }
+
+    /// <summary>
+    /// Writes the unsigned exponential-Golomb suffix used for coefficient levels beyond the base range.
+    /// </summary>
+    /// <typeparam name="TOperation">The tile symbol operation.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="level">The nonnegative suffix value.</param>
+    public void WriteGolomb<TOperation>(ref Span<byte> output, int level)
+        where TOperation : struct, ISymbolOperation
+    {
+        uint x = (uint)level + 1u;
+        int length = GetGolombBitLength(level);
+        _ = TOperation.ProcessLiteral(ref this.writer, ref output, 0u, length - 1);
+        _ = TOperation.ProcessLiteral(ref this.writer, ref output, x, length);
+    }
+
+    /// <summary>
+    /// Gets the rate of the base-range symbols of a coefficient level above the base levels. For a level above the base range, the rate also
+    /// includes the exponential-Golomb suffix.
+    /// </summary>
+    /// <param name="level">The coefficient level, which is more than the base level count.</param>
+    /// <param name="costs">The coefficient rates of the transform size and plane.</param>
+    /// <param name="context">The base-range context of the coefficient.</param>
+    /// <returns>The rate in 1/512-bit units.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int GetBaseRangeCost(int level, ReadOnlySpan<int> costs, int context)
+    {
+        int baseRange = Math.Min(
+            level - 1 - Av1Constants.BaseLevelsCount,
+            Av1Constants.CoefficientBaseRange);
+
+        int rate = Av1CoefficientCosts.GetRange(costs, context, baseRange);
+
+        if (level > (Av1Constants.CoefficientBaseRange + Av1Constants.BaseLevelsCount))
+        {
+            int golombValue = level - Av1Constants.CoefficientBaseRange - 1 - Av1Constants.BaseLevelsCount;
+            int length = GetGolombBitLength(golombValue);
+            rate += Av1ProbabilityCost.GetLiteralCost((2 * length) - 1);
+        }
+
+        return rate;
+    }
+
+    /// <summary>
+    /// Gets the bit length of one more than an exponential-Golomb suffix value. The code writes this length minus one zeros, then the value plus one.
+    /// </summary>
+    /// <param name="level">The nonnegative suffix value.</param>
+    /// <returns>The number of significant bits of <paramref name="level"/> + 1.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int GetGolombBitLength(int level) => (int)Av1Math.Log2_32((uint)level + 1u) + 1;
+
+    /// <summary>
+    /// Writes the end-of-block token for a transform coefficient-count category.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="componentType">The luma or chroma component category.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="endOfBlockPosition">The one-based end-of-block token.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <returns>The rate of the processed symbol, or zero for an operation that does not measure rate.</returns>
+    private int ProcessEndOfBlockFlag<TOperation>(
+        ref Span<byte> output,
+        Av1ComponentType componentType,
+        Av1TransformClass transformClass,
+        Av1TransformSize transformSize,
+        int endOfBlockPosition)
+        where TOperation : struct, ISymbolOperation
+    {
+        int endOfBlockMultiSize = transformSize.GetLog2Minus4();
+        int endOfBlockContext = transformClass == Av1TransformClass.Class2D ? 0 : 1;
+        ref Av1SymbolWriter w = ref this.writer;
+        return TOperation.ProcessSymbol(
+            ref w,
+            ref output,
+            endOfBlockPosition - 1,
+            this.endOfBlockFlag[endOfBlockMultiSize][(int)componentType][endOfBlockContext]);
+    }
+
+    /// <summary>
+    /// Gets the current fixed-point rate cost of a transform type when the permitted transform set contains multiple choices.
+    /// </summary>
+    /// <param name="transformType">The transform type to cost.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="lossless">Indicates whether the segment of the block codes losslessly, which charges no transform type rate.</param>
+    /// <param name="filterIntraMode">The filter-intra mode when enabled.</param>
+    /// <param name="intraDirection">The ordinary intra prediction mode.</param>
+    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetTransformTypeCost(
+        Av1TransformType transformType,
+        Av1TransformSize transformSize,
+        bool useReducedTransformSet,
+        bool lossless,
+        Av1FilterIntraMode filterIntraMode,
+        Av1PredictionMode intraDirection,
+        bool usesInterTransformSet)
+        => GetTransformTypeCost(
+            this.ModeCosts,
+            transformType,
+            transformSize,
+            useReducedTransformSet,
+            lossless,
+            filterIntraMode,
+            intraDirection,
+            usesInterTransformSet);
+
+    /// <summary>
+    /// Gets the current fixed-point rate cost of a transform type from mode rates that the caller read once.
+    /// </summary>
+    /// <param name="modeCosts">The mode rates.</param>
+    /// <param name="transformType">The transform type to cost.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="lossless">Indicates whether the segment of the block codes losslessly, which charges no transform type rate.</param>
+    /// <param name="filterIntraMode">The filter-intra mode when enabled.</param>
+    /// <param name="intraDirection">The ordinary intra prediction mode.</param>
+    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    private static int GetTransformTypeCost(
+        Av1ModeCosts modeCosts,
+        Av1TransformType transformType,
+        Av1TransformSize transformSize,
+        bool useReducedTransformSet,
+        bool lossless,
+        Av1FilterIntraMode filterIntraMode,
+        Av1PredictionMode intraDirection,
+        bool usesInterTransformSet)
+    {
+        Av1TransformSetType setType = Av1SymbolContextHelper.GetExtendedTransformSetType(
+            transformSize,
+            usesInterTransformSet,
+            useReducedTransformSet);
+
+        // The rate estimate tests the lossless flag of the segment. The bitstream writer tests the quantizer index
+        // instead, so the two can differ, for example when the plane quantizer adjustments are not zero.
+        if (Av1SymbolContextHelper.GetExtendedTransformTypeCount(setType) == 1 || lossless)
+        {
+            return 0;
+        }
+
+        int set = Av1SymbolContextHelper.GetExtendedTransformSet(setType, usesInterTransformSet);
+        int size = (int)transformSize.GetSquareSize();
+        int symbol = Av1SymbolContextHelper.GetExtendedTransformIndex(setType, transformType);
+        if (usesInterTransformSet)
+        {
+            return modeCosts.GetInterExtendedTransform(set, size, symbol);
+        }
+
+        Av1PredictionMode direction = filterIntraMode == Av1FilterIntraMode.AllFilterIntraModes
+            ? intraDirection
+            : filterIntraMode.ToIntraDirection();
+
+        return modeCosts.GetIntraExtendedTransform(set, size, (int)direction, symbol);
+    }
+
+    /// <summary>
+    /// Writes a transform type when the permitted transform set contains multiple choices.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="transformType">The transform type to encode.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="baseQIndex">The active base quantizer index.</param>
+    /// <param name="filterIntraMode">The filter-intra mode when enabled.</param>
+    /// <param name="intraDirection">The ordinary intra prediction mode.</param>
+    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteTransformType<TOperation>(
+        ref Span<byte> output,
+        Av1TransformType transformType,
+        Av1TransformSize transformSize,
+        bool useReducedTransformSet,
+        int baseQIndex,
+        Av1FilterIntraMode filterIntraMode,
+        Av1PredictionMode intraDirection,
+        bool usesInterTransformSet)
+        where TOperation : struct, ISymbolOperation
+    {
+        _ = this.ProcessTransformType<TOperation>(
+            ref output,
+            transformType,
+            transformSize,
+            usesInterTransformSet,
+            useReducedTransformSet,
+            baseQIndex,
+            filterIntraMode,
+            intraDirection);
+    }
+
+    /// <summary>
+    /// Processes a transform type when the permitted transform set contains multiple choices.
+    /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="transformType">The transform type to encode.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="baseQIndex">The active base quantizer index.</param>
+    /// <param name="filterIntraMode">The filter-intra mode when enabled.</param>
+    /// <param name="intraDirection">The ordinary intra prediction mode.</param>
+    /// <returns>The rate of the processed symbol, or zero for an operation that does not measure rate.</returns>
+    private int ProcessTransformType<TOperation>(
+        ref Span<byte> output,
+        Av1TransformType transformType,
+        Av1TransformSize transformSize,
+        bool usesInterTransformSet,
+        bool useReducedTransformSet,
+        int baseQIndex,
+        Av1FilterIntraMode filterIntraMode,
+        Av1PredictionMode intraDirection)
+        where TOperation : struct, ISymbolOperation
+    {
+        Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(
+            transformSize,
+            usesInterTransformSet,
+            useReducedTransformSet);
+
+        if (Av1SymbolContextHelper.GetExtendedTransformTypeCount(transformSetType) > 1 && baseQIndex > 0)
+        {
+            Av1TransformSize squareTransformSize = transformSize.GetSquareSize();
+            DebugGuard.MustBeLessThanOrEqualTo((int)squareTransformSize, Av1Constants.ExtendedTransformCount, nameof(squareTransformSize));
+
+            int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSetType, usesInterTransformSet);
+
+            // Set zero contains only DCT-DCT. The multiple-choice condition above excludes it.
+            DebugGuard.MustBeGreaterThan(extendedSet, 0, nameof(extendedSet));
+
+            int transformIndex = Av1SymbolContextHelper.GetExtendedTransformIndex(transformSetType, transformType);
+            ref Av1SymbolWriter w = ref this.writer;
+            if (usesInterTransformSet)
+            {
+                // The inter transform distribution depends only on the transform set and the square size.
+                return TOperation.ProcessSymbol(
+                    ref w,
+                    ref output,
+                    transformIndex,
+                    this.interExtendedTransform[extendedSet][(int)squareTransformSize]);
+            }
+
+            Av1PredictionMode intraDirectionContext;
+            if (filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes)
+            {
+                intraDirectionContext = filterIntraMode.ToIntraDirection();
+            }
+            else
+            {
+                intraDirectionContext = intraDirection;
+            }
+
+            DebugGuard.MustBeLessThan((int)intraDirectionContext, 13, nameof(intraDirectionContext));
+            DebugGuard.MustBeLessThan((int)squareTransformSize, 4, nameof(squareTransformSize));
+            return TOperation.ProcessSymbol(
+                ref w,
+                ref output,
+                transformIndex,
+                this.intraExtendedTransform[extendedSet][(int)squareTransformSize][(int)intraDirectionContext]);
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Writes a spatially predicted segment identifier.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="segmentId">The segment identifier.</param>
+    /// <param name="context">The context derived from neighboring segment identifiers.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteSegmentId<TOperation>(ref Span<byte> output, int segmentId, int context)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, segmentId, this.segmentId[context]);
+    }
+
+    /// <summary>
+    /// Writes whether a segment identifier is taken from the primary reference frame's map.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="predicted">Whether the identifier is predicted.</param>
+    /// <param name="context">The context derived from the neighbors' prediction flags.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteSegmentIdPredicted<TOperation>(ref Span<byte> output, bool predicted, int context)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, predicted ? 1 : 0, this.segmentIdPredicted[context]);
+    }
+
+    /// <summary>
+    /// Gets the fixed-point cost of the transform-skip flag from the given mode rates.
+    /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
+    /// <param name="skip">Indicates whether the block contains no coded transform coefficients.</param>
+    /// <param name="context">The neighboring skip context.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetSkipCost(Av1ModeCosts modeCosts, bool skip, int context)
+        => modeCosts.GetSkip(context, skip ? 1 : 0);
+
+    /// <summary>
+    /// Writes the transform-skip flag from a neighboring skip context.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="skip">Indicates whether the block contains no coded transform coefficients.</param>
+    /// <param name="context">The neighboring skip context.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteSkip<TOperation>(ref Span<byte> output, bool skip, int context)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, skip, this.skip[context]);
+    }
+
+    /// <summary>
+    /// Gets the compound skip-mode flag cost.
+    /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="skip">Whether skip mode is selected.</param>
+    /// <param name="context">The neighboring skip-mode context.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetSkipModeCost(Av1ModeCosts modeCosts, bool skip, int context)
+        => modeCosts.GetSkipMode(context, skip ? 1 : 0);
+
+    /// <summary>
+    /// Writes the compound-reference skip-mode flag.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="skip">Indicates whether skip mode is selected.</param>
+    /// <param name="context">The neighboring skip-mode context.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteSkipMode<TOperation>(ref Span<byte> output, bool skip, int context)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, skip, this.skipMode[context]);
+    }
+
+    /// <summary>
+    /// Gets the fixed-point cost of the filter-intra enable flag and selected mode from the given mode rates.
+    /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
+    /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
+    /// <param name="blockSize">The block size selecting the enable distribution.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetFilterIntraModeCost(Av1ModeCosts modeCosts, Av1FilterIntraMode filterIntraMode, Av1BlockSize blockSize)
+    {
+        bool useFilter = filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes;
+        int cost = modeCosts.GetFilterIntra((int)blockSize, useFilter ? 1 : 0);
+        if (useFilter)
+        {
+            cost += modeCosts.GetFilterIntraMode((int)filterIntraMode);
+        }
+
+        return cost;
+    }
+
+    /// <summary>
+    /// Writes the filter-intra enable flag and, when enabled, its prediction mode.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
+    /// <param name="blockSize">The block size selecting the enable distribution.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteFilterIntraMode<TOperation>(ref Span<byte> output, Av1FilterIntraMode filterIntraMode, Av1BlockSize blockSize)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        bool useFilter = filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes;
+        _ = TOperation.ProcessSymbol(ref w, ref output, useFilter, this.filterIntra[(int)blockSize]);
+        if (useFilter)
+        {
+            _ = TOperation.ProcessSymbol(ref w, ref output, (int)filterIntraMode, this.filterIntraMode);
+        }
+    }
+
+    /// <summary>
+    /// Writes a signed quantizer-index delta value.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="deltaQindex">The signed quantizer-index delta.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteDeltaQuantizerIndex<TOperation>(ref Span<byte> output, int deltaQindex)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        bool sign = deltaQindex < 0;
+        int abs = Math.Abs(deltaQindex);
+        bool isSmallValue = abs < Av1Constants.DeltaQuantizerSmall;
+
+        _ = TOperation.ProcessSymbol(ref w, ref output, Math.Min(abs, Av1Constants.DeltaQuantizerSmall), this.deltaQuantizerAbsolute);
+
+        if (!isSmallValue)
+        {
+            // An escape magnitude writes its bit width first. Then it writes the offset in the range of that width.
+            int remainingBitCount = Av1Math.MostSignificantBit((uint)(abs - 1));
+            int threshold = (1 << remainingBitCount) + 1;
+            _ = TOperation.ProcessLiteral(ref w, ref output, (uint)(remainingBitCount - 1), 3);
+            _ = TOperation.ProcessLiteral(ref w, ref output, (uint)(abs - threshold), remainingBitCount);
+        }
+
+        if (abs > 0)
+        {
+            _ = TOperation.ProcessLiteral(ref w, ref output, sign ? 1u : 0u, 1);
+        }
+    }
+
+    /// <summary>
+    /// Gets the fixed-point cost of a key-frame luma prediction mode from the given mode rates.
+    /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
+    /// <param name="lumaMode">The luma prediction mode.</param>
+    /// <param name="topContext">The reduced above-mode context.</param>
+    /// <param name="leftContext">The reduced left-mode context.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetLumaModeCost(Av1ModeCosts modeCosts, Av1PredictionMode lumaMode, byte topContext, byte leftContext)
+        => modeCosts.GetKeyFrameYMode(topContext, leftContext, (int)lumaMode);
+
+    /// <summary>
+    /// Writes a key-frame luma prediction mode using the above and left mode contexts.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="lumaMode">The luma prediction mode.</param>
+    /// <param name="topContext">The reduced above-mode context.</param>
+    /// <param name="leftContext">The reduced left-mode context.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteLumaMode<TOperation>(ref Span<byte> output, Av1PredictionMode lumaMode, byte topContext, byte leftContext)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, (int)lumaMode, this.keyFrameYMode[topContext][leftContext]);
+    }
+
+    /// <summary>
+    /// Gets the cost of an intra luma mode coded inside an inter frame from the given mode rates.
+    /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
+    /// <param name="lumaMode">The intra luma mode.</param>
+    /// <param name="blockSize">The coding block size selecting the size group.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetInterFrameLumaModeCost(Av1ModeCosts modeCosts, Av1PredictionMode lumaMode, Av1BlockSize blockSize)
+        => modeCosts.GetFrameYMode(blockSize.GetSizeGroup(), (int)lumaMode);
+
+    /// <summary>
+    /// Writes an intra luma mode coded inside an inter frame.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="lumaMode">The intra luma mode.</param>
+    /// <param name="blockSize">The coding block size selecting the size group.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteInterFrameLumaMode<TOperation>(ref Span<byte> output, Av1PredictionMode lumaMode, Av1BlockSize blockSize)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, (int)lumaMode, this.frameYMode[blockSize.GetSizeGroup()]);
+    }
+
+    /// <summary>
+    /// Gets the cost of the prediction-domain decision for an inter-frame block.
+    /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="isInter">Whether the block uses a retained reference frame.</param>
+    /// <param name="context">The neighboring prediction-domain context.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetIsInterCost(Av1ModeCosts modeCosts, bool isInter, int context)
+        => modeCosts.GetIntraInter(context, isInter ? 1 : 0);
+
+    /// <summary>
+    /// Writes the prediction-domain decision for an inter-frame block.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="isInter">Whether the block uses a retained reference frame.</param>
+    /// <param name="context">The neighboring prediction-domain context.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteIsInter<TOperation>(ref Span<byte> output, bool isInter, int context)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, isInter, this.intraInter[context]);
+    }
+
+    /// <summary>
+    /// Gets the cost of selecting one reference from the single-reference branch tree.
+    /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="referenceFrame">The selected reference-frame label.</param>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by reference-frame label.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetSingleReferenceCost(Av1ModeCosts modeCosts, Av1ReferenceFrameType referenceFrame, ReadOnlySpan<byte> referenceCounts)
+    {
+        bool isBackward = referenceFrame >= Av1ReferenceFrameType.Backward;
+        int context = Av1SymbolContextHelper.GetSingleReferenceBackwardContext(referenceCounts);
+        int rate = modeCosts.GetSingleReference(context, 0, isBackward ? 1 : 0);
+        if (isBackward)
+        {
+            bool isAlternate = referenceFrame == Av1ReferenceFrameType.Alternate;
+            context = Av1SymbolContextHelper.GetSingleReferenceAlternateContext(referenceCounts);
+            rate += modeCosts.GetSingleReference(context, 1, isAlternate ? 1 : 0);
+            if (isAlternate)
+            {
+                return rate;
+            }
+
+            context = Av1SymbolContextHelper.GetSingleReferenceAlternate2Context(referenceCounts);
+            return rate + modeCosts.GetSingleReference(context, 5, referenceFrame == Av1ReferenceFrameType.Alternate2 ? 1 : 0);
+        }
+
+        bool isLast3OrGolden = referenceFrame is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
+        context = Av1SymbolContextHelper.GetSingleReferenceLast3OrGoldenContext(referenceCounts);
+        rate += modeCosts.GetSingleReference(context, 2, isLast3OrGolden ? 1 : 0);
+        if (isLast3OrGolden)
+        {
+            context = Av1SymbolContextHelper.GetSingleReferenceGoldenContext(referenceCounts);
+            return rate + modeCosts.GetSingleReference(context, 4, referenceFrame == Av1ReferenceFrameType.Golden ? 1 : 0);
+        }
+
+        context = Av1SymbolContextHelper.GetSingleReferenceLast2Context(referenceCounts);
+        return rate + modeCosts.GetSingleReference(context, 3, referenceFrame == Av1ReferenceFrameType.Last2 ? 1 : 0);
+    }
+
+    /// <summary>
+    /// Writes one reference through the single-reference branch tree.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="referenceFrame">The selected reference-frame label.</param>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by reference-frame label.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteSingleReference<TOperation>(
+        ref Span<byte> output,
+        Av1ReferenceFrameType referenceFrame,
+        scoped ReadOnlySpan<byte> referenceCounts)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        bool isBackward = referenceFrame >= Av1ReferenceFrameType.Backward;
+        int context = Av1SymbolContextHelper.GetSingleReferenceBackwardContext(referenceCounts);
+        _ = TOperation.ProcessSymbol(ref w, ref output, isBackward, this.singleReference[context][0]);
+        if (isBackward)
+        {
+            bool isAlternate = referenceFrame == Av1ReferenceFrameType.Alternate;
+            context = Av1SymbolContextHelper.GetSingleReferenceAlternateContext(referenceCounts);
+            _ = TOperation.ProcessSymbol(ref w, ref output, isAlternate, this.singleReference[context][1]);
+            if (isAlternate)
+            {
+                return;
+            }
+
+            context = Av1SymbolContextHelper.GetSingleReferenceAlternate2Context(referenceCounts);
+            _ = TOperation.ProcessSymbol(
+                ref w,
+                ref output,
+                referenceFrame == Av1ReferenceFrameType.Alternate2,
+                this.singleReference[context][5]);
+
+            return;
+        }
+
+        bool isLast3OrGolden = referenceFrame is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
+        context = Av1SymbolContextHelper.GetSingleReferenceLast3OrGoldenContext(referenceCounts);
+        _ = TOperation.ProcessSymbol(ref w, ref output, isLast3OrGolden, this.singleReference[context][2]);
+        if (isLast3OrGolden)
+        {
+            context = Av1SymbolContextHelper.GetSingleReferenceGoldenContext(referenceCounts);
+            _ = TOperation.ProcessSymbol(
+                ref w,
+                ref output,
+                referenceFrame == Av1ReferenceFrameType.Golden,
+                this.singleReference[context][4]);
+
+            return;
+        }
+
+        context = Av1SymbolContextHelper.GetSingleReferenceLast2Context(referenceCounts);
+        _ = TOperation.ProcessSymbol(
+            ref w,
+            ref output,
+            referenceFrame == Av1ReferenceFrameType.Last2,
+            this.singleReference[context][3]);
+    }
+
+    /// <summary>
+    /// Gets the cost of selecting the bounded LAST+GOLDEN compound-reference path.
+    /// </summary>
+    /// <param name="referenceModeContext">The neighboring single-versus-compound context.</param>
+    /// <param name="compoundTypeContext">The neighboring compound direction context.</param>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by reference-frame label.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public int GetLastGoldenCompoundReferenceCost(
+        int referenceModeContext,
+        int compoundTypeContext,
+        ReadOnlySpan<byte> referenceCounts)
+        => GetCompoundReferenceCost(
+            this.ModeCosts,
+            Av1ReferenceFrameType.Last,
+            Av1ReferenceFrameType.Golden,
+            referenceModeContext,
+            compoundTypeContext,
+            referenceCounts);
+
+    /// <summary>
+    /// Gets the complete syntax cost for one legal AV1 compound-reference pair.
+    /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="primaryReference">The first reference of the pair.</param>
+    /// <param name="secondaryReference">The second reference of the pair.</param>
+    /// <param name="referenceModeContext">The neighboring single-versus-compound context.</param>
+    /// <param name="compoundTypeContext">The neighboring compound direction context.</param>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by reference-frame label.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetCompoundReferenceCost(
+        Av1ModeCosts modeCosts,
+        Av1ReferenceFrameType primaryReference,
+        Av1ReferenceFrameType secondaryReference,
+        int referenceModeContext,
+        int compoundTypeContext,
+        ReadOnlySpan<byte> referenceCounts)
+    {
+        bool isUnidirectional = (primaryReference < Av1ReferenceFrameType.Backward) ==
+            (secondaryReference < Av1ReferenceFrameType.Backward);
+
+        int rate = modeCosts.GetCompInter(referenceModeContext, 1) + modeCosts.GetCompoundReferenceType(compoundTypeContext, isUnidirectional ? 0 : 1);
+
+        if (isUnidirectional)
+        {
+            bool isBackwardPair = primaryReference == Av1ReferenceFrameType.Backward;
+            int context = Av1SymbolContextHelper.GetUnidirectionalCompoundBackwardContext(referenceCounts);
+            rate += modeCosts.GetUnidirectionalCompoundReference(context, 0, isBackwardPair ? 1 : 0);
+            if (isBackwardPair)
+            {
+                return rate;
+            }
+
+            bool isLast3OrGolden = secondaryReference is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
+            context = Av1SymbolContextHelper.GetUnidirectionalCompoundLast3OrGoldenContext(referenceCounts);
+            rate += modeCosts.GetUnidirectionalCompoundReference(context, 1, isLast3OrGolden ? 1 : 0);
+            if (!isLast3OrGolden)
+            {
+                return rate;
+            }
+
+            context = Av1SymbolContextHelper.GetUnidirectionalCompoundGoldenContext(referenceCounts);
+            return rate + modeCosts.GetUnidirectionalCompoundReference(context, 2, secondaryReference == Av1ReferenceFrameType.Golden ? 1 : 0);
+        }
+
+        bool isLast3OrGoldenPrimary = primaryReference is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
+        int forwardContext = Av1SymbolContextHelper.GetCompoundForwardLast3OrGoldenContext(referenceCounts);
+        rate += modeCosts.GetCompoundReference(forwardContext, 0, isLast3OrGoldenPrimary ? 1 : 0);
+        if (isLast3OrGoldenPrimary)
+        {
+            forwardContext = Av1SymbolContextHelper.GetCompoundForwardGoldenContext(referenceCounts);
+            rate += modeCosts.GetCompoundReference(forwardContext, 2, primaryReference == Av1ReferenceFrameType.Golden ? 1 : 0);
+        }
+        else
+        {
+            forwardContext = Av1SymbolContextHelper.GetCompoundForwardLast2Context(referenceCounts);
+            rate += modeCosts.GetCompoundReference(forwardContext, 1, primaryReference == Av1ReferenceFrameType.Last2 ? 1 : 0);
+        }
+
+        bool isAlternate = secondaryReference == Av1ReferenceFrameType.Alternate;
+        int backwardContext = Av1SymbolContextHelper.GetCompoundBackwardAlternateContext(referenceCounts);
+        rate += modeCosts.GetCompoundBackwardReference(backwardContext, 0, isAlternate ? 1 : 0);
+        if (!isAlternate)
+        {
+            backwardContext = Av1SymbolContextHelper.GetCompoundBackwardAlternate2Context(referenceCounts);
+            rate += modeCosts.GetCompoundBackwardReference(backwardContext, 1, secondaryReference == Av1ReferenceFrameType.Alternate2 ? 1 : 0);
+        }
+
+        return rate;
+    }
+
+    /// <summary>
+    /// Writes whether an eligible inter block uses compound-reference prediction.
+    /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="isCompound">Whether the block uses two references.</param>
+    /// <param name="context">The compound-reference selection context.</param>
+    public void WriteIsCompoundReference<TOperation>(ref Span<byte> output, bool isCompound, int context)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, isCompound, this.compoundInter[context]);
+    }
+
+    /// <summary>
+    /// Writes the bounded LAST+GOLDEN compound-reference path.
+    /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="referenceModeContext">The compound-reference selection context.</param>
+    /// <param name="compoundTypeContext">The compound-reference type context.</param>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by reference-frame label.</param>
+    public void WriteLastGoldenCompoundReference<TOperation>(
+        ref Span<byte> output,
+        int referenceModeContext,
+        int compoundTypeContext,
+        scoped ReadOnlySpan<byte> referenceCounts)
+        where TOperation : struct, ISymbolOperation
+        => this.WriteCompoundReference<TOperation>(
+            ref output,
+            Av1ReferenceFrameType.Last,
+            Av1ReferenceFrameType.Golden,
+            referenceModeContext,
+            compoundTypeContext,
+            referenceCounts);
+
+    /// <summary>
+    /// Writes one legal AV1 compound-reference pair through its unidirectional or bidirectional tree.
+    /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="primaryReference">The first reference frame of the pair.</param>
+    /// <param name="secondaryReference">The second reference frame of the pair.</param>
+    /// <param name="referenceModeContext">The compound-reference selection context.</param>
+    /// <param name="compoundTypeContext">The compound-reference type context.</param>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by reference-frame label.</param>
+    public void WriteCompoundReference<TOperation>(
+        ref Span<byte> output,
+        Av1ReferenceFrameType primaryReference,
+        Av1ReferenceFrameType secondaryReference,
+        int referenceModeContext,
+        int compoundTypeContext,
+        scoped ReadOnlySpan<byte> referenceCounts)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, true, this.compoundInter[referenceModeContext]);
+        bool isUnidirectional = (primaryReference < Av1ReferenceFrameType.Backward) ==
+            (secondaryReference < Av1ReferenceFrameType.Backward);
+
+        _ = TOperation.ProcessSymbol(ref w, ref output, !isUnidirectional, this.compoundReferenceType[compoundTypeContext]);
+        if (isUnidirectional)
+        {
+            bool isBackwardPair = primaryReference == Av1ReferenceFrameType.Backward;
+            int context = Av1SymbolContextHelper.GetUnidirectionalCompoundBackwardContext(referenceCounts);
+            _ = TOperation.ProcessSymbol(ref w, ref output, isBackwardPair, this.unidirectionalCompoundReference[context][0]);
+            if (isBackwardPair)
+            {
+                return;
+            }
+
+            bool isLast3OrGolden = secondaryReference is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
+            context = Av1SymbolContextHelper.GetUnidirectionalCompoundLast3OrGoldenContext(referenceCounts);
+            _ = TOperation.ProcessSymbol(ref w, ref output, isLast3OrGolden, this.unidirectionalCompoundReference[context][1]);
+            if (!isLast3OrGolden)
+            {
+                return;
+            }
+
+            context = Av1SymbolContextHelper.GetUnidirectionalCompoundGoldenContext(referenceCounts);
+            _ = TOperation.ProcessSymbol(
+                ref w,
+                ref output,
+                secondaryReference == Av1ReferenceFrameType.Golden,
+                this.unidirectionalCompoundReference[context][2]);
+
+            return;
+        }
+
+        bool isLast3OrGoldenPrimary = primaryReference is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
+        int forwardContext = Av1SymbolContextHelper.GetCompoundForwardLast3OrGoldenContext(referenceCounts);
+        _ = TOperation.ProcessSymbol(ref w, ref output, isLast3OrGoldenPrimary, this.compoundReference[forwardContext][0]);
+        if (isLast3OrGoldenPrimary)
+        {
+            forwardContext = Av1SymbolContextHelper.GetCompoundForwardGoldenContext(referenceCounts);
+            _ = TOperation.ProcessSymbol(
+                ref w,
+                ref output,
+                primaryReference == Av1ReferenceFrameType.Golden,
+                this.compoundReference[forwardContext][2]);
+        }
+        else
+        {
+            forwardContext = Av1SymbolContextHelper.GetCompoundForwardLast2Context(referenceCounts);
+            _ = TOperation.ProcessSymbol(
+                ref w,
+                ref output,
+                primaryReference == Av1ReferenceFrameType.Last2,
+                this.compoundReference[forwardContext][1]);
+        }
+
+        bool isAlternate = secondaryReference == Av1ReferenceFrameType.Alternate;
+        int backwardContext = Av1SymbolContextHelper.GetCompoundBackwardAlternateContext(referenceCounts);
+        _ = TOperation.ProcessSymbol(ref w, ref output, isAlternate, this.compoundBackwardReference[backwardContext][0]);
+        if (!isAlternate)
+        {
+            backwardContext = Av1SymbolContextHelper.GetCompoundBackwardAlternate2Context(referenceCounts);
+            _ = TOperation.ProcessSymbol(
+                ref w,
+                ref output,
+                secondaryReference == Av1ReferenceFrameType.Alternate2,
+                this.compoundBackwardReference[backwardContext][1]);
+        }
+    }
+
+    /// <summary>
+    /// Gets the cost of one compound motion-vector mode.
+    /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="mode">The compound motion-vector mode.</param>
+    /// <param name="modeContext">The packed context derived from the reference-vector stack.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetInterCompoundModeCost(Av1ModeCosts modeCosts, Av1PredictionMode mode, int modeContext)
+        => modeCosts.GetInterCompoundMode(
+            Av1SymbolContextHelper.GetCompoundModeContext(modeContext),
+            (int)mode - (int)Av1PredictionMode.NearestNearestMotionVector);
+
+    /// <summary>
+    /// Writes one compound motion-vector mode.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="mode">The compound motion-vector mode.</param>
+    /// <param name="modeContext">The packed context derived from the reference-vector stack.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteInterCompoundMode<TOperation>(ref Span<byte> output, Av1PredictionMode mode, int modeContext)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        int context = Av1SymbolContextHelper.GetCompoundModeContext(modeContext);
+        int symbol = (int)mode - (int)Av1PredictionMode.NearestNearestMotionVector;
+        _ = TOperation.ProcessSymbol(ref w, ref output, symbol, this.interCompoundMode[context]);
+    }
+
+    /// <summary>
+    /// Gets the complete inter-intra syntax rate for one eligible single-reference block.
+    /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="enabled">Whether the block uses inter-intra prediction.</param>
+    /// <param name="mode">The intra mode of the inter-intra prediction.</param>
+    /// <param name="useWedge">Whether the blend uses a wedge mask.</param>
+    /// <param name="wedgeIndex">The wedge mask index.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetInterIntraCost(Av1ModeCosts modeCosts, Av1BlockSize blockSize, bool enabled, Av1InterIntraMode mode, bool useWedge, int wedgeIndex)
+    {
+        int rate = modeCosts.GetInterIntra(blockSize, enabled ? 1 : 0);
+        if (!enabled)
+        {
+            return rate;
+        }
+
+        rate += modeCosts.GetInterIntraMode(blockSize, mode);
+        rate += modeCosts.GetWedgeInterIntra(blockSize, useWedge ? 1 : 0);
+        return useWedge ? rate + modeCosts.GetWedgeIndex(blockSize, wedgeIndex) : rate;
+    }
+
+    /// <summary>
+    /// Writes the motion mode of a single-reference inter block. It writes nothing when the only allowed mode is simple translation. It writes
+    /// the OBMC flag when OBMC is the last allowed mode. Otherwise it writes the three-way mode.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="lastAllowedMode">The last motion mode that the block can signal.</param>
+    /// <param name="motionMode">The selected motion mode.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteMotionMode<TOperation>(ref Span<byte> output, Av1BlockSize blockSize, Av1MotionMode lastAllowedMode, Av1MotionMode motionMode)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        switch (lastAllowedMode)
+        {
+            case Av1MotionMode.SimpleTranslation:
+                break;
+            case Av1MotionMode.Obmc:
+                _ = TOperation.ProcessSymbol(ref w, ref output, motionMode == Av1MotionMode.Obmc, this.obmc[(int)blockSize]);
+                break;
+            default:
+                _ = TOperation.ProcessSymbol(ref w, ref output, (int)motionMode, this.motionMode[(int)blockSize]);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Writes the inter-intra flag and its dependent mode and wedge syntax.
+    /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="enabled">Whether the block uses inter-intra prediction.</param>
+    /// <param name="mode">The inter-intra prediction mode.</param>
+    /// <param name="useWedge">Whether the inter-intra prediction uses a wedge mask.</param>
+    /// <param name="wedgeIndex">The wedge mask index.</param>
+    public void WriteInterIntra<TOperation>(
+        ref Span<byte> output,
+        Av1BlockSize blockSize,
+        bool enabled,
+        Av1InterIntraMode mode,
+        bool useWedge,
+        int wedgeIndex)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        int sizeGroup = blockSize.GetSizeGroup();
+        _ = TOperation.ProcessSymbol(ref w, ref output, enabled, this.interIntra[sizeGroup]);
+        if (!enabled)
+        {
+            return;
+        }
+
+        _ = TOperation.ProcessSymbol(ref w, ref output, (int)mode, this.interIntraMode[sizeGroup]);
+        _ = TOperation.ProcessSymbol(ref w, ref output, useWedge, this.wedgeInterIntra[(int)blockSize]);
+        if (useWedge)
+        {
+            _ = TOperation.ProcessSymbol(ref w, ref output, wedgeIndex, this.wedgeIndex[(int)blockSize]);
+        }
+    }
+
+    /// <summary>
+    /// Gets the complete blend syntax rate for one compound prediction type.
+    /// </summary>
+    /// <param name="modeCosts">The mode rate tables of the tile.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="compoundType">The compound prediction type.</param>
+    /// <param name="compoundGroupContext">The compound group index context.</param>
+    /// <param name="compoundIndexContext">The compound index context.</param>
+    /// <param name="wedgeIndex">The wedge mask index of a wedge blend.</param>
+    /// <param name="maskedCompoundEnabled">Whether the sequence enables masked compound prediction.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public static int GetCompoundBlendCost(
+        Av1ModeCosts modeCosts,
+        Av1BlockSize blockSize,
+        Av1CompoundType compoundType,
+        int compoundGroupContext,
+        int compoundIndexContext,
+        int wedgeIndex,
+        bool maskedCompoundEnabled)
+    {
+        bool masked = compoundType is Av1CompoundType.Wedge or Av1CompoundType.DifferenceWeighted;
+        int rate = maskedCompoundEnabled ? modeCosts.GetCompoundGroupIndex(compoundGroupContext, masked ? 1 : 0) : 0;
+
+        if (!masked)
+        {
+            // The average and distance-weighted types pay the compound index, also in a sequence that does not code it.
+            return rate + modeCosts.GetCompoundIndex(compoundIndexContext, compoundType == Av1CompoundType.Average ? 1 : 0);
+        }
+
+        rate += modeCosts.GetCompoundType(blockSize, compoundType == Av1CompoundType.DifferenceWeighted ? 1 : 0);
+
+        // Each masked type adds one literal bit, 512 units: the wedge sign or the difference-weighted mask type.
+        if (compoundType == Av1CompoundType.Wedge)
+        {
+            rate += modeCosts.GetWedgeIndex(blockSize, wedgeIndex) + 512;
+        }
+        else
+        {
+            rate += 512;
+        }
+
+        return rate;
+    }
+
+    /// <summary>
+    /// Writes the retained compound blend syntax.
+    /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="compoundType">The compound prediction type.</param>
+    /// <param name="compoundGroupContext">The context of the masked compound flag.</param>
+    /// <param name="compoundIndexContext">The context of the distance-weighted compound flag.</param>
+    /// <param name="wedgeIndex">The wedge mask index of a wedge compound.</param>
+    /// <param name="wedgeSign">The wedge sign of a wedge compound.</param>
+    /// <param name="differenceWeightedMaskType">The mask type of a difference-weighted compound.</param>
+    /// <param name="maskedCompoundEnabled">Whether the sequence enables masked compound prediction.</param>
+    /// <param name="jointCompoundEnabled">Whether the sequence enables distance-weighted compound prediction.</param>
+    public void WriteCompoundBlend<TOperation>(
+        ref Span<byte> output,
+        Av1BlockSize blockSize,
+        Av1CompoundType compoundType,
+        int compoundGroupContext,
+        int compoundIndexContext,
+        int wedgeIndex,
+        bool wedgeSign,
+        Av1DifferenceWeightedMaskType differenceWeightedMaskType,
+        bool maskedCompoundEnabled,
+        bool jointCompoundEnabled)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        bool masked = compoundType is Av1CompoundType.Wedge or Av1CompoundType.DifferenceWeighted;
+        if (maskedCompoundEnabled)
+        {
+            _ = TOperation.ProcessSymbol(ref w, ref output, masked, this.compoundGroupIndex[compoundGroupContext]);
+        }
+
+        if (!masked)
+        {
+            // The statistics pass adapts the compound index distribution, also in a sequence that does not code the index. The rate search
+            // prices the index from that distribution. Only the bitstream write omits the index when the sequence disables it.
+            if (jointCompoundEnabled || !TOperation.WritesOutput)
+            {
+                _ = TOperation.ProcessSymbol(
+                    ref w,
+                    ref output,
+                    compoundType == Av1CompoundType.Average,
+                    this.compoundIndex[compoundIndexContext]);
+            }
+
+            return;
+        }
+
+        // The bitstream codes the masked type only for block sizes that allow wedges. Other sizes always use the difference-weighted mask.
+        bool wedgeAllowed = blockSize is Av1BlockSize.Block8x8 or Av1BlockSize.Block8x16 or Av1BlockSize.Block16x8 or
+            Av1BlockSize.Block16x16 or Av1BlockSize.Block16x32 or Av1BlockSize.Block32x16 or Av1BlockSize.Block32x32 or
+            Av1BlockSize.Block8x32 or Av1BlockSize.Block32x8;
+
+        if (wedgeAllowed)
+        {
+            _ = TOperation.ProcessSymbol(
+                ref w,
+                ref output,
+                compoundType == Av1CompoundType.DifferenceWeighted,
+                this.compoundType[(int)blockSize]);
+        }
+
+        if (compoundType == Av1CompoundType.Wedge)
+        {
+            _ = TOperation.ProcessSymbol(ref w, ref output, wedgeIndex, this.wedgeIndex[(int)blockSize]);
+            _ = TOperation.ProcessLiteral(ref w, ref output, wedgeSign ? 1u : 0u, 1);
+        }
+        else
+        {
+            _ = TOperation.ProcessLiteral(ref w, ref output, (uint)differenceWeightedMaskType, 1);
+        }
+    }
+
+    /// <summary>
+    /// Gets the fixed-point cost of a directional angle-delta symbol from the given mode rates.
+    /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
+    /// <param name="angleDelta">The signed angle delta offset by <see cref="Av1Constants.MaxAngleDelta"/>.</param>
+    /// <param name="context">The directional prediction mode selecting the distribution.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetAngleDeltaCost(Av1ModeCosts modeCosts, int angleDelta, Av1PredictionMode context)
+        => modeCosts.GetAngleDelta(context - Av1PredictionMode.Vertical, angleDelta);
+
+    /// <summary>
+    /// Writes an unsigned directional angle-delta symbol.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="angleDelta">The signed angle delta offset by <see cref="Av1Constants.MaxAngleDelta"/>.</param>
+    /// <param name="context">The directional prediction mode selecting the distribution.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteAngleDelta<TOperation>(ref Span<byte> output, int angleDelta, Av1PredictionMode context)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, angleDelta, this.angleDelta[context - Av1PredictionMode.Vertical]);
+    }
+
+    /// <summary>
+    /// Writes a fixed-width CDEF strength index.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="cdefStrength">The CDEF strength index.</param>
+    /// <param name="bitCount">The number of signaled bits.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteCdefStrength<TOperation>(ref Span<byte> output, int cdefStrength, int bitCount)
+        where TOperation : struct, ISymbolOperation
+    {
+        if (TOperation.WritesOutput)
+        {
+            ref Av1SymbolWriter w = ref this.writer;
+            _ = TOperation.ProcessLiteral(ref w, ref output, (uint)cdefStrength, bitCount);
+        }
+    }
+
+    /// <summary>
+    /// Gets the fixed-point cost of a chroma intra prediction mode from the given mode rates.
+    /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
+    /// <param name="chromaMode">The chroma prediction mode.</param>
+    /// <param name="isChromaFromLumaAllowed">Indicates whether chroma-from-luma is valid for the block.</param>
+    /// <param name="lumaMode">The block's luma prediction mode.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetChromaModeCost(Av1ModeCosts modeCosts, Av1ChromaPredictionMode chromaMode, bool isChromaFromLumaAllowed, Av1PredictionMode lumaMode)
+    {
+        int cflAllowed = isChromaFromLumaAllowed ? 1 : 0;
+        return modeCosts.GetUvMode(cflAllowed, (int)lumaMode, (int)chromaMode);
+    }
+
+    /// <summary>
+    /// Gets the fixed-point cost of joint chroma-from-luma alpha syntax from the given mode rates.
+    /// </summary>
+    /// <param name="modeCosts">The mode rates that the caller read once.</param>
+    /// <param name="chromaFromLumaIndex">The packed U/V alpha-magnitude indices.</param>
+    /// <param name="joinedSign">The joint U/V sign symbol.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetChromaFromLumaCost(Av1ModeCosts modeCosts, int chromaFromLumaIndex, int joinedSign)
+        => modeCosts.GetChromaFromLuma(chromaFromLumaIndex, joinedSign);
+
+    /// <summary>
+    /// Writes a chroma intra prediction mode conditioned on the luma mode and chroma-from-luma availability.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="chromaMode">The chroma prediction mode.</param>
+    /// <param name="isChromaFromLumaAllowed">Indicates whether chroma-from-luma is valid for the block.</param>
+    /// <param name="lumaMode">The block's luma prediction mode.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteChromaMode<TOperation>(ref Span<byte> output, Av1ChromaPredictionMode chromaMode, bool isChromaFromLumaAllowed, Av1PredictionMode lumaMode)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        int cflAllowed = isChromaFromLumaAllowed ? 1 : 0;
+        _ = TOperation.ProcessSymbol(ref w, ref output, (int)chromaMode, this.uvMode[cflAllowed][(int)lumaMode]);
+    }
+
+    /// <summary>
+    /// Writes the joint chroma-from-luma signs and the magnitude index for each nonzero plane.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="chromaFromLumaIndex">The packed U/V alpha-magnitude indices.</param>
+    /// <param name="joinedSign">The joint U/V sign symbol.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteChromaFromLumaAlphas<TOperation>(ref Span<byte> output, int chromaFromLumaIndex, int joinedSign)
+        where TOperation : struct, ISymbolOperation
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        _ = TOperation.ProcessSymbol(ref w, ref output, joinedSign, this.chromaFromLumaSign);
+
+        // The bitstream codes a magnitude only for a nonzero sign. The shared helper keeps the encoder and decoder mappings identical.
+        int signU = Av1ChromaFromLumaMath.SignU(joinedSign);
+        if (signU != Av1ChromaFromLumaMath.SignZero)
+        {
+            int contextU = Av1ChromaFromLumaMath.ContextU(joinedSign);
+            int indexU = Av1ChromaFromLumaMath.IndexU(chromaFromLumaIndex);
+            _ = TOperation.ProcessSymbol(ref w, ref output, indexU, this.chromaFromLumaAlpha[contextU]);
+        }
+
+        int signV = Av1ChromaFromLumaMath.SignV(joinedSign);
+        if (signV != Av1ChromaFromLumaMath.SignZero)
+        {
+            int contextV = Av1ChromaFromLumaMath.ContextV(joinedSign);
+            int indexV = Av1ChromaFromLumaMath.IndexV(chromaFromLumaIndex);
+            _ = TOperation.ProcessSymbol(ref w, ref output, indexV, this.chromaFromLumaAlpha[contextV]);
+        }
+    }
+
+    /// <summary>
+    /// Traverses a palette color-index map once for either live rate costing or entropy emission.
+    /// </summary>
+    /// <typeparam name="TOperation">The closed map-symbol operation.</typeparam>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="paletteSize">The number of colors in the palette.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <param name="rows">The number of coded map rows.</param>
+    /// <param name="columns">The number of coded map columns.</param>
+    /// <param name="colorIndexMap">The complete row-addressable color-index map.</param>
+    /// <param name="tokens">The token destination for an operation that retains tokens, or an empty span.</param>
+    /// <returns>The rate cost in 1/512-bit units, or zero while writing.</returns>
+    private int ProcessPaletteColorMap<TOperation>(
+        ref Span<byte> output,
+        int paletteSize,
+        Av1PlaneType planeType,
+        int rows,
+        int columns,
+        Av1PlaneRegion<byte> colorIndexMap,
+        Span<byte> tokens)
+        where TOperation : struct, IPaletteColorMapOperation
+    {
+        int colorIndex = colorIndexMap.GetRowSpan(0)[0];
+        int cost = TOperation.ProcessFirstIndex(this, ref output, paletteSize, colorIndex);
+        if (TOperation.RetainsTokens)
+        {
+            tokens[0] = (byte)colorIndex;
+        }
+
+        int tokenIndex = 1;
+
+        // Resolve the map once. The wavefront visits a different row for every sample, so a row lookup per sample costs more than the context
+        // derivation. A palette map is one contiguous allocation, so the wavefront indexes it from the map origin with the stride.
+        int mapStride = colorIndexMap.Stride;
+        ReadOnlySpan<byte> map = colorIndexMap.Samples[colorIndexMap.Origin..];
+
+        // Read the rates once for the whole map.
+        Av1ModeCosts modeCosts = this.ModeCosts;
+
+        for (int diagonal = 1; diagonal < rows + columns - 1; diagonal++)
+        {
+            int firstColumn = Math.Min(diagonal, columns - 1);
+            int lastColumn = Math.Max(0, diagonal - rows + 1);
+            for (int column = firstColumn; column >= lastColumn; column--)
+            {
+                int row = diagonal - column;
+                int colorContext = Av1PaletteColorMap.GetEncoderContext(
+                    map,
+                    mapStride,
+                    row,
+                    column,
+                    out int colorOrderIndex);
+
+                if (TOperation.RetainsTokens)
+                {
+                    // The three low bits keep the color rank. The upper nibble keeps its spatial context. The later packing step reads this byte,
+                    // so it does not read a reused prediction map.
+                    tokens[tokenIndex++] = (byte)((colorContext << 4) | colorOrderIndex);
+                }
+
+                cost += TOperation.ProcessColorIndex(
+                    this,
+                    ref output,
+                    modeCosts,
+                    paletteSize,
+                    planeType,
+                    colorContext,
+                    colorOrderIndex);
+            }
+        }
+
+        return cost;
+    }
+
+    /// <summary>
+    /// Separates palette colors selected from the neighbor cache from colors that require literal coding.
+    /// </summary>
+    /// <param name="colorCache">The sorted unique neighbor colors.</param>
+    /// <param name="colors">The sorted palette colors.</param>
+    /// <param name="cacheColorFound">The cache-selection flags.</param>
+    /// <param name="uncachedColors">The destination for colors absent from the cache.</param>
+    /// <returns>The number of uncached colors.</returns>
+    private static int IndexColorCache(
+        ReadOnlySpan<ushort> colorCache,
+        ReadOnlySpan<ushort> colors,
+        Span<byte> cacheColorFound,
+        Span<ushort> uncachedColors)
+    {
+        cacheColorFound[..colorCache.Length].Clear();
+        Span<byte> inCache = stackalloc byte[Av1Constants.PaletteMaxSize];
+        inCache.Clear();
+
+        // The cache-order flags go to the bitstream. The palette-order flags keep the uncached output in sorted order.
+        int cachedColorCount = 0;
+        for (int cacheIndex = 0; cacheIndex < colorCache.Length && cachedColorCount < colors.Length; cacheIndex++)
+        {
+            for (int colorIndex = 0; colorIndex < colors.Length; colorIndex++)
+            {
+                if (colors[colorIndex] == colorCache[cacheIndex])
+                {
+                    inCache[colorIndex] = 1;
+                    cacheColorFound[cacheIndex] = 1;
+                    cachedColorCount++;
+                    break;
+                }
+            }
+        }
+
+        int uncachedColorCount = 0;
+        for (int colorIndex = 0; colorIndex < colors.Length; colorIndex++)
+        {
+            if (inCache[colorIndex] == 0)
+            {
+                uncachedColors[uncachedColorCount++] = colors[colorIndex];
+            }
+        }
+
+        return uncachedColorCount;
+    }
+
+    /// <summary>
+    /// Gets the literal length of an ascending palette-color sequence.
+    /// </summary>
+    /// <param name="colors">The sorted colors.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    /// <param name="minimumDelta">The minimum representable difference between adjacent colors.</param>
+    /// <returns>The literal length in bits.</returns>
+    private static int GetDeltaEncodedColorBitCount(
+        ReadOnlySpan<ushort> colors,
+        int bitDepth,
+        int minimumDelta)
+    {
+        if (colors.IsEmpty)
+        {
+            return 0;
+        }
+
+        int bitCount = bitDepth;
+        if (colors.Length == 1)
+        {
+            return bitCount;
+        }
+
+        int maximumDelta = 0;
+        for (int i = 1; i < colors.Length; i++)
+        {
+            maximumDelta = Math.Max(maximumDelta, colors[i] - colors[i - 1]);
+        }
+
+        int minimumBits = bitDepth - 3;
+        int bits = Math.Max(
+            (int)Av1Math.CeilLog2((uint)(maximumDelta + 1 - minimumDelta)),
+            minimumBits);
+
+        int range = (1 << bitDepth) - colors[0] - minimumDelta;
+        bitCount += 2;
+        for (int i = 1; i < colors.Length; i++)
+        {
+            int delta = colors[i] - colors[i - 1];
+            bitCount += bits;
+            range -= delta;
+            bits = Math.Min(bits, (int)Av1Math.CeilLog2((uint)range));
+        }
+
+        return bitCount;
+    }
+
+    /// <summary>
+    /// Writes an ascending palette-color sequence as one literal followed by bounded deltas.
+    /// </summary>
+    /// <param name="output">The tile buffer that the caller read once. A write that grows the buffer replaces it.</param>
+    /// <param name="colors">The sorted colors.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    /// <param name="minimumDelta">The minimum representable difference between adjacent colors.</param>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    private void WriteDeltaEncodedColors<TOperation>(
+        ref Span<byte> output,
+        scoped ReadOnlySpan<ushort> colors,
+        int bitDepth,
+        int minimumDelta)
+        where TOperation : struct, ISymbolOperation
+    {
+        if (colors.IsEmpty)
+        {
+            return;
+        }
+
+        this.WriteLiteral<TOperation>(ref output, colors[0], bitDepth);
+        if (colors.Length == 1)
+        {
+            return;
+        }
+
+        int maximumDelta = 0;
+        for (int i = 1; i < colors.Length; i++)
+        {
+            maximumDelta = Math.Max(maximumDelta, colors[i] - colors[i - 1]);
+        }
+
+        int minimumBits = bitDepth - 3;
+        int bits = Math.Max(
+            (int)Av1Math.CeilLog2((uint)(maximumDelta + 1 - minimumDelta)),
+            minimumBits);
+
+        this.WriteLiteral<TOperation>(ref output, (uint)(bits - minimumBits), 2);
+        int range = (1 << bitDepth) - colors[0] - minimumDelta;
+        for (int i = 1; i < colors.Length; i++)
+        {
+            int delta = colors[i] - colors[i - 1];
+            this.WriteLiteral<TOperation>(ref output, (uint)(delta - minimumDelta), bits);
+            range -= delta;
+            bits = Math.Min(bits, (int)Av1Math.CeilLog2((uint)range));
+        }
+    }
+
+    /// <summary>
+    /// Gets the bit width required by wrapped V-plane palette deltas.
+    /// </summary>
+    /// <param name="colors">The V-plane colors in U-palette order.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    /// <param name="zeroCount">The number of deltas that omit a sign bit.</param>
+    /// <param name="minimumBits">The minimum permitted delta width.</param>
+    /// <returns>The delta width in bits.</returns>
+    private static int GetPaletteVDeltaBitCount(
+        ReadOnlySpan<ushort> colors,
+        int bitDepth,
+        out int zeroCount,
+        out int minimumBits)
+    {
+        int sampleRange = 1 << bitDepth;
+        int maximumDelta = 0;
+        zeroCount = 0;
+        minimumBits = bitDepth - 4;
+        for (int i = 1; i < colors.Length; i++)
+        {
+            int delta = Math.Abs(colors[i] - colors[i - 1]);
+            int wrappedDelta = Math.Min(delta, sampleRange - delta);
+            maximumDelta = Math.Max(maximumDelta, wrappedDelta);
+            if (wrappedDelta == 0)
+            {
+                zeroCount++;
+            }
+        }
+
+        return Math.Max((int)Av1Math.CeilLog2((uint)(maximumDelta + 1)), minimumBits);
+    }
+
+    /// <summary>
+    /// Emits symbols and literals and reports no estimated rate.
+    /// </summary>
+    public readonly struct SymbolWriteOperation : ISymbolOperation
+    {
+        /// <inheritdoc/>
+        public static bool WritesOutput => true;
+
+        /// <inheritdoc/>
+        public static int ProcessSymbol(
+            ref Av1SymbolWriter writer,
+            ref Span<byte> output,
+            int symbol,
+            Av1Distribution distribution)
+        {
+            writer.WriteSymbol(ref output, symbol, distribution);
+            return 0;
+        }
+
+        /// <inheritdoc/>
+        public static int ProcessSymbol(ref Av1SymbolWriter writer, ref Span<byte> output, bool symbol, Av1Distribution distribution)
+            => ProcessSymbol(ref writer, ref output, symbol ? 1 : 0, distribution);
+
+        /// <inheritdoc/>
+        public static int ProcessBoolean(ref Av1SymbolWriter writer, ref Span<byte> output, bool value, uint frequency)
+        {
+            writer.WriteBoolean(ref output, value, frequency);
+            return 0;
+        }
+
+        /// <inheritdoc/>
+        public static int ProcessLiteral(
+            ref Av1SymbolWriter writer,
+            ref Span<byte> output,
+            uint value,
+            int bitCount)
+        {
+            writer.WriteLiteral(ref output, value, bitCount);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Updates adaptive probabilities without emitting symbols or literals.
+    /// </summary>
+    public readonly struct SymbolUpdateOperation : ISymbolOperation
+    {
+        /// <inheritdoc/>
+        public static bool WritesOutput => false;
+
+        /// <inheritdoc/>
+        public static int ProcessSymbol(
+            ref Av1SymbolWriter writer,
+            ref Span<byte> output,
+            int symbol,
+            Av1Distribution distribution)
+        {
+            writer.UpdateSymbol(symbol, distribution);
+            return 0;
+        }
+
+        /// <inheritdoc/>
+        public static int ProcessSymbol(ref Av1SymbolWriter writer, ref Span<byte> output, bool symbol, Av1Distribution distribution)
+            => ProcessSymbol(ref writer, ref output, symbol ? 1 : 0, distribution);
+
+        /// <inheritdoc/>
+        public static int ProcessBoolean(ref Av1SymbolWriter writer, ref Span<byte> output, bool value, uint frequency)
+            => 0;
+
+        /// <inheritdoc/>
+        public static int ProcessLiteral(ref Av1SymbolWriter writer, ref Span<byte> output, uint value, int bitCount)
+            => 0;
+    }
+
+    /// <summary>
+    /// Measures coefficient syntax against the live tile distributions without changing them.
+    /// </summary>
+    private readonly struct CoefficientCostOperation : ISymbolOperation
+    {
+        /// <inheritdoc/>
+        public static bool WritesOutput => false;
+
+        /// <inheritdoc/>
+        public static int ProcessSymbol(
+            ref Av1SymbolWriter writer,
+            ref Span<byte> output,
+            int symbol,
+            Av1Distribution distribution)
+            => Av1ProbabilityCost.GetSymbolCost(distribution, symbol);
+
+        /// <inheritdoc/>
+        public static int ProcessSymbol(ref Av1SymbolWriter writer, ref Span<byte> output, bool symbol, Av1Distribution distribution)
+            => ProcessSymbol(ref writer, ref output, symbol ? 1 : 0, distribution);
+
+        /// <inheritdoc/>
+        public static int ProcessBoolean(ref Av1SymbolWriter writer, ref Span<byte> output, bool value, uint frequency)
+            => Av1ProbabilityCost.GetSymbolCost((int)(value ? frequency : Av1Distribution.ProbabilityTop - frequency));
+
+        /// <inheritdoc/>
+        public static int ProcessLiteral(
+            ref Av1SymbolWriter writer,
+            ref Span<byte> output,
+            uint value,
+            int bitCount)
+            => Av1ProbabilityCost.GetLiteralCost(bitCount);
+    }
+
+    /// <summary>
+    /// Emits palette-map syntax and reports no estimated rate.
+    /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    private readonly struct PaletteColorMapWriteOperation<TOperation> : IPaletteColorMapOperation
+        where TOperation : struct, ISymbolOperation
+    {
+        /// <inheritdoc/>
+        public static bool RetainsTokens => false;
+
+        /// <inheritdoc/>
+        public static int ProcessFirstIndex(
+            Av1SymbolEncoder encoder,
+            ref Span<byte> output,
+            int paletteSize,
+            int colorIndex)
+        {
+            encoder.WriteUniform<TOperation>(ref output, paletteSize, colorIndex);
+            return 0;
+        }
+
+        /// <inheritdoc/>
+        public static int ProcessColorIndex(
+            Av1SymbolEncoder encoder,
+            ref Span<byte> output,
+            scoped Av1ModeCosts modeCosts,
+            int paletteSize,
+            Av1PlaneType planeType,
+            int colorContext,
+            int colorOrderIndex)
+        {
+            encoder.WritePaletteColorIndex<TOperation>(
+                ref output,
+                colorOrderIndex,
+                paletteSize,
+                colorContext,
+                planeType);
+
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Retains color tokens while adapting the selected palette distributions.
+    /// </summary>
+    private readonly struct PaletteColorMapTokenOperation : IPaletteColorMapOperation
+    {
+        /// <inheritdoc/>
+        public static bool RetainsTokens => true;
+
+        /// <inheritdoc/>
+        public static int ProcessFirstIndex(Av1SymbolEncoder encoder, ref Span<byte> output, int paletteSize, int colorIndex)
+            => 0;
+
+        /// <inheritdoc/>
+        public static int ProcessColorIndex(
+            Av1SymbolEncoder encoder,
+            ref Span<byte> output,
+            scoped Av1ModeCosts modeCosts,
+            int paletteSize,
+            Av1PlaneType planeType,
+            int colorContext,
+            int colorOrderIndex)
+        {
+            encoder.WritePaletteColorIndex<SymbolUpdateOperation>(ref output, colorOrderIndex, paletteSize, colorContext, planeType);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Measures palette-map syntax against the live tile distributions without changing them.
+    /// </summary>
+    private readonly struct PaletteColorMapCostOperation : IPaletteColorMapOperation
+    {
+        /// <inheritdoc/>
+        public static bool RetainsTokens => false;
+
+        /// <inheritdoc/>
+        public static int ProcessFirstIndex(
+            Av1SymbolEncoder encoder,
+            ref Span<byte> output,
+            int paletteSize,
+            int colorIndex)
+            => GetUniformCost(paletteSize, colorIndex);
+
+        /// <inheritdoc/>
+        public static int ProcessColorIndex(
+            Av1SymbolEncoder encoder,
+            ref Span<byte> output,
+            scoped Av1ModeCosts modeCosts,
+            int paletteSize,
+            Av1PlaneType planeType,
+            int colorContext,
+            int colorOrderIndex)
+            => planeType == Av1PlaneType.Y
+                ? modeCosts.GetPaletteYColorIndex(paletteSize - 2, colorContext, colorOrderIndex)
+                : modeCosts.GetPaletteUvColorIndex(paletteSize - 2, colorContext, colorOrderIndex);
+    }
+}

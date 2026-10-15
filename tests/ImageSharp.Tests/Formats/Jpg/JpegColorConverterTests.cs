@@ -210,13 +210,14 @@ public class JpegColorConverterTests
             _ => CompactSrgbV4Profile.Profile,
         };
 
-        converter.ConvertToRgbInPlaceWithIcc(Configuration.Default, actual, profile);
         ColorConversionOptions options = new()
         {
             SourceIccProfile = profile,
             TargetIccProfile = CompactSrgbV4Profile.Profile,
         };
 
+        // The converter under test gets its own instance, so the reference below uses independently built transforms.
+        converter.ConvertToRgbInPlaceWithIcc(Configuration.Default, actual, new ColorProfileConverter(options));
         ColorProfileConverter profileConverter = new(options);
         ColorProfileConverter modelConverter = new();
         float maximumValue = MathF.Pow(2, precision) - 1;

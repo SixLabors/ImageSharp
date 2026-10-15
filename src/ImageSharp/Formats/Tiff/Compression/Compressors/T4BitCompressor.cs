@@ -32,6 +32,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         /// <inheritdoc/>
         public override TiffCompression Method => this.useModifiedHuffman ? TiffCompression.Ccitt1D : TiffCompression.CcittGroup3Fax;
 
+        /// <inheritdoc />
+        protected override long GetMaximumEncodedBits(int rowsPerStrip)
+        {
+            // A pixel can require a 13-bit terminating code. Each row can also require
+            // an 8-bit zero-length white run and a 12-bit EOL, plus the initial EOL.
+            return 12L + ((((long)this.Width * 13) + 20) * rowsPerStrip);
+        }
+
         /// <summary>
         /// Writes a image compressed with CCITT T4 to the output buffer.
         /// </summary>

@@ -319,7 +319,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             {
                 if (this.CurValueBitsRead > this.maxCodeLength)
                 {
-                    TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error: invalid code length read");
+                    TiffThrowHelper.ThrowImageFormatException("CCITT compression parsing error: invalid code length read.");
                 }
 
                 bool isMakeupCode = this.IsMakeupCode();
@@ -404,7 +404,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
                 if (!this.IsEndOfScanLine)
                 {
-                    TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error: expected start of data marker not found");
+                    TiffThrowHelper.ThrowImageFormatException("CCITT compression parsing error: expected start of data marker not found.");
                 }
 
                 this.Reset();

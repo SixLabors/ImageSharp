@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -27,5 +28,9 @@ namespace SixLabors.ImageSharp.Memory
         public InvalidMemoryOperationException()
         {
         }
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        internal static void ThrowAllocationOverLimitException(ulong length, long limit) =>
+            throw new InvalidMemoryOperationException($"Attempted to allocate a buffer of length={length} that exceeded the limit {limit}.");
     }
 }

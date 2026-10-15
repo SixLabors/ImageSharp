@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
@@ -1199,6 +1200,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void ReadInfoHeader()
         {
             Span<byte> buffer = stackalloc byte[BmpInfoHeader.MaxHeaderSize];
+            long infoHeaderStart = stream.Position;
 
             // Read the header size.
             this.stream.Read(buffer, 0, BmpInfoHeader.HeaderSizeSize);
@@ -1271,11 +1273,37 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 infoHeaderType = BmpInfoHeaderType.Os2Version2;
                 this.infoHeader = BmpInfoHeader.ParseOs2Version2(buffer);
             }
-            else if (headerSize >= BmpInfoHeader.SizeV4)
+            else if (headerSize == BmpInfoHeader.SizeV4)
             {
-                // >= 108 bytes
-                infoHeaderType = headerSize == BmpInfoHeader.SizeV4 ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion5;
+                // == 108 bytes
+                infoHeaderType = BmpInfoHeaderType.WinVersion4;
                 this.infoHeader = BmpInfoHeader.ParseV4(buffer);
+            }
+            else if (headerSize > BmpInfoHeader.SizeV4)
+            {
+                // > 108 bytes
+                infoHeaderType = BmpInfoHeaderType.WinVersion5;
+                this.infoHeader = BmpInfoHeader.ParseV5(buffer);
+                if (this.infoHeader.ProfileData != 0 && this.infoHeader.ProfileSize != 0)
+                {
+                    // Read color profile.
+                    long streamPosition = this.stream.Position;
+                    long profileStart = infoHeaderStart + this.infoHeader.ProfileData;
+
+                    // Validate the external offset and size before allocating. Subtraction avoids
+                    // overflowing an end offset calculated from the declared profile size.
+                    if (this.infoHeader.ProfileData < 0 || this.infoHeader.ProfileSize <= 0 ||
+                        profileStart > this.stream.Length || this.infoHeader.ProfileSize > this.stream.Length - profileStart)
+                    {
+                        BmpThrowHelper.ThrowInvalidImageContentException("Not enough data to read BMP ICC profile.");
+                    }
+
+                    byte[] iccProfileData = new byte[this.infoHeader.ProfileSize];
+                    this.stream.Position = profileStart;
+                    _ = this.stream.Read(iccProfileData);
+                    this.metadata.IccProfile = new IccProfile(iccProfileData);
+                    this.stream.Position = streamPosition;
+                }
             }
             else
             {

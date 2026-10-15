@@ -79,9 +79,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// A bitmap v4 header will only be written, if the user explicitly wants support for transparency.
         /// In this case the compression type BITFIELDS will be used.
+        /// If the image contains a color profile, a bitmap v5 header is written, which is needed to write this info.
         /// Otherwise a bitmap v3 header will be written, which is supported by almost all decoders.
         /// </summary>
-        private readonly bool writeV4Header;
+        private BmpInfoHeaderType infoHeaderType;
 
         /// <summary>
         /// The quantizer for reducing the color count for 8-Bit, 4-Bit and 1-Bit images.
@@ -97,7 +98,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             this.memoryAllocator = memoryAllocator;
             this.bitsPerPixel = options.BitsPerPixel;
-            this.writeV4Header = options.SupportTransparency;
+            this.infoHeaderType = options.SupportTransparency ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion3;
             this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
         }
 
@@ -154,7 +155,23 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 }
             }
 
-            int infoHeaderSize = this.writeV4Header ? BmpInfoHeader.SizeV4 : BmpInfoHeader.SizeV3;
+            byte[]? iccProfileData = null;
+            int iccProfileSize = 0;
+            if (metadata.IccProfile != null)
+            {
+                this.infoHeaderType = BmpInfoHeaderType.WinVersion5;
+                iccProfileData = metadata.IccProfile.ToByteArray();
+                iccProfileSize = iccProfileData.Length;
+            }
+
+            int infoHeaderSize = this.infoHeaderType switch
+            {
+                BmpInfoHeaderType.WinVersion3 => BmpInfoHeader.SizeV3,
+                BmpInfoHeaderType.WinVersion4 => BmpInfoHeader.SizeV4,
+                BmpInfoHeaderType.WinVersion5 => BmpInfoHeader.SizeV5,
+                _ => BmpInfoHeader.SizeV3
+            };
+
             var infoHeader = new BmpInfoHeader(
                 headerSize: infoHeaderSize,
                 height: image.Height,
@@ -167,7 +184,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 xPelsPerMeter: hResolution,
                 yPelsPerMeter: vResolution);
 
-            if (this.writeV4Header && this.bitsPerPixel == BmpBitsPerPixel.Pixel32)
+            if ((this.infoHeaderType is BmpInfoHeaderType.WinVersion4 or BmpInfoHeaderType.WinVersion5) && this.bitsPerPixel == BmpBitsPerPixel.Pixel32)
             {
                 infoHeader.AlphaMask = Rgba32AlphaMask;
                 infoHeader.RedMask = Rgba32RedMask;
@@ -175,6 +192,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 infoHeader.BlueMask = Rgba32BlueMask;
                 infoHeader.Compression = BmpCompression.BitFields;
             }
+
+            if (this.infoHeaderType is BmpInfoHeaderType.WinVersion5 && iccProfileData != null)
+            {
+                infoHeader.ProfileSize = iccProfileData.Length;
+                infoHeader.CsType = 1296188740;
+                infoHeader.Intent = BmpRenderingIntent.LCS_GM_IMAGES;
+            }
+
 
             int colorPaletteSize = 0;
             if (this.bitsPerPixel == BmpBitsPerPixel.Pixel8)
@@ -201,7 +226,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             stream.Write(buffer, 0, BmpFileHeader.Size);
 
-            if (this.writeV4Header)
+            if (this.infoHeaderType == BmpInfoHeaderType.WinVersion5)
+            {
+                infoHeader.WriteV5Header(buffer);
+            }
+            else if (this.infoHeaderType == BmpInfoHeaderType.WinVersion4)
             {
                 infoHeader.WriteV4Header(buffer);
             }

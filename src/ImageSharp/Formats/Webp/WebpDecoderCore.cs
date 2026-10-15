@@ -541,10 +541,26 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 else
                 {
                     // Skip duplicate XMP or EXIF chunk.
-                    uint chunkLength = this.ReadChunkSize();
+                    int chunkLength = ValidateMetadataChunkSize(this.currentStream, this.ReadChunkSize());
                     this.currentStream.Skip((int)chunkLength);
                 }
             }
+        }
+
+        /// <summary>
+        /// Validates a metadata extent before allocating or skipping its payload.
+        /// </summary>
+        /// <param name="stream">The stream positioned at the payload.</param>
+        /// <param name="chunkSize">The declared size including padding.</param>
+        /// <returns>The size supported by the array and stream read APIs.</returns>
+        public static int ValidateMetadataChunkSize(Stream stream, uint chunkSize)
+        {
+            if (chunkSize > int.MaxValue || chunkSize > stream.Length - stream.Position)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the metadata chunk.");
+            }
+
+            return (int)chunkSize;
         }
 
         /// <summary>
@@ -553,6 +569,13 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private void ReadExifProfile()
         {
             uint exifChunkSize = this.ReadChunkSize();
+            if (exifChunkSize > int.MaxValue || exifChunkSize > this.currentStream.Length - this.currentStream.Position)
+            {
+                // Preserve v3's recovery from truncated EXIF without allocating its declared size.
+                this.currentStream.Position = this.currentStream.Length;
+                return;
+            }
+
             if (this.IgnoreMetadata)
             {
                 this.currentStream.Skip((int)exifChunkSize);
@@ -578,6 +601,13 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private void ReadXmpProfile()
         {
             uint xmpChunkSize = this.ReadChunkSize();
+            if (xmpChunkSize > int.MaxValue || xmpChunkSize > this.currentStream.Length - this.currentStream.Position)
+            {
+                // Preserve v3's recovery from truncated XMP without allocating its declared size.
+                this.currentStream.Position = this.currentStream.Length;
+                return;
+            }
+
             if (this.IgnoreMetadata)
             {
                 this.currentStream.Skip((int)xmpChunkSize);
@@ -602,15 +632,15 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// </summary>
         private void ReadIccProfile()
         {
-            uint iccpChunkSize = this.ReadChunkSize();
+            int iccpChunkSize = ValidateMetadataChunkSize(this.currentStream, this.ReadChunkSize());
             if (this.IgnoreMetadata)
             {
-                this.currentStream.Skip((int)iccpChunkSize);
+                this.currentStream.Skip(iccpChunkSize);
             }
             else
             {
                 byte[] iccpData = new byte[iccpChunkSize];
-                int bytesRead = this.currentStream.Read(iccpData, 0, (int)iccpChunkSize);
+                int bytesRead = this.currentStream.Read(iccpData, 0, iccpChunkSize);
                 if (bytesRead != iccpChunkSize)
                 {
                     WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the iccp chunk");
@@ -651,6 +681,11 @@ namespace SixLabors.ImageSharp.Formats.Webp
             if (this.currentStream.Read(this.buffer, 0, 4) == 4)
             {
                 uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
+                if (chunkSize == uint.MaxValue)
+                {
+                    // The mandatory padding byte cannot fit in the returned 32-bit extent.
+                    WebpThrowHelper.ThrowInvalidImageContentException("Invalid WebP chunk size.");
+                }
                 return (chunkSize % 2 == 0) ? chunkSize : chunkSize + 1;
             }
 

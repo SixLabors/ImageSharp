@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
                 if (bitReader.RunLength > 0)
                 {
-                    this.WritePixelRun(buffer, bitReader, bitsWritten);
+                    this.WritePixelRun(buffer, bitReader, bitsWritten, pixelWritten);
 
                     bitsWritten += bitReader.RunLength;
                     pixelWritten += bitReader.RunLength;
@@ -96,12 +96,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             if (pixelWritten > 0 && pixelWritten < this.width)
             {
                 bitReader.ReadNextRun();
-                this.WritePixelRun(buffer, bitReader, bitsWritten);
+                this.WritePixelRun(buffer, bitReader, bitsWritten, pixelWritten);
             }
         }
 
-        private void WritePixelRun(Span<byte> buffer, T4BitReader bitReader, uint bitsWritten)
+        private void WritePixelRun(Span<byte> buffer, T4BitReader bitReader, uint bitsWritten, nuint pixelsWritten)
         {
+            // A decoded run is untrusted and must fit the current row before the unchecked bit writer is used.
+            if (bitReader.RunLength > (nuint)this.width - pixelsWritten)
+            {
+                TiffThrowHelper.ThrowImageFormatException("CCITT compression parsing error: decoded more pixels than the image width.");
+            }
+
             if (bitReader.IsWhiteRun)
             {
                 BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.whiteValue);

@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.DotNet.XUnitExtensions;
 using SixLabors.ImageSharp.Formats.Bmp;
@@ -38,6 +39,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             { V5Header, 3780, 3780, PixelResolutionUnit.PixelsPerMeter },
             { RLE8, 2835, 2835, PixelResolutionUnit.PixelsPerMeter }
         };
+
+        /// <summary>
+        /// Rejects the reported BMP profile extent before allocating its declared size.
+        /// </summary>
+        [Fact]
+        public void Decode_WithProfileLargerThanRemainingData_ThrowsInvalidImageContentException()
+        {
+            const string hexString = "424D8E000000000000008A0000007C0000000100000001000000010018000000" +
+                                     "0000000000000000000000000000000000000000000000000000000000000000" +
+                                     "0000000000000000000000000000000000000000000000000000000000000000" +
+                                     "000000000000000000000000000000000000000000000000000000000000C800" +
+                                     "00000000004000000000000000";
+#if NET5_0_OR_GREATER
+            byte[] payload = Convert.FromHexString(hexString);
+#else
+            byte[] payload = Enumerable.Range(0, hexString.Length)
+                .Where(x => x % 2 == 0)
+                .Select(x => Convert.ToByte(hexString.Substring(x, 2), 16))
+                .ToArray();
+#endif
+
+            Assert.Throws<InvalidImageContentException>(() => Image.Load(payload));
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(payload));
+        }
 
         [Theory]
         [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32)]

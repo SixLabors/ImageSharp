@@ -16,6 +16,13 @@ namespace SixLabors.ImageSharp.Formats.Png
             => throw new InvalidImageContentException(errorMessage, innerException);
 
         [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowInvalidImageContentException(string errorMessage)
+            => throw new InvalidImageContentException(errorMessage);
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowInvalidHeader() => throw new InvalidImageContentException("PNG Image must contain a header chunk and it must be located before any other chunks.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowNoHeader() => throw new InvalidImageContentException("PNG Image does not contain a header chunk");
 
         [MethodImpl(InliningOptions.ColdPath)]

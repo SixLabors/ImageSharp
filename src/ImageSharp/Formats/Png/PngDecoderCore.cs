@@ -476,7 +476,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 metadata);
 
             this.bytesPerPixel = this.CalculateBytesPerPixel();
-            this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
+            this.bytesPerScanline = CalculateScanlineLength(this.header.Width, this.header.BitDepth, this.bytesPerPixel) + 1;
             this.bytesPerSample = 1;
             if (this.header.BitDepth >= 8)
             {
@@ -542,21 +542,29 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Calculates the scanline length.
         /// </summary>
         /// <param name="width">The width of the row.</param>
+        /// <param name="bitDepth">The number of bits per sample.</param>
+        /// <param name="bytesPerPixel">The number of bytes per pixel.</param>
         /// <returns>
         /// The <see cref="int"/> representing the length.
         /// </returns>
-        private int CalculateScanlineLength(int width)
+        internal static int CalculateScanlineLength(int width, int bitDepth, int bytesPerPixel)
         {
-            int mod = this.header.BitDepth == 16 ? 16 : 8;
-            int scanlineLength = width * this.header.BitDepth * this.bytesPerPixel;
+            int mod = bitDepth == 16 ? 16 : 8;
+            long scanlineLength = (long)width * bitDepth * bytesPerPixel;
 
-            int amount = scanlineLength % mod;
+            long amount = scanlineLength % mod;
             if (amount != 0)
             {
                 scanlineLength += mod - amount;
             }
 
-            return scanlineLength / mod;
+            scanlineLength /= mod;
+            if (scanlineLength >= int.MaxValue)
+            {
+                PngThrowHelper.ThrowInvalidImageContentException("PNG scanline length exceeds the supported maximum.");
+            }
+
+            return (int)scanlineLength;
         }
 
         /// <summary>
@@ -675,7 +683,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     continue;
                 }
 
-                int bytesPerInterlaceScanline = this.CalculateScanlineLength(numColumns) + 1;
+                int bytesPerInterlaceScanline = CalculateScanlineLength(numColumns, this.header.BitDepth, this.bytesPerPixel) + 1;
 
                 while (this.currentRow < this.header.Height)
                 {
@@ -993,6 +1001,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="data">The <see cref="T:ReadOnlySpan{byte}"/> containing data.</param>
         private void ReadHeaderChunk(PngMetadata pngMetadata, ReadOnlySpan<byte> data)
         {
+            if (!Equals(this.header, default(PngHeader)))
+            {
+                PngThrowHelper.ThrowInvalidHeader();
+            }
             this.header = PngHeader.Parse(data);
 
             this.header.Validate();

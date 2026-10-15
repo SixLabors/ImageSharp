@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -16,6 +17,29 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
     public class WebpMetaDataTests
     {
         private static WebpDecoder WebpDecoder => new() { IgnoreMetadata = false };
+
+        /// <summary>
+        /// Rejects ICC payload sizes that cannot be read before allocating the profile.
+        /// </summary>
+        /// <param name="hex">The reported malformed WebP file.</param>
+        [Theory]
+        [InlineData("524946462200000057454250565038580A0000002000000000000000000049434350FEFFFFFF01020304")]
+        [InlineData("524946460000000057454250565038580A00000020000000010000010000494343500000004000000000")]
+        [InlineData("524946462200000057454250565038580A0000002000000000000000000049434350FFFFFFFF01020304")]
+        public void DecodeAndIdentify_WithInvalidIccExtent_ThrowInvalidImageContentException(string hex)
+        {
+#if NET5_0_OR_GREATER
+            byte[] payload = Convert.FromHexString(hex);
+#else
+            byte[] payload = Enumerable.Range(0, hex.Length)
+                .Where(x => x % 2 == 0)
+                .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
+                .ToArray();
+#endif
+
+            Assert.Throws<InvalidImageContentException>(() => Image.Load(payload));
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(payload));
+        }
 
         [Theory]
         [WithFile(TestImages.Webp.Lossy.WithExif, PixelTypes.Rgba32, false)]

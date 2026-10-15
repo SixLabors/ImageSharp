@@ -402,10 +402,8 @@ internal static class JxlHeuristics
         int width = image1.XSize;
         int height = image1.YSize;
 
-        if (width != image2.XSize ||
-            width != output.XSize ||
-            height != image2.YSize ||
-            height != output.YSize)
+        if (width != image2.XSize || width != output.XSize ||
+            height != image2.YSize || height != output.YSize)
         {
             throw new InvalidOperationException("Each plane must have equal sizes");
         }

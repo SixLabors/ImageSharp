@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
@@ -281,7 +282,6 @@ internal static class JxlAcStrategyEncoder
         Span<float> cmapFactors,
         Span<float> block,
         Span<float> fullScratchSpace,
-        Span<uint> quantized,
         out float entropy)
     {
         entropy = 0;
@@ -522,7 +522,6 @@ internal static class JxlAcStrategyEncoder
         Span<float> contextMapFactors,
         Span<float> block,
         Span<float> scratchSpace,
-        Span<uint> quantized,
         out float entropyOut,
         out JxlAcStrategyType bestTx)
     {
@@ -570,7 +569,6 @@ internal static class JxlAcStrategyEncoder
                 contextMapFactors,
                 block,
                 scratchSpace,
-                quantized,
                 out float entropy))
             {
                 throw new InvalidOperationException("Failed to estimate entropy");
@@ -584,6 +582,287 @@ internal static class JxlAcStrategyEncoder
         }
 
         entropyOut = (float)best;
+    }
+
+    public static bool TryMergeAcStrategy(
+        JxlAcStrategyType acsRaw,
+        int bx,
+        int by,
+        int cx,
+        int cy,
+        JxlAcStrategyConfiguration config,
+        Span<float> cmapFactors,
+        JxlAcStrategyImage acStrategy,
+        float entropyMul,
+        byte candidatePriority,
+        Span<byte> priority,
+        Span<float> entropyEstimate,
+        Span<float> block,
+        Span<float> scratchSpace,
+        Span<uint> quantized)
+    {
+        JxlAcStrategy acs = new(acsRaw);
+        float currentEntropy = 0;
+
+        for (int iy = 0; iy < acs.CoveredBlocksY; ++iy)
+        {
+            for (int ix = 0; ix < acs.CoveredBlocksX; ++ix)
+            {
+                if (priority[((cy + iy) * 8) + (cx + ix)] >= candidatePriority)
+                {
+                    // Transform would reuse already allocated blocks and
+                    // lead to invalid overlaps, for example DCT64X32 vs.
+                    // DCT32X64.
+                    return true;
+                }
+
+                currentEntropy += entropyEstimate[((cy + iy) * 8) + (cx + ix)];
+            }
+        }
+
+        if (!EstimateEntropy(
+            acs,
+            entropyMul,
+            (bx + cx) * 8,
+            (by + cy) * 8,
+            config,
+            cmapFactors,
+            block,
+            scratchSpace,
+            out float entropyCandidate))
+        {
+            return false;
+        }
+
+        if (entropyCandidate >= currentEntropy)
+        {
+            return true;
+        }
+
+        for (int iy = 0; iy < acs.CoveredBlocksY; iy++)
+        {
+            for (int ix = 0; ix < acs.CoveredBlocksX; ix++)
+            {
+                entropyEstimate[((cy + iy) * 8) + cx + ix] = 0;
+                priority[((cy + iy) * 8) + cx + ix] = candidatePriority;
+            }
+        }
+
+        if (!acStrategy.Set(bx + cx, by + cy, acsRaw))
+        {
+            return false;
+        }
+
+        entropyEstimate[(cy * 8) + cx] = entropyCandidate;
+        return true;
+    }
+
+    public static bool FindBestFirstLevelDivisionForSquare(
+        int blocks,
+        bool allowSquareTransform,
+        int bx,
+        int by,
+        int cx,
+        int cy,
+        JxlAcStrategyConfiguration config,
+        Span<float> cmapFactors,
+        JxlAcStrategyImage acStrategy,
+        float entropyMulJXK,
+        float entropyMulJXJ,
+        Span<float> entropyEstimate,
+        Span<float> block,
+        Span<float> scratchSpace,
+        ref int quantized)
+    {
+        int blocksHalf = blocks / 2;
+        JxlAcStrategyType acsRawJXK = AcsVerticalSplit(blocks);
+        JxlAcStrategyType acsRawKXJ = AcsHorizontalSplit(blocks);
+        JxlAcStrategyType acsRawJXJ = AcsSquare(blocks);
+        JxlAcStrategy acsJXK = new(acsRawJXK);
+        JxlAcStrategy acsKXJ = new(acsRawKXJ);
+        JxlAcStrategy acsJXJ = new(acsRawJXJ);
+        JxlAcStrategyRow row0 = acStrategy.GetRow(by + cy + 0);
+        JxlAcStrategyRow row1 = acStrategy.GetRow(by + cy + blocksHalf);
+
+        if (MultiBlockTransformCrossesHorizontalBoundary(acStrategy, bx + cx, by + cy, bx + cx + blocks) ||
+            MultiBlockTransformCrossesHorizontalBoundary(acStrategy, bx + cx, by + cy + blocks, bx + cx + blocks) ||
+            MultiBlockTransformCrossesVerticalBoundary(acStrategy, bx + cx, by + cy, by + cy + blocks) ||
+            MultiBlockTransformCrossesVerticalBoundary(acStrategy, bx + cx + blocks, by + cy, by + cy + blocks))
+        {
+            return true;
+        }
+
+        bool allowJXK = !MultiBlockTransformCrossesVerticalBoundary(acStrategy, bx + cx + blocksHalf, by + cy, by + cy + blocks);
+        bool allowKXJ = !MultiBlockTransformCrossesHorizontalBoundary(acStrategy, bx + cx, by + cy + blocksHalf, bx + cx + blocks);
+
+        InlineArray2<InlineArray2<float>> entropy = default;
+
+        for (int dy = 0; dy < blocks; ++dy)
+        {
+            for (int dx = 0; dx < blocks; ++dx)
+            {
+                entropy[dy / blocksHalf][dx / blocksHalf] += entropyEstimate[((cy + dy) * 8) + (cx + dx)];
+            }
+        }
+
+        float entropyJXKLeft = float.MaxValue;
+        float entropyJXKRight = float.MaxValue;
+        float entropyKXJTop = float.MaxValue;
+        float entropyKXJBottom = float.MaxValue;
+        float entropyJXJ = float.MaxValue;
+
+        if (allowJXK)
+        {
+            if (row0[bx + cx + 0].Strategy != acsRawJXK)
+            {
+                if (!EstimateEntropy(
+                    acsJXK,
+                    entropyMulJXK,
+                    (bx + cx + 0) * 8,
+                    (by + cy + 0) * 8,
+                    config,
+                    cmapFactors,
+                    block,
+                    scratchSpace,
+                    out entropyJXKLeft))
+                {
+                    return false;
+                }
+            }
+
+            if (row0[bx + cx + blocksHalf].Strategy != acsRawJXK)
+            {
+                if (!EstimateEntropy(
+                    acsJXK,
+                    entropyMulJXK,
+                    (bx + cx + blocksHalf) * 8,
+                    (by + cy + 0) * 8,
+                    config,
+                    cmapFactors,
+                    block,
+                    scratchSpace,
+                    out entropyJXKRight))
+                {
+                    return false;
+                }
+            }
+        }
+
+        if (allowKXJ)
+        {
+            if (row0[bx + cx].Strategy != acsRawKXJ)
+            {
+                if (!EstimateEntropy(
+                    acsKXJ,
+                    entropyMulJXK,
+                    (bx + cx + 0) * 8,
+                    (by + cy + 0) * 8,
+                    config,
+                    cmapFactors,
+                    block,
+                    scratchSpace,
+                    out entropyKXJTop))
+                {
+                    return false;
+                }
+            }
+
+            if (row1[bx + cx].Strategy != acsRawKXJ)
+            {
+                if (!EstimateEntropy(
+                    acsKXJ,
+                    entropyMulJXK,
+                    (bx + cx + 0) * 8,
+                    (by + cy + blocksHalf) * 8,
+                    config,
+                    cmapFactors,
+                    block,
+                    scratchSpace,
+                    out entropyKXJBottom))
+                {
+                    return false;
+                }
+            }
+        }
+
+        if (allowSquareTransform)
+        {
+            if (!EstimateEntropy(
+                acsJXJ,
+                entropyMulJXJ,
+                (bx + cx + 0) * 8,
+                (by + cy + 0) * 8,
+                config,
+                cmapFactors,
+                block,
+                scratchSpace,
+                out entropyJXJ))
+            {
+                return false;
+            }
+        }
+
+        float costJxN = MathF.Min(entropyJXKLeft, entropy[0][0] + entropy[1][0]) +
+                        MathF.Min(entropyJXKRight, entropy[0][1] + entropy[1][1]);
+
+        float costNxJ = MathF.Min(entropyKXJTop, entropy[0][0] + entropy[0][1]) +
+                        MathF.Min(entropyKXJBottom, entropy[1][0] + entropy[1][1]);
+
+        if (entropyJXJ < costJxN && entropyJXJ < costNxJ)
+        {
+            if (!acStrategy.Set(bx + cx, by + cy, acsRawJXJ))
+            {
+                return false;
+            }
+
+            SetEntropyForTransform(cx, cy, acsRawJXJ, entropyJXJ, entropyEstimate);
+        }
+        else if (costJxN < costNxJ)
+        {
+            if (entropyJXKLeft < entropy[0][0] + entropy[1][0])
+            {
+                if (!acStrategy.Set(bx + cx, by + cy, acsRawJXK))
+                {
+                    return false;
+                }
+
+                SetEntropyForTransform(cx, cy, acsRawJXK, entropyJXKLeft, entropyEstimate);
+            }
+
+            if (entropyJXKRight < entropy[0][1] + entropy[1][1])
+            {
+                if (!acStrategy.Set(bx + cx + blocksHalf, by + cy, acsRawJXK))
+                {
+                    return false;
+                }
+
+                SetEntropyForTransform(cx + blocksHalf, cy, acsRawJXK, entropyJXKRight, entropyEstimate);
+            }
+        }
+        else
+        {
+            if (entropyKXJTop < entropy[0][0] + entropy[0][1])
+            {
+                if (!acStrategy.Set(bx + cx, by + cy, acsRawKXJ))
+                {
+                    return false;
+                }
+
+                SetEntropyForTransform(cx, cy, acsRawKXJ, entropyKXJTop, entropyEstimate);
+            }
+
+            if (entropyKXJBottom < entropy[1][0] + entropy[1][1])
+            {
+                if (!acStrategy.Set(bx + cx, by + cy + blocksHalf, acsRawKXJ))
+                {
+                    return false;
+                }
+
+                SetEntropyForTransform(cx, cy + blocksHalf, acsRawKXJ, entropyKXJBottom, entropyEstimate);
+            }
+        }
+
+        return true;
     }
 
     /// <summary>

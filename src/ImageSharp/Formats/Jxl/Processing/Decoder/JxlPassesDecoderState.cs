@@ -2,10 +2,13 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
+using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.RenderPipeline;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
@@ -20,7 +23,7 @@ internal sealed class JxlPassesDecoderState
         this.MainOutput.Callback = PixelCallback;
         this.MainOutput.Buffer = null;
 
-        this.UndoOrientation = JxlOrientation.Identity;
+        this.UndoOrientation = JxlExifOrientation.Identity;
         this.Upsampler8x = GetUpsamplingImage(configuration, this.Shared.CodecMetadata.CustomTransformData, 0, 3);
 
         if (header.LoopFilter?.EpfIterations > 0)
@@ -63,7 +66,7 @@ internal sealed class JxlPassesDecoderState
 
     public bool UnpremultiplyAlpha { get; set; }
 
-    public JxlOrientation UndoOrientation { get; set; }
+    public JxlExifOrientation UndoOrientation { get; set; }
 
     public int VisibleFrameIndex { get; set; }
 
@@ -78,4 +81,28 @@ internal sealed class JxlPassesDecoderState
     public JxlImageBundle FrameStorageForReferencing { get; set; }
 
     public JxlOutputEncodingInfo OutputEncodingInfo { get; set; } = new();
+
+    public void InitializeForAc(int numPasses)
+    {
+        this.SharedStorage.CoeffOrderSize = 0;
+
+        for (int o = 0; o < JxlAcStrategy.NumberOfValidStrategies; o++)
+        {
+            if (((1 << o) & this.UsedAcs) == 0)
+            {
+                continue;
+            }
+
+            int order = JxlCoefficientOrder.StrategyOrder[o];
+            this.SharedStorage.CoeffOrderSize = Math.Max(
+                JxlCoefficientOrder.CoefficientOrderOffsets[3 * (order + 1)] * JxlFrameDimensions.DctBlockSize,
+                this.SharedStorage.CoeffOrderSize);
+        }
+
+        int sz = numPasses * this.SharedStorage.CoeffOrderSize;
+        if (sz > this.SharedStorage.CoeffOrders.Count)
+        {
+            this.SharedStorage.CoeffOrders.Resize(sz);
+        }
+    }
 }

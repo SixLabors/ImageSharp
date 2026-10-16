@@ -41,4 +41,10 @@ internal sealed class JxlAcStrategyConfiguration(JxlDequantMatrices dequant)
 
     public ref float Pixel(int c, int x, int y)
         => ref this.SourceRows[c].Span[(y * this.SourceStride) + x];
+
+    public Span<float> PixelSpan(int c, int x, int y)
+        => this.SourceRows[c].Span[((y * this.SourceStride) + x)..];
+
+    public ref float Quant(int bx, int by)
+        => ref this.QuantFieldRow.Span[(by * this.QuantFieldStride) + bx];
 }

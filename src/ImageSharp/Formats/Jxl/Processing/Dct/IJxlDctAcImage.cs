@@ -1,9 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
-
-namespace SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
+namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 
 /// <summary>
 /// Base DCT AC coefficient image
@@ -39,6 +37,20 @@ internal interface IJxlDctAcImage
     /// specified by <paramref name="xBase"/>.
     /// </returns>
     public JxlDctAcPointer GetPlaneRow(int channel, int y, int xBase = 0);
+
+    /// <summary>
+    /// Returns a reference to the coefficients at the specified row.
+    /// </summary>
+    /// <param name="channel">The plane index (which channel).</param>
+    /// <param name="y">The row index within plane specified by <paramref name="channel"/>.</param>
+    /// <param name="xBase">The X offset at the specified row.</param>
+    /// <returns>
+    /// A reference to the coefficients inside the channel
+    /// specified by index <paramref name="channel"/>, at index of
+    /// the row specified by <paramref name="y"/>, with X offset
+    /// specified by <paramref name="xBase"/>.
+    /// </returns>
+    public JxlDctAcPointerMemory GetPlaneRowMemory(int channel, int y, int xBase = 0);
 
     /// <summary>
     /// Returns a reference to the coefficients at the specified row.

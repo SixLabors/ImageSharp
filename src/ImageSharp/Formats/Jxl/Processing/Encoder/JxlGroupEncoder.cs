@@ -1,10 +1,15 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Drawing;
 using System.Numerics.Tensors;
+using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
 
@@ -489,5 +494,235 @@ internal static class JxlGroupEncoder
 
             inverseQAc.CopyTo(inOut.Slice(size + k, 64));
         }
+    }
+
+    public static void ComputeCoefficients(Configuration configuration, int groupIndex, JxlPassesEncoderState encoderState, JxlImage3F opsin, Rectangle rectangle, JxlImage3F dc)
+    {
+        Rectangle blockGroupRect = encoderState.Shared.FrameDimensions.BlockGroupRect(groupIndex);
+        Rectangle cmapRect = new(
+            blockGroupRect.X0() / JxlChromaFromLuma.ColorTileDimensionInBlocks,
+            blockGroupRect.Y0() / JxlChromaFromLuma.ColorTileDimensionInBlocks,
+            JxlMath.DivCeil(blockGroupRect.Width, JxlChromaFromLuma.ColorTileDimensionInBlocks),
+            JxlMath.DivCeil(blockGroupRect.Height, JxlChromaFromLuma.ColorTileDimensionInBlocks));
+        Rectangle groupRect = encoderState.Shared.FrameDimensions.GroupRect(groupIndex).Translate(rectangle.X0(), rectangle.Y0());
+
+        int widthBlocks = blockGroupRect.Width;
+        int heightBlocks = blockGroupRect.Height;
+
+        int dcStride = dc.PixelsPerRow;
+        int opsinStride = opsin.PixelsPerRow;
+
+        JxlImageI fullQuantField = encoderState.RawQuantField;
+        JxlCompressParameters cparams = encoderState.CompressParameters;
+
+        int dctScratchSize = 3 * (JxlSimdUtils.MaxVectorSize / sizeof(float)) * JxlAcStrategy.MaximumBlockDimension;
+
+        using IMemoryOwner<int> mem = configuration.MemoryAllocator.Allocate<int>(3 * JxlAcStrategy.MaximumCoefficientArea);
+        using IMemoryOwner<float> fmem = configuration.MemoryAllocator.Allocate<float>((5 * JxlAcStrategy.MaximumCoefficientArea) + dctScratchSize);
+
+        Span<float> scratchSpace = fmem.Memory.Span[(3 * JxlAcStrategy.MaximumCoefficientArea)..];
+
+        {
+            // Error diffusion is slow. Only allow it on squirrel 🐿️ speed tiers
+            // or below.
+            bool errorDiffusion = cparams.SpeedTier <= JxlSpeedTier.Squirrel;
+
+            InlineArray3<InlineArray11<Memory<int>>> coeffs = default;
+            int numPasses = encoderState.ProgressiveSplitter.GetNumPasses();
+
+            if (numPasses <= 0)
+            {
+                throw new InvalidOperationException("Image must have at least one pass; found " + numPasses);
+            }
+
+            for (int i = 0; i < numPasses; i++)
+            {
+                IJxlDctAcImage acimg = encoderState.Coefficients[i];
+
+                if (acimg.Type != JxlDctAcType.Ac32)
+                {
+                    throw new InvalidOperationException("AC image must be 32-bit");
+                }
+
+                coeffs[0][i] = acimg.GetPlaneRowMemory(0, groupIndex, 0).Pointer32;
+                coeffs[1][i] = acimg.GetPlaneRowMemory(1, groupIndex, 0).Pointer32;
+                coeffs[2][i] = acimg.GetPlaneRowMemory(2, groupIndex, 0).Pointer32;
+            }
+
+            Span<float> coeffsIn = fmem.Memory.Span;
+            Span<int> quantized = mem.Memory.Span;
+
+            // SIMD on 64-bit lanes equivalent
+            // No need to call .Clear(). All values will zero-init.
+            Span<float> xFactor = stackalloc float[64];
+            Span<float> bFactor = stackalloc float[64];
+            Span<float> inX = stackalloc float[64];
+            Span<float> inY = stackalloc float[64];
+            Span<float> inB = stackalloc float[64];
+            Span<float> outX = stackalloc float[64];
+            Span<float> outB = stackalloc float[64];
+
+            for (int by = 0; by < heightBlocks; by++)
+            {
+                Span<int> rowQuantAc = fullQuantField.GetRow(blockGroupRect, by);
+                int ty = by / JxlChromaFromLuma.ColorTileDimensionInBlocks;
+
+                InlineArray3<Memory<byte>> rowCMap = default;
+                rowCMap[0] = encoderState.Shared.ContextMap.YToXMap.GetRow(cmapRect, ty);
+                rowCMap[1] = default;
+                rowCMap[2] = encoderState.Shared.ContextMap.YToBMap.GetRow(cmapRect, ty);
+
+                InlineArray3<Memory<float>> opsinRows = default;
+                opsinRows[0] = opsin.Plane(0).GetRowMemory(groupRect, by * JxlFrameDimensions.BlockDimensions);
+                opsinRows[1] = opsin.Plane(1).GetRowMemory(groupRect, by * JxlFrameDimensions.BlockDimensions);
+                opsinRows[2] = opsin.Plane(2).GetRowMemory(groupRect, by * JxlFrameDimensions.BlockDimensions);
+
+                InlineArray3<Memory<float>> dcRows = default;
+                dcRows[0] = dc.Plane(0).GetRowMemory(blockGroupRect, by);
+                dcRows[1] = dc.Plane(1).GetRowMemory(blockGroupRect, by);
+                dcRows[2] = dc.Plane(2).GetRowMemory(blockGroupRect, by);
+
+                JxlAcStrategyRow acStrategyRow = encoderState.Shared.AcStrategy.GetRow(blockGroupRect, by);
+
+                for (int tx = 0; tx < JxlMath.DivCeil(widthBlocks, JxlChromaFromLuma.ColorTileDimensionInBlocks); tx++)
+                {
+                    xFactor.Fill(encoderState.Shared.ContextMap.Base.YToXRatio(rowCMap[0].Span[tx]));
+                    bFactor.Fill(encoderState.Shared.ContextMap.Base.YToBRatio(rowCMap[2].Span[tx]));
+
+                    for (int bx = tx * JxlChromaFromLuma.ColorTileDimensionInBlocks; bx < widthBlocks && bx < (tx + 1) * JxlChromaFromLuma.ColorTileDimensionInBlocks; bx++)
+                    {
+                        JxlAcStrategy acs = acStrategyRow[bx];
+
+                        if (!acs.IsFirstBlock)
+                        {
+                            continue;
+                        }
+
+                        int xBlocks = acs.CoveredBlocksX;
+                        int yBlocks = acs.CoveredBlocksY;
+
+                        JxlForwardCoefficientOrder.CoefficientLayout(ref yBlocks, ref xBlocks);
+
+                        int size = JxlFrameDimensions.DctBlockSize * xBlocks * yBlocks;
+                        int quantAc = rowQuantAc[bx];
+
+                        for (int c = 0; c < 3; c++)
+                        {
+                            JxlTransformsEncoder.TransformFromPixels(
+                                acs.Strategy,
+                                opsinRows[c].Span[(bx * JxlFrameDimensions.BlockDimensions)..],
+                                opsinStride,
+                                coeffsIn[(c * size)..],
+                                scratchSpace);
+                        }
+
+                        JxlTransformsEncoder.DcFromLowestFrequencies(
+                            acs.Strategy,
+                            coeffsIn[size..],
+                            dcRows[1].Span[bx..],
+                            dcStride,
+                            scratchSpace);
+
+                        QuantizeRoundtripYBlockAc(
+                            encoderState,
+                            size,
+                            encoderState.Shared.Quantizer,
+                            errorDiffusion,
+                            acs.Strategy,
+                            widthBlocks,
+                            heightBlocks,
+                            JxlQuantizer.DefaultQuantBias,
+                            ref quantAc,
+                            coeffsIn,
+                            quantized);
+
+                        for (int k = 0; k <= size - 64; k += 64)
+                        {
+                            coeffsIn.Slice(k, 64).CopyTo(inX);
+                            coeffsIn.Slice(size + k, 64).CopyTo(inY);
+                            coeffsIn.Slice((2 * size) + k, 64).CopyTo(inB);
+                            NegMulAdd(xFactor, inY, inX, outX);
+                            NegMulAdd(bFactor, inY, inB, outB);
+                            outX.CopyTo(coeffsIn.Slice(k, 64));
+                            outB.CopyTo(coeffsIn.Slice((2 * size) + k, 64));
+                        }
+
+                        foreach (int c in (ReadOnlySpan<int>)[0, 2])
+                        {
+                            Span<float> thres = [0.58f, 0.62f, 0.62f, 0.62f];
+
+                            QuantizeBlockAc(
+                                encoderState.Shared.Quantizer,
+                                c,
+                                c == 0 ? encoderState.XQmMultiplier : encoderState.BQmMultiplier,
+                                acs.Strategy,
+                                xBlocks,
+                                yBlocks,
+                                thres,
+                                coeffsIn[(c * size)..],
+                                quantAc,
+                                quantized[(c * size)..]);
+
+                            JxlTransformsEncoder.DcFromLowestFrequencies(
+                                acs.Strategy,
+                                coeffsIn[(c * size)..],
+                                dcRows[c].Span[bx..],
+                                dcStride,
+                                scratchSpace);
+                        }
+
+                        rowQuantAc[bx] = quantAc;
+
+                        for (int c = 0; c < 3; c++)
+                        {
+                            encoderState.ProgressiveSplitter.SplitAcCoefficients(quantized[(c * size)..], acs, bx, by, coeffs[c]);
+
+                            for (int p = 0; p < numPasses; p++)
+                            {
+                                coeffs[c][p] = coeffs[c][p][size..];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static void NegMulAdd(Span<float> a, Span<float> b, Span<float> c, Span<float> d)
+    {
+        // d[n] = c[n] - (a[n] * b[n])
+        TensorPrimitives.Multiply(a, b, d);
+        TensorPrimitives.Subtract(c, d, d);
+    }
+
+    public static bool EncodeGroupTokenizedCoefficients(int groupIndex, int passIndex, int histogramIndex, JxlPassesEncoderState encState, JxlBitWriter writer, JxlAuxiliaryOutput auxOut)
+    {
+        int numHistograms = encState.Shared.HistogramCount;
+
+        if (!(numHistograms == 0 || histogramIndex < numHistograms))
+        {
+            throw new InvalidOperationException("Histogram index is out of bounds");
+        }
+
+        int histogramSelectorBits = JxlMath.CeilLog2Nonzero(numHistograms);
+
+        if (histogramSelectorBits != 0)
+        {
+            return writer.WithMaxBits((ulong)histogramSelectorBits, JxlLayerType.Ac, auxOut, () =>
+            {
+                writer.Write(histogramSelectorBits, histogramIndex);
+                return true;
+            });
+        }
+
+        int contextOffset = histogramIndex * encState.Shared.BlockContextMap.NumAcContexts;
+
+        return WriteTokens(
+            encState.Passes[passIndex].AcTokens[groupIndex],
+            encState.Passes[passIndex].Codes,
+            contextOffset,
+            writer,
+            JxlLayerType.AcTokens,
+            auxOut);
     }
 }

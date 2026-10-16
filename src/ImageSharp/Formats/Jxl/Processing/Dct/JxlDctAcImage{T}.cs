@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
-using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
@@ -40,6 +39,20 @@ internal sealed class JxlDctAcImage<T> : IJxlDctAcImage, IDisposable
         {
             Span<short> span = (this.image as JxlImage3<short>)!.PlaneRow(channel, y)[xBase..];
             return new JxlDctAcPointer() { Pointer16 = span };
+        }
+    }
+
+    public unsafe JxlDctAcPointerMemory GetPlaneRowMemory(int channel, int y, int xBase = 0)
+    {
+        if (sizeof(T) == 4)
+        {
+            Memory<int> span = (this.image as JxlImage3<int>)!.PlaneRowMemory(channel, y)[xBase..];
+            return new JxlDctAcPointerMemory() { Pointer32 = span };
+        }
+        else
+        {
+            Memory<short> span = (this.image as JxlImage3<short>)!.PlaneRowMemory(channel, y)[xBase..];
+            return new JxlDctAcPointerMemory() { Pointer16 = span };
         }
     }
 

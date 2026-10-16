@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Drawing;
+using System.Numerics.Tensors;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
@@ -370,6 +372,122 @@ internal static class JxlGroupEncoder
             }
 
             quant = qp;
+        }
+    }
+
+    public static void QuantizeRoundtripYBlockAc(
+        JxlPassesEncoderState encoderState,
+        int size,
+        JxlQuantizer quantizer,
+        bool errorDiffusion,
+        JxlAcStrategyType quantKind,
+        int width,
+        int height,
+        ReadOnlySpan<float> biases,
+        ref int quant,
+        Span<float> inOut,
+        Span<int> quantized)
+    {
+        Span<float> thresholdY = [0.58f, 0.64f, 0.64f, 0.64f];
+
+        if (encoderState.CompressionParameters.SpeedTier <= JxlSpeedTier.Hare)
+        {
+            int maxQuant = 0;
+            int originalQuant = quant;
+
+            Span<float> val =
+            [
+                encoderState.XQmMultiplier,
+                1.0f,
+                encoderState.BQmMultiplier
+            ];
+
+            foreach (int channel in (ReadOnlySpan<int>)[1, 0, 2])
+            {
+                Span<float> thresholds = [0.58f, 0.64f, 0.64f, 0.64f];
+                quant = originalQuant;
+
+                AdjustQuantBlockAC(
+                    quantizer,
+                    channel,
+                    val[channel],
+                    quantKind,
+                    width,
+                    height,
+                    thresholds,
+                    inOut[(channel * size)..],
+                    ref quant);
+
+                if (channel == 1)
+                {
+                    thresholds.CopyTo(thresholdY);
+                }
+
+                maxQuant = Math.Max(quant, maxQuant);
+            }
+
+            quant = maxQuant;
+        }
+        else
+        {
+            thresholdY[0] = 0.56f;
+            thresholdY[1] = 0.62f;
+            thresholdY[2] = 0.62f;
+            thresholdY[3] = 0.62f;
+        }
+
+        QuantizeBlockAc(
+            quantizer,
+            1,
+            1.0f,
+            quantKind,
+            width,
+            height,
+            thresholdY,
+            inOut[size..],
+            quant,
+            quantized[size..]);
+
+        ReadOnlySpan<float> dequantMatrix = quantizer.DequantMatrix(quantKind, 1);
+
+        /*
+           Implementing this is slightly tricky as we have to
+           process at 64 lanes at a time.
+
+           This is the reference code snippet from libjxl:
+
+           HWY_CAPPED(float, kDCTBlockSize) df;
+           HWY_CAPPED(int32_t, kDCTBlockSize) di;
+           const auto inv_qac = Set(df, quantizer.inv_quant_ac(*quant));
+           for (size_t k = 0; k < kDCTBlockSize * xsize * ysize; k += Lanes(df)) {
+             const auto oquant = Load(di, quantized + size + k);
+             const auto adj_quant = AdjustQuantBias(di, 1, oquant, biases);
+             const auto dequantm = Load(df, dequant_matrix + k);
+             Store(Mul(Mul(adj_quant, dequantm), inv_qac), df, inout + size + k);
+           }
+         */
+
+        // Don't call .Clear(). All items will be populated.
+        Span<float> inverseQAc = stackalloc float[64];
+        Span<int> oquant = stackalloc int[64];
+        Span<float> adjQuant = stackalloc float[64];
+        Span<float> dequantm = stackalloc float[64];
+
+        Span<float> mulAdjQuantDequantm = stackalloc float[64];
+        Span<float> mulAdjQuantDequantmInverseQAc = stackalloc float[64];
+
+        inverseQAc.Fill(quantizer.InverseQuantAc(quant));
+
+        for (int k = 0; k < JxlFrameDimensions.DctBlockSize * width * height; k += 64)
+        {
+            quantized.Slice(size + k, 64).CopyTo(oquant);
+            JxlQuantizerSimd.AdjustQuantBias64(1, oquant, biases, adjQuant);
+            dequantMatrix.Slice(k, 64).CopyTo(dequantm);
+
+            TensorPrimitives.Multiply(adjQuant, dequantm, mulAdjQuantDequantm);
+            TensorPrimitives.Multiply(mulAdjQuantDequantm, inverseQAc, mulAdjQuantDequantmInverseQAc);
+
+            inverseQAc.CopyTo(inOut.Slice(size + k, 64));
         }
     }
 }

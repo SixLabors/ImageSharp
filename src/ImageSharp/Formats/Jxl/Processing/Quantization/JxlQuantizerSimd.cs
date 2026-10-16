@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
 
@@ -24,5 +26,31 @@ internal static class JxlQuantizerSimd
         Vector<float> bias = -(Vector.Create(biases[3]) * quant.ReciprocalEstimate()) + quant;
 
         return Vector.ConditionalSelect(is01, oneBias, bias);
+    }
+
+    // a variant with 64 element spans
+    public static void AdjustQuantBias64(int c, Span<int> quantI, ReadOnlySpan<float> biases, Span<float> output)
+    {
+        if (Vector<float>.Count > 64 || Vector<int>.Count > 64)
+        {
+            // TODO: in the future we may want to support > 64 items if users start encountering the problem
+            // Problem is, this function works on strictly 64 items, and if the Vector has > 64 items,
+            // then that's too much to process.
+            throw new NotImplementedException("This CPU has more than 64 lanes for float or int types");
+        }
+
+        ref int quantIRef = ref MemoryMarshal.GetReference(quantI);
+        ref float outputRef = ref MemoryMarshal.GetReference(output);
+
+        // This loop should be SIMD-aligned
+        for (int i = 0; i < 64; i += Vector<float>.Count)
+        {
+            Vector<float> result = AdjustQuantBias(
+                c: c,
+                quantI: Vector.LoadUnsafe(ref Unsafe.Add(ref quantIRef, i)),
+                biases);
+
+            result.StoreUnsafe(ref Unsafe.Add(ref outputRef, i));
+        }
     }
 }

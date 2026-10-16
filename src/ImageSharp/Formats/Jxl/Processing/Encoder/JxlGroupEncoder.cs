@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Drawing;
 using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;

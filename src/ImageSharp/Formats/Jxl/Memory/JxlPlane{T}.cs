@@ -101,6 +101,19 @@ internal class JxlPlane<T> : JxlPlaneBase
     }
 
     /// <summary>
+    /// Returns a span for the specified row within the specified rectangle bounds.
+    /// </summary>
+    /// <param name="rectangle">The bounds.</param>
+    /// <param name="y">The row index.</param>
+    /// <returns>A span which covers memory for the specified row with the rectangle offsets.</returns>
+    public Memory<T> GetRowMemory(Rectangle rectangle, int y)
+    {
+        DebugGuard.MustBeGreaterThanOrEqualTo(y + rectangle.Top, 0, nameof(y));
+
+        return this.GetRowMemory(y + rectangle.Top)[rectangle.Left..];
+    }
+
+    /// <summary>
     /// Checks if the specified rectangle is within the bounds image.
     /// </summary>
     /// <param name="rectangle">The input rectangle.</param>

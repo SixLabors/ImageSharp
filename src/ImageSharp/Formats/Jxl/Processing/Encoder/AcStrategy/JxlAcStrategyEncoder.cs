@@ -598,8 +598,7 @@ internal static class JxlAcStrategyEncoder
         Span<byte> priority,
         Span<float> entropyEstimate,
         Span<float> block,
-        Span<float> scratchSpace,
-        Span<uint> quantized)
+        Span<float> scratchSpace)
     {
         JxlAcStrategy acs = new(acsRaw);
         float currentEntropy = 0;
@@ -865,6 +864,324 @@ internal static class JxlAcStrategyEncoder
         return true;
     }
 
+    public static bool ProcessAcStrategyRectangle(
+        JxlCompressionParameters cparams,
+        JxlAcStrategyConfiguration config,
+        Rectangle rect,
+        JxlColorCorrelationMap cmap,
+        Span<float> block,
+        ref int quantized,
+        JxlAcStrategyImage acStrategy)
+    {
+        float butteraugliTarget = cparams.ButteraugliDistance;
+        Span<float> scratchSpace = block[(3 * JxlAcStrategy.MaximumCoefficientArea)..];
+        int bx = rect.X0();
+        int by = rect.Y0();
+
+        if (rect.Width > 8 || rect.Height > 8)
+        {
+            throw new InvalidOperationException("Rectangle is too large");
+        }
+
+        int tx = bx / JxlChromaFromLuma.ColorTileDimensionInBlocks;
+        int ty = by / JxlChromaFromLuma.ColorTileDimensionInBlocks;
+
+        InlineArray3<float> cmapFactors = default;
+        cmapFactors[0] = cmap.Base.YToXRatio(cmap.YToXMap!.GetRow(ty)[tx]);
+        cmapFactors[1] = 0f;
+        cmapFactors[2] = cmap.Base.YToBRatio(cmap.YToBMap!.GetRow(ty)[tx]);
+
+        if (cparams.SpeedTier > JxlSpeedTier.Hare)
+        {
+            return true;
+        }
+
+        Span<float> entropyEstimate = stackalloc float[64];
+        entropyEstimate.Clear();
+
+        const float k8x8mul1 = -0.4f;
+        const float k8x8mul2 = 1.0f;
+        const float k8x8base = 1.4f;
+        float mul8x8 = k8x8mul2 + (k8x8mul1 / (butteraugliTarget + k8x8base));
+
+        for (int iy = 0; iy < rect.Height; iy++)
+        {
+            for (int ix = 0; ix < rect.Width; ix++)
+            {
+                FindBest8x8Transform(
+                    8 * (bx + ix),
+                    8 * (by + iy),
+                    (int)cparams.SpeedTier,
+                    butteraugliTarget,
+                    config,
+                    cmapFactors,
+                    acStrategy,
+                    block,
+                    scratchSpace,
+                    quantized,
+                    out float entropy,
+                    out JxlAcStrategyType bestOf8x8s);
+
+                if (!acStrategy.Set(bx + ix, by + iy, bestOf8x8s))
+                {
+                    return false;
+                }
+
+                entropyEstimate[(iy * 8) + ix] = entropy * mul8x8;
+            }
+        }
+
+        const float entropy_mul16X8 = 1.21f;
+        const float entropy_mul16X16 = 1.34f;
+        const float entropy_mul16X32 = 1.49f;
+        const float entropy_mul32X32 = 1.48f;
+        const float entropy_mul64X32 = 2.25f;
+        const float entropy_mul64X64 = 2.25f;
+
+        Span<MergeAttempt> transformsForMerge =
+        [
+            new(JxlAcStrategyType.DCT16X8, 2, 4, 5, entropy_mul16X8),
+            new(JxlAcStrategyType.DCT8X16, 2, 4, 5, entropy_mul16X8),
+            new(JxlAcStrategyType.DCT16X32, 4, 4, 4, entropy_mul16X32),
+            new(JxlAcStrategyType.DCT32X16, 4, 4, 4, entropy_mul16X32),
+            new(JxlAcStrategyType.DCT64X32, 6, 1, 3, entropy_mul64X32),
+            new(JxlAcStrategyType.DCT32X64, 6, 1, 3, entropy_mul64X32),
+            default,
+            default,
+            default
+        ];
+
+        Span<byte> priority = stackalloc byte[64];
+        priority.Clear();
+
+        bool enable32x32 = cparams.DecodingSpeedTier < 4;
+        foreach (MergeAttempt mt in transformsForMerge)
+        {
+            if (mt.DecodingSpeedTierMaxLimit < cparams.DecodingSpeedTier)
+            {
+                continue;
+            }
+
+            JxlAcStrategy acs = new(mt.Type);
+
+            for (int cy = 0; cy + acs.CoveredBlocksY - 1 < rect.Height; cy += acs.CoveredBlocksY)
+            {
+                for (int cx = 0; cx + acs.CoveredBlocksX - 1 < rect.Width; cx += acs.CoveredBlocksX)
+                {
+                    if (cy + 7 < rect.Height && cx + 7 < rect.Width)
+                    {
+                        if (cparams.DecodingSpeedTier < 4 && mt.Type == JxlAcStrategyType.DCT32X64)
+                        {
+                            if ((cy | cx) % 8 == 0)
+                            {
+                                if (!FindBestFirstLevelDivisionForSquare(
+                                    8,
+                                    true,
+                                    bx,
+                                    by,
+                                    cx,
+                                    cy,
+                                    config,
+                                    cmapFactors,
+                                    acStrategy,
+                                    mt.EntropyMultiplier,
+                                    entropy_mul64X64,
+                                    entropyEstimate,
+                                    block,
+                                    scratchSpace,
+                                    ref quantized))
+                                {
+                                    return false;
+                                }
+                            }
+
+                            continue;
+                        }
+                        else if (mt.Type == JxlAcStrategyType.DCT32X16)
+                        {
+                            continue;
+                        }
+                    }
+
+                    if ((mt.Type == JxlAcStrategyType.DCT16X32 && cy % 4 != 0) || (mt.Type == JxlAcStrategyType.DCT32X16 && cx % 4 != 0))
+                    {
+                        continue;
+                    }
+
+                    if (cy + 3 < rect.Height && cx + 3 < rect.Width)
+                    {
+                        if (mt.Type == JxlAcStrategyType.DCT16X32)
+                        {
+                            if ((cy | cx) % 4 == 0)
+                            {
+                                if (!FindBestFirstLevelDivisionForSquare(
+                                    4,
+                                    enable32x32,
+                                    bx,
+                                    by,
+                                    cx,
+                                    cy,
+                                    config,
+                                    cmapFactors,
+                                    acStrategy,
+                                    mt.EntropyMultiplier,
+                                    entropy_mul32X32,
+                                    entropyEstimate,
+                                    block,
+                                    scratchSpace,
+                                    ref quantized))
+                                {
+                                    return false;
+                                }
+                            }
+
+                            continue;
+                        }
+                        else if (mt.Type == JxlAcStrategyType.DCT32X16)
+                        {
+                            continue;
+                        }
+                    }
+
+                    if ((mt.Type == JxlAcStrategyType.DCT16X32 && cy % 4 != 0) ||
+                        (mt.Type == JxlAcStrategyType.DCT32X16 && cx % 4 != 0))
+                    {
+                        continue;
+                    }
+
+                    if (cy + 1 < rect.Height && cx + 1 < rect.Width)
+                    {
+                        if (mt.Type == JxlAcStrategyType.DCT8X16)
+                        {
+                            if ((cy | cx) % 2 == 0)
+                            {
+                                if (!FindBestFirstLevelDivisionForSquare(
+                                    2,
+                                    true,
+                                    bx,
+                                    by,
+                                    cx,
+                                    cy,
+                                    config,
+                                    cmapFactors,
+                                    acStrategy,
+                                    mt.EntropyMultiplier,
+                                    entropy_mul16X16,
+                                    entropyEstimate,
+                                    block,
+                                    scratchSpace,
+                                    ref quantized))
+                                {
+                                    return false;
+                                }
+                            }
+
+                            continue;
+                        }
+                        else if (mt.Type == JxlAcStrategyType.DCT16X8)
+                        {
+                            continue;
+                        }
+                    }
+
+                    if ((mt.Type == JxlAcStrategyType.DCT8X16 && cy % 2 == 1) ||
+                        (mt.Type == JxlAcStrategyType.DCT16X8 && cx % 2 == 1))
+                    {
+                        continue;
+                    }
+
+                    if (!TryMergeAcStrategy(
+                        mt.Type,
+                        bx,
+                        by,
+                        cx,
+                        cy,
+                        config,
+                        cmapFactors,
+                        acStrategy,
+                        mt.EntropyMultiplier,
+                        mt.Priority,
+                        priority,
+                        entropyEstimate,
+                        block,
+                        scratchSpace))
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        if (cparams.SpeedTier >= JxlSpeedTier.Hare)
+        {
+            return true;
+        }
+
+        for (int cy = 0; cy + 1 < rect.Height; ++cy)
+        {
+            for (int cx = 0; cx + 1 < rect.Width; ++cx)
+            {
+                if ((cy | cx) % 2 != 0)
+                {
+                    if (!FindBestFirstLevelDivisionForSquare(
+                        2,
+                        true,
+                        bx,
+                        by,
+                        cx,
+                        cy,
+                        config,
+                        cmapFactors,
+                        acStrategy,
+                        entropy_mul16X8,
+                        entropy_mul16X16,
+                        entropyEstimate,
+                        block,
+                        scratchSpace,
+                        ref quantized))
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        int step = cparams.SpeedTier >= JxlSpeedTier.Tortoise ? 2 : 1;
+
+        for (int cy = 0; cy + 3 < rect.Height; cy += step)
+        {
+            for (int cx = 0; cx + 3 < rect.Width; cx += step)
+            {
+                if ((cy | cx) % 4 == 0)
+                {
+                    continue;
+                }
+
+                if (!FindBestFirstLevelDivisionForSquare(
+                    4,
+                    enable32x32,
+                    bx,
+                    by,
+                    cx,
+                    cy,
+                    config,
+                    cmapFactors,
+                    acStrategy,
+                    entropy_mul16X32,
+                    entropy_mul32X32,
+                    entropyEstimate,
+                    block,
+                    scratchSpace,
+                    ref quantized))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     /// <summary>
     /// For <see cref="FindBest8x8Transform"/>, represents a small
     /// model which the encoder uses to try all available 8x8
@@ -886,4 +1203,11 @@ internal static class JxlAcStrategyEncoder
         JxlAcStrategyType Type,
         int EncodingSpeedTierMaxLimit,
         double EntropyMultiplier);
+
+    private readonly record struct MergeAttempt(
+        JxlAcStrategyType Type,
+        byte Priority,
+        byte DecodingSpeedTierMaxLimit,
+        byte EncodingSpeedTierMaxLimit,
+        float EntropyMultiplier);
 }

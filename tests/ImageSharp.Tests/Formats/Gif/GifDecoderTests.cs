@@ -24,6 +24,14 @@ public class GifDecoderTests
         TestImages.Gif.Giphy, TestImages.Gif.Kumin
     ];
 
+    /// <summary>
+    /// The global color table of the synthesized frame geometry test images.
+    /// </summary>
+    private static readonly Rgba32[] GeometryTestColorTable =
+    [
+        new(255, 0, 0), new(0, 255, 0), new(0, 0, 255), new(255, 255, 255)
+    ];
+
     [Theory]
     [WithFileCollection(nameof(MultiFrameTestFiles), PixelTypes.Rgba32)]
     public void Decode_VerifyAllFrames<TPixel>(TestImageProvider<TPixel> provider)
@@ -440,6 +448,172 @@ public class GifDecoderTests
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(options, CreateGifWithMalformedApplicationExtension());
         });
+    }
+
+    [Fact]
+    public void Decode_LzwCodePastCodeTables_StopsDecodingFrame()
+    {
+        using Image<Rgba32> image = Image.Load<Rgba32>(CreateLzwCodePastCodeTablesGif());
+
+        // No index is decoded so every pixel keeps the cleared index 0.
+        Assert.Equal(4, image.Width);
+        Assert.Equal(4, image.Height);
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                Assert.Equal(GeometryTestColorTable[0], image[x, y]);
+            }
+        }
+    }
+
+    [Fact]
+    public void Identify_LzwCodePastCodeTables_ReturnsImageInfo()
+    {
+        // Identify skips the frame indices so this exercises the index skipping path of the LZW decoder.
+        ImageInfo info = Image.Identify(CreateLzwCodePastCodeTablesGif());
+
+        Assert.Equal(4, info.Width);
+        Assert.Equal(4, info.Height);
+    }
+
+    [Theory]
+    [InlineData(20, 20, 0, 0, true)]
+    [InlineData(20, 20, 0, 0, false)]
+    [InlineData(10, 10, 0, 5, true)]
+    [InlineData(10, 10, 0, 5, false)]
+    [InlineData(10, 10, 5, 3, true)]
+    [InlineData(10, 10, 0, 10, true)]
+    [InlineData(10, 10, 0, 10, false)]
+    [InlineData(10, 20, 0, 8, true)]
+    [InlineData(10, 20, 0, 9, true)]
+    [InlineData(10, 1, 0, 0, true)]
+    [InlineData(10, 2, 0, 0, true)]
+    [InlineData(10, 3, 0, 7, true)]
+    [InlineData(10, 4, 0, 0, true)]
+    [InlineData(4, 4, 12, 0, true)]
+    [InlineData(4, 4, 12, 0, false)]
+    public void Decode_FrameExceedingLogicalScreen_WritesOnlyRowsInsideCanvas(int width, int height, int left, int top, bool interlaced)
+    {
+        const int screenSize = 10;
+
+        // Each frame row is filled with the color index of its frame row number modulo 4,
+        // stored in the order an interlaced or sequential frame stores its rows.
+        int[] rowOrder = interlaced ? GetInterlacedRowOrder(height) : Enumerable.Range(0, height).ToArray();
+        using Buffer2D<byte> indices = Configuration.Default.MemoryAllocator.Allocate2D<byte>(width, height);
+        for (int i = 0; i < rowOrder.Length; i++)
+        {
+            indices.DangerousGetRowSpan(i).Fill((byte)(rowOrder[i] % 4));
+        }
+
+        using MemoryStream imageData = new();
+        using (LzwEncoder encoder = new(Configuration.Default.MemoryAllocator, 2))
+        {
+            encoder.Encode(indices, imageData);
+        }
+
+        byte[] data = CreateGeometryTestGif(screenSize, screenSize, left, top, width, height, interlaced, imageData.ToArray());
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(data);
+
+        Assert.Equal(screenSize, image.Width);
+        Assert.Equal(screenSize, image.Height);
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                // Pixels outside the frame are never written and stay transparent.
+                bool inFrame = x >= left && x < left + width && y >= top && y < top + height;
+                Rgba32 expected = inFrame ? GeometryTestColorTable[(y - top) % 4] : default;
+                Assert.Equal(expected, image[x, y]);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Creates a 4x4 GIF whose frame uses a minimum code size of 12 and holds the single 13-bit code 4098.
+    /// The clear code is 4096, so the code lies past the 4096-entry LZW code tables.
+    /// </summary>
+    /// <returns>The encoded GIF.</returns>
+    private static byte[] CreateLzwCodePastCodeTablesGif()
+        => CreateGeometryTestGif(4, 4, 0, 0, 4, 4, false, [12, 0x02, 0x02, 0x10, 0x00]);
+
+    /// <summary>
+    /// Creates a GIF89a with the 4-entry <see cref="GeometryTestColorTable"/> as its global color table
+    /// and a single image descriptor without a local color table.
+    /// </summary>
+    /// <param name="screenWidth">The logical screen width.</param>
+    /// <param name="screenHeight">The logical screen height.</param>
+    /// <param name="left">The frame left position.</param>
+    /// <param name="top">The frame top position.</param>
+    /// <param name="width">The frame width.</param>
+    /// <param name="height">The frame height.</param>
+    /// <param name="interlaced">Whether the frame is interlaced.</param>
+    /// <param name="imageData">The image data, from the LZW minimum code size to the block terminator.</param>
+    /// <returns>The encoded GIF.</returns>
+    private static byte[] CreateGeometryTestGif(
+        int screenWidth,
+        int screenHeight,
+        int left,
+        int top,
+        int width,
+        int height,
+        bool interlaced,
+        byte[] imageData)
+    {
+        using MemoryStream stream = new();
+        stream.Write("GIF89a"u8);
+
+        // Logical screen descriptor flagging a 4-entry global color table.
+        WriteUInt16(stream, screenWidth);
+        WriteUInt16(stream, screenHeight);
+        stream.Write([0x81, 0x00, 0x00]);
+        foreach (Rgba32 color in GeometryTestColorTable)
+        {
+            stream.Write([color.R, color.G, color.B]);
+        }
+
+        // Image descriptor without a local color table.
+        stream.WriteByte(GifConstants.ImageLabel);
+        WriteUInt16(stream, left);
+        WriteUInt16(stream, top);
+        WriteUInt16(stream, width);
+        WriteUInt16(stream, height);
+        stream.WriteByte((byte)(interlaced ? 0x40 : 0x00));
+
+        stream.Write(imageData);
+        stream.WriteByte(GifConstants.EndIntroducer);
+        return stream.ToArray();
+    }
+
+    /// <summary>
+    /// Gets the frame rows in the order an interlaced GIF stores them.
+    /// </summary>
+    /// <param name="height">The frame height.</param>
+    /// <returns>The frame row numbers in storage order.</returns>
+    private static int[] GetInterlacedRowOrder(int height)
+    {
+        List<int> rows = [];
+        foreach ((int start, int step) in new[] { (0, 8), (4, 8), (2, 4), (1, 2) })
+        {
+            for (int y = start; y < height; y += step)
+            {
+                rows.Add(y);
+            }
+        }
+
+        return [.. rows];
+    }
+
+    /// <summary>
+    /// Writes a little-endian 16-bit value.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="value">The value to write.</param>
+    private static void WriteUInt16(Stream stream, int value)
+    {
+        stream.WriteByte((byte)value);
+        stream.WriteByte((byte)(value >> 8));
     }
 
     private static byte[] CreateGifWithMalformedApplicationExtension()

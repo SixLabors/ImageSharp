@@ -209,6 +209,16 @@ internal sealed class LzwDecoder : IDisposable
 
                 if (oldCode == NullCode)
                 {
+                    // The only non-literal code that can reach this point is the next available code. With a
+                    // minimum code size of 12 the clear code is 4096, so that code lies past the end of the
+                    // 4096-entry code tables. It has no table entry to output, so the data is corrupt and
+                    // decoding stops. This branch only runs for the first code of the data or after a clear
+                    // code, so the check adds no per-pixel cost.
+                    if (code >= MaxStackSize)
+                    {
+                        break;
+                    }
+
                     pixelStack[top++] = suffix[code];
                     oldCode = code;
                     first = code;
@@ -350,6 +360,16 @@ internal sealed class LzwDecoder : IDisposable
 
                 if (oldCode == NullCode)
                 {
+                    // The only non-literal code that can reach this point is the next available code. With a
+                    // minimum code size of 12 the clear code is 4096, so that code lies past the end of the
+                    // 4096-entry code tables. It has no table entry to output, so the data is corrupt and
+                    // decoding stops. This branch only runs for the first code of the data or after a clear
+                    // code, so the check adds no per-pixel cost.
+                    if (code >= MaxStackSize)
+                    {
+                        break;
+                    }
+
                     pixelStack[top++] = suffix[code];
                     oldCode = code;
                     first = code;

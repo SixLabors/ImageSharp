@@ -6,7 +6,6 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Pbm;
 
@@ -65,10 +64,6 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
         Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
         this.ProcessPixels(stream, pixels);
-        if (this.NeedsUpscaling())
-        {
-            this.ProcessUpscaling(image);
-        }
 
         return image;
     }
@@ -191,21 +186,11 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
     {
         if (this.encoding == PbmEncoding.Binary)
         {
-            BinaryDecoder.Process(this.configuration, pixels, stream, this.colorType, this.componentType);
+            BinaryDecoder.Process(this.configuration, pixels, stream, this.colorType, this.componentType, this.maxPixelValue);
         }
         else
         {
-            PlainDecoder.Process(this.configuration, pixels, stream, this.colorType, this.componentType);
+            PlainDecoder.Process(this.configuration, pixels, stream, this.colorType, this.componentType, this.maxPixelValue);
         }
     }
-
-    private void ProcessUpscaling<TPixel>(Image<TPixel> image)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        int maxAllocationValue = this.componentType == PbmComponentType.Short ? 65535 : 255;
-        float factor = maxAllocationValue / (float)this.maxPixelValue;
-        image.Mutate(x => x.Brightness(factor));
-    }
-
-    private bool NeedsUpscaling() => this.colorType != PbmColorType.BlackAndWhite && this.maxPixelValue is not 255 and not 65535;
 }

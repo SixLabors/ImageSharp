@@ -224,6 +224,53 @@ public class ChunkedMemoryStreamTests
         }
     }
 
+    [Theory]
+    [InlineData(16)]
+    [InlineData(DefaultSmallChunkSize + 16)]
+    public void MemoryStream_OverwriteAfterSeek_DoesNotChangeLength(int length)
+    {
+        using ChunkedMemoryStream ms = new(this.allocator);
+        byte[] expected = this.CreateTestBuffer(length);
+        ms.Write(expected, 0, expected.Length);
+
+        // Patch bytes inside the written data, as encoders do for offsets that are only known later.
+        byte[] patch = [1, 2, 3, 4];
+        ms.Position = length - 10;
+        ms.Write(patch, 0, patch.Length);
+        patch.CopyTo(expected, length - 10);
+
+        Assert.Equal(length - 6, ms.Position);
+        Assert.Equal(length, ms.Length);
+        Assert.Equal(expected, ms.ToArray());
+    }
+
+    [Theory]
+    [InlineData(0, 16)]
+    [InlineData(16, 16)]
+    [InlineData(DefaultSmallChunkSize, 0)]
+    [InlineData(DefaultSmallChunkSize - 8, 16)]
+    [InlineData(16, DefaultSmallChunkSize * 2)]
+    public void MemoryStream_WriteAfterSeekPastEnd_WritesAtPosition(int length, int gap)
+    {
+        using ChunkedMemoryStream ms = new(this.allocator);
+        byte[] head = this.CreateTestBuffer(length);
+        ms.Write(head, 0, head.Length);
+
+        // Leave a gap after the data, as encoders do for a header that is written last.
+        byte[] tail = [1, 2, 3, 4];
+        ms.Seek(gap, SeekOrigin.Current);
+        ms.Write(tail, 0, tail.Length);
+        Assert.Equal(length + gap + tail.Length, ms.Length);
+
+        byte[] header = this.CreateTestBuffer(gap);
+        ms.Position = length;
+        ms.Write(header, 0, header.Length);
+
+        byte[] expected = [.. head, .. header, .. tail];
+        Assert.Equal(expected.Length, ms.Length);
+        Assert.Equal(expected, ms.ToArray());
+    }
+
     [Fact]
     public void MemoryStream_WriteByteTests()
     {

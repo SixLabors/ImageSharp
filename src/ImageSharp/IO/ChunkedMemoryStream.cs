@@ -193,10 +193,21 @@ internal sealed class ChunkedMemoryStream : Stream
         long remaining = this.memoryChunkBuffer.Length - this.position;
 
         // Ensure we have enough capacity to write the data.
-        while (remaining < count)
+        if (remaining < count)
         {
-            this.memoryChunkBuffer.Expand();
-            remaining = this.memoryChunkBuffer.Length - this.position;
+            // A position beyond the allocated chunks, reached by seeking past the end, has no chunk
+            // until the buffer grows, so its chunk location is resolved again after expanding.
+            bool resolvePosition = remaining < 0;
+            while (remaining < count)
+            {
+                this.memoryChunkBuffer.Expand();
+                remaining = this.memoryChunkBuffer.Length - this.position;
+            }
+
+            if (resolvePosition)
+            {
+                this.SetPosition(this.position);
+            }
         }
 
         int bytesToWrite = count;
@@ -231,7 +242,11 @@ internal sealed class ChunkedMemoryStream : Stream
         }
 
         this.position += bytesWritten;
-        this.length += bytesWritten;
+
+        // Encoders such as TIFF and BMP seek back to patch offsets that were written earlier.
+        // Overwriting existing bytes must not extend the stream, so the length only grows
+        // when the write ends beyond the current end of the data.
+        this.length = Math.Max(this.length, this.position);
     }
 
     /// <summary>
@@ -344,11 +359,13 @@ internal sealed class ChunkedMemoryStream : Stream
         int currentChunkIndex = 0;
         long offset = newPosition;
 
-        // If the new position is greater than the length of the stream, set the position to the end of the stream
-        if (offset > 0 && offset >= this.memoryChunkBuffer.Length)
+        // A position at or beyond the end of the allocated chunks starts the chunk that the next write allocates.
+        // This is exact at the end of the chunks, which is also where a write that fills the last chunk leaves
+        // the position. Write resolves a position further beyond the end once the chunks reach it.
+        if (offset >= this.memoryChunkBuffer.Length)
         {
-            this.bufferIndex = this.memoryChunkBuffer.ChunkCount - 1;
-            this.chunkIndex = this.memoryChunkBuffer[this.bufferIndex].Length - 1;
+            this.bufferIndex = this.memoryChunkBuffer.ChunkCount;
+            this.chunkIndex = 0;
             return;
         }
 

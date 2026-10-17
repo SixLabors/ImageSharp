@@ -540,8 +540,12 @@ internal static unsafe class QuantEnc
             Vector256<ushort> coeff0 = Avx2.Abs(input0);
 
             // coeff = abs(in) + sharpen
+            // The sum must be assigned back: the scalar path quantizes abs(in) + sharpen, so the vector path
+            // has to as well or it skips the luma AC sharpening and picks different levels. Transform outputs
+            // stay below 2^14 and sharpen is at most (90 * 284) >> 11 = 12, so the 16-bit lane sum cannot
+            // wrap and matches the scalar uint value.
             Vector256<short> sharpen0 = Unsafe.As<short, Vector256<short>>(ref mtx.Sharpen[0]);
-            Avx2.Add(coeff0.AsInt16(), sharpen0);
+            coeff0 = Avx2.Add(coeff0.AsInt16(), sharpen0).AsUInt16();
 
             // out = (coeff * iQ + B) >> QFIX
             // doing calculations with 32b precision (QFIX=17)
@@ -607,10 +611,11 @@ internal static unsafe class QuantEnc
             Vector128<ushort> coeff8 = Ssse3.Abs(input8);
 
             // coeff = abs(in) + sharpen
+            // As in the AVX2 path, the sums must be assigned back so sharpening matches the scalar path.
             Vector128<short> sharpen0 = Unsafe.As<short, Vector128<short>>(ref mtx.Sharpen[0]);
             Vector128<short> sharpen8 = Unsafe.As<short, Vector128<short>>(ref mtx.Sharpen[8]);
-            Sse2.Add(coeff0.AsInt16(), sharpen0);
-            Sse2.Add(coeff8.AsInt16(), sharpen8);
+            coeff0 = Sse2.Add(coeff0.AsInt16(), sharpen0).AsUInt16();
+            coeff8 = Sse2.Add(coeff8.AsInt16(), sharpen8).AsUInt16();
 
             // out = (coeff * iQ + B) >> QFIX
             // doing calculations with 32b precision (QFIX=17)

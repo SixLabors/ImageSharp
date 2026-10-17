@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Heif;
@@ -589,9 +588,9 @@ public class WebpEncoderTests
     public void Encode_Lossy_WithAlpha_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Floating point differences result in minor pixel differences affecting compression.
-        // Output have been manually verified.
-        int expectedFileSize = TestEnvironment.OSArchitecture == Architecture.Arm64 ? 64060 : 64020;
+        // The lossy encoder produces the same bitstream with and without hardware intrinsics,
+        // so the expected size is the same on every architecture.
+        const int expectedFileSize = 64060;
 
         WebpEncoder encoder = new()
         {
@@ -617,9 +616,9 @@ public class WebpEncoderTests
     public void Encode_Lossy_WithAlphaUsingCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Floating point differences result in minor pixel differences affecting compression.
-        // Output have been manually verified.
-        int expectedFileSize = TestEnvironment.OSArchitecture == Architecture.Arm64 ? 16240 : 16200;
+        // The lossy encoder produces the same bitstream with and without hardware intrinsics,
+        // so the expected size is the same on every architecture.
+        const int expectedFileSize = 16240;
 
         WebpEncoder encoder = new()
         {

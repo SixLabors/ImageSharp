@@ -25,29 +25,30 @@ internal class PlainDecoder
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="colorType">The ColorType to decode.</param>
     /// <param name="componentType">Data type of the pixles components.</param>
-    public static void Process<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream, PbmColorType colorType, PbmComponentType componentType)
+    /// <param name="maxPixelValue">The maximum sample value declared in the header. Unused for black and white.</param>
+    public static void Process<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream, PbmColorType colorType, PbmComponentType componentType, int maxPixelValue)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (colorType == PbmColorType.Grayscale)
         {
             if (componentType == PbmComponentType.Byte)
             {
-                ProcessGrayscale(configuration, pixels, stream);
+                ProcessGrayscale(configuration, pixels, stream, maxPixelValue);
             }
             else
             {
-                ProcessWideGrayscale(configuration, pixels, stream);
+                ProcessWideGrayscale(configuration, pixels, stream, maxPixelValue);
             }
         }
         else if (colorType == PbmColorType.Rgb)
         {
             if (componentType == PbmComponentType.Byte)
             {
-                ProcessRgb(configuration, pixels, stream);
+                ProcessRgb(configuration, pixels, stream, maxPixelValue);
             }
             else
             {
-                ProcessWideRgb(configuration, pixels, stream);
+                ProcessWideRgb(configuration, pixels, stream, maxPixelValue);
             }
         }
         else
@@ -56,7 +57,7 @@ internal class PlainDecoder
         }
     }
 
-    private static void ProcessGrayscale<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream)
+    private static void ProcessGrayscale<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream, int maxPixelValue)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = pixels.Width;
@@ -71,7 +72,7 @@ internal class PlainDecoder
             for (int x = 0; x < width; x++)
             {
                 stream.ReadDecimal(out int value);
-                rowSpan[x] = new L8((byte)value);
+                rowSpan[x] = new L8((byte)PbmSampleScaler.Scale(value, maxPixelValue, byte.MaxValue));
                 eofReached = !stream.SkipWhitespaceAndComments();
                 if (eofReached)
                 {
@@ -92,7 +93,7 @@ internal class PlainDecoder
         }
     }
 
-    private static void ProcessWideGrayscale<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream)
+    private static void ProcessWideGrayscale<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream, int maxPixelValue)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = pixels.Width;
@@ -107,7 +108,7 @@ internal class PlainDecoder
             for (int x = 0; x < width; x++)
             {
                 stream.ReadDecimal(out int value);
-                rowSpan[x] = new L16((ushort)value);
+                rowSpan[x] = new L16((ushort)PbmSampleScaler.Scale(value, maxPixelValue, ushort.MaxValue));
                 eofReached = !stream.SkipWhitespaceAndComments();
                 if (eofReached)
                 {
@@ -128,7 +129,7 @@ internal class PlainDecoder
         }
     }
 
-    private static void ProcessRgb<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream)
+    private static void ProcessRgb<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream, int maxPixelValue)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = pixels.Width;
@@ -154,7 +155,11 @@ internal class PlainDecoder
 
                 stream.ReadDecimal(out int blue);
 
-                rowSpan[x] = new Rgb24((byte)red, (byte)green, (byte)blue);
+                rowSpan[x] = new Rgb24(
+                    (byte)PbmSampleScaler.Scale(red, maxPixelValue, byte.MaxValue),
+                    (byte)PbmSampleScaler.Scale(green, maxPixelValue, byte.MaxValue),
+                    (byte)PbmSampleScaler.Scale(blue, maxPixelValue, byte.MaxValue));
+
                 eofReached = !stream.SkipWhitespaceAndComments();
                 if (eofReached)
                 {
@@ -175,7 +180,7 @@ internal class PlainDecoder
         }
     }
 
-    private static void ProcessWideRgb<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream)
+    private static void ProcessWideRgb<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream, int maxPixelValue)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = pixels.Width;
@@ -201,7 +206,11 @@ internal class PlainDecoder
 
                 stream.ReadDecimal(out int blue);
 
-                rowSpan[x] = new Rgb48((ushort)red, (ushort)green, (ushort)blue);
+                rowSpan[x] = new Rgb48(
+                    (ushort)PbmSampleScaler.Scale(red, maxPixelValue, ushort.MaxValue),
+                    (ushort)PbmSampleScaler.Scale(green, maxPixelValue, ushort.MaxValue),
+                    (ushort)PbmSampleScaler.Scale(blue, maxPixelValue, ushort.MaxValue));
+
                 eofReached = !stream.SkipWhitespaceAndComments();
                 if (eofReached)
                 {

@@ -150,6 +150,14 @@ internal static class WebpChunkParsingUtils
         // VP8 data size.
         uint imageDataSize = ReadChunkSize(stream, buffer);
 
+        // The header is a one byte signature followed by 32 bits holding the width, height, alpha flag and version.
+        // The bit reader zero-fills data missing from a truncated stream, so check that the header itself is present
+        // rather than reporting the zeros as an invalid signature.
+        if (stream.RemainingBytes < 5)
+        {
+            WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the VP8L header");
+        }
+
         Vp8LBitReader bitReader = new(stream, imageDataSize, memoryAllocator);
 
         // One byte signature, should be 0x2f.
@@ -209,13 +217,9 @@ internal static class WebpChunkParsingUtils
         uint fileSize = ReadChunkSize(stream, buffer);
 
         // The first byte contains information about the image features used.
+        // Its two most significant bits and its least significant bit are reserved. Writers set them to zero,
+        // but the container specification requires readers to ignore them, so they are not validated.
         byte imageFeatures = (byte)stream.ReadByte();
-
-        // The first two bit of it are reserved and should be 0.
-        if (imageFeatures >> 6 != 0)
-        {
-            WebpThrowHelper.ThrowImageFormatException("first two bits of the VP8X header are expected to be zero");
-        }
 
         // If bit 3 is set, a ICC Profile Chunk should be present.
         features.IccProfile = (imageFeatures & (1 << 5)) != 0;
@@ -259,8 +263,8 @@ internal static class WebpChunkParsingUtils
     /// <param name="stream">The stream to read from.</param>
     /// <param name="buffer">The buffer to store the read data into.</param>
     /// <returns>A unsigned 24 bit integer.</returns>
-    /// <exception cref="ImageFormatException">
-    /// Thrown if the input stream is not valid.
+    /// <exception cref="InvalidImageContentException">
+    /// Thrown if the stream ends before the integer.
     /// </exception>
     public static uint ReadUInt24LittleEndian(BufferedReadStream stream, Span<byte> buffer)
     {
@@ -270,7 +274,7 @@ internal static class WebpChunkParsingUtils
             return BinaryPrimitives.ReadUInt32LittleEndian(buffer);
         }
 
-        throw new ImageFormatException("Invalid Webp data, could not read unsigned 24 bit integer.");
+        throw new InvalidImageContentException("Invalid Webp data, could not read unsigned 24 bit integer.");
     }
 
     /// <summary>
@@ -303,12 +307,13 @@ internal static class WebpChunkParsingUtils
     /// </summary>
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="buffer">Buffer to store the data read from the stream.</param>
-    /// <param name="required">If true, the chunk size is required to be read, otherwise it can be skipped.</param>
     /// <returns>The chunk size in bytes.</returns>
-    /// <exception cref="ImageFormatException">Thrown if the input stream is not valid.</exception>
-    public static uint ReadChunkSize(BufferedReadStream stream, Span<byte> buffer, bool required = true)
+    /// <exception cref="InvalidImageContentException">Thrown if the stream ends inside the size field.</exception>
+    public static uint ReadChunkSize(BufferedReadStream stream, Span<byte> buffer)
     {
-        ulong chunkSize = ReadPaddedChunkSize(stream, buffer, required);
+        // Widen before padding so an odd uint.MaxValue payload cannot wrap to zero.
+        ulong chunkSize = ReadChunkPayloadSize(stream, buffer, true);
+        chunkSize += chunkSize & 1;
 
         // Structural chunk sizes must remain representable by their uint-sized consumers.
         // Metadata readers retain the wider extent so their recovery can skip it safely.
@@ -321,23 +326,24 @@ internal static class WebpChunkParsingUtils
     }
 
     /// <summary>
-    /// Reads a chunk's complete padded extent without wrapping a uint-sized payload length.
+    /// Reads the payload size stored in a chunk header. RIFF follows an odd-sized payload with a padding byte
+    /// that belongs to the chunk but not to its payload, so the returned size excludes it.
     /// </summary>
     /// <param name="stream">The input stream.</param>
     /// <param name="buffer">The four-byte size buffer.</param>
     /// <param name="required">Whether an incomplete size field is an error.</param>
-    /// <returns>The padded extent, or remaining bytes when an optional size field is incomplete.</returns>
-    private static ulong ReadPaddedChunkSize(BufferedReadStream stream, Span<byte> buffer, bool required)
+    /// <returns>The payload size, or remaining bytes when an optional size field is incomplete.</returns>
+    private static ulong ReadChunkPayloadSize(BufferedReadStream stream, Span<byte> buffer, bool required)
     {
         if (stream.Read(buffer) is 4)
         {
-            uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
-            return (ulong)chunkSize + (chunkSize & 1);
+            return BinaryPrimitives.ReadUInt32LittleEndian(buffer);
         }
 
         if (required)
         {
-            throw new ImageFormatException("Invalid Webp data, could not read chunk size.");
+            // Only a truncated stream leaves fewer than four bytes for the size field.
+            throw new InvalidImageContentException("Invalid Webp data, could not read chunk size.");
         }
 
         // Return the size of the remaining data in the stream.
@@ -349,8 +355,8 @@ internal static class WebpChunkParsingUtils
     /// </summary>
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="buffer">Buffer to store the data read from the stream.</param>
-    /// <exception cref="ImageFormatException">
-    /// Thrown if the input stream is not valid.
+    /// <exception cref="InvalidImageContentException">
+    /// Thrown if the stream ends inside the chunk type.
     /// </exception>
     public static WebpChunkType ReadChunkType(BufferedReadStream stream, Span<byte> buffer)
     {
@@ -360,8 +366,8 @@ internal static class WebpChunkParsingUtils
         }
 
         // While we ignore unknown chunks we still need a to be a ble to read a chunk type
-        // known or otherwise from the stream.
-        throw new ImageFormatException("Invalid Webp data, could not read chunk type.");
+        // known or otherwise from the stream. Only a truncated stream leaves fewer than four bytes.
+        throw new InvalidImageContentException("Invalid Webp data, could not read chunk type.");
     }
 
     /// <summary>
@@ -377,18 +383,18 @@ internal static class WebpChunkParsingUtils
         bool ignoreMetadata,
         Action<Action> executeAncillarySegmentAction)
     {
-        ulong chunkSize = ReadPaddedChunkSize(stream, stackalloc byte[4], true);
+        ulong payloadSize = ReadChunkPayloadSize(stream, stackalloc byte[4], true);
 
-        // ICCP precedes image/frame data. Its framing must be readable even when
-        // metadata is skipped; otherwise there is no safe location to resume decoding.
-        if (!stream.IsReadRangeValid(stream.Position, chunkSize))
+        // ICCP precedes image/frame data. Its framing, including the padding byte of an odd-sized payload,
+        // must be readable even when metadata is skipped; otherwise there is no safe location to resume decoding.
+        if (!stream.IsReadRangeValid(stream.Position, payloadSize + (payloadSize & 1)))
         {
             WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the ICCP chunk.");
         }
 
         executeAncillarySegmentAction(() =>
         {
-            byte[]? iccpData = ReadMetadataChunk(stream, chunkSize, ignoreMetadata || metadata.IccProfile != null);
+            byte[]? iccpData = ReadMetadataChunk(stream, payloadSize, ignoreMetadata || metadata.IccProfile != null);
             if (iccpData is not null)
             {
                 IccProfile profile = new(iccpData);
@@ -413,8 +419,8 @@ internal static class WebpChunkParsingUtils
         ImageMetadata metadata,
         bool ignoreMetadata)
     {
-        ulong chunkSize = ReadPaddedChunkSize(stream, stackalloc byte[4], !ignoreMetadata);
-        byte[]? exifData = ReadMetadataChunk(stream, chunkSize, ignoreMetadata || metadata.ExifProfile != null);
+        ulong payloadSize = ReadChunkPayloadSize(stream, stackalloc byte[4], !ignoreMetadata);
+        byte[]? exifData = ReadMetadataChunk(stream, payloadSize, ignoreMetadata || metadata.ExifProfile != null);
         if (exifData is not null)
         {
             ExifProfile exifProfile = new(exifData);
@@ -445,8 +451,8 @@ internal static class WebpChunkParsingUtils
         ImageMetadata metadata,
         bool ignoreMetadata)
     {
-        ulong chunkSize = ReadPaddedChunkSize(stream, stackalloc byte[4], !ignoreMetadata);
-        byte[]? xmpData = ReadMetadataChunk(stream, chunkSize, ignoreMetadata || metadata.XmpProfile != null);
+        ulong payloadSize = ReadChunkPayloadSize(stream, stackalloc byte[4], !ignoreMetadata);
+        byte[]? xmpData = ReadMetadataChunk(stream, payloadSize, ignoreMetadata || metadata.XmpProfile != null);
         if (xmpData is not null)
         {
             metadata.XmpProfile = new XmpProfile(xmpData);
@@ -458,11 +464,14 @@ internal static class WebpChunkParsingUtils
     /// Callers execute metadata parsing under the decoder's ancillary integrity policy.
     /// </summary>
     /// <param name="stream">The input stream positioned at the chunk payload.</param>
-    /// <param name="paddedLength">The declared extent including its padding byte.</param>
+    /// <param name="payloadLength">The declared payload length, excluding its padding byte.</param>
     /// <param name="ignoreMetadata">Whether to skip the payload without parsing it.</param>
     /// <returns>The payload, or null when metadata is skipped.</returns>
-    private static byte[]? ReadMetadataChunk(BufferedReadStream stream, ulong paddedLength, bool ignoreMetadata)
+    private static byte[]? ReadMetadataChunk(BufferedReadStream stream, ulong payloadLength, bool ignoreMetadata)
     {
+        // An odd-sized payload is followed by a padding byte that is part of the chunk but not of the payload.
+        // The next chunk starts after it, clamped to the end of a truncated stream.
+        ulong paddedLength = payloadLength + (payloadLength & 1);
         long chunkEnd = stream.Position + (long)Math.Min(paddedLength, (ulong)stream.RemainingBytes);
         if (ignoreMetadata)
         {
@@ -470,7 +479,7 @@ internal static class WebpChunkParsingUtils
             return null;
         }
 
-        if (!stream.TryGetReadLength(paddedLength, out int bufferLength))
+        if (!stream.TryGetReadLength(payloadLength, out int bufferLength))
         {
             // Ignoring an ancillary error must not make the next parser interpret
             // this payload as another chunk header. A truncated chunk consumes EOF.
@@ -484,6 +493,8 @@ internal static class WebpChunkParsingUtils
             WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the metadata chunk.");
         }
 
+        // Skip the padding byte, so it is neither returned as payload nor read as the next chunk header.
+        stream.Position = chunkEnd;
         return data;
     }
 

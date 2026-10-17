@@ -1,12 +1,17 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using System.Runtime.Intrinsics.X86;
+using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestDataIcc;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -19,6 +24,42 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 [ValidateDisposedMemoryAllocations]
 public class WebpDecoderTests
 {
+    /// <summary>
+    /// The kinds of encoded files the container tests mutate.
+    /// </summary>
+    public enum ContainerSample
+    {
+        /// <summary>
+        /// A simple lossy file with only a VP8 chunk.
+        /// </summary>
+        Lossy,
+
+        /// <summary>
+        /// A simple lossless file with only a VP8L chunk.
+        /// </summary>
+        Lossless,
+
+        /// <summary>
+        /// An extended lossy file with VP8X, ALPH and VP8 chunks.
+        /// </summary>
+        LossyWithAlpha,
+
+        /// <summary>
+        /// An extended lossless file with VP8X, VP8L and EXIF chunks.
+        /// </summary>
+        LosslessWithExif,
+
+        /// <summary>
+        /// An extended lossy file with VP8X, VP8, EXIF and XMP chunks.
+        /// </summary>
+        LossyWithExifAndXmp,
+
+        /// <summary>
+        /// An extended lossless file with VP8X, ICCP and VP8L chunks.
+        /// </summary>
+        LosslessWithIcc
+    }
+
     private static MagickReferenceDecoder ReferenceDecoder => MagickReferenceDecoder.WebP;
 
     private static string TestImageLossyHorizontalFilterPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.AlphaCompressedHorizontalFilter);
@@ -620,5 +661,226 @@ public class WebpDecoderTests
         image.DebugSave(provider);
         image.CompareToReferenceOutput(provider);
         Assert.Null(image.Metadata.IccProfile);
+    }
+
+    [Theory]
+    [InlineData(20, 0x40)]
+    [InlineData(20, 0x80)]
+    [InlineData(20, 0x01)]
+    [InlineData(21, 0xFF)]
+    [InlineData(23, 0x80)]
+    public void Decode_Vp8XWithNonZeroReservedFields_MatchesOriginal(int offset, byte bits)
+    {
+        // Offset 20 is the VP8X feature flags byte, whose two top bits and lowest bit are reserved.
+        // Offsets 21 to 23 are the reserved bytes that follow it.
+        byte[] original = EncodeContainerSample(ContainerSample.LosslessWithExif);
+        byte[] patched = (byte[])original.Clone();
+        patched[offset] |= bits;
+
+        AssertSameDecodedImage(original, patched);
+    }
+
+    [Theory]
+    [InlineData(ContainerSample.Lossy)]
+    [InlineData(ContainerSample.Lossless)]
+    [InlineData(ContainerSample.LossyWithAlpha)]
+    [InlineData(ContainerSample.LosslessWithExif)]
+    [InlineData(ContainerSample.LossyWithExifAndXmp)]
+    [InlineData(ContainerSample.LosslessWithIcc)]
+    public void Decode_WithBytesAfterRiffPayload_MatchesOriginal(ContainerSample sample)
+    {
+        byte[] original = EncodeContainerSample(sample);
+        Random random = new(42);
+        for (int count = 1; count <= 64; count++)
+        {
+            byte[] patched = new byte[original.Length + count];
+            original.CopyTo(patched, 0);
+            random.NextBytes(patched.AsSpan(original.Length));
+
+            AssertSameDecodedImage(original, patched);
+        }
+    }
+
+    [Fact]
+    public void Decode_WithImageChunkAfterRiffPayload_IgnoresIt()
+    {
+        // A complete chunk after the RIFF payload is not part of the file, even when it is valid image data.
+        byte[] original = EncodeContainerSample(ContainerSample.LossyWithAlpha);
+        using Image<Rgba32> other = new(5, 3, Color.White.ToPixel<Rgba32>());
+        using MemoryStream otherStream = new();
+        other.Save(otherStream, new WebpEncoder { FileFormat = WebpFileFormatType.Lossless });
+        byte[] otherData = otherStream.ToArray();
+        Assert.Equal(12, FindChunk(otherData, "VP8L"));
+
+        byte[] patched = [.. original, .. otherData.AsSpan(12)];
+
+        AssertSameDecodedImage(original, patched);
+    }
+
+    [Theory]
+    [InlineData(0x7FFFFFF0U)]
+    [InlineData(0xFFFFFFF0U)]
+    public void Decode_UnknownChunkLargerThanRiffPayload_MatchesOriginal(uint size)
+    {
+        // The declared size runs past the end of the RIFF payload, and the second one is negative as an int.
+        byte[] original = EncodeContainerSample(ContainerSample.LosslessWithExif);
+        byte[] patched = [.. original, .. "ABCD"u8, 0, 0, 0, 0, 1, 2, 3];
+        BinaryPrimitives.WriteUInt32LittleEndian(patched.AsSpan(original.Length + 4), size);
+        BinaryPrimitives.WriteUInt32LittleEndian(patched.AsSpan(4), (uint)patched.Length - 8);
+
+        AssertSameDecodedImage(original, patched);
+    }
+
+    [Theory]
+    [InlineData(ContainerSample.Lossy)]
+    [InlineData(ContainerSample.Lossless)]
+    [InlineData(ContainerSample.LossyWithAlpha)]
+    [InlineData(ContainerSample.LosslessWithExif)]
+    [InlineData(ContainerSample.LossyWithExifAndXmp)]
+    [InlineData(ContainerSample.LosslessWithIcc)]
+    public void Decode_TruncatedContainer_DecodesOrThrowsInvalidImageContentException(ContainerSample sample)
+    {
+        byte[] original = EncodeContainerSample(sample);
+
+        // Data missing from the compressed image data is reported by the bitstream decoders rather than the
+        // container parser, so Load is only checked for cuts outside that data. Identify only reads its header.
+        bool isLossless = TryFindChunk(original, "VP8L", out int imageChunk);
+        if (!isLossless)
+        {
+            imageChunk = FindChunk(original, "VP8 ");
+        }
+
+        int bitstreamStart = imageChunk + WebpConstants.ChunkHeaderSize + (isLossless ? 5 : WebpConstants.Vp8FrameHeaderSize);
+        int bitstreamEnd = imageChunk + WebpConstants.ChunkHeaderSize + BinaryPrimitives.ReadInt32LittleEndian(original.AsSpan(imageChunk + 4));
+
+        // The format detector needs the complete 12 byte RIFF header to recognize the file.
+        for (int length = WebpConstants.RiffHeaderSize; length < original.Length; length++)
+        {
+            byte[] truncated = original.AsSpan(0, length).ToArray();
+            AssertDecodesOrThrowsInvalidImageContent(() => _ = Image.Identify(truncated), length);
+            if (length < bitstreamStart || length >= bitstreamEnd)
+            {
+                AssertDecodesOrThrowsInvalidImageContent(
+                    () =>
+                    {
+                        using Image<Rgba32> image = Image.Load<Rgba32>(truncated);
+                    },
+                    length);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Encodes a small image whose container has the chunks described by <paramref name="sample"/>.
+    /// </summary>
+    /// <param name="sample">The kind of file to encode.</param>
+    /// <returns>The encoded file.</returns>
+    private static byte[] EncodeContainerSample(ContainerSample sample)
+    {
+        bool lossless = sample is ContainerSample.Lossless or ContainerSample.LosslessWithExif or ContainerSample.LosslessWithIcc;
+        bool alpha = sample is ContainerSample.LossyWithAlpha or ContainerSample.LosslessWithExif;
+
+        using Image<Rgba32> image = new(23, 17);
+        image.ProcessPixelRows(accessor =>
+        {
+            for (int y = 0; y < accessor.Height; y++)
+            {
+                Span<Rgba32> row = accessor.GetRowSpan(y);
+                for (int x = 0; x < row.Length; x++)
+                {
+                    byte a = alpha ? (byte)(255 - (x * 9)) : (byte)255;
+                    row[x] = new Rgba32((byte)(x * 11), (byte)(y * 15), (byte)((x + y) * 6), a);
+                }
+            }
+        });
+
+        if (sample is ContainerSample.LosslessWithExif or ContainerSample.LossyWithExifAndXmp)
+        {
+            ExifProfile exifProfile = new();
+            exifProfile.SetValue(ExifTag.Software, "ImageSharp");
+            image.Metadata.ExifProfile = exifProfile;
+        }
+
+        if (sample is ContainerSample.LossyWithExifAndXmp)
+        {
+            image.Metadata.XmpProfile = new XmpProfile("<x:xmpmeta xmlns:x='adobe:ns:meta/'></x:xmpmeta>"u8.ToArray());
+        }
+
+        if (sample is ContainerSample.LosslessWithIcc)
+        {
+            image.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.ProfileRandomArray);
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new WebpEncoder { FileFormat = lossless ? WebpFileFormatType.Lossless : WebpFileFormatType.Lossy });
+        return stream.ToArray();
+    }
+
+    /// <summary>
+    /// Asserts that both files decode and identify to the same pixels, metadata and image information.
+    /// </summary>
+    /// <param name="expectedData">The unmodified file.</param>
+    /// <param name="actualData">The modified file.</param>
+    private static void AssertSameDecodedImage(byte[] expectedData, byte[] actualData)
+    {
+        using Image<Rgba32> expected = Image.Load<Rgba32>(expectedData);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(actualData);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+        Assert.Equal(expected.Metadata.ExifProfile?.ToByteArray(), actual.Metadata.ExifProfile?.ToByteArray());
+        Assert.Equal(expected.Metadata.XmpProfile?.ToByteArray(), actual.Metadata.XmpProfile?.ToByteArray());
+        Assert.Equal(expected.Metadata.IccProfile?.ToByteArray(), actual.Metadata.IccProfile?.ToByteArray());
+
+        ImageInfo expectedInfo = Image.Identify(expectedData);
+        ImageInfo actualInfo = Image.Identify(actualData);
+        Assert.Equal(expectedInfo.Size, actualInfo.Size);
+        Assert.Equal(expectedInfo.PixelType.BitsPerPixel, actualInfo.PixelType.BitsPerPixel);
+    }
+
+    /// <summary>
+    /// Asserts that an operation on a truncated file either succeeds or reports invalid image content.
+    /// </summary>
+    /// <param name="operation">The decoding operation.</param>
+    /// <param name="length">The truncated file length, reported on failure.</param>
+    private static void AssertDecodesOrThrowsInvalidImageContent(Action operation, int length)
+    {
+        Exception exception = Record.Exception(operation);
+        Assert.True(exception is null or InvalidImageContentException, $"Truncated to {length} bytes: {exception}");
+    }
+
+    /// <summary>
+    /// Gets the offset of the first chunk with the given FourCC.
+    /// </summary>
+    /// <param name="data">The encoded file.</param>
+    /// <param name="fourCc">The chunk FourCC.</param>
+    /// <returns>The offset of the chunk header.</returns>
+    private static int FindChunk(byte[] data, string fourCc)
+    {
+        Assert.True(TryFindChunk(data, fourCc, out int offset), $"Chunk '{fourCc}' not found.");
+        return offset;
+    }
+
+    /// <summary>
+    /// Walks the chunks after the RIFF header to find the first chunk with the given FourCC.
+    /// </summary>
+    /// <param name="data">The encoded file.</param>
+    /// <param name="fourCc">The chunk FourCC.</param>
+    /// <param name="offset">The offset of the chunk header, when found.</param>
+    /// <returns>Whether the chunk was found.</returns>
+    private static bool TryFindChunk(byte[] data, string fourCc, out int offset)
+    {
+        offset = WebpConstants.RiffHeaderSize;
+        while (offset + WebpConstants.ChunkHeaderSize <= data.Length)
+        {
+            if (Encoding.ASCII.GetString(data, offset, 4) == fourCc)
+            {
+                return true;
+            }
+
+            // Odd-sized payloads are followed by a padding byte.
+            int size = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(offset + 4));
+            offset += WebpConstants.ChunkHeaderSize + size + (size & 1);
+        }
+
+        return false;
     }
 }

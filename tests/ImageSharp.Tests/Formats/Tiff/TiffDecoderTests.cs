@@ -2,12 +2,15 @@
 // Licensed under the Six Labors Split License.
 
 // ReSharper disable InconsistentNaming
+using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -1006,6 +1009,64 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         });
     }
 
+    /// <summary>
+    /// A bilevel TIFF without a BitsPerSample entry uses the TIFF 6.0 default of one bit per sample.
+    /// </summary>
+    /// <param name="compression">The compression of the encoded image.</param>
+    [Theory]
+    [InlineData(TiffCompression.None)]
+    [InlineData(TiffCompression.CcittGroup4Fax)]
+    public void TiffDecoder_CanDecode_BilevelWithoutBitsPerSample(TiffCompression compression)
+    {
+        using Image<L8> source = new(16, 8);
+        for (int y = 0; y < source.Height; y++)
+        {
+            for (int x = 0; x < source.Width; x++)
+            {
+                source[x, y] = new L8((byte)((x + y) % 3 == 0 ? 255 : 0));
+            }
+        }
+
+        using MemoryStream stream = new();
+        source.Save(stream, new TiffEncoder { BitsPerPixel = TiffBitsPerPixel.Bit1, Compression = compression });
+        byte[] withBitsPerSample = stream.ToArray();
+
+        // Move the BitsPerSample entry to an unused private tag, so the decoder no longer finds it.
+        byte[] withoutBitsPerSample = (byte[])withBitsPerSample.Clone();
+        RenameFirstDirectoryEntry(withoutBitsPerSample, ExifTagValue.BitsPerSample, 65000);
+
+        using Image<L8> expected = Image.Load<L8>(withBitsPerSample);
+        using Image<L8> actual = Image.Load<L8>(withoutBitsPerSample);
+        ImageInfo info = Image.Identify(withoutBitsPerSample);
+
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+        Assert.Equal(TiffBitsPerPixel.Bit1, actual.Frames.RootFrame.Metadata.GetTiffMetadata().BitsPerPixel);
+        Assert.Equal(1, info.PixelType.BitsPerPixel);
+    }
+
     private static byte[] CreateTiffWithMalformedIccProfile()
         => CorruptedMetadataImageFactory.CreateImageWithMalformedIccProfile(new TiffEncoder());
+
+    /// <summary>
+    /// Changes the tag of an entry in the first directory of a little-endian TIFF.
+    /// </summary>
+    /// <param name="tiff">The encoded TIFF.</param>
+    /// <param name="tag">The tag of the entry to change.</param>
+    /// <param name="newTag">The new tag number.</param>
+    private static void RenameFirstDirectoryEntry(byte[] tiff, ExifTagValue tag, ushort newTag)
+    {
+        int ifdOffset = (int)BinaryPrimitives.ReadUInt32LittleEndian(tiff.AsSpan(4));
+        int count = BinaryPrimitives.ReadUInt16LittleEndian(tiff.AsSpan(ifdOffset));
+        for (int i = 0; i < count; i++)
+        {
+            int entry = ifdOffset + 2 + (i * 12);
+            if (BinaryPrimitives.ReadUInt16LittleEndian(tiff.AsSpan(entry)) == (ushort)tag)
+            {
+                BinaryPrimitives.WriteUInt16LittleEndian(tiff.AsSpan(entry), newTag);
+                return;
+            }
+        }
+
+        throw new InvalidOperationException($"Tag {tag} not found.");
+    }
 }

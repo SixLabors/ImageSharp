@@ -216,10 +216,26 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
         meta.EncodingWidth = GetImageWidth(profile);
         meta.EncodingHeight = GetImageHeight(profile);
 
-        if (profile.TryGetValue(ExifTag.BitsPerSample, out IExifValue<ushort[]>? bitsPerSampleValue)
-            && TiffBitsPerSample.TryParse(bitsPerSampleValue.Value, out TiffBitsPerSample bitsPerSample))
+        if (profile.TryGetValue(ExifTag.BitsPerSample, out IExifValue<ushort[]>? bitsPerSampleValue))
         {
-            meta.BitsPerSample = bitsPerSample;
+            if (TiffBitsPerSample.TryParse(bitsPerSampleValue.Value, out TiffBitsPerSample bitsPerSample))
+            {
+                meta.BitsPerSample = bitsPerSample;
+            }
+        }
+        else
+        {
+            // TIFF 6.0 defines a default of one bit for each sample when the entry is absent, which bilevel
+            // fax and scanner files rely on. SamplesPerPixel defaults to one, and at most four samples are used.
+            int samplesPerPixel = profile.TryGetValue(ExifTag.SamplesPerPixel, out IExifValue<ushort>? samplesPerPixelValue)
+                ? samplesPerPixelValue.Value
+                : 1;
+
+            meta.BitsPerSample = new TiffBitsPerSample(
+                1,
+                (ushort)(samplesPerPixel > 1 ? 1 : 0),
+                (ushort)(samplesPerPixel > 2 ? 1 : 0),
+                (ushort)(samplesPerPixel > 3 ? 1 : 0));
         }
 
         meta.BitsPerPixel = meta.BitsPerSample.BitsPerPixel();

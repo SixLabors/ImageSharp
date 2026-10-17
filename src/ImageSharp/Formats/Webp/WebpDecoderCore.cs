@@ -53,6 +53,11 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     private readonly BackgroundColorHandling backgroundColorHandling;
 
     /// <summary>
+    /// The stream position where the RIFF payload ends. Chunk parsing stops here, so bytes after the payload are ignored.
+    /// </summary>
+    private long riffEnd;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="WebpDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
@@ -75,7 +80,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
             ImageMetadata metadata = new();
             Span<byte> buffer = stackalloc byte[4];
 
-            uint fileSize = ReadImageHeader(stream, buffer);
+            uint fileSize = this.ReadImageHeader(stream, buffer);
 
             using (this.webImageInfo = this.ReadVp8Info(stream, metadata))
             {
@@ -140,7 +145,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// <inheritdoc />
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
-        uint fileSize = ReadImageHeader(stream, stackalloc byte[4]);
+        uint fileSize = this.ReadImageHeader(stream, stackalloc byte[4]);
         ImageMetadata metadata = new();
 
         using (this.webImageInfo = this.ReadVp8Info(stream, metadata, true))
@@ -170,13 +175,15 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     }
 
     /// <summary>
-    /// Reads and skips over the image header.
+    /// Reads and skips over the image header, and records where the RIFF payload ends.
     /// </summary>
     /// <param name="stream">The stream to decode from.</param>
     /// <param name="buffer">Temporary buffer.</param>
     /// <returns>The file size in bytes.</returns>
-    private static uint ReadImageHeader(BufferedReadStream stream, Span<byte> buffer)
+    private uint ReadImageHeader(BufferedReadStream stream, Span<byte> buffer)
     {
+        long riffStart = stream.Position;
+
         // Skip FourCC header, we already know its a RIFF file at this point.
         stream.Skip(4);
 
@@ -184,6 +191,11 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         // The size of the file in bytes starting at offset 8.
         // The file size in the header is the total size of the chunks that follow plus 4 bytes for the ‘WEBP’ FourCC.
         uint fileSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer);
+
+        // Bytes after the RIFF payload are not part of the image, so chunks are only read up to its end,
+        // as libwebp does. A declared size larger than the stream describes a truncated file, so reading
+        // then stops at the end of the stream instead.
+        this.riffEnd = Math.Min(riffStart + WebpConstants.ChunkHeaderSize + fileSize, stream.Length);
 
         // Skip 'WEBP' from the header.
         stream.Skip(4);
@@ -221,7 +233,9 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                 return info;
             case WebpChunkType.Vp8X:
                 info = WebpChunkParsingUtils.ReadVp8XHeader(stream, buffer, features);
-                while (stream.Position < stream.Length)
+
+                // Fewer bytes than a chunk header before the end of the RIFF payload cannot start another chunk.
+                while (this.riffEnd - stream.Position >= WebpConstants.ChunkHeaderSize)
                 {
                     chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
                     if (chunkType == WebpChunkType.Vp8)
@@ -250,8 +264,9 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     {
                         // Ignore unknown chunks.
                         // These must always fall after the image data so we are safe to always skip them.
-                        uint chunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer, false);
-                        stream.Skip((int)chunkSize);
+                        // A chunk extending past the RIFF payload ends the parsing instead of wrapping to a negative skip.
+                        uint chunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer);
+                        stream.Position = Math.Min(stream.Position + chunkSize, this.riffEnd);
                     }
                 }
 
@@ -334,8 +349,8 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
             return;
         }
 
-        long streamLength = stream.Length;
-        while (stream.Position < streamLength)
+        // Fewer bytes than a chunk header before the end of the RIFF payload cannot start another chunk.
+        while (this.riffEnd - stream.Position >= WebpConstants.ChunkHeaderSize)
         {
             // Read chunk header.
             WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
@@ -350,8 +365,9 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
             else
             {
                 // Skip unknown chunks.
-                uint chunkLength = WebpChunkParsingUtils.ReadChunkSize(stream, buffer, false);
-                stream.Skip((int)chunkLength);
+                // A chunk extending past the RIFF payload ends the parsing instead of wrapping to a negative skip.
+                uint chunkLength = WebpChunkParsingUtils.ReadChunkSize(stream, buffer);
+                stream.Position = Math.Min(stream.Position + chunkLength, this.riffEnd);
             }
         }
     }

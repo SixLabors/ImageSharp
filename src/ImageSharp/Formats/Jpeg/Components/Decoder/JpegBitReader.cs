@@ -84,6 +84,13 @@ internal struct JpegBitReader
     [MethodImpl(InliningOptions.ShortMethod)]
     public readonly bool HasBadMarker() => this.Marker != JpegConstants.Markers.XFF && !this.HasRestartMarker();
 
+    /// <summary>
+    /// Whether a TEM or reserved marker has been detected, I.E. One below SOF0.
+    /// Such a marker can neither end a restart interval nor the scan.
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public readonly bool HasReservedMarker() => this.Marker < JpegConstants.Markers.SOF0;
+
     [MethodImpl(InliningOptions.AlwaysInline)]
     public void FillBuffer()
     {

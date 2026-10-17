@@ -745,7 +745,11 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     {
         if (this.restartInterval > 0 && (--this.todo) == 0)
         {
-            if (this.scanBuffer.Marker == JpegConstants.Markers.XFF)
+            // Find the marker that ends this interval. FindNextMarker skips the extraneous data bytes some
+            // producers write before it. Those bytes can also form a TEM or reserved marker (FF 01 to FF BF)
+            // which cannot end an interval, so skip those too and resync at the next marker, as libjpeg does.
+            // Treating such a marker as the end of the scan would lose the rest of the scan data.
+            while (this.scanBuffer.Marker == JpegConstants.Markers.XFF || this.scanBuffer.HasReservedMarker())
             {
                 if (!this.scanBuffer.FindNextMarker())
                 {

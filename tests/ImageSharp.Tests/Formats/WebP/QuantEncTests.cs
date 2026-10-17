@@ -38,6 +38,30 @@ public class QuantEncTests
         Assert.Equal(expectedResult, actualResult);
     }
 
+    private static void RunQuantizeBlockWithSharpeningTest()
+    {
+        // arrange
+        // A luma AC matrix (type 0) gets non-zero sharpening for every AC coefficient. With Q = 200 the
+        // sharpen values are 2, 5 or 8, and the inputs sit just below a level boundary, so several levels
+        // are only reached when the sharpening is added before quantizing.
+        short[] input = [300, -110, 112, -310, 113, -500, 290, -115, 700, -108, 295, -490, 111, -298, 505, -299];
+        short[] output = new short[16];
+        short[] expectedOutput = [7, 0, 1, 3, -2, 1, -2, 1, -1, 1, -1, 1, -1, -2, 2, -1];
+        short[] expectedInput = [280, 0, 200, -400, 200, -400, 200, -200, 600, -200, 200, -400, 200, -200, 400, -200];
+        Vp8Matrix vp8Matrix = default;
+        vp8Matrix.Q[0] = 40;
+        vp8Matrix.Q[1] = 200;
+        vp8Matrix.Expand(0);
+
+        // act
+        int actualResult = QuantEnc.QuantizeBlock(input, output, ref vp8Matrix);
+
+        // assert
+        Assert.Equal(expectedOutput, output);
+        Assert.Equal(expectedInput, input);
+        Assert.Equal(1, actualResult);
+    }
+
     [Fact]
     public void QuantizeBlock_Works() => RunQuantizeBlockTest();
 
@@ -49,4 +73,13 @@ public class QuantEncTests
 
     [Fact]
     public void QuantizeBlock_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockTest, HwIntrinsics.DisableAVX2);
+
+    [Fact]
+    public void QuantizeBlock_WithSharpening_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockWithSharpeningTest, HwIntrinsics.AllowAll);
+
+    [Fact]
+    public void QuantizeBlock_WithSharpening_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockWithSharpeningTest, HwIntrinsics.DisableHWIntrinsic);
+
+    [Fact]
+    public void QuantizeBlock_WithSharpening_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockWithSharpeningTest, HwIntrinsics.DisableAVX2);
 }

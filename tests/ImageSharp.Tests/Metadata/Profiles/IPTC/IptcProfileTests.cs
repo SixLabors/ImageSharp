@@ -34,6 +34,57 @@ public class IptcProfileTests
         Assert.True(profileBytes.AsSpan(0, 8).SequenceEqual(expectedEnvelopeData));
     }
 
+    [Fact]
+    public void IptcProfile_DeepClone_WithUtf8Data_WritesEnvelopeRecord_Works()
+    {
+        // arrange
+        IptcProfile profile = new();
+        profile.SetValue(IptcTag.City, "ESPAÑA");
+        IptcProfile clone = profile.DeepClone();
+        byte[] expectedEnvelopeData = [28, 1, 90, 0, 3, 27, 37, 71];
+
+        // act
+        clone.UpdateData();
+
+        // assert
+        Assert.True(clone.Data.AsSpan(0, 8).SequenceEqual(expectedEnvelopeData));
+    }
+
+    [Fact]
+    public void IptcProfile_WithUtf8EncodingInstance_WritesEnvelopeRecord_Works()
+    {
+        // arrange
+        IptcProfile profile = new();
+        profile.SetValue(IptcTag.City, new System.Text.UTF8Encoding(false), "ESPAÑA");
+        byte[] expectedEnvelopeData = [28, 1, 90, 0, 3, 27, 37, 71];
+
+        // act
+        profile.UpdateData();
+
+        // assert
+        Assert.True(profile.Data.AsSpan(0, 8).SequenceEqual(expectedEnvelopeData));
+    }
+
+    [Fact]
+    public void WritingClonedImage_WithUtf8Data_WritesEnvelopeRecordOnce()
+    {
+        // arrange
+        using Image<Rgba32> image = new(1, 1);
+        image.Metadata.IptcProfile = new IptcProfile();
+        image.Metadata.IptcProfile.SetValue(IptcTag.Caption, "ESPAÑA");
+        byte[] expectedData = [28, 1, 90, 0, 3, 27, 37, 71, 28, 2, 120, 0, 7, 69, 83, 80, 65, 195, 145, 65];
+
+        // act
+        using Image<Rgba32> once = WriteAndReadJpeg(image.Clone());
+        using Image<Rgba32> twice = WriteAndReadJpeg(once.Clone());
+
+        // assert
+        IptcProfile actual = twice.Metadata.IptcProfile;
+        Assert.Equal(expectedData, actual.Data);
+        IptcValue value = Assert.Single(actual.Values);
+        Assert.Equal("ESPAÑA", value.Value);
+    }
+
     [Theory]
     [MemberData(nameof(AllIptcTags))]
     public void IptcProfile_SetValue_WithStrictEnabled_Works(IptcTag tag)

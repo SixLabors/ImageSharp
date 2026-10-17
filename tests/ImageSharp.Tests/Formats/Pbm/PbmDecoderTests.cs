@@ -164,6 +164,54 @@ public class PbmDecoderTests
     }
 
     [Theory]
+    [InlineData("P2", 100)]
+    [InlineData("P3", 100)]
+    [InlineData("P5", 100)]
+    [InlineData("P6", 100)]
+    [InlineData("P2", 1000)]
+    [InlineData("P3", 1000)]
+    [InlineData("P5", 1000)]
+    [InlineData("P6", 1000)]
+    public void Decode_NonStandardMaxPixelValue_ScalesSamplesToByteRange(string magic, int maxPixelValue)
+    {
+        // Six samples make six grayscale pixels or two color pixels. They include both ends of the range
+        // and values that do not fall on a whole 8-bit step, so a scale that loses precision is detected.
+        int[] samples = [0, 7, maxPixelValue / 2, maxPixelValue - 1, maxPixelValue, 3];
+        bool isRgb = magic is "P3" or "P6";
+        int width = isRgb ? samples.Length / 3 : samples.Length;
+
+        byte[] header = Encoding.ASCII.GetBytes($"{magic}\n{width} 1\n{maxPixelValue}\n");
+        byte[] payload;
+        if (magic is "P2" or "P3")
+        {
+            payload = Encoding.ASCII.GetBytes(string.Join(' ', samples));
+        }
+        else if (maxPixelValue > 255)
+        {
+            // Binary samples above 8 bits are stored as two bytes, most significant byte first.
+            payload = samples.SelectMany(s => new[] { (byte)(s >> 8), (byte)s }).ToArray();
+        }
+        else
+        {
+            payload = samples.Select(s => (byte)s).ToArray();
+        }
+
+        using Image<Rgb24> image = Image.Load<Rgb24>([.. header, .. payload]);
+        byte[] components = new byte[width * 3];
+        image.CopyPixelDataTo(components);
+
+        for (int i = 0; i < samples.Length; i++)
+        {
+            // A grayscale sample is decoded to equal red, green and blue components, so compare the red one.
+            byte actual = isRgb ? components[i] : components[i * 3];
+
+            // A 16-bit sample is rounded once to 16 bits and again to 8 bits, so allow one step of difference.
+            int expected = (int)Math.Round(samples[i] * 255D / maxPixelValue, MidpointRounding.AwayFromZero);
+            Assert.InRange(actual, expected - 1, expected + 1);
+        }
+    }
+
+    [Theory]
     [WithFile(RgbPlain, PixelTypes.Rgb24)]
     public void PbmDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>

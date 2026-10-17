@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestDataIcc;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 // ReSharper disable InconsistentNaming
@@ -286,8 +287,9 @@ public class WebpMetaDataTests
     [InlineData("XMP ")]
     public void Decode_WithMetadataChunkLargerThanRemainingData_ThrowsInStrictMode(string chunkType)
     {
+        // The RIFF size covers the whole payload, so the metadata chunk is read rather than ignored as trailing data.
         byte[] payload = Convert.FromHexString(
-            "524946460000000057454250565038580A00000020000000010000010000494343500000004000000000");
+            "524946462200000057454250565038580A00000020000000010000010000494343500000004000000000");
         Encoding.ASCII.GetBytes(chunkType, payload.AsSpan(30, 4));
         DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
 
@@ -364,6 +366,62 @@ public class WebpMetaDataTests
 
         Assert.Throws<InvalidImageContentException>(() => Image.Load(options, payload));
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, payload));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Decode_OddLengthMetadataChunks_ReadsPayloadsWithoutPaddingByte(bool skipMetadata)
+    {
+        // An ICC profile may have any length its header declares, so one extra byte makes it odd.
+        byte[] icc = [.. IccTestDataProfiles.ProfileRandomArray, 0x2A];
+        BinaryPrimitives.WriteUInt32BigEndian(icc, (uint)icc.Length);
+
+        ExifProfile exifProfile = new();
+        exifProfile.SetValue(ExifTag.Software, "ImageSharp");
+        byte[] exif = exifProfile.ToByteArray();
+        if (exif.Length % 2 == 0)
+        {
+            // The EXIF reader ignores bytes after the last directory.
+            exif = [.. exif, 0x2A];
+        }
+
+        byte[] xmp = "<x:xmpmeta xmlns:x='adobe:ns:meta/'> </x:xmpmeta>"u8.ToArray();
+        Assert.True(icc.Length % 2 == 1 && exif.Length % 2 == 1 && xmp.Length % 2 == 1);
+
+        using Image<Rgba32> source = new(1, 1, new Rgba32(255, 0, 0));
+        using MemoryStream encoded = new();
+        source.Save(encoded, new WebpEncoder { FileFormat = WebpFileFormatType.Lossless });
+        byte[] simple = encoded.ToArray();
+
+        // RiffHelper writes the declared odd payload length followed by a zero padding byte. Placing chunks after
+        // each padded payload also checks that the padding is still skipped before the next chunk header.
+        using MemoryStream output = new();
+        output.Write("RIFF\0\0\0\0WEBP"u8);
+        RiffHelper.WriteChunk(output, (uint)WebpChunkType.Vp8X, [0x2C, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        RiffHelper.WriteChunk(output, (uint)WebpChunkType.Iccp, icc);
+        output.Write(simple.AsSpan(12));
+        RiffHelper.WriteChunk(output, (uint)WebpChunkType.Exif, exif);
+        RiffHelper.WriteChunk(output, (uint)WebpChunkType.Xmp, xmp);
+        byte[] payload = output.ToArray();
+        BinaryPrimitives.WriteUInt32LittleEndian(payload.AsSpan(4), (uint)payload.Length - 8);
+
+        DecoderOptions options = new() { SkipMetadata = skipMetadata };
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
+
+        Assert.Equal(new Rgba32(255, 0, 0), image[0, 0]);
+        if (skipMetadata)
+        {
+            Assert.Null(image.Metadata.IccProfile);
+            Assert.Null(image.Metadata.ExifProfile);
+            Assert.Null(image.Metadata.XmpProfile);
+        }
+        else
+        {
+            Assert.Equal(icc, image.Metadata.IccProfile.ToByteArray());
+            Assert.Equal("ImageSharp", image.Metadata.ExifProfile.GetValue(ExifTag.Software).Value);
+            Assert.Equal(xmp, image.Metadata.XmpProfile.ToByteArray());
+        }
     }
 
     /// <summary>

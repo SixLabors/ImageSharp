@@ -2,11 +2,13 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.IO.Compression;
 using System.IO.Hashing;
 using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Png;
@@ -289,6 +291,302 @@ public partial class PngDecoderTests
 
         using MemoryStream stream = new(payload);
         using Image<Rgba32> image = Image.Load<Rgba32>(stream);
+    }
+
+    /// <summary>
+    /// The compressed image data may be split across data chunks at any byte, including inside the zlib header,
+    /// and zero-length data chunks are permitted. Every layout must decode to the same pixels.
+    /// </summary>
+    /// <param name="layout">The name of the data chunk layout to write.</param>
+    [Theory]
+    [InlineData("LeadingEmpty")]
+    [InlineData("ConsecutiveLeadingEmpty")]
+    [InlineData("FirstOneByte")]
+    [InlineData("EmptyWithinHeader")]
+    [InlineData("EveryOneByte")]
+    [InlineData("EveryOneByteWithEmpty")]
+    [InlineData("EmptyBetween")]
+    [InlineData("TrailingEmpty")]
+    public void Decode_CompressedDataSplitAcrossDataChunks_DecodesPixelExact(string layout)
+    {
+        using Image<Rgba32> expected = CreateNoiseImage(40, 30, 1);
+        using MemoryStream stream = new();
+        expected.Save(stream, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
+        List<(string Type, byte[] Data)> chunks = ReadChunks(stream.ToArray());
+
+        byte[] zlib = [.. chunks.Where(c => c.Type == "IDAT").SelectMany(c => c.Data)];
+        byte[][] segments = layout switch
+        {
+            "LeadingEmpty" => [[], zlib],
+            "ConsecutiveLeadingEmpty" => [[], [], zlib],
+            "FirstOneByte" => [zlib[..1], zlib[1..]],
+            "EmptyWithinHeader" => [zlib[..1], [], zlib[1..]],
+            "EveryOneByte" => [.. zlib.Select(b => new[] { b })],
+            "EveryOneByteWithEmpty" => [.. zlib.SelectMany(b => new[] { [b], Array.Empty<byte>() })],
+            "EmptyBetween" => [zlib[..(zlib.Length / 2)], [], zlib[(zlib.Length / 2)..]],
+            "TrailingEmpty" => [zlib, []],
+            _ => throw new ArgumentOutOfRangeException(nameof(layout)),
+        };
+
+        // Replace the encoder's data chunks with the requested layout, keeping every other chunk in place.
+        using MemoryStream output = new();
+        output.Write(stream.ToArray().AsSpan(0, 8));
+        foreach ((string type, byte[] data) in chunks)
+        {
+            if (type == "IDAT")
+            {
+                continue;
+            }
+
+            if (type == "IEND")
+            {
+                foreach (byte[] segment in segments)
+                {
+                    WriteChunk(output, "IDAT", segment);
+                }
+            }
+
+            WriteChunk(output, type, data);
+        }
+
+        using Image<Rgba32> actual = Image.Load<Rgba32>(output.ToArray());
+
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// A frame data chunk may carry nothing but its sequence number. Such chunks must not end the frame's
+    /// compressed data early, wherever they fall.
+    /// </summary>
+    [Fact]
+    public void Decode_EmptyFrameDataChunks_DecodesPixelExact()
+    {
+        using Image<Rgba32> image = CreateNoiseImage(40, 30, 1);
+        using (Image<Rgba32> frame = CreateNoiseImage(40, 30, 2))
+        {
+            image.Frames.AddFrame(frame.Frames.RootFrame);
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
+        byte[] encoded = stream.ToArray();
+        List<(string Type, byte[] Data)> chunks = ReadChunks(encoded);
+        Assert.Contains(chunks, c => c.Type == "fdAT");
+
+        // Split every frame data chunk inside its zlib header, around an empty frame data chunk, and renumber
+        // the shared fcTL/fdAT sequence so the result stays a well-formed animation.
+        using MemoryStream output = new();
+        output.Write(encoded.AsSpan(0, 8));
+        uint sequenceNumber = 0;
+        foreach ((string type, byte[] data) in chunks)
+        {
+            if (type == "fdAT")
+            {
+                ReadOnlySpan<byte> payload = data.AsSpan(4);
+                WriteChunk(output, type, [.. GetSequenceNumber(sequenceNumber++), .. payload[..1]]);
+                WriteChunk(output, type, GetSequenceNumber(sequenceNumber++));
+                WriteChunk(output, type, [.. GetSequenceNumber(sequenceNumber++), .. payload[1..]]);
+                continue;
+            }
+
+            if (type == "fcTL")
+            {
+                BinaryPrimitives.WriteUInt32BigEndian(data, sequenceNumber++);
+            }
+
+            WriteChunk(output, type, data);
+        }
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(encoded);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(output.ToArray());
+
+        Assert.Equal(expected.Frames.Count, actual.Frames.Count);
+        for (int i = 0; i < expected.Frames.Count; i++)
+        {
+            using Image<Rgba32> expectedFrame = expected.Frames.CloneFrame(i);
+            using Image<Rgba32> actualFrame = actual.Frames.CloneFrame(i);
+            ImageComparer.Exact.VerifySimilarity(expectedFrame, actualFrame);
+        }
+    }
+
+    /// <summary>
+    /// A palette chunk too short to hold one entry leaves no colors to index, so it is reported as a missing palette
+    /// instead of reading outside the color table.
+    /// </summary>
+    /// <param name="interlaceMode">The interlace mode of the image.</param>
+    [Theory]
+    [InlineData(PngInterlaceMode.None)]
+    [InlineData(PngInterlaceMode.Adam7)]
+    public void Decode_PaletteChunkShorterThanOneEntry_ThrowsInvalidImageContentException(PngInterlaceMode interlaceMode)
+    {
+        // Zeroed scanlines: filter type None and palette index 0. A 9x9 image has 9 rows of 1 + 9 bytes, or
+        // 100 bytes across the seven Adam7 passes, each row of which also starts with a filter byte.
+        byte[] indices = interlaceMode == PngInterlaceMode.Adam7 ? new byte[100] : new byte[90];
+        using MemoryStream stream = new();
+        stream.Write([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        WriteChunk(stream, "IHDR", CreateHeaderData(9, 9, 8, PngColorType.Palette, interlaceMode));
+        WriteChunk(stream, "PLTE", [10, 20]);
+        WriteChunk(stream, "IDAT", Compress(indices));
+        WriteChunk(stream, "IEND", []);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(stream.ToArray()));
+    }
+
+    /// <summary>
+    /// 16-bit grayscale tRNS samples are big-endian, so 0x0102 is transparent and its byte-swapped value is not.
+    /// </summary>
+    [Fact]
+    public void Decode_16BitGrayscaleTransparency_IsBigEndian()
+    {
+        using MemoryStream stream = new();
+        stream.Write([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        WriteChunk(stream, "IHDR", CreateHeaderData(2, 1, 16, PngColorType.Grayscale, PngInterlaceMode.None));
+        WriteChunk(stream, "tRNS", [0x01, 0x02]);
+        WriteChunk(stream, "IDAT", Compress([0, 0x01, 0x02, 0x02, 0x01]));
+        WriteChunk(stream, "IEND", []);
+        byte[] data = stream.ToArray();
+
+        Assert.Equal(new L16(0x0102), Image.Identify(data).Metadata.GetPngMetadata().TransparentColor?.ToPixel<L16>());
+
+        using Image<Rgba64> image = Image.Load<Rgba64>(data);
+        Assert.Equal(ushort.MinValue, image[0, 0].A);
+        Assert.Equal(ushort.MaxValue, image[1, 0].A);
+    }
+
+    /// <summary>
+    /// 16-bit truecolor tRNS samples are big-endian, so (0x0102, 0x0304, 0x0506) is transparent and its byte-swapped
+    /// value is not.
+    /// </summary>
+    [Fact]
+    public void Decode_16BitRgbTransparency_IsBigEndian()
+    {
+        using MemoryStream stream = new();
+        stream.Write([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        WriteChunk(stream, "IHDR", CreateHeaderData(2, 1, 16, PngColorType.Rgb, PngInterlaceMode.None));
+        WriteChunk(stream, "tRNS", [0x01, 0x02, 0x03, 0x04, 0x05, 0x06]);
+        WriteChunk(stream, "IDAT", Compress([0, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x02, 0x01, 0x04, 0x03, 0x06, 0x05]));
+        WriteChunk(stream, "IEND", []);
+        byte[] data = stream.ToArray();
+
+        Rgb48 expected = new(0x0102, 0x0304, 0x0506);
+        Assert.Equal(expected, Image.Identify(data).Metadata.GetPngMetadata().TransparentColor?.ToPixel<Rgb48>());
+
+        using Image<Rgba64> image = Image.Load<Rgba64>(data);
+        Assert.Equal(ushort.MinValue, image[0, 0].A);
+        Assert.Equal(ushort.MaxValue, image[1, 0].A);
+    }
+
+    /// <summary>
+    /// Creates an image filled with reproducible random colors.
+    /// </summary>
+    /// <param name="width">The image width.</param>
+    /// <param name="height">The image height.</param>
+    /// <param name="seed">The random seed.</param>
+    /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+    private static Image<Rgba32> CreateNoiseImage(int width, int height, int seed)
+    {
+        Random random = new(seed);
+        Image<Rgba32> image = new(width, height);
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                image[x, y] = new Rgba32((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256));
+            }
+        }
+
+        return image;
+    }
+
+    /// <summary>
+    /// Splits a PNG file into its chunks without validating them.
+    /// </summary>
+    /// <param name="data">The PNG file, including the signature.</param>
+    /// <returns>The type and data of each chunk, in file order.</returns>
+    private static List<(string Type, byte[] Data)> ReadChunks(byte[] data)
+    {
+        List<(string Type, byte[] Data)> chunks = [];
+        int offset = 8;
+        while (offset + 12 <= data.Length)
+        {
+            int length = BinaryPrimitives.ReadInt32BigEndian(data.AsSpan(offset));
+            chunks.Add((Encoding.ASCII.GetString(data, offset + 4, 4), data.AsSpan(offset + 8, length).ToArray()));
+            offset += length + 12;
+        }
+
+        return chunks;
+    }
+
+    /// <summary>
+    /// Writes a chunk with its length, type, data and a valid CRC.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="type">The four character chunk type.</param>
+    /// <param name="data">The chunk data.</param>
+    private static void WriteChunk(Stream stream, string type, ReadOnlySpan<byte> data)
+    {
+        Span<byte> buffer = stackalloc byte[4];
+        BinaryPrimitives.WriteInt32BigEndian(buffer, data.Length);
+        stream.Write(buffer);
+
+        // The CRC covers the chunk type and data but not the length.
+        byte[] typeBytes = Encoding.ASCII.GetBytes(type);
+        stream.Write(typeBytes);
+        stream.Write(data);
+
+        Crc32 crc = new();
+        crc.Append(typeBytes);
+        crc.Append(data);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, crc.GetCurrentHashAsUInt32());
+        stream.Write(buffer);
+    }
+
+    /// <summary>
+    /// Creates IHDR chunk data using compression method 0 and filter method 0.
+    /// </summary>
+    /// <param name="width">The image width.</param>
+    /// <param name="height">The image height.</param>
+    /// <param name="bitDepth">The bit depth.</param>
+    /// <param name="colorType">The color type.</param>
+    /// <param name="interlaceMode">The interlace mode.</param>
+    /// <returns>The chunk data.</returns>
+    private static byte[] CreateHeaderData(int width, int height, byte bitDepth, PngColorType colorType, PngInterlaceMode interlaceMode)
+    {
+        byte[] data = new byte[13];
+        BinaryPrimitives.WriteInt32BigEndian(data, width);
+        BinaryPrimitives.WriteInt32BigEndian(data.AsSpan(4), height);
+        data[8] = bitDepth;
+        data[9] = (byte)colorType;
+        data[12] = (byte)interlaceMode;
+        return data;
+    }
+
+    /// <summary>
+    /// Compresses filtered scanlines into a zlib stream.
+    /// </summary>
+    /// <param name="scanlines">The filtered scanlines.</param>
+    /// <returns>The zlib stream.</returns>
+    private static byte[] Compress(byte[] scanlines)
+    {
+        using MemoryStream output = new();
+        using (ZLibStream zlib = new(output, CompressionLevel.Optimal, true))
+        {
+            zlib.Write(scanlines);
+        }
+
+        return output.ToArray();
+    }
+
+    /// <summary>
+    /// Gets the big-endian bytes of an APNG sequence number.
+    /// </summary>
+    /// <param name="sequenceNumber">The sequence number.</param>
+    /// <returns>The encoded sequence number.</returns>
+    private static byte[] GetSequenceNumber(uint sequenceNumber)
+    {
+        byte[] data = new byte[4];
+        BinaryPrimitives.WriteUInt32BigEndian(data, sequenceNumber);
+        return data;
     }
 
     private static string GetChunkTypeName(uint value)

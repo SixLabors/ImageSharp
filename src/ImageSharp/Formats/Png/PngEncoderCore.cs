@@ -1246,10 +1246,11 @@ internal sealed class PngEncoderCore : IDisposable
         {
             if (this.use16Bit)
             {
+                // tRNS samples are stored big-endian like all other PNG multi-byte values.
                 Rgb48 rgb = pngMetadata.TransparentColor.Value.ToPixel<Rgb48>();
-                BinaryPrimitives.WriteUInt16LittleEndian(alpha, rgb.R);
-                BinaryPrimitives.WriteUInt16LittleEndian(alpha.Slice(2, 2), rgb.G);
-                BinaryPrimitives.WriteUInt16LittleEndian(alpha.Slice(4, 2), rgb.B);
+                BinaryPrimitives.WriteUInt16BigEndian(alpha, rgb.R);
+                BinaryPrimitives.WriteUInt16BigEndian(alpha.Slice(2, 2), rgb.G);
+                BinaryPrimitives.WriteUInt16BigEndian(alpha.Slice(4, 2), rgb.B);
 
                 this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 6);
             }
@@ -1268,7 +1269,7 @@ internal sealed class PngEncoderCore : IDisposable
             if (this.use16Bit)
             {
                 L16 l16 = pngMetadata.TransparentColor.Value.ToPixel<L16>();
-                BinaryPrimitives.WriteUInt16LittleEndian(alpha, l16.PackedValue);
+                BinaryPrimitives.WriteUInt16BigEndian(alpha, l16.PackedValue);
                 this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 2);
             }
             else

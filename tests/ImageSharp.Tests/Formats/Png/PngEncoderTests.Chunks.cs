@@ -354,4 +354,48 @@ public partial class PngEncoderTests
             bytesSpan = bytesSpan[(4 + 4 + length + 4)..];
         }
     }
+
+    [Theory]
+    [InlineData(PngColorType.Grayscale)]
+    [InlineData(PngColorType.Rgb)]
+    public void TransparencyChunk_16Bit_IsWrittenBigEndian(PngColorType colorType)
+    {
+        // arrange
+        using Image<Rgba64> input = new(2, 1);
+        PngMetadata metadata = input.Metadata.GetPngMetadata();
+        metadata.ColorType = colorType;
+        metadata.BitDepth = PngBitDepth.Bit16;
+        metadata.TransparentColor = colorType == PngColorType.Grayscale
+            ? Color.FromPixel(new L16(0x0102))
+            : Color.FromPixel(new Rgb48(0x0102, 0x0304, 0x0506));
+
+        byte[] expected = colorType == PngColorType.Grayscale
+            ? [0x01, 0x02]
+            : [0x01, 0x02, 0x03, 0x04, 0x05, 0x06];
+
+        using MemoryStream memStream = new();
+
+        // act
+        input.Save(memStream, new PngEncoder { ColorType = colorType, BitDepth = PngBitDepth.Bit16 });
+
+        // assert
+        byte[] data = memStream.ToArray();
+        Span<byte> bytesSpan = data.AsSpan(8); // Skip header.
+        bool transparencyFound = false;
+        while (bytesSpan.Length > 0)
+        {
+            int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan[..4]);
+            PngChunkType type = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
+            if (type == PngChunkType.Transparency)
+            {
+                transparencyFound = true;
+                Assert.Equal(expected, bytesSpan.Slice(8, length).ToArray());
+            }
+
+            bytesSpan = bytesSpan[(4 + 4 + length + 4)..];
+        }
+
+        Assert.True(transparencyFound);
+        Assert.Equal(metadata.TransparentColor, Image.Identify(data).Metadata.GetPngMetadata().TransparentColor);
+    }
 }

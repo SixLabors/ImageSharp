@@ -1338,7 +1338,9 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="pngMetadata">The png metadata.</param>
     private static void AssignColorPalette(ReadOnlySpan<byte> palette, ReadOnlySpan<byte> alpha, PngMetadata pngMetadata)
     {
-        if (palette.Length == 0)
+        // A palette chunk too short to hold a single entry would produce an empty color table, which the
+        // scanline processors would index outside of. Treat it as missing so indexed decoding reports it.
+        if (palette.Length < Unsafe.SizeOf<Rgb24>())
         {
             return;
         }
@@ -1380,9 +1382,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             {
                 if (this.header.BitDepth == 16)
                 {
-                    ushort rc = BinaryPrimitives.ReadUInt16LittleEndian(alpha[..2]);
-                    ushort gc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(2, 2));
-                    ushort bc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(4, 2));
+                    // tRNS samples are stored big-endian like all other PNG multi-byte values,
+                    // matching the byte order used for the 16-bit samples in the image data.
+                    ushort rc = BinaryPrimitives.ReadUInt16BigEndian(alpha[..2]);
+                    ushort gc = BinaryPrimitives.ReadUInt16BigEndian(alpha.Slice(2, 2));
+                    ushort bc = BinaryPrimitives.ReadUInt16BigEndian(alpha.Slice(4, 2));
 
                     pngMetadata.TransparentColor = Color.FromPixel(new Rgb48(rc, gc, bc));
                     return;
@@ -1400,7 +1404,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             {
                 if (this.header.BitDepth == 16)
                 {
-                    pngMetadata.TransparentColor = Color.FromPixel(new L16(BinaryPrimitives.ReadUInt16LittleEndian(alpha[..2])));
+                    pngMetadata.TransparentColor = Color.FromPixel(new L16(BinaryPrimitives.ReadUInt16BigEndian(alpha[..2])));
                 }
                 else
                 {
@@ -2183,24 +2187,30 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         Span<byte> buffer = stackalloc byte[20];
 
-        int length = this.currentStream.Read(buffer, 0, 4);
-        if (length == 0)
+        // The compressed stream is the concatenation of the payloads of all consecutive data chunks, and the
+        // specification permits zero-length data chunks. A return value of 0 tells the inflater that the
+        // compressed stream has ended, so empty chunks are skipped rather than reported.
+        while (true)
         {
-            return 0;
-        }
-
-        if (this.TryReadChunk(buffer, out PngChunk chunk))
-        {
-            if (chunk.Type is PngChunkType.Data or PngChunkType.FrameData)
+            // Skip the CRC of the previous chunk.
+            int length = this.currentStream.Read(buffer, 0, 4);
+            if (length == 0 || !this.TryReadChunk(buffer, out PngChunk chunk))
             {
-                chunk.Data?.Dispose();
-                return chunk.Length;
+                return 0;
             }
 
-            this.nextChunk = chunk;
-        }
+            if (chunk.Type is not (PngChunkType.Data or PngChunkType.FrameData))
+            {
+                this.nextChunk = chunk;
+                return 0;
+            }
 
-        return 0;
+            chunk.Data?.Dispose();
+            if (chunk.Length > 0)
+            {
+                return chunk.Length;
+            }
+        }
     }
 
     /// <summary>
@@ -2216,26 +2226,32 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         Span<byte> buffer = stackalloc byte[20];
 
-        int length = this.currentStream.Read(buffer, 0, 4);
-        if (length == 0)
+        // As with data chunks, frame data chunks with no payload after the sequence number are valid and are
+        // skipped, so that a return value of 0 only ever means that the frame's compressed stream has ended.
+        while (true)
         {
-            return 0;
-        }
-
-        if (this.TryReadChunk(buffer, out PngChunk chunk))
-        {
-            if (chunk.Type is PngChunkType.FrameData)
+            // Skip the CRC of the previous chunk.
+            int length = this.currentStream.Read(buffer, 0, 4);
+            if (length == 0 || !this.TryReadChunk(buffer, out PngChunk chunk))
             {
-                chunk.Data?.Dispose();
-
-                this.currentStream.Position += 4; // Skip sequence number
-                return chunk.Length - 4;
+                return 0;
             }
 
-            this.nextChunk = chunk;
-        }
+            if (chunk.Type is not PngChunkType.FrameData)
+            {
+                this.nextChunk = chunk;
+                return 0;
+            }
 
-        return 0;
+            chunk.Data?.Dispose();
+
+            this.currentStream.Position += 4; // Skip sequence number
+            int dataLength = chunk.Length - 4;
+            if (dataLength > 0)
+            {
+                return dataLength;
+            }
+        }
     }
 
     /// <summary>

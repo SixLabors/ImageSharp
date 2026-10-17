@@ -90,6 +90,7 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
         => PixelTypeInfo.Create<HalfVector2>(
             PixelComponentInfo.Create<HalfVector2>(2, 16, 16),
             PixelColorType.Red | PixelColorType.Green,
+            PixelColorRange.Extended,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />

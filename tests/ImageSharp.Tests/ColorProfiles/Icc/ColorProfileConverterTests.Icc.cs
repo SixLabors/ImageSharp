@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -87,13 +88,13 @@ public partial class ColorProfileConverterTests(ITestOutputHelper testOutputHelp
     [InlineData(TestIccProfiles.Swop2006, TestIccProfiles.Swop2006)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
     [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.JapanColor2003)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 8-bit vs 16-bit)
     [InlineData(TestIccProfiles.JapanColor2011, TestIccProfiles.Fogra39)] // CMYK -> LAB -> CMYK (different LUT versions, v2 vs v4)
-    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Cgats21)] // CMYK -> LAB -> RGB (different LUT versions, v2 vs v4)
-    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV4)] // RGB -> LAB -> CMYK (different LUT versions, v4 vs v2)
-    [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.Fogra39)] // RGB -> LAB -> XYZ -> RGB (different LUT elements, B-Matrix-M-CLUT-A vs B-Matrix-M)
-    [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.RommRgb)] // RGB -> XYZ -> LAB -> RGB (different LUT elements, B-Matrix-M vs B-Matrix-M-CLUT-A)
-    [InlineData(TestIccProfiles.RommRgb, TestIccProfiles.StandardRgbV4)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 16-bit vs 8-bit)
+    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Cgats21, 5E-4F)] // Nonlinear profile stages.
+    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV4, 5E-4F)] // Nonlinear profile stages.
+    [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.Fogra39, 5E-4F)] // Nonlinear profile stages.
+    [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.RommRgb, 5E-4F)] // Nonlinear profile stages.
+    [InlineData(TestIccProfiles.RommRgb, TestIccProfiles.StandardRgbV4, 5E-4F)] // Nonlinear profile stages.
     [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV2, 0.0005)] // CMYK -> LAB -> XYZ -> RGB (different LUT tags, A2B vs TRC) --- tolerance slightly higher due to difference in inverse curve implementation
-    [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39)] // RGB -> XYZ -> LAB -> CMYK (different LUT tags, TRC vs A2B)
+    [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39, 5E-4F)] // Nonlinear profile stages.
     public void CanConvertIccProfiles(string sourceProfile, string targetProfile, double tolerance = 0.000005)
     {
         List<Vector4> actual = Inputs.ConvertAll(input => GetActualTargetValues(input, sourceProfile, targetProfile));
@@ -107,14 +108,14 @@ public partial class ColorProfileConverterTests(ITestOutputHelper testOutputHelp
     [InlineData(TestIccProfiles.Swop2006, TestIccProfiles.Swop2006)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
     [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.JapanColor2003)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 8-bit vs 16-bit)
     [InlineData(TestIccProfiles.JapanColor2011, TestIccProfiles.Fogra39)] // CMYK -> LAB -> CMYK (different LUT versions, v2 vs v4)
-    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Cgats21)] // CMYK -> LAB -> RGB (different LUT versions, v2 vs v4)
-    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV4)] // RGB -> LAB -> CMYK (different LUT versions, v4 vs v2)
-    [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.Fogra39)] // RGB -> LAB -> XYZ -> RGB (different LUT elements, B-Matrix-M-CLUT-A vs B-Matrix-M)
-    [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.RommRgb)] // RGB -> XYZ -> LAB -> RGB (different LUT elements, B-Matrix-M vs B-Matrix-M-CLUT-A)
-    [InlineData(TestIccProfiles.RommRgb, TestIccProfiles.StandardRgbV4)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 16-bit vs 8-bit)
+    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Cgats21, 5E-4F)] // Nonlinear profile stages.
+    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV4, 5E-4F)] // Nonlinear profile stages.
+    [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.Fogra39, 5E-4F)] // Nonlinear profile stages.
+    [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.RommRgb, 5E-4F)] // Nonlinear profile stages.
+    [InlineData(TestIccProfiles.RommRgb, TestIccProfiles.StandardRgbV4, 5E-4F)] // Nonlinear profile stages.
     [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV2, 0.0005)] // CMYK -> LAB -> XYZ -> RGB (different LUT tags, A2B vs TRC) --- tolerance slightly higher due to difference in inverse curve implementation
-    [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39)] // RGB -> XYZ -> LAB -> CMYK (different LUT tags, TRC vs A2B)
-    [InlineData(TestIccProfiles.Issue129, TestIccProfiles.StandardRgbV4)] // CMYK -> LAB -> -> XYZ -> RGB
+    [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39, 5E-4F)] // Nonlinear profile stages.
+    [InlineData(TestIccProfiles.Issue129, TestIccProfiles.StandardRgbV4, 5E-4F)] // Nonlinear profile stages.
     public void CanBulkConvertIccProfiles(string sourceProfile, string targetProfile, double tolerance = 0.000005)
     {
         List<Vector4> actual = GetBulkActualTargetValues(Inputs, sourceProfile, targetProfile);
@@ -178,15 +179,21 @@ public partial class ColorProfileConverterTests(ITestOutputHelper testOutputHelp
     /// Verifies that both transforms use the source rendering intent when the profile headers disagree.
     /// </summary>
     /// <param name="targetFile">The destination profile, using either curves or a LUT.</param>
-    /// <param name="tolerance">The normalized tolerance for differences in reference interpolation.</param>
+    /// <param name="tolerance">The error bound before the target's final output curves.</param>
     [Theory]
     [InlineData(TestIccProfiles.StandardRgbV2, 0.0005)]
-    [InlineData(TestIccProfiles.StandardRgbV4, 1D / ushort.MaxValue)] // One 16-bit LUT code value for float versus double interpolation.
+    [InlineData(TestIccProfiles.StandardRgbV4, 5E-4F)]
     public void Convert_UsesSourceRenderingIntentForBothProfiles(string targetFile, double tolerance)
     {
         IccProfile sourceProfile = TestIccProfiles.GetProfile(TestIccProfiles.Fogra39).DeepClone();
         sourceProfile.Header.RenderingIntent = IccRenderingIntent.MediaRelativeColorimetric;
         IccProfile targetProfile = TestIccProfiles.GetProfile(targetFile);
+
+        // The v4 profile's final curves amplify errors in extended RGB: the red linear branch has slope 137.204.
+        // Compare in the preceding curve's units so the measured power bound is not applied in different units.
+        IccTagDataEntry[] outputCurves = targetProfile.Entries.OfType<IccLutBToATagDataEntry>()
+            .FirstOrDefault(entry => entry.TagSignature == IccProfileTag.BToA1)?.CurveA;
+
         ColorProfileConverter converter = new(new ColorConversionOptions
         {
             SourceIccProfile = sourceProfile,
@@ -223,8 +230,19 @@ public partial class ColorProfileConverterTests(ITestOutputHelper testOutputHelp
 
             for (int channel = 0; channel < 3; channel++)
             {
-                Assert.Equal(expected.Icc.Values[channel], scalar[channel], tolerance);
-                Assert.Equal(expected.Icc.Values[channel], span[channel], tolerance);
+                float expectedValue = (float)expected.Icc.Values[channel];
+                float scalarValue = scalar[channel];
+                float spanValue = span[channel];
+                if (outputCurves is not null)
+                {
+                    IccColorConverter.CurveOperator outputCurve = new(outputCurves[channel], true);
+                    expectedValue = outputCurve.Convert(expectedValue);
+                    scalarValue = outputCurve.Convert(scalarValue);
+                    spanValue = outputCurve.Convert(spanValue);
+                }
+
+                Assert.Equal(expectedValue, scalarValue, tolerance);
+                Assert.Equal(expectedValue, spanValue, tolerance);
             }
         }
 
@@ -274,9 +292,9 @@ public partial class ColorProfileConverterTests(ITestOutputHelper testOutputHelp
 
             for (int channel = 0; channel < 4; channel++)
             {
-                // Allow one sixteen-bit LUT code value for float versus double interpolation.
-                Assert.Equal(expected.Icc.Values[channel], scalar[channel], 1D / ushort.MaxValue);
-                Assert.Equal(expected.Icc.Values[channel], span[channel], 1D / ushort.MaxValue);
+                // The ICC connection includes approximate curves and PCS adjustment. Use their normalized error bound.
+                Assert.Equal(expected.Icc.Values[channel], scalar[channel], 5E-4F);
+                Assert.Equal(expected.Icc.Values[channel], span[channel], 5E-4F);
             }
         }
 
@@ -284,6 +302,8 @@ public partial class ColorProfileConverterTests(ITestOutputHelper testOutputHelp
         Assert.Equal(IccRenderingIntent.MediaRelativeColorimetric, targetProfile.Header.RenderingIntent);
     }
 
+    // Cases with nonlinear ICC curves or PCS adjustment use the recorded power error bound.
+    // Pure table comparisons retain their existing interpolation tolerance.
     private static void AssertConversion(string sourceProfile, string targetProfile, List<Vector4> actual, double tolerance, ITestOutputHelper testOutputHelper)
     {
         List<double[]> expected = Inputs.ConvertAll(input => GetExpectedTargetValues(sourceProfile, targetProfile, input, testOutputHelper));

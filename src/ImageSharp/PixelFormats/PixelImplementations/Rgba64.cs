@@ -223,6 +223,7 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
         => PixelTypeInfo.Create<Rgba64>(
             PixelComponentInfo.Create<Rgba64>(4, 16, 16, 16, 16),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />

@@ -48,7 +48,12 @@ internal class Rgb161616TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     Span<Rgb48> samples = sourceBlock[..count];
 
                     // Six stored bytes per pixel become three native-endian ushort lanes for bulk packing.
-                    TiffUtilities.CopyUShorts(data.Slice(offset + (x * 6), count * 6), MemoryMarshal.Cast<Rgb48, ushort>(samples), bigEndian: true, invert: false);
+                    TiffUtilities.CopyUShorts(
+                        data.Slice(offset + (x * 6), count * 6),
+                        MemoryMarshal.Cast<Rgb48, ushort>(samples),
+                        bigEndian: true,
+                        invert: false);
+
                     PixelOperations<TPixel>.Instance.FromRgb48(this.configuration, samples, pixelRow.Slice(x, count));
                 }
 

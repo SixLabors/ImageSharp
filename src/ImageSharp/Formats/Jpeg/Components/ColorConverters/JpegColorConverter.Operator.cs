@@ -225,7 +225,14 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="maximumValue">The maximum JPEG sample code.</param>
         /// <param name="halfValue">The normalized chroma offset selected by the operator.</param>
         /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
-        public static abstract void ConvertFromProfile(ref float c0, ref float c1, ref float c2, ref float c3, float maximumValue, float halfValue, float scale);
+        public static abstract void ConvertFromProfile(
+            ref float c0,
+            ref float c1,
+            ref float c2,
+            ref float c3,
+            float maximumValue,
+            float halfValue,
+            float scale);
 
         /// <summary>
         /// Converts normalized profile components to JPEG component values.

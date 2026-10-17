@@ -350,7 +350,14 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     /// <param name="width">The width of the bitmap.</param>
     /// <param name="height">The height of the bitmap.</param>
     /// <param name="inverted">Whether the bitmap is inverted.</param>
-    private void ReadRle<TPixel>(BufferedReadStream stream, BmpCompression compression, Buffer2D<TPixel> pixels, Color[] colors, int width, int height, bool inverted)
+    private void ReadRle<TPixel>(
+        BufferedReadStream stream,
+        BmpCompression compression,
+        Buffer2D<TPixel> pixels,
+        Color[] colors,
+        int width,
+        int height,
+        bool inverted)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height, AllocationOptions.Clean);
@@ -849,7 +856,14 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     /// <param name="height">The height of the bitmap.</param>
     /// <param name="bitsPerPixel">The number of bits per pixel.</param>
     /// <param name="inverted">Whether the bitmap is inverted.</param>
-    private void ReadRgbPalette<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, Color[] colors, int width, int height, int bitsPerPixel, bool inverted)
+    private void ReadRgbPalette<TPixel>(
+        BufferedReadStream stream,
+        Buffer2D<TPixel> pixels,
+        Color[] colors,
+        int width,
+        int height,
+        int bitsPerPixel,
+        bool inverted)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Pixels per byte (bits per pixel).
@@ -897,7 +911,14 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     }
 
     /// <inheritdoc cref="ReadRgbPalette"/>
-    private void ReadRgbPaletteWithAlphaMask<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, Color[] colors, int width, int height, int bitsPerPixel, bool inverted)
+    private void ReadRgbPaletteWithAlphaMask<TPixel>(
+        BufferedReadStream stream,
+        Buffer2D<TPixel> pixels,
+        Color[] colors,
+        int width,
+        int height,
+        int bitsPerPixel,
+        bool inverted)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Pixels per byte (bits per pixel).
@@ -1632,7 +1653,8 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             if (bytesBeforePixels < 0 || (ulong)bytesBeforePixels < colorMapByteCount)
             {
                 BmpThrowHelper.ThrowInvalidImageContentException(
-                    $"Reading the color map would read beyond the bitmap offset. Either the color map size of '{colorMapByteCount}' is invalid or the bitmap offset.");
+                    "Reading the color map would read beyond the bitmap offset. " +
+                    $"Either the color map size of '{colorMapByteCount}' is invalid or the bitmap offset.");
             }
         }
 

@@ -24,7 +24,11 @@ public class TiffPlanar8ColorConversion
     private const int Length = 1024;
 
     private readonly RgbPlanarTiffColor<RgbaVector> rgbReader = new(Configuration.Default, new TiffBitsPerSample(8, 8, 8));
-    private readonly RgbaPlanarTiffColor<RgbaVector> rgbaReader = new(Configuration.Default, TiffExtraSampleType.UnassociatedAlphaData, new TiffBitsPerSample(8, 8, 8, 8));
+    private readonly RgbaPlanarTiffColor<RgbaVector> rgbaReader = new(
+        Configuration.Default,
+        TiffExtraSampleType.UnassociatedAlphaData,
+        new TiffBitsPerSample(8, 8, 8, 8));
+
     private readonly Image<RgbaVector> rgbDestination = new(Length, 1);
     private readonly Image<RgbaVector> rgbaDestination = new(Length, 1);
     private IMemoryOwner<byte>[] rgbPlanes = [];

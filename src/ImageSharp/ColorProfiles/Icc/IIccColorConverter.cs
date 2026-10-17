@@ -28,6 +28,17 @@ internal interface IIccColorConverter
     Vector4 Convert(Vector4 value);
 
     /// <summary>
+    /// Converts typed colors in bounded blocks through their bulk scaled-vector APIs.
+    /// </summary>
+    /// <typeparam name="TFrom">The source color model.</typeparam>
+    /// <typeparam name="TTo">The destination color model.</typeparam>
+    /// <param name="source">The source colors.</param>
+    /// <param name="destination">The destination colors.</param>
+    void Convert<TFrom, TTo>(ReadOnlySpan<TFrom> source, Span<TTo> destination)
+        where TFrom : struct, IColorProfile<TFrom>
+        where TTo : struct, IColorProfile<TTo>;
+
+    /// <summary>
     /// Converts complete SIMD blocks and the scalar remainder, including when the spans are the same.
     /// </summary>
     /// <param name="source">The source components.</param>

@@ -1,11 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
-using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles.Conversion.Icc;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using static SixLabors.ImageSharp.ColorProfiles.Icc.IccColorConverter;
 
@@ -93,14 +90,8 @@ internal static class ColorProfileConverterExtensionsIcc
 
         // The transforms depend only on the converter's options, so they are built once per converter.
         IccTransform transform = converter.GetIccTransform();
-        using IMemoryOwner<Vector4> pcsBuffer = converter.Options.MemoryAllocator.Allocate<Vector4>(source.Length);
-        Span<Vector4> pcs = pcsBuffer.GetSpan();
 
-        // Read the complete source before target packing, including conversions that share storage.
-        // The closed connection keeps all three ICC stages in registers after each block is unpacked.
-        TFrom.ToScaledVector4(source, pcs);
-        transform.Converter.Convert(pcs, pcs);
-        TTo.FromScaledVector4(pcs, destination);
+        transform.Converter.Convert(source, destination);
     }
 
     /// <summary>
@@ -157,6 +148,9 @@ internal static class ColorProfileConverterExtensionsIcc
         public IccConverterBase Target { get; }
     }
 
+    /// <summary>
+    /// Holds one profile's selected transform, intent and PCS encoding for connection setup.
+    /// </summary>
     internal sealed class ConversionParams
     {
         private readonly IccProfile profile;
@@ -177,8 +171,14 @@ internal static class ColorProfileConverterExtensionsIcc
                 : new IccPcsToDataConverter(profile, renderingIntent, interpolationMethod);
         }
 
+        /// <summary>
+        /// Gets the selected device-to-PCS or PCS-to-device transform.
+        /// </summary>
         internal IccConverterBase Converter { get; }
 
+        /// <summary>
+        /// Gets the profile header that defines the data and PCS encodings.
+        /// </summary>
         internal IccProfileHeader Header => this.profile.Header;
 
         /// <summary>

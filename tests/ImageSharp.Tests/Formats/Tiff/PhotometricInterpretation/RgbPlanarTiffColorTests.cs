@@ -283,7 +283,10 @@ public class RgbPlanarTiffColorTests : PhotometricInterpretationTestBase
     [InlineData(33)]
     [InlineData(64)]
     [InlineData(65)]
-    public void Decode_Aligned8Bit_PreservesRgbaVectorPrecision(int length) => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertRgbaVectorPrecision, length, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    public void Decode_Aligned8Bit_PreservesRgbaVectorPrecision(int length) => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        AssertRgbaVectorPrecision,
+        length,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Checks every decoded RGB component against the stored byte planes.
@@ -319,7 +322,13 @@ public class RgbPlanarTiffColorTests : PhotometricInterpretationTestBase
             blueSamples[i] = sample.B;
         }
 
-        new RgbPlanarTiffColor<RgbaVector>(Configuration.Default, new TiffBitsPerSample(8, 8, 8)).Decode(planes, image.Frames.RootFrame.PixelBuffer, 0, 0, length, 1);
+        new RgbPlanarTiffColor<RgbaVector>(Configuration.Default, new TiffBitsPerSample(8, 8, 8)).Decode(
+            planes,
+            image.Frames.RootFrame.PixelBuffer,
+            0,
+            0,
+            length,
+            1);
 
         // Widths 1/17/33/64/65 cover scalar output, tails, and consecutive thirty-two-pixel decoder blocks.
         for (int i = 0; i < length; i++)

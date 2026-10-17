@@ -39,7 +39,12 @@ internal class TiffLabColorDecoder<TPixel, TSource> : TiffBaseColorDecoder<TPixe
         this.configuration = configuration;
         this.source = source;
         bool hasProfile = IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile);
-        ColorConversionOptions options = new() { SourceIccProfile = iccProfile, TargetIccProfile = hasProfile ? CompactSrgbV4Profile.Profile : null, MemoryAllocator = allocator };
+        ColorConversionOptions options = new()
+        {
+            SourceIccProfile = iccProfile,
+            TargetIccProfile = hasProfile ? CompactSrgbV4Profile.Profile : null,
+            MemoryAllocator = allocator
+        };
 
         this.converter = new ColorProfileConverter(options);
         this.hasProfile = hasProfile;

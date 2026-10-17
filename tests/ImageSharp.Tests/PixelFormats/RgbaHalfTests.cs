@@ -312,6 +312,7 @@ public class RgbaHalfTests
         Assert.Equal(64, info.BitsPerPixel);
         Assert.Equal(alphaRepresentation, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.RGB | PixelColorType.Alpha, info.ColorType);
+        Assert.Equal(PixelColorRange.Extended, info.ColorRange);
         Assert.Equal(4, componentInfo.ComponentCount);
         Assert.Equal(0, componentInfo.Padding);
 
@@ -327,4 +328,6 @@ public class RgbaHalfTests
 /// </summary>
 public class RgbaHalfPAssociatedAlphaTests : AssociatedAlphaPixelTests<RgbaHalfP>
 {
+    /// <inheritdoc />
+    protected override PixelColorRange ExpectedColorRange => PixelColorRange.Extended;
 }

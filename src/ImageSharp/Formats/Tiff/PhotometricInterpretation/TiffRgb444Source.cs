@@ -32,9 +32,21 @@ internal readonly struct TiffRgb444Source : ITiffNibbleColorSource
         Vector128<byte> red = Vector128.Shuffle(bytes, RedBytes);
         Vector128<byte> green = Vector128.Shuffle(bytes, GreenBytes);
         Vector128<byte> blue = Vector128.Shuffle(bytes, BlueBytes);
-        Vector128<byte> redCodes = Vector128.ConditionalSelect(EvenLanes, Vector128.ShiftRightLogical(red.AsUInt16(), 4).AsByte(), red) & Vector128.Create((byte)15);
-        Vector128<byte> greenCodes = Vector128.ConditionalSelect(EvenLanes, green, Vector128.ShiftRightLogical(green.AsUInt16(), 4).AsByte()) & Vector128.Create((byte)15);
-        Vector128<byte> blueCodes = Vector128.ConditionalSelect(EvenLanes, Vector128.ShiftRightLogical(blue.AsUInt16(), 4).AsByte(), blue) & Vector128.Create((byte)15);
+        Vector128<byte> redCodes = Vector128.ConditionalSelect(
+            EvenLanes,
+            Vector128.ShiftRightLogical(red.AsUInt16(), 4).AsByte(),
+            red) & Vector128.Create((byte)15);
+
+        Vector128<byte> greenCodes = Vector128.ConditionalSelect(
+            EvenLanes,
+            green,
+            Vector128.ShiftRightLogical(green.AsUInt16(), 4).AsByte()) & Vector128.Create((byte)15);
+
+        Vector128<byte> blueCodes = Vector128.ConditionalSelect(
+            EvenLanes,
+            Vector128.ShiftRightLogical(blue.AsUInt16(), 4).AsByte(),
+            blue) & Vector128.Create((byte)15);
+
         c0 = Vector128.ConvertToSingle(Vector128.WidenLower(Vector128.WidenLower(redCodes)).AsUInt32());
         c1 = Vector128.ConvertToSingle(Vector128.WidenLower(Vector128.WidenLower(greenCodes)).AsUInt32());
         c2 = Vector128.ConvertToSingle(Vector128.WidenLower(Vector128.WidenLower(blueCodes)).AsUInt32());

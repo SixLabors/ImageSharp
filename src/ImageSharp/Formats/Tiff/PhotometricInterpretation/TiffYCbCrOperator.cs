@@ -143,7 +143,13 @@ internal readonly struct TiffYCbCrOperator
     /// <param name="red">Rounded red codes.</param>
     /// <param name="green">Rounded green codes.</param>
     /// <param name="blue">Rounded blue codes.</param>
-    public void ConvertByte(Vector128<float> y, Vector128<float> cb, Vector128<float> cr, out Vector128<int> red, out Vector128<int> green, out Vector128<int> blue)
+    public void ConvertByte(
+        Vector128<float> y,
+        Vector128<float> cb,
+        Vector128<float> cr,
+        out Vector128<int> red,
+        out Vector128<int> green,
+        out Vector128<int> blue)
     {
         this.ConvertRaw(y, cb, cr, out Vector128<float> r, out Vector128<float> g, out Vector128<float> b);
         Vector128<int> maximum = Vector128.Create(255);
@@ -161,7 +167,13 @@ internal readonly struct TiffYCbCrOperator
     /// <param name="red">Rounded red codes.</param>
     /// <param name="green">Rounded green codes.</param>
     /// <param name="blue">Rounded blue codes.</param>
-    public void ConvertByte(Vector256<float> y, Vector256<float> cb, Vector256<float> cr, out Vector256<int> red, out Vector256<int> green, out Vector256<int> blue)
+    public void ConvertByte(
+        Vector256<float> y,
+        Vector256<float> cb,
+        Vector256<float> cr,
+        out Vector256<int> red,
+        out Vector256<int> green,
+        out Vector256<int> blue)
     {
         this.ConvertRaw(y, cb, cr, out Vector256<float> r, out Vector256<float> g, out Vector256<float> b);
         Vector256<int> maximum = Vector256.Create(255);
@@ -179,7 +191,13 @@ internal readonly struct TiffYCbCrOperator
     /// <param name="red">Rounded red codes.</param>
     /// <param name="green">Rounded green codes.</param>
     /// <param name="blue">Rounded blue codes.</param>
-    public void ConvertByte(Vector512<float> y, Vector512<float> cb, Vector512<float> cr, out Vector512<int> red, out Vector512<int> green, out Vector512<int> blue)
+    public void ConvertByte(
+        Vector512<float> y,
+        Vector512<float> cb,
+        Vector512<float> cr,
+        out Vector512<int> red,
+        out Vector512<int> green,
+        out Vector512<int> blue)
     {
         this.ConvertRaw(y, cb, cr, out Vector512<float> r, out Vector512<float> g, out Vector512<float> b);
         Vector512<int> maximum = Vector512.Create(255);
@@ -216,7 +234,13 @@ internal readonly struct TiffYCbCrOperator
     /// <param name="red">Unclipped red lanes.</param>
     /// <param name="green">Unclipped green lanes.</param>
     /// <param name="blue">Unclipped blue lanes.</param>
-    private void ConvertRaw(Vector128<float> y, Vector128<float> cb, Vector128<float> cr, out Vector128<float> red, out Vector128<float> green, out Vector128<float> blue)
+    private void ConvertRaw(
+        Vector128<float> y,
+        Vector128<float> cb,
+        Vector128<float> cr,
+        out Vector128<float> red,
+        out Vector128<float> green,
+        out Vector128<float> blue)
     {
         Vector128<float> yy = (y * Vector128.Create(this.yScale)) - Vector128.Create(this.yOffset);
         Vector128<float> cc = (cb * Vector128.Create(this.cbScale)) - Vector128.Create(this.cbOffset);
@@ -239,7 +263,13 @@ internal readonly struct TiffYCbCrOperator
     /// <param name="red">Unclipped red lanes.</param>
     /// <param name="green">Unclipped green lanes.</param>
     /// <param name="blue">Unclipped blue lanes.</param>
-    private void ConvertRaw(Vector256<float> y, Vector256<float> cb, Vector256<float> cr, out Vector256<float> red, out Vector256<float> green, out Vector256<float> blue)
+    private void ConvertRaw(
+        Vector256<float> y,
+        Vector256<float> cb,
+        Vector256<float> cr,
+        out Vector256<float> red,
+        out Vector256<float> green,
+        out Vector256<float> blue)
     {
         Vector256<float> yy = (y * Vector256.Create(this.yScale)) - Vector256.Create(this.yOffset);
         Vector256<float> cc = (cb * Vector256.Create(this.cbScale)) - Vector256.Create(this.cbOffset);
@@ -262,7 +292,13 @@ internal readonly struct TiffYCbCrOperator
     /// <param name="red">Unclipped red lanes.</param>
     /// <param name="green">Unclipped green lanes.</param>
     /// <param name="blue">Unclipped blue lanes.</param>
-    private void ConvertRaw(Vector512<float> y, Vector512<float> cb, Vector512<float> cr, out Vector512<float> red, out Vector512<float> green, out Vector512<float> blue)
+    private void ConvertRaw(
+        Vector512<float> y,
+        Vector512<float> cb,
+        Vector512<float> cr,
+        out Vector512<float> red,
+        out Vector512<float> green,
+        out Vector512<float> blue)
     {
         Vector512<float> yy = (y * Vector512.Create(this.yScale)) - Vector512.Create(this.yOffset);
         Vector512<float> cc = (cb * Vector512.Create(this.cbScale)) - Vector512.Create(this.cbOffset);

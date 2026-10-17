@@ -39,7 +39,12 @@ internal class TiffLabPlanarColorDecoder<TPixel, TSource> : TiffBasePlanarColorD
         this.configuration = configuration;
         this.source = source;
         bool hasProfile = IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile);
-        ColorConversionOptions options = new() { SourceIccProfile = iccProfile, TargetIccProfile = hasProfile ? CompactSrgbV4Profile.Profile : null, MemoryAllocator = allocator };
+        ColorConversionOptions options = new()
+        {
+            SourceIccProfile = iccProfile,
+            TargetIccProfile = hasProfile ? CompactSrgbV4Profile.Profile : null,
+            MemoryAllocator = allocator
+        };
 
         this.converter = new ColorProfileConverter(options);
         this.hasProfile = hasProfile;
@@ -64,7 +69,13 @@ internal class TiffLabPlanarColorDecoder<TPixel, TSource> : TiffBasePlanarColorD
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
             int byteCount = width * this.source.BytesPerPixel;
-            TiffLabRowReader<TSource>.Read(lightness.Slice(planarRowOffset, byteCount), chromaA.Slice(planarRowOffset, byteCount), chromaB.Slice(planarRowOffset, byteCount), labRow, this.source);
+            TiffLabRowReader<TSource>.Read(
+                lightness.Slice(planarRowOffset, byteCount),
+                chromaA.Slice(planarRowOffset, byteCount),
+                chromaB.Slice(planarRowOffset, byteCount),
+                labRow,
+                this.source);
+
             this.converter.Convert<CieLab, Rgb>(labRow, rgbRow);
 
             for (int x = 0; x < width; x += vectors.Length)

@@ -120,6 +120,7 @@ public partial struct NormalizedShort4 : IPixel<NormalizedShort4>, IPackedVector
         => PixelTypeInfo.Create<NormalizedShort4>(
             PixelComponentInfo.Create<NormalizedShort4>(4, 16, 16, 16, 16),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />

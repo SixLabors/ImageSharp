@@ -204,6 +204,7 @@ public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
         => PixelTypeInfo.Create<Abgr32>(
             PixelComponentInfo.Create<Abgr32>(4, 8, 8, 8, 8),
             PixelColorType.Alpha | PixelColorType.BGR,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />

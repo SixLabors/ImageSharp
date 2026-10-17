@@ -30,7 +30,16 @@ internal readonly struct TiffPacked16NativeSource : ITiffColorSource<ushort>
     public int ComponentCount => 4;
 
     /// <inheritdoc/>
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out ushort c0, out ushort c1, out ushort c2, out ushort c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out ushort c0,
+        out ushort c1,
+        out ushort c2,
+        out ushort c3)
     {
         ReadOnlySpan<byte> pixel = source0[(index * 8)..];
         c0 = MemoryMarshal.Read<ushort>(pixel);
@@ -50,7 +59,16 @@ internal readonly struct TiffPacked16NativeSource : ITiffColorSource<ushort>
     /// <inheritdoc/>
     // Keep the four packed registers in the caller across the source/operator/store pipeline.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector128<ushort> c0, out Vector128<ushort> c1, out Vector128<ushort> c2, out Vector128<ushort> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector128<ushort> c0,
+        out Vector128<ushort> c1,
+        out Vector128<ushort> c2,
+        out Vector128<ushort> c3)
     {
         ref ushort first = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ushort>(source0));
         nuint offset = (uint)index * 4;
@@ -70,7 +88,16 @@ internal readonly struct TiffPacked16NativeSource : ITiffColorSource<ushort>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector256<ushort> c0, out Vector256<ushort> c1, out Vector256<ushort> c2, out Vector256<ushort> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector256<ushort> c0,
+        out Vector256<ushort> c1,
+        out Vector256<ushort> c2,
+        out Vector256<ushort> c3)
     {
         ref ushort first = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ushort>(source0));
         nuint offset = (uint)index * 4;
@@ -91,7 +118,16 @@ internal readonly struct TiffPacked16NativeSource : ITiffColorSource<ushort>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector512<ushort> c0, out Vector512<ushort> c1, out Vector512<ushort> c2, out Vector512<ushort> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector512<ushort> c0,
+        out Vector512<ushort> c1,
+        out Vector512<ushort> c2,
+        out Vector512<ushort> c3)
     {
         ref ushort first = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ushort>(source0));
         nuint offset = (uint)index * 4;

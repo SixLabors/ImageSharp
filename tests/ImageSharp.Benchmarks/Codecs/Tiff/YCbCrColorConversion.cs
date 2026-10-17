@@ -15,7 +15,9 @@ public class YCbCrColorConversion
 {
     // TIFF maps Y references 0 and 255 to black and white. Chroma reference 128 is the zero difference.
     // BT.601 supplies the red, green, and blue luma weights 0.299, 0.587, and 0.114.
-    private readonly TiffYCbCrOperator colorOperator = new([new(0, 1), new(255, 1), new(128, 1), new(255, 1), new(128, 1), new(255, 1)], [new(299, 1000), new(587, 1000), new(114, 1000)]);
+    private readonly TiffYCbCrOperator colorOperator = new(
+        [new(0, 1), new(255, 1), new(128, 1), new(255, 1), new(128, 1), new(255, 1)],
+        [new(299, 1000), new(587, 1000), new(114, 1000)]);
 
     private byte[] source = [];
 

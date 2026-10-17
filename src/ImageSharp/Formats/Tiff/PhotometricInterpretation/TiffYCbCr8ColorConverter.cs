@@ -26,7 +26,13 @@ internal static class TiffYCbCr8ColorConverter
     /// <param name="destination">The byte-quantized RGB pixels.</param>
     /// <param name="source">The source layout reader.</param>
     /// <param name="colorOperator">The TIFF reference-range and luma matrix.</param>
-    public static void Convert(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, Span<Rgba32> destination, TiffYCbCr8Source source, in TiffYCbCrOperator colorOperator)
+    public static void Convert(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        Span<Rgba32> destination,
+        TiffYCbCr8Source source,
+        in TiffYCbCrOperator colorOperator)
     {
         ReadOnlySpan<byte> outputBytes = MemoryMarshal.AsBytes(destination);
         int i = 0;

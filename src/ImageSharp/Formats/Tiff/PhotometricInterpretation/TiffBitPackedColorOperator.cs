@@ -43,7 +43,23 @@ internal readonly struct TiffBitPackedColorOperator
         if (Vector512.IsHardwareAccelerated)
         {
             nuint groups = components.Vector512Count<float>();
-            Vector512<float> factors = Vector512.Create(this.divisor.X, this.divisor.Y, this.divisor.Z, this.divisor.W, this.divisor.X, this.divisor.Y, this.divisor.Z, this.divisor.W, this.divisor.X, this.divisor.Y, this.divisor.Z, this.divisor.W, this.divisor.X, this.divisor.Y, this.divisor.Z, this.divisor.W);
+            Vector512<float> factors = Vector512.Create(
+                this.divisor.X,
+                this.divisor.Y,
+                this.divisor.Z,
+                this.divisor.W,
+                this.divisor.X,
+                this.divisor.Y,
+                this.divisor.Z,
+                this.divisor.W,
+                this.divisor.X,
+                this.divisor.Y,
+                this.divisor.Z,
+                this.divisor.W,
+                this.divisor.X,
+                this.divisor.Y,
+                this.divisor.Z,
+                this.divisor.W);
 
             for (nuint group = 0; group < groups; group++, i += 4)
             {
@@ -55,7 +71,15 @@ internal readonly struct TiffBitPackedColorOperator
         if (Vector256.IsHardwareAccelerated)
         {
             nuint groups = components[(i * 4)..].Vector256Count<float>();
-            Vector256<float> factors = Vector256.Create(this.divisor.X, this.divisor.Y, this.divisor.Z, this.divisor.W, this.divisor.X, this.divisor.Y, this.divisor.Z, this.divisor.W);
+            Vector256<float> factors = Vector256.Create(
+                this.divisor.X,
+                this.divisor.Y,
+                this.divisor.Z,
+                this.divisor.W,
+                this.divisor.X,
+                this.divisor.Y,
+                this.divisor.Z,
+                this.divisor.W);
 
             for (nuint group = 0; group < groups; group++, i += 2)
             {

@@ -54,7 +54,15 @@ internal sealed class TiffRgb48PlanarDecoder<TPixel> : TiffBasePlanarColorDecode
                 Span<Rgb48> block = samples[..count];
 
                 // Pass the exact 16-bit channel codes to FromRgb48 so each destination format applies its integer conversion.
-                TiffNativeColorConverter<TiffPlanar16NativeSource, TiffRgb48Store, ushort>.Convert(red.Slice(byteOffset, byteCount), green.Slice(byteOffset, byteCount), blue.Slice(byteOffset, byteCount), [], MemoryMarshal.Cast<Rgb48, ushort>(block), source, store);
+                TiffNativeColorConverter<TiffPlanar16NativeSource, TiffRgb48Store, ushort>.Convert(
+                    red.Slice(byteOffset, byteCount),
+                    green.Slice(byteOffset, byteCount),
+                    blue.Slice(byteOffset, byteCount),
+                    [],
+                    MemoryMarshal.Cast<Rgb48, ushort>(block),
+                    source,
+                    store);
+
                 PixelOperations<TPixel>.Instance.FromRgb48(this.configuration, block, pixelRow.Slice(x, count));
             }
 

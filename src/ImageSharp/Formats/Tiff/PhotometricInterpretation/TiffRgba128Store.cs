@@ -27,7 +27,16 @@ internal readonly struct TiffRgba128Store : ITiffColorStore<uint, uint>
     public void Store(ref uint destination, Vector128<uint> c0, Vector128<uint> c1, Vector128<uint> c2, Vector128<uint> c3)
     {
         // The float views only transpose raw bits; no uint value is numerically converted.
-        SimdUtils.Transpose4(c0.AsSingle(), c1.AsSingle(), c2.AsSingle(), c3.AsSingle(), out Vector128<float> pixel0, out Vector128<float> pixel1, out Vector128<float> pixel2, out Vector128<float> pixel3);
+        SimdUtils.Transpose4(
+            c0.AsSingle(),
+            c1.AsSingle(),
+            c2.AsSingle(),
+            c3.AsSingle(),
+            out Vector128<float> pixel0,
+            out Vector128<float> pixel1,
+            out Vector128<float> pixel2,
+            out Vector128<float> pixel3);
+
         pixel0.AsUInt32().StoreUnsafe(ref destination);
         pixel1.AsUInt32().StoreUnsafe(ref destination, 4);
         pixel2.AsUInt32().StoreUnsafe(ref destination, 8);

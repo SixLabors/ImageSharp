@@ -31,8 +31,17 @@ public class TiffLabColorConversion
     private readonly Image<Rgba32> destination = new(Length, 1);
     private readonly byte[] packed8 = new byte[Length * 3];
     private readonly byte[] packed16 = new byte[Length * 6];
-    private readonly TiffLabColorDecoder<Rgba32, TiffLab8Source> packed8Decoder = new(Configuration.Default, new TiffLab8Source(false), new(), Configuration.Default.MemoryAllocator);
-    private readonly TiffLabColorDecoder<Rgba32, TiffLab16Source> packed16Decoder = new(Configuration.Default, new TiffLab16Source(isBigEndian: true, planar: false), new(), Configuration.Default.MemoryAllocator);
+    private readonly TiffLabColorDecoder<Rgba32, TiffLab8Source> packed8Decoder = new(
+        Configuration.Default,
+        new TiffLab8Source(false),
+        new(),
+        Configuration.Default.MemoryAllocator);
+
+    private readonly TiffLabColorDecoder<Rgba32, TiffLab16Source> packed16Decoder = new(
+        Configuration.Default,
+        new TiffLab16Source(isBigEndian: true, planar: false),
+        new(),
+        Configuration.Default.MemoryAllocator);
 
     /// <summary>
     /// Initializes representative packed Lab codes outside timed invocations.

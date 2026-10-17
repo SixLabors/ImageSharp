@@ -30,7 +30,12 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     {
         this.configuration = configuration;
         bool hasProfile = IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? profile);
-        ColorConversionOptions options = new() { SourceIccProfile = profile, TargetIccProfile = hasProfile ? CompactSrgbV4Profile.Profile : null, MemoryAllocator = allocator };
+        ColorConversionOptions options = new()
+        {
+            SourceIccProfile = profile,
+            TargetIccProfile = hasProfile ? CompactSrgbV4Profile.Profile : null,
+            MemoryAllocator = allocator
+        };
 
         this.colorProfileConverter = new ColorProfileConverter(options);
         this.hasProfile = hasProfile;

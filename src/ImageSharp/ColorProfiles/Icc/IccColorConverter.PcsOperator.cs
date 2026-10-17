@@ -16,7 +16,7 @@ internal static partial class IccColorConverter
     /// </summary>
     internal readonly struct PcsOperator : IIccColorConverterOperator
     {
-        // These XYZ coefficients implement the existing ICC perceptual black-point adjustment.
+        // These XYZ coefficients implement the ICC perceptual black-point adjustment.
         // Keep the rounded coefficients unchanged in scalar and SIMD arithmetic.
         private const float SourceBlackPointScaleX = 0.9965153F;
         private const float SourceBlackPointScaleY = 0.9965269F;
@@ -44,7 +44,7 @@ internal static partial class IccColorConverter
         /// </summary>
         /// <param name="source">The selected source transform and PCS encoding.</param>
         /// <param name="target">The selected target transform and PCS encoding.</param>
-        /// <param name="options">The existing PCS converter options, with D50 as both white points.</param>
+        /// <param name="options">The PCS converter options, with D50 as both white points.</param>
         public PcsOperator(ConversionParams source, ConversionParams target, ColorConversionOptions options)
         {
             this.options = options;
@@ -74,6 +74,39 @@ internal static partial class IccColorConverter
 
         /// <inheritdoc/>
         public bool Is16BitLut => false;
+
+        /// <summary>
+        /// Gets a value indicating whether both PCS encodings are XYZ, so no Lab conversion separates their matrices.
+        /// </summary>
+        public bool CanCombineXyzMatrices => !this.sourceLab && !this.targetLab;
+
+        /// <summary>
+        /// Gets the linear XYZ adjustment for a connection between two matrix/TRC profiles.
+        /// </summary>
+        /// <param name="clipNegativeXyz">Whether target black-point adjustment clips negative XYZ.</param>
+        /// <returns>The XYZ scale and offset, without the temporary PCS encoding.</returns>
+        public MatrixOperator GetXyzAdjustment(out bool clipNegativeXyz)
+        {
+            // Matrix/TRC profiles connect through XYZ. Their PCS encode/decode scales cancel between stages.
+            // Combine only the linear black-point adjustments; clipping remains a separate operation.
+            Vector3 scale = Vector3.One;
+            Vector3 offset = Vector3.Zero;
+            if (this.adjustFrom)
+            {
+                scale = new Vector3(SourceBlackPointScaleX, SourceBlackPointScaleY, SourceBlackPointScaleZ);
+                offset = new Vector3(SourceBlackPointOffsetX, SourceBlackPointOffsetY, SourceBlackPointOffsetZ);
+            }
+
+            if (this.adjustTo)
+            {
+                Vector3 targetScale = new(TargetBlackPointScaleX, TargetBlackPointScaleY, TargetBlackPointScaleZ);
+                scale *= targetScale;
+                offset = (offset * targetScale) - new Vector3(TargetBlackPointOffsetX, TargetBlackPointOffsetY, TargetBlackPointOffsetZ);
+            }
+
+            clipNegativeXyz = this.adjustTo;
+            return new MatrixOperator(Matrix4x4.CreateScale(scale), offset);
+        }
 
         /// <summary>
         /// Connects one color using the same PCS decoding, clipping and adjustment order as the SIMD paths.

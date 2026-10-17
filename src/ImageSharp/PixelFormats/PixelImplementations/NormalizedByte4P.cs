@@ -134,6 +134,7 @@ public partial struct NormalizedByte4P : IPixel<NormalizedByte4P>, IPackedVector
         => PixelTypeInfo.Create<NormalizedByte4P>(
             PixelComponentInfo.Create<NormalizedByte4P>(4, 8, 8, 8, 8),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Associated);
 
     /// <inheritdoc />

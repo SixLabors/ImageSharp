@@ -94,6 +94,7 @@ public partial struct HalfVector4 : IPixel<HalfVector4>, IPackedVector<ulong>
         => PixelTypeInfo.Create<HalfVector4>(
             PixelComponentInfo.Create<HalfVector4>(4, 16, 16, 16, 16),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Extended,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />

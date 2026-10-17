@@ -131,6 +131,7 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
         => PixelTypeInfo.Create<RgbaHalf>(
             PixelComponentInfo.Create<RgbaHalf>(4, 16, 16, 16, 16),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Extended,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />

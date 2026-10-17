@@ -12,6 +12,12 @@ public class CmykAndCieLuvConversionTests
 {
     private static readonly ApproximateColorProfileComparer Comparer = new(.0002f);
 
+    // These conversions evaluate approximate powers. Scaled components give the error bound the same units across color models.
+    private static readonly ApproximateColorProfileComparer CompandingComparer = new(5E-4F, scaled: true);
+
+    // CIE Luv has no scaled-vector implementation. Its lightness and chromatic components use the 100-unit lightness scale.
+    private static readonly ApproximateColorProfileComparer LuvCompandingComparer = new(100F * 5E-4F);
+
     [Theory]
     [InlineData(0, 0, 0, 0, 100, -1.937151E-05, -3.874302E-05)]
     [InlineData(0.360555, 0.1036901, 0.818514, 0.274615, 62.85024, -24.4844189, 54.8588524)]
@@ -32,11 +38,11 @@ public class CmykAndCieLuvConversionTests
         converter.Convert<Cmyk, CieLuv>(inputSpan, actualSpan);
 
         // Assert
-        Assert.Equal(expected, actual, Comparer);
+        Assert.Equal(expected, actual, LuvCompandingComparer);
 
         for (int i = 0; i < actualSpan.Length; i++)
         {
-            Assert.Equal(expected, actualSpan[i], Comparer);
+            Assert.Equal(expected, actualSpan[i], LuvCompandingComparer);
         }
     }
 

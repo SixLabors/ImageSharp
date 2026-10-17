@@ -450,6 +450,7 @@ internal static partial class Av1FrameEncoder
                     colorConfig,
                     true,
                     null);
+
                 if (!IsOpaque(highBitDepthBuffer.Frame, cell.Size, opaqueValue))
                 {
                     return false;

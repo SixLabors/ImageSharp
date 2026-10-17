@@ -41,7 +41,15 @@ internal class Rgb32PlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
 
             // The factory selects this decoder only for Rgb96 output.
             // Correct byte order and combine the planes directly so all 32 channel bits survive.
-            TiffNativeColorConverter<TiffPlanar32NativeSource, TiffRgb96Store, uint>.Convert(redData.Slice(offset, rowBytes), greenData.Slice(offset, rowBytes), blueData.Slice(offset, rowBytes), [], MemoryMarshal.Cast<Rgb96, uint>(exactRow), source, store);
+            TiffNativeColorConverter<TiffPlanar32NativeSource, TiffRgb96Store, uint>.Convert(
+                redData.Slice(offset, rowBytes),
+                greenData.Slice(offset, rowBytes),
+                blueData.Slice(offset, rowBytes),
+                [],
+                MemoryMarshal.Cast<Rgb96, uint>(exactRow),
+                source,
+                store);
+
             offset += rowBytes;
         }
     }

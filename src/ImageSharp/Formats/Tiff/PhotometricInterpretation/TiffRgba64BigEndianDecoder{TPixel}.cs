@@ -58,7 +58,16 @@ internal sealed class TiffRgba64BigEndianDecoder<TPixel> : TiffBaseColorDecoder<
                 if (this.associated)
                 {
                     // TIFF associated pixels with zero alpha carry zero decoded color.
-                    TiffOperatedColorConverter<TiffPacked16NativeSource, TiffRgba64AssociatedOperator, TiffPackedRgba64Store, ushort, ushort>.Convert(data.Slice(rowOffset + (x * 8), count * 8), [], [], [], MemoryMarshal.Cast<Rgba64, ushort>(sampleBlock), source, colorOperator, store);
+                    TiffOperatedColorConverter<TiffPacked16NativeSource, TiffRgba64AssociatedOperator, TiffPackedRgba64Store, ushort, ushort>.Convert(
+                        data.Slice(rowOffset + (x * 8), count * 8),
+                        [],
+                        [],
+                        [],
+                        MemoryMarshal.Cast<Rgba64, ushort>(sampleBlock),
+                        source,
+                        colorOperator,
+                        store);
+
                     Span<Vector4> vectorBlock = vectors[..count];
                     PixelOperations<Rgba64>.Instance.ToUnassociatedScaledVector4(this.configuration, sampleBlock, vectorBlock);
                     PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, vectorBlock, pixelRow.Slice(x, count));
@@ -66,7 +75,12 @@ internal sealed class TiffRgba64BigEndianDecoder<TPixel> : TiffBaseColorDecoder<
                 else
                 {
                     // FromRgba64 receives exact 16-bit channel codes after byte-order correction.
-                    TiffUtilities.CopyUShorts(data.Slice(rowOffset + (x * 8), count * 8), MemoryMarshal.Cast<Rgba64, ushort>(sampleBlock), bigEndian: true, invert: false);
+                    TiffUtilities.CopyUShorts(
+                        data.Slice(rowOffset + (x * 8), count * 8),
+                        MemoryMarshal.Cast<Rgba64, ushort>(sampleBlock),
+                        bigEndian: true,
+                        invert: false);
+
                     PixelOperations<TPixel>.Instance.FromRgba64(this.configuration, sampleBlock, pixelRow.Slice(x, count));
                 }
             }

@@ -81,7 +81,9 @@ public class RgbAndCmykConversionTest
     /// Verifies mixed CMYK samples through all RGB and XYZ profile stages with configured working spaces.
     /// </summary>
     [Fact]
-    public void Convert_Cmyk_To_Rgb_BulkMatchesScalarWithCustomWorkingSpaces() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCmykBulkWithCustomWorkingSpaces, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    public void Convert_Cmyk_To_Rgb_BulkMatchesScalarWithCustomWorkingSpaces() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        RunCmykBulkWithCustomWorkingSpaces,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Compares the mixed CMYK row after disabled SIMD features are selected in separate processes before JIT compilation.
@@ -90,9 +92,27 @@ public class RgbAndCmykConversionTest
     {
         Cmyk[] source = new Cmyk[31];
         Rgb[] destination = new Rgb[source.Length];
-        ColorConversionOptions options = new() { SourceRgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb, TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb };
+        ColorConversionOptions options = new()
+        {
+            SourceRgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb,
+            TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb
+        };
+
         ColorProfileConverter converter = new(options);
-        ReadOnlySpan<Cmyk> samples = [new(0F, 0F, 0F, 0F), new(1F, 1F, 1F, 1F), new(.13F, .74F, .21F, .09F), new(.91F, .05F, .62F, .33F), new(.42F, .88F, .04F, .57F), new(.08F, .19F, .93F, .71F), new(.67F, .37F, .81F, .12F), new(.26F, .53F, .16F, .94F), new(.79F, .11F, .48F, .24F), new(.34F, .96F, .72F, .46F), new(.55F, .28F, .39F, .83F)];
+        ReadOnlySpan<Cmyk> samples =
+        [
+            new(0F, 0F, 0F, 0F),
+            new(1F, 1F, 1F, 1F),
+            new(.13F, .74F, .21F, .09F),
+            new(.91F, .05F, .62F, .33F),
+            new(.42F, .88F, .04F, .57F),
+            new(.08F, .19F, .93F, .71F),
+            new(.67F, .37F, .81F, .12F),
+            new(.26F, .53F, .16F, .94F),
+            new(.79F, .11F, .48F, .24F),
+            new(.34F, .96F, .72F, .46F),
+            new(.55F, .28F, .39F, .83F)
+        ];
 
         for (int i = 0; i < source.Length; i++)
         {

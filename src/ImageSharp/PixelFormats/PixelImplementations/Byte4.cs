@@ -99,6 +99,7 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
         => PixelTypeInfo.Create<Byte4>(
             PixelComponentInfo.Create<Byte4>(4, 8, 8, 8, 8),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />

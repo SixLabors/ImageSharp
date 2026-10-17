@@ -79,6 +79,7 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
         => PixelTypeInfo.Create<HalfSingle>(
             PixelComponentInfo.Create<HalfSingle>(1, 16),
             PixelColorType.Red,
+            PixelColorRange.Extended,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />

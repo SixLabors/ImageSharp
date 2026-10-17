@@ -114,6 +114,7 @@ public partial struct RgbaVectorP : IPixel<RgbaVectorP>
         => PixelTypeInfo.Create<RgbaVectorP>(
             PixelComponentInfo.Create<RgbaVectorP>(4, 32, 32, 32, 32),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Extended,
             PixelAlphaRepresentation.Associated);
 
     /// <inheritdoc />

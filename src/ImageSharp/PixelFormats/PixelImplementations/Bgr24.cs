@@ -107,6 +107,7 @@ public partial struct Bgr24 : IPixel<Bgr24>
         => PixelTypeInfo.Create<Bgr24>(
             PixelComponentInfo.Create<Bgr24>(3, 8, 8, 8),
             PixelColorType.BGR,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc/>

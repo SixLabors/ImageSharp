@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 #nullable disable
 
@@ -230,7 +230,11 @@ internal class TiffDecoderCore : ImageDecoderCore
                 }
 
                 // Identify has no destination pixel format; RgbaVector preserves converted colors as unassociated floating-point values.
-                Color[] palette = TiffUtilities.DecodeColorMap<RgbaVector>(colorMap.Value, meta.TiffMetadata.BitsPerSample, meta.FrameMetadata.IccProfile, this.memoryAllocator);
+                Color[] palette = TiffUtilities.DecodeColorMap<RgbaVector>(
+                    colorMap.Value,
+                    meta.TiffMetadata.BitsPerSample,
+                    meta.FrameMetadata.IccProfile,
+                    this.memoryAllocator);
 
                 meta.TiffMetadata.LocalColorTable = palette;
             }

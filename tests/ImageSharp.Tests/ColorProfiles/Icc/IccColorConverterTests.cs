@@ -19,6 +19,136 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
 public class IccColorConverterTests
 {
     /// <summary>
+    /// Checks that setup-time sRGB specialization preserves the general curve formula at every execution width.
+    /// </summary>
+    [Fact]
+    public void SelectedSRgbCurves_MatchGeneralFormula() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckSelectedSRgbCurves,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Covers forward and inverse coefficients, HDR inputs, signed zero and exceptional values without changing the power calculation.
+    /// </summary>
+    private static void CheckSelectedSRgbCurves()
+    {
+        IccTagDataEntry[] entries =
+        [
+            IccConversionDataTrc.ParamCurve4,
+            new IccParametricCurveTagDataEntry(new IccParametricCurve(3F, 1F, 0F, 1F, 0F))
+        ];
+
+        Random random = new(42);
+        Vector4[] source = random.GenerateRandomVectorArray(129, -16F, 16F);
+        source[0] = new Vector4(-0F, 0F, 1F, .5F);
+        source[1] = new Vector4(float.NaN, float.PositiveInfinity, float.NegativeInfinity, .5F);
+
+        foreach (IccTagDataEntry entry in entries)
+        {
+            foreach (bool inverse in new[] { false, true })
+            {
+                TrcOperator general = new([entry, entry, entry], inverse);
+                Assert.True(general.TryGetSRgb(out SRgbTrcOperator selected));
+
+                // Compare the same formula and power implementation. Specialization must only remove setup decisions.
+                Vector4[] expected = new Vector4[source.Length];
+                Vector4[] actual = new Vector4[source.Length];
+                new IccColorConverter<TrcOperator>(general).Convert(source, expected);
+                new IccColorConverter<SRgbTrcOperator>(selected).Convert(source, actual);
+                Assert.Equal(expected, actual, new ApproximateFloatComparer(0F));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks packed integer interpolation against normalized float tables at every SIMD width.
+    /// </summary>
+    [Fact]
+    public void EncodedCluts_MatchFloatTables() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckEncodedCluts,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Covers node widths, both integer precisions, grid boundaries, and both interpolation methods.
+    /// </summary>
+    private static void CheckEncodedCluts()
+    {
+        byte[][] grids = [[2], [2, 2], [2, 2, 2], [2, 2, 2, 2], [1, 1, byte.MaxValue]];
+        ReadOnlySpan<float> levels = [0F, .25F, .5F, .75F, 1F];
+        Random random = new(42);
+        Vector4[] source = random.GenerateRandomVectorArray(129, -.25F, 1.25F);
+        source[0] = Vector4.Zero;
+        source[1] = Vector4.One;
+        source[2] = new Vector4(float.NaN);
+        source[3] = new Vector4(float.PositiveInfinity, float.NegativeInfinity, float.NaN, 1F);
+        Vector4[] vertexSource = new Vector4[31];
+        Vector4[] vertexActual = new Vector4[vertexSource.Length];
+
+        foreach (byte[] grid in grids)
+        {
+            int nodes = grid.Aggregate(1, static (product, points) => product * points);
+            for (int channels = 1; channels <= 4; channels++)
+            {
+                float[] values = new float[nodes * channels];
+                for (int i = 0; i < values.Length; i++)
+                {
+                    values[i] = levels[i % levels.Length];
+                }
+
+                IccClut template = new(values, grid, IccClutDataType.Float, channels);
+                foreach (bool sixteenBit in new[] { false, true })
+                {
+                    // Use the existing writer for sample encoding. No test-specific byte packing is needed.
+                    using IccDataWriter writer = new();
+                    _ = sixteenBit ? writer.WriteClut16(template) : writer.WriteClut8(template);
+                    byte[] encoded = writer.GetData();
+                    IccClutDataType type = sixteenBit ? IccClutDataType.UInt16 : IccClutDataType.UInt8;
+                    IccClut materialized = new(encoded.AsMemory(), grid, type, channels);
+                    float[] referenceValues = new float[materialized.SampleCount];
+                    for (int i = 0; i < referenceValues.Length; i++)
+                    {
+                        referenceValues[i] = materialized.GetSample(i);
+                    }
+
+                    IccClut reference = new(referenceValues, grid, IccClutDataType.Float, channels);
+
+                    foreach (bool trilinear in new[] { false, true })
+                    {
+                        // Keep the actual table encoded. The separate reference uses the established float interpolation.
+                        IccClut packed = new(encoded.AsMemory(), grid, type, channels);
+                        IccTagDataEntry[] inputCurves = Enumerable.Repeat<IccTagDataEntry>(IccConversionDataTrc.IdentityCurve, grid.Length).ToArray();
+                        IccTagDataEntry[] outputCurves = Enumerable.Repeat<IccTagDataEntry>(IccConversionDataTrc.IdentityCurve, channels).ToArray();
+                        IccLutAToBTagDataEntry entry = new(outputCurves, null, null, null, packed, inputCurves);
+                        IccColorConverter<LutColorOperator> converter = new(new LutColorOperator(entry, trilinear));
+                        ClutOperator expected = new(reference, trilinear);
+                        Vector4[] actual = new Vector4[source.Length];
+                        converter.Convert(source, actual);
+
+                        for (int i = 0; i < source.Length; i++)
+                        {
+                            // Compare error directly. Decimal rounding can put adjacent floats on opposite sides of a decimal midpoint.
+                            Assert.Equal(expected.Convert(source[i]), actual[i], new ApproximateFloatComparer(1E-6F));
+                        }
+
+                        // A homogeneous row at the first grid vertex must return that node. The stored samples
+                        // provide the expected values directly, including zero for unused output components.
+                        Vector4 firstNode = new(
+                            referenceValues[0],
+                            channels > 1 ? referenceValues[1] : 0F,
+                            channels > 2 ? referenceValues[2] : 0F,
+                            channels > 3 ? referenceValues[3] : 0F);
+
+                        converter.Convert(vertexSource, vertexActual);
+                        foreach (Vector4 value in vertexActual)
+                        {
+                            Assert.Equal(firstNode, value, new ApproximateFloatComparer(1E-6F));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Checks curve formulas and their inverses against the existing independent expected values.
     /// </summary>
     [Fact]
@@ -35,15 +165,15 @@ public class IccColorConverterTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Checks SIMD gamma evaluation across every normalized sixteen-bit code.
+    /// Checks scalar/SIMD agreement across every normalized sixteen-bit code, including extreme ICC exponents.
     /// </summary>
     [Fact]
-    public void Gamma_MatchesMathFPowAcrossSixteenBitCodes() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+    public void Gamma_MatchesScalarAcrossSixteenBitCodes() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
         CheckGamma,
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Uses MathF.Pow as the gamma contract and tests the full normalized input domain at each SIMD width.
+    /// Uses the scalar ICC curve as the execution reference. Separate formula tests check approximation accuracy.
     /// </summary>
     private static void CheckGamma()
     {
@@ -80,9 +210,9 @@ public class IccColorConverterTests
 
                     for (int lane = 0; lane < width; lane++)
                     {
-                        // SIMD powers need not round like scalar powf. Require absolute error below one millionth,
-                        // more than fifteen times smaller than one normalized sixteen-bit code step.
-                        Assert.Equal(MathF.Pow(input[i + lane], exponent), values[lane], 0.000001F);
+                        // ICC permits exponents up to 255. Compare the same curve across widths without imposing
+                        // MathF.Pow accuracy on the selected approximation. Preserve the tight scalar/SIMD bound.
+                        Assert.Equal(curve.Convert(input[i + lane]), values[lane], new ApproximateFloatComparer(1E-6F));
                     }
                 }
             }
@@ -95,6 +225,14 @@ public class IccColorConverterTests
     [Fact]
     public void Cluts_MatchCellWeights() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
         CheckClutWeights,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks the largest grid index and constant axes before SIMD table gathers.
+    /// </summary>
+    [Fact]
+    public void Cluts_HandleGridBounds() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckClutGridBounds,
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
@@ -155,6 +293,46 @@ public class IccColorConverterTests
     }
 
     /// <summary>
+    /// Uses an identity axis with the largest byte-sized grid and two single-node axes.
+    /// </summary>
+    private static void CheckClutGridBounds()
+    {
+        float[] values = new float[byte.MaxValue];
+        for (int i = 0; i < values.Length; i++)
+        {
+            values[i] = i / (float)(values.Length - 1);
+        }
+
+        // Only X varies. The other axes have one node, so their index and stride must remain zero.
+        IccClut clut = new(values, [byte.MaxValue, 1, 1], IccClutDataType.Float, 1);
+        IccTagDataEntry[] inputCurves = Enumerable.Repeat<IccTagDataEntry>(IccConversionDataTrc.IdentityCurve, 3).ToArray();
+        IccLutAToBTagDataEntry entry = new([IccConversionDataTrc.IdentityCurve], null, null, null, clut, inputCurves);
+        ReadOnlySpan<float> samples = [0F, 1F, .25F, .5F, .75F, -.25F, 1.25F, float.NaN, float.PositiveInfinity,
+            float.NegativeInfinity, MathF.BitDecrement(1F)];
+
+        foreach (bool trilinear in new[] { false, true })
+        {
+            IccColorConverter<LutColorOperator> converter = new(new LutColorOperator(entry, trilinear));
+
+            // Thirty-one colors exercise a 512-bit block, narrower blocks, and a scalar remainder.
+            Vector4[] source = new Vector4[31];
+            Vector4[] actual = new Vector4[source.Length];
+            for (int i = 0; i < source.Length; i++)
+            {
+                source[i] = new Vector4(samples[i % samples.Length]);
+            }
+
+            converter.Convert(source, actual);
+            for (int i = 0; i < source.Length; i++)
+            {
+                // The identity ramp returns bounded X; NaN follows the existing clamp rule and becomes zero.
+                float expected = Numerics.Clamp(source[i].X, 0F, 1F);
+                VectorAssert.Equal(new Vector4(expected, 0F, 0F, 0F), actual[i], 5);
+            }
+        }
+    }
+
+    /// <summary>
     /// Checks a gamma-two gray curve against squared device values and square-root PCS values.
     /// </summary>
     private static void CheckGray()
@@ -190,7 +368,9 @@ public class IccColorConverterTests
                 converter.Convert(source, actual);
                 for (int i = 0; i < source.Length; i++)
                 {
-                    VectorAssert.Equal(expected[i], actual[i], 5);
+                    // The forward square is exact; the inverse square root uses the measured approximation bound.
+                    ApproximateFloatComparer comparer = new(toPcs ? 1E-5F : 5E-4F);
+                    Assert.Equal(expected[i], actual[i], comparer);
                 }
             }
         }
@@ -205,10 +385,10 @@ public class IccColorConverterTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Checks powers throughout the normal float range, including each mantissa interval's upper edge.
+    /// Checks scalar and SIMD agreement throughout the normal float range, including each mantissa interval's upper edge.
     /// </summary>
     [Fact]
-    public void Gamma_MatchesMathPowAcrossBinaryRanges() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+    public void Gamma_MatchesScalarAcrossBinaryRanges() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
         CheckPowerRanges,
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
@@ -223,8 +403,10 @@ public class IccColorConverterTests
             CurveOperator curve = new(new IccCurveTagDataEntry(exponent), false);
             InlineArray16<float> input = default;
             InlineArray16<float> output = default;
+            InlineArray16<float> reference = default;
             Span<float> inputs = input;
             Span<float> actual = output;
+            Span<float> expected = reference;
             for (int binaryExponent = -126; binaryExponent <= 127; binaryExponent++)
             {
                 for (int interval = 0; interval < 64; interval += inputs.Length)
@@ -235,22 +417,28 @@ public class IccColorConverterTests
                         // ScaleB then sets the IEEE binary exponent exactly, without decimal scaling error.
                         float significand = MathF.BitDecrement(1F + ((interval + lane + 1) / 64F));
                         inputs[lane] = MathF.ScaleB(significand, binaryExponent);
+                        expected[lane] = curve.Convert(inputs[lane]);
                     }
 
                     curve.Convert(Vector512.LoadUnsafe(ref inputs[0])).StoreUnsafe(ref actual[0]);
-                    AssertPowerValues(inputs, actual, exponent);
+
+                    // Mathematical accuracy is measured separately over the recorded native comparison range.
+                    // Here every width must match scalar conversion, including subnormal results and overflow.
+                    Assert.Equal<float>(expected, actual);
+
                     for (int i = 0; i < inputs.Length; i += Vector256<float>.Count)
                     {
                         curve.Convert(Vector256.LoadUnsafe(ref inputs[i])).StoreUnsafe(ref actual[0], (uint)i);
                     }
 
-                    AssertPowerValues(inputs, actual, exponent);
+                    Assert.Equal<float>(expected, actual);
+
                     for (int i = 0; i < inputs.Length; i += Vector128<float>.Count)
                     {
                         curve.Convert(Vector128.LoadUnsafe(ref inputs[i])).StoreUnsafe(ref actual[0], (uint)i);
                     }
 
-                    AssertPowerValues(inputs, actual, exponent);
+                    Assert.Equal<float>(expected, actual);
                 }
             }
         }
@@ -282,6 +470,7 @@ public class IccColorConverterTests
             smallestNormal,
             MathF.BitDecrement(smallestNormal)
         ];
+
         ReadOnlySpan<float> exponents = [0F, 1F, 2F, 3F, -1F, -2F, 0.5F, 2.2F, float.PositiveInfinity, float.NegativeInfinity, float.NaN];
         foreach (float exponent in exponents)
         {
@@ -308,7 +497,7 @@ public class IccColorConverterTests
     }
 
     /// <summary>
-    /// Checks each curve at 128, 256 and 512 bits, including the runtime's scalar intrinsic implementations.
+    /// Checks each curve at the supported SIMD widths and through scalar conversion.
     /// </summary>
     private static void CheckCurves()
     {
@@ -320,23 +509,33 @@ public class IccColorConverterTests
             InlineArray16<float> actual = default;
             Span<float> values = actual;
 
-            // Each store writes only its own width. Comparing every written lane also checks lane order and broadcasts.
-            curve.Convert(Vector512.Create(input)).StoreUnsafe(ref MemoryMarshal.GetReference(values));
-            foreach (float value in values)
+            // Direct operators require a supported width, as in shared conversion dispatch.
+            // Each store writes only its own width; compare every written lane to check lane order and broadcasts.
+            if (Vector512.IsHardwareAccelerated)
             {
-                Assert.Equal(expected, value, 4);
+                curve.Convert(Vector512.Create(input)).StoreUnsafe(ref MemoryMarshal.GetReference(values));
+                foreach (float value in values)
+                {
+                    Assert.Equal(expected, value, 4);
+                }
             }
 
-            curve.Convert(Vector256.Create(input)).StoreUnsafe(ref MemoryMarshal.GetReference(values));
-            foreach (float value in values[..Vector256<float>.Count])
+            if (Vector256.IsHardwareAccelerated)
             {
-                Assert.Equal(expected, value, 4);
+                curve.Convert(Vector256.Create(input)).StoreUnsafe(ref MemoryMarshal.GetReference(values));
+                foreach (float value in values[..Vector256<float>.Count])
+                {
+                    Assert.Equal(expected, value, 4);
+                }
             }
 
-            curve.Convert(Vector128.Create(input)).StoreUnsafe(ref MemoryMarshal.GetReference(values));
-            foreach (float value in values[..Vector128<float>.Count])
+            if (Vector128.IsHardwareAccelerated)
             {
-                Assert.Equal(expected, value, 4);
+                curve.Convert(Vector128.Create(input)).StoreUnsafe(ref MemoryMarshal.GetReference(values));
+                foreach (float value in values[..Vector128<float>.Count])
+                {
+                    Assert.Equal(expected, value, 4);
+                }
             }
 
             Assert.Equal(expected, curve.Convert(input), 4);
@@ -355,16 +554,15 @@ public class IccColorConverterTests
 
         foreach (IGrouping<object, object[]> group in data.GroupBy(row => row[0]))
         {
-            LutColorOperator colorOperator = group.Key switch
+            IIccColorConverter converter = group.Key switch
             {
-                IccLut8TagDataEntry entry => new(entry, false),
-                IccLut16TagDataEntry entry => new(entry, false),
-                IccLutAToBTagDataEntry entry => new(entry, false),
-                IccLutBToATagDataEntry entry => new(entry, false),
+                IccLut8TagDataEntry entry => new IccColorConverter<SampledLutColorOperator>(new(entry, false)),
+                IccLut16TagDataEntry entry => new IccColorConverter<SampledLutColorOperator>(new(entry, false)),
+                IccLutAToBTagDataEntry entry => new IccColorConverter<LutColorOperator>(new(entry, false)),
+                IccLutBToATagDataEntry entry => new IccColorConverter<LutColorOperator>(new(entry, false)),
                 _ => throw new InvalidOperationException("Unexpected ICC fixture tag.")
             };
 
-            IccColorConverter<LutColorOperator> converter = new(colorOperator);
             object[][] cases = group.ToArray();
 
             // 31 colors exercise sixteen-, eight- and four-lane blocks plus a three-color scalar tail.
@@ -424,7 +622,10 @@ public class IccColorConverterTests
             }
             else
             {
-                Assert.Equal(expected, actual[i], MathF.Abs(expected) * 0.000001F);
+                // Retain the recorded approximation's relative bound. One subnormal float step covers rounding
+                // where the relative bound is smaller than the spacing between representable values.
+                float tolerance = MathF.Max(float.Epsilon, MathF.Abs(expected) * 5E-4F);
+                Assert.Equal(expected, actual[i], tolerance);
             }
         }
     }

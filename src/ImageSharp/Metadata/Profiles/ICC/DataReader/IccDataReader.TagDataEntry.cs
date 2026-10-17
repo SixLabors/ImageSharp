@@ -170,6 +170,12 @@ internal sealed partial class IccDataReader
             return new IccCurveTagDataEntry(this.ReadUFix8());
         }
 
+        // Bound the allocation by the encoded samples that remain. Division avoids overflow in a malformed point count.
+        if (pointCount > (uint)((this.data.Length - this.currentIndex) / sizeof(ushort)))
+        {
+            throw new InvalidIccProfileException("ICC curve samples exceed the profile data.");
+        }
+
         float[] cdata = new float[pointCount];
         for (int i = 0; i < pointCount; i++)
         {
@@ -178,7 +184,8 @@ internal sealed partial class IccDataReader
 
         return new IccCurveTagDataEntry(cdata);
 
-        // TODO: If the input is PCSXYZ, 1+(32 767/32 768) shall be mapped to the value 1,0. If the output is PCSXYZ, the value 1,0 shall be mapped to 1+(32 767/32 768).
+        // TODO: For PCSXYZ input, map 1+(32 767/32 768) to 1,0.
+        // For PCSXYZ output, map 1,0 to 1+(32 767/32 768).
     }
 
     /// <summary>

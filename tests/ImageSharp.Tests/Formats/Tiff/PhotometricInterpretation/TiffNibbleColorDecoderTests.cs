@@ -45,7 +45,10 @@ public class TiffNibbleColorDecoderTests
     [Theory]
     [InlineData(Rgb44465X3)]
     [InlineData(Rgba4444Straight65X3)]
-    public void Decode_MatchesMagickReference(string path) => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertMagickReference, path, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    public void Decode_MatchesMagickReference(string path) => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        AssertMagickReference,
+        path,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Compares every decoded pixel with the independent TIFF decoder.
@@ -63,7 +66,9 @@ public class TiffNibbleColorDecoderTests
     /// Compares associated-alpha pixels with an independent TIFF decoder in premultiplied storage.
     /// </summary>
     [Fact]
-    public void DecodeAssociated_MatchesMagickReference() => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertAssociatedReference, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    public void DecodeAssociated_MatchesMagickReference() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        AssertAssociatedReference,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Compares the associated image while preserving the separate hidden-RGB numeric check.
@@ -83,7 +88,9 @@ public class TiffNibbleColorDecoderTests
     /// Checks stored RGB nibble values across byte-padded rows and SIMD tails.
     /// </summary>
     [Fact]
-    public void DecodeRgb444_PreservesKnownColorsAcrossRowsAndTail() => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertRgbFixture, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    public void DecodeRgb444_PreservesKnownColorsAcrossRowsAndTail() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        AssertRgbFixture,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Checks each decoded RGB pixel against the source sample table.
@@ -118,7 +125,11 @@ public class TiffNibbleColorDecoderTests
     [Theory]
     [InlineData(Rgba4444Straight65X3, false)]
     [InlineData(Rgba4444Associated65X3, true)]
-    public void DecodeRgba4444_PreservesKnownAlphaAcrossRowsAndTail(string path, bool associated) => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertRgbaFixture, path, associated.ToString(), HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    public void DecodeRgba4444_PreservesKnownAlphaAcrossRowsAndTail(string path, bool associated) => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        AssertRgbaFixture,
+        path,
+        associated.ToString(),
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Checks each decoded RGBA pixel against the source sample table.

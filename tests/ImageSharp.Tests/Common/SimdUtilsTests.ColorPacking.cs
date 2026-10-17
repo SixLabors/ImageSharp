@@ -18,7 +18,9 @@ public partial class SimdUtilsTests
     /// </summary>
     [Fact]
     public void PackingOperationsMatchScalarDefinitions()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePackingOperations, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidatePackingOperations,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Exercises every SIMD transition and scalar remainder for the packing operations.
@@ -153,7 +155,27 @@ public partial class SimdUtilsTests
     private static float[] CreateSamples(int length, int component)
     {
         // Seventeen mixed values avoid repeating at any 4-, 8-, or 16-lane boundary.
-        ReadOnlySpan<float> source = [0F, 255F, 0.125F, 127.5F, 1F, 254.875F, 32.25F, 96.5F, 191.75F, 7.125F, 240F, 19.5F, 63.875F, 128F, 223.25F, 48.5F, 175.125F];
+        ReadOnlySpan<float> source =
+        [
+            0F,
+            255F,
+            0.125F,
+            127.5F,
+            1F,
+            254.875F,
+            32.25F,
+            96.5F,
+            191.75F,
+            7.125F,
+            240F,
+            19.5F,
+            63.875F,
+            128F,
+            223.25F,
+            48.5F,
+            175.125F
+        ];
+
         float[] samples = new float[length];
 
         for (int i = 0; i < samples.Length; i++)

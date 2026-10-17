@@ -11,10 +11,11 @@ namespace SixLabors.ImageSharp.Formats;
 public interface IImageDecoder
 {
     /// <summary>
-    /// Reads image information from the specified stream, converting identified palette and background colors to sRGB when supported by an embedded ICC profile.
+    /// Reads image information from the specified stream.
     /// </summary>
     /// <remarks>
-    /// ICC-converted identified colors use floating-point, unassociated values. Their precision and alpha representation can differ from the colors returned by decoding to a specific pixel format.
+    /// When an embedded ICC profile requires conversion, identified palette and background colors use sRGB.
+    /// These colors use unassociated floating-point values. Decoding to a specific pixel type can change their precision and alpha representation.
     /// </remarks>
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
@@ -23,10 +24,11 @@ public interface IImageDecoder
     public ImageInfo Identify(DecoderOptions options, Stream stream);
 
     /// <summary>
-    /// Reads image information from the specified stream, converting identified palette and background colors to sRGB when supported by an embedded ICC profile.
+    /// Reads image information from the specified stream.
     /// </summary>
     /// <remarks>
-    /// ICC-converted identified colors use floating-point, unassociated values. Their precision and alpha representation can differ from the colors returned by decoding to a specific pixel format.
+    /// When an embedded ICC profile requires conversion, identified palette and background colors use sRGB.
+    /// These colors use unassociated floating-point values. Decoding to a specific pixel type can change their precision and alpha representation.
     /// </remarks>
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>

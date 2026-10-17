@@ -95,6 +95,7 @@ public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
         => PixelTypeInfo.Create<Rg32>(
             PixelComponentInfo.Create<Rg32>(2, 16, 16),
             PixelColorType.Red | PixelColorType.Green,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />

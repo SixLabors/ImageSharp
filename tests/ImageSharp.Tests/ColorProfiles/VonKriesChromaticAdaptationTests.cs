@@ -47,7 +47,10 @@ public class VonKriesChromaticAdaptationTests
     [Theory]
     [InlineData(16)]
     [InlineData(31)]
-    public void BulkTransformSupportsMixedInPlaceValues(int count) => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunMixedInPlaceAdaptation, count, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    public void BulkTransformSupportsMixedInPlaceValues(int count) => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        RunMixedInPlaceAdaptation,
+        count,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Compares aliased XYZ rows after disabled SIMD features are selected in separate processes before JIT compilation.
@@ -59,7 +62,20 @@ public class VonKriesChromaticAdaptationTests
         CieXyz[] values = new CieXyz[count];
         CieXyz[] expected = new CieXyz[values.Length];
         (CieXyz From, CieXyz To) whitePoints = (KnownIlluminants.D65, KnownIlluminants.D50);
-        ReadOnlySpan<CieXyz> samples = [new(0F, 0F, 0F), new(1F, 1F, 1F), new(-.2F, .03F, -.1F), new(.14F, .57F, .93F), new(.89F, .11F, .38F), new(.32F, .76F, -.04F), new(.74F, .29F, .15F), new(.06F, .94F, .47F), new(.53F, -.08F, .72F), new(.97F, .44F, .26F), new(.23F, .68F, .81F)];
+        ReadOnlySpan<CieXyz> samples =
+        [
+            new(0F, 0F, 0F),
+            new(1F, 1F, 1F),
+            new(-.2F, .03F, -.1F),
+            new(.14F, .57F, .93F),
+            new(.89F, .11F, .38F),
+            new(.32F, .76F, -.04F),
+            new(.74F, .29F, .15F),
+            new(.06F, .94F, .47F),
+            new(.53F, -.08F, .72F),
+            new(.97F, .44F, .26F),
+            new(.23F, .68F, .81F)
+        ];
 
         for (int i = 0; i < values.Length; i++)
         {

@@ -50,7 +50,18 @@ internal readonly struct TiffRgba32Store : ITiffColorStore<byte, byte>
     {
         this.Store(ref destination, c0.GetLower().GetLower(), c1.GetLower().GetLower(), c2.GetLower().GetLower(), c3.GetLower().GetLower());
         this.Store(ref Unsafe.Add(ref destination, 64), c0.GetLower().GetUpper(), c1.GetLower().GetUpper(), c2.GetLower().GetUpper(), c3.GetLower().GetUpper());
-        this.Store(ref Unsafe.Add(ref destination, 128), c0.GetUpper().GetLower(), c1.GetUpper().GetLower(), c2.GetUpper().GetLower(), c3.GetUpper().GetLower());
-        this.Store(ref Unsafe.Add(ref destination, 192), c0.GetUpper().GetUpper(), c1.GetUpper().GetUpper(), c2.GetUpper().GetUpper(), c3.GetUpper().GetUpper());
+        this.Store(
+            ref Unsafe.Add(ref destination, 128),
+            c0.GetUpper().GetLower(),
+            c1.GetUpper().GetLower(),
+            c2.GetUpper().GetLower(),
+            c3.GetUpper().GetLower());
+
+        this.Store(
+            ref Unsafe.Add(ref destination, 192),
+            c0.GetUpper().GetUpper(),
+            c1.GetUpper().GetUpper(),
+            c2.GetUpper().GetUpper(),
+            c3.GetUpper().GetUpper());
     }
 }

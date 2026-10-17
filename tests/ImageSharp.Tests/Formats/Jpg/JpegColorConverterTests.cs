@@ -263,7 +263,8 @@ public partial class JpegColorConverterTests
                     break;
 
                 case JpegColorSpace.YCbCr:
-                    Rgb rgb = modelConverter.Convert<YCbCr, Rgb>(new YCbCr(c0, c1, c2));
+                    Rgb rgb = new YCbCr(c0, c1, c2).ToProfileConnectingSpace(modelConverter.Options);
+
                     // JPEG device RGB is bounded before ICC, including overshoot from the YCbCr matrix.
                     rgb = new Rgb(Vector3.Clamp(rgb.ToScaledVector3(), Vector3.Zero, Vector3.One));
                     expected = profileConverter.Convert<Rgb, Rgb>(rgb);
@@ -278,7 +279,7 @@ public partial class JpegColorConverterTests
                     // Decode the chromatic matrix independently, without deriving a new K from its RGB result.
                     float chromaShift = (MathF.Ceiling(maximumValue * .5F) / maximumValue) - .5F;
                     YCbCr coded = YCbCr.FromScaledVector4(new Vector4(c0, c1 - chromaShift, c2 - chromaShift, 0F));
-                    Rgb device = modelConverter.Convert<YCbCr, Rgb>(coded);
+                    Rgb device = coded.ToProfileConnectingSpace(modelConverter.Options);
                     Vector4 ink = new(device.ToScaledVector3(), 1F - c3);
                     ink = colorSpace == JpegColorSpace.Ycck ? ink : Vector4.One - ink;
                     expected = profileConverter.Convert<Cmyk, Rgb>(Cmyk.FromScaledVector4(ink));
@@ -293,6 +294,7 @@ public partial class JpegColorConverterTests
                     return;
             }
 
+            // Direct model conversion applies only the coding matrix; it must not add a working-space round trip.
             Assert.Equal(expected.R, actualRgb[i].R, ToRgbTolerance);
             Assert.Equal(expected.G, actualRgb[i].G, ToRgbTolerance);
             Assert.Equal(expected.B, actualRgb[i].B, ToRgbTolerance);
@@ -386,10 +388,11 @@ public partial class JpegColorConverterTests
                         else
                         {
                             Rgb rgb = referenceConverter.Convert<Rgb, Rgb>(source[i]);
+
                             // JPEG cannot store extended RGB. Bound device samples before its YCbCr matrix or direct RGB scaling.
                             rgb = new Rgb(Vector3.Clamp(rgb.ToScaledVector3(), Vector3.Zero, Vector3.One));
                             expected[i] = space == JpegColorSpace.YCbCr
-                                ? modelConverter.Convert<Rgb, YCbCr>(rgb).ToScaledVector4()
+                                ? YCbCr.FromProfileConnectingSpace(modelConverter.Options, in rgb).ToScaledVector4()
                                 : rgb.ToScaledVector4();
                         }
                     }
@@ -412,7 +415,7 @@ public partial class JpegColorConverterTests
                         Vector3 chromatic = new(device.X, device.Y, device.Z);
                         chromatic = space == JpegColorSpace.Ycck ? chromatic : Vector3.One - chromatic;
                         Rgb matrixInput = new(chromatic);
-                        YCbCr matrixOutput = modelConverter.Convert<Rgb, YCbCr>(matrixInput);
+                        YCbCr matrixOutput = YCbCr.FromProfileConnectingSpace(modelConverter.Options, in matrixInput);
                         code = matrixOutput.ToScaledVector4() * maximumValue;
 
                         // The shared color model centers chroma at 0.5; JPEG uses the integer midpoint.
@@ -455,7 +458,9 @@ public partial class JpegColorConverterTests
     /// Verifies TIFF YccK encoding against the canonical normalized color-profile conversion.
     /// </summary>
     [Fact]
-    public void TiffYccKOperatorFromRgbMatchesColorProfileDefinition() => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertTiffYccKFromRgb, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    public void TiffYccKOperatorFromRgbMatchesColorProfileDefinition() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        AssertTiffYccKFromRgb,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Checks TIFF YccK encoding against the established color-profile reference.
@@ -497,7 +502,7 @@ public partial class JpegColorConverterTests
             for (int i = 0; i < length; i++)
             {
                 Rgb rgb = new(r[i] / maximumValue, g[i] / maximumValue, b[i] / maximumValue);
-                YccK expected = reference.Convert<Rgb, YccK>(rgb);
+                YccK expected = YccK.FromProfileConnectingSpace(reference.Options, in rgb);
 
                 Assert.Equal(expected.Y * maximumValue, y[i], ToRgbTolerance);
 

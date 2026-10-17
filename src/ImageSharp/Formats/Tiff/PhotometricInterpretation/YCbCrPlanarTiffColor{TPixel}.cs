@@ -39,7 +39,13 @@ internal class YCbCrPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
     /// <param name="referenceBlackAndWhite">The TIFF coding ranges.</param>
     /// <param name="coefficients">The TIFF luma coefficients.</param>
     /// <param name="ycbcrSubSampling">The chroma subsampling factors.</param>
-    public YCbCrPlanarTiffColor(Configuration configuration, ImageFrameMetadata metadata, MemoryAllocator allocator, Rational[] referenceBlackAndWhite, Rational[] coefficients, ushort[] ycbcrSubSampling)
+    public YCbCrPlanarTiffColor(
+        Configuration configuration,
+        ImageFrameMetadata metadata,
+        MemoryAllocator allocator,
+        Rational[] referenceBlackAndWhite,
+        Rational[] coefficients,
+        ushort[] ycbcrSubSampling)
     {
         this.configuration = configuration;
         this.colorOperator = new TiffYCbCrOperator(referenceBlackAndWhite, coefficients);
@@ -162,7 +168,14 @@ internal class YCbCrPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
             {
                 int count = Math.Min(width - x, rgbaBlock.Length);
                 Span<Rgba32> rgba = rgbaBlock[..count];
-                TiffYCbCr8ColorConverter.Convert(yData.Slice(offset + x, count), cbData.Slice(offset + x, count), crData.Slice(offset + x, count), rgba, new TiffYCbCr8Source(planar: true), this.colorOperator);
+                TiffYCbCr8ColorConverter.Convert(
+                    yData.Slice(offset + x, count),
+                    cbData.Slice(offset + x, count),
+                    crData.Slice(offset + x, count),
+                    rgba,
+                    new TiffYCbCr8Source(planar: true),
+                    this.colorOperator);
+
                 PixelOperations<TPixel>.Instance.FromRgba32(this.configuration, rgba, pixelRow.Slice(x, count));
             }
 

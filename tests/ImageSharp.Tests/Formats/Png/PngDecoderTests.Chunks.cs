@@ -20,6 +20,7 @@ public partial class PngDecoderTests
     // Contains the png marker, IHDR and pHYs chunks of a 1x1 pixel 32bit png 1 a single black pixel.
     private static readonly byte[] Raw1X1PngIhdrAndpHYs =
     [
+
         // PNG Identifier
         0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
 
@@ -42,6 +43,7 @@ public partial class PngDecoderTests
     // Contains the png marker, IDAT and IEND chunks of a 1x1 pixel 32bit png 1 a single black pixel.
     private static readonly byte[] Raw1X1PngIdatAndIend =
     [
+
         // IDAT
         0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, 0x54, 0x18,
         0x57, 0x63, 0x60, 0x60, 0x60, 0x00, 0x00, 0x00, 0x04,

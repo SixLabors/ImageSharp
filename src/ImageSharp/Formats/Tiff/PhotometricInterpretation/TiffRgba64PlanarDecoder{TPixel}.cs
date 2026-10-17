@@ -64,7 +64,16 @@ internal sealed class TiffRgba64PlanarDecoder<TPixel> : TiffBasePlanarColorDecod
 
                 if (this.associated)
                 {
-                    TiffOperatedColorConverter<TiffPlanar16NativeSource, TiffRgba64PlanarOperator, TiffRgba64Store, ushort, ushort>.Convert(red.Slice(byteOffset, byteCount), green.Slice(byteOffset, byteCount), blue.Slice(byteOffset, byteCount), alpha.Slice(byteOffset, byteCount), nativeBlock, source, colorOperator, store);
+                    TiffOperatedColorConverter<TiffPlanar16NativeSource, TiffRgba64PlanarOperator, TiffRgba64Store, ushort, ushort>.Convert(
+                        red.Slice(byteOffset, byteCount),
+                        green.Slice(byteOffset, byteCount),
+                        blue.Slice(byteOffset, byteCount),
+                        alpha.Slice(byteOffset, byteCount),
+                        nativeBlock,
+                        source,
+                        colorOperator,
+                        store);
+
                     Span<Vector4> vectorBlock = vectors[..count];
                     PixelOperations<Rgba64>.Instance.ToUnassociatedScaledVector4(this.configuration, sampleBlock, vectorBlock);
 
@@ -73,7 +82,15 @@ internal sealed class TiffRgba64PlanarDecoder<TPixel> : TiffBasePlanarColorDecod
                 else
                 {
                     // Pass exact 16-bit channel values to FromRgba64 so each destination format applies its integer conversion.
-                    TiffNativeColorConverter<TiffPlanar16NativeSource, TiffRgba64Store, ushort>.Convert(red.Slice(byteOffset, byteCount), green.Slice(byteOffset, byteCount), blue.Slice(byteOffset, byteCount), alpha.Slice(byteOffset, byteCount), nativeBlock, source, store);
+                    TiffNativeColorConverter<TiffPlanar16NativeSource, TiffRgba64Store, ushort>.Convert(
+                        red.Slice(byteOffset, byteCount),
+                        green.Slice(byteOffset, byteCount),
+                        blue.Slice(byteOffset, byteCount),
+                        alpha.Slice(byteOffset, byteCount),
+                        nativeBlock,
+                        source,
+                        store);
+
                     PixelOperations<TPixel>.Instance.FromRgba64(this.configuration, sampleBlock, pixelRow.Slice(x, count));
                 }
             }

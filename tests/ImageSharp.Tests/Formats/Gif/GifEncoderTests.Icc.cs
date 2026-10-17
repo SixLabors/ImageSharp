@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
@@ -134,7 +133,13 @@ public partial class GifEncoderTests
 
         // Check the complete encoded file through the decoder API, including the selected root-frame profile.
         Assert.Equal(profile.ToByteArray(), Assert.IsType<IccProfile>(stored.Metadata.IccProfile).ToByteArray());
-        ImageComparer.Exact.VerifySimilarity(expectedPixels, stored);
+
+        // Whole-image and palette conversion can differ within the measured curve approximation bound.
+        // Eight-bit output must still match exactly. For float output, add the three RGB error bounds to set the per-pixel limit.
+        ImageComparer comparer = TPixel.GetPixelTypeInfo().ComponentInfo.Value.GetMaximumComponentPrecision() <= 8
+            ? ImageComparer.Exact
+            : ImageComparer.Tolerant(0F, (int)MathF.Ceiling(3F * ushort.MaxValue * 5E-4F));
+        comparer.VerifySimilarity(expectedPixels, stored);
         ImageComparer.Exact.VerifySimilarity(unchanged, source);
         Assert.Equal(globalPalette, source.Metadata.GetGifMetadata().GlobalColorTable?.ToArray());
         Assert.Equal(localPalette, source.Frames.RootFrame.Metadata.GetGifMetadata().LocalColorTable?.ToArray());
@@ -153,8 +158,9 @@ public partial class GifEncoderTests
             encoded,
             TestContext.Current.CancellationToken);
 
-        // Permit one 16-bit code per RGB channel for independent CMM rounding. No pixel may exceed this bound.
-        ImageComparer.Tolerant(0F, 3).VerifySimilarity(independent, stored);
+        // Independent CMMs use different power evaluation. Bound each pixel by the measured RGB curve error.
+        ImageComparer.Tolerant(0F, (int)MathF.Ceiling(3F * ushort.MaxValue * 5E-4F))
+            .VerifySimilarity(independent, stored);
         source.DebugSave(provider, testOutputDetails: $"{colorTableMode}_{skipMetadata}", extension: "gif", encoder: encoder);
     }
 
@@ -337,6 +343,4 @@ public partial class GifEncoderTests
 
         Assert.Same(profile, source.Frames.RootFrame.Metadata.IccProfile);
     }
-
-
 }

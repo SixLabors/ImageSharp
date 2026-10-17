@@ -217,6 +217,7 @@ public partial struct Rgba128 : IPixel<Rgba128>, IEquatable<Rgba128>
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgba128>(
             PixelComponentInfo.Create<Rgba128>(4, 32, 32, 32, 32),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />

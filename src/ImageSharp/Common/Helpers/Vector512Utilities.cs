@@ -21,30 +21,128 @@ internal static class Vector512_
 #pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
-    /// Raises nonnegative component values to a fixed positive power.
+    /// Approximates base-two exponentials in single-precision SIMD lanes.
     /// </summary>
-    /// <param name="value">The nonnegative bases, including zero.</param>
-    /// <param name="exponent">The positive exponent selected by the caller's transfer formula.</param>
-    /// <returns>The powers in their original lanes.</returns>
+    /// <param name="value">The binary exponents.</param>
+    /// <returns>The powers of two, including the binary32 underflow and overflow ranges.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Exp2(Vector512<float> value)
+    {
+        const float SignificandScale = 1 << 23;
+        const float Offset = 121.274057500F;
+        const float Linear = 1.490129070F;
+        const float Numerator = 27.728023300F;
+        const float Denominator = 4.84252568F;
+        const float InfinityBits = 0x7F800000;
+        const float SubnormalScale = 1F / (1 << 24);
+
+        Vector512<float> normal = Vector512.GreaterThanOrEqual(value, Vector512.Create(-126F))
+            & Vector512.LessThanOrEqual(value, Vector512.Create(127F));
+        bool hasSpecial = normal.AsUInt32() != Vector512<uint>.AllBitsSet;
+        Vector512<float> exponent = value;
+        Vector512<float> low = default;
+        Vector512<float> high = default;
+        if (hasSpecial)
+        {
+            // Build small outputs at 2^24 times their magnitude and large outputs at half their magnitude.
+            // Scaling afterwards retains the float range without constructing invalid exponent bits.
+            low = Vector512.LessThan(value, Vector512.Create(-126F));
+            high = Vector512.GreaterThan(value, Vector512.Create(127F));
+            exponent += Vector512.ConditionalSelect(low, Vector512.Create(24F), Vector512<float>.Zero);
+            exponent -= Vector512.ConditionalSelect(high, Vector512<float>.One, Vector512<float>.Zero);
+        }
+
+        // Approximate exponent and mantissa bits together. Reinterpretation replaces a separate exponentiation step.
+        Vector512<float> fraction = exponent - Vector512.Floor(exponent);
+        Vector512<float> bits = exponent + Vector512.Create(Offset) - (Vector512.Create(Linear) * fraction);
+        bits += Vector512.Create(Numerator) / (Vector512.Create(Denominator) - fraction);
+        bits *= Vector512.Create(SignificandScale);
+        if (hasSpecial)
+        {
+            bits = Vector512.Min(Vector512.Max(bits, Vector512<float>.Zero), Vector512.Create(InfinityBits));
+        }
+
+        // The encoded bit range is within Int32, so native truncation needs no saturation fixups.
+        Vector512<float> result = Vector512.ConvertToInt32Native(bits).AsSingle();
+        if (hasSpecial)
+        {
+            result *= Vector512.ConditionalSelect(low, Vector512.Create(SubnormalScale), Vector512<float>.One);
+            result *= Vector512.ConditionalSelect(high, Vector512.Create(2F), Vector512<float>.One);
+            result = Vector512.ConditionalSelect(Vector512.LessThan(value, Vector512.Create(-150F)), Vector512<float>.Zero, result);
+            result = Vector512.ConditionalSelect(Vector512.GreaterThan(value, Vector512.Create(128F)), Vector512.Create(float.PositiveInfinity), result);
+            result = Vector512.ConditionalSelect(Vector512.Equals(value, value), result, value);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Approximates natural exponentials without widening float SIMD lanes.
+    /// </summary>
+    /// <param name="value">The natural logarithms of the outputs.</param>
+    /// <returns>The exponentials in the original lane order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Exp(Vector512<float> value)
+    {
+        const float InverseLogTwo = 1.4426950408889634F;
+        return Exp2(value * Vector512.Create(InverseLogTwo));
+    }
+
+    /// <summary>
+    /// Raises nonnegative values to a nonzero finite power with single-precision SIMD log2 and exp2 approximations.
+    /// </summary>
+    /// <param name="value">The nonnegative bases.</param>
+    /// <param name="exponent">The nonzero finite exponent shared by every component.</param>
+    /// <returns>The powers in the original lane order.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<float> Pow(Vector512<float> value, float exponent)
     {
-        Vector512<float> logarithm = Vector512.Log(value);
-        Vector512<float> powers = Vector512.Create(exponent);
-        Vector512<float> product = logarithm * powers;
-        Vector512<float> result = Vector512.Exp(product);
+        const float ExponentScale = 1F / (1 << 23);
+        const float Offset = 124.225514990F;
+        const float Linear = 1.498030302F;
+        const float Numerator = 1.725879990F;
+        const float Denominator = 0.3520887068F;
+        const uint SmallestNormalBits = 0x00800000;
+        const float SubnormalScale = 1 << 24;
 
-        // Each lane computes exp(log(x) * exponent). FMA recovers the multiplication error
-        // discarded by the rounded product. Correcting that error avoids amplifying it through Exp.
-        Vector512<float> residual = Vector512.FusedMultiplyAdd(logarithm, powers, -product);
+        // Zero uses a safe logarithm input and is restored after exponentiation. Keep this rule in
+        // the shared helper so finite gamma stages do not need the general power dispatcher.
+        Vector512<float> zero = Vector512.Equals(value, Vector512<float>.Zero);
+        Vector512<float> positive = Vector512.ConditionalSelect(zero, Vector512<float>.One, value);
+        Vector512<uint> small = Vector512.LessThan(positive.AsUInt32(), Vector512.Create(SmallestNormalBits));
+        bool hasSmall = small != Vector512<uint>.Zero;
+        Vector512<float> normalized = positive;
+        if (hasSmall)
+        {
+            normalized = Vector512.ConditionalSelect(small.AsSingle(), positive * Vector512.Create(SubnormalScale), positive);
+        }
 
-        // A finite, nonzero Exp result bounds the product to the float exponential range.
-        // The omitted squared term in exp(residual) is smaller than float rounding error.
-        // Zero and infinity retain a unit correction, avoiding NaN from infinite intermediate values.
-        Vector512<float> finiteResult = Vector512.GreaterThan(result, Vector512<float>.Zero)
-            & Vector512.LessThan(result, Vector512.Create(float.PositiveInfinity));
-        residual = Vector512.ConditionalSelect(finiteResult, residual, Vector512<float>.Zero);
-        return result * (Vector512<float>.One + residual);
+        // The float encoding supplies the exponent. The rational term approximates the mantissa's logarithm.
+        Vector512<int> bits = normalized.AsInt32();
+        Vector512<float> mantissa = ((bits & Vector512.Create(0x007FFFFF)) | Vector512.Create(0x3F000000)).AsSingle();
+        Vector512<float> logarithm = (Vector512.ConvertToSingle(bits) * Vector512.Create(ExponentScale)) - Vector512.Create(Offset);
+        logarithm -= Vector512.Create(Linear) * mantissa;
+        logarithm -= Vector512.Create(Numerator) / (Vector512.Create(Denominator) + mantissa);
+        if (hasSmall)
+        {
+            logarithm -= Vector512.ConditionalSelect(small.AsSingle(), Vector512.Create(24F), Vector512<float>.Zero);
+        }
+
+        Vector512<float> result = Exp2(logarithm * Vector512.Create(exponent));
+
+        // Exponent zero is handled before this helper. Other powers of zero give zero or positive infinity.
+        float zeroResult = exponent < 0F ? float.PositiveInfinity : 0F;
+        result = Vector512.ConditionalSelect(zero, Vector512.Create(zeroResult), result);
+
+        if (Vector512.EqualsAny(value, Vector512.Create(float.PositiveInfinity)))
+        {
+            float infinityResult = exponent < 0F ? 0F : float.PositiveInfinity;
+            result = Vector512.ConditionalSelect(Vector512.Equals(value, Vector512.Create(float.PositiveInfinity)), Vector512.Create(infinityResult), result);
+        }
+
+        // These selections also keep an exceptional neighbor from changing an ordinary lane's calculation.
+        result = Vector512.ConditionalSelect(Vector512.Equals(value, Vector512<float>.One), value, result);
+        return Vector512.ConditionalSelect(Vector512.Equals(value, value), result, value);
     }
 
     /// <summary>
@@ -609,12 +707,55 @@ internal static class Vector512_
     /// <param name="indices">The element index of each lane.</param>
     /// <returns>The <see cref="Vector512{Int32}"/>.</returns>
     /// <remarks>
-    /// The runtime exposes no 512-bit gather, so each half reads through the 256-bit gather. The caller is
-    /// responsible for keeping every index inside the table.
+    /// The runtime exposes no 512-bit gather. Pin once for both 256-bit halves.
+    /// The caller is responsible for keeping every index inside the table.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector512<int> Gather(ref int table, Vector512<int> indices)
-        => Vector512.Create(
-            Vector256_.Gather(ref table, indices.GetLower()),
-            Vector256_.Gather(ref table, indices.GetUpper()));
+    public static unsafe Vector512<int> Gather(ref int table, Vector512<int> indices)
+    {
+        fixed (int* pointer = &table)
+        {
+            return Gather(pointer, indices);
+        }
+    }
+
+    /// <summary>
+    /// Reads 16 unaligned 32-bit words at byte offsets while the caller keeps the table pinned.
+    /// </summary>
+    /// <param name="table">The pinned or unmanaged byte storage.</param>
+    /// <param name="byteOffsets">The start of each complete four-byte read.</param>
+    /// <returns>The gathered words in lane order.</returns>
+    /// <remarks>
+    /// The caller must select a hardware-supported vector width before calling this helper.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe Vector512<int> Gather(byte* table, Vector512<int> byteOffsets)
+    {
+        // The runtime exposes gathers up to 256 bits. Both halves read the same pinned storage.
+        Vector256<int> lower = Vector256_.Gather(table, byteOffsets.GetLower());
+        Vector256<int> upper = Vector256_.Gather(table, byteOffsets.GetUpper());
+
+        // The caller already selected 512-bit hardware support. Join both gathers directly in one register.
+        return Avx512F.InsertVector256(lower.AsInt64().ToVector512Unsafe(), upper.AsInt64(), 1).AsInt32();
+    }
+
+    /// <summary>
+    /// Reads sixteen table values while the caller keeps the table's address stable.
+    /// </summary>
+    /// <param name="table">The pinned or unmanaged table address.</param>
+    /// <param name="indices">Element indices within the table, one per lane.</param>
+    /// <returns>The selected 32-bit values in lane order.</returns>
+    /// <remarks>
+    /// Managed storage must remain pinned until this call returns. Both halves share that pin.
+    /// The caller must select a hardware-supported vector width before calling this helper.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe Vector512<int> Gather(int* table, Vector512<int> indices)
+    {
+        Vector256<int> lower = Vector256_.Gather(table, indices.GetLower());
+        Vector256<int> upper = Vector256_.Gather(table, indices.GetUpper());
+
+        // The caller already selected 512-bit hardware support. Join both gathers directly in one register.
+        return Avx512F.InsertVector256(lower.AsInt64().ToVector512Unsafe(), upper.AsInt64(), 1).AsInt32();
+    }
 }

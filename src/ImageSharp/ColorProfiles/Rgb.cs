@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -93,9 +94,8 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
         => new(source.AsVector3());
 
     /// <summary>
-    /// Expands the color into a generic ("scaled") <see cref="Vector4"/> representation
-    /// with values scaled and usually clamped between <value>0</value> and <value>1</value>.
-    /// The vector components are typically expanded in least to greatest significance order.
+    /// Copies RGB into a <see cref="Vector4"/> with W set to one.
+    /// Retains the RGB values, including values outside [0,1].
     /// </summary>
     /// <returns>The <see cref="Vector4"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -134,21 +134,49 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
             // Using -0f sets only the sign bit, producing an efficient "select lane" mask.
             Vector512<float> alphaSelect = Vector512.Create(0F, 0F, 0F, -0F, 0F, 0F, 0F, -0F, 0F, 0F, 0F, -0F, 0F, 0F, 0F, -0F);
 
-            int quads = length >> 2;
+            // Three registers contain sixteen RGB triples. Four output registers contain the same colors with W = 1.
+            // Indices 16..31 select the second input register. The first and last outputs select W from 'ones'.
+            Vector512<int> expandFirst = Vector512.Create(0, 1, 2, 16, 3, 4, 5, 16, 6, 7, 8, 16, 9, 10, 11, 16);
+            Vector512<int> expandSecond = Vector512.Create(12, 13, 14, 0, 15, 16, 17, 0, 18, 19, 20, 0, 21, 22, 23, 0);
+            Vector512<int> expandThird = Vector512.Create(8, 9, 10, 0, 11, 12, 13, 0, 14, 15, 16, 0, 17, 18, 19, 0);
+            Vector512<int> expandLast = Vector512.Create(4, 5, 6, 16, 7, 8, 9, 16, 10, 11, 12, 16, 13, 14, 15, 16);
+            nuint count = length.Vector512Count<float>();
+
+            for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
+            {
+                // Read exactly 48 floats before writing the 64-float expansion. RGB values need no arithmetic or clipping.
+                Vector512<int> rgb0 = Vector512.LoadUnsafe(ref src).AsInt32();
+                Vector512<int> rgb1 = Vector512.LoadUnsafe(ref src, 16U).AsInt32();
+                Vector512<int> rgb2 = Vector512.LoadUnsafe(ref src, 32U).AsInt32();
+                Vector512<float> rgba0 = Vector512_.PermuteVar16x32x2(rgb0, expandFirst, ones.AsInt32()).AsSingle();
+                Vector512<float> rgba1 = Vector512_.PermuteVar16x32x2(rgb0, expandSecond, rgb1).AsSingle();
+                Vector512<float> rgba2 = Vector512_.PermuteVar16x32x2(rgb1, expandThird, rgb2).AsSingle();
+                Vector512<float> rgba3 = Vector512_.PermuteVar16x32x2(rgb2, expandLast, ones.AsInt32()).AsSingle();
+
+                // The middle outputs span two RGB inputs, so insert their opaque fourth components after selection.
+                rgba0.StoreUnsafe(ref dst);
+                Avx512F.BlendVariable(rgba1, ones, alphaSelect).StoreUnsafe(ref dst, 16U);
+                Avx512F.BlendVariable(rgba2, ones, alphaSelect).StoreUnsafe(ref dst, 32U);
+                rgba3.StoreUnsafe(ref dst, 48U);
+                src = ref Unsafe.Add(ref src, 48U);
+                dst = ref Unsafe.Add(ref dst, 64U);
+            }
+
+            int quads = (length - i) >> 2;
 
             // Leave the last quad (4 pixels) for the scalar tail.
             int simdQuads = quads - 1;
 
             for (int q = 0; q < simdQuads; q++)
             {
-                Vector512<float> v = ReadVector512(ref src);
+                Vector512<float> v = Vector512.LoadUnsafe(ref src);
                 Vector512<float> rgbx = Avx512F.PermuteVar16x32(v, perm);
                 Vector512<float> rgba = Avx512F.BlendVariable(rgbx, ones, alphaSelect);
 
-                WriteVector512(ref dst, rgba);
+                rgba.StoreUnsafe(ref dst);
 
-                src = ref Unsafe.Add(ref src, 12);
-                dst = ref Unsafe.Add(ref dst, 16);
+                src = ref Unsafe.Add(ref src, 12U);
+                dst = ref Unsafe.Add(ref dst, 16U);
 
                 i += 4;
             }
@@ -171,14 +199,14 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
 
             for (int p = 0; p < simdPairs; p++)
             {
-                Vector256<float> v = ReadVector256(ref src);
+                Vector256<float> v = Vector256.LoadUnsafe(ref src);
                 Vector256<float> rgbx = Avx2.PermuteVar8x32(v, perm);
                 Vector256<float> rgba = Avx.Blend(rgbx, ones, alphaMask);
 
-                WriteVector256(ref dst, rgba);
+                rgba.StoreUnsafe(ref dst);
 
-                src = ref Unsafe.Add(ref src, 6);
-                dst = ref Unsafe.Add(ref dst, 8);
+                src = ref Unsafe.Add(ref src, 6U);
+                dst = ref Unsafe.Add(ref dst, 8U);
 
                 i += 2;
             }
@@ -187,7 +215,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
         // Tail (and non-AVX paths)
         for (; i < length; i++)
         {
-            Unsafe.Add(ref dstV4, i) = Unsafe.Add(ref srcRgb, i).ToScaledVector4();
+            Unsafe.Add(ref dstV4, (uint)i) = Unsafe.Add(ref srcRgb, (uint)i).ToScaledVector4();
         }
     }
 
@@ -218,21 +246,42 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
             // 4 pixels per iteration. Using overlapped 16-float stores:
             Vector512<int> idx = Vector512.Create(0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15);
 
-            // Number of 4-pixel groups in the input.
-            int quads = length >> 2;
+            // Four registers contain sixteen [R G B W] colors. Select RGB into three complete output registers.
+            // Each mask joins two neighboring input registers; indices 16..31 select the second register.
+            Vector512<int> packFirst = Vector512.Create(0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 16, 17, 18, 20);
+            Vector512<int> packMiddle = Vector512.Create(5, 6, 8, 9, 10, 12, 13, 14, 16, 17, 18, 20, 21, 22, 24, 25);
+            Vector512<int> packLast = Vector512.Create(10, 12, 13, 14, 16, 17, 18, 20, 21, 22, 24, 25, 26, 28, 29, 30);
+            nuint count = length.Vector512Count<float>();
+
+            for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
+            {
+                // Load all sixteen colors before writing exactly 48 RGB floats. No store crosses the converted prefix.
+                Vector512<int> rgba0 = Vector512.LoadUnsafe(ref src).AsInt32();
+                Vector512<int> rgba1 = Vector512.LoadUnsafe(ref src, 16U).AsInt32();
+                Vector512<int> rgba2 = Vector512.LoadUnsafe(ref src, 32U).AsInt32();
+                Vector512<int> rgba3 = Vector512.LoadUnsafe(ref src, 48U).AsInt32();
+                Vector512_.PermuteVar16x32x2(rgba0, packFirst, rgba1).AsSingle().StoreUnsafe(ref dst);
+                Vector512_.PermuteVar16x32x2(rgba1, packMiddle, rgba2).AsSingle().StoreUnsafe(ref dst, 16U);
+                Vector512_.PermuteVar16x32x2(rgba2, packLast, rgba3).AsSingle().StoreUnsafe(ref dst, 32U);
+                src = ref Unsafe.Add(ref src, 64U);
+                dst = ref Unsafe.Add(ref dst, 48U);
+            }
+
+            // Smaller groups retain the existing packing path and scalar remainder.
+            int quads = (length - i) >> 2;
 
             // Leave the last quad (4 pixels) for the scalar tail.
             int simdQuads = quads - 1;
 
             for (int q = 0; q < simdQuads; q++)
             {
-                Vector512<float> v = ReadVector512(ref src);
+                Vector512<float> v = Vector512.LoadUnsafe(ref src);
                 Vector512<float> packed = Avx512F.PermuteVar16x32(v, idx);
 
-                WriteVector512(ref dst, packed);
+                packed.StoreUnsafe(ref dst);
 
-                src = ref Unsafe.Add(ref src, 16);
-                dst = ref Unsafe.Add(ref dst, 12);
+                src = ref Unsafe.Add(ref src, 16U);
+                dst = ref Unsafe.Add(ref dst, 12U);
                 i += 4;
             }
         }
@@ -249,13 +298,13 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
             int pairIndex = 0;
             for (; pairIndex < simdPairs; pairIndex++)
             {
-                Vector256<float> v = ReadVector256(ref src);
+                Vector256<float> v = Vector256.LoadUnsafe(ref src);
                 Vector256<float> packed = Avx2.PermuteVar8x32(v, idx);
 
-                WriteVector256(ref dst, packed);
+                packed.StoreUnsafe(ref dst);
 
-                src = ref Unsafe.Add(ref src, 8);
-                dst = ref Unsafe.Add(ref dst, 6);
+                src = ref Unsafe.Add(ref src, 8U);
+                dst = ref Unsafe.Add(ref dst, 6U);
                 i += 2;
             }
         }
@@ -263,8 +312,8 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
         // Tail (and non-AVX paths)
         for (; i < length; i++)
         {
-            Vector4 v = Unsafe.Add(ref srcV4, i);
-            Unsafe.Add(ref dstRgb, i) = FromScaledVector4(v);
+            Vector4 v = Unsafe.Add(ref srcV4, (uint)i);
+            Unsafe.Add(ref dstRgb, (uint)i) = FromScaledVector4(v);
         }
     }
 
@@ -329,12 +378,21 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
                     SimdUtils.Transform3(in matrix, x, y, z, out Vector128<float> r, out Vector128<float> g, out Vector128<float> b);
 
                     // Transpose the linear channels into the existing working-space Vector4 span contract.
-                    SimdUtils.Transpose4(r, g, b, Vector128.Create(1F), out Vector128<float> pixel0, out Vector128<float> pixel1, out Vector128<float> pixel2, out Vector128<float> pixel3);
+                    SimdUtils.Transpose4(
+                        r,
+                        g,
+                        b,
+                        Vector128.Create(1F),
+                        out Vector128<float> pixel0,
+                        out Vector128<float> pixel1,
+                        out Vector128<float> pixel2,
+                        out Vector128<float> pixel3);
+
                     ref Vector128<float> target = ref Unsafe.As<Vector4, Vector128<float>>(ref block[i]);
                     target = pixel0;
-                    Unsafe.Add(ref target, 1) = pixel1;
-                    Unsafe.Add(ref target, 2) = pixel2;
-                    Unsafe.Add(ref target, 3) = pixel3;
+                    Unsafe.Add(ref target, 1U) = pixel1;
+                    Unsafe.Add(ref target, 2U) = pixel2;
+                    Unsafe.Add(ref target, 3U) = pixel3;
                 }
             }
 
@@ -411,7 +469,16 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
                 for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector128<float>.Count)
                 {
                     ref Vector128<float> first = ref Unsafe.As<Vector4, Vector128<float>>(ref block[i]);
-                    SimdUtils.Transpose4(first, Unsafe.Add(ref first, 1), Unsafe.Add(ref first, 2), Unsafe.Add(ref first, 3), out Vector128<float> r, out Vector128<float> g, out Vector128<float> b, out _);
+                    SimdUtils.Transpose4(
+                        first,
+                        Unsafe.Add(ref first, 1U),
+                        Unsafe.Add(ref first, 2U),
+                        Unsafe.Add(ref first, 3U),
+                        out Vector128<float> r,
+                        out Vector128<float> g,
+                        out Vector128<float> b,
+                        out _);
+
                     SimdUtils.Transform3(in matrix, r, g, b, out Vector128<float> x, out Vector128<float> y, out Vector128<float> z);
                     SimdUtils.Interleave3(x, y, z, ref Unsafe.As<CieXyz, float>(ref destination[offset + i]));
                 }
@@ -447,9 +514,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
         => new(Vector3.Clamp(source.AsVector3Unsafe(), Vector3.Zero, Vector3.One));
 
     /// <summary>
-    /// Expands the color into a generic ("scaled") <see cref="Vector3"/> representation
-    /// with values scaled and usually clamped between <value>0</value> and <value>1</value>.
-    /// The vector components are typically expanded in least to greatest significance order.
+    /// Copies the RGB components to a <see cref="Vector3"/>, retaining values outside [0,1].
     /// </summary>
     /// <returns>The <see cref="Vector3"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -474,33 +539,9 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     public bool Equals(Rgb other)
         => this.AsVector3Unsafe() == other.AsVector3Unsafe();
 
+    /// <summary>
+    /// Reads the three stored components without copying or changing their range.
+    /// </summary>
+    /// <returns>The RGB components in their stored order.</returns>
     internal Vector3 AsVector3Unsafe() => Unsafe.As<Rgb, Vector3>(ref Unsafe.AsRef(in this));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector512<float> ReadVector512(ref float src)
-    {
-        ref byte b = ref Unsafe.As<float, byte>(ref src);
-        return Unsafe.ReadUnaligned<Vector512<float>>(ref b);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector256<float> ReadVector256(ref float src)
-    {
-        ref byte b = ref Unsafe.As<float, byte>(ref src);
-        return Unsafe.ReadUnaligned<Vector256<float>>(ref b);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void WriteVector512(ref float dst, Vector512<float> value)
-    {
-        ref byte b = ref Unsafe.As<float, byte>(ref dst);
-        Unsafe.WriteUnaligned(ref b, value);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void WriteVector256(ref float dst, Vector256<float> value)
-    {
-        ref byte b = ref Unsafe.As<float, byte>(ref dst);
-        Unsafe.WriteUnaligned(ref b, value);
-    }
 }

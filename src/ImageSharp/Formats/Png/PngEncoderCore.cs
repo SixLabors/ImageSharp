@@ -1363,7 +1363,13 @@ internal sealed class PngEncoderCore : IDisposable
     /// <param name="stream">The stream.</param>
     /// <param name="isFrame">Is writing fdAT or IDAT.</param>
     /// <param name="colorProfileConverter">The optional output color profile converter.</param>
-    private uint WriteDataChunks<TPixel>(in FrameControl frameControl, in Buffer2DRegion<TPixel> frame, IndexedImageFrame<TPixel>? quantized, Stream stream, bool isFrame, ColorProfileConverter? colorProfileConverter)
+    private uint WriteDataChunks<TPixel>(
+        in FrameControl frameControl,
+        in Buffer2DRegion<TPixel> frame,
+        IndexedImageFrame<TPixel>? quantized,
+        Stream stream,
+        bool isFrame,
+        ColorProfileConverter? colorProfileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Store the chunks in repeated 64k blocks.
@@ -1438,7 +1444,11 @@ internal sealed class PngEncoderCore : IDisposable
     /// <param name="quantized">The quantized pixels.</param>
     /// <param name="deflateStream">The deflate stream.</param>
     /// <param name="colorProfileConverter">The optional output color profile converter.</param>
-    private void EncodePixels<TPixel>(in Buffer2DRegion<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, ZLibStream deflateStream, ColorProfileConverter? colorProfileConverter)
+    private void EncodePixels<TPixel>(
+        in Buffer2DRegion<TPixel> pixels,
+        IndexedImageFrame<TPixel>? quantized,
+        ZLibStream deflateStream,
+        ColorProfileConverter? colorProfileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int bytesPerScanline = this.CalculateScanlineLength(pixels.Width);

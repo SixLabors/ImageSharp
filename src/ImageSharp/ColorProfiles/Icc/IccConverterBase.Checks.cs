@@ -22,10 +22,9 @@ internal abstract partial class IccConverterBase
         IccRenderingIntent sourceIntent = source.Header.RenderingIntent;
         IccRenderingIntent targetIntent = target.Header.RenderingIntent;
 
-        // Curve transforms have no separate tables for perceptual, relative or saturation intent.
-        // When only the target uses tables, let its header select the table. Reversing that connection
-        // then selects the same intent instead of changing the color mapping on the return trip.
-        // Reuse transform selection so a profile with both curves and tables still counts as table-based.
+        // Curve-only profiles have no intent-specific transform tables.
+        // If only the target uses tables, select its rendering intent. The reverse connection then selects the same intent.
+        // Use transform selection to distinguish curve-only profiles from profiles that provide both curves and tables.
         if (GetConversionMethod(source, sourceIntent) is ConversionMethod.ColorTrc or ConversionMethod.GrayTrc
             && GetConversionMethod(target, targetIntent) is not (ConversionMethod.ColorTrc or ConversionMethod.GrayTrc or ConversionMethod.Invalid))
         {

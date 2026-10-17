@@ -172,6 +172,7 @@ public partial class SimdUtilsTests
     {
         byte[] source = [.. Enumerable.Range(0, count).Select(i => (byte)i)];
         float[] result = new float[count];
+
         // A double-precision oracle keeps this expectation independent from either production implementation.
         float[] expected = [.. source.Select(b => (float)(b / (double)byte.MaxValue))];
 

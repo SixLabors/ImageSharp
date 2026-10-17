@@ -24,7 +24,10 @@ public class RgbAndCieXyzConversionTest
     [Theory]
     [InlineData(16)]
     [InlineData(31)]
-    public void BulkRgbAndXyzConversionSupportsMixedInPlaceValues(int count) => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunMixedRgbAndXyzConversion, count, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    public void BulkRgbAndXyzConversionSupportsMixedInPlaceValues(int count) => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        RunMixedRgbAndXyzConversion,
+        count,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Compares aliased RGB/XYZ rows after disabled SIMD features are selected in separate processes before JIT compilation.
@@ -33,13 +36,45 @@ public class RgbAndCieXyzConversionTest
     private static void RunMixedRgbAndXyzConversion(string serialized)
     {
         int count = FeatureTestRunner.Deserialize<int>(serialized);
-        ColorConversionOptions options = new() { SourceRgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb, TargetRgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb };
+        ColorConversionOptions options = new()
+        {
+            SourceRgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb,
+            TargetRgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb
+        };
+
         Rgb[] rgbSource = new Rgb[count];
         CieXyz[] xyzSource = new CieXyz[count];
         CieXyz[] xyzExpected = new CieXyz[count];
         Rgb[] rgbExpected = new Rgb[count];
-        ReadOnlySpan<Rgb> rgbSamples = [new(0F, 0F, 0F), new(1F, 1F, 1F), new(.12F, .78F, .31F), new(.87F, .04F, .62F), new(.34F, .56F, .91F), new(.02F, .45F, .73F), new(.68F, .23F, .15F), new(.41F, .93F, .08F), new(.99F, .38F, .52F), new(.27F, .11F, .84F), new(.75F, .65F, .43F)];
-        ReadOnlySpan<CieXyz> xyzSamples = [new(0F, 0F, 0F), new(.96F, 1F, .82F), new(.03F, .47F, .19F), new(.72F, .08F, .51F), new(.14F, .26F, .91F), new(.88F, .62F, .05F), new(.35F, .13F, .74F), new(.57F, .95F, .28F), new(.21F, .39F, .65F), new(.79F, .54F, .12F), new(.46F, .71F, .83F)];
+        ReadOnlySpan<Rgb> rgbSamples =
+        [
+            new(0F, 0F, 0F),
+            new(1F, 1F, 1F),
+            new(.12F, .78F, .31F),
+            new(.87F, .04F, .62F),
+            new(.34F, .56F, .91F),
+            new(.02F, .45F, .73F),
+            new(.68F, .23F, .15F),
+            new(.41F, .93F, .08F),
+            new(.99F, .38F, .52F),
+            new(.27F, .11F, .84F),
+            new(.75F, .65F, .43F)
+        ];
+
+        ReadOnlySpan<CieXyz> xyzSamples =
+        [
+            new(0F, 0F, 0F),
+            new(.96F, 1F, .82F),
+            new(.03F, .47F, .19F),
+            new(.72F, .08F, .51F),
+            new(.14F, .26F, .91F),
+            new(.88F, .62F, .05F),
+            new(.35F, .13F, .74F),
+            new(.57F, .95F, .28F),
+            new(.21F, .39F, .65F),
+            new(.79F, .54F, .12F),
+            new(.46F, .71F, .83F)
+        ];
 
         for (int i = 0; i < count; i++)
         {
@@ -78,7 +113,11 @@ public class RgbAndCieXyzConversionTest
 
         // Arrange
         CieXyz input = new(x, y, z);
-        ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D50, TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb };
+        ColorConversionOptions options = new()
+        {
+            SourceWhitePoint = KnownIlluminants.D50,
+            TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb
+        };
         ColorProfileConverter converter = new(options);
         Rgb expected = new(r, g, b);
 
@@ -114,7 +153,11 @@ public class RgbAndCieXyzConversionTest
 
         // Arrange
         CieXyz input = new(x, y, z);
-        ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D65, TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb };
+        ColorConversionOptions options = new()
+        {
+            SourceWhitePoint = KnownIlluminants.D65,
+            TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb
+        };
         ColorProfileConverter converter = new(options);
         Rgb expected = new(r, g, b);
 
@@ -147,7 +190,11 @@ public class RgbAndCieXyzConversionTest
     {
         // Arrange
         Rgb input = new(r, g, b);
-        ColorConversionOptions options = new() { TargetWhitePoint = KnownIlluminants.D50, SourceRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb };
+        ColorConversionOptions options = new()
+        {
+            TargetWhitePoint = KnownIlluminants.D50,
+            SourceRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb
+        };
         ColorProfileConverter converter = new(options);
         CieXyz expected = new(x, y, z);
 
@@ -180,7 +227,11 @@ public class RgbAndCieXyzConversionTest
     {
         // Arrange
         Rgb input = new(r, g, b);
-        ColorConversionOptions options = new() { TargetWhitePoint = KnownIlluminants.D65, SourceRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb };
+        ColorConversionOptions options = new()
+        {
+            TargetWhitePoint = KnownIlluminants.D65,
+            SourceRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb
+        };
         ColorProfileConverter converter = new(options);
         CieXyz expected = new(x, y, z);
 

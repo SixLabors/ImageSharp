@@ -72,7 +72,12 @@ internal class RgbPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
 
                     // Rgba32 packing writes exactly the supplied count, and a full block
                     // reaches its AVX2 plane interleave path without row padding.
-                    SimdUtils.PackFromRgbPlanes(red.Slice(offset + x, count), green.Slice(offset + x, count), blue.Slice(offset + x, count), packedBlock[..count]);
+                    SimdUtils.PackFromRgbPlanes(
+                        red.Slice(offset + x, count),
+                        green.Slice(offset + x, count),
+                        blue.Slice(offset + x, count),
+                        packedBlock[..count]);
+
                     Span<Vector4> vectors = vectorBlock[..count];
 
                     // Opaque alpha makes scaling alone equivalent for straight and associated target pixels.

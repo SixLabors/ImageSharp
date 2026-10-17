@@ -204,7 +204,10 @@ public class HeifDecoderTests
         Assert.Empty(ImageComparer.Exact.CompareImages(preserved, converted));
 
         converted.DebugSave(provider, extension: "png", encoder: new PngEncoder());
-        converted.CompareToReferenceOutput(ImageComparer.Exact, provider);
+
+        // Approximate ICC curves can move final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        // The per-pixel limit uses sixteen-bit units; Preserve/Convert agreement above remains exact.
+        converted.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
     }
 
     /// <summary>
@@ -228,7 +231,10 @@ public class HeifDecoderTests
         Assert.Equal(expectedIccProfile.ToByteArray(), preservedIccProfile.ToByteArray());
         Assert.Empty(ImageComparer.Exact.CompareImages(preserved, converted));
         converted.DebugSave(provider, extension: "png", encoder: new PngEncoder());
-        converted.CompareToReferenceOutput(ImageComparer.Exact, provider);
+
+        // Approximate ICC curves can move final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        // The per-pixel limit uses sixteen-bit units; Preserve/Convert agreement above remains exact.
+        converted.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
     }
 
     /// <summary>
@@ -260,7 +266,10 @@ public class HeifDecoderTests
         }
 
         converted.DebugSaveMultiFrame(provider, encoder: new PngEncoder());
-        converted.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+
+        // Approximate ICC curves can move final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        // The per-pixel limit uses sixteen-bit units; Preserve/Convert agreement above remains exact.
+        converted.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Tolerant(0F, 3 * 257));
     }
 
     /// <summary>

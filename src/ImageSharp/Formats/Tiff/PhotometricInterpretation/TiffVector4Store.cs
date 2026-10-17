@@ -21,7 +21,16 @@ internal readonly struct TiffVector4Store : ITiffColorStore<float, Vector4>
     /// <inheritdoc/>
     public void Store(ref Vector4 destination, Vector128<float> c0, Vector128<float> c1, Vector128<float> c2, Vector128<float> c3)
     {
-        SimdUtils.Transpose4(c0, c1, c2, c3, out Vector128<float> pixel0, out Vector128<float> pixel1, out Vector128<float> pixel2, out Vector128<float> pixel3);
+        SimdUtils.Transpose4(
+            c0,
+            c1,
+            c2,
+            c3,
+            out Vector128<float> pixel0,
+            out Vector128<float> pixel1,
+            out Vector128<float> pixel2,
+            out Vector128<float> pixel3);
+
         ref Vector128<float> first = ref Unsafe.As<Vector4, Vector128<float>>(ref destination);
         first = pixel0;
         Unsafe.Add(ref first, 1) = pixel1;

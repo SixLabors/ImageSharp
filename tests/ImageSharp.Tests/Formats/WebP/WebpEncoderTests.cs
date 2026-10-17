@@ -180,9 +180,11 @@ public partial class WebpEncoderTests
     }
 
     [Theory]
+
     // [WithFile(AlphaBlend, PixelTypes.Rgba32)]
     // [WithFile(AlphaBlend2, PixelTypes.Rgba32)]
     [WithFile(AlphaBlend3, PixelTypes.Rgba32)]
+
     // [WithFile(AlphaBlend4, PixelTypes.Rgba32)]
     public void Encode_AlphaBlended<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>

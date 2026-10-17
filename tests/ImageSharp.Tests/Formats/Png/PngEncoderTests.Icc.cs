@@ -130,6 +130,7 @@ public partial class PngEncoderTests
                 source.DebugSave(provider, testOutputDetails: $"{interlace}_{skipMetadata}", extension: "png", encoder: encoder);
 
                 Assert.Equal(profile.ToByteArray(), info.Metadata.IccProfile.ToByteArray());
+
                 // ICC describes the encoded colors. Gamma and CICP metadata must not supply a conflicting description.
                 Assert.Equal(0F, info.Metadata.GetPngMetadata().Gamma);
                 Assert.Null(info.Metadata.CicpProfile);

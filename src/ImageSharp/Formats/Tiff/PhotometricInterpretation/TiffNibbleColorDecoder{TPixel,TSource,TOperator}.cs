@@ -71,7 +71,16 @@ internal sealed class TiffNibbleColorDecoder<TPixel, TSource, TOperator> : TiffB
                         this.colorOperator.Convert(ref c0, ref c1, ref c2, ref c3);
 
                         // Four component registers become four contiguous RGBA pixels without lane-by-lane stores.
-                        SimdUtils.Transpose4(c0, c1, c2, c3, out Vector128<float> pixel0, out Vector128<float> pixel1, out Vector128<float> pixel2, out Vector128<float> pixel3);
+                        SimdUtils.Transpose4(
+                            c0,
+                            c1,
+                            c2,
+                            c3,
+                            out Vector128<float> pixel0,
+                            out Vector128<float> pixel1,
+                            out Vector128<float> pixel2,
+                            out Vector128<float> pixel3);
+
                         ref Vector128<float> first = ref Unsafe.As<Vector4, Vector128<float>>(ref block[i]);
                         first = pixel0;
                         Unsafe.Add(ref first, 1) = pixel1;

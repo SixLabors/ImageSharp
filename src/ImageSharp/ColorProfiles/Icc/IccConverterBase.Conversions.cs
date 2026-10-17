@@ -14,8 +14,14 @@ internal abstract partial class IccConverterBase
 {
     private IIccColorConverter calculator;
 
+    /// <summary>
+    /// Gets a value indicating whether PCS values use a sixteen-bit LUT's legacy encoding.
+    /// </summary>
     internal bool Is16BitLutEntry => this.calculator.Is16BitLut;
 
+    /// <summary>
+    /// Gets a value indicating whether the selected transform uses channel curves and a matrix.
+    /// </summary>
     internal bool IsTrc => this.calculator.IsTrc;
 
     /// <summary>
@@ -27,9 +33,13 @@ internal abstract partial class IccConverterBase
     internal IIccColorConverter Connect(IccConverterBase target, PcsOperator pcs)
         => this.calculator switch
         {
+            IccColorConverter<ColorTrcOperator> source when pcs.CanCombineXyzMatrices
+                && target.calculator is IccColorConverter<ColorTrcOperator> destination =>
+                source.Operator.Connect(destination.Operator, pcs),
             IccColorConverter<ColorTrcOperator> source => Connect(source.Operator, target.calculator, pcs),
             IccColorConverter<GrayTrcOperator> source => Connect(source.Operator, target.calculator, pcs),
             IccColorConverter<LutColorOperator> source => Connect(source.Operator, target.calculator, pcs),
+            IccColorConverter<SampledLutColorOperator> source => Connect(source.Operator, target.calculator, pcs),
             _ => throw new InvalidIccProfileException("Unsupported ICC source operator.")
         };
 
@@ -46,11 +56,13 @@ internal abstract partial class IccConverterBase
         => target switch
         {
             IccColorConverter<ColorTrcOperator> value =>
-                new IccColorConverter<ConnectionOperator<TSource, ColorTrcOperator>>(new(source, pcs, value.Operator)),
+                value.Operator.ConnectFrom(source, pcs),
             IccColorConverter<GrayTrcOperator> value =>
                 new IccColorConverter<ConnectionOperator<TSource, GrayTrcOperator>>(new(source, pcs, value.Operator)),
             IccColorConverter<LutColorOperator> value =>
                 new IccColorConverter<ConnectionOperator<TSource, LutColorOperator>>(new(source, pcs, value.Operator)),
+            IccColorConverter<SampledLutColorOperator> value =>
+                new IccColorConverter<ConnectionOperator<TSource, SampledLutColorOperator>>(new(source, pcs, value.Operator)),
             _ => throw new InvalidIccProfileException("Unsupported ICC target operator.")
         };
 
@@ -98,7 +110,7 @@ internal abstract partial class IccConverterBase
     /// <param name="tag">The transform tag to evaluate.</param>
     /// <returns>The configured table calculator.</returns>
     /// <param name="interpolationMethod">The requested interpolation method.</param>
-    private static IccColorConverter<LutColorOperator> InitA(IccProfile profile, IccProfileTag tag, IccInterpolationMethod interpolationMethod)
+    private static IIccColorConverter InitA(IccProfile profile, IccProfileTag tag, IccInterpolationMethod interpolationMethod)
     {
         // Lab-indexed output and linking tables use independent-axis interpolation.
         // Device-to-PCS tables use tetrahedra in their final three input dimensions.
@@ -110,8 +122,8 @@ internal abstract partial class IccConverterBase
 
         return GetTag(profile, tag) switch
         {
-            IccLut8TagDataEntry lut8 => new IccColorConverter<LutColorOperator>(new LutColorOperator(lut8, useTrilinearInterpolation)),
-            IccLut16TagDataEntry lut16 => new IccColorConverter<LutColorOperator>(new LutColorOperator(lut16, useTrilinearInterpolation)),
+            IccLut8TagDataEntry lut8 => new IccColorConverter<SampledLutColorOperator>(new(lut8, useTrilinearInterpolation)),
+            IccLut16TagDataEntry lut16 => new IccColorConverter<SampledLutColorOperator>(new(lut16, useTrilinearInterpolation)),
             IccLutAToBTagDataEntry lutAtoB => new IccColorConverter<LutColorOperator>(new LutColorOperator(lutAtoB, useTrilinearInterpolation)),
             IccLutBToATagDataEntry lutBtoA => new IccColorConverter<LutColorOperator>(new LutColorOperator(lutBtoA, useTrilinearInterpolation)),
             _ => throw new InvalidIccProfileException($"Invalid entry {tag}."),

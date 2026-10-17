@@ -1,6 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
+using System.Runtime.InteropServices;
+
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 /// <content>
@@ -73,10 +76,17 @@ internal sealed partial class IccDataWriter
     /// <returns>The number of bytes written.</returns>
     public int WriteClut8(IccClut value)
     {
-        int count = 0;
-        foreach (float item in value.Values)
+        if (value.DataType == IccClutDataType.UInt8 && value.TryGetEncodedValues(out byte[] encoded, out int padding))
         {
-            count += this.WriteByte((byte)Numerics.Clamp((item * byte.MaxValue) + 0.5F, 0, byte.MaxValue));
+            ReadOnlySpan<byte> samples = encoded.AsSpan(padding);
+            this.dataStream.Write(samples);
+            return samples.Length;
+        }
+
+        int count = 0;
+        for (int i = 0; i < value.SampleCount; i++)
+        {
+            count += this.WriteByte((byte)Numerics.Clamp((value.GetSample(i) * byte.MaxValue) + 0.5F, 0, byte.MaxValue));
         }
 
         return count;
@@ -89,10 +99,35 @@ internal sealed partial class IccDataWriter
     /// <returns>The number of bytes written.</returns>
     public int WriteClut16(IccClut value)
     {
-        int count = 0;
-        foreach (float item in value.Values)
+        if (value.DataType == IccClutDataType.UInt16 && value.TryGetEncodedValues(out byte[] encoded, out int padding))
         {
-            count += this.WriteUInt16((ushort)Numerics.Clamp((item * ushort.MaxValue) + 0.5F, 0, ushort.MaxValue));
+            ReadOnlySpan<byte> samples = encoded.AsSpan(padding);
+            if (!BitConverter.IsLittleEndian)
+            {
+                this.dataStream.Write(samples);
+                return samples.Length;
+            }
+
+            // Stream output needs big-endian words. Reuse a bounded block instead of materializing a float CLUT.
+            InlineArray128<ushort> storage = default;
+            Span<ushort> buffer = storage;
+            ReadOnlySpan<ushort> source = MemoryMarshal.Cast<byte, ushort>(samples);
+            while (!source.IsEmpty)
+            {
+                int length = Math.Min(source.Length, buffer.Length);
+                Span<ushort> block = buffer[..length];
+                BinaryPrimitives.ReverseEndianness(source[..length], block);
+                this.dataStream.Write(MemoryMarshal.AsBytes(block));
+                source = source[length..];
+            }
+
+            return samples.Length;
+        }
+
+        int count = 0;
+        for (int i = 0; i < value.SampleCount; i++)
+        {
+            count += this.WriteUInt16((ushort)Numerics.Clamp((value.GetSample(i) * ushort.MaxValue) + 0.5F, 0, ushort.MaxValue));
         }
 
         return count;
@@ -106,9 +141,9 @@ internal sealed partial class IccDataWriter
     public int WriteClutF32(IccClut value)
     {
         int count = 0;
-        foreach (float item in value.Values)
+        for (int i = 0; i < value.SampleCount; i++)
         {
-            count += this.WriteSingle(item);
+            count += this.WriteSingle(value.GetSample(i));
         }
 
         return count;

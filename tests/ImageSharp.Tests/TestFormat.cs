@@ -303,6 +303,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
             => PixelTypeInfo.Create<TestPixelForAgnosticDecode>(
                 PixelComponentInfo.Create<TestPixelForAgnosticDecode>(2, 8, 8),
                 PixelColorType.Red | PixelColorType.Green,
+                PixelColorRange.Sdr,
                 PixelAlphaRepresentation.None);
 
         public static PixelOperations<TestPixelForAgnosticDecode> CreatePixelOperations() => new();

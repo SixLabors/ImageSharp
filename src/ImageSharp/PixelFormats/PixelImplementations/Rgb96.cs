@@ -223,6 +223,7 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgb96>(
             PixelComponentInfo.Create<Rgb96>(3, 32, 32, 32),
             PixelColorType.RGB,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />

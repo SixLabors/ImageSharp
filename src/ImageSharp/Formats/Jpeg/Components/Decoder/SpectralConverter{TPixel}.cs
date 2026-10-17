@@ -168,8 +168,8 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
             this.iccConverterProfile = iccProfile;
 
-            // ICC reads the complete source into its PCS buffer before writing output, so RGB can reuse the source storage.
             // Four floats per pixel fit every JPEG source model and the three-channel RGB result.
+            // The converter keeps grayscale input beyond the RGB destination and compacts four-channel input in place.
             this.iccRowBuffer ??= this.Configuration.MemoryAllocator.Allocate<float>(width * 4);
         }
 

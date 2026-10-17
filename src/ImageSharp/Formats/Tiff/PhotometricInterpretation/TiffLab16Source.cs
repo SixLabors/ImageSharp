@@ -35,7 +35,16 @@ internal readonly struct TiffLab16Source : ITiffColorSource<float>
     public int ComponentCount => 3;
 
     /// <inheritdoc />
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out float c0, out float c1, out float c2, out float c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out float c0,
+        out float c1,
+        out float c2,
+        out float c3)
     {
         int offset = index * this.BytesPerPixel;
         ushort l = MemoryMarshal.Read<ushort>(source0.Slice(offset));
@@ -57,7 +66,16 @@ internal readonly struct TiffLab16Source : ITiffColorSource<float>
     }
 
     /// <inheritdoc />
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector128<float> c0, out Vector128<float> c1, out Vector128<float> c2, out Vector128<float> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector128<float> c0,
+        out Vector128<float> c1,
+        out Vector128<float> c2,
+        out Vector128<float> c3)
     {
         Vector128<ushort> lightness;
         Vector128<ushort> chromaA;
@@ -76,9 +94,17 @@ internal readonly struct TiffLab16Source : ITiffColorSource<float>
             ReadOnlySpan<byte> packed = source0.Slice(index * 6);
             Vector128<ushort> first = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ushort>(packed)));
             Vector128<ushort> last = Vector128.Create(MemoryMarshal.Read<ulong>(packed.Slice(16)), 0UL).AsUInt16();
-            lightness = Vector128.Shuffle(first, Vector128.Create((ushort)0, 3, 6, 8, 8, 8, 8, 8)) | Vector128.Shuffle(last, Vector128.Create((ushort)8, 8, 8, 1, 8, 8, 8, 8));
-            chromaA = Vector128.Shuffle(first, Vector128.Create((ushort)1, 4, 7, 8, 8, 8, 8, 8)) | Vector128.Shuffle(last, Vector128.Create((ushort)8, 8, 8, 2, 8, 8, 8, 8));
-            chromaB = Vector128.Shuffle(first, Vector128.Create((ushort)2, 5, 8, 8, 8, 8, 8, 8)) | Vector128.Shuffle(last, Vector128.Create((ushort)8, 8, 0, 3, 8, 8, 8, 8));
+            lightness = Vector128.Shuffle(
+                first,
+                Vector128.Create((ushort)0, 3, 6, 8, 8, 8, 8, 8)) | Vector128.Shuffle(last, Vector128.Create((ushort)8, 8, 8, 1, 8, 8, 8, 8));
+
+            chromaA = Vector128.Shuffle(
+                first,
+                Vector128.Create((ushort)1, 4, 7, 8, 8, 8, 8, 8)) | Vector128.Shuffle(last, Vector128.Create((ushort)8, 8, 8, 2, 8, 8, 8, 8));
+
+            chromaB = Vector128.Shuffle(
+                first,
+                Vector128.Create((ushort)2, 5, 8, 8, 8, 8, 8, 8)) | Vector128.Shuffle(last, Vector128.Create((ushort)8, 8, 0, 3, 8, 8, 8, 8));
         }
 
         if (this.reverseEndianness)
@@ -96,10 +122,39 @@ internal readonly struct TiffLab16Source : ITiffColorSource<float>
     }
 
     /// <inheritdoc />
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector256<float> c0, out Vector256<float> c1, out Vector256<float> c2, out Vector256<float> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector256<float> c0,
+        out Vector256<float> c1,
+        out Vector256<float> c2,
+        out Vector256<float> c3)
     {
-        this.Read(source0, source1, source2, source3, index, out Vector128<float> l0, out Vector128<float> a0, out Vector128<float> b0, out Vector128<float> d0);
-        this.Read(source0, source1, source2, source3, index + 4, out Vector128<float> l1, out Vector128<float> a1, out Vector128<float> b1, out Vector128<float> d1);
+        this.Read(
+            source0,
+            source1,
+            source2,
+            source3,
+            index,
+            out Vector128<float> l0,
+            out Vector128<float> a0,
+            out Vector128<float> b0,
+            out Vector128<float> d0);
+
+        this.Read(
+            source0,
+            source1,
+            source2,
+            source3,
+            index + 4,
+            out Vector128<float> l1,
+            out Vector128<float> a1,
+            out Vector128<float> b1,
+            out Vector128<float> d1);
+
         c0 = Vector256.Create(l0, l1);
         c1 = Vector256.Create(a0, a1);
         c2 = Vector256.Create(b0, b1);
@@ -107,10 +162,39 @@ internal readonly struct TiffLab16Source : ITiffColorSource<float>
     }
 
     /// <inheritdoc />
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector512<float> c0, out Vector512<float> c1, out Vector512<float> c2, out Vector512<float> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector512<float> c0,
+        out Vector512<float> c1,
+        out Vector512<float> c2,
+        out Vector512<float> c3)
     {
-        this.Read(source0, source1, source2, source3, index, out Vector256<float> l0, out Vector256<float> a0, out Vector256<float> b0, out Vector256<float> d0);
-        this.Read(source0, source1, source2, source3, index + 8, out Vector256<float> l1, out Vector256<float> a1, out Vector256<float> b1, out Vector256<float> d1);
+        this.Read(
+            source0,
+            source1,
+            source2,
+            source3,
+            index,
+            out Vector256<float> l0,
+            out Vector256<float> a0,
+            out Vector256<float> b0,
+            out Vector256<float> d0);
+
+        this.Read(
+            source0,
+            source1,
+            source2,
+            source3,
+            index + 8,
+            out Vector256<float> l1,
+            out Vector256<float> a1,
+            out Vector256<float> b1,
+            out Vector256<float> d1);
+
         c0 = Vector512.Create(l0, l1);
         c1 = Vector512.Create(a0, a1);
         c2 = Vector512.Create(b0, b1);

@@ -57,7 +57,10 @@ public class RgbaTiffColorTests : PhotometricInterpretationTestBase
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void DecodeRgba16_BigEndianMatchesLittleEndianForTargetPixelTypes(bool associated) => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertRgba16ByteOrders, associated, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    public void DecodeRgba16_BigEndianMatchesLittleEndianForTargetPixelTypes(bool associated) => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        AssertRgba16ByteOrders,
+        associated,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Checks known 16-bit colors after endian conversion and destination alpha packing.
@@ -93,15 +96,38 @@ public class RgbaTiffColorTests : PhotometricInterpretationTestBase
         using Image<Rgba32P> littleRgba32P = new(width, 1);
         using Image<Rgba32P> bigRgba32P = new(width, 1);
 
-        new TiffRgba64LittleEndianDecoder<Rgba32>(Configuration.Default, extraSamplesType == TiffExtraSampleType.AssociatedAlphaData).Decode(littleEndian, littleRgba32.Frames.RootFrame.PixelBuffer, 0, 0, width, 1);
-        new TiffRgba64BigEndianDecoder<Rgba32>(Configuration.Default, extraSamplesType == TiffExtraSampleType.AssociatedAlphaData).Decode(bigEndian, bigRgba32.Frames.RootFrame.PixelBuffer, 0, 0, width, 1);
-        new TiffRgba64LittleEndianDecoder<Rgba32P>(Configuration.Default, extraSamplesType == TiffExtraSampleType.AssociatedAlphaData).Decode(littleEndian, littleRgba32P.Frames.RootFrame.PixelBuffer, 0, 0, width, 1);
-        new TiffRgba64BigEndianDecoder<Rgba32P>(Configuration.Default, extraSamplesType == TiffExtraSampleType.AssociatedAlphaData).Decode(bigEndian, bigRgba32P.Frames.RootFrame.PixelBuffer, 0, 0, width, 1);
+        new TiffRgba64LittleEndianDecoder<Rgba32>(
+            Configuration.Default,
+            extraSamplesType == TiffExtraSampleType.AssociatedAlphaData).Decode(littleEndian, littleRgba32.Frames.RootFrame.PixelBuffer, 0, 0, width, 1);
+
+        new TiffRgba64BigEndianDecoder<Rgba32>(
+            Configuration.Default,
+            extraSamplesType == TiffExtraSampleType.AssociatedAlphaData).Decode(bigEndian, bigRgba32.Frames.RootFrame.PixelBuffer, 0, 0, width, 1);
+
+        new TiffRgba64LittleEndianDecoder<Rgba32P>(
+            Configuration.Default,
+            extraSamplesType == TiffExtraSampleType.AssociatedAlphaData).Decode(littleEndian, littleRgba32P.Frames.RootFrame.PixelBuffer, 0, 0, width, 1);
+
+        new TiffRgba64BigEndianDecoder<Rgba32P>(
+            Configuration.Default,
+            extraSamplesType == TiffExtraSampleType.AssociatedAlphaData).Decode(bigEndian, bigRgba32P.Frames.RootFrame.PixelBuffer, 0, 0, width, 1);
 
         for (int x = 0; x < width; x++)
         {
-            Rgba32 expected = (x % 3) switch { 0 => associated ? new Rgba32(128, 64, 32, 128) : new Rgba32(64, 32, 16, 128), 1 => new Rgba32(0, 0, 0, 0), _ => new Rgba32(200, 100, 50, 255) };
-            Rgba32P expectedAssociated = (x % 3) switch { 0 => associated ? new Rgba32P(64, 32, 16, 128) : new Rgba32P(32, 16, 8, 128), 1 => new Rgba32P(0, 0, 0, 0), _ => new Rgba32P(200, 100, 50, 255) };
+            Rgba32 expected = (x % 3) switch
+            {
+                0 => associated ? new Rgba32(128, 64, 32, 128) : new Rgba32(64, 32, 16, 128),
+                1 => new Rgba32(0, 0, 0, 0),
+                _ => new Rgba32(200, 100, 50, 255)
+            };
+
+            Rgba32P expectedAssociated = (x % 3) switch
+            {
+                0 => associated ? new Rgba32P(64, 32, 16, 128) : new Rgba32P(32, 16, 8, 128),
+                1 => new Rgba32P(0, 0, 0, 0),
+                _ => new Rgba32P(200, 100, 50, 255)
+            };
+
             Assert.Equal(expected, littleRgba32[x, 0]);
             Assert.Equal(expected, bigRgba32[x, 0]);
             Assert.Equal(expectedAssociated, littleRgba32P[x, 0]);

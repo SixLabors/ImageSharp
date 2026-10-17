@@ -240,7 +240,15 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
                 // Load all three channels for sixteen pixels before writing RGB.
                 // This order also permits the source and destination to use the same storage.
                 SimdUtils.Deinterleave3(packed, i, out Vector512<float> y, out Vector512<float> cb, out Vector512<float> cr);
-                SimdUtils.Transform3(in matrix, y - offsetY, cb - offsetCb, cr - offsetCr, out Vector512<float> r, out Vector512<float> g, out Vector512<float> b);
+                SimdUtils.Transform3(
+                    in matrix,
+                    y - offsetY,
+                    cb - offsetCb,
+                    cr - offsetCr,
+                    out Vector512<float> r,
+                    out Vector512<float> g,
+                    out Vector512<float> b);
+
                 SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
             }
         }
@@ -256,7 +264,15 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
             {
                 // Process each remaining eight-pixel group with the same offsets and RGB matrix.
                 SimdUtils.Deinterleave3(packed, i, out Vector256<float> y, out Vector256<float> cb, out Vector256<float> cr);
-                SimdUtils.Transform3(in matrix, y - offsetY, cb - offsetCb, cr - offsetCr, out Vector256<float> r, out Vector256<float> g, out Vector256<float> b);
+                SimdUtils.Transform3(
+                    in matrix,
+                    y - offsetY,
+                    cb - offsetCb,
+                    cr - offsetCr,
+                    out Vector256<float> r,
+                    out Vector256<float> g,
+                    out Vector256<float> b);
+
                 SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
             }
         }
@@ -272,7 +288,15 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
             {
                 // Process four-pixel groups here; the scalar tail uses the same transform below.
                 SimdUtils.Deinterleave3(packed, i, out Vector128<float> y, out Vector128<float> cb, out Vector128<float> cr);
-                SimdUtils.Transform3(in matrix, y - offsetY, cb - offsetCb, cr - offsetCr, out Vector128<float> r, out Vector128<float> g, out Vector128<float> b);
+                SimdUtils.Transform3(
+                    in matrix,
+                    y - offsetY,
+                    cb - offsetCb,
+                    cr - offsetCr,
+                    out Vector128<float> r,
+                    out Vector128<float> g,
+                    out Vector128<float> b);
+
                 SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
             }
         }

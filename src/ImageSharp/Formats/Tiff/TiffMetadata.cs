@@ -85,7 +85,11 @@ public class TiffMetadata : IFormatMetadata<TiffMetadata>
     /// <inheritdoc/>
     public static TiffMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
     {
-        if (TryGetLayout(metadata.PixelTypeInfo, out TiffPhotometricInterpretation photometric, out TiffBitsPerSample samples, out TiffExtraSampleType? extraSample))
+        if (TryGetLayout(
+            metadata.PixelTypeInfo,
+            out TiffPhotometricInterpretation photometric,
+            out TiffBitsPerSample samples,
+            out TiffExtraSampleType? extraSample))
         {
             TiffBitsPerPixel bitsPerPixel = samples.BitsPerPixel();
             bool isBilevel = photometric == TiffPhotometricInterpretation.WhiteIsZero && bitsPerPixel == TiffBitsPerPixel.Bit1;

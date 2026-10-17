@@ -33,7 +33,16 @@ internal readonly struct TiffPlanar32NativeSource : ITiffColorSource<uint>
     public int ComponentCount => this.componentCount;
 
     /// <inheritdoc/>
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out uint c0, out uint c1, out uint c2, out uint c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out uint c0,
+        out uint c1,
+        out uint c2,
+        out uint c3)
     {
         int offset = index * sizeof(uint);
         c0 = MemoryMarshal.Read<uint>(source0[offset..]);
@@ -51,7 +60,16 @@ internal readonly struct TiffPlanar32NativeSource : ITiffColorSource<uint>
     }
 
     /// <inheritdoc/>
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector128<uint> c0, out Vector128<uint> c1, out Vector128<uint> c2, out Vector128<uint> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector128<uint> c0,
+        out Vector128<uint> c1,
+        out Vector128<uint> c2,
+        out Vector128<uint> c3)
     {
         c0 = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, uint>(source0)), (nuint)index);
         c1 = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, uint>(source1)), (nuint)index);
@@ -68,7 +86,16 @@ internal readonly struct TiffPlanar32NativeSource : ITiffColorSource<uint>
     }
 
     /// <inheritdoc/>
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector256<uint> c0, out Vector256<uint> c1, out Vector256<uint> c2, out Vector256<uint> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector256<uint> c0,
+        out Vector256<uint> c1,
+        out Vector256<uint> c2,
+        out Vector256<uint> c3)
     {
         c0 = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, uint>(source0)), (nuint)index);
         c1 = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, uint>(source1)), (nuint)index);
@@ -85,7 +112,16 @@ internal readonly struct TiffPlanar32NativeSource : ITiffColorSource<uint>
     }
 
     /// <inheritdoc/>
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector512<uint> c0, out Vector512<uint> c1, out Vector512<uint> c2, out Vector512<uint> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector512<uint> c0,
+        out Vector512<uint> c1,
+        out Vector512<uint> c2,
+        out Vector512<uint> c3)
     {
         c0 = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, uint>(source0)), (nuint)index);
         c1 = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, uint>(source1)), (nuint)index);

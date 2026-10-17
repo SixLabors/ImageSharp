@@ -29,7 +29,11 @@ public class CieLabTiffColorTests
     [InlineData(Lab16LittleEndianPlanar65X3, Lab16LittleEndianPlanar65X3LcmsRgb)]
     [InlineData(Lab16BigEndianContiguous65X3, Lab16BigEndianContiguous65X3LcmsRgb)]
     [InlineData(Lab16BigEndianPlanar65X3, Lab16BigEndianPlanar65X3LcmsRgb)]
-    public void Decode_MatchesLcmsReference(string path, string referencePath) => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertLcmsReference, path, referencePath, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    public void Decode_MatchesLcmsReference(string path, string referencePath) => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        AssertLcmsReference,
+        path,
+        referencePath,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Compares every decoded pixel with the Little CMS result from actual libtiff rows.

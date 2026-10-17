@@ -113,6 +113,7 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
         => PixelTypeInfo.Create<Short4>(
             PixelComponentInfo.Create<Short4>(4, 16, 16, 16, 16),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />

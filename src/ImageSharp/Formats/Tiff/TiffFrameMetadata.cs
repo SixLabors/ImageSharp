@@ -102,8 +102,11 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
     public static TiffFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
     {
         TiffFrameMetadata frameMetadata = new();
-        if (metadata.PixelTypeInfo is PixelTypeInfo pixelType
-            && TiffMetadata.TryGetLayout(pixelType, out TiffPhotometricInterpretation photometric, out TiffBitsPerSample samples, out TiffExtraSampleType? extraSample))
+        if (metadata.PixelTypeInfo is PixelTypeInfo pixelType && TiffMetadata.TryGetLayout(
+            pixelType,
+            out TiffPhotometricInterpretation photometric,
+            out TiffBitsPerSample samples,
+            out TiffExtraSampleType? extraSample))
         {
             frameMetadata.PhotometricInterpretation = photometric;
             frameMetadata.BitsPerSample = samples;

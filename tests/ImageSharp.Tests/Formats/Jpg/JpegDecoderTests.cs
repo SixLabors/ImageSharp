@@ -376,7 +376,10 @@ public partial class JpegDecoderTests
 
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
         image.DebugSave(provider);
-        image.CompareToReferenceOutput(provider);
+
+        // The measured power error can change final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        // Compare each pixel in sixteen-bit units (one eight-bit code is 257), without averaging image error.
+        image.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
     }
 
     [Theory]
@@ -391,7 +394,10 @@ public partial class JpegDecoderTests
 
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
         image.DebugSave(provider);
-        image.CompareToReferenceOutput(provider);
+
+        // The measured power error can change final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        // Compare each pixel in sixteen-bit units (one eight-bit code is 257), without averaging image error.
+        image.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
     }
 
     [Theory]
@@ -414,7 +420,10 @@ public partial class JpegDecoderTests
 
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
         image.DebugSave(provider);
-        image.CompareToReferenceOutput(provider);
+
+        // The measured power error can change final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        // Compare each pixel in sixteen-bit units (one eight-bit code is 257), without averaging image error.
+        image.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
 
         DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
         using Image<TPixel> preserved = provider.GetImage(JpegDecoder.Instance, preserveOptions);

@@ -38,7 +38,14 @@ internal class Rgba32PlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel
         {
             int offset = (y - top) * rowBytes;
             Span<Rgba128> row = MemoryMarshal.Cast<TPixel, Rgba128>(pixels.DangerousGetRowSpan(y).Slice(left, width));
-            TiffNativeColorConverter<TiffPlanar32NativeSource, TiffRgba128Store, uint>.Convert(red.Slice(offset, rowBytes), green.Slice(offset, rowBytes), blue.Slice(offset, rowBytes), alpha.Slice(offset, rowBytes), MemoryMarshal.Cast<Rgba128, uint>(row), source, store);
+            TiffNativeColorConverter<TiffPlanar32NativeSource, TiffRgba128Store, uint>.Convert(
+                red.Slice(offset, rowBytes),
+                green.Slice(offset, rowBytes),
+                blue.Slice(offset, rowBytes),
+                alpha.Slice(offset, rowBytes),
+                MemoryMarshal.Cast<Rgba128, uint>(row),
+                source,
+                store);
         }
     }
 }

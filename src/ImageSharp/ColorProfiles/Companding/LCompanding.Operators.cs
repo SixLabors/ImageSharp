@@ -78,7 +78,7 @@ public static partial class LCompanding
         public float Invoke(float value)
             => value <= CieConstants.Epsilon
                 ? (value * CieConstants.Kappa) / MaximumLightness
-                : (LightnessScale * MathF.Pow(value, CubeRootExponent)) - LightnessOffset;
+                : (LightnessScale * new TensorPrimitives_.PowOperator(CubeRootExponent).Invoke(value)) - LightnessOffset;
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -29,6 +29,17 @@ internal static partial class IccColorConverter
         }
 
         /// <summary>
+        /// Combines this matrix and offset with a following matrix and offset during transform setup.
+        /// </summary>
+        /// <param name="next">The transform applied after this transform.</param>
+        /// <returns>The combined transform in the same application order.</returns>
+        public MatrixOperator Then(MatrixOperator next)
+        {
+            // Vector transforms use row vectors. The first offset also passes through the second matrix.
+            return new MatrixOperator(this.matrix * next.matrix, Vector3.Transform(this.offset, next.matrix) + next.offset);
+        }
+
+        /// <summary>
         /// Applies the matrix and offset to one color.
         /// </summary>
         /// <param name="value">The source components.</param>

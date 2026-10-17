@@ -108,6 +108,7 @@ public partial struct NormalizedShort2 : IPixel<NormalizedShort2>, IPackedVector
         => PixelTypeInfo.Create<NormalizedShort2>(
             PixelComponentInfo.Create<NormalizedShort2>(2, 16, 16),
             PixelColorType.Red | PixelColorType.Green,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />

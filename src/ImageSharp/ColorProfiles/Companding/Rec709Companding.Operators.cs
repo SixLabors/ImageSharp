@@ -51,7 +51,7 @@ public static partial class Rec709Companding
         /// <inheritdoc/>
         public float Invoke(float value)
             => value < this.threshold ? value / LinearSlope
-                : MathF.Pow((value + this.offset) / this.scale, 1F / Exponent);
+                : new TensorPrimitives_.PowOperator(1F / Exponent).Invoke((value + this.offset) / this.scale);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -115,7 +115,7 @@ public static partial class Rec709Companding
         /// <inheritdoc/>
         public float Invoke(float value)
             => value < this.threshold ? LinearSlope * value
-                : (this.scale * MathF.Pow(value, Exponent)) - this.offset;
+                : (this.scale * new TensorPrimitives_.PowOperator(Exponent).Invoke(value)) - this.offset;
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

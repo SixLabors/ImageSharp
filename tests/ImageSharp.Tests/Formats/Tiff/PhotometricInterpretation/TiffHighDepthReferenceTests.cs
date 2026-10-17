@@ -39,7 +39,11 @@ public class TiffHighDepthReferenceTests
     [InlineData(Rgba32BitUnassociatedAlphaLittleEndian, Rgba32LittleEndianReference)]
     [InlineData(Rgba32BitPlanarUnassociatedAlphaBigEndian, Rgba32PlanarBigEndianReference)]
     [InlineData(Rgba32BitPlanarUnassociatedAlphaLittleEndian, Rgba32PlanarLittleEndianReference)]
-    public void Decode_MatchesLibtiffReference(string sourcePath, string referencePath) => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertReference, sourcePath, referencePath, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    public void Decode_MatchesLibtiffReference(string sourcePath, string referencePath) => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        AssertReference,
+        sourcePath,
+        referencePath,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Compares all decoded pixels with libtiff's independently rounded output.

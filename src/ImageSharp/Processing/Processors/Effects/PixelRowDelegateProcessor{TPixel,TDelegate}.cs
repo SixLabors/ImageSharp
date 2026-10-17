@@ -73,6 +73,7 @@ internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProces
         private readonly bool associated;
         private readonly bool compand;
         private readonly int componentBitDepth;
+        private readonly PixelColorRange colorRange;
         private readonly TDelegate rowProcessor;
 
         /// <summary>
@@ -107,6 +108,7 @@ internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProces
 
             // Resolve precision once per operation. Custom pixels without component information use analytic conversion.
             this.componentBitDepth = pixelInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
+            this.colorRange = pixelInfo.ColorRange;
             this.rowProcessor = rowProcessor;
         }
 
@@ -126,13 +128,15 @@ internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProces
                 if (this.scaled)
                 {
                     PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, rowSpan, span);
+                    SRgbCompanding.Expand(span, this.componentBitDepth, this.colorRange);
                 }
                 else
                 {
                     PixelOperations<TPixel>.Instance.ToUnassociatedVector4(this.configuration, rowSpan, span);
-                }
 
-                SRgbCompanding.Expand(span, this.componentBitDepth);
+                    // Native vectors can contain negative components or integer-range codes. The unclipped overload preserves that range.
+                    SRgbCompanding.Expand(span);
+                }
 
                 if (this.associated)
                 {
@@ -182,13 +186,15 @@ internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProces
                     Numerics.UnPremultiply(span);
                 }
 
-                SRgbCompanding.Compress(span, this.componentBitDepth);
                 if (this.scaled)
                 {
+                    SRgbCompanding.Compress(span, this.componentBitDepth, this.colorRange);
                     PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, span, rowSpan);
                 }
                 else
                 {
+                    // Match native-vector expansion with unclipped compression before the pixel format packs its components.
+                    SRgbCompanding.Compress(span);
                     PixelOperations<TPixel>.Instance.FromUnassociatedVector4Destructive(this.configuration, span, rowSpan);
                 }
             }

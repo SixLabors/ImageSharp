@@ -230,7 +230,16 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
                 Vector128<float> pixel1 = Unsafe.As<Vector4, Vector128<float>>(ref Unsafe.AsRef(in packed[i + 1]));
                 Vector128<float> pixel2 = Unsafe.As<Vector4, Vector128<float>>(ref Unsafe.AsRef(in packed[i + 2]));
                 Vector128<float> pixel3 = Unsafe.As<Vector4, Vector128<float>>(ref Unsafe.AsRef(in packed[i + 3]));
-                SimdUtils.Transpose4(pixel0, pixel1, pixel2, pixel3, out Vector128<float> c, out Vector128<float> m, out Vector128<float> y, out Vector128<float> k);
+                SimdUtils.Transpose4(
+                    pixel0,
+                    pixel1,
+                    pixel2,
+                    pixel3,
+                    out Vector128<float> c,
+                    out Vector128<float> m,
+                    out Vector128<float> y,
+                    out Vector128<float> k);
+
                 Vector128<float> factor = one - k;
                 Vector128<float> r = (one - c) * factor;
                 Vector128<float> g = (one - m) * factor;

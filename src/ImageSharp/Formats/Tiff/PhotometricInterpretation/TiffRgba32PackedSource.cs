@@ -27,7 +27,16 @@ internal readonly struct TiffRgba32PackedSource : ITiffColorSource<float>
     public int ComponentCount => 4;
 
     /// <inheritdoc/>
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out float c0, out float c1, out float c2, out float c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out float c0,
+        out float c1,
+        out float c2,
+        out float c3)
     {
         ReadOnlySpan<byte> pixel = source0[(index * 16)..];
         uint red = MemoryMarshal.Read<uint>(pixel);
@@ -50,7 +59,16 @@ internal readonly struct TiffRgba32PackedSource : ITiffColorSource<float>
     }
 
     /// <inheritdoc/>
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector128<float> c0, out Vector128<float> c1, out Vector128<float> c2, out Vector128<float> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector128<float> c0,
+        out Vector128<float> c1,
+        out Vector128<float> c2,
+        out Vector128<float> c3)
     {
         ref uint first = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, uint>(source0));
         nuint offset = (uint)index * 4;
@@ -74,7 +92,16 @@ internal readonly struct TiffRgba32PackedSource : ITiffColorSource<float>
     }
 
     /// <inheritdoc/>
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector256<float> c0, out Vector256<float> c1, out Vector256<float> c2, out Vector256<float> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector256<float> c0,
+        out Vector256<float> c1,
+        out Vector256<float> c2,
+        out Vector256<float> c3)
     {
         ref uint first = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, uint>(source0));
         nuint offset = (uint)index * 4;
@@ -98,7 +125,16 @@ internal readonly struct TiffRgba32PackedSource : ITiffColorSource<float>
     }
 
     /// <inheritdoc/>
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector512<float> c0, out Vector512<float> c1, out Vector512<float> c2, out Vector512<float> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector512<float> c0,
+        out Vector512<float> c1,
+        out Vector512<float> c2,
+        out Vector512<float> c3)
     {
         ref uint first = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, uint>(source0));
         nuint offset = (uint)index * 4;

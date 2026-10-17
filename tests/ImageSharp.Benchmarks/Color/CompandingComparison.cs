@@ -4,6 +4,7 @@
 using System.Numerics;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks;
@@ -57,8 +58,8 @@ public abstract class CompandingComparison
 
         // Table construction is setup work. Both measured methods include the same input copy,
         // because repeated in-place companding would otherwise change the input distribution.
-        SRgbCompanding.Compress(this.destination, 8);
-        SRgbCompanding.Expand(this.destination, 8);
+        SRgbCompanding.Compress(this.destination, 8, PixelColorRange.Sdr);
+        SRgbCompanding.Expand(this.destination, 8, PixelColorRange.Sdr);
         this.Simd();
 
         for (int i = 0; i < this.source.Length; i++)
@@ -158,11 +159,11 @@ public abstract class CompandingComparison
             this.CopySource();
             if (this.Compress)
             {
-                SRgbCompanding.Compress(this.destination, 8);
+                SRgbCompanding.Compress(this.destination, 8, PixelColorRange.Sdr);
             }
             else
             {
-                SRgbCompanding.Expand(this.destination, 8);
+                SRgbCompanding.Expand(this.destination, 8, PixelColorRange.Sdr);
             }
         }
     }

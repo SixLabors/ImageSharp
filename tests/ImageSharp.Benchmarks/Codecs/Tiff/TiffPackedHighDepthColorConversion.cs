@@ -31,9 +31,21 @@ public class TiffPackedHighDepthColorConversion
     private readonly byte[] rgba24 = new byte[Length * 12];
     private readonly byte[] rgb32 = new byte[Length * 12];
     private readonly byte[] rgba32 = new byte[Length * 16];
-    private readonly TiffColorDecoder<RgbaVector, TiffRgb24Source, TiffRgbOperator> rgb24Decoder = new(Configuration.Default, new TiffRgb24Source(isBigEndian: true, planar: false), new TiffRgbOperator(Scale24));
-    private readonly TiffColorDecoder<RgbaVector, TiffRgba24Source, TiffRgbaOperator> rgba24Decoder = new(Configuration.Default, new TiffRgba24Source(isBigEndian: true, planar: false), new TiffRgbaOperator(Scale24, associated: false));
-    private readonly TiffColorDecoder<RgbaVector, TiffRgb32Source, TiffRgbOperator> rgb32Decoder = new(Configuration.Default, new TiffRgb32Source(isBigEndian: true, planar: false), new TiffRgbOperator(Scale32));
+    private readonly TiffColorDecoder<RgbaVector, TiffRgb24Source, TiffRgbOperator> rgb24Decoder = new(
+        Configuration.Default,
+        new TiffRgb24Source(isBigEndian: true, planar: false),
+        new TiffRgbOperator(Scale24));
+
+    private readonly TiffColorDecoder<RgbaVector, TiffRgba24Source, TiffRgbaOperator> rgba24Decoder = new(
+        Configuration.Default,
+        new TiffRgba24Source(isBigEndian: true, planar: false),
+        new TiffRgbaOperator(Scale24, associated: false));
+
+    private readonly TiffColorDecoder<RgbaVector, TiffRgb32Source, TiffRgbOperator> rgb32Decoder = new(
+        Configuration.Default,
+        new TiffRgb32Source(isBigEndian: true, planar: false),
+        new TiffRgbOperator(Scale32));
+
     private readonly TiffRgba32PackedDecoder<RgbaVector> rgba32Decoder = new(Configuration.Default, isBigEndian: true, associated: false);
 
     /// <summary>

@@ -283,6 +283,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         private readonly Configuration configuration;
         private readonly float gamma;
         private readonly int componentBitDepth;
+        private readonly PixelColorRange colorRange;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ApplyGammaExposureRowOperation"/> struct.
@@ -304,7 +305,9 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             this.gamma = gamma;
 
             // Resolve the pixel precision once before row traversal. Unknown precision keeps analytic conversion.
-            this.componentBitDepth = TPixel.GetPixelTypeInfo().ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
+            PixelTypeInfo pixelInfo = TPixel.GetPixelTypeInfo();
+            this.componentBitDepth = pixelInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
+            this.colorRange = pixelInfo.ColorRange;
         }
 
         /// <inheritdoc/>
@@ -319,8 +322,8 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
             PixelOperations<TPixel>.Instance.ToAssociatedScaledVector4(this.configuration, targetRowSpan[..span.Length], span);
 
-            // Keep eight-bit input on the table path. Higher-precision input uses analytic gamma conversion.
-            GammaCompanding.Expand(span[..this.bounds.Width], this.gamma, this.componentBitDepth);
+            // Only eight-bit SDR input uses tables. Extended values and higher precision use analytic gamma conversion.
+            GammaCompanding.Expand(span[..this.bounds.Width], this.gamma, this.componentBitDepth, this.colorRange);
 
             // The first convolution pass consumes these values as raw premultiplied numerics. Preserve them in the
             // native TPixel representation instead of quantizing through an alpha-association conversion.
@@ -380,6 +383,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         private readonly Configuration configuration;
         private readonly float gamma;
         private readonly int componentBitDepth;
+        private readonly PixelColorRange colorRange;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ApplyInverseGammaExposureRowOperation"/> struct.
@@ -404,7 +408,9 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             this.gamma = gamma;
 
             // Resolve the pixel precision once before row traversal. Unknown precision keeps analytic conversion.
-            this.componentBitDepth = TPixel.GetPixelTypeInfo().ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
+            PixelTypeInfo pixelInfo = TPixel.GetPixelTypeInfo();
+            this.componentBitDepth = pixelInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
+            this.colorRange = pixelInfo.ColorRange;
         }
 
         /// <inheritdoc/>
@@ -415,7 +421,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             Span<Vector4> sourceRowSpan = this.sourceValues.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
 
             Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(sourceRowSpan), 0, 1F);
-            GammaCompanding.Compress(sourceRowSpan, this.gamma, this.componentBitDepth);
+            GammaCompanding.Compress(sourceRowSpan, this.gamma, this.componentBitDepth, this.colorRange);
 
             PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, sourceRowSpan, targetPixelSpan);
         }

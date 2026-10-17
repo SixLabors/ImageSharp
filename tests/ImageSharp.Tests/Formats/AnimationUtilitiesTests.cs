@@ -50,8 +50,10 @@ public class AnimationUtilitiesTests
     public void DeDuplicatePixels_PreservesAssociatedSamples<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(PixelTests<TPixel>.RunAssociatedSamples,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic, provider);
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            PixelTests<TPixel>.RunAssociatedSamples,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider);
     }
 
     /// <summary>
@@ -98,8 +100,10 @@ public class AnimationUtilitiesTests
     public void DeDuplicatePixels_MatchesNativeComparison<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(PixelTests<TPixel>.RunNativeComparison,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic, provider);
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            PixelTests<TPixel>.RunNativeComparison,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider);
     }
 
     /// <summary>
@@ -128,7 +132,13 @@ public class AnimationUtilitiesTests
                     ImageFrame<TPixel> previous = frameIndex == 0 ? null : source.Frames[frameIndex - 1];
                     ImageFrame<TPixel> current = source.Frames[frameIndex];
                     ImageFrame<TPixel> next = frameIndex + 1 < source.Frames.Count ? source.Frames[frameIndex + 1] : null;
-                    (bool Difference, Rectangle Bounds) expectedBounds = CompareNativePixels(previous, current, next, expected.Frames.RootFrame, background, blend);
+                    (bool Difference, Rectangle Bounds) expectedBounds = CompareNativePixels(
+                        previous,
+                        current,
+                        next,
+                        expected.Frames.RootFrame,
+                        background,
+                        blend);
 
                     // WebP rounds the origin down to even coordinates without excluding any changed pixels.
                     Rectangle bounds = expectedBounds.Bounds;

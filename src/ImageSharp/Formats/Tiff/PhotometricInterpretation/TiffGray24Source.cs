@@ -32,7 +32,16 @@ internal readonly struct TiffGray24Source : ITiffColorSource<float>
     public int ComponentCount => 1;
 
     /// <inheritdoc />
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out float c0, out float c1, out float c2, out float c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out float c0,
+        out float c1,
+        out float c2,
+        out float c3)
     {
         ReadOnlySpan<byte> sample = source0.Slice(index * 3);
         uint value = this.isBigEndian ? TiffUtilities.ConvertToUInt24BigEndian(sample) : TiffUtilities.ConvertToUInt24LittleEndian(sample);
@@ -42,7 +51,16 @@ internal readonly struct TiffGray24Source : ITiffColorSource<float>
     }
 
     /// <inheritdoc />
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector128<float> c0, out Vector128<float> c1, out Vector128<float> c2, out Vector128<float> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector128<float> c0,
+        out Vector128<float> c1,
+        out Vector128<float> c2,
+        out Vector128<float> c3)
     {
         Vector128<uint> values = TiffUInt24Samples.ReadFour(source0.Slice(index * 3), this.isBigEndian);
         values = this.whiteIsZero ? Vector128.Create(0xFFFFFFU) - values : values;
@@ -51,7 +69,16 @@ internal readonly struct TiffGray24Source : ITiffColorSource<float>
     }
 
     /// <inheritdoc />
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector256<float> c0, out Vector256<float> c1, out Vector256<float> c2, out Vector256<float> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector256<float> c0,
+        out Vector256<float> c1,
+        out Vector256<float> c2,
+        out Vector256<float> c3)
     {
         this.Read(source0, source1, source2, source3, index, out Vector128<float> v0, out _, out _, out _);
         this.Read(source0, source1, source2, source3, index + 4, out Vector128<float> v1, out _, out _, out _);
@@ -60,7 +87,16 @@ internal readonly struct TiffGray24Source : ITiffColorSource<float>
     }
 
     /// <inheritdoc />
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector512<float> c0, out Vector512<float> c1, out Vector512<float> c2, out Vector512<float> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector512<float> c0,
+        out Vector512<float> c1,
+        out Vector512<float> c2,
+        out Vector512<float> c3)
     {
         this.Read(source0, source1, source2, source3, index, out Vector256<float> v0, out _, out _, out _);
         this.Read(source0, source1, source2, source3, index + 8, out Vector256<float> v1, out _, out _, out _);

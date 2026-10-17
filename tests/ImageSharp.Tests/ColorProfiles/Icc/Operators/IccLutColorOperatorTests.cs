@@ -9,7 +9,7 @@ using static SixLabors.ImageSharp.ColorProfiles.Icc.IccColorConverter;
 namespace SixLabors.ImageSharp.Tests.ColorProfiles.Icc.Operators;
 
 /// <summary>
-/// Tests ICC <see cref="LutColorOperator"/>
+/// Tests the sampled channel tables and CLUT of legacy ICC LUTs.
 /// </summary>
 [Trait("Color", "Conversion")]
 public class IccLutColorOperatorTests
@@ -18,7 +18,7 @@ public class IccLutColorOperatorTests
     [MemberData(nameof(IccConversionDataLutEntry.Lut8ConversionTestData), MemberType = typeof(IccConversionDataLutEntry))]
     internal void IccLutColorOperator_WithLut8_ReturnsResult(IccLut8TagDataEntry lut, Vector4 input, Vector4 expected)
     {
-        LutColorOperator calculator = new(lut, false);
+        SampledLutColorOperator calculator = new(lut, false);
 
         Vector4 result = calculator.Convert(input);
 
@@ -29,7 +29,7 @@ public class IccLutColorOperatorTests
     [MemberData(nameof(IccConversionDataLutEntry.Lut16ConversionTestData), MemberType = typeof(IccConversionDataLutEntry))]
     internal void IccLutColorOperator_WithLut16_ReturnsResult(IccLut16TagDataEntry lut, Vector4 input, Vector4 expected)
     {
-        LutColorOperator calculator = new(lut, false);
+        SampledLutColorOperator calculator = new(lut, false);
 
         Vector4 result = calculator.Convert(input);
 

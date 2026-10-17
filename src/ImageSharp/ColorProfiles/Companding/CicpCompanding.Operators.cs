@@ -317,15 +317,15 @@ internal static partial class CicpCompanding
     /// </summary>
     private readonly struct Gamma22Curve : ITransferCurve
     {
-         /// <summary>
+        /// <summary>
         /// The H.273 power exponent for this transfer characteristic.
         /// </summary>
         private const float Gamma = 2.2F;
 
-       /// <inheritdoc/>
+        /// <inheritdoc/>
         public static float Expand(float value)
         {
-            return MathF.Pow(Math.Clamp(value, 0F, 1F), Gamma);
+            return new TensorPrimitives_.PowOperator(Gamma).Invoke(Math.Clamp(value, 0F, 1F));
         }
 
         /// <inheritdoc/>
@@ -342,7 +342,7 @@ internal static partial class CicpCompanding
         /// <inheritdoc/>
         public static float Compress(float value)
         {
-            return MathF.Pow(Math.Clamp(value, 0F, 1F), 1F / Gamma);
+            return new TensorPrimitives_.PowOperator(1F / Gamma).Invoke(Math.Clamp(value, 0F, 1F));
         }
 
         /// <inheritdoc/>
@@ -362,15 +362,15 @@ internal static partial class CicpCompanding
     /// </summary>
     private readonly struct Gamma28Curve : ITransferCurve
     {
-         /// <summary>
+        /// <summary>
         /// The H.273 power exponent for this transfer characteristic.
         /// </summary>
         private const float Gamma = 2.8F;
 
-       /// <inheritdoc/>
+        /// <inheritdoc/>
         public static float Expand(float value)
         {
-            return MathF.Pow(Math.Clamp(value, 0F, 1F), Gamma);
+            return new TensorPrimitives_.PowOperator(Gamma).Invoke(Math.Clamp(value, 0F, 1F));
         }
 
         /// <inheritdoc/>
@@ -387,7 +387,7 @@ internal static partial class CicpCompanding
         /// <inheritdoc/>
         public static float Compress(float value)
         {
-            return MathF.Pow(Math.Clamp(value, 0F, 1F), 1F / Gamma);
+            return new TensorPrimitives_.PowOperator(1F / Gamma).Invoke(Math.Clamp(value, 0F, 1F));
         }
 
         /// <inheritdoc/>
@@ -425,7 +425,7 @@ internal static partial class CicpCompanding
             }
 
             return value < 1F
-                ? MathF.Pow((value + (Smpte240Alpha - 1F)) / Smpte240Alpha, 1F / Rec709Companding.Exponent)
+                ? new TensorPrimitives_.PowOperator(1F / Rec709Companding.Exponent).Invoke((value + (Smpte240Alpha - 1F)) / Smpte240Alpha)
                 : 1F;
         }
 
@@ -468,7 +468,7 @@ internal static partial class CicpCompanding
             }
 
             return value < 1F
-                ? (Smpte240Alpha * MathF.Pow(value, Rec709Companding.Exponent)) - (Smpte240Alpha - 1F)
+                ? (Smpte240Alpha * new TensorPrimitives_.PowOperator(Rec709Companding.Exponent).Invoke(value)) - (Smpte240Alpha - 1F)
                 : 1F;
         }
 
@@ -541,7 +541,7 @@ internal static partial class CicpCompanding
     /// </summary>
     private readonly struct Log100Curve : ITransferCurve
     {
-         /// <summary>
+        /// <summary>
         /// The largest linear input encoded as zero.
         /// </summary>
         private const float LinearCutoff = 0.01F;
@@ -551,11 +551,11 @@ internal static partial class CicpCompanding
         /// </summary>
         private const float ZeroCodeValue = 0.005F;
 
-       /// <inheritdoc/>
+        /// <inheritdoc/>
         public static float Expand(float value)
         {
             // Zero represents the linear interval [0,0.01]. Its midpoint minimizes the largest round-trip error.
-            return value <= 0F ? ZeroCodeValue : MathF.Pow(10F, 2F * (MathF.Min(value, 1F) - 1F));
+            return value <= 0F ? ZeroCodeValue : new TensorPrimitives_.PowOperator(2F * (MathF.Min(value, 1F) - 1F)).Invoke(10F);
         }
 
         /// <inheritdoc/>
@@ -601,7 +601,7 @@ internal static partial class CicpCompanding
     /// </summary>
     private readonly struct Log100SqrtCurve : ITransferCurve
     {
-         /// <summary>
+        /// <summary>
         /// The largest linear input encoded as zero.
         /// </summary>
         private const float LinearCutoff = 0.00316227766F;
@@ -611,11 +611,11 @@ internal static partial class CicpCompanding
         /// </summary>
         private const float ZeroCodeValue = 0.00158113883F;
 
-       /// <inheritdoc/>
+        /// <inheritdoc/>
         public static float Expand(float value)
         {
             // Use the midpoint of this logarithmic curve's interval for zero, as for Log100.
-            return value <= 0F ? ZeroCodeValue : MathF.Pow(10F, 2.5F * (MathF.Min(value, 1F) - 1F));
+            return value <= 0F ? ZeroCodeValue : new TensorPrimitives_.PowOperator(2.5F * (MathF.Min(value, 1F) - 1F)).Invoke(10F);
         }
 
         /// <inheritdoc/>
@@ -666,7 +666,7 @@ internal static partial class CicpCompanding
         {
             if (value < -Rec709Companding.LinearSlope * Bt709Beta)
             {
-                return -MathF.Pow((value - (Bt709Alpha - 1F)) / -Bt709Alpha, 1F / Rec709Companding.Exponent);
+                return -new TensorPrimitives_.PowOperator(1F / Rec709Companding.Exponent).Invoke((value - (Bt709Alpha - 1F)) / -Bt709Alpha);
             }
 
             return value < Rec709Companding.LinearSlope * Bt709Beta
@@ -710,7 +710,7 @@ internal static partial class CicpCompanding
         {
             if (value < -Bt709Beta)
             {
-                return (-Bt709Alpha * MathF.Pow(-value, Rec709Companding.Exponent)) + (Bt709Alpha - 1F);
+                return (-Bt709Alpha * new TensorPrimitives_.PowOperator(Rec709Companding.Exponent).Invoke(-value)) + (Bt709Alpha - 1F);
             }
 
             return value < Bt709Beta
@@ -751,7 +751,7 @@ internal static partial class CicpCompanding
     /// </summary>
     private readonly struct Bt1361Curve : ITransferCurve
     {
-         /// <summary>
+        /// <summary>
         /// The scale of the negative nonlinear segment specified by H.273.
         /// </summary>
         private const float NegativeScale = -0.27482420670236F;
@@ -761,7 +761,7 @@ internal static partial class CicpCompanding
         /// </summary>
         private const float NegativeOffset = 0.02482420670236F;
 
-       /// <summary>
+        /// <summary>
         /// Applies the inverse extended BT.1361 transfer function.
         /// </summary>
         /// <param name="value">The nonlinear signal value.</param>
@@ -775,7 +775,7 @@ internal static partial class CicpCompanding
 
             if (value < 0F)
             {
-                return MathF.Pow((value - NegativeOffset) / NegativeScale, 1F / Rec709Companding.Exponent) / -4F;
+                return new TensorPrimitives_.PowOperator(1F / Rec709Companding.Exponent).Invoke((value - NegativeOffset) / NegativeScale) / -4F;
             }
 
             return Bt709Curve.Expand(value);
@@ -800,6 +800,7 @@ internal static partial class CicpCompanding
             TVector negative = TOperations.Divide(
                 TOperations.Pow(TOperations.Max(negativeBase, zero), 1F / Rec709Companding.Exponent),
                 TOperations.Create(-4F));
+
             TVector negativeOrPositive = TOperations.ConditionalSelect(
                 TOperations.LessThan(value, zero),
                 negative,
@@ -822,7 +823,7 @@ internal static partial class CicpCompanding
 
             if (value < 0F)
             {
-                return (NegativeScale * MathF.Pow(-4F * value, Rec709Companding.Exponent)) + NegativeOffset;
+                return (NegativeScale * new TensorPrimitives_.PowOperator(Rec709Companding.Exponent).Invoke(-4F * value)) + NegativeOffset;
             }
 
             return Bt709Curve.Compress(value);
@@ -917,10 +918,10 @@ internal static partial class CicpCompanding
                 return 0F;
             }
 
-            float nonlinearPower = MathF.Pow(MathF.Min(value, 1F), 1F / PqM);
+            float nonlinearPower = new TensorPrimitives_.PowOperator(1F / PqM).Invoke(MathF.Min(value, 1F));
             float numerator = MathF.Max(nonlinearPower - PqC1, 0F);
             float denominator = PqC2 - (PqC3 * nonlinearPower);
-            return MathF.Pow(numerator / denominator, 1F / PqN);
+            return new TensorPrimitives_.PowOperator(1F / PqN).Invoke(numerator / denominator);
         }
 
         /// <summary>
@@ -954,8 +955,8 @@ internal static partial class CicpCompanding
                 return 0F;
             }
 
-            float linearPower = MathF.Pow(MathF.Min(value, 1F), PqN);
-            return MathF.Pow((PqC1 + (PqC2 * linearPower)) / (1F + (PqC3 * linearPower)), PqM);
+            float linearPower = new TensorPrimitives_.PowOperator(PqN).Invoke(MathF.Min(value, 1F));
+            return new TensorPrimitives_.PowOperator(PqM).Invoke((PqC1 + (PqC2 * linearPower)) / (1F + (PqC3 * linearPower)));
         }
 
         /// <summary>
@@ -983,15 +984,15 @@ internal static partial class CicpCompanding
     /// </summary>
     private readonly struct Smpte428Curve : ITransferCurve
     {
-         /// <summary>
+        /// <summary>
         /// The H.273 power exponent for this transfer characteristic.
         /// </summary>
         private const float Gamma = 2.6F;
 
-       /// <inheritdoc/>
+        /// <inheritdoc/>
         public static float Expand(float value)
         {
-            return MathF.Pow(MathF.Max(value, 0F), Gamma) / Smpte428Scale;
+            return new TensorPrimitives_.PowOperator(Gamma).Invoke(MathF.Max(value, 0F)) / Smpte428Scale;
         }
 
         /// <inheritdoc/>
@@ -1007,7 +1008,7 @@ internal static partial class CicpCompanding
         /// <inheritdoc/>
         public static float Compress(float value)
         {
-            return MathF.Pow(Smpte428Scale * MathF.Max(value, 0F), 1F / Gamma);
+            return new TensorPrimitives_.PowOperator(1F / Gamma).Invoke(Smpte428Scale * MathF.Max(value, 0F));
         }
 
         /// <inheritdoc/>

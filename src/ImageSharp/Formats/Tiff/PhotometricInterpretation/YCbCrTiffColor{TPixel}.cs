@@ -42,7 +42,13 @@ internal class YCbCrTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <param name="referenceBlackAndWhite">The TIFF coding ranges.</param>
     /// <param name="coefficients">The TIFF luma coefficients.</param>
     /// <param name="ycbcrSubSampling">The chroma subsampling factors.</param>
-    public YCbCrTiffColor(Configuration configuration, ImageFrameMetadata metadata, MemoryAllocator memoryAllocator, Rational[] referenceBlackAndWhite, Rational[] coefficients, ushort[] ycbcrSubSampling)
+    public YCbCrTiffColor(
+        Configuration configuration,
+        ImageFrameMetadata metadata,
+        MemoryAllocator memoryAllocator,
+        Rational[] referenceBlackAndWhite,
+        Rational[] coefficients,
+        ushort[] ycbcrSubSampling)
     {
         this.configuration = configuration;
         this.memoryAllocator = memoryAllocator;
@@ -174,7 +180,14 @@ internal class YCbCrTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             {
                 int count = Math.Min(width - x, rgbaBlock.Length);
                 Span<Rgba32> rgba = rgbaBlock[..count];
-                TiffYCbCr8ColorConverter.Convert(ycbcrData.Slice(offset + (x * 3), count * 3), [], [], rgba, new TiffYCbCr8Source(planar: false), this.colorOperator);
+                TiffYCbCr8ColorConverter.Convert(
+                    ycbcrData.Slice(offset + (x * 3), count * 3),
+                    [],
+                    [],
+                    rgba,
+                    new TiffYCbCr8Source(planar: false),
+                    this.colorOperator);
+
                 PixelOperations<TPixel>.Instance.FromRgba32(this.configuration, rgba, pixelRow.Slice(x, count));
             }
 

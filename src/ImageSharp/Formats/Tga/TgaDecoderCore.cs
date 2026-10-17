@@ -200,7 +200,13 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
     /// <param name="palette">The color palette.</param>
     /// <param name="origin">The image origin.</param>
-    private void ReadPaletted<TPixel>(BufferedReadStream stream, int width, int height, Buffer2D<TPixel> pixels, ReadOnlySpan<Color> palette, TgaImageOrigin origin)
+    private void ReadPaletted<TPixel>(
+        BufferedReadStream stream,
+        int width,
+        int height,
+        Buffer2D<TPixel> pixels,
+        ReadOnlySpan<Color> palette,
+        TgaImageOrigin origin)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // ReadColorMap decoded each entry once; index lookup packs its retained Color into the requested TPixel.
@@ -238,7 +244,13 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
     /// <param name="palette">The color palette.</param>
     /// <param name="origin">The image origin.</param>
-    private void ReadPalettedRle<TPixel>(BufferedReadStream stream, int width, int height, Buffer2D<TPixel> pixels, ReadOnlySpan<Color> palette, TgaImageOrigin origin)
+    private void ReadPalettedRle<TPixel>(
+        BufferedReadStream stream,
+        int width,
+        int height,
+        Buffer2D<TPixel> pixels,
+        ReadOnlySpan<Color> palette,
+        TgaImageOrigin origin)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // RLE packets repeat complete 8- or 16-bit indices, so their stride follows PixelDepth rather than CMapDepth.

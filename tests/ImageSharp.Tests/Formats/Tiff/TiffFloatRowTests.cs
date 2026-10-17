@@ -284,7 +284,11 @@ public class TiffFloatRowTests
                 ReverseSamples(packedSingles);
             }
 
-            TiffColorDecoder<RgbaVector, TiffFloat32Source, TiffFloatRgbOperator> rgb = new(configuration, new TiffFloat32Source(isBigEndian, hasAlpha: false), new TiffFloatRgbOperator());
+            TiffColorDecoder<RgbaVector, TiffFloat32Source, TiffFloatRgbOperator> rgb = new(
+                configuration,
+                new TiffFloat32Source(isBigEndian, hasAlpha: false),
+                new TiffFloatRgbOperator());
+
             rgb.Decode(packedTriplets, pixels, 0, 0, count, 1);
             for (int i = 0; i < count; i++)
             {
@@ -295,7 +299,11 @@ public class TiffFloatRowTests
                 Assert.Equal(1F, actual.A);
             }
 
-            TiffColorDecoder<RgbaVector, TiffFloat32Source, TiffFloatRgbaOperator> rgba = new(configuration, new TiffFloat32Source(isBigEndian, hasAlpha: true), new TiffFloatRgbaOperator(associated: false));
+            TiffColorDecoder<RgbaVector, TiffFloat32Source, TiffFloatRgbaOperator> rgba = new(
+                configuration,
+                new TiffFloat32Source(isBigEndian, hasAlpha: true),
+                new TiffFloatRgbaOperator(associated: false));
+
             rgba.Decode(packedQuads, pixels, 0, 0, count, 1);
             for (int i = 0; i < count; i++)
             {
@@ -306,7 +314,11 @@ public class TiffFloatRowTests
                 Assert.Equal(BitConverter.SingleToInt32Bits(quads[(i * 4) + 3]), BitConverter.SingleToInt32Bits(actual.A));
             }
 
-            TiffColorDecoder<RgbaVector, TiffGrayFloat32Source, TiffGrayFloatOperator> grayscale = new(configuration, new TiffGrayFloat32Source(isBigEndian), new TiffGrayFloatOperator(whiteIsZero: false));
+            TiffColorDecoder<RgbaVector, TiffGrayFloat32Source, TiffGrayFloatOperator> grayscale = new(
+                configuration,
+                new TiffGrayFloat32Source(isBigEndian),
+                new TiffGrayFloatOperator(whiteIsZero: false));
+
             grayscale.Decode(packedSingles, pixels, 0, 0, count, 1);
             for (int i = 0; i < count; i++)
             {
@@ -347,7 +359,11 @@ public class TiffFloatRowTests
 
         Configuration configuration = Configuration.Default;
         using Buffer2D<RgbaVector> pixels = configuration.MemoryAllocator.Allocate2D<RgbaVector>(Math.Max(count, 1), 1);
-        TiffColorDecoder<RgbaVector, TiffGrayFloat32Source, TiffGrayFloatOperator> decoder = new(configuration, new TiffGrayFloat32Source(!BitConverter.IsLittleEndian), new TiffGrayFloatOperator(whiteIsZero: true));
+        TiffColorDecoder<RgbaVector, TiffGrayFloat32Source, TiffGrayFloatOperator> decoder = new(
+            configuration,
+            new TiffGrayFloat32Source(!BitConverter.IsLittleEndian),
+            new TiffGrayFloatOperator(whiteIsZero: true));
+
         decoder.Decode(MemoryMarshal.AsBytes(samples.AsSpan()), pixels, 0, 0, count, 1);
 
         for (int i = 0; i < count; i++)

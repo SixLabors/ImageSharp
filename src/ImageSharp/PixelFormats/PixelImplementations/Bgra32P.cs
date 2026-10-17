@@ -190,6 +190,7 @@ public partial struct Bgra32P : IPixel<Bgra32P>, IPackedVector<uint>
         => PixelTypeInfo.Create<Bgra32P>(
             PixelComponentInfo.Create<Bgra32P>(4, 8, 8, 8, 8),
             PixelColorType.BGR | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Associated);
 
     /// <inheritdoc />

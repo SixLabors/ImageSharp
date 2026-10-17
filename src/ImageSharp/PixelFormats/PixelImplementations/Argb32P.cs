@@ -190,6 +190,7 @@ public partial struct Argb32P : IPixel<Argb32P>, IPackedVector<uint>
         => PixelTypeInfo.Create<Argb32P>(
             PixelComponentInfo.Create<Argb32P>(4, 8, 8, 8, 8),
             PixelColorType.Alpha | PixelColorType.RGB,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Associated);
 
     /// <inheritdoc />

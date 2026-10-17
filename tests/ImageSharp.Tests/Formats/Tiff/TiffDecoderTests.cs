@@ -34,18 +34,26 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     /// <param name="hex">The encoded floating-point TIFF.</param>
     /// <param name="intensity">The decoded intensity.</param>
     [Theory]
-    [InlineData("49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
+    [InlineData(
+        "49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
                 "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
-                "000020000000530103000100000003000000000000000000807F0000807F0000807F0000807F0000807F0000807F0000807F0000807F", float.PositiveInfinity)]
-    [InlineData("49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
+                "000020000000530103000100000003000000000000000000807F0000807F0000807F0000807F0000807F0000807F0000807F0000807F",
+        float.PositiveInfinity)]
+    [InlineData(
+        "49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
                 "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
-                "000020000000530103000100000003000000000000000000C07F0000C07F0000C07F0000C07F0000C07F0000C07F0000C07F0000C07F", float.NaN)]
-    [InlineData("49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
+                "000020000000530103000100000003000000000000000000C07F0000C07F0000C07F0000C07F0000C07F0000C07F0000C07F0000C07F",
+        float.NaN)]
+    [InlineData(
+        "49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
                 "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
-                "000020000000530103000100000003000000000000000000004000000040000000400000004000000040000000400000004000000040", 2F)]
-    [InlineData("49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
+                "000020000000530103000100000003000000000000000000004000000040000000400000004000000040000000400000004000000040",
+        2F)]
+    [InlineData(
+        "49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
                 "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
-                "000020000000530103000100000003000000000000000000003F0000003F0000003F0000003F0000003F0000003F0000003F0000003F", .5F)]
+                "000020000000530103000100000003000000000000000000003F0000003F0000003F0000003F0000003F0000003F0000003F0000003F",
+        .5F)]
     public void Decode_FloatingPointSamples_PreservesHalfVector4Values(string hex, float intensity)
     {
         byte[] data = Convert.FromHexString(hex);
@@ -261,7 +269,10 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Flower16BitGrayMinIsWhiteLittleEndian, PixelTypes.Rgba32)]
     public void TiffDecoder_GrayscaleReference_FeatureModes<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertExistingReference, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic, provider);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertExistingReference,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider);
 
     /// <summary>
     /// Compares existing RGB and RGBA planar fixtures with Magick across SIMD modes.
@@ -276,7 +287,10 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Rgba16BitPlanarUnassociatedAlphaBigEndian, PixelTypes.Rgba32)]
     public void TiffDecoder_PlanarReference_FeatureModes<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertExistingReference, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic, provider);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertExistingReference,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider);
 
     /// <summary>
     /// Checks the entire decoded fixture against its independent Magick reference.
@@ -421,7 +435,10 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(FlowerYCbCr888Contiguoush4v4, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_YCbCr_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertYcbcrReference, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic, provider);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertYcbcrReference,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider);
 
     /// <summary>
     /// Compares the full YCbCr image with its checked-in reference in the selected hardware mode.
@@ -456,7 +473,10 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(CmykJpeg, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_Cmyk<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertCmykReference, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic, provider);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertCmykReference,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider);
 
     /// <summary>
     /// Compares the full CMYK image with its checked-in reference in the selected hardware mode.
@@ -482,7 +502,9 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert });
 
         image.DebugSave(provider);
-        image.CompareToReferenceOutput(provider);
+
+        // ICC power approximation can move final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        image.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
         Assert.Null(image.Metadata.IccProfile);
     }
 
@@ -502,8 +524,9 @@ public class TiffDecoderTests : TiffDecoderBaseTester
 
         // LittleCMS 2.19 generated the reference from the embedded profile to CompactSrgbV4Profile,
         // using relative colorimetric intent without black-point compensation.
-        // Measured differences are at most one 8-bit channel value, totaling 0.000083% of the image.
-        image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.0001F), provider);
+
+        // After final rounding, limit the total RGB error to three eight-bit codes per pixel.
+        image.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
         Assert.Null(image.Metadata.IccProfile);
         Assert.Null(image.Frames.RootFrame.Metadata.IccProfile);
     }
@@ -566,8 +589,8 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         // Preserve keeps the converted pixels, so both modes use the existing ICC reference.
         provider.Utility.TestName = nameof(this.TiffDecoder_CanDecode_YccK_ICC);
 
-        // Allow the existing ICC reference's small platform rounding differences.
-        image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.0001F), provider);
+        // Approximate ICC curves can move final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        image.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
     }
 
     [Theory]
@@ -605,8 +628,8 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
         image.DebugSave(provider);
 
-        // Linux reports a 0.0000% difference, so we use a tolerant comparer here.
-        image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.0001F), provider);
+        // Approximate ICC curves can move final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        image.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
     }
 
     [Theory]
@@ -642,6 +665,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Theory]
     [WithFile(Rgba8BitAssociatedAlpha, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_32Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+
         // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.004F);
 
@@ -966,6 +990,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         // libtiff recompressed Perceptual_RGB8 losslessly, retaining its source RGB samples and IFD profile.
         // Compare with the uncompressed source in TPixel to check the nested decoder's full output, including out-of-range float RGB.
         using Image<TPixel> uncompressed = Image.Load<TPixel>(options, TestFile.Create(Icc.PerceptualRgb8).Bytes);
+
         // The same RGB samples and profile must agree per pixel. Allow one sixteen-bit code per RGB channel for float rounding.
         ImageComparer.Tolerant(0F, 3).VerifySimilarity(uncompressed, image);
 

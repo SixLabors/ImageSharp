@@ -57,7 +57,16 @@ internal static partial class IccColorConverter
                     break;
                 case IccParametricCurveTagDataEntry parametric:
                     IccParametricCurve curve = parametric.Curve;
-                    this.kind = curve.Type == IccParametricCurveType.Type1 && curve.G == 1F ? CurveKind.Identity : CurveKind.Parametric;
+
+                    // Select common curve forms once. Their SIMD blocks do not need the general parametric switch.
+                    this.kind = curve.Type switch
+                    {
+                        IccParametricCurveType.Type1 when curve.G == 1F => CurveKind.Identity,
+                        IccParametricCurveType.Type1 => CurveKind.Gamma,
+                        IccParametricCurveType.SRgb => inverted ? CurveKind.InverseSRgb : CurveKind.SRgb,
+                        _ => CurveKind.Parametric
+                    };
+
                     this.type = inverted ? curve.Type | InvertedFlag : curve.Type;
                     this.power = new(inverted ? 1F / curve.G : curve.G);
                     this.a = curve.A;
@@ -76,21 +85,27 @@ internal static partial class IccColorConverter
                         _ => curve.D,
                     };
 
+                    if (inverted && curve.Type == IccParametricCurveType.SRgb && curve.A > 0F && curve.G > 0F && curve.C != 0F)
+                    {
+                        // Rewrite (y^(1/g) - b) / a as (a^(-g) * y)^(1/g) - b/a.
+                        // Both branches then use the forward curve form, with setup-time reciprocals instead of per-lane divisions.
+                        // Profile coefficients can overflow the rewritten scale; retain the original formula in that case.
+                        float inverseScale = MathF.Pow(curve.A, -curve.G);
+                        if (float.IsFinite(inverseScale))
+                        {
+                            this.kind = CurveKind.SRgb;
+                            this.a = inverseScale;
+                            this.b = 0F;
+                            this.c = 1F / curve.C;
+                            this.d = this.boundary;
+                            this.e = -curve.B / curve.A;
+                        }
+                    }
+
                     break;
                 default:
                     throw new InvalidIccProfileException("Invalid ICC curve entry.");
             }
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CurveOperator"/> struct for a forward sampled LUT.
-        /// </summary>
-        /// <param name="samples">The samples from a legacy LUT input or output table.</param>
-        public CurveOperator(float[] samples)
-        {
-            this = default;
-            this.kind = CurveKind.Sampled;
-            this.lookup = new LutOperator(samples, false);
         }
 
         /// <summary>
@@ -114,9 +129,47 @@ internal static partial class IccColorConverter
             Sampled,
 
             /// <summary>
+            /// The curve uses the ICC sRGB piecewise formula with the profile's coefficients.
+            /// </summary>
+            SRgb,
+
+            /// <summary>
+            /// The curve uses the inverse ICC sRGB piecewise formula with the profile's coefficients.
+            /// </summary>
+            InverseSRgb,
+
+            /// <summary>
             /// The curve applies an ICC parametric formula.
             /// </summary>
             Parametric,
+        }
+
+        /// <summary>
+        /// Selects the normalized sRGB formula when its power can use the finite SIMD kernel.
+        /// </summary>
+        /// <param name="curve">The formula with the profile's coefficients and exponent.</param>
+        /// <returns>Whether the normalized formula has a positive finite exponent other than one.</returns>
+        public bool TryGetSRgb(out SRgbCurveOperator curve)
+        {
+            if (this.kind == CurveKind.SRgb && this.power.Kind == TensorPrimitives_.PowOperator.PowerKind.Finite && this.power.Exponent > 0F)
+            {
+                curve = new(this.a, this.b, this.c, this.d, this.e, this.power);
+                return true;
+            }
+
+            curve = default;
+            return false;
+        }
+
+        /// <summary>
+        /// Gets the configured power when the curve can use the gamma-only SIMD stage.
+        /// </summary>
+        /// <param name="gamma">The classified forward or inverse power.</param>
+        /// <returns>Whether the curve is a positive finite gamma curve.</returns>
+        public bool TryGetGamma(out TensorPrimitives_.PowOperator gamma)
+        {
+            gamma = this.power;
+            return this.kind == CurveKind.Gamma && gamma.Kind == TensorPrimitives_.PowOperator.PowerKind.Finite && gamma.Exponent > 0F;
         }
 
         /// <summary>
@@ -134,6 +187,10 @@ internal static partial class IccColorConverter
                     return this.Pow(value);
                 case CurveKind.Sampled:
                     return this.lookup.Convert(value);
+                case CurveKind.SRgb:
+                    return this.ConvertSRgb(value);
+                case CurveKind.InverseSRgb:
+                    return value >= this.boundary ? (this.Pow(value) - this.b) / this.a : value / this.c;
             }
 
             return this.type switch
@@ -141,11 +198,9 @@ internal static partial class IccColorConverter
                 IccParametricCurveType.Type1 or IccParametricCurveType.Type1 | InvertedFlag => this.Pow(value),
                 IccParametricCurveType.Cie122_1996 => value >= this.boundary ? this.Pow((this.a * value) + this.b) : 0F,
                 IccParametricCurveType.Iec61966_3 => value >= this.boundary ? this.Pow((this.a * value) + this.b) + this.c : this.c,
-                IccParametricCurveType.SRgb => value >= this.d ? this.Pow((this.a * value) + this.b) : this.c * value,
                 IccParametricCurveType.Type5 => value >= this.d ? this.Pow((this.a * value) + this.b) + this.e : (this.c * value) + this.f,
                 IccParametricCurveType.Cie122_1996 | InvertedFlag => (this.Pow(value) - this.b) / this.a,
                 IccParametricCurveType.Iec61966_3 | InvertedFlag => value >= this.c ? (this.Pow(value - this.c) - this.b) / this.a : -this.b / this.a,
-                IccParametricCurveType.SRgb | InvertedFlag => value >= this.boundary ? (this.Pow(value) - this.b) / this.a : value / this.c,
                 IccParametricCurveType.Type5 | InvertedFlag => value >= this.boundary
                     ? (this.Pow(value - this.e) - this.b) / this.a
                     : (value - this.f) / this.c,
@@ -169,6 +224,17 @@ internal static partial class IccColorConverter
                     return this.Pow(value);
                 case CurveKind.Sampled:
                     return this.lookup.Convert(value);
+                case CurveKind.SRgb:
+                    return this.ConvertSRgb(value);
+
+                case CurveKind.InverseSRgb:
+                {
+                    // These are the same inverse branches as scalar conversion, using the profile's stored coefficients.
+                    Vector128<float> active = Vector128.GreaterThanOrEqual(value, Vector128.Create(this.boundary));
+                    Vector128<float> input = Vector128.ConditionalSelect(active, value, Vector128<float>.One);
+                    Vector128<float> power = (this.Pow(input) - Vector128.Create(this.b)) / Vector128.Create(this.a);
+                    return Vector128.ConditionalSelect(active, power, value / Vector128.Create(this.c));
+                }
             }
 
             return this.ConvertParametric(value);
@@ -182,6 +248,7 @@ internal static partial class IccColorConverter
         [MethodImpl(MethodImplOptions.NoInlining)]
         private Vector128<float> ConvertParametric(Vector128<float> value)
         {
+            // Keep the general formula switch out of the identity, gamma, sampled and sRGB conversion methods.
             switch (this.type)
             {
                 case IccParametricCurveType.Type1:
@@ -232,14 +299,6 @@ internal static partial class IccColorConverter
                     return Vector128.ConditionalSelect(active, power, Vector128.Create(-this.b / this.a));
                 }
 
-                case IccParametricCurveType.SRgb | InvertedFlag:
-                {
-                    Vector128<float> active = Vector128.GreaterThanOrEqual(value, Vector128.Create(this.boundary));
-                    Vector128<float> input = Vector128.ConditionalSelect(active, value, Vector128<float>.One);
-                    Vector128<float> power = (this.Pow(input) - Vector128.Create(this.b)) / Vector128.Create(this.a);
-                    return Vector128.ConditionalSelect(active, power, value / Vector128.Create(this.c));
-                }
-
                 case IccParametricCurveType.Type5 | InvertedFlag:
                 {
                     Vector128<float> active = Vector128.GreaterThanOrEqual(value, Vector128.Create(this.boundary));
@@ -270,6 +329,17 @@ internal static partial class IccColorConverter
                     return this.Pow(value);
                 case CurveKind.Sampled:
                     return this.lookup.Convert(value);
+                case CurveKind.SRgb:
+                    return this.ConvertSRgb(value);
+
+                case CurveKind.InverseSRgb:
+                {
+                    // These are the same inverse branches as scalar conversion, using the profile's stored coefficients.
+                    Vector256<float> active = Vector256.GreaterThanOrEqual(value, Vector256.Create(this.boundary));
+                    Vector256<float> input = Vector256.ConditionalSelect(active, value, Vector256<float>.One);
+                    Vector256<float> power = (this.Pow(input) - Vector256.Create(this.b)) / Vector256.Create(this.a);
+                    return Vector256.ConditionalSelect(active, power, value / Vector256.Create(this.c));
+                }
             }
 
             return this.ConvertParametric(value);
@@ -283,6 +353,7 @@ internal static partial class IccColorConverter
         [MethodImpl(MethodImplOptions.NoInlining)]
         private Vector256<float> ConvertParametric(Vector256<float> value)
         {
+            // Keep the general formula switch out of the identity, gamma, sampled and sRGB conversion methods.
             switch (this.type)
             {
                 case IccParametricCurveType.Type1:
@@ -333,14 +404,6 @@ internal static partial class IccColorConverter
                     return Vector256.ConditionalSelect(active, power, Vector256.Create(-this.b / this.a));
                 }
 
-                case IccParametricCurveType.SRgb | InvertedFlag:
-                {
-                    Vector256<float> active = Vector256.GreaterThanOrEqual(value, Vector256.Create(this.boundary));
-                    Vector256<float> input = Vector256.ConditionalSelect(active, value, Vector256<float>.One);
-                    Vector256<float> power = (this.Pow(input) - Vector256.Create(this.b)) / Vector256.Create(this.a);
-                    return Vector256.ConditionalSelect(active, power, value / Vector256.Create(this.c));
-                }
-
                 case IccParametricCurveType.Type5 | InvertedFlag:
                 {
                     Vector256<float> active = Vector256.GreaterThanOrEqual(value, Vector256.Create(this.boundary));
@@ -371,6 +434,17 @@ internal static partial class IccColorConverter
                     return this.Pow(value);
                 case CurveKind.Sampled:
                     return this.lookup.Convert(value);
+                case CurveKind.SRgb:
+                    return this.ConvertSRgb(value);
+
+                case CurveKind.InverseSRgb:
+                {
+                    // These are the same inverse branches as scalar conversion, using the profile's stored coefficients.
+                    Vector512<float> active = Vector512.GreaterThanOrEqual(value, Vector512.Create(this.boundary));
+                    Vector512<float> input = Vector512.ConditionalSelect(active, value, Vector512<float>.One);
+                    Vector512<float> power = (this.Pow(input) - Vector512.Create(this.b)) / Vector512.Create(this.a);
+                    return Vector512.ConditionalSelect(active, power, value / Vector512.Create(this.c));
+                }
             }
 
             return this.ConvertParametric(value);
@@ -384,6 +458,7 @@ internal static partial class IccColorConverter
         [MethodImpl(MethodImplOptions.NoInlining)]
         private Vector512<float> ConvertParametric(Vector512<float> value)
         {
+            // Keep the general formula switch out of the identity, gamma, sampled and sRGB conversion methods.
             switch (this.type)
             {
                 case IccParametricCurveType.Type1:
@@ -434,14 +509,6 @@ internal static partial class IccColorConverter
                     return Vector512.ConditionalSelect(active, power, Vector512.Create(-this.b / this.a));
                 }
 
-                case IccParametricCurveType.SRgb | InvertedFlag:
-                {
-                    Vector512<float> active = Vector512.GreaterThanOrEqual(value, Vector512.Create(this.boundary));
-                    Vector512<float> input = Vector512.ConditionalSelect(active, value, Vector512<float>.One);
-                    Vector512<float> power = (this.Pow(input) - Vector512.Create(this.b)) / Vector512.Create(this.a);
-                    return Vector512.ConditionalSelect(active, power, value / Vector512.Create(this.c));
-                }
-
                 case IccParametricCurveType.Type5 | InvertedFlag:
                 {
                     Vector512<float> active = Vector512.GreaterThanOrEqual(value, Vector512.Create(this.boundary));
@@ -454,6 +521,62 @@ internal static partial class IccColorConverter
                 default:
                     throw new InvalidIccProfileException("Invalid ICC parametric curve type.");
             }
+        }
+
+        /// <summary>
+        /// Applies the normalized sRGB formula selected during profile setup.
+        /// </summary>
+        /// <param name="value">The input component.</param>
+        /// <returns>The curve result using the profile's own coefficients.</returns>
+        public float ConvertSRgb(float value)
+            => value >= this.d ? this.Pow((this.a * value) + this.b) + this.e : this.c * value;
+
+        /// <summary>
+        /// Applies the selected sRGB formula to 4 independent components without curve-kind dispatch.
+        /// </summary>
+        /// <param name="value">The input component lanes.</param>
+        /// <returns>The curve results using the profile's own coefficients.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> ConvertSRgb(Vector128<float> value)
+        {
+            // Inactive lanes use a safe power base; the final selection keeps their linear result.
+            Vector128<float> active = Vector128.GreaterThanOrEqual(value, Vector128.Create(this.d));
+            Vector128<float> input = (Vector128.Create(this.a) * value) + Vector128.Create(this.b);
+            input = Vector128.ConditionalSelect(active, input, Vector128<float>.One);
+            Vector128<float> power = this.Pow(input);
+            return Vector128.ConditionalSelect(active, power + Vector128.Create(this.e), Vector128.Create(this.c) * value);
+        }
+
+        /// <summary>
+        /// Applies the selected sRGB formula to 8 independent components without curve-kind dispatch.
+        /// </summary>
+        /// <param name="value">The input component lanes.</param>
+        /// <returns>The curve results using the profile's own coefficients.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> ConvertSRgb(Vector256<float> value)
+        {
+            // Inactive lanes use a safe power base; the final selection keeps their linear result.
+            Vector256<float> active = Vector256.GreaterThanOrEqual(value, Vector256.Create(this.d));
+            Vector256<float> input = (Vector256.Create(this.a) * value) + Vector256.Create(this.b);
+            input = Vector256.ConditionalSelect(active, input, Vector256<float>.One);
+            Vector256<float> power = this.Pow(input);
+            return Vector256.ConditionalSelect(active, power + Vector256.Create(this.e), Vector256.Create(this.c) * value);
+        }
+
+        /// <summary>
+        /// Applies the selected sRGB formula to 16 independent components without curve-kind dispatch.
+        /// </summary>
+        /// <param name="value">The input component lanes.</param>
+        /// <returns>The curve results using the profile's own coefficients.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> ConvertSRgb(Vector512<float> value)
+        {
+            // Inactive lanes use a safe power base; the final selection keeps their linear result.
+            Vector512<float> active = Vector512.GreaterThanOrEqual(value, Vector512.Create(this.d));
+            Vector512<float> input = (Vector512.Create(this.a) * value) + Vector512.Create(this.b);
+            input = Vector512.ConditionalSelect(active, input, Vector512<float>.One);
+            Vector512<float> power = this.Pow(input);
+            return Vector512.ConditionalSelect(active, power + Vector512.Create(this.e), Vector512.Create(this.c) * value);
         }
 
         /// <summary>
@@ -475,7 +598,12 @@ internal static partial class IccColorConverter
         /// <returns>The curve powers, retaining values above one.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Vector128<float> Pow(Vector128<float> value)
-            => this.power.Invoke(Vector128.ConditionalSelect(Vector128.LessThan(value, Vector128<float>.Zero), Vector128<float>.Zero, value));
+        {
+            value = Vector128.ConditionalSelect(Vector128.LessThan(value, Vector128<float>.Zero), Vector128<float>.Zero, value);
+
+            // ICC bounds supply nonnegative bases; the shared power operator owns exponent classification and IEEE rules.
+            return this.power.Invoke(value);
+        }
 
         /// <summary>
         /// Applies the ICC power curve to independent component lanes, with the same lower bound as scalar conversion.
@@ -484,7 +612,12 @@ internal static partial class IccColorConverter
         /// <returns>The curve powers, retaining values above one.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Vector256<float> Pow(Vector256<float> value)
-            => this.power.Invoke(Vector256.ConditionalSelect(Vector256.LessThan(value, Vector256<float>.Zero), Vector256<float>.Zero, value));
+        {
+            value = Vector256.ConditionalSelect(Vector256.LessThan(value, Vector256<float>.Zero), Vector256<float>.Zero, value);
+
+            // ICC bounds supply nonnegative bases; the shared power operator owns exponent classification and IEEE rules.
+            return this.power.Invoke(value);
+        }
 
         /// <summary>
         /// Applies the ICC power curve to independent component lanes, with the same lower bound as scalar conversion.
@@ -493,6 +626,11 @@ internal static partial class IccColorConverter
         /// <returns>The curve powers, retaining values above one.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Vector512<float> Pow(Vector512<float> value)
-            => this.power.Invoke(Vector512.ConditionalSelect(Vector512.LessThan(value, Vector512<float>.Zero), Vector512<float>.Zero, value));
+        {
+            value = Vector512.ConditionalSelect(Vector512.LessThan(value, Vector512<float>.Zero), Vector512<float>.Zero, value);
+
+            // ICC bounds supply nonnegative bases; the shared power operator owns exponent classification and IEEE rules.
+            return this.power.Invoke(value);
+        }
     }
 }

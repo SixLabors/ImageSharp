@@ -153,12 +153,17 @@ public class BlackIsZeroTiffColorTests : PhotometricInterpretationTestBase
     public void Decode_WritesPixelData(byte[] inputData, ushort bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
         => AssertDecode(
             expectedResult,
-            pixels => new TiffBitGrayscaleDecoder<Rgba32>(Configuration.Default, bitsPerSample, whiteIsZero: false).Decode(inputData, pixels, left, top, width, height));
+            pixels => new TiffBitGrayscaleDecoder<Rgba32>(
+                Configuration.Default,
+                bitsPerSample,
+                whiteIsZero: false).Decode(inputData, pixels, left, top, width, height));
 
     [Theory]
     [MemberData(nameof(BilevelData))]
     public void Decode_WritesPixelData_Bilevel(byte[] inputData, int bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
-        => AssertDecode(expectedResult, pixels => new TiffBitGrayscaleDecoder<Rgba32>(Configuration.Default, 1, whiteIsZero: false).Decode(inputData, pixels, left, top, width, height));
+        => AssertDecode(
+            expectedResult,
+            pixels => new TiffBitGrayscaleDecoder<Rgba32>(Configuration.Default, 1, whiteIsZero: false).Decode(inputData, pixels, left, top, width, height));
 
     [Theory]
     [MemberData(nameof(Grayscale4_Data))]

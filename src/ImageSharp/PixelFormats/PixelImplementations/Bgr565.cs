@@ -68,6 +68,7 @@ public partial struct Bgr565(Vector3 vector) : IPixel<Bgr565>, IPackedVector<ush
         => PixelTypeInfo.Create<Bgr565>(
             PixelComponentInfo.Create<Bgr565>(3, 5, 6, 5),
             PixelColorType.BGR,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />

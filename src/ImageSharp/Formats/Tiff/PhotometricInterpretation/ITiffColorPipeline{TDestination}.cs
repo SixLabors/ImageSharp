@@ -39,7 +39,13 @@ internal interface ITiffColorPipeline<TDestination>
     /// <param name="source3">The fourth component plane, when used.</param>
     /// <param name="destination">The bounded destination group.</param>
     /// <param name="index">The first pixel of this group.</param>
-    void Convert512(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, Span<TDestination> destination, int index);
+    void Convert512(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        Span<TDestination> destination,
+        int index);
 
     /// <summary>
     /// Processes one complete 256-bit source group.
@@ -50,7 +56,13 @@ internal interface ITiffColorPipeline<TDestination>
     /// <param name="source3">The fourth component plane, when used.</param>
     /// <param name="destination">The bounded destination group.</param>
     /// <param name="index">The first pixel of this group.</param>
-    void Convert256(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, Span<TDestination> destination, int index);
+    void Convert256(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        Span<TDestination> destination,
+        int index);
 
     /// <summary>
     /// Processes one complete 128-bit source group.
@@ -61,7 +73,13 @@ internal interface ITiffColorPipeline<TDestination>
     /// <param name="source3">The fourth component plane, when used.</param>
     /// <param name="destination">The bounded destination group.</param>
     /// <param name="index">The first pixel of this group.</param>
-    void Convert128(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, Span<TDestination> destination, int index);
+    void Convert128(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        Span<TDestination> destination,
+        int index);
 
     /// <summary>
     /// Processes one remaining pixel after the SIMD groups.
@@ -72,5 +90,11 @@ internal interface ITiffColorPipeline<TDestination>
     /// <param name="source3">The fourth component plane, when used.</param>
     /// <param name="destination">The bounded destination group.</param>
     /// <param name="index">The remaining pixel index.</param>
-    void ConvertScalar(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, Span<TDestination> destination, int index);
+    void ConvertScalar(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        Span<TDestination> destination,
+        int index);
 }

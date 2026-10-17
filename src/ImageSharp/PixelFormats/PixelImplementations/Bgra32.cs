@@ -146,6 +146,7 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
         => PixelTypeInfo.Create<Bgra32>(
             PixelComponentInfo.Create<Bgra32>(4, 8, 8, 8, 8),
             PixelColorType.BGR | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc/>

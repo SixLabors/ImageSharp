@@ -264,10 +264,17 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
             },
             modifiers));
 
+        // This test checks row-processing order and alpha handling. Use the scalar companding API with the same
+        // requested precision and range. Separate formula tests check accuracy; table and direct results can pack differently.
+        PixelTypeInfo pixelInfo = TPixel.GetPixelTypeInfo();
+        int componentBitDepth = pixelInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
+
         for (int i = 0; i < pixels.Length; i++)
         {
             Vector4 expected = scaled ? pixels[i].ToUnassociatedScaledVector4() : pixels[i].ToUnassociatedVector4();
-            expected = SRgbCompanding.Expand(expected);
+            expected = scaled
+                ? SRgbCompanding.Expand(expected, componentBitDepth, pixelInfo.ColorRange)
+                : SRgbCompanding.Expand(expected);
 
             if (associated)
             {
@@ -281,7 +288,10 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
                 Numerics.UnPremultiply(ref expected);
             }
 
-            expected = SRgbCompanding.Compress(expected);
+            expected = scaled
+                ? SRgbCompanding.Compress(expected, componentBitDepth, pixelInfo.ColorRange)
+                : SRgbCompanding.Compress(expected);
+
             TPixel expectedPixel = scaled
                 ? TPixel.FromUnassociatedScaledVector4(expected)
                 : TPixel.FromUnassociatedVector4(expected);
@@ -553,43 +563,162 @@ internal static class AlphaRepresentationTestAssertions
     }
 }
 
-public class A8AlphaRepresentationTests : PixelAlphaRepresentationTests<A8> { }
-public class Abgr32AlphaRepresentationTests : PixelAlphaRepresentationTests<Abgr32> { }
-public class Abgr32PAlphaRepresentationTests : PixelAlphaRepresentationTests<Abgr32P> { }
-public class Argb32AlphaRepresentationTests : PixelAlphaRepresentationTests<Argb32> { }
-public class Argb32PAlphaRepresentationTests : PixelAlphaRepresentationTests<Argb32P> { }
-public class Bgr24AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgr24> { }
-public class Bgr565AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgr565> { }
-public class Bgra32AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgra32> { }
-public class Bgra32PAlphaRepresentationTests : PixelAlphaRepresentationTests<Bgra32P> { }
-public class Bgra4444AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgra4444> { }
-public class Bgra5551AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgra5551> { }
-public class Byte4AlphaRepresentationTests : PixelAlphaRepresentationTests<Byte4> { }
-public class HalfSingleAlphaRepresentationTests : PixelAlphaRepresentationTests<HalfSingle> { }
-public class HalfVector2AlphaRepresentationTests : PixelAlphaRepresentationTests<HalfVector2> { }
-public class HalfVector4AlphaRepresentationTests : PixelAlphaRepresentationTests<HalfVector4> { }
-public class HalfVector4PAlphaRepresentationTests : PixelAlphaRepresentationTests<HalfVector4P> { }
-public class L16AlphaRepresentationTests : PixelAlphaRepresentationTests<L16> { }
-public class L8AlphaRepresentationTests : PixelAlphaRepresentationTests<L8> { }
-public class La16AlphaRepresentationTests : PixelAlphaRepresentationTests<La16> { }
-public class La32AlphaRepresentationTests : PixelAlphaRepresentationTests<La32> { }
-public class NormalizedByte2AlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedByte2> { }
-public class NormalizedByte4AlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedByte4> { }
-public class NormalizedByte4PAlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedByte4P> { }
-public class NormalizedShort2AlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedShort2> { }
-public class NormalizedShort4AlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedShort4> { }
-public class Rg32AlphaRepresentationTests : PixelAlphaRepresentationTests<Rg32> { }
-public class Rgb24AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgb24> { }
-public class Rgb48AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgb48> { }
-public class Rgb96AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgb96> { }
-public class Rgba1010102AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba1010102> { }
-public class Rgba128AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba128> { }
-public class Rgba32AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba32> { }
-public class Rgba32PAlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba32P> { }
-public class RgbaHalfAlphaRepresentationTests : PixelAlphaRepresentationTests<RgbaHalf> { }
-public class RgbaHalfPAlphaRepresentationTests : PixelAlphaRepresentationTests<RgbaHalfP> { }
-public class Rgba64AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba64> { }
-public class RgbaVectorAlphaRepresentationTests : PixelAlphaRepresentationTests<RgbaVector> { }
-public class Short2AlphaRepresentationTests : PixelAlphaRepresentationTests<Short2> { }
-public class Short4AlphaRepresentationTests : PixelAlphaRepresentationTests<Short4> { }
-public class RgbaDoubleAlphaRepresentationTests : PixelAlphaRepresentationTests<RgbaDouble> { }
+public class A8AlphaRepresentationTests : PixelAlphaRepresentationTests<A8>
+{
+}
+
+public class Abgr32AlphaRepresentationTests : PixelAlphaRepresentationTests<Abgr32>
+{
+}
+
+public class Abgr32PAlphaRepresentationTests : PixelAlphaRepresentationTests<Abgr32P>
+{
+}
+
+public class Argb32AlphaRepresentationTests : PixelAlphaRepresentationTests<Argb32>
+{
+}
+
+public class Argb32PAlphaRepresentationTests : PixelAlphaRepresentationTests<Argb32P>
+{
+}
+
+public class Bgr24AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgr24>
+{
+}
+
+public class Bgr565AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgr565>
+{
+}
+
+public class Bgra32AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgra32>
+{
+}
+
+public class Bgra32PAlphaRepresentationTests : PixelAlphaRepresentationTests<Bgra32P>
+{
+}
+
+public class Bgra4444AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgra4444>
+{
+}
+
+public class Bgra5551AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgra5551>
+{
+}
+
+public class Byte4AlphaRepresentationTests : PixelAlphaRepresentationTests<Byte4>
+{
+}
+
+public class HalfSingleAlphaRepresentationTests : PixelAlphaRepresentationTests<HalfSingle>
+{
+}
+
+public class HalfVector2AlphaRepresentationTests : PixelAlphaRepresentationTests<HalfVector2>
+{
+}
+
+public class HalfVector4AlphaRepresentationTests : PixelAlphaRepresentationTests<HalfVector4>
+{
+}
+
+public class HalfVector4PAlphaRepresentationTests : PixelAlphaRepresentationTests<HalfVector4P>
+{
+}
+
+public class L16AlphaRepresentationTests : PixelAlphaRepresentationTests<L16>
+{
+}
+
+public class L8AlphaRepresentationTests : PixelAlphaRepresentationTests<L8>
+{
+}
+
+public class La16AlphaRepresentationTests : PixelAlphaRepresentationTests<La16>
+{
+}
+
+public class La32AlphaRepresentationTests : PixelAlphaRepresentationTests<La32>
+{
+}
+
+public class NormalizedByte2AlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedByte2>
+{
+}
+
+public class NormalizedByte4AlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedByte4>
+{
+}
+
+public class NormalizedByte4PAlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedByte4P>
+{
+}
+
+public class NormalizedShort2AlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedShort2>
+{
+}
+
+public class NormalizedShort4AlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedShort4>
+{
+}
+
+public class Rg32AlphaRepresentationTests : PixelAlphaRepresentationTests<Rg32>
+{
+}
+
+public class Rgb24AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgb24>
+{
+}
+
+public class Rgb48AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgb48>
+{
+}
+
+public class Rgb96AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgb96>
+{
+}
+
+public class Rgba1010102AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba1010102>
+{
+}
+
+public class Rgba128AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba128>
+{
+}
+
+public class Rgba32AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba32>
+{
+}
+
+public class Rgba32PAlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba32P>
+{
+}
+
+public class RgbaHalfAlphaRepresentationTests : PixelAlphaRepresentationTests<RgbaHalf>
+{
+}
+
+public class RgbaHalfPAlphaRepresentationTests : PixelAlphaRepresentationTests<RgbaHalfP>
+{
+}
+
+public class Rgba64AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba64>
+{
+}
+
+public class RgbaVectorAlphaRepresentationTests : PixelAlphaRepresentationTests<RgbaVector>
+{
+}
+
+public class Short2AlphaRepresentationTests : PixelAlphaRepresentationTests<Short2>
+{
+}
+
+public class Short4AlphaRepresentationTests : PixelAlphaRepresentationTests<Short4>
+{
+}
+
+public class RgbaDoubleAlphaRepresentationTests : PixelAlphaRepresentationTests<RgbaDouble>
+{
+}

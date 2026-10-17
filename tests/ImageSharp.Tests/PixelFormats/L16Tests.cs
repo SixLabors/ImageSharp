@@ -162,6 +162,7 @@ public class L16Tests
         Assert.Equal(Unsafe.SizeOf<L16>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.Luminance, info.ColorType);
+        Assert.Equal(PixelColorRange.Sdr, info.ColorRange);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(1, componentInfo.ComponentCount);

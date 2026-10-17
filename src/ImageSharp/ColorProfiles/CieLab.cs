@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -138,9 +139,9 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
 
         const float inv116 = 1 / 116F;
 
-        float fx = xr > CieConstants.Epsilon ? MathF.Pow(xr, 0.3333333F) : ((CieConstants.Kappa * xr) + 16F) * inv116;
-        float fy = yr > CieConstants.Epsilon ? MathF.Pow(yr, 0.3333333F) : ((CieConstants.Kappa * yr) + 16F) * inv116;
-        float fz = zr > CieConstants.Epsilon ? MathF.Pow(zr, 0.3333333F) : ((CieConstants.Kappa * zr) + 16F) * inv116;
+        float fx = xr > CieConstants.Epsilon ? new TensorPrimitives_.PowOperator(0.3333333F).Invoke(xr) : ((CieConstants.Kappa * xr) + 16F) * inv116;
+        float fy = yr > CieConstants.Epsilon ? new TensorPrimitives_.PowOperator(0.3333333F).Invoke(yr) : ((CieConstants.Kappa * yr) + 16F) * inv116;
+        float fz = zr > CieConstants.Epsilon ? new TensorPrimitives_.PowOperator(0.3333333F).Invoke(zr) : ((CieConstants.Kappa * zr) + 16F) * inv116;
 
         float l = (116F * fy) - 16F;
         float a = 500F * (fx - fy);
@@ -160,7 +161,7 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
 
         if (Vector512.IsHardwareAccelerated)
         {
-            nuint count = Numerics.Vector512Count<float>(source.Length - i);
+            nuint count = (source.Length - i).Vector512Count<float>();
             for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
             {
                 SimdUtils.Deinterleave3(packed, i, out Vector512<float> x, out Vector512<float> y, out Vector512<float> z);
@@ -171,7 +172,7 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
 
         if (Vector256.IsHardwareAccelerated)
         {
-            nuint count = Numerics.Vector256Count<float>(source.Length - i);
+            nuint count = (source.Length - i).Vector256Count<float>();
             for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
             {
                 SimdUtils.Deinterleave3(packed, i, out Vector256<float> x, out Vector256<float> y, out Vector256<float> z);
@@ -182,7 +183,7 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
 
         if (Vector128.IsHardwareAccelerated)
         {
-            nuint count = Numerics.Vector128Count<float>(source.Length - i);
+            nuint count = (source.Length - i).Vector128Count<float>();
             for (nuint block = 0; block < count; block++, i += Vector128<float>.Count)
             {
                 SimdUtils.Deinterleave3(packed, i, out Vector128<float> x, out Vector128<float> y, out Vector128<float> z);
@@ -204,17 +205,19 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
     public CieXyz ToProfileConnectingSpace(ColorConversionOptions options)
     {
         // Conversion algorithm described here: http://www.brucelindbloom.com/index.html?Eqn_Lab_to_XYZ.html
+        // Match the SIMD paths' reciprocal multiplication and operation order for scalar remainders.
+        const float inverseKappa = 1F / CieConstants.Kappa;
         float l = this.L, a = this.A, b = this.B;
-        float fy = (l + 16) / 116F;
-        float fx = (a / 500F) + fy;
-        float fz = fy - (b / 200F);
+        float fy = (l + 16F) * (1F / 116F);
+        float fx = (a * (1F / 500F)) + fy;
+        float fz = fy - (b * (1F / 200F));
 
         float fx3 = Numerics.Pow3(fx);
         float fz3 = Numerics.Pow3(fz);
 
-        float xr = fx3 > CieConstants.Epsilon ? fx3 : ((116F * fx) - 16F) / CieConstants.Kappa;
-        float yr = l > CieConstants.Kappa * CieConstants.Epsilon ? Numerics.Pow3((l + 16F) / 116F) : l / CieConstants.Kappa;
-        float zr = fz3 > CieConstants.Epsilon ? fz3 : ((116F * fz) - 16F) / CieConstants.Kappa;
+        float xr = fx3 > CieConstants.Epsilon ? fx3 : ((116F * fx) - 16F) * inverseKappa;
+        float yr = l > CieConstants.Kappa * CieConstants.Epsilon ? Numerics.Pow3(fy) : l * inverseKappa;
+        float zr = fz3 > CieConstants.Epsilon ? fz3 : ((116F * fz) - 16F) * inverseKappa;
 
         CieXyz whitePoint = options.SourceWhitePoint;
         Vector3 wxyz = new(whitePoint.X, whitePoint.Y, whitePoint.Z);
@@ -234,7 +237,7 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
 
         if (Vector512.IsHardwareAccelerated)
         {
-            nuint count = Numerics.Vector512Count<float>(source.Length - i);
+            nuint count = (source.Length - i).Vector512Count<float>();
             for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
             {
                 SimdUtils.Deinterleave3(packed, i, out Vector512<float> x, out Vector512<float> y, out Vector512<float> z);
@@ -245,7 +248,7 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
 
         if (Vector256.IsHardwareAccelerated)
         {
-            nuint count = Numerics.Vector256Count<float>(source.Length - i);
+            nuint count = (source.Length - i).Vector256Count<float>();
             for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
             {
                 SimdUtils.Deinterleave3(packed, i, out Vector256<float> x, out Vector256<float> y, out Vector256<float> z);
@@ -256,7 +259,7 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
 
         if (Vector128.IsHardwareAccelerated)
         {
-            nuint count = Numerics.Vector128Count<float>(source.Length - i);
+            nuint count = (source.Length - i).Vector128Count<float>();
             for (nuint block = 0; block < count; block++, i += Vector128<float>.Count)
             {
                 SimdUtils.Deinterleave3(packed, i, out Vector128<float> x, out Vector128<float> y, out Vector128<float> z);
@@ -282,23 +285,24 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void ToProfileConnectionSpace(ref Vector128<float> l, ref Vector128<float> a, ref Vector128<float> b, in CieXyz whitePoint)
     {
-        // Keep Lab's linear/cubic branch tests before multiplying by the reference white.
+        // All divisors are fixed Lab constants. Their reciprocals avoid vector division in each color block.
+        // Keep the linear/cubic branch tests before multiplying by the reference white.
         Vector128<float> sixteen = Vector128.Create(16F);
         Vector128<float> oneHundredSixteen = Vector128.Create(116F);
-        Vector128<float> kappa = Vector128.Create(CieConstants.Kappa);
+        Vector128<float> inverseKappa = Vector128.Create(1F / CieConstants.Kappa);
         Vector128<float> epsilon = Vector128.Create(CieConstants.Epsilon);
-        Vector128<float> fy = (l + sixteen) / oneHundredSixteen;
-        Vector128<float> fx = (a / Vector128.Create(500F)) + fy;
-        Vector128<float> fz = fy - (b / Vector128.Create(200F));
+        Vector128<float> fy = (l + sixteen) * Vector128.Create(1F / 116F);
+        Vector128<float> fx = (a * Vector128.Create(1F / 500F)) + fy;
+        Vector128<float> fz = fy - (b * Vector128.Create(1F / 200F));
         Vector128<float> fx3 = (fx * fx) * fx;
         Vector128<float> fz3 = (fz * fz) * fz;
-        Vector128<float> x = Vector128.ConditionalSelect(Vector128.GreaterThan(fx3, epsilon), fx3, ((oneHundredSixteen * fx) - sixteen) / kappa);
+        Vector128<float> x = Vector128.ConditionalSelect(Vector128.GreaterThan(fx3, epsilon), fx3, ((oneHundredSixteen * fx) - sixteen) * inverseKappa);
         Vector128<float> y = Vector128.ConditionalSelect(
             Vector128.GreaterThan(l, Vector128.Create(CieConstants.Kappa * CieConstants.Epsilon)),
             (fy * fy) * fy,
-            l / kappa);
+            l * inverseKappa);
 
-        Vector128<float> z = Vector128.ConditionalSelect(Vector128.GreaterThan(fz3, epsilon), fz3, ((oneHundredSixteen * fz) - sixteen) / kappa);
+        Vector128<float> z = Vector128.ConditionalSelect(Vector128.GreaterThan(fz3, epsilon), fz3, ((oneHundredSixteen * fz) - sixteen) * inverseKappa);
         l = x * Vector128.Create(whitePoint.X);
         a = y * Vector128.Create(whitePoint.Y);
         b = z * Vector128.Create(whitePoint.Z);
@@ -326,15 +330,15 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
         Vector128<float> zCubic = Vector128.GreaterThan(zr, epsilon);
 
         // Inactive lanes use one as the power base, keeping negative linear values out of logarithms.
-        // The shared float power kernel uses double intermediates. Retain the scalar exponent before subtracting near-equal roots.
+        // Use the scalar cube-root exponent in the shared single-precision SIMD power kernel.
         Vector128<float> xBase = Vector128.ConditionalSelect(xCubic, xr, Vector128<float>.One);
-        Vector128<float> fx = Numerics.Pow(xBase, 0.3333333F);
+        Vector128<float> fx = Vector128_.Pow(xBase, 0.3333333F);
 
         Vector128<float> yBase = Vector128.ConditionalSelect(yCubic, yr, Vector128<float>.One);
-        Vector128<float> fy = Numerics.Pow(yBase, 0.3333333F);
+        Vector128<float> fy = Vector128_.Pow(yBase, 0.3333333F);
 
         Vector128<float> zBase = Vector128.ConditionalSelect(zCubic, zr, Vector128<float>.One);
-        Vector128<float> fz = Numerics.Pow(zBase, 0.3333333F);
+        Vector128<float> fz = Vector128_.Pow(zBase, 0.3333333F);
         fx = Vector128.ConditionalSelect(xCubic, fx, ((kappa * xr) + sixteen) * inv116);
         fy = Vector128.ConditionalSelect(yCubic, fy, ((kappa * yr) + sixteen) * inv116);
         fz = Vector128.ConditionalSelect(zCubic, fz, ((kappa * zr) + sixteen) * inv116);
@@ -353,23 +357,24 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void ToProfileConnectionSpace(ref Vector256<float> l, ref Vector256<float> a, ref Vector256<float> b, in CieXyz whitePoint)
     {
-        // Keep Lab's linear/cubic branch tests before multiplying by the reference white.
+        // All divisors are fixed Lab constants. Their reciprocals avoid vector division in each color block.
+        // Keep the linear/cubic branch tests before multiplying by the reference white.
         Vector256<float> sixteen = Vector256.Create(16F);
         Vector256<float> oneHundredSixteen = Vector256.Create(116F);
-        Vector256<float> kappa = Vector256.Create(CieConstants.Kappa);
+        Vector256<float> inverseKappa = Vector256.Create(1F / CieConstants.Kappa);
         Vector256<float> epsilon = Vector256.Create(CieConstants.Epsilon);
-        Vector256<float> fy = (l + sixteen) / oneHundredSixteen;
-        Vector256<float> fx = (a / Vector256.Create(500F)) + fy;
-        Vector256<float> fz = fy - (b / Vector256.Create(200F));
+        Vector256<float> fy = (l + sixteen) * Vector256.Create(1F / 116F);
+        Vector256<float> fx = (a * Vector256.Create(1F / 500F)) + fy;
+        Vector256<float> fz = fy - (b * Vector256.Create(1F / 200F));
         Vector256<float> fx3 = (fx * fx) * fx;
         Vector256<float> fz3 = (fz * fz) * fz;
-        Vector256<float> x = Vector256.ConditionalSelect(Vector256.GreaterThan(fx3, epsilon), fx3, ((oneHundredSixteen * fx) - sixteen) / kappa);
+        Vector256<float> x = Vector256.ConditionalSelect(Vector256.GreaterThan(fx3, epsilon), fx3, ((oneHundredSixteen * fx) - sixteen) * inverseKappa);
         Vector256<float> y = Vector256.ConditionalSelect(
             Vector256.GreaterThan(l, Vector256.Create(CieConstants.Kappa * CieConstants.Epsilon)),
             (fy * fy) * fy,
-            l / kappa);
+            l * inverseKappa);
 
-        Vector256<float> z = Vector256.ConditionalSelect(Vector256.GreaterThan(fz3, epsilon), fz3, ((oneHundredSixteen * fz) - sixteen) / kappa);
+        Vector256<float> z = Vector256.ConditionalSelect(Vector256.GreaterThan(fz3, epsilon), fz3, ((oneHundredSixteen * fz) - sixteen) * inverseKappa);
         l = x * Vector256.Create(whitePoint.X);
         a = y * Vector256.Create(whitePoint.Y);
         b = z * Vector256.Create(whitePoint.Z);
@@ -397,15 +402,15 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
         Vector256<float> zCubic = Vector256.GreaterThan(zr, epsilon);
 
         // Inactive lanes use one as the power base, keeping negative linear values out of logarithms.
-        // The shared float power kernel uses double intermediates. Retain the scalar exponent before subtracting near-equal roots.
+        // Use the scalar cube-root exponent in the shared single-precision SIMD power kernel.
         Vector256<float> xBase = Vector256.ConditionalSelect(xCubic, xr, Vector256<float>.One);
-        Vector256<float> fx = Numerics.Pow(xBase, 0.3333333F);
+        Vector256<float> fx = Vector256_.Pow(xBase, 0.3333333F);
 
         Vector256<float> yBase = Vector256.ConditionalSelect(yCubic, yr, Vector256<float>.One);
-        Vector256<float> fy = Numerics.Pow(yBase, 0.3333333F);
+        Vector256<float> fy = Vector256_.Pow(yBase, 0.3333333F);
 
         Vector256<float> zBase = Vector256.ConditionalSelect(zCubic, zr, Vector256<float>.One);
-        Vector256<float> fz = Numerics.Pow(zBase, 0.3333333F);
+        Vector256<float> fz = Vector256_.Pow(zBase, 0.3333333F);
         fx = Vector256.ConditionalSelect(xCubic, fx, ((kappa * xr) + sixteen) * inv116);
         fy = Vector256.ConditionalSelect(yCubic, fy, ((kappa * yr) + sixteen) * inv116);
         fz = Vector256.ConditionalSelect(zCubic, fz, ((kappa * zr) + sixteen) * inv116);
@@ -424,23 +429,24 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void ToProfileConnectionSpace(ref Vector512<float> l, ref Vector512<float> a, ref Vector512<float> b, in CieXyz whitePoint)
     {
-        // Keep Lab's linear/cubic branch tests before multiplying by the reference white.
+        // All divisors are fixed Lab constants. Their reciprocals avoid vector division in each color block.
+        // Keep the linear/cubic branch tests before multiplying by the reference white.
         Vector512<float> sixteen = Vector512.Create(16F);
         Vector512<float> oneHundredSixteen = Vector512.Create(116F);
-        Vector512<float> kappa = Vector512.Create(CieConstants.Kappa);
+        Vector512<float> inverseKappa = Vector512.Create(1F / CieConstants.Kappa);
         Vector512<float> epsilon = Vector512.Create(CieConstants.Epsilon);
-        Vector512<float> fy = (l + sixteen) / oneHundredSixteen;
-        Vector512<float> fx = (a / Vector512.Create(500F)) + fy;
-        Vector512<float> fz = fy - (b / Vector512.Create(200F));
+        Vector512<float> fy = (l + sixteen) * Vector512.Create(1F / 116F);
+        Vector512<float> fx = (a * Vector512.Create(1F / 500F)) + fy;
+        Vector512<float> fz = fy - (b * Vector512.Create(1F / 200F));
         Vector512<float> fx3 = (fx * fx) * fx;
         Vector512<float> fz3 = (fz * fz) * fz;
-        Vector512<float> x = Vector512.ConditionalSelect(Vector512.GreaterThan(fx3, epsilon), fx3, ((oneHundredSixteen * fx) - sixteen) / kappa);
+        Vector512<float> x = Vector512.ConditionalSelect(Vector512.GreaterThan(fx3, epsilon), fx3, ((oneHundredSixteen * fx) - sixteen) * inverseKappa);
         Vector512<float> y = Vector512.ConditionalSelect(
             Vector512.GreaterThan(l, Vector512.Create(CieConstants.Kappa * CieConstants.Epsilon)),
             (fy * fy) * fy,
-            l / kappa);
+            l * inverseKappa);
 
-        Vector512<float> z = Vector512.ConditionalSelect(Vector512.GreaterThan(fz3, epsilon), fz3, ((oneHundredSixteen * fz) - sixteen) / kappa);
+        Vector512<float> z = Vector512.ConditionalSelect(Vector512.GreaterThan(fz3, epsilon), fz3, ((oneHundredSixteen * fz) - sixteen) * inverseKappa);
         l = x * Vector512.Create(whitePoint.X);
         a = y * Vector512.Create(whitePoint.Y);
         b = z * Vector512.Create(whitePoint.Z);
@@ -468,15 +474,15 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
         Vector512<float> zCubic = Vector512.GreaterThan(zr, epsilon);
 
         // Inactive lanes use one as the power base, keeping negative linear values out of logarithms.
-        // The shared float power kernel uses double intermediates. Retain the scalar exponent before subtracting near-equal roots.
+        // Use the scalar cube-root exponent in the shared single-precision SIMD power kernel.
         Vector512<float> xBase = Vector512.ConditionalSelect(xCubic, xr, Vector512<float>.One);
-        Vector512<float> fx = Numerics.Pow(xBase, 0.3333333F);
+        Vector512<float> fx = Vector512_.Pow(xBase, 0.3333333F);
 
         Vector512<float> yBase = Vector512.ConditionalSelect(yCubic, yr, Vector512<float>.One);
-        Vector512<float> fy = Numerics.Pow(yBase, 0.3333333F);
+        Vector512<float> fy = Vector512_.Pow(yBase, 0.3333333F);
 
         Vector512<float> zBase = Vector512.ConditionalSelect(zCubic, zr, Vector512<float>.One);
-        Vector512<float> fz = Numerics.Pow(zBase, 0.3333333F);
+        Vector512<float> fz = Vector512_.Pow(zBase, 0.3333333F);
         fx = Vector512.ConditionalSelect(xCubic, fx, ((kappa * xr) + sixteen) * inv116);
         fy = Vector512.ConditionalSelect(yCubic, fy, ((kappa * yr) + sixteen) * inv116);
         fz = Vector512.ConditionalSelect(zCubic, fz, ((kappa * zr) + sixteen) * inv116);

@@ -34,7 +34,16 @@ internal interface ITiffColorSource<TSample>
     /// <param name="c1">The second decoded component.</param>
     /// <param name="c2">The third decoded component.</param>
     /// <param name="c3">The fourth decoded component.</param>
-    void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out TSample c0, out TSample c1, out TSample c2, out TSample c3);
+    void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out TSample c0,
+        out TSample c1,
+        out TSample c2,
+        out TSample c3);
 
     /// <summary>
     /// Reads one 128-bit group in the component units and register layout defined by this source.
@@ -48,7 +57,16 @@ internal interface ITiffColorSource<TSample>
     /// <param name="c1">The second decoded register.</param>
     /// <param name="c2">The third decoded register.</param>
     /// <param name="c3">The fourth decoded register.</param>
-    void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector128<TSample> c0, out Vector128<TSample> c1, out Vector128<TSample> c2, out Vector128<TSample> c3);
+    void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector128<TSample> c0,
+        out Vector128<TSample> c1,
+        out Vector128<TSample> c2,
+        out Vector128<TSample> c3);
 
     /// <summary>
     /// Reads one 256-bit group in the component units and register layout defined by this source.
@@ -62,7 +80,16 @@ internal interface ITiffColorSource<TSample>
     /// <param name="c1">The second decoded register.</param>
     /// <param name="c2">The third decoded register.</param>
     /// <param name="c3">The fourth decoded register.</param>
-    void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector256<TSample> c0, out Vector256<TSample> c1, out Vector256<TSample> c2, out Vector256<TSample> c3);
+    void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector256<TSample> c0,
+        out Vector256<TSample> c1,
+        out Vector256<TSample> c2,
+        out Vector256<TSample> c3);
 
     /// <summary>
     /// Reads one 512-bit group in the component units and register layout defined by this source.
@@ -76,5 +103,14 @@ internal interface ITiffColorSource<TSample>
     /// <param name="c1">The second decoded register.</param>
     /// <param name="c2">The third decoded register.</param>
     /// <param name="c3">The fourth decoded register.</param>
-    void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector512<TSample> c0, out Vector512<TSample> c1, out Vector512<TSample> c2, out Vector512<TSample> c3);
+    void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector512<TSample> c0,
+        out Vector512<TSample> c1,
+        out Vector512<TSample> c2,
+        out Vector512<TSample> c3);
 }

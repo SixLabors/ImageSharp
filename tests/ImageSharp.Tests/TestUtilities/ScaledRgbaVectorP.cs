@@ -81,6 +81,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
         => PixelTypeInfo.Create<ScaledRgbaVectorP>(
             PixelComponentInfo.Create<ScaledRgbaVectorP>(4, 32, 32, 32, 32),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Associated);
 
     public static PixelOperations<ScaledRgbaVectorP> CreatePixelOperations() => new ScaledPixelOperations();

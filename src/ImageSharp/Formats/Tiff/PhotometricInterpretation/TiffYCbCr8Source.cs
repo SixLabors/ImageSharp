@@ -26,7 +26,16 @@ internal readonly struct TiffYCbCr8Source : ITiffColorSource<float>
     public int ComponentCount => 3;
 
     /// <inheritdoc />
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out float c0, out float c1, out float c2, out float c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out float c0,
+        out float c1,
+        out float c2,
+        out float c3)
     {
         int offset = index * this.BytesPerPixel;
         c0 = source0[offset];
@@ -36,7 +45,16 @@ internal readonly struct TiffYCbCr8Source : ITiffColorSource<float>
     }
 
     /// <inheritdoc />
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector128<float> c0, out Vector128<float> c1, out Vector128<float> c2, out Vector128<float> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector128<float> c0,
+        out Vector128<float> c1,
+        out Vector128<float> c2,
+        out Vector128<float> c3)
     {
         Vector128<byte> y;
         Vector128<byte> cb;
@@ -53,7 +71,12 @@ internal readonly struct TiffYCbCr8Source : ITiffColorSource<float>
         {
             // Four packed pixels occupy exactly twelve bytes; the last word is zero padding.
             ReadOnlySpan<byte> packed = source0.Slice(index * 3);
-            Vector128<byte> samples = Vector128.Create(MemoryMarshal.Read<uint>(packed), MemoryMarshal.Read<uint>(packed.Slice(4)), MemoryMarshal.Read<uint>(packed.Slice(8)), 0U).AsByte();
+            Vector128<byte> samples = Vector128.Create(
+                MemoryMarshal.Read<uint>(packed),
+                MemoryMarshal.Read<uint>(packed.Slice(4)),
+                MemoryMarshal.Read<uint>(packed.Slice(8)),
+                0U).AsByte();
+
             y = Vector128.Shuffle(samples, Vector128.Create((byte)0, 3, 6, 9, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16));
             cb = Vector128.Shuffle(samples, Vector128.Create((byte)1, 4, 7, 10, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16));
             cr = Vector128.Shuffle(samples, Vector128.Create((byte)2, 5, 8, 11, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16));
@@ -66,10 +89,39 @@ internal readonly struct TiffYCbCr8Source : ITiffColorSource<float>
     }
 
     /// <inheritdoc />
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector256<float> c0, out Vector256<float> c1, out Vector256<float> c2, out Vector256<float> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector256<float> c0,
+        out Vector256<float> c1,
+        out Vector256<float> c2,
+        out Vector256<float> c3)
     {
-        this.Read(source0, source1, source2, source3, index, out Vector128<float> y0, out Vector128<float> cb0, out Vector128<float> cr0, out Vector128<float> a0);
-        this.Read(source0, source1, source2, source3, index + 4, out Vector128<float> y1, out Vector128<float> cb1, out Vector128<float> cr1, out Vector128<float> a1);
+        this.Read(
+            source0,
+            source1,
+            source2,
+            source3,
+            index,
+            out Vector128<float> y0,
+            out Vector128<float> cb0,
+            out Vector128<float> cr0,
+            out Vector128<float> a0);
+
+        this.Read(
+            source0,
+            source1,
+            source2,
+            source3,
+            index + 4,
+            out Vector128<float> y1,
+            out Vector128<float> cb1,
+            out Vector128<float> cr1,
+            out Vector128<float> a1);
+
         c0 = Vector256.Create(y0, y1);
         c1 = Vector256.Create(cb0, cb1);
         c2 = Vector256.Create(cr0, cr1);
@@ -77,10 +129,39 @@ internal readonly struct TiffYCbCr8Source : ITiffColorSource<float>
     }
 
     /// <inheritdoc />
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector512<float> c0, out Vector512<float> c1, out Vector512<float> c2, out Vector512<float> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector512<float> c0,
+        out Vector512<float> c1,
+        out Vector512<float> c2,
+        out Vector512<float> c3)
     {
-        this.Read(source0, source1, source2, source3, index, out Vector256<float> y0, out Vector256<float> cb0, out Vector256<float> cr0, out Vector256<float> a0);
-        this.Read(source0, source1, source2, source3, index + 8, out Vector256<float> y1, out Vector256<float> cb1, out Vector256<float> cr1, out Vector256<float> a1);
+        this.Read(
+            source0,
+            source1,
+            source2,
+            source3,
+            index,
+            out Vector256<float> y0,
+            out Vector256<float> cb0,
+            out Vector256<float> cr0,
+            out Vector256<float> a0);
+
+        this.Read(
+            source0,
+            source1,
+            source2,
+            source3,
+            index + 8,
+            out Vector256<float> y1,
+            out Vector256<float> cb1,
+            out Vector256<float> cr1,
+            out Vector256<float> a1);
+
         c0 = Vector512.Create(y0, y1);
         c1 = Vector512.Create(cb0, cb1);
         c2 = Vector512.Create(cr0, cr1);

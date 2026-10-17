@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Tests.TestDataIcc.Conversion;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using static SixLabors.ImageSharp.ColorProfiles.Icc.IccColorConverter;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles.Icc.Operators;
@@ -12,6 +14,83 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles.Icc.Operators;
 [Trait("Color", "Conversion")]
 public class IccLutOperatorTests
 {
+    /// <summary>
+    /// Checks homogeneous first-sample lookups with each supported SIMD width and scalar conversion.
+    /// </summary>
+    [Fact]
+    public void ForwardLookup_FirstSample_MatchesAllWidths() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckFirstSample,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks the first table value for zero and values that clamp to zero.
+    /// </summary>
+    private static void CheckFirstSample()
+    {
+        // A nonzero first sample distinguishes reading the endpoint from returning the bounded input.
+        LutOperator calculator = new([0.25F, 0.5F, 0.75F], inverse: false);
+        ReadOnlySpan<float> inputs = [0F, -0F, -1F, float.NegativeInfinity, float.NaN];
+
+        foreach (float input in inputs)
+        {
+            Assert.Equal(0.25F, calculator.Convert(input));
+
+            // Direct operator calls obey the same hardware-width selection as the shared converter.
+            if (Vector128.IsHardwareAccelerated)
+            {
+                Assert.Equal(Vector128.Create(0.25F), calculator.Convert(Vector128.Create(input)));
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                Assert.Equal(Vector256.Create(0.25F), calculator.Convert(Vector256.Create(input)));
+            }
+
+            if (Vector512.IsHardwareAccelerated)
+            {
+                Assert.Equal(Vector512.Create(0.25F), calculator.Convert(Vector512.Create(input)));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks the final sample when its index cannot be represented exactly as a float.
+    /// </summary>
+    [Fact]
+    public void ForwardLookup_LongTable_ReturnsLastSample() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckLongTableEndpoint,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks scalar and SIMD endpoint reads beyond the float's consecutive-integer range.
+    /// </summary>
+    private static void CheckLongTableEndpoint()
+    {
+        // Binary32 represents every integer through 2^24. This table's last index is 2^24 + 3,
+        // which rounds up to the array length. The lookup must still read its actual last sample.
+        float[] table = new float[(1 << 24) + 4];
+        table[^1] = 0.75F;
+        LutOperator calculator = new(table, inverse: false);
+
+        Assert.Equal(0.75F, calculator.Convert(1F));
+
+        // Direct operator calls obey the same hardware-width selection as the shared converter.
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Assert.Equal(Vector128.Create(0.75F), calculator.Convert(Vector128<float>.One));
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Assert.Equal(Vector256.Create(0.75F), calculator.Convert(Vector256<float>.One));
+        }
+
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Assert.Equal(Vector512.Create(0.75F), calculator.Convert(Vector512<float>.One));
+        }
+    }
+
     /// <summary>
     /// Verifies that forward lookup saturates at the table endpoints outside its normalized domain.
     /// </summary>

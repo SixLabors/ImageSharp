@@ -35,7 +35,16 @@ internal readonly struct TiffFloat32Source : ITiffColorSource<float>
     public int ComponentCount => this.hasAlpha ? 4 : 3;
 
     /// <inheritdoc />
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out float c0, out float c1, out float c2, out float c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out float c0,
+        out float c1,
+        out float c2,
+        out float c3)
     {
         ReadOnlySpan<uint> samples = MemoryMarshal.Cast<byte, uint>(source0);
         int offset = index * this.ComponentCount;
@@ -63,7 +72,16 @@ internal readonly struct TiffFloat32Source : ITiffColorSource<float>
     }
 
     /// <inheritdoc />
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector128<float> c0, out Vector128<float> c1, out Vector128<float> c2, out Vector128<float> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector128<float> c0,
+        out Vector128<float> c1,
+        out Vector128<float> c2,
+        out Vector128<float> c3)
     {
         ref uint first = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, uint>(source0));
         ref uint group = ref Unsafe.Add(ref first, index * this.ComponentCount);
@@ -110,10 +128,39 @@ internal readonly struct TiffFloat32Source : ITiffColorSource<float>
     }
 
     /// <inheritdoc />
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector256<float> c0, out Vector256<float> c1, out Vector256<float> c2, out Vector256<float> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector256<float> c0,
+        out Vector256<float> c1,
+        out Vector256<float> c2,
+        out Vector256<float> c3)
     {
-        this.Read(source0, source1, source2, source3, index, out Vector128<float> r0, out Vector128<float> g0, out Vector128<float> b0, out Vector128<float> a0);
-        this.Read(source0, source1, source2, source3, index + 4, out Vector128<float> r1, out Vector128<float> g1, out Vector128<float> b1, out Vector128<float> a1);
+        this.Read(
+            source0,
+            source1,
+            source2,
+            source3,
+            index,
+            out Vector128<float> r0,
+            out Vector128<float> g0,
+            out Vector128<float> b0,
+            out Vector128<float> a0);
+
+        this.Read(
+            source0,
+            source1,
+            source2,
+            source3,
+            index + 4,
+            out Vector128<float> r1,
+            out Vector128<float> g1,
+            out Vector128<float> b1,
+            out Vector128<float> a1);
+
         c0 = Vector256.Create(r0, r1);
         c1 = Vector256.Create(g0, g1);
         c2 = Vector256.Create(b0, b1);
@@ -121,10 +168,39 @@ internal readonly struct TiffFloat32Source : ITiffColorSource<float>
     }
 
     /// <inheritdoc />
-    public void Read(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, int index, out Vector512<float> c0, out Vector512<float> c1, out Vector512<float> c2, out Vector512<float> c3)
+    public void Read(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        int index,
+        out Vector512<float> c0,
+        out Vector512<float> c1,
+        out Vector512<float> c2,
+        out Vector512<float> c3)
     {
-        this.Read(source0, source1, source2, source3, index, out Vector256<float> r0, out Vector256<float> g0, out Vector256<float> b0, out Vector256<float> a0);
-        this.Read(source0, source1, source2, source3, index + 8, out Vector256<float> r1, out Vector256<float> g1, out Vector256<float> b1, out Vector256<float> a1);
+        this.Read(
+            source0,
+            source1,
+            source2,
+            source3,
+            index,
+            out Vector256<float> r0,
+            out Vector256<float> g0,
+            out Vector256<float> b0,
+            out Vector256<float> a0);
+
+        this.Read(
+            source0,
+            source1,
+            source2,
+            source3,
+            index + 8,
+            out Vector256<float> r1,
+            out Vector256<float> g1,
+            out Vector256<float> b1,
+            out Vector256<float> a1);
+
         c0 = Vector512.Create(r0, r1);
         c1 = Vector512.Create(g0, g1);
         c2 = Vector512.Create(b0, b1);

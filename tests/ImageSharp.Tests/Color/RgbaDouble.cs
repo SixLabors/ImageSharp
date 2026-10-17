@@ -116,6 +116,7 @@ public struct RgbaDouble : IPixel<RgbaDouble>
         => PixelTypeInfo.Create<RgbaDouble>(
             PixelComponentInfo.Create<RgbaDouble>(4, 64, 64, 64, 64),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Extended,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />

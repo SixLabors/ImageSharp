@@ -101,6 +101,7 @@ public partial struct Rgb48 : IPixel<Rgb48>
         => PixelTypeInfo.Create<Rgb48>(
             PixelComponentInfo.Create<Rgb48>(3, 16, 16, 16),
             PixelColorType.RGB,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />

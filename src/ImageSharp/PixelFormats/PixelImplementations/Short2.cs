@@ -107,6 +107,7 @@ public partial struct Short2 : IPixel<Short2>, IPackedVector<uint>
         => PixelTypeInfo.Create<Short2>(
             PixelComponentInfo.Create<Short2>(2, 16, 16),
             PixelColorType.Red | PixelColorType.Green,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />

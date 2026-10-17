@@ -57,7 +57,7 @@ public static partial class SRgbCompanding
             float magnitude = MathF.Abs(value);
             float result = magnitude <= this.threshold
                 ? magnitude / LinearSlope
-                : MathF.Pow((magnitude + this.offset) / this.scale, Exponent);
+                : new TensorPrimitives_.PowOperator(Exponent).Invoke((magnitude + this.offset) / this.scale);
             return MathF.CopySign(result, value);
         }
 
@@ -129,7 +129,7 @@ public static partial class SRgbCompanding
             float magnitude = MathF.Abs(value);
             float result = magnitude <= this.threshold
                 ? magnitude * LinearSlope
-                : (this.scale * MathF.Pow(magnitude, 1F / Exponent)) - this.offset;
+                : (this.scale * new TensorPrimitives_.PowOperator(1F / Exponent).Invoke(magnitude)) - this.offset;
             return MathF.CopySign(result, value);
         }
 

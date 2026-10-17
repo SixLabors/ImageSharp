@@ -12,6 +12,9 @@ public class CieLchAndCieXyyConversionTests
 {
     private static readonly ApproximateColorProfileComparer Comparer = new(.0003f);
 
+    // These conversions evaluate approximate powers. Scaled components give the error bound the same units across color models.
+    private static readonly ApproximateColorProfileComparer CompandingComparer = new(5E-4F, scaled: true);
+
     [Theory]
     [InlineData(0, 0, 0, 0, 0, 0)]
     [InlineData(36.0555, 103.6901, 10.01514, 0.67641, 0.22770, 0.09037)]
@@ -60,11 +63,11 @@ public class CieLchAndCieXyyConversionTests
         converter.Convert<CieXyy, CieLch>(inputSpan, actualSpan);
 
         // Assert
-        Assert.Equal(expected, actual, Comparer);
+        Assert.Equal(expected, actual, CompandingComparer);
 
         for (int i = 0; i < actualSpan.Length; i++)
         {
-            Assert.Equal(expected, actualSpan[i], Comparer);
+            Assert.Equal(expected, actualSpan[i], CompandingComparer);
         }
     }
 }

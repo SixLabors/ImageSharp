@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
+using SixLabors.ImageSharp.PixelFormats;
 using static SixLabors.ImageSharp.ColorProfiles.Companding.CompandingVectorOperations;
 
 namespace SixLabors.ImageSharp.ColorProfiles.Companding;
@@ -103,14 +104,17 @@ internal static partial class CicpCompanding
     private const float HlgC = 0.55991073F;
 
     /// <summary>
-    /// Expands RGB with the H.273 curve. Eight-bit conversion uses bounded tables. Higher precision uses direct arithmetic.
+    /// Expands RGB with the H.273 curve. Eight-bit SDR conversion uses tables. Other ranges and precisions use direct arithmetic.
     /// </summary>
     /// <param name="values">The colors to transform in place. Alpha remains unchanged.</param>
     /// <param name="transferCharacteristics">The signaled transfer curve.</param>
-    /// <param name="bitDepth">The required precision per color component. Only eight-bit conversion uses lookup tables.</param>
-    public static void Expand(Span<Vector4> values, CicpTransferCharacteristics transferCharacteristics, int bitDepth)
+    /// <param name="bitDepth">The required precision per color component.</param>
+    /// <param name="colorRange">The input color range. Only eight-bit SDR conversion clips RGB to [0,1] and uses lookup tables.</param>
+    public static void Expand(Span<Vector4> values, CicpTransferCharacteristics transferCharacteristics, int bitDepth, PixelColorRange colorRange)
     {
-        if (bitDepth == 8)
+        // H.273 includes power and logarithmic curves that lose precision with table interpolation.
+        // Retain the eight-bit SDR limit until each curve is verified at higher precision.
+        if (bitDepth == 8 && colorRange == PixelColorRange.Sdr)
         {
             CompandingUtilities.Compand(values, CompandingUtilities.GetExpandLookupTable<CicpCompandingKey>(ExpandFunction, (int)transferCharacteristics));
         }
@@ -121,15 +125,18 @@ internal static partial class CicpCompanding
     }
 
     /// <summary>
-    /// Expands RGB with the H.273 curve. Eight-bit conversion uses bounded tables. Higher precision uses direct arithmetic.
+    /// Expands RGB with the H.273 curve. Eight-bit SDR conversion uses tables. Other ranges and precisions use direct arithmetic.
     /// </summary>
     /// <param name="value">The color to transform. Alpha remains unchanged.</param>
     /// <param name="transferCharacteristics">The signaled transfer curve.</param>
-    /// <param name="bitDepth">The required precision per color component. Only eight-bit conversion uses lookup tables.</param>
+    /// <param name="bitDepth">The required precision per color component.</param>
+    /// <param name="colorRange">The input color range. Only eight-bit SDR conversion clips RGB to [0,1] and uses lookup tables.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
-    public static Vector4 Expand(Vector4 value, CicpTransferCharacteristics transferCharacteristics, int bitDepth)
+    public static Vector4 Expand(Vector4 value, CicpTransferCharacteristics transferCharacteristics, int bitDepth, PixelColorRange colorRange)
     {
-        if (bitDepth == 8)
+        // H.273 includes power and logarithmic curves that lose precision with table interpolation.
+        // Retain the eight-bit SDR limit until each curve is verified at higher precision.
+        if (bitDepth == 8 && colorRange == PixelColorRange.Sdr)
         {
             return CompandingUtilities.Compand(
                 value,
@@ -141,14 +148,17 @@ internal static partial class CicpCompanding
     }
 
     /// <summary>
-    /// Compresses RGB with the H.273 curve. Eight-bit conversion uses bounded tables. Higher precision uses direct arithmetic.
+    /// Compresses RGB with the H.273 curve. Eight-bit SDR conversion uses tables. Other ranges and precisions use direct arithmetic.
     /// </summary>
     /// <param name="values">The colors to transform in place. Alpha remains unchanged.</param>
     /// <param name="transferCharacteristics">The signaled transfer curve.</param>
-    /// <param name="bitDepth">The required precision per color component. Only eight-bit conversion uses lookup tables.</param>
-    public static void Compress(Span<Vector4> values, CicpTransferCharacteristics transferCharacteristics, int bitDepth)
+    /// <param name="bitDepth">The required precision per color component.</param>
+    /// <param name="colorRange">The input color range. Only eight-bit SDR conversion clips RGB to [0,1] and uses lookup tables.</param>
+    public static void Compress(Span<Vector4> values, CicpTransferCharacteristics transferCharacteristics, int bitDepth, PixelColorRange colorRange)
     {
-        if (bitDepth == 8)
+        // H.273 includes power and logarithmic curves that lose precision with table interpolation.
+        // Retain the eight-bit SDR limit until each curve is verified at higher precision.
+        if (bitDepth == 8 && colorRange == PixelColorRange.Sdr)
         {
             CompandingUtilities.Compand(values, CompandingUtilities.GetCompressLookupTable<CicpCompandingKey>(CompressFunction, (int)transferCharacteristics));
         }
@@ -159,15 +169,18 @@ internal static partial class CicpCompanding
     }
 
     /// <summary>
-    /// Compresses RGB with the H.273 curve. Eight-bit conversion uses bounded tables. Higher precision uses direct arithmetic.
+    /// Compresses RGB with the H.273 curve. Eight-bit SDR conversion uses tables. Other ranges and precisions use direct arithmetic.
     /// </summary>
     /// <param name="value">The color to transform. Alpha remains unchanged.</param>
     /// <param name="transferCharacteristics">The signaled transfer curve.</param>
-    /// <param name="bitDepth">The required precision per color component. Only eight-bit conversion uses lookup tables.</param>
+    /// <param name="bitDepth">The required precision per color component.</param>
+    /// <param name="colorRange">The input color range. Only eight-bit SDR conversion clips RGB to [0,1] and uses lookup tables.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
-    public static Vector4 Compress(Vector4 value, CicpTransferCharacteristics transferCharacteristics, int bitDepth)
+    public static Vector4 Compress(Vector4 value, CicpTransferCharacteristics transferCharacteristics, int bitDepth, PixelColorRange colorRange)
     {
-        if (bitDepth == 8)
+        // H.273 includes power and logarithmic curves that lose precision with table interpolation.
+        // Retain the eight-bit SDR limit until each curve is verified at higher precision.
+        if (bitDepth == 8 && colorRange == PixelColorRange.Sdr)
         {
             return CompandingUtilities.Compand(
                 value,

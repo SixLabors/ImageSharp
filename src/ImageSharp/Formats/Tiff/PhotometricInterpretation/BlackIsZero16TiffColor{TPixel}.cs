@@ -48,7 +48,12 @@ internal class BlackIsZero16TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     Span<L16> samples = sourceBlock[..count];
 
                     // Swap encoded samples once, then let the pixel operations pack the destination row.
-                    TiffUtilities.CopyUShorts(data.Slice(offset + (x * 2), count * 2), MemoryMarshal.Cast<L16, ushort>(samples), bigEndian: true, invert: false);
+                    TiffUtilities.CopyUShorts(
+                        data.Slice(offset + (x * 2), count * 2),
+                        MemoryMarshal.Cast<L16, ushort>(samples),
+                        bigEndian: true,
+                        invert: false);
+
                     PixelOperations<TPixel>.Instance.FromL16(this.configuration, samples, pixelRow.Slice(x, count));
                 }
 

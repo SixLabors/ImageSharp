@@ -358,7 +358,10 @@ internal abstract partial class JpegColorConverterBase
         public override void ConvertToRgb(in ComponentValues source, Span<Rgb> destination, ColorProfileConverter profileConverter, Span<float> scratch)
         {
             int length = source.Component0.Length;
-            Span<float> samples = scratch[..(length * TOperator.ComponentCount)];
+
+            // Grayscale expands from one component to three. Keep its source in the spare final row segment,
+            // beyond the RGB destination, so packing one block cannot overwrite the next block's luminance.
+            Span<float> samples = TOperator.ComponentCount == 1 ? scratch.Slice(length * 3, length) : scratch[..(length * TOperator.ComponentCount)];
             IccColorSpaceType profileSpace = profileConverter.Options.SourceIccProfile.Header.DataColorSpace;
 
             // The operator removes JPEG scaling, inversion and model transforms before the profile reads its device samples.

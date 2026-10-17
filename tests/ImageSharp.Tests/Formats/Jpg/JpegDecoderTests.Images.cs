@@ -64,6 +64,7 @@ public partial class JpegDecoderTests
 
     public static string[] UnsupportedTestJpegs =
     [
+
         // Invalid componentCount value (2 or > 4)
         TestImages.Jpeg.Issues.Fuzz.NullReferenceException823,
         TestImages.Jpeg.Issues.MalformedUnsupportedComponentCount,

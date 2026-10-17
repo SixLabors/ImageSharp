@@ -118,6 +118,7 @@ public partial struct Rgb24 : IPixel<Rgb24>
         => PixelTypeInfo.Create<Rgb24>(
             PixelComponentInfo.Create<Rgb24>(3, 8, 8, 8),
             PixelColorType.RGB,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc/>

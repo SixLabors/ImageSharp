@@ -12,6 +12,9 @@ public class CieLabAndYCbCrConversionTests
 {
     private static readonly ApproximateColorProfileComparer Comparer = new(.0002F);
 
+    // These conversions evaluate approximate powers. Scaled components give the error bound the same units across color models.
+    private static readonly ApproximateColorProfileComparer CompandingComparer = new(5E-4F, scaled: true);
+
     [Theory]
     [InlineData(1, .5F, .5F, 100, 0, 0)]
     [InlineData(0, .5F, .5F, 0, 0, 0)]
@@ -33,11 +36,11 @@ public class CieLabAndYCbCrConversionTests
         converter.Convert<YCbCr, CieLab>(inputSpan, actualSpan);
 
         // Assert
-        Assert.Equal(expected, actual, Comparer);
+        Assert.Equal(expected, actual, CompandingComparer);
 
         for (int i = 0; i < actualSpan.Length; i++)
         {
-            Assert.Equal(expected, actualSpan[i], Comparer);
+            Assert.Equal(expected, actualSpan[i], CompandingComparer);
         }
     }
 

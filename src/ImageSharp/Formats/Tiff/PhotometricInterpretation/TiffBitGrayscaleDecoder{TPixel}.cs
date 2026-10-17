@@ -165,7 +165,16 @@ internal sealed class TiffBitGrayscaleDecoder<TPixel> : TiffBaseColorDecoder<TPi
         Vector128<float> c2 = Vector128<float>.Zero;
         Vector128<float> c3 = Vector128<float>.Zero;
         colorOperator.Convert(ref c0, ref c1, ref c2, ref c3);
-        SimdUtils.Transpose4(c0, c1, c2, c3, out Vector128<float> pixel0, out Vector128<float> pixel1, out Vector128<float> pixel2, out Vector128<float> pixel3);
+        SimdUtils.Transpose4(
+            c0,
+            c1,
+            c2,
+            c3,
+            out Vector128<float> pixel0,
+            out Vector128<float> pixel1,
+            out Vector128<float> pixel2,
+            out Vector128<float> pixel3);
+
         ref Vector128<float> first = ref Unsafe.As<Vector4, Vector128<float>>(ref destination);
         first = pixel0;
         Unsafe.Add(ref first, 1) = pixel1;

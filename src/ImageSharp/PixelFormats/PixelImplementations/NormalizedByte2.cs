@@ -107,6 +107,7 @@ public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<u
         => PixelTypeInfo.Create<NormalizedByte2>(
             PixelComponentInfo.Create<NormalizedByte2>(2, 8, 8),
             PixelColorType.Red | PixelColorType.Green,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />

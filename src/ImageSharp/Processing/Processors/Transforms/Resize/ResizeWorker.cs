@@ -32,6 +32,8 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
 
     private readonly int componentBitDepth;
 
+    private readonly PixelColorRange colorRange;
+
     private readonly ResizeKernelMap horizontalKernelMap;
 
     private readonly Buffer2DRegion<TPixel> source;
@@ -81,7 +83,9 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
         this.compand = compand;
 
         // Resolve precision once for both passes. Missing custom-pixel precision requires analytic conversion.
-        this.componentBitDepth = TPixel.GetPixelTypeInfo().ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
+        PixelTypeInfo pixelInfo = TPixel.GetPixelTypeInfo();
+        this.componentBitDepth = pixelInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
+        this.colorRange = pixelInfo.ColorRange;
         this.premultiply = premultiplyAlpha;
         this.horizontalKernelMap = horizontalKernelMap;
         this.verticalKernelMap = verticalKernelMap;
@@ -199,7 +203,7 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
                     Numerics.UnPremultiply(tempColSpan);
                 }
 
-                SRgbCompanding.Compress(tempColSpan, this.componentBitDepth);
+                SRgbCompanding.Compress(tempColSpan, this.componentBitDepth, this.colorRange);
                 PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, tempColSpan, targetRowSpan);
             }
             else if (this.premultiply)
@@ -257,7 +261,7 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
             if (this.compand)
             {
                 PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, tempRowSpan);
-                SRgbCompanding.Expand(tempRowSpan, this.componentBitDepth);
+                SRgbCompanding.Expand(tempRowSpan, this.componentBitDepth, this.colorRange);
 
                 // Interpolate in associated alpha only after expanding the straight color values.
                 if (this.premultiply)

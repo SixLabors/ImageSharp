@@ -12,6 +12,9 @@ public class CieLabAndLmsConversionTests
 {
     private static readonly ApproximateColorProfileComparer Comparer = new(.0002f);
 
+    // These conversions evaluate approximate powers. Scaled components give the error bound the same units across color models.
+    private static readonly ApproximateColorProfileComparer CompandingComparer = new(5E-4F, scaled: true);
+
     [Theory]
     [InlineData(0, 0, 0, 0, 0, 0)]
     [InlineData(0.8303261, -0.5776886, 0.1133359, 30.66193, 291.57209, -11.25262)]
@@ -32,11 +35,11 @@ public class CieLabAndLmsConversionTests
         converter.Convert<Lms, CieLab>(inputSpan, actualSpan);
 
         // Assert
-        Assert.Equal(expected, actual, Comparer);
+        Assert.Equal(expected, actual, CompandingComparer);
 
         for (int i = 0; i < actualSpan.Length; i++)
         {
-            Assert.Equal(expected, actualSpan[i], Comparer);
+            Assert.Equal(expected, actualSpan[i], CompandingComparer);
         }
     }
 

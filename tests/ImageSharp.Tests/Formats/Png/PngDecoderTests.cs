@@ -198,15 +198,15 @@ public partial class PngDecoderTests
 
     [Theory]
     [WithFile(TestImages.Png.AverageFilter3BytesPerPixel, PixelTypes.Rgba32, 0F)]
-    [WithFile(TestImages.Png.AverageFilter4BytesPerPixel, PixelTypes.Rgba32, 0.004F)]
+    [WithFile(TestImages.Png.AverageFilter4BytesPerPixel, PixelTypes.Rgba32, 3F * 257F)]
     public void Decode_WithAverageFilter<TPixel>(TestImageProvider<TPixel> provider, float tolerance)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
 
-        // The nonzero case allows measured ICC comparison rounding against Magick.
-        image.CompareToOriginal(provider, ImageComparer.TolerantPercentage(tolerance));
+        // The ICC fixture uses approximate curves. Limit the total RGB error to three eight-bit codes per pixel.
+        image.CompareToOriginal(provider, ImageComparer.Tolerant(0F, (int)tolerance));
     }
 
     [Theory]

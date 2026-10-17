@@ -25,7 +25,10 @@ public class RgbaPlanarTiffColorTests
     [InlineData(33)]
     [InlineData(64)]
     [InlineData(65)]
-    public void Decode_Aligned8Bit_PreservesUnassociatedVectorPrecision(int length) => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertUnassociatedVectorPrecision, length, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    public void Decode_Aligned8Bit_PreservesUnassociatedVectorPrecision(int length) => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        AssertUnassociatedVectorPrecision,
+        length,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Checks all straight-alpha byte components in the decoded vector row.
@@ -64,7 +67,10 @@ public class RgbaPlanarTiffColorTests
             alphaSamples[i] = sample.A;
         }
 
-        new RgbaPlanarTiffColor<RgbaVector>(Configuration.Default, TiffExtraSampleType.UnassociatedAlphaData, new TiffBitsPerSample(8, 8, 8, 8)).Decode(planes, image.Frames.RootFrame.PixelBuffer, 0, 0, length, 1);
+        new RgbaPlanarTiffColor<RgbaVector>(
+            Configuration.Default,
+            TiffExtraSampleType.UnassociatedAlphaData,
+            new TiffBitsPerSample(8, 8, 8, 8)).Decode(planes, image.Frames.RootFrame.PixelBuffer, 0, 0, length, 1);
 
         // Widths 1/17/33/64/65 cover scalar output, smaller SIMD groups, a full 64-pixel byte group, and its tail.
         for (int i = 0; i < length; i++)
@@ -85,7 +91,10 @@ public class RgbaPlanarTiffColorTests
     [InlineData(33)]
     [InlineData(64)]
     [InlineData(65)]
-    public void Decode_Aligned8Bit_PreservesAssociatedVectorStorage(int length) => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertAssociatedVectorStorage, length, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    public void Decode_Aligned8Bit_PreservesAssociatedVectorStorage(int length) => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        AssertAssociatedVectorStorage,
+        length,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Checks premultiplied byte components in the associated destination row.
@@ -124,7 +133,10 @@ public class RgbaPlanarTiffColorTests
             alphaSamples[i] = sample.A;
         }
 
-        new RgbaPlanarTiffColor<RgbaVectorP>(Configuration.Default, TiffExtraSampleType.AssociatedAlphaData, new TiffBitsPerSample(8, 8, 8, 8)).Decode(planes, image.Frames.RootFrame.PixelBuffer, 0, 0, length, 1);
+        new RgbaPlanarTiffColor<RgbaVectorP>(
+            Configuration.Default,
+            TiffExtraSampleType.AssociatedAlphaData,
+            new TiffBitsPerSample(8, 8, 8, 8)).Decode(planes, image.Frames.RootFrame.PixelBuffer, 0, 0, length, 1);
 
         // Widths 1/17/33/64/65 cover scalar output, smaller SIMD groups, a full 64-pixel byte group, and its tail.
         for (int i = 0; i < length; i++)

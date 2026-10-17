@@ -92,6 +92,7 @@ public class HalfSingleTests
         Assert.Equal(Unsafe.SizeOf<HalfSingle>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.Red, info.ColorType);
+        Assert.Equal(PixelColorRange.Extended, info.ColorRange);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(1, componentInfo.ComponentCount);

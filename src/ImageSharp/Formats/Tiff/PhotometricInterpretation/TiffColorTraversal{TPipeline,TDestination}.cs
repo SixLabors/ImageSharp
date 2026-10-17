@@ -27,7 +27,14 @@ internal static class TiffColorTraversal<TPipeline, TDestination>
     /// <param name="destination">The bounded destination group.</param>
     /// <param name="pixelCount">The number of complete pixels to write.</param>
     /// <param name="pipeline">The closed source, arithmetic, and store composition.</param>
-    public static void Convert(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, Span<TDestination> destination, int pixelCount, TPipeline pipeline)
+    public static void Convert(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        Span<TDestination> destination,
+        int pixelCount,
+        TPipeline pipeline)
     {
         int i = 0;
         int destinationBytesPerPixel = TPipeline.DestinationElementsPerPixel * Unsafe.SizeOf<TDestination>();

@@ -18,7 +18,9 @@ public class TiffBitGrayscaleDecoderTests : PhotometricInterpretationTestBase
     /// Verifies both grayscale interpretations for packed rows ending before a full byte.
     /// </summary>
     [Fact]
-    public void Decode_WritesPaddedRowsAcrossVectorAndTail() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPackedRows, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    public void Decode_WritesPaddedRowsAcrossVectorAndTail() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        RunPackedRows,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Checks fixed alternating-bit rows at each supported test depth and interpretation.

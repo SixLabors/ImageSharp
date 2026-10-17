@@ -34,7 +34,12 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <param name="extraSamplesType">The type of extra samples.</param>
     /// <param name="metadata">The metadata for the current IFD.</param>
     /// <param name="configuration">The decoder configuration.</param>
-    public PaletteTiffColor(TiffBitsPerSample bitsPerSample, ushort[] colorMap, TiffExtraSampleType? extraSamplesType, ImageFrameMetadata metadata, Configuration configuration)
+    public PaletteTiffColor(
+        TiffBitsPerSample bitsPerSample,
+        ushort[] colorMap,
+        TiffExtraSampleType? extraSamplesType,
+        ImageFrameMetadata metadata,
+        Configuration configuration)
     {
         this.bitsPerSample0 = bitsPerSample.Channel0;
         this.bitsPerSample1 = bitsPerSample.Channel1;

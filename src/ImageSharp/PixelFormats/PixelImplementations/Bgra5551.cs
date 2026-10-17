@@ -97,6 +97,7 @@ public partial struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
         => PixelTypeInfo.Create<Bgra5551>(
             PixelComponentInfo.Create<Bgra5551>(4, 5, 5, 5, 1),
             PixelColorType.BGR | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />

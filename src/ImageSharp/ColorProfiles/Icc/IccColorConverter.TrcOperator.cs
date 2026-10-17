@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.ColorProfiles.Icc;
@@ -13,7 +14,7 @@ internal static partial class IccColorConverter
     /// <summary>
     /// Applies the profile's channel curves without interface dispatch for each component of each color.
     /// </summary>
-    internal readonly struct TrcOperator
+    internal readonly struct TrcOperator : IIccColorConverterOperator
     {
         private readonly CurveOperator curve0;
         private readonly CurveOperator curve1;
@@ -41,22 +42,47 @@ internal static partial class IccColorConverter
             this.curve3 = entries.Length > 3 ? new CurveOperator(entries[3], inverted) : default;
         }
 
+        /// <inheritdoc/>
+        public bool IsTrc => true;
+
+        /// <inheritdoc/>
+        public bool Is16BitLut => false;
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="TrcOperator"/> struct for legacy LUT channel tables.
+        /// Builds an sRGB-form stage when all three channel curves use that formula.
         /// </summary>
-        /// <param name="entries">The sampled input or output tables for up to four channels.</param>
-        public TrcOperator(ReadOnlySpan<IccLut> entries)
+        /// <param name="srgb">The selected curves with their original profile coefficients.</param>
+        /// <returns>Whether every channel uses the normalized sRGB formula.</returns>
+        public bool TryGetSRgb(out SRgbTrcOperator srgb)
         {
-            if (entries.Length > 4)
+            if (this.count == 3 && this.curve0.TryGetSRgb(out SRgbCurveOperator x) && this.curve1.TryGetSRgb(out SRgbCurveOperator y)
+                && this.curve2.TryGetSRgb(out SRgbCurveOperator z))
             {
-                throw new InvalidIccProfileException("ICC conversion supports at most four channel tables.");
+                srgb = new(x, y, z);
+                return true;
             }
 
-            this.count = entries.Length;
-            this.curve0 = entries.Length > 0 ? new CurveOperator(entries[0].Values) : default;
-            this.curve1 = entries.Length > 1 ? new CurveOperator(entries[1].Values) : default;
-            this.curve2 = entries.Length > 2 ? new CurveOperator(entries[2].Values) : default;
-            this.curve3 = entries.Length > 3 ? new CurveOperator(entries[3].Values) : default;
+            srgb = default;
+            return false;
+        }
+
+        /// <summary>
+        /// Builds a gamma-only stage when all three channel curves contain positive finite exponents.
+        /// </summary>
+        /// <param name="gamma">The configured gamma stage.</param>
+        /// <returns>Whether every channel can use the gamma-only stage.</returns>
+        public bool TryGetGamma(out GammaTrcOperator gamma)
+        {
+            // This is profile-shape selection at setup. Identity, sampled and other parametric curves retain their own formulas.
+            if (this.count == 3 && this.curve0.TryGetGamma(out TensorPrimitives_.PowOperator x)
+                && this.curve1.TryGetGamma(out TensorPrimitives_.PowOperator y) && this.curve2.TryGetGamma(out TensorPrimitives_.PowOperator z))
+            {
+                gamma = new GammaTrcOperator(x, y, z);
+                return true;
+            }
+
+            gamma = default;
+            return false;
         }
 
         /// <summary>

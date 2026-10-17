@@ -430,8 +430,10 @@ public class BmpDecoderTests
     }
 
     [Theory]
+
     // This indexed palette declares 300 entries at 8 bpp, exceeding the format's 256-entry limit.
     [WithFile(OversizedPalette, PixelTypes.Rgba32)]
+
     // This 8-bit core-header palette contains only 252 entries instead of the full 256-entry table.
     [WithFile(LessThanFullSizedPalette, PixelTypes.Rgba32)]
     [WithFile(InvalidPaletteSize, PixelTypes.Rgba32)]

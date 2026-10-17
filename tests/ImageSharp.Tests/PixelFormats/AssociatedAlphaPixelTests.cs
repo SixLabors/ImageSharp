@@ -22,6 +22,11 @@ public abstract class AssociatedAlphaPixelTests<TPixel>
     /// </summary>
     protected virtual PixelColorType ExpectedColorType => PixelColorType.RGB | PixelColorType.Alpha;
 
+    /// <summary>
+    /// Gets the color range supported by the pixel format.
+    /// </summary>
+    protected virtual PixelColorRange ExpectedColorRange => PixelColorRange.Sdr;
+
     [Fact]
     public void PixelInformationDescribesAssociatedAlpha()
     {
@@ -32,6 +37,7 @@ public abstract class AssociatedAlphaPixelTests<TPixel>
         Assert.Equal(Unsafe.SizeOf<TPixel>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.Associated, info.AlphaRepresentation);
         Assert.Equal(this.ExpectedColorType, info.ColorType);
+        Assert.Equal(this.ExpectedColorRange, info.ColorRange);
         Assert.Equal(4, componentInfo.ComponentCount);
         Assert.Equal(0, componentInfo.Padding);
 
@@ -289,6 +295,9 @@ public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
 /// </summary>
 public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
 {
+    /// <inheritdoc />
+    protected override PixelColorRange ExpectedColorRange => PixelColorRange.Extended;
+
     [Fact]
     public void PackedValueMatchesHalfVector4ForAssociatedVector()
     {

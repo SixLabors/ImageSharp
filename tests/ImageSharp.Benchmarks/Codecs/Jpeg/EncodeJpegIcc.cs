@@ -98,16 +98,16 @@ public class EncodeJpegIcc
 }
 
 /*
-Measured 2026-10-15
+Measured 2026-10-17
 
-| Method      | TestImage                                 | Mean           | Error         | StdDev        | Ratio   | RatioSD   | Allocated    | Alloc Ratio   |
-|-------------|-------------------------------------------|---------------:|--------------:|--------------:|--------:|----------:|-------------:|--------------:|
-| WithoutIcc  | Jpg/icc-profiles/issue_2723.jpg           |     6,453.7 us |     230.48 us |     152.45 us |    1.00 |      0.03 |     16.61 KB |          1.00 |
-| WithIcc     | Jpg/icc-profiles/issue_2723.jpg           |   116,873.6 us |     313.86 us |     164.16 us |   18.12 |      0.41 |   1053.77 KB |         63.45 |
-|             |                                           |                |               |               |         |           |              |               |
-| WithoutIcc  | Jpg/icc-profiles/issue-129.jpg            |    41,428.4 us |     192.33 us |     114.45 us |    1.00 |      0.00 |     29.88 KB |          1.00 |
-| WithIcc     | Jpg/icc-profiles/issue-129.jpg            |   869,674.3 us |   4,654.81 us |   2,770.00 us |   20.99 |      0.08 |    3474.9 KB |        116.28 |
-|             |                                           |                |               |               |         |           |              |               |
-| WithoutIcc  | Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg  |       914.6 us |       6.07 us |       3.17 us |    1.00 |      0.00 |     16.24 KB |          1.00 |
-| WithIcc     | Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg  |    17,822.9 us |     104.58 us |      62.23 us |   19.49 |      0.09 |    419.11 KB |         25.80 |
+| Method      | TestImage                                 | Mean           | Error         | StdDev        | Ratio   | RatioSD   | Gen0      | Gen1      | Gen2      | Allocated   | Alloc Ratio   |
+| ----------- | ----------------------------------------- | -------------: | ------------: | ------------: | ------: | --------: | --------: | --------: | --------: | ----------: | ------------: |
+| WithoutIcc  | Jpg/icc-profiles/issue_2723.jpg           |     6,401.3 μs |      98.22 μs |      64.97 μs |    1.00 |      0.01 |         - |         - |         - |    16.61 KB |          1.00 |
+| WithIcc     | Jpg/icc-profiles/issue_2723.jpg           |    26,466.5 μs |     203.27 μs |     134.45 μs |    4.13 |      0.04 |   93.7500 |   93.7500 |   93.7500 |   660.52 KB |         39.77 |
+|             |                                           |                |               |               |         |           |           |           |           |             |               |
+| WithoutIcc  | Jpg/icc-profiles/issue-129.jpg            |    42,598.6 μs |     264.82 μs |     157.59 μs |    1.00 |      0.00 |         - |         - |         - |    12.65 KB |          1.00 |
+| WithIcc     | Jpg/icc-profiles/issue-129.jpg            |   196,826.0 μs |   6,696.35 μs |   3,984.89 μs |    4.62 |      0.09 |         - |         - |         - |   562.63 KB |         44.48 |
+|             |                                           |                |               |               |         |           |           |           |           |             |               |
+| WithoutIcc  | Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg  |       959.1 μs |       6.28 μs |       3.28 μs |    1.00 |      0.00 |         - |         - |         - |    14.92 KB |          1.00 |
+| WithIcc     | Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg  |     2,161.0 μs |      73.49 μs |      43.73 μs |    2.25 |      0.04 |         - |         - |         - |    20.71 KB |          1.39 |
 */

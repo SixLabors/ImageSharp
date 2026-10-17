@@ -79,6 +79,7 @@ public class MagickReferenceDecoder : ImageDecoder
         {
             FrameCount = options.MaxFrames
         };
+
         settings.SetDefines(bmpReadDefines);
         settings.SetDefines(pngReadDefines);
         settings.SetDefines(jpegReadDefines);

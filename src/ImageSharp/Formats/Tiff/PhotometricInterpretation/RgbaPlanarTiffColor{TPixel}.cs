@@ -90,7 +90,14 @@ internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
 
                     // SIMD interleaves R, G, B, and A into native RGBA bytes. PixelOperations then interprets
                     // the stored alpha association and packs the requested destination pixel type in bulk.
-                    TiffNativeColorConverter<TiffPlanar8NativeSource, TiffRgba32Store, byte>.Convert(red.Slice(offset + x, count), green.Slice(offset + x, count), blue.Slice(offset + x, count), alpha.Slice(offset + x, count), MemoryMarshal.AsBytes(packedBlock[..count]), source, store);
+                    TiffNativeColorConverter<TiffPlanar8NativeSource, TiffRgba32Store, byte>.Convert(
+                        red.Slice(offset + x, count),
+                        green.Slice(offset + x, count),
+                        blue.Slice(offset + x, count),
+                        alpha.Slice(offset + x, count),
+                        MemoryMarshal.AsBytes(packedBlock[..count]),
+                        source,
+                        store);
 
                     Span<Vector4> vectors = vectorBlock[..count];
                     PixelOperations<Rgba32>.Instance.ToUnassociatedScaledVector4(this.configuration, packedBlock[..count], vectors);

@@ -88,6 +88,7 @@ public partial struct A8 : IPixel<A8>, IPackedVector<byte>
         => PixelTypeInfo.Create<A8>(
             PixelComponentInfo.Create<A8>(1, 8),
             PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />

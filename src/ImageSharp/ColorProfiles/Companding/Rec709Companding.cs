@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.ColorProfiles.Companding;
 
@@ -49,11 +50,13 @@ public static partial class Rec709Companding
     /// Compresses linear RGB at the requested component precision and retains alpha.
     /// </summary>
     /// <param name="vectors">The colors to transform.</param>
-    /// <param name="bitDepth">The required component precision. Eight-bit conversion clips RGB to [0,1].</param>
-    public static void Compress(Span<Vector4> vectors, int bitDepth)
+    /// <param name="bitDepth">The required precision per color component.</param>
+    /// <param name="colorRange">The input color range. Only eight-bit SDR conversion clips RGB to [0,1] and uses lookup tables.</param>
+    public static void Compress(Span<Vector4> vectors, int bitDepth, PixelColorRange colorRange)
     {
-        // Select the table only for eight-bit precision. Other paths keep full-range floating-point values.
-        if (bitDepth == 8)
+        // Rounded coefficients create a jump where the linear and power sections meet.
+        // Table interpolation across this jump is limited to eight-bit SDR input.
+        if (bitDepth == 8 && colorRange == PixelColorRange.Sdr)
         {
             CompandingUtilities.Compand(vectors, CompandingUtilities.GetCompressLookupTable<Rec2020CompandingKey>(CompressFunction));
         }
@@ -74,11 +77,13 @@ public static partial class Rec709Companding
     /// Expands nonlinear RGB at the requested component precision and retains alpha.
     /// </summary>
     /// <param name="vectors">The colors to transform.</param>
-    /// <param name="bitDepth">The required component precision. Eight-bit conversion clips RGB to [0,1].</param>
-    public static void Expand(Span<Vector4> vectors, int bitDepth)
+    /// <param name="bitDepth">The required precision per color component.</param>
+    /// <param name="colorRange">The input color range. Only eight-bit SDR conversion clips RGB to [0,1] and uses lookup tables.</param>
+    public static void Expand(Span<Vector4> vectors, int bitDepth, PixelColorRange colorRange)
     {
-        // Select the table only for eight-bit precision. Other paths keep full-range floating-point values.
-        if (bitDepth == 8)
+        // Rounded coefficients create a jump where the linear and power sections meet.
+        // Table interpolation across this jump is limited to eight-bit SDR input.
+        if (bitDepth == 8 && colorRange == PixelColorRange.Sdr)
         {
             CompandingUtilities.Compand(vectors, CompandingUtilities.GetExpandLookupTable<Rec2020CompandingKey>(ExpandFunction));
         }
@@ -100,12 +105,14 @@ public static partial class Rec709Companding
     /// Compresses linear RGB at the requested component precision and retains alpha.
     /// </summary>
     /// <param name="vector">The colors to transform.</param>
-    /// <param name="bitDepth">The required component precision. Eight-bit conversion clips RGB to [0,1].</param>
+    /// <param name="bitDepth">The required precision per color component.</param>
+    /// <param name="colorRange">The input color range. Only eight-bit SDR conversion clips RGB to [0,1] and uses lookup tables.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
-    public static Vector4 Compress(Vector4 vector, int bitDepth)
+    public static Vector4 Compress(Vector4 vector, int bitDepth, PixelColorRange colorRange)
     {
-        // Select the table only for eight-bit precision. Other paths keep full-range floating-point values.
-        if (bitDepth == 8)
+        // Rounded coefficients create a jump where the linear and power sections meet.
+        // Table interpolation across this jump is limited to eight-bit SDR input.
+        if (bitDepth == 8 && colorRange == PixelColorRange.Sdr)
         {
             return CompandingUtilities.Compand(vector, CompandingUtilities.GetCompressLookupTable<Rec2020CompandingKey>(CompressFunction));
         }
@@ -125,12 +132,14 @@ public static partial class Rec709Companding
     /// Expands nonlinear RGB at the requested component precision and retains alpha.
     /// </summary>
     /// <param name="vector">The colors to transform.</param>
-    /// <param name="bitDepth">The required component precision. Eight-bit conversion clips RGB to [0,1].</param>
+    /// <param name="bitDepth">The required precision per color component.</param>
+    /// <param name="colorRange">The input color range. Only eight-bit SDR conversion clips RGB to [0,1] and uses lookup tables.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
-    public static Vector4 Expand(Vector4 vector, int bitDepth)
+    public static Vector4 Expand(Vector4 vector, int bitDepth, PixelColorRange colorRange)
     {
-        // Select the table only for eight-bit precision. Other paths keep full-range floating-point values.
-        if (bitDepth == 8)
+        // Rounded coefficients create a jump where the linear and power sections meet.
+        // Table interpolation across this jump is limited to eight-bit SDR input.
+        if (bitDepth == 8 && colorRange == PixelColorRange.Sdr)
         {
             return CompandingUtilities.Compand(vector, CompandingUtilities.GetExpandLookupTable<Rec2020CompandingKey>(ExpandFunction));
         }

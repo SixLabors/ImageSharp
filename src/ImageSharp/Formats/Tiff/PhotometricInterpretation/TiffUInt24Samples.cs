@@ -29,7 +29,23 @@ internal static class TiffUInt24Samples
     public static Vector128<uint> ReadFour(ReadOnlySpan<byte> source, bool isBigEndian)
     {
         Vector128<byte> bytes = Vector128.Create(MemoryMarshal.Read<ulong>(source), (ulong)MemoryMarshal.Read<uint>(source.Slice(8))).AsByte();
-        Vector128<byte> indices = isBigEndian ? Vector128.Create((byte)2, 1, 0, 12, 5, 4, 3, 13, 8, 7, 6, 14, 11, 10, 9, 15) : Vector128.Create((byte)0, 1, 2, 12, 3, 4, 5, 13, 6, 7, 8, 14, 9, 10, 11, 15);
+        Vector128<byte> indices = isBigEndian ? Vector128.Create(
+            (byte)2,
+            1,
+            0,
+            12,
+            5,
+            4,
+            3,
+            13,
+            8,
+            7,
+            6,
+            14,
+            11,
+            10,
+            9,
+            15) : Vector128.Create((byte)0, 1, 2, 12, 3, 4, 5, 13, 6, 7, 8, 14, 9, 10, 11, 15);
 
         // Bytes 12..15 are explicit zeros. Their shuffle positions supply the fourth
         // byte of each uint lane while the other three bytes retain source order.

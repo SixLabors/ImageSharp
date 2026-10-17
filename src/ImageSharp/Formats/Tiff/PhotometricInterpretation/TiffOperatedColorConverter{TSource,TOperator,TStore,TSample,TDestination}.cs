@@ -62,38 +62,107 @@ internal readonly struct TiffOperatedColorConverter<TSource, TOperator, TStore, 
     /// <param name="source">The stored source layout.</param>
     /// <param name="colorOperator">The color operation.</param>
     /// <param name="store">The destination pixel layout.</param>
-    public static void Convert(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, Span<TDestination> destination, TSource source, TOperator colorOperator, TStore store)
+    public static void Convert(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        Span<TDestination> destination,
+        TSource source,
+        TOperator colorOperator,
+        TStore store)
     {
         TiffOperatedColorConverter<TSource, TOperator, TStore, TSample, TDestination> pipeline = new(source, colorOperator, store);
-        TiffColorTraversal<TiffOperatedColorConverter<TSource, TOperator, TStore, TSample, TDestination>, TDestination>.Convert(source0, source1, source2, source3, destination, destination.Length / TStore.WordsPerPixel, pipeline);
+        TiffColorTraversal<TiffOperatedColorConverter<TSource, TOperator, TStore, TSample, TDestination>, TDestination>.Convert(
+            source0,
+            source1,
+            source2,
+            source3,
+            destination,
+            destination.Length / TStore.WordsPerPixel,
+            pipeline);
     }
 
     /// <inheritdoc/>
-    public void Convert512(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, Span<TDestination> destination, int index)
+    public void Convert512(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        Span<TDestination> destination,
+        int index)
     {
-        this.source.Read(source0, source1, source2, source3, index, out Vector512<TSample> c0, out Vector512<TSample> c1, out Vector512<TSample> c2, out Vector512<TSample> c3);
+        this.source.Read(
+            source0,
+            source1,
+            source2,
+            source3,
+            index,
+            out Vector512<TSample> c0,
+            out Vector512<TSample> c1,
+            out Vector512<TSample> c2,
+            out Vector512<TSample> c3);
+
         this.colorOperator.Convert(ref c0, ref c1, ref c2, ref c3);
         this.store.Store(ref MemoryMarshal.GetReference(destination[(index * TStore.WordsPerPixel)..]), c0, c1, c2, c3);
     }
 
     /// <inheritdoc/>
-    public void Convert256(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, Span<TDestination> destination, int index)
+    public void Convert256(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        Span<TDestination> destination,
+        int index)
     {
-        this.source.Read(source0, source1, source2, source3, index, out Vector256<TSample> c0, out Vector256<TSample> c1, out Vector256<TSample> c2, out Vector256<TSample> c3);
+        this.source.Read(
+            source0,
+            source1,
+            source2,
+            source3,
+            index,
+            out Vector256<TSample> c0,
+            out Vector256<TSample> c1,
+            out Vector256<TSample> c2,
+            out Vector256<TSample> c3);
+
         this.colorOperator.Convert(ref c0, ref c1, ref c2, ref c3);
         this.store.Store(ref MemoryMarshal.GetReference(destination[(index * TStore.WordsPerPixel)..]), c0, c1, c2, c3);
     }
 
     /// <inheritdoc/>
-    public void Convert128(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, Span<TDestination> destination, int index)
+    public void Convert128(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        Span<TDestination> destination,
+        int index)
     {
-        this.source.Read(source0, source1, source2, source3, index, out Vector128<TSample> c0, out Vector128<TSample> c1, out Vector128<TSample> c2, out Vector128<TSample> c3);
+        this.source.Read(
+            source0,
+            source1,
+            source2,
+            source3,
+            index,
+            out Vector128<TSample> c0,
+            out Vector128<TSample> c1,
+            out Vector128<TSample> c2,
+            out Vector128<TSample> c3);
+
         this.colorOperator.Convert(ref c0, ref c1, ref c2, ref c3);
         this.store.Store(ref MemoryMarshal.GetReference(destination[(index * TStore.WordsPerPixel)..]), c0, c1, c2, c3);
     }
 
     /// <inheritdoc/>
-    public void ConvertScalar(ReadOnlySpan<byte> source0, ReadOnlySpan<byte> source1, ReadOnlySpan<byte> source2, ReadOnlySpan<byte> source3, Span<TDestination> destination, int index)
+    public void ConvertScalar(
+        ReadOnlySpan<byte> source0,
+        ReadOnlySpan<byte> source1,
+        ReadOnlySpan<byte> source2,
+        ReadOnlySpan<byte> source3,
+        Span<TDestination> destination,
+        int index)
     {
         this.source.Read(source0, source1, source2, source3, index, out TSample c0, out TSample c1, out TSample c2, out TSample c3);
         this.colorOperator.Convert(ref c0, ref c1, ref c2, ref c3);

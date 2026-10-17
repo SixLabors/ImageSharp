@@ -53,7 +53,15 @@ internal sealed class TiffColorDecoder<TPixel, TSource, TOperator> : TiffBaseCol
 
                 // The source defines byte stride; a complete pixel block is passed to the
                 // register traversal, then PixelOperations applies the target's own format rules.
-                TiffOperatedColorConverter<TSource, TOperator, TiffVector4Store, float, Vector4>.Convert(data.Slice(offset, count * this.source.BytesPerPixel), [], [], [], block, this.source, this.colorOperator, default);
+                TiffOperatedColorConverter<TSource, TOperator, TiffVector4Store, float, Vector4>.Convert(
+                    data.Slice(offset, count * this.source.BytesPerPixel),
+                    [],
+                    [],
+                    [],
+                    block,
+                    this.source,
+                    this.colorOperator,
+                    default);
 
                 // The operator has scaled the samples; its alpha representation selects the matching pixel packer.
                 switch (this.colorOperator.AlphaRepresentation)

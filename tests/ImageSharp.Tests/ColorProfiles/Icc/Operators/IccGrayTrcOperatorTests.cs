@@ -62,6 +62,8 @@ public class IccGrayTrcOperatorTests
             ? new CieLab(connection * 100F, 10F, 20F).ToScaledVector4()
             : new CieXyz(0.3F, connection, 0.7F).ToScaledVector4();
 
-        Assert.Equal(gray, calculator.Convert(input).X, 5);
+        // The inverse curve uses the shared approximate square root. Black and white retain exact endpoint rules.
+        ApproximateFloatComparer comparer = new(gray is 0F or 1F ? 0F : 5E-4F);
+        Assert.Equal(gray, calculator.Convert(input).X, comparer);
     }
 }

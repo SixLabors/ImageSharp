@@ -40,7 +40,8 @@ internal class AdaptiveThresholdProcessor<TPixel> : ImageProcessor<TPixel>
 
         // ClusterSize defines the size of cluster to used to check for average.
         // Tweaked to support up to 4k wide pixels and not more. 4096 / 16 is 256 thus the '-1'
-        byte clusterSize = (byte)Math.Clamp(interest.Width / 16F, 0, 255);
+        // A cluster size of 0 would make every averaging window empty, so regions narrower than 16 pixels use 1.
+        byte clusterSize = (byte)Math.Clamp(interest.Width / 16F, 1, 255);
 
         using Buffer2D<ulong> intImage = source.CalculateIntegralImage(interest);
         RowOperation operation = new(configuration, interest, source.PixelBuffer, intImage, upper, lower, thresholdLimit, clusterSize);

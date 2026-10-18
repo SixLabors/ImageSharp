@@ -660,7 +660,8 @@ internal sealed partial class HeifEncoderCore
         // The track profile describes its encoded color samples, including output with SkipMetadata.
         if (settings.IccProfile is not null)
         {
-            iccProfileData = settings.IccProfile.ToByteArray();
+            // Retain the read-only payload until track sizing and writing finish; no writable copy is needed.
+            iccProfileData = settings.IccProfile.GetData();
         }
 
         return new HeifSequenceEncoding(

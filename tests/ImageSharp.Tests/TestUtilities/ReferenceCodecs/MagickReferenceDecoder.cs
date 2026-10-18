@@ -92,6 +92,14 @@ public class MagickReferenceDecoder : ImageDecoder
         foreach (IMagickImage<float> magicFrame in magickImageCollection)
         {
             uint sourceDepth = magicFrame.Depth;
+
+            // In Magick.NET 14.16.0, ImportGrayQuantum ignores min_is_white for 32-bit samples.
+            // Apply the missing grayscale inversion through the native API before ICC conversion. Leave alpha unchanged.
+            if (this.imageFormat is TiffFormat && sourceDepth == 32 && magicFrame.GetAttribute("tiff:photometric") == "min-is-white")
+            {
+                magicFrame.Negate(Channels.Gray);
+            }
+
             bool transformed = false;
             ImageMagick.IColorProfile sourceColorProfile = magicFrame.GetColorProfile();
             if (sourceColorProfile is not null)

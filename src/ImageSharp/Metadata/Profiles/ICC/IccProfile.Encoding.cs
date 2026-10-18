@@ -14,6 +14,26 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 public sealed partial class IccProfile
 {
     /// <summary>
+    /// Gets the retained profile whose data color space matches the encoded color type.
+    /// </summary>
+    /// <param name="profile">The retained image or frame profile, or null.</param>
+    /// <param name="colorType">The encoded color type. Indexed output checks the RGB palette.</param>
+    /// <returns>The supplied profile when compatible; otherwise, null. No converter is allocated.</returns>
+    internal static IccProfile? GetIccProfileForEncoding(IccProfile? profile, PixelColorType colorType)
+    {
+        // Indices select palette entries; they are not color components. Alpha does not change the palette's RGB color space.
+        PixelColorType sampleColorType = (colorType & ~PixelColorType.Alpha) == PixelColorType.Indexed ? PixelColorType.RGB : colorType;
+
+        // Use the same mapping for alpha, BGR and YCCK as the typed color converters.
+        // A mismatch omits the profile without changing source metadata or creating a replacement profile.
+        return profile is not null
+            && PixelColorTypeIccMapping.TryGetDataSpace(sampleColorType, out IccColorSpaceType dataSpace)
+            && profile.Header.DataColorSpace == dataSpace
+                ? profile
+                : null;
+    }
+
+    /// <summary>
     /// Gets the original profile compatible with the output samples and the converter from sRGB to that profile.
     /// </summary>
     /// <param name="profile">The original profile selected by the encoder from image or frame metadata.</param>
@@ -26,15 +46,8 @@ public sealed partial class IccProfile
     {
         converter = null;
 
-        // Indexed pixels contain palette indices, so profile compatibility depends on the RGB palette rather than the index values.
-        // Indexed can include the Alpha flag. Ignore it here because transparency does not change the palette's RGB color space.
-        PixelColorType sampleColorType = (colorType & ~PixelColorType.Alpha) == PixelColorType.Indexed ? PixelColorType.RGB : colorType;
-
-        // Match the samples supplied to ICC, using the shared mapping for BGR, alpha and YCCK conventions.
-        // Omit incompatible profiles from output without changing the original image or frame metadata.
-        if (profile is null
-            || !PixelColorTypeIccMapping.TryGetDataSpace(sampleColorType, out IccColorSpaceType dataSpace)
-            || profile.Header.DataColorSpace != dataSpace)
+        profile = GetIccProfileForEncoding(profile, colorType);
+        if (profile is null)
         {
             return null;
         }

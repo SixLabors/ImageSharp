@@ -4,7 +4,7 @@
 using System.Numerics;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.ColorProfiles;
-using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+using SixLabors.ImageSharp.Formats.Tiff.Readers;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Tiff;
@@ -76,3 +76,11 @@ public class TiffCmykColorConversion
         return this.destination[Length - 1, 0];
     }
 }
+
+/* Measured 2026-10-18
+
+| Method |      Mean |     Error |    StdDev | Ratio |   Gen0 | Allocated | Alloc Ratio |
+| ------ | --------: | --------: | --------: | ----: | -----: | --------: | ----------: |
+| Scalar | 48.076 μs | 0.7953 μs | 0.0436 μs |  1.00 |      - |         - |          NA |
+| Bulk   |  5.226 μs | 0.0839 μs | 0.0046 μs |  0.11 | 0.0229 |     432 B |          NA |
+*/

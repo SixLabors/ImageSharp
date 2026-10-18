@@ -263,14 +263,14 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Flower10BitGray, PixelTypes.Rgba32)]
     [WithFile(Flower12BitGray, PixelTypes.Rgba32)]
     [WithFile(Flower14BitGray, PixelTypes.Rgba32)]
-    [WithFile(Flower16BitGray, PixelTypes.Rgba32)]
-    [WithFile(Flower16BitGrayLittleEndian, PixelTypes.Rgba32)]
-    [WithFile(Flower16BitGrayMinIsWhiteBigEndian, PixelTypes.Rgba32)]
-    [WithFile(Flower16BitGrayMinIsWhiteLittleEndian, PixelTypes.Rgba32)]
+    [WithFile(Flower16BitGray, PixelTypes.Rgba32 | PixelTypes.Rgba64)]
+    [WithFile(Flower16BitGrayLittleEndian, PixelTypes.Rgba32 | PixelTypes.Rgba64)]
+    [WithFile(Flower16BitGrayMinIsWhiteBigEndian, PixelTypes.Rgba32 | PixelTypes.Rgba64)]
+    [WithFile(Flower16BitGrayMinIsWhiteLittleEndian, PixelTypes.Rgba32 | PixelTypes.Rgba64)]
     public void TiffDecoder_GrayscaleReference_FeatureModes<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            AssertExistingReference,
+            PixelTests<TPixel>.AssertExistingReference,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
             provider);
 
@@ -288,19 +288,9 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_PlanarReference_FeatureModes<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            AssertExistingReference,
+            PixelTests<TPixel>.AssertExistingReference,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
             provider);
-
-    /// <summary>
-    /// Checks the entire decoded fixture against its independent Magick reference.
-    /// </summary>
-    /// <param name="providerDump">The serialized source image provider.</param>
-    private static void AssertExistingReference(string providerDump)
-    {
-        TestImageProvider<Rgba32> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
-        TestTiffDecoder(provider);
-    }
 
     [Theory]
     [WithFile(FlowerRgb222Contiguous, PixelTypes.Rgba32)]
@@ -1150,39 +1140,74 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_Issue2983<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
+    /// <summary>
+    /// Checks that identification ignores an invalid ICC header length under the default ancillary-error policy.
+    /// </summary>
     [Fact]
     public void Identify_MalformedIccProfile_IgnoresNonCriticalErrorsByDefault()
     {
-        ImageInfo info = Image.Identify(CreateTiffWithMalformedIccProfile());
-        Assert.Equal(1, info.Width);
-        Assert.Equal(1, info.Height);
+        ImageInfo info = Image.Identify(TestFile.Create(TestImages.Tiff.Icc.InvalidProfileSize).Bytes);
+
+        Assert.Equal(new Size(100, 100), info.Size);
+        Assert.Null(info.Metadata.IccProfile);
+        Assert.Null(info.FrameMetadataCollection[0].IccProfile);
     }
 
+    /// <summary>
+    /// Checks that decoding ignores the invalid profile while retaining the image under the default ancillary-error policy.
+    /// </summary>
     [Fact]
     public void Decode_MalformedIccProfile_IgnoresNonCriticalErrorsByDefault()
     {
-        using Image<Rgba32> image = Image.Load<Rgba32>(CreateTiffWithMalformedIccProfile());
-        Assert.Equal(1, image.Width);
-        Assert.Equal(1, image.Height);
+        using Image<Rgba32> image = Image.Load<Rgba32>(TestFile.Create(TestImages.Tiff.Icc.InvalidProfileSize).Bytes);
+
+        Assert.Equal(new Size(100, 100), image.Size);
+        Assert.Null(image.Metadata.IccProfile);
+        Assert.Null(image.Frames.RootFrame.Metadata.IccProfile);
     }
 
+    /// <summary>
+    /// Checks strict ICC validation during identification.
+    /// </summary>
     [Fact]
     public void Identify_MalformedIccProfile_ThrowsWithStrict()
     {
         DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
-        Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, CreateTiffWithMalformedIccProfile()));
+        byte[] data = TestFile.Create(TestImages.Tiff.Icc.InvalidProfileSize).Bytes;
+
+        Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, data));
     }
 
+    /// <summary>
+    /// Checks strict ICC validation during decoding.
+    /// </summary>
     [Fact]
     public void Decode_MalformedIccProfile_ThrowsWithStrict()
     {
         DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        byte[] data = TestFile.Create(TestImages.Tiff.Icc.InvalidProfileSize).Bytes;
+
         Assert.Throws<InvalidIccProfileException>(() =>
         {
-            using Image<Rgba32> image = Image.Load<Rgba32>(options, CreateTiffWithMalformedIccProfile());
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
         });
     }
 
-    private static byte[] CreateTiffWithMalformedIccProfile()
-        => CorruptedMetadataImageFactory.CreateImageWithMalformedIccProfile(new TiffEncoder());
+    /// <summary>
+    /// Provides a non-generic RemoteExecutor callback whose declaring type retains the requested pixel format.
+    /// </summary>
+    /// <typeparam name="TPixel">The decoded pixel type.</typeparam>
+    private static class PixelTests<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        /// <summary>
+        /// Compares the decoded fixture with the independent reference at the requested pixel precision.
+        /// </summary>
+        /// <param name="providerDump">The serialized source image provider.</param>
+        public static void AssertExistingReference(string providerDump)
+        {
+            TestImageProvider<TPixel> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<TPixel>>(providerDump);
+            TestTiffDecoder(provider);
+        }
+    }
 }

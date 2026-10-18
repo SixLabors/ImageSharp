@@ -6,7 +6,8 @@ using System.Numerics;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
-using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+using SixLabors.ImageSharp.Formats.Tiff.ColorConverters;
+using SixLabors.ImageSharp.Formats.Tiff.Readers;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -243,3 +244,20 @@ public class TiffPackedHighDepthColorConversion
         destination[2] = (byte)value;
     }
 }
+
+/* Measured 2026-10-18
+
+| Method       | Categories |       Mean |     Error |    StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
+| ------------ | ---------- | ---------: | --------: | --------: | ----: | ------: | --------: | ----------: |
+| ScalarRgb24  | RGB24      | 2,580.6 ns |  59.30 ns |  35.29 ns |  1.00 |    0.02 |         - |          NA |
+| BulkRgb24    | RGB24      |   795.4 ns |   9.51 ns |   6.29 ns |  0.31 |    0.00 |         - |          NA |
+|              |            |            |           |           |       |         |           |             |
+| ScalarRgb32  | RGB32      | 1,807.0 ns |  35.11 ns |  23.23 ns |  1.00 |    0.02 |         - |          NA |
+| BulkRgb32    | RGB32      |   769.9 ns |  10.86 ns |   6.46 ns |  0.43 |    0.01 |         - |          NA |
+|              |            |            |           |           |       |         |           |             |
+| ScalarRgba24 | RGBA24     | 3,799.5 ns | 282.16 ns | 167.91 ns |  1.00 |    0.06 |         - |          NA |
+| BulkRgba24   | RGBA24     |   906.1 ns | 117.43 ns |  77.67 ns |  0.24 |    0.02 |         - |          NA |
+|              |            |            |           |           |       |         |           |             |
+| ScalarRgba32 | RGBA32     | 2,292.1 ns |  83.02 ns |  43.42 ns |  1.00 |    0.03 |         - |          NA |
+| BulkRgba32   | RGBA32     |   831.6 ns |   7.70 ns |   4.03 ns |  0.36 |    0.01 |         - |          NA |
+*/

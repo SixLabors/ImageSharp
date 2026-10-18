@@ -15,8 +15,28 @@ public partial struct RgbaVector
     /// <summary>
     /// <see cref="PixelOperations{TPixel}"/> implementation optimized for <see cref="RgbaVector"/>.
     /// </summary>
-    internal class PixelOperations : PixelOperations<RgbaVector>
+    internal partial class PixelOperations : PixelOperations<RgbaVector>
     {
+        /// <inheritdoc />
+        public override void From<TPixelFrom>(Configuration configuration, ReadOnlySpan<TPixelFrom> source, Span<RgbaVector> destination)
+        {
+            // RgbaVector stores straight RGBA floats in Vector4 order. Write into that final storage without a temporary row or copy.
+            Span<Vector4> vectors = MemoryMarshal.Cast<RgbaVector, Vector4>(destination);
+            PixelOperations<TPixelFrom> sourceOperations = PixelOperations<TPixelFrom>.Instance;
+
+            if (TPixelFrom.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+            {
+                // The single-pixel associated conversions normalize stored channels before unassociation.
+                // Use the same order to preserve their rounding, with both bulk operations writing only destination storage.
+                sourceOperations.ToAssociatedScaledVector4(configuration, source, vectors);
+                Numerics.UnPremultiply(vectors[..source.Length]);
+            }
+            else
+            {
+                sourceOperations.ToUnassociatedScaledVector4(configuration, source, vectors);
+            }
+        }
+
         /// <inheritdoc />
         public override void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<RgbaVector> destinationPixels)
         {

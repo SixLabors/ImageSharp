@@ -7,7 +7,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using SixLabors.ImageSharp.Formats.Tiff;
-using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+using SixLabors.ImageSharp.Formats.Tiff.Readers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -142,3 +142,14 @@ public class TiffPlanar8ColorConversion
         return this.rgbaDestination[Length - 1, 0];
     }
 }
+
+/* Measured 2026-10-18
+
+| Method     | Categories |       Mean |    Error |   StdDev | Ratio | Allocated | Alloc Ratio |
+| ---------- | ---------- | ---------: | -------: | -------: | ----: | --------: | ----------: |
+| RgbScalar  | RGB8       | 1,529.0 ns |  8.41 ns |  5.56 ns |  1.00 |         - |          NA |
+| RgbBulk    | RGB8       |   390.8 ns | 10.88 ns |  5.69 ns |  0.26 |         - |          NA |
+|            |            |            |          |          |       |           |             |
+| RgbaScalar | RGBA8      | 2,022.2 ns |  9.45 ns |  6.25 ns |  1.00 |         - |          NA |
+| RgbaBulk   | RGBA8      |   406.4 ns | 23.69 ns | 14.10 ns |  0.20 |         - |          NA |
+*/

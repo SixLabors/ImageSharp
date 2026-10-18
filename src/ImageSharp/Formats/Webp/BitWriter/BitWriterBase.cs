@@ -111,7 +111,8 @@ internal abstract class BitWriterBase
 
             if (iccProfile != null)
             {
-                RiffHelper.WriteChunk(stream, (uint)WebpChunkType.Iccp, iccProfile.ToByteArray());
+                // RIFF writes this read-only payload directly; the profile retains its storage for the complete write.
+                RiffHelper.WriteChunk(stream, (uint)WebpChunkType.Iccp, iccProfile.GetData().Span);
             }
         }
 

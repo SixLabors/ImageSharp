@@ -55,6 +55,31 @@ internal static partial class SimdUtils
         // must never extend the work performed by the scalar fill or remainder.
         destination = destination[..redChannel.Length];
 
+        if (Vector512.IsHardwareAccelerated)
+        {
+            // One byte lane represents one pixel. Four full-width stores write the 64 opaque RGBA pixels.
+            nuint groups = redChannel.Vector512Count<byte>();
+            ref byte red = ref MemoryMarshal.GetReference(redChannel);
+            ref byte green = ref MemoryMarshal.GetReference(greenChannel);
+            ref byte blue = ref MemoryMarshal.GetReference(blueChannel);
+            ref byte output = ref Unsafe.As<Rgba32, byte>(ref MemoryMarshal.GetReference(destination));
+
+            for (nuint group = 0; group < groups; group++)
+            {
+                nuint offset = group * (uint)Vector512<byte>.Count;
+                Vector512<byte> r = Vector512.LoadUnsafe(ref red, offset);
+                Vector512<byte> g = Vector512.LoadUnsafe(ref green, offset);
+                Vector512<byte> b = Vector512.LoadUnsafe(ref blue, offset);
+                Interleave4(r, g, b, Vector512.Create(byte.MaxValue), ref Unsafe.Add(ref output, offset * 4));
+            }
+
+            int converted = (int)groups * Vector512<byte>.Count;
+            redChannel = redChannel[converted..];
+            greenChannel = greenChannel[converted..];
+            blueChannel = blueChannel[converted..];
+            destination = destination[converted..];
+        }
+
         if (Avx2.IsSupported)
         {
             HwIntrinsics.PackFromRgbPlanesReduce(ref redChannel, ref greenChannel, ref blueChannel, ref destination);
@@ -109,7 +134,24 @@ internal static partial class SimdUtils
         ref byte blueBase = ref MemoryMarshal.GetReference(blueChannel);
         ref byte destinationBase = ref Unsafe.As<Rgb24, byte>(ref MemoryMarshal.GetReference(destination));
         Vector128<byte> opaqueAlpha = Vector128.Create(byte.MaxValue);
-        Vector128<byte> removeAlpha = Vector128.Create((byte)0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue);
+        Vector128<byte> removeAlpha = Vector128.Create(
+            (byte)0,
+            1,
+            2,
+            4,
+            5,
+            6,
+            8,
+            9,
+            10,
+            12,
+            13,
+            14,
+            byte.MaxValue,
+            byte.MaxValue,
+            byte.MaxValue,
+            byte.MaxValue);
+
         nuint batchCount = (nuint)(uint)redChannel.Length / (uint)Vector128<byte>.Count;
 
         for (nuint i = 0; i < batchCount; i++)
@@ -118,7 +160,15 @@ internal static partial class SimdUtils
             Vector128<byte> red = Vector128.LoadUnsafe(ref redBase, sourceOffset);
             Vector128<byte> green = Vector128.LoadUnsafe(ref greenBase, sourceOffset);
             Vector128<byte> blue = Vector128.LoadUnsafe(ref blueBase, sourceOffset);
-            InterleaveRgbPlanes(red, green, blue, opaqueAlpha, out Vector128<byte> rgba0, out Vector128<byte> rgba1, out Vector128<byte> rgba2, out Vector128<byte> rgba3);
+            InterleaveRgbPlanes(
+                red,
+                green,
+                blue,
+                opaqueAlpha,
+                out Vector128<byte> rgba0,
+                out Vector128<byte> rgba1,
+                out Vector128<byte> rgba2,
+                out Vector128<byte> rgba3);
 
             // The native byte shuffle removes alpha from four pixels at a time. Each result owns twelve bytes, so
             // exact stores avoid coupling the SIMD path to padding beyond the row or the next memory-group segment.
@@ -162,7 +212,15 @@ internal static partial class SimdUtils
             Vector128<byte> red = Vector128.LoadUnsafe(ref redBase, sourceOffset);
             Vector128<byte> green = Vector128.LoadUnsafe(ref greenBase, sourceOffset);
             Vector128<byte> blue = Vector128.LoadUnsafe(ref blueBase, sourceOffset);
-            InterleaveRgbPlanes(red, green, blue, opaqueAlpha, out Vector128<byte> rgba0, out Vector128<byte> rgba1, out Vector128<byte> rgba2, out Vector128<byte> rgba3);
+            InterleaveRgbPlanes(
+                red,
+                green,
+                blue,
+                opaqueAlpha,
+                out Vector128<byte> rgba0,
+                out Vector128<byte> rgba1,
+                out Vector128<byte> rgba2,
+                out Vector128<byte> rgba3);
 
             ref Vector128<byte> destination0 = ref Unsafe.Add(ref destinationBase, i * 4);
             destination0 = rgba0;
@@ -563,8 +621,42 @@ internal static partial class SimdUtils
             ref Vector256<float> greenBase = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(greenChannel));
             ref Vector256<float> blueBase = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(blueChannel));
             Vector256<uint> separateLanes = Vector256.Create(0u, 1, 2, 6, 3, 4, 5, 7);
-            Vector128<byte> extractRgbLower = Vector128.Create((byte)0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue);
-            Vector128<byte> extractRgbUpper = Vector128.Create((byte)16, 19, 22, 25, 17, 20, 23, 26, 18, 21, 24, 27, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue);
+            Vector128<byte> extractRgbLower = Vector128.Create(
+                (byte)0,
+                3,
+                6,
+                9,
+                1,
+                4,
+                7,
+                10,
+                2,
+                5,
+                8,
+                11,
+                byte.MaxValue,
+                byte.MaxValue,
+                byte.MaxValue,
+                byte.MaxValue);
+
+            Vector128<byte> extractRgbUpper = Vector128.Create(
+                (byte)16,
+                19,
+                22,
+                25,
+                17,
+                20,
+                23,
+                26,
+                18,
+                21,
+                24,
+                27,
+                byte.MaxValue,
+                byte.MaxValue,
+                byte.MaxValue,
+                byte.MaxValue);
+
             Vector256<byte> extractRgb = Vector256.Create(extractRgbLower, extractRgbUpper);
 
             // Each iteration consumes eight Rgb24 pixels, or 24 bytes, but starts with a 32-byte load. Three extra
@@ -574,7 +666,10 @@ internal static partial class SimdUtils
 
             for (nuint i = 0; i < batchCount; i++)
             {
-                Vector256<byte> packed = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref sourceBase, (uint)(bytesPerBatch * i)).AsUInt32(), separateLanes).AsByte();
+                Vector256<byte> packed = Avx2.PermuteVar8x32(
+                    Unsafe.AddByteOffset(ref sourceBase, (uint)(bytesPerBatch * i)).AsUInt32(),
+                    separateLanes).AsByte();
+
                 packed = Vector256.ShuffleNative(packed, extractRgb);
 
                 Vector256<byte> redGreen = Avx2.UnpackLow(packed, Vector256<byte>.Zero);
@@ -623,7 +718,16 @@ internal static partial class SimdUtils
             out Vector256<byte> rgb2,
             out Vector256<byte> rgb3)
         {
-            InterleaveRgbPlanes(red, green, blue, alpha, sourceOrder, out Vector256<byte> rgba0, out Vector256<byte> rgba1, out Vector256<byte> rgba2, out Vector256<byte> rgba3);
+            InterleaveRgbPlanes(
+                red,
+                green,
+                blue,
+                alpha,
+                sourceOrder,
+                out Vector256<byte> rgba0,
+                out Vector256<byte> rgba1,
+                out Vector256<byte> rgba2,
+                out Vector256<byte> rgba3);
 
             rgb0 = Avx2.PermuteVar8x32(Vector256.ShuffleNative(rgba0, removeAlpha).AsUInt32(), packedOrder).AsByte();
             rgb1 = Avx2.PermuteVar8x32(Vector256.ShuffleNative(rgba1, removeAlpha).AsUInt32(), packedOrder).AsByte();

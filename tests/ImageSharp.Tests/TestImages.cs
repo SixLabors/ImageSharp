@@ -1266,6 +1266,9 @@ public static class TestImages
 
         public static class Icc
         {
+            // PerceptualRgb8 with only the ICC header's size changed to 127, shorter than the 128-byte ICC header.
+            public const string InvalidProfileSize = "Tiff/icc-profiles/invalid-profile-size.tiff";
+
             public const string PerceptualCmyk = "Tiff/icc-profiles/Perceptual_CMYK.tiff";
             public const string PerceptualCieLab = "Tiff/icc-profiles/Perceptual_CIELAB.tiff";
             public const string PerceptualRgb8 = "Tiff/icc-profiles/Perceptual_RGB8.tiff";

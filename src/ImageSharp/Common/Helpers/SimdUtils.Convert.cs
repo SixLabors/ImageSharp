@@ -3,11 +3,74 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp;
 
 internal static partial class SimdUtils
 {
+    /// <summary>
+    /// Converts unsigned sixteen-bit samples to floats in [0, 1] with scalar-equivalent division.
+    /// </summary>
+    /// <param name="source">The source component codes.</param>
+    /// <param name="destination">The equally sized destination components.</param>
+    internal static void UInt16ToNormalizedFloat(ReadOnlySpan<ushort> source, Span<float> destination)
+    {
+        ref ushort input = ref MemoryMarshal.GetReference(source);
+        ref float output = ref MemoryMarshal.GetReference(destination);
+        int i = 0;
+
+        // Ushort codes fit in signed int lanes. Signed conversion avoids full-range uint emulation on older SIMD targets.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            nuint groups = (source.Length - i).Vector512Count<float>();
+            Vector512<float> maximum = Vector512.Create((float)ushort.MaxValue);
+
+            // One 256-bit load supplies 16 ushort codes. Widen them once, then divide in 512-bit float lanes.
+            for (nuint group = 0; group < groups; group++, i += Vector512<float>.Count)
+            {
+                Vector256<ushort> codes = Vector256.LoadUnsafe(ref input, (uint)i);
+                Vector512<uint> widened = Vector512.WidenLower(codes.ToVector512());
+                (Vector512.ConvertToSingle(widened.AsInt32()) / maximum).StoreUnsafe(ref output, (uint)i);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint groups = (source.Length - i).Vector256Count<float>();
+            Vector256<float> maximum = Vector256.Create((float)ushort.MaxValue);
+
+            // One 128-bit load supplies 8 ushort codes. Widen them once, then divide in 256-bit float lanes.
+            for (nuint group = 0; group < groups; group++, i += Vector256<float>.Count)
+            {
+                Vector128<ushort> codes = Vector128.LoadUnsafe(ref input, (uint)i);
+                Vector256<uint> widened = Vector256.WidenLower(codes.ToVector256());
+                (Vector256.ConvertToSingle(widened.AsInt32()) / maximum).StoreUnsafe(ref output, (uint)i);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint groups = (source.Length - i).Vector128Count<float>();
+            Vector128<float> maximum = Vector128.Create((float)ushort.MaxValue);
+
+            // One 64-bit load supplies 4 ushort codes. Widen them once, then divide in 128-bit float lanes.
+            for (nuint group = 0; group < groups; group++, i += Vector128<float>.Count)
+            {
+                Vector64<ushort> codes = Vector64.LoadUnsafe(ref input, (uint)i);
+                Vector128<uint> widened = Vector128.WidenLower(codes.ToVector128());
+                (Vector128.ConvertToSingle(widened.AsInt32()) / maximum).StoreUnsafe(ref output, (uint)i);
+            }
+        }
+
+        // Division matches the single-pixel API exactly; multiplying by a rounded reciprocal can change the final float bit.
+        for (; i < source.Length; i++)
+        {
+            Unsafe.Add(ref output, (uint)i) = Unsafe.Add(ref input, (uint)i) / (float)ushort.MaxValue;
+        }
+    }
+
     /// <summary>
     /// Converts all input <see cref="byte"/>-s to <see cref="float"/>-s normalized into [0..1].
     /// <paramref name="source"/> should be the of the same size as <paramref name="destination"/>,

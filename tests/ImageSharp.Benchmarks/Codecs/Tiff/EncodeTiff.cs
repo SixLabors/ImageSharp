@@ -110,3 +110,20 @@ public class EncodeTiff
     public static bool IsOneBitCompression(TiffCompression compression)
         => compression is TiffCompression.Ccitt1D or TiffCompression.CcittGroup3Fax or TiffCompression.CcittGroup4Fax;
 }
+
+/* Measured 2026-10-18
+
+| Method                | TestImage                             | Compression    |        Mean |      Error |    StdDev | Ratio | RatioSD |     Gen0 |     Gen1 |     Gen2 | Allocated | Alloc Ratio |
+| --------------------- | ------------------------------------- | -------------- | ----------: | ---------: | --------: | ----: | ------: | -------: | -------: | -------: | --------: | ----------: |
+| 'System.Drawing Tiff' | Tiff/Calliphora_rgb_uncompressed.tiff | None           |   169.07 μs |   5.050 μs |  0.277 μs |  1.00 |    0.00 | 166.5039 | 166.5039 | 166.5039 | 527.72 KB |        1.00 |
+| 'ImageSharp Tiff'     | Tiff/Calliphora_rgb_uncompressed.tiff | None           |    90.77 μs |   3.496 μs |  0.192 μs |  0.54 |    0.00 | 111.0840 | 111.0840 | 111.0840 | 493.14 KB |        0.93 |
+|                       |                                       |                |             |            |           |       |         |          |          |          |           |             |
+| 'System.Drawing Tiff' | Tiff/Calliphora_rgb_uncompressed.tiff | Ccitt1D        |   426.25 μs | 287.721 μs | 15.771 μs |  1.00 |    0.05 | 166.5039 | 166.5039 | 166.5039 | 527.48 KB |        1.00 |
+| 'ImageSharp Tiff'     | Tiff/Calliphora_rgb_uncompressed.tiff | Ccitt1D        | 2,429.11 μs |  35.425 μs |  1.942 μs |  5.70 |    0.18 |  89.8438 |  89.8438 |  89.8438 | 383.58 KB |        0.73 |
+|                       |                                       |                |             |            |           |       |         |          |          |          |           |             |
+| 'System.Drawing Tiff' | Tiff/Calliphora_rgb_uncompressed.tiff | CcittGroup3Fax | 1,083.96 μs | 108.257 μs |  5.934 μs |  1.00 |    0.01 |   1.9531 |        - |        - |   59.6 KB |        1.00 |
+| 'ImageSharp Tiff'     | Tiff/Calliphora_rgb_uncompressed.tiff | CcittGroup3Fax | 2,429.07 μs | 160.447 μs |  8.795 μs |  2.24 |    0.01 |  89.8438 |  89.8438 |  89.8438 | 383.51 KB |        6.43 |
+|                       |                                       |                |             |            |           |       |         |          |          |          |           |             |
+| 'System.Drawing Tiff' | Tiff/Calliphora_rgb_uncompressed.tiff | Lzw            | 1,344.39 μs | 324.661 μs | 17.796 μs |  1.00 |    0.02 | 166.0156 | 166.0156 | 166.0156 | 527.72 KB |        1.00 |
+| 'ImageSharp Tiff'     | Tiff/Calliphora_rgb_uncompressed.tiff | Lzw            | 2,577.93 μs | 332.148 μs | 18.206 μs |  1.92 |    0.03 | 121.0938 | 121.0938 | 121.0938 | 524.16 KB |        0.99 |
+*/

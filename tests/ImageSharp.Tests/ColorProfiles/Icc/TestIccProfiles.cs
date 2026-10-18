@@ -58,6 +58,11 @@ internal static class TestIccProfiles
     /// </summary>
     public const string StandardRgbV2 = "sRGB2014.icc";
 
+    /// <summary>
+    /// Adobe Dot Gain 20%: v2 GRAY printer profile with a sampled kTRC curve.
+    /// </summary>
+    public const string DotGain20 = "DotGain20.icc";
+
     public static IccProfile GetProfile(string file)
         => ProfileCache.GetOrAdd(file, f => new IccProfile(File.ReadAllBytes(GetFullPath(f))));
 

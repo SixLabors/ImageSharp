@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using BenchmarkDotNet.Attributes;
-using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+using SixLabors.ImageSharp.Formats.Tiff.ColorConverters;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Tiff;
@@ -26,7 +26,7 @@ public class YCbCrColorConversion
     /// <summary>
     /// Gets or sets the number of pixels converted per invocation.
     /// </summary>
-    [Params(128, 1024)]
+    [Params(16, 128, 1024)]
     public int Length { get; set; }
 
     /// <summary>
@@ -38,6 +38,7 @@ public class YCbCrColorConversion
         this.source = new byte[this.Length * 3];
         this.destination = new Rgba32[this.Length];
 
+        // Sixteen pixels match a TIFF decoder block; larger lengths measure complete rows.
         // TIFF stores interleaved Y, Cb, Cr bytes; a fixed seed gives both paths the same row.
         Random random = new(42);
         random.NextBytes(this.source);
@@ -72,3 +73,17 @@ public class YCbCrColorConversion
         return this.destination[^1];
     }
 }
+
+/* Measured 2026-10-18
+
+| Method | Length |        Mean |        Error |    StdDev | Ratio | RatioSD | Code Size | Allocated | Alloc Ratio |
+| ------ | ------ | ----------: | -----------: | --------: | ----: | ------: | --------: | --------: | ----------: |
+| Scalar | 16     |    50.73 ns |    10.042 ns |  0.550 ns |  1.00 |    0.01 |     490 B |         - |          NA |
+| Bulk   | 16     |    16.04 ns |     3.138 ns |  0.172 ns |  0.32 |    0.00 |   1,324 B |         - |          NA |
+|        |        |             |              |           |       |         |           |           |             |
+| Scalar | 128    |   406.84 ns |    81.827 ns |  4.485 ns |  1.00 |    0.01 |     526 B |         - |          NA |
+| Bulk   | 128    |    43.63 ns |    12.531 ns |  0.687 ns |  0.11 |    0.00 |   1,316 B |         - |          NA |
+|        |        |             |              |           |       |         |           |           |             |
+| Scalar | 1024   | 3,308.59 ns | 1,355.267 ns | 74.287 ns |  1.00 |    0.03 |     526 B |         - |          NA |
+| Bulk   | 1024   |   285.50 ns |    47.579 ns |  2.608 ns |  0.09 |    0.00 |   1,316 B |         - |          NA |
+*/

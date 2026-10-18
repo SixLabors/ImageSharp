@@ -2,6 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Common;
@@ -12,6 +15,252 @@ namespace SixLabors.ImageSharp.Tests.Common;
 public partial class SimdUtilsTests
 {
     private static readonly int[] Lengths = [0, 1, 2, 3, 4, 5, 7, 8, 15, 16, 17, 31, 32, 33, 129];
+
+    /// <summary>
+    /// Checks bounded byte deinterleaving and signed and unsigned widening across hardware modes.
+    /// </summary>
+    [Fact]
+    public void ByteTriplesPreserveComponents() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        ValidateByteTriples,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks exact-end loads, an unaligned triple offset, and both sides of the signed-byte boundary.
+    /// </summary>
+    private static void ValidateByteTriples()
+    {
+        // Seventeen codes prevent a misplaced four-, eight-, or sixteen-pixel group from matching by repetition.
+        ReadOnlySpan<byte> samples = [0, 1, 2, 3, 7, 15, 31, 63, 127, 128, 129, 191, 223, 247, 253, 254, 255];
+
+        foreach (int count in new[] { 8, 16 })
+        {
+            // Skip one complete triple. The last requested triple ends at the array boundary, with no readable padding.
+            const int Start = 1;
+            byte[] packed = new byte[(count + Start) * 3];
+            for (int i = 0; i < packed.Length; i++)
+            {
+                packed[i] = samples[i % samples.Length];
+            }
+
+            byte[][] actual = [new byte[count], new byte[count], new byte[count]];
+            int[] unsigned = new int[count];
+            int[] signed = new int[count];
+
+            if (count == 8)
+            {
+                SimdUtils.Deinterleave3(packed, Start, out Vector64<byte> x, out Vector64<byte> y, out Vector64<byte> z);
+                x.StoreUnsafe(ref actual[0][0]);
+                y.StoreUnsafe(ref actual[1][0]);
+                z.StoreUnsafe(ref actual[2][0]);
+                Vector256_.Widen(x).StoreUnsafe(ref unsigned[0]);
+                Vector256_.Widen(x.AsSByte()).StoreUnsafe(ref signed[0]);
+            }
+            else
+            {
+                SimdUtils.Deinterleave3(packed, Start, out Vector128<byte> x, out Vector128<byte> y, out Vector128<byte> z);
+                x.StoreUnsafe(ref actual[0][0]);
+                y.StoreUnsafe(ref actual[1][0]);
+                z.StoreUnsafe(ref actual[2][0]);
+
+                // Native 512-bit helpers require the supported path; narrower modes exercise the portable 256-bit widening above.
+                if (Vector512.IsHardwareAccelerated)
+                {
+                    Vector512_.Widen(x).StoreUnsafe(ref unsigned[0]);
+                    Vector512_.Widen(x.AsSByte()).StoreUnsafe(ref signed[0]);
+                }
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                for (int channel = 0; channel < actual.Length; channel++)
+                {
+                    Assert.Equal(packed[((i + Start) * 3) + channel], actual[channel][i]);
+                }
+
+                if (count == 8 || Vector512.IsHardwareAccelerated)
+                {
+                    // Signed widening interprets the byte as two's complement; it must not zero-extend negative chroma.
+                    Assert.Equal((int)actual[0][i], unsigned[i]);
+                    Assert.Equal((int)unchecked((sbyte)actual[0][i]), signed[i]);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks exact word-triple packing and bounded loading with every SIMD width and its fallback.
+    /// </summary>
+    [Fact]
+    public void WordTriplesPreserveComponents() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        ValidateWordTriples,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks component order and untouched destination sentinels with unaligned, exact-end source groups.
+    /// </summary>
+    private static void ValidateWordTriples()
+    {
+        Random random = new(42);
+
+        foreach (int count in new[] { 8, 16, 32 })
+        {
+            // Offset each source by one word. The requested group ends at the array boundary, with no readable padding.
+            ushort[][] planes = [new ushort[count + 1], new ushort[count + 1], new ushort[count + 1], new ushort[count + 1]];
+
+            foreach (ushort[] plane in planes)
+            {
+                random.NextBytes(MemoryMarshal.AsBytes(plane.AsSpan()));
+            }
+
+            // Three leading sentinel words also make the destination unaligned. A trailing sentinel detects an oversized store.
+            const int Start = 3;
+            ushort[] expected = new ushort[(count * 3) + Start + 1];
+            Array.Fill(expected, ushort.MaxValue);
+            ushort[] actual = expected.ToArray();
+
+            for (int i = 0; i < count; i++)
+            {
+                for (int channel = 0; channel < 3; channel++)
+                {
+                    expected[Start + (i * 3) + channel] = planes[channel][i + 1];
+                }
+            }
+
+            if (count == 8)
+            {
+                SimdUtils.Interleave3(
+                    Vector128.LoadUnsafe(ref planes[0][1]),
+                    Vector128.LoadUnsafe(ref planes[1][1]),
+                    Vector128.LoadUnsafe(ref planes[2][1]),
+                    ref actual[Start]);
+            }
+            else if (count == 16)
+            {
+                SimdUtils.Interleave3(
+                    Vector256.LoadUnsafe(ref planes[0][1]),
+                    Vector256.LoadUnsafe(ref planes[1][1]),
+                    Vector256.LoadUnsafe(ref planes[2][1]),
+                    ref actual[Start]);
+            }
+            else
+            {
+                SimdUtils.Interleave3(
+                    Vector512.LoadUnsafe(ref planes[0][1]),
+                    Vector512.LoadUnsafe(ref planes[1][1]),
+                    Vector512.LoadUnsafe(ref planes[2][1]),
+                    ref actual[Start]);
+            }
+
+            Assert.Equal(expected, actual);
+
+            // Check loading against the independently interleaved source, not against the result of the packer under test.
+            ushort[][] components = [new ushort[count], new ushort[count], new ushort[count]];
+
+            if (count == 8)
+            {
+                SimdUtils.Deinterleave3(expected.AsSpan(Start), 0, out Vector128<ushort> x, out Vector128<ushort> y, out Vector128<ushort> z);
+                x.StoreUnsafe(ref components[0][0]);
+                y.StoreUnsafe(ref components[1][0]);
+                z.StoreUnsafe(ref components[2][0]);
+            }
+            else if (count == 16)
+            {
+                SimdUtils.Deinterleave3(expected.AsSpan(Start), 0, out Vector256<ushort> x, out Vector256<ushort> y, out Vector256<ushort> z);
+                x.StoreUnsafe(ref components[0][0]);
+                y.StoreUnsafe(ref components[1][0]);
+                z.StoreUnsafe(ref components[2][0]);
+            }
+
+            if (count != 32)
+            {
+                for (int channel = 0; channel < components.Length; channel++)
+                {
+                    Assert.Equal(planes[channel].AsSpan(1).ToArray(), components[channel]);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks exact byte and word quadruple packing with hardware acceleration and portable fallbacks.
+    /// </summary>
+    [Fact]
+    public void IntegerQuadruplesPreserveComponents() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        ValidateIntegerQuadruples,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks byte and word packing without allowing stores past the output.
+    /// </summary>
+    private static void ValidateIntegerQuadruples()
+    {
+        Random random = new(42);
+        foreach (int count in new[] { 16, 32 })
+        {
+            ushort[][] planes = [new ushort[count + 1], new ushort[count + 1], new ushort[count + 1], new ushort[count + 1]];
+            foreach (ushort[] plane in planes)
+            {
+                random.NextBytes(MemoryMarshal.AsBytes(plane.AsSpan()));
+            }
+
+            // Byte and ushort inputs exercise the same lane transpose at different component widths.
+            byte[][] bytes = planes.Select(plane => MemoryMarshal.AsBytes(plane.AsSpan(1)).ToArray()).ToArray();
+            byte[] expectedBytes = new byte[(count * 2 * 4) + 1];
+            ushort[] expectedWords = new ushort[(count * 4) + 1];
+            byte[] actualBytes = new byte[expectedBytes.Length];
+            ushort[] actualWords = new ushort[expectedWords.Length];
+            expectedBytes[^1] = actualBytes[^1] = byte.MaxValue;
+            expectedWords[^1] = actualWords[^1] = ushort.MaxValue;
+
+            for (int i = 0; i < count * 2; i++)
+            {
+                for (int channel = 0; channel < 4; channel++)
+                {
+                    expectedBytes[(i * 4) + channel] = bytes[channel][i];
+                    if (i < count)
+                    {
+                        expectedWords[(i * 4) + channel] = planes[channel][i + 1];
+                    }
+                }
+            }
+
+            if (count == 16)
+            {
+                SimdUtils.Interleave4(
+                    Vector256.LoadUnsafe(ref bytes[0][0]),
+                    Vector256.LoadUnsafe(ref bytes[1][0]),
+                    Vector256.LoadUnsafe(ref bytes[2][0]),
+                    Vector256.LoadUnsafe(ref bytes[3][0]),
+                    ref actualBytes[0]);
+
+                SimdUtils.Interleave4(
+                    Vector256.LoadUnsafe(ref planes[0][1]),
+                    Vector256.LoadUnsafe(ref planes[1][1]),
+                    Vector256.LoadUnsafe(ref planes[2][1]),
+                    Vector256.LoadUnsafe(ref planes[3][1]),
+                    ref actualWords[0]);
+            }
+            else
+            {
+                SimdUtils.Interleave4(
+                    Vector512.LoadUnsafe(ref bytes[0][0]),
+                    Vector512.LoadUnsafe(ref bytes[1][0]),
+                    Vector512.LoadUnsafe(ref bytes[2][0]),
+                    Vector512.LoadUnsafe(ref bytes[3][0]),
+                    ref actualBytes[0]);
+
+                SimdUtils.Interleave4(
+                    Vector512.LoadUnsafe(ref planes[0][1]),
+                    Vector512.LoadUnsafe(ref planes[1][1]),
+                    Vector512.LoadUnsafe(ref planes[2][1]),
+                    Vector512.LoadUnsafe(ref planes[3][1]),
+                    ref actualWords[0]);
+            }
+
+            Assert.Equal(expectedBytes, actualBytes);
+            Assert.Equal(expectedWords, actualWords);
+        }
+    }
 
     /// <summary>
     /// Verifies every packing operation against its scalar definition with and without hardware intrinsics.

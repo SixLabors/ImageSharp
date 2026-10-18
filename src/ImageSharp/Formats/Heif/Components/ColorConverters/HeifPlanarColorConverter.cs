@@ -677,7 +677,7 @@ internal static class HeifPlanarColorConverter
                 // The converted RGBA row stays in floating point until TPixel performs its final conversion.
                 Span<Vector4> vectors = MemoryMarshal.Cast<float, Vector4>(packedStorage)[..width];
                 Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(packedStorage[(width * 4)..])[..width];
-                this.colorConverter.ConvertToRgbInPlaceWithIcc(red, green, blue, alpha, this.premultiplied, this.profileConverter, vectors, rgb);
+                this.colorConverter.ConvertToRgb(red, green, blue, alpha, this.premultiplied, this.profileConverter, vectors, rgb);
                 if (step.Width == 1)
                 {
                     // ICC returns straight RGB even when the stored source samples were associated.
@@ -699,7 +699,7 @@ internal static class HeifPlanarColorConverter
                 return;
             }
 
-            this.colorConverter.ConvertToRgbInPlace(red, green, blue);
+            this.colorConverter.ConvertToRgb(red, green, blue);
             if (this.UsesBytePacking && this.alpha is null)
             {
                 // The shared planar packing contract lets existing pixel-specific SIMD packers own the
@@ -1029,13 +1029,13 @@ internal static class HeifPlanarColorConverter
                 // The shared planar unpack contract reaches the existing pixel-specific SIMD implementation before
                 // the closed H.273 operator transforms the component rows in place.
                 PixelOperations<TPixel>.Instance.UnpackIntoRgbPlanes(luma, chromaBlue, chromaRed, source);
-                this.colorConverter.ConvertFromRgbInPlace(luma, chromaBlue, chromaRed, ByteMaximum);
+                this.colorConverter.ConvertFromRgb(luma, chromaBlue, chromaRed, ByteMaximum);
                 return;
             }
 
             PixelOperations<TPixel>.Instance.ToRgb48(this.configuration, source, packed);
             HeifSampleConversion.DeinterleaveRgb48(packed, luma, chromaBlue, chromaRed);
-            this.colorConverter.ConvertFromRgbInPlace(luma, chromaBlue, chromaRed, UShortMaximum);
+            this.colorConverter.ConvertFromRgb(luma, chromaBlue, chromaRed, UShortMaximum);
         }
 
         /// <summary>
@@ -1061,13 +1061,8 @@ internal static class HeifPlanarColorConverter
                 .DangerousGetRowSpan(this.sourceRectangle.Y + y)
                 .Slice(this.sourceRectangle.X, this.sourceRectangle.Width);
 
-            // Transform straight float RGB before native sample rounding. The alpha encoder reads the source alpha separately.
-            converter.Convert(this.configuration, source, vectors, rgb);
-            SimdUtils.UnpackDeinterleave3(MemoryMarshal.Cast<Rgb, Vector3>(rgb), luma, chromaBlue, chromaRed);
-
-            // Keep extended ICC RGB through the color-model conversion. WriteSamples applies the encoded component
-            // range and integer limits afterward; clipping RGB here would discard HDR values before encoding.
-            this.colorConverter.ConvertFromRgbInPlace(luma, chromaBlue, chromaRed, 1F);
+            // The converter owns ICC and the native color model in both directions. This row writer only supplies source pixels and storage.
+            this.colorConverter.ConvertFromRgb(this.configuration, source, luma, chromaBlue, chromaRed, converter, vectors, rgb);
         }
 
         /// <summary>

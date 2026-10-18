@@ -192,9 +192,9 @@ internal sealed class BmpEncoderCore
             out ColorProfileConverter? converter);
 
         // ICC describes the stored colors and must remain even when optional metadata is skipped.
-        byte[]? iccProfileData = outputIccProfile?.ToByteArray();
-        int iccProfileSize = iccProfileData?.Length ?? 0;
-        if (iccProfileData is not null)
+        ReadOnlySpan<byte> iccProfileData = outputIccProfile is null ? default : outputIccProfile.GetData().Span;
+        int iccProfileSize = iccProfileData.Length;
+        if (!iccProfileData.IsEmpty)
         {
             this.infoHeaderType = BmpInfoHeaderType.WinVersion5;
         }
@@ -240,7 +240,7 @@ internal sealed class BmpEncoderCore
     /// <param name="bpp">The bits per pixel.</param>
     /// <param name="bytesPerLine">The bytes per line.</param>
     /// <param name="metadata">The metadata.</param>
-    /// <param name="iccProfileData">The icc profile data.</param>
+    /// <param name="iccProfileData">The encoded ICC profile, or empty when no compatible profile is selected.</param>
     /// <returns>The bitmap information header.</returns>
     private BmpInfoHeader CreateBmpInfoHeader(
         int width,
@@ -249,7 +249,7 @@ internal sealed class BmpEncoderCore
         ushort bpp,
         int bytesPerLine,
         ImageMetadata metadata,
-        byte[]? iccProfileData)
+        ReadOnlySpan<byte> iccProfileData)
     {
         int hResolution = 0;
         int vResolution = 0;
@@ -302,7 +302,7 @@ internal sealed class BmpEncoderCore
             infoHeader.Compression = BmpCompression.BitFields;
         }
 
-        if (this.infoHeaderType is BmpInfoHeaderType.WinVersion5 && iccProfileData != null)
+        if (this.infoHeaderType is BmpInfoHeaderType.WinVersion5 && !iccProfileData.IsEmpty)
         {
             infoHeader.ProfileSize = iccProfileData.Length;
             infoHeader.CsType = BmpColorSpace.PROFILE_EMBEDDED;
@@ -316,12 +316,12 @@ internal sealed class BmpEncoderCore
     /// Writes the color profile to the stream.
     /// </summary>
     /// <param name="stream">The stream to write to.</param>
-    /// <param name="iccProfileData">The color profile data.</param>
+    /// <param name="iccProfileData">The read-only profile bytes, or empty to omit the profile.</param>
     /// <param name="buffer">The buffer.</param>
     /// <param name="infoHeaderPosition">The absolute stream position where the DIB header begins.</param>
-    private static void WriteColorProfile(Stream stream, byte[]? iccProfileData, Span<byte> buffer, long infoHeaderPosition)
+    private static void WriteColorProfile(Stream stream, ReadOnlySpan<byte> iccProfileData, Span<byte> buffer, long infoHeaderPosition)
     {
-        if (iccProfileData != null)
+        if (!iccProfileData.IsEmpty)
         {
             // The offset, in bytes, from the beginning of the BITMAPV5HEADER structure to the start of the profile data.
             int profileOffset = (int)(stream.Position - infoHeaderPosition);

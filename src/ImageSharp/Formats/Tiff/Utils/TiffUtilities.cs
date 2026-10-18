@@ -113,11 +113,57 @@ internal static class TiffUtilities
         bool reverse = bigEndian == BitConverter.IsLittleEndian;
         int i = 0;
 
+        if (Vector512.IsHardwareAccelerated)
+        {
+            nuint groups = samples.Vector512Count<ushort>();
+            for (nuint group = 0; group < groups; group++, i += Vector512<ushort>.Count)
+            {
+                Vector512<byte> bytes = Vector512.LoadUnsafe(ref sourceRef, (nuint)(i * sizeof(ushort)));
+
+                // Each adjacent byte pair is one sample. The shared shuffle expands the pair-swap mask across all four lanes.
+                if (reverse)
+                {
+                    bytes = Vector512.ShuffleNative(bytes, IShuffle4.ExpandLaneMask(Reverse16BitByteIndices));
+                }
+
+                Vector512<ushort> values = bytes.AsUInt16();
+                if (invert)
+                {
+                    values = ~values;
+                }
+
+                values.StoreUnsafe(ref destinationRef, (nuint)i);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint groups = samples[i..].Vector256Count<ushort>();
+            for (nuint group = 0; group < groups; group++, i += Vector256<ushort>.Count)
+            {
+                Vector256<byte> bytes = Vector256.LoadUnsafe(ref sourceRef, (nuint)(i * sizeof(ushort)));
+
+                // A pair never crosses a 128-bit lane, so both halves use the same local byte indices.
+                if (reverse)
+                {
+                    bytes = Vector256_.ShufflePerLane(bytes, Vector256.Create(Reverse16BitByteIndices, Reverse16BitByteIndices));
+                }
+
+                Vector256<ushort> values = bytes.AsUInt16();
+                if (invert)
+                {
+                    values = ~values;
+                }
+
+                values.StoreUnsafe(ref destinationRef, (nuint)i);
+            }
+        }
+
         if (Vector128.IsHardwareAccelerated)
         {
             // Each 128-bit byte load holds eight complete ushort samples. Count destination ushort groups,
             // then use the same sample index for its 16 source bytes and eight native-endian outputs.
-            nuint groups = samples.Vector128Count<ushort>();
+            nuint groups = samples[i..].Vector128Count<ushort>();
             for (nuint group = 0; group < groups; group++, i += Vector128<ushort>.Count)
             {
                 Vector128<byte> bytes = Vector128.LoadUnsafe(ref sourceRef, (nuint)(i * 2));

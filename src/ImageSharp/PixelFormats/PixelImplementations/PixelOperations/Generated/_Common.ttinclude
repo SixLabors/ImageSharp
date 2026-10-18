@@ -332,6 +332,23 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
         GenerateGenericConverterMethods(pixelType);
     }
 
+    /// <summary>
+    /// Routes all named RgbaVector source conversions through its generic bulk conversion.
+    /// </summary>
+    void GenerateRgbaVectorFromMethods()
+    {
+        // Keep the source list shared with the other generated pixel operations, including associated byte layouts.
+        foreach (string sourceType in CommonPixelTypes.Concat(AssociatedOptimizedPixelTypes))
+        {
+#>
+
+        /// <inheritdoc />
+        public override void From<#=sourceType#>(Configuration configuration, ReadOnlySpan<<#=sourceType#>> source, Span<RgbaVector> destination)
+            => this.From(configuration, source, destination);
+<#+
+        }
+    }
+
     void GenerateAllDefaultConversionMethods(string pixelType)
     {
         GenerateDefaultSelfConversionMethods(pixelType);

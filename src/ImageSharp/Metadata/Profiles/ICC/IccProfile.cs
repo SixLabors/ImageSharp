@@ -180,6 +180,17 @@ public sealed partial class IccProfile : IDeepCloneable<IccProfile>
         return IccWriter.Write(this);
     }
 
+    /// <summary>
+    /// Gets encoded profile bytes for consumers that only read them.
+    /// </summary>
+    /// <returns>The retained bytes, or a new serialization when the profile was constructed from entries.</returns>
+    internal ReadOnlyMemory<byte> GetData()
+    {
+        // Decoded profiles own their encoded bytes. A read-only view keeps those bytes alive without copying them.
+        // Entry-based profiles must be serialized on each request because callers can change their header and entries.
+        return this.data ?? IccWriter.Write(this);
+    }
+
     private void InitializeHeader()
     {
         if (this.header != null)

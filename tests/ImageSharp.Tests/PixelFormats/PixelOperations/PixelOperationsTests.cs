@@ -15,6 +15,97 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations;
 [Trait("Category", "PixelFormats")]
 public partial class PixelOperationsTests
 {
+    /// <summary>
+    /// Checks sixteen-bit RGB and RGBA extraction and floating-pixel conversion across SIMD widths and scalar tails.
+    /// </summary>
+    [Fact]
+    public void Unsigned16VectorConversionsMatchSinglePixels() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        AssertUnsigned16VectorConversions,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Compares bulk results with the single-pixel contract, including zero alpha, opaque alpha, and untouched output padding.
+    /// </summary>
+    private static void AssertUnsigned16VectorConversions()
+    {
+        // These counts reach each 4-, 8-, and 16-pixel path and leave tails after complete groups.
+        foreach (int count in new[] { 0, 1, 4, 8, 16, 17, 33, 65 })
+        {
+            Rgb48[] rgb = new Rgb48[count];
+            Rgba64[] rgba = new Rgba64[count];
+            Random random = new(42);
+            random.NextBytes(MemoryMarshal.AsBytes(rgb.AsSpan()));
+            random.NextBytes(MemoryMarshal.AsBytes(rgba.AsSpan()));
+
+            if (count > 0)
+            {
+                // Zero alpha must retain hidden RGB in straight output and clear RGB in associated output.
+                rgb[0] = new Rgb48(0, 1, ushort.MaxValue);
+                rgba[0] = new Rgba64(0, 1, ushort.MaxValue, 0);
+            }
+
+            // Extra destination elements must remain unchanged when the source is shorter than the destination.
+            Vector4 sentinel = new(2F, 3F, 4F, 5F);
+            Vector4[] expected = Enumerable.Repeat(sentinel, count + 1).ToArray();
+            Vector4[] actual = expected.ToArray();
+
+            for (int i = 0; i < count; i++)
+            {
+                expected[i] = rgb[i].ToUnassociatedScaledVector4();
+            }
+
+            PixelOperations<Rgb48>.Instance.ToUnassociatedScaledVector4(Configuration.Default, rgb, actual);
+            Assert.Equal(expected, actual);
+
+            // RGB48's native and scaled ranges are identical. Its implicit opaque alpha makes both alpha representations equal.
+            PixelOperations<Rgb48>.Instance.ToVector4(Configuration.Default, rgb, actual);
+            Assert.Equal(expected, actual);
+            PixelOperations<Rgb48>.Instance.ToScaledVector4(Configuration.Default, rgb, actual);
+            Assert.Equal(expected, actual);
+            PixelOperations<Rgb48>.Instance.ToUnassociatedVector4(Configuration.Default, rgb, actual);
+            Assert.Equal(expected, actual);
+            PixelOperations<Rgb48>.Instance.ToAssociatedVector4(Configuration.Default, rgb, actual);
+            Assert.Equal(expected, actual);
+            PixelOperations<Rgb48>.Instance.ToAssociatedScaledVector4(Configuration.Default, rgb, actual);
+            Assert.Equal(expected, actual);
+
+            // The typed RgbaVector entry point must use the same extraction without quantizing through an eight-bit pixel.
+            RgbaVector[] packed = MemoryMarshal.Cast<Vector4, RgbaVector>(actual.AsSpan()).ToArray();
+            PixelOperations<RgbaVector>.Instance.FromRgb48(Configuration.Default, rgb, packed);
+            Assert.Equal(expected, MemoryMarshal.Cast<RgbaVector, Vector4>(packed.AsSpan()).ToArray());
+
+            for (int i = 0; i < count; i++)
+            {
+                expected[i] = rgba[i].ToUnassociatedScaledVector4();
+            }
+
+            PixelOperations<Rgba64>.Instance.ToUnassociatedScaledVector4(Configuration.Default, rgba, actual);
+            Assert.Equal(expected, actual);
+
+            // RGBA64's native and scaled ranges also match; these entry points must all retain straight RGB and alpha.
+            PixelOperations<Rgba64>.Instance.ToVector4(Configuration.Default, rgba, actual);
+            Assert.Equal(expected, actual);
+            PixelOperations<Rgba64>.Instance.ToScaledVector4(Configuration.Default, rgba, actual);
+            Assert.Equal(expected, actual);
+            PixelOperations<Rgba64>.Instance.ToUnassociatedVector4(Configuration.Default, rgba, actual);
+            Assert.Equal(expected, actual);
+
+            PixelOperations<RgbaVector>.Instance.FromRgba64(Configuration.Default, rgba, packed);
+            Assert.Equal(expected, MemoryMarshal.Cast<RgbaVector, Vector4>(packed.AsSpan()).ToArray());
+
+            // Associated extraction normalizes first, then multiplies RGB by normalized alpha, exactly as the single-pixel API does.
+            for (int i = 0; i < count; i++)
+            {
+                expected[i] = rgba[i].ToAssociatedScaledVector4();
+            }
+
+            PixelOperations<Rgba64>.Instance.ToAssociatedScaledVector4(Configuration.Default, rgba, actual);
+            Assert.Equal(expected, actual);
+            PixelOperations<Rgba64>.Instance.ToAssociatedVector4(Configuration.Default, rgba, actual);
+            Assert.Equal(expected, actual);
+        }
+    }
+
     [Theory]
     [WithBlankImages(1, 1, PixelTypes.All)]
     public void GetGlobalInstance<T>(TestImageProvider<T> _)

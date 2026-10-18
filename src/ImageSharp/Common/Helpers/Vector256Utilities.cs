@@ -22,6 +22,28 @@ internal static class Vector256_
 #pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
+    /// Selects each 32-bit element from one of two vectors by index.
+    /// </summary>
+    /// <param name="lower">The vector that supplies indices 0 through 7.</param>
+    /// <param name="indices">The source index of each destination element.</param>
+    /// <param name="upper">The vector that supplies indices 8 through 15.</param>
+    /// <returns>The selected elements.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<int> PermuteVar8x32x2(Vector256<int> lower, Vector256<int> indices, Vector256<int> upper)
+    {
+        if (Avx512F.VL.IsSupported)
+        {
+            return Avx512F.VL.PermuteVar8x32x2(lower, indices, upper);
+        }
+
+        // The low three bits select a lane; bit three selects its source register.
+        // Masking to 0..7 keeps every shuffle index valid, so ShuffleNative needs no out-of-range zeroing.
+        Vector256<int> within = indices & Vector256.Create(7);
+        Vector256<int> selector = Vector256.Equals(indices & Vector256.Create(8), Vector256.Create(8));
+        return Vector256.ConditionalSelect(selector, Vector256.ShuffleNative(upper, within), Vector256.ShuffleNative(lower, within));
+    }
+
+    /// <summary>
     /// Approximates base-two exponentials in single-precision SIMD lanes.
     /// </summary>
     /// <param name="value">The binary exponents.</param>
@@ -222,9 +244,10 @@ internal static class Vector256_
 
         // Each half has its own byte indices. Like vpshufb, keep the low four index bits and the high zeroing bit;
         // bits 4-6 must not select outside the 128-bit lane on platforms with different native shuffle semantics.
+        // The remaining indices are 0..15 or have the high zeroing bit set, so native byte shuffles preserve this contract.
         Vector128<byte> indexMask = Vector128.Create((byte)0x8F);
-        Vector128<byte> lower = Vector128.Shuffle(vector.GetLower(), indices.GetLower() & indexMask);
-        Vector128<byte> upper = Vector128.Shuffle(vector.GetUpper(), indices.GetUpper() & indexMask);
+        Vector128<byte> lower = Vector128.ShuffleNative(vector.GetLower(), indices.GetLower() & indexMask);
+        Vector128<byte> upper = Vector128.ShuffleNative(vector.GetUpper(), indices.GetUpper() & indexMask);
         return Vector256.Create(lower, upper);
     }
 
@@ -574,6 +597,39 @@ internal static class Vector256_
     }
 
     /// <summary>
+    /// Widens eight unsigned bytes to signed 32-bit integers.
+    /// </summary>
+    /// <param name="value">The eight byte lanes.</param>
+    /// <returns>The same values in eight integer lanes.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<int> Widen(Vector64<byte> value)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.ConvertToVector256Int32(value.ToVector128());
+        }
+
+        // Widen bytes before words so values above 127 remain positive on the portable path.
+        return Widen(Vector128.WidenLower(value.ToVector128()).AsInt16());
+    }
+
+    /// <summary>
+    /// Widens eight signed bytes to signed 32-bit integers.
+    /// </summary>
+    /// <param name="value">The eight signed byte lanes.</param>
+    /// <returns>The sign-extended values in eight integer lanes.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<int> Widen(Vector64<sbyte> value)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.ConvertToVector256Int32(value.ToVector128());
+        }
+
+        return Widen(Vector128.WidenLower(value.ToVector128()));
+    }
+
+    /// <summary>
     /// Widens sixteen unsigned 8-bit integers to signed 16-bit integers.
     /// </summary>
     /// <param name="value">The vector to widen.</param>
@@ -627,7 +683,8 @@ internal static class Vector256_
             return Avx2.Permute4x64(value, control);
         }
 
-        return Vector256.Shuffle(
+        // Each two-bit field selects one of four elements. Native indices are therefore always in range.
+        return Vector256.ShuffleNative(
             value,
             Vector256.Create((long)(control & 3), (control >> 2) & 3, (control >> 4) & 3, (control >> 6) & 3));
     }

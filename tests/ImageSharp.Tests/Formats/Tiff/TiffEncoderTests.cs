@@ -12,7 +12,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
 
 [Trait("Format", "Tiff")]
-public class TiffEncoderTests : TiffEncoderBaseTester
+public partial class TiffEncoderTests : TiffEncoderBaseTester
 {
     [Fact]
     public void TiffEncoderDefaultInstanceHasQuantizer() => Assert.NotNull(new TiffEncoder().Quantizer);

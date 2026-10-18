@@ -20,10 +20,10 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
     private int pixelRowCounter;
 
-    private readonly Buffer2D<TPixel> pixelBuffer;
+    private readonly Buffer2DRegion<TPixel> pixelBuffer;
 
     /// <summary>
-    /// The row storage: three ordinary RGB planes, or four vector components and three ICC source components per pixel.
+    /// Row storage reused for every scan step. Its layout depends on ICC conversion and transparent-pixel clearing.
     /// </summary>
     private readonly IMemoryOwner<float> rowBuffer;
 
@@ -33,9 +33,14 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     private readonly Configuration configuration;
 
     /// <summary>
-    /// The reusable return transform, or null for the ordinary JPEG path.
+    /// The converter from sRGB to the retained ICC profile, or null when no ICC conversion is required.
     /// </summary>
     private readonly ColorProfileConverter? colorProfileConverter;
+
+    /// <summary>
+    /// Whether to set RGB to zero for fully transparent input pixels before JPEG discards alpha.
+    /// </summary>
+    private readonly bool clearTransparentPixels;
 
     private readonly int alignedPixelWidth;
 
@@ -45,14 +50,23 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     /// Initializes a new instance of the <see cref="SpectralConverter{TPixel}"/> class.
     /// </summary>
     /// <param name="frame">The configured JPEG frame.</param>
-    /// <param name="image">The source image, which remains unchanged.</param>
+    /// <param name="configuration">The source configuration.</param>
+    /// <param name="pixels">The source region, which remains unchanged.</param>
     /// <param name="dequantTables">The quantization tables used by the component processors.</param>
-    /// <param name="colorProfileConverter">The selected return transform, or null for ordinary encoding.</param>
-    public SpectralConverter(JpegFrame frame, Image<TPixel> image, Block8x8F[] dequantTables, ColorProfileConverter? colorProfileConverter)
+    /// <param name="colorProfileConverter">The converter from sRGB to the retained profile, or null when no ICC conversion is required.</param>
+    /// <param name="clearTransparentPixels">Whether to set RGB to zero for fully transparent input pixels before color conversion.</param>
+    public SpectralConverter(
+        JpegFrame frame,
+        Configuration configuration,
+        Buffer2DRegion<TPixel> pixels,
+        Block8x8F[] dequantTables,
+        ColorProfileConverter? colorProfileConverter,
+        bool clearTransparentPixels)
     {
-        this.configuration = image.Configuration;
+        this.configuration = configuration;
         this.colorProfileConverter = colorProfileConverter;
-        MemoryAllocator allocator = image.Configuration.MemoryAllocator;
+        this.clearTransparentPixels = clearTransparentPixels;
+        MemoryAllocator allocator = configuration.MemoryAllocator;
 
         // iteration data
         int majorBlockWidth = frame.Components.Max((component) => component.SizeInBlocks.Width);
@@ -62,7 +76,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         this.pixelRowsPerStep = majorVerticalSamplingFactor * blockPixelHeight;
 
         // pixel buffer of the image
-        this.pixelBuffer = image.GetRootFramePixelBuffer();
+        this.pixelBuffer = pixels;
 
         // component processors from spectral to Rgb24
         const int blockPixelWidth = 8;
@@ -79,9 +93,10 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
                 dequantTables[component.QuantizationTableIndex]);
         }
 
-        // One owner holds all row storage and is reused for every baseline or full-image step.
-        // ICC extracts straight Vector4 samples and RGB input separately; its output can overwrite the vectors.
-        int components = colorProfileConverter is null ? 3 : 7;
+        // Reuse this allocation for all rows and scans. Without ICC or clearing, it holds three RGB planes.
+        // ICC uses four floats per pixel for straight RGBA and three for RGB input. ICC output can overwrite the RGBA storage.
+        // Clearing without ICC uses three RGB planes, four RGBA floats, and one float of space per pixel for packed Rgb24 bytes.
+        int components = colorProfileConverter is null ? clearTransparentPixels ? 8 : 3 : 7;
         this.rowBuffer = allocator.Allocate<float>(this.alignedPixelWidth * components, AllocationOptions.Clean);
 
         // color converter from Rgb24 to YCbCr
@@ -142,7 +157,22 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
                 // we scaled to [0-1] before passing to the individual converters.
                 int srcIndex = Math.Min(yy, pixelBufferLastVerticalIndex);
                 Span<TPixel> sourceRow = this.pixelBuffer.DangerousGetRowSpan(srcIndex);
-                PixelOperations<TPixel>.Instance.UnpackIntoRgbPlanes(rLane, gLane, bLane, sourceRow);
+                if (this.clearTransparentPixels)
+                {
+                    // TIFF's Clear option sets RGB to zero where input alpha is zero. JPEG stores no alpha.
+                    // Use the row buffer so this operation does not change the source frame.
+                    // The RGB planes, straight RGBA vectors and packed Rgb24 bytes occupy separate slices of that buffer.
+                    Span<Vector4> vectors = MemoryMarshal.Cast<float, Vector4>(buffer.Slice(this.alignedPixelWidth * 3, this.alignedPixelWidth * 4));
+                    Span<Rgb24> packed = MemoryMarshal.Cast<float, Rgb24>(buffer[(this.alignedPixelWidth * 7)..])[..sourceRow.Length];
+                    PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, vectors);
+                    EncodingUtilities.ReplaceTransparentPixels(vectors[..sourceRow.Length]);
+                    PixelOperations<Rgb24>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, vectors[..sourceRow.Length], packed);
+                    PixelOperations<Rgb24>.Instance.UnpackIntoRgbPlanes(rLane, gLane, bLane, packed);
+                }
+                else
+                {
+                    PixelOperations<TPixel>.Instance.UnpackIntoRgbPlanes(rLane, gLane, bLane, sourceRow);
+                }
 
                 rLane.Slice(paddingStartIndex, paddedPixelsCount).Fill(rLane[paddingStartIndex - 1]);
                 gLane.Slice(paddingStartIndex, paddedPixelsCount).Fill(gLane[paddingStartIndex - 1]);
@@ -166,6 +196,12 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
                 // Keep native floating-point precision until DCT/quantization. PixelOperations handles
                 // the source's alpha representation; JPEG receives straight RGB and stores no alpha.
                 PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, vectors);
+                if (this.clearTransparentPixels)
+                {
+                    // Clear fully transparent input pixels before ICC. Alpha is used only for this decision and is not encoded.
+                    EncodingUtilities.ReplaceTransparentPixels(vectors[..sourceRow.Length]);
+                }
+
                 Rgb.FromScaledVector4(vectors[..sourceRow.Length], rgb[..sourceRow.Length]);
 
                 // Pad in the same source color space before ICC. Vertical padding reuses the last source row.

@@ -1132,7 +1132,8 @@ internal sealed class PngEncoderCore : IDisposable
             return;
         }
 
-        byte[] iccProfileBytes = profile.ToByteArray();
+        // Compression reads the profile without changing it, so the original encoded bytes need no staging copy.
+        ReadOnlySpan<byte> iccProfileBytes = profile.GetData().Span;
 
         byte[] compressedData = this.GetZlibCompressedBytes(iccProfileBytes);
         int payloadLength = ColorProfileName.Length + compressedData.Length + 2;
@@ -1239,7 +1240,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// </summary>
     /// <param name="dataBytes">The bytes to compress.</param>
     /// <returns>The compressed byte array.</returns>
-    private byte[] GetZlibCompressedBytes(byte[] dataBytes)
+    private byte[] GetZlibCompressedBytes(ReadOnlySpan<byte> dataBytes)
     {
         using MemoryStream memoryStream = new();
         using (ZLibStream deflateStream = new(memoryStream, new ZLibCompressionOptions { CompressionLevel = (int)this.encoder.CompressionLevel }, true))

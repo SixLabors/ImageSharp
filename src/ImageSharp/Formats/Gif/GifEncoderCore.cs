@@ -706,19 +706,19 @@ internal sealed class GifEncoderCore
     /// <param name="stream">The output stream.</param>
     private static void WriteIccProfile(IccProfile profile, Stream stream)
     {
-        byte[] data = profile.ToByteArray();
+        ReadOnlySpan<byte> data = profile.GetData().Span;
         stream.WriteByte(GifConstants.ExtensionIntroducer);
         stream.WriteByte(GifConstants.ApplicationExtensionLabel);
         stream.WriteByte(GifConstants.ApplicationBlockSize);
         stream.Write(GifConstants.IccApplicationIdentificationBytes);
 
-        // GIF prefixes each data subblock with its byte count. Write slices directly to avoid a second profile-sized buffer.
+        // GIF prefixes each data subblock with its byte count. Each slice borrows the profile's bytes for this synchronous write.
         // Annex B.5 uses ordinary subblocks, with at most 255 profile bytes and no sequence-number fields.
         for (int offset = 0; offset < data.Length;)
         {
             int length = Math.Min(byte.MaxValue, data.Length - offset);
             stream.WriteByte((byte)length);
-            stream.Write(data.AsSpan(offset, length));
+            stream.Write(data.Slice(offset, length));
             offset += length;
         }
 

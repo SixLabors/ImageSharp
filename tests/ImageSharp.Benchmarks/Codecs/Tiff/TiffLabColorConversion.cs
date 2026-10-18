@@ -7,7 +7,8 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using SixLabors.ImageSharp.ColorProfiles;
-using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+using SixLabors.ImageSharp.Formats.Tiff.ColorConverters;
+using SixLabors.ImageSharp.Formats.Tiff.Readers;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Tiff;
@@ -140,3 +141,14 @@ public class TiffLabColorConversion
         return this.destination[Length - 1, 0];
     }
 }
+
+/* Measured 2026-10-18
+
+| Method         | Categories  |      Mean |     Error |    StdDev | Ratio |   Gen0 | Allocated | Alloc Ratio |
+| -------------- | ----------- | --------: | --------: | --------: | ----: | -----: | --------: | ----------: |
+| ScalarPacked16 | PackedLab16 | 52.473 μs | 0.1220 μs | 0.0726 μs |  1.00 |      - |       1 B |        1.00 |
+| BulkPacked16   | PackedLab16 |  4.000 μs | 0.1186 μs | 0.0706 μs |  0.08 | 0.0153 |     288 B |      288.00 |
+|                |             |           |           |           |       |        |           |             |
+| ScalarPacked8  | PackedLab8  | 52.020 μs | 0.4323 μs | 0.2860 μs |  1.00 |      - |       1 B |        1.00 |
+| BulkPacked8    | PackedLab8  |  4.051 μs | 0.3375 μs | 0.2232 μs |  0.08 | 0.0153 |     288 B |      288.00 |
+*/

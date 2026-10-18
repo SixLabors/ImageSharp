@@ -21,6 +21,42 @@ internal static class Vector512_
 #pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
+    /// Interleaves the lower eight bytes of each 128-bit lane from two vectors.
+    /// </summary>
+    /// <param name="left">The first bytes in each output pair.</param>
+    /// <param name="right">The second bytes in each output pair.</param>
+    /// <returns>The interleaved byte pairs in their original 128-bit lanes.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> UnpackLow(Vector512<byte> left, Vector512<byte> right)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.UnpackLow(left, right);
+        }
+
+        // AVX-512F alone does not provide byte unpacking. Each 256-bit half retains the same independent 128-bit lanes.
+        return Vector512.Create(Vector256_.UnpackLow(left.GetLower(), right.GetLower()), Vector256_.UnpackLow(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Interleaves the upper eight bytes of each 128-bit lane from two vectors.
+    /// </summary>
+    /// <param name="left">The first bytes in each output pair.</param>
+    /// <param name="right">The second bytes in each output pair.</param>
+    /// <returns>The interleaved byte pairs in their original 128-bit lanes.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> UnpackHigh(Vector512<byte> left, Vector512<byte> right)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.UnpackHigh(left, right);
+        }
+
+        // AVX-512F alone does not provide byte unpacking. Each 256-bit half retains the same independent 128-bit lanes.
+        return Vector512.Create(Vector256_.UnpackHigh(left.GetLower(), right.GetLower()), Vector256_.UnpackHigh(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
     /// Approximates base-two exponentials in single-precision SIMD lanes.
     /// </summary>
     /// <param name="value">The binary exponents.</param>
@@ -348,9 +384,10 @@ internal static class Vector512_
             return Avx512F.PermuteVar16x32x2(lower, indices, upper);
         }
 
+        // All masked indices are valid, so the native shuffles do not need out-of-range zeroing.
         Vector512<int> within = indices & Vector512.Create(15);
         Vector512<int> selector = Vector512.Equals(indices & Vector512.Create(16), Vector512.Create(16));
-        return Vector512.ConditionalSelect(selector, Vector512.Shuffle(upper, within), Vector512.Shuffle(lower, within));
+        return Vector512.ConditionalSelect(selector, Vector512.ShuffleNative(upper, within), Vector512.ShuffleNative(lower, within));
     }
 
     /// <summary>
@@ -401,9 +438,10 @@ internal static class Vector512_
             return Avx512F.PermuteVar8x64x2(lower, indices, upper);
         }
 
+        // All masked indices are valid, so the native shuffles do not need out-of-range zeroing.
         Vector512<long> within = indices & Vector512.Create(7L);
         Vector512<long> selector = Vector512.Equals(indices & Vector512.Create(8L), Vector512.Create(8L));
-        return Vector512.ConditionalSelect(selector, Vector512.Shuffle(upper, within), Vector512.Shuffle(lower, within));
+        return Vector512.ConditionalSelect(selector, Vector512.ShuffleNative(upper, within), Vector512.ShuffleNative(lower, within));
     }
 
     /// <summary>
@@ -484,6 +522,26 @@ internal static class Vector512_
             Vector256_.SumAbsoluteDifferences(left.GetLower(), right.GetLower(), accumulator.GetLower()),
             Vector256_.SumAbsoluteDifferences(left.GetUpper(), right.GetUpper(), accumulator.GetUpper()));
     }
+
+    /// <summary>
+    /// Widens sixteen unsigned bytes to signed 32-bit integers.
+    /// </summary>
+    /// <param name="value">The sixteen byte lanes.</param>
+    /// <returns>The same values in sixteen integer lanes.</returns>
+    /// <remarks>The caller must select the hardware-accelerated 512-bit path before calling this method.</remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> Widen(Vector128<byte> value)
+        => Avx512F.ConvertToVector512Int32(value);
+
+    /// <summary>
+    /// Widens sixteen signed bytes to signed 32-bit integers.
+    /// </summary>
+    /// <param name="value">The sixteen signed byte lanes.</param>
+    /// <returns>The sign-extended values in sixteen integer lanes.</returns>
+    /// <remarks>The caller must select the hardware-accelerated 512-bit path before calling this method.</remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> Widen(Vector128<sbyte> value)
+        => Avx512F.ConvertToVector512Int32(value);
 
     /// <summary>
     /// Widens thirty-two unsigned 8-bit integers to signed 16-bit integers.

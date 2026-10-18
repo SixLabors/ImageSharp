@@ -31,6 +31,27 @@ internal class TiffEncoderEntriesCollector
     public void ProcessImageFormat(TiffEncoderCore encoder)
         => new ImageFormatProcessor(this).Process(encoder);
 
+    /// <summary>
+    /// Adds the frame's ICC profile to the TIFF directory when a compatible profile is available.
+    /// </summary>
+    /// <remarks>
+    /// The IccProfile entry stores the profile bytes for this frame's encoded color samples.
+    /// The caller checks color-space compatibility before this method. SkipMetadata does not suppress this entry.
+    /// </remarks>
+    /// <param name="profile">The retained profile compatible with the output samples, or null to omit the IccProfile entry.</param>
+    public void ProcessIccProfile(IccProfile profile)
+    {
+        if (profile is not null)
+        {
+            // EXIF byte-array values are mutable, so this entry owns a copy rather than exposing the profile's backing bytes.
+            // The IFD writer can write that owned array directly without another serialization buffer.
+            this.AddOrReplace(new ExifByteArray(ExifTagValue.IccProfile, ExifDataType.Undefined)
+            {
+                Value = profile.ToByteArray()
+            });
+        }
+    }
+
     public void AddOrReplace(IExifValue entry)
     {
         int index = this.Entries.FindIndex(t => t.Tag == entry.Tag);
@@ -173,29 +194,33 @@ internal class TiffEncoderEntriesCollector
         private void ProcessProfiles(ImageMetadata imageMetadata, bool skipMetadata)
         {
             this.ProcessExifProfile(skipMetadata, imageMetadata.ExifProfile);
-            this.ProcessIptcProfile(skipMetadata, imageMetadata.IptcProfile, imageMetadata.ExifProfile);
-            this.ProcessIccProfile(imageMetadata.IccProfile, imageMetadata.ExifProfile);
-            this.ProcessXmpProfile(skipMetadata, imageMetadata.XmpProfile, imageMetadata.ExifProfile);
+            this.ProcessIptcProfile(skipMetadata, imageMetadata.IptcProfile);
+            this.ProcessXmpProfile(skipMetadata, imageMetadata.XmpProfile);
         }
 
         private void ProcessProfiles(ImageFrameMetadata frameMetadata, bool skipMetadata)
         {
             this.ProcessExifProfile(skipMetadata, frameMetadata.ExifProfile);
-            this.ProcessIptcProfile(skipMetadata, frameMetadata.IptcProfile, frameMetadata.ExifProfile);
-            this.ProcessIccProfile(frameMetadata.IccProfile, frameMetadata.ExifProfile);
-            this.ProcessXmpProfile(skipMetadata, frameMetadata.XmpProfile, frameMetadata.ExifProfile);
+            this.ProcessIptcProfile(skipMetadata, frameMetadata.IptcProfile);
+            this.ProcessXmpProfile(skipMetadata, frameMetadata.XmpProfile);
         }
 
+        /// <summary>
+        /// Copies selected EXIF entries without changing the original profile.
+        /// </summary>
+        /// <param name="skipMetadata">Whether optional metadata is omitted.</param>
+        /// <param name="exifProfile">The source EXIF profile.</param>
         private void ProcessExifProfile(bool skipMetadata, ExifProfile exifProfile)
         {
             if (!skipMetadata && (exifProfile != null && exifProfile.Parts != ExifParts.None))
             {
                 foreach (IExifValue entry in exifProfile.Values)
                 {
-                    // This encoder writes strips. Source tile dimensions and offsets
-                    // would make readers use the old layout in the new file.
+                    // This encoder writes strips. Source tile entries would point readers at data that the new file does not contain.
+                    // ProcessIccProfile writes the checked output profile separately. A copied EXIF entry can describe a different color space.
                     ExifTagValue tag = (ExifTagValue)(ushort)entry.Tag;
-                    if (tag is ExifTagValue.TileWidth or ExifTagValue.TileLength or ExifTagValue.TileOffsets or ExifTagValue.TileByteCounts)
+                    if (tag is ExifTagValue.IccProfile or ExifTagValue.TileWidth or ExifTagValue.TileLength
+                        or ExifTagValue.TileOffsets or ExifTagValue.TileByteCounts)
                     {
                         continue;
                     }
@@ -210,13 +235,14 @@ internal class TiffEncoderEntriesCollector
                     }
                 }
             }
-            else
-            {
-                exifProfile?.RemoveValue(ExifTag.SubIFDOffset);
-            }
         }
 
-        private void ProcessIptcProfile(bool skipMetadata, IptcProfile iptcProfile, ExifProfile exifProfile)
+        /// <summary>
+        /// Adds the selected IPTC payload to the output directory.
+        /// </summary>
+        /// <param name="skipMetadata">Whether optional metadata is omitted.</param>
+        /// <param name="iptcProfile">The source IPTC profile.</param>
+        private void ProcessIptcProfile(bool skipMetadata, IptcProfile iptcProfile)
         {
             if (!skipMetadata && iptcProfile != null)
             {
@@ -228,30 +254,14 @@ internal class TiffEncoderEntriesCollector
 
                 this.Collector.AddOrReplace(iptc);
             }
-            else
-            {
-                exifProfile?.RemoveValue(ExifTag.IPTC);
-            }
         }
 
-        private void ProcessIccProfile(IccProfile iccProfile, ExifProfile exifProfile)
-        {
-            if (iccProfile != null)
-            {
-                ExifByteArray icc = new(ExifTagValue.IccProfile, ExifDataType.Undefined)
-                {
-                    Value = iccProfile.ToByteArray()
-                };
-
-                this.Collector.AddOrReplace(icc);
-            }
-            else
-            {
-                exifProfile?.RemoveValue(ExifTag.IccProfile);
-            }
-        }
-
-        private void ProcessXmpProfile(bool skipMetadata, XmpProfile xmpProfile, ExifProfile exifProfile)
+        /// <summary>
+        /// Adds the selected XMP payload to the output directory.
+        /// </summary>
+        /// <param name="skipMetadata">Whether optional metadata is omitted.</param>
+        /// <param name="xmpProfile">The source XMP profile.</param>
+        private void ProcessXmpProfile(bool skipMetadata, XmpProfile xmpProfile)
         {
             if (!skipMetadata && xmpProfile != null)
             {
@@ -261,10 +271,6 @@ internal class TiffEncoderEntriesCollector
                 };
 
                 this.Collector.AddOrReplace(xmp);
-            }
-            else
-            {
-                exifProfile?.RemoveValue(ExifTag.XMP);
             }
         }
     }
@@ -332,7 +338,10 @@ internal class TiffEncoderEntriesCollector
             this.Collector.Entries.RemoveAll(
                 entry => entry.Tag == ExifTag.SampleFormat
                     || entry.Tag == ExifTag.ExtraSamples
-                    || entry.Tag == ExifTag.Predictor);
+                    || entry.Tag == ExifTag.Predictor
+                    || entry.Tag == ExifTag.InkSet
+                    || entry.Tag == ExifTag.NumberOfInks
+                    || entry.Tag == ExifTag.InkNames);
 
             ExifShort planarConfig = new(ExifTagValue.PlanarConfiguration)
             {
@@ -366,6 +375,13 @@ internal class TiffEncoderEntriesCollector
             this.Collector.AddOrReplace(bitPerSample);
             this.Collector.AddOrReplace(compression);
             this.Collector.AddOrReplace(photometricInterpretation);
+
+            if (encoder.PhotometricInterpretation == TiffPhotometricInterpretation.Separated)
+            {
+                // Separated CMYK has four color channels. These tags identify the inks in those samples.
+                this.Collector.AddOrReplace(new ExifShort(ExifTagValue.InkSet) { Value = (ushort)TiffInkSet.Cmyk });
+                this.Collector.AddOrReplace(new ExifShort(ExifTagValue.NumberOfInks) { Value = 4 });
+            }
 
             if (encoder.SampleFormat == TiffSampleFormat.Float)
             {
@@ -402,7 +418,8 @@ internal class TiffEncoderEntriesCollector
             if (encoder.HorizontalPredictor == TiffPredictor.Horizontal &&
                 (encoder.PhotometricInterpretation is TiffPhotometricInterpretation.Rgb or
                                                       TiffPhotometricInterpretation.PaletteColor or
-                                                      TiffPhotometricInterpretation.BlackIsZero))
+                                                      TiffPhotometricInterpretation.BlackIsZero or
+                                                      TiffPhotometricInterpretation.WhiteIsZero))
             {
                 ExifShort predictor = new(ExifTagValue.Predictor) { Value = (ushort)TiffPredictor.Horizontal };
 
@@ -422,6 +439,7 @@ internal class TiffEncoderEntriesCollector
                 TiffPhotometricInterpretation.PaletteColor or
                 TiffPhotometricInterpretation.BlackIsZero or
                 TiffPhotometricInterpretation.WhiteIsZero => 1,
+                TiffPhotometricInterpretation.Separated => 4,
                 _ => encoder.BitsPerPixel is TiffBitsPerPixel.Bit64 or TiffBitsPerPixel.Bit128 ? (ushort)4 : (ushort)3,
             };
         }
@@ -454,6 +472,9 @@ internal class TiffEncoderEntriesCollector
                         TiffBitsPerPixel.Bit128 => [32, 32, 32, 32],
                         _ => TiffConstants.BitsPerSampleRgb8Bit.ToArray(),
                     };
+
+                case TiffPhotometricInterpretation.Separated:
+                    return [8, 8, 8, 8];
 
                 case TiffPhotometricInterpretation.WhiteIsZero:
                     return encoder.BitsPerPixel switch

@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -47,7 +48,7 @@ internal sealed unsafe partial class JpegEncoderCore
     public Block8x8F[] QuantizationTables { get; } = new Block8x8F[4];
 
     /// <summary>
-    /// Encode writes the image to the jpeg baseline format with the given options.
+    /// Encodes the root frame with the configured JPEG options.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="image">The image to write from.</param>
@@ -59,9 +60,48 @@ internal sealed unsafe partial class JpegEncoderCore
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        if (image.Width > JpegConstants.MaxLength || image.Height > JpegConstants.MaxLength)
+        Buffer2DRegion<TPixel> pixels = image.Frames.RootFrame.PixelBuffer.GetRegion();
+        IccProfile profile = image.Frames.RootFrame.Metadata.IccProfile ?? image.Metadata.IccProfile;
+        this.Encode(image.Configuration, pixels, image.Metadata, profile, false, stream, cancellationToken);
+    }
+
+    /// <summary>
+    /// Encodes a pixel region without changing its source pixels or metadata.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The encoder's ColorType overrides JPEG metadata. That color type determines compatibility with the supplied ICC profile.
+    /// RGB requires an RGB profile. Grayscale requires a Gray profile. CMYK and YCCK require a CMYK profile.
+    /// YCbCr accepts an RGB profile before JPEG's matrix, or a YCbCr profile for the native components.
+    /// </para>
+    /// <para>
+    /// JPEG applies the conversion from sRGB to the compatible profile before it encodes the components.
+    /// </para>
+    /// </remarks>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="configuration">The source configuration.</param>
+    /// <param name="pixels">The source region, which remains unchanged.</param>
+    /// <param name="metadata">The JPEG metadata used when an encoder option is unset, and the metadata to write.</param>
+    /// <param name="profile">The retained frame profile, or null. Its data color space must match the selected JPEG color type.</param>
+    /// <param name="clearTransparentPixels">
+    /// Whether to set RGB to zero for fully transparent input pixels before color conversion.
+    /// JPEG discards alpha. Clearing uses reusable row storage and leaves the source pixels unchanged.
+    /// </param>
+    /// <param name="stream">The output stream.</param>
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    public void Encode<TPixel>(
+        Configuration configuration,
+        Buffer2DRegion<TPixel> pixels,
+        ImageMetadata metadata,
+        IccProfile profile,
+        bool clearTransparentPixels,
+        Stream stream,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (pixels.Width > JpegConstants.MaxLength || pixels.Height > JpegConstants.MaxLength)
         {
-            JpegThrowHelper.ThrowDimensionsTooLarge(image.Width, image.Height);
+            JpegThrowHelper.ThrowDimensionsTooLarge(pixels.Width, pixels.Height);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -69,27 +109,27 @@ internal sealed unsafe partial class JpegEncoderCore
         this.outputStream = stream;
         Span<byte> buffer = stackalloc byte[20];
 
-        ImageMetadata metadata = image.Metadata;
         JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
         JpegFrameConfig frameConfig = this.GetFrameConfig(jpegMetadata);
 
-        IccProfile sourceIccProfile = image.Frames.RootFrame.Metadata.IccProfile ?? metadata.IccProfile;
-
-        // RGB profiles describe values before JPEG's YCbCr transform. YCbCr profiles describe the stored YCbCr values.
+        // Match the profile to the color samples that enter ICC. YCCK uses a CMYK profile before JPEG's YCCK transform.
+        // YCbCr normally uses an RGB profile before JPEG's matrix. A native YCbCr profile instead describes Y, Cb and Cr directly.
         PixelColorType sampleColorType = frameConfig.ColorType switch
         {
             JpegColorSpace.Grayscale => PixelColorType.Luminance,
             JpegColorSpace.Cmyk => PixelColorType.CMYK,
             JpegColorSpace.Ycck => PixelColorType.YCCK,
-            JpegColorSpace.YCbCr when sourceIccProfile?.Header.DataColorSpace == IccColorSpaceType.YCbCr => PixelColorType.YCbCr,
+            JpegColorSpace.YCbCr when profile?.Header.DataColorSpace == IccColorSpaceType.YCbCr => PixelColorType.YCbCr,
             _ => PixelColorType.RGB
         };
 
+        // This helper retains the supplied profile only when its Header.DataColorSpace matches sampleColorType.
+        // It also creates the sRGB-to-profile converter when needed. It never creates a replacement profile.
         IccProfile outputIccProfile = IccProfile.GetIccProfileForEncoding(
-            sourceIccProfile, sampleColorType, image.Configuration.MemoryAllocator, out ColorProfileConverter colorProfileConverter);
+            profile, sampleColorType, configuration.MemoryAllocator, out ColorProfileConverter colorProfileConverter);
 
         bool interleaved = this.encoder.Interleaved ?? jpegMetadata.Interleaved;
-        using JpegFrame frame = new(image, frameConfig, interleaved);
+        using JpegFrame frame = new(configuration, pixels.Size, frameConfig, interleaved);
 
         // Write the Start Of Image marker.
         this.WriteStartOfImage(buffer);
@@ -110,10 +150,10 @@ internal sealed unsafe partial class JpegEncoderCore
         this.WriteProfiles(metadata, outputIccProfile, buffer);
 
         // Write comments
-        this.WriteComments(image.Configuration, jpegMetadata);
+        this.WriteComments(configuration, jpegMetadata);
 
         // Write the image dimensions.
-        this.WriteStartOfFrame(image.Width, image.Height, frameConfig, buffer);
+        this.WriteStartOfFrame(pixels.Width, pixels.Height, frameConfig, buffer);
 
         // Write the Huffman tables.
         HuffmanScanEncoder scanEncoder = new(frame.BlocksPerMcu, this.encoder.RestartInterval, stream);
@@ -126,7 +166,14 @@ internal sealed unsafe partial class JpegEncoderCore
         this.WriteDri(this.encoder.RestartInterval, buffer);
 
         // Write scans with actual pixel data
-        using SpectralConverter<TPixel> spectralConverter = new(frame, image, this.QuantizationTables, colorProfileConverter);
+        using SpectralConverter<TPixel> spectralConverter = new(
+            frame,
+            configuration,
+            pixels,
+            this.QuantizationTables,
+            colorProfileConverter,
+            clearTransparentPixels);
+
         this.WriteHuffmanScans(frame, frameConfig, spectralConverter, scanEncoder, buffer, cancellationToken);
 
         // Write the End Of Image marker.
@@ -507,9 +554,10 @@ internal sealed unsafe partial class JpegEncoderCore
         const int maxBytes = 65533;
         const int maxData = maxBytes - iccOverheadLength;
 
-        byte[] data = iccProfile.ToByteArray();
+        // Marker segmentation only reads the encoded profile; retain its storage instead of copying the complete payload.
+        ReadOnlySpan<byte> data = iccProfile.GetData().Span;
 
-        if (data is null || data.Length == 0)
+        if (data.IsEmpty)
         {
             return;
         }
@@ -563,7 +611,7 @@ internal sealed unsafe partial class JpegEncoderCore
             buffer[10] = (byte)'E';
 
             this.outputStream.Write(buffer, 0, iccOverheadLength);
-            this.outputStream.Write(data, offset, length);
+            this.outputStream.Write(data.Slice(offset, length));
 
             current++;
             offset += length;

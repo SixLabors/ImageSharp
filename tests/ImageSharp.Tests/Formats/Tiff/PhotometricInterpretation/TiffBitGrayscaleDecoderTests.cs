@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+using SixLabors.ImageSharp.Formats.Tiff.Readers;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Common;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -28,7 +28,7 @@ public class TiffBitGrayscaleDecoderTests : PhotometricInterpretationTestBase
     private static void RunPackedRows()
     {
         // The two code intensities follow directly from 0x55/0xAA at each sample width.
-        ReadOnlySpan<(ushort Bits, byte Lower, byte Upper)> cases = [(1, 0, 255), (2, 85, 170), (4, 85, 170), (5, 82, 173), (9, 85, 170)];
+        ReadOnlySpan<(ushort Bits, byte Lower, byte Upper)> cases = [(1, 0, 255), (2, 85, 170), (4, 85, 170), (5, 82, 173), (8, 85, 170), (9, 85, 170)];
 
         foreach ((ushort bitsPerSample, byte lower, byte upper) in cases)
         {

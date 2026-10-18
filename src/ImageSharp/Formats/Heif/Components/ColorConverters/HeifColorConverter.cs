@@ -101,7 +101,7 @@ internal abstract partial class HeifColorConverterBase
     /// <param name="component0">The luma or first color component, replaced by red.</param>
     /// <param name="component1">The first chroma or second color component, replaced by green.</param>
     /// <param name="component2">The second chroma or third color component, replaced by blue.</param>
-    public abstract void ConvertToRgbInPlace(Span<float> component0, Span<float> component1, Span<float> component2);
+    public abstract void ConvertToRgb(Span<float> component0, Span<float> component1, Span<float> component2);
 
     /// <summary>
     /// Converts normalized RGB components to normalized encoded components in place.
@@ -110,11 +110,7 @@ internal abstract partial class HeifColorConverterBase
     /// <param name="component1">The green component, replaced by the first chroma or second color component.</param>
     /// <param name="component2">The blue component, replaced by the second chroma or third color component.</param>
     /// <param name="maximumValue">The largest value in the RGB component planes.</param>
-    public abstract void ConvertFromRgbInPlace(
-        Span<float> component0,
-        Span<float> component1,
-        Span<float> component2,
-        float maximumValue);
+    public abstract void ConvertFromRgb(Span<float> component0, Span<float> component1, Span<float> component2, float maximumValue);
 
     /// <summary>
     /// Creates the converter selected by the resolved H.273 matrix and transfer characteristics.

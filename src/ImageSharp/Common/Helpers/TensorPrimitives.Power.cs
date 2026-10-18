@@ -180,7 +180,7 @@ internal static partial class TensorPrimitives_
             float outputBits = adjusted + ExpOffset - (ExpLinear * fraction);
             outputBits += ExpNumerator / (ExpDenominator - fraction);
             outputBits *= SignificandScale;
-            outputBits = Math.Clamp(outputBits, 0F, (float)0x7F800000);
+            outputBits = Numerics.ClampNumber(outputBits, 0F, (float)0x7F800000);
             float result = BitConverter.Int32BitsToSingle((int)outputBits);
             result *= low ? 1F / SubnormalScale : 1F;
             return result * (high ? 2F : 1F);

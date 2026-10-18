@@ -933,10 +933,10 @@ internal static partial class SimdUtils
 
                     // Float-to-int conversion maps infinities and overflow to an invalid integer.
                     // Clamp in the float domain first so SIMD agrees with the scalar byte saturation rule.
-                    Vector512<float> f0 = scale * Numerics.Clamp(s, lowerBound, upperBound);
-                    Vector512<float> f1 = scale * Numerics.Clamp(Unsafe.Add(ref s, 1), lowerBound, upperBound);
-                    Vector512<float> f2 = scale * Numerics.Clamp(Unsafe.Add(ref s, 2), lowerBound, upperBound);
-                    Vector512<float> f3 = scale * Numerics.Clamp(Unsafe.Add(ref s, 3), lowerBound, upperBound);
+                    Vector512<float> f0 = scale * Numerics.ClampNumber(s, lowerBound, upperBound);
+                    Vector512<float> f1 = scale * Numerics.ClampNumber(Unsafe.Add(ref s, 1), lowerBound, upperBound);
+                    Vector512<float> f2 = scale * Numerics.ClampNumber(Unsafe.Add(ref s, 2), lowerBound, upperBound);
+                    Vector512<float> f3 = scale * Numerics.ClampNumber(Unsafe.Add(ref s, 3), lowerBound, upperBound);
 
                     Vector512<int> w0 = Vector512_.ConvertToInt32RoundAwayFromZero(f0);
                     Vector512<int> w1 = Vector512_.ConvertToInt32RoundAwayFromZero(f1);
@@ -970,10 +970,10 @@ internal static partial class SimdUtils
                     ref Vector256<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
 
                     // Clamp before integer conversion so infinity and overflow reach the byte endpoint.
-                    Vector256<float> f0 = scale * Numerics.Clamp(s, lowerBound, upperBound);
-                    Vector256<float> f1 = scale * Numerics.Clamp(Unsafe.Add(ref s, 1), lowerBound, upperBound);
-                    Vector256<float> f2 = scale * Numerics.Clamp(Unsafe.Add(ref s, 2), lowerBound, upperBound);
-                    Vector256<float> f3 = scale * Numerics.Clamp(Unsafe.Add(ref s, 3), lowerBound, upperBound);
+                    Vector256<float> f0 = scale * Numerics.ClampNumber(s, lowerBound, upperBound);
+                    Vector256<float> f1 = scale * Numerics.ClampNumber(Unsafe.Add(ref s, 1), lowerBound, upperBound);
+                    Vector256<float> f2 = scale * Numerics.ClampNumber(Unsafe.Add(ref s, 2), lowerBound, upperBound);
+                    Vector256<float> f3 = scale * Numerics.ClampNumber(Unsafe.Add(ref s, 3), lowerBound, upperBound);
 
                     Vector256<int> w0 = Vector256_.ConvertToInt32RoundAwayFromZero(f0);
                     Vector256<int> w1 = Vector256_.ConvertToInt32RoundAwayFromZero(f1);
@@ -1007,10 +1007,10 @@ internal static partial class SimdUtils
                     ref Vector128<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
 
                     // Clamp before integer conversion so infinity and overflow reach the byte endpoint.
-                    Vector128<float> f0 = scale * Numerics.Clamp(s, lowerBound, upperBound);
-                    Vector128<float> f1 = scale * Numerics.Clamp(Unsafe.Add(ref s, 1), lowerBound, upperBound);
-                    Vector128<float> f2 = scale * Numerics.Clamp(Unsafe.Add(ref s, 2), lowerBound, upperBound);
-                    Vector128<float> f3 = scale * Numerics.Clamp(Unsafe.Add(ref s, 3), lowerBound, upperBound);
+                    Vector128<float> f0 = scale * Numerics.ClampNumber(s, lowerBound, upperBound);
+                    Vector128<float> f1 = scale * Numerics.ClampNumber(Unsafe.Add(ref s, 1), lowerBound, upperBound);
+                    Vector128<float> f2 = scale * Numerics.ClampNumber(Unsafe.Add(ref s, 2), lowerBound, upperBound);
+                    Vector128<float> f3 = scale * Numerics.ClampNumber(Unsafe.Add(ref s, 3), lowerBound, upperBound);
 
                     Vector128<int> w0 = Vector128_.ConvertToInt32RoundAwayFromZero(f0);
                     Vector128<int> w1 = Vector128_.ConvertToInt32RoundAwayFromZero(f1);

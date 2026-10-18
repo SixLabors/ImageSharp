@@ -30,9 +30,9 @@ internal abstract partial class HeifColorConverterBase
             // Signed arithmetic shifts are part of the reversible lifting definition. In particular, they preserve
             // the specified floor division for negative odd Cg and Co values instead of truncating toward zero.
             int temporary = yCode - (cgCode >> 1);
-            int greenCode = Numerics.Clamp(temporary + cgCode, 0, (int)parameters.RgbSampleMaximum);
-            int blueCode = Numerics.Clamp(temporary - (coCode >> 1), 0, (int)parameters.RgbSampleMaximum);
-            int redCode = Numerics.Clamp(blueCode + coCode, 0, (int)parameters.RgbSampleMaximum);
+            int greenCode = Math.Clamp(temporary + cgCode, 0, (int)parameters.RgbSampleMaximum);
+            int blueCode = Math.Clamp(temporary - (coCode >> 1), 0, (int)parameters.RgbSampleMaximum);
+            int redCode = Math.Clamp(blueCode + coCode, 0, (int)parameters.RgbSampleMaximum);
             float inverseRgbScale = 1F / parameters.RgbScale;
             y = (redCode - parameters.RgbBias) * inverseRgbScale;
             cg = (greenCode - parameters.RgbBias) * inverseRgbScale;

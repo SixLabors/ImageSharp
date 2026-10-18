@@ -223,7 +223,7 @@ public partial struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint Pack(Vector4 vector)
     {
-        vector = Numerics.Clamp(vector, Vector4.Zero, Vector4.One) * Multiplier;
+        vector = Numerics.ClampNumber(vector, Vector4.Zero, Vector4.One) * Multiplier;
 
         return (uint)(
             (((int)Math.Round(vector.X) & 0x03FF) << 0)

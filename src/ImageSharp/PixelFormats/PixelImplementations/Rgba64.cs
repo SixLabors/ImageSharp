@@ -140,7 +140,7 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Rgba64(Vector4 vector)
     {
-        vector = Numerics.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
+        vector = Numerics.ClampNumber(vector, Vector4.Zero, Vector4.One) * Max;
         this.R = (ushort)MathF.Round(vector.X);
         this.G = (ushort)MathF.Round(vector.Y);
         this.B = (ushort)MathF.Round(vector.Z);

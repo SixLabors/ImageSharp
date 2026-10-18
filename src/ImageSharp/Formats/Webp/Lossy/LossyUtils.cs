@@ -2403,5 +2403,5 @@ internal static class LossyUtils
     private static void Memset(Span<byte> dst, byte value, int startIdx, int count) => dst.Slice(startIdx, count).Fill(value);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static int Clamp255(int x) => Numerics.Clamp(x, 0, 255);
+    private static int Clamp255(int x) => Math.Clamp(x, 0, 255);
 }

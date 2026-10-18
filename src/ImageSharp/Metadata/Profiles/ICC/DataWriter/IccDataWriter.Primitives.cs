@@ -111,7 +111,7 @@ internal sealed partial class IccDataWriter
         const double Max = short.MaxValue + (65535d / 65536d);
         const double Min = short.MinValue;
 
-        value = Numerics.Clamp(value, Min, Max);
+        value = Numerics.ClampNumber(value, Min, Max);
         value *= 65536d;
 
         return this.WriteInt32((int)Math.Round(value, MidpointRounding.AwayFromZero));
@@ -127,7 +127,7 @@ internal sealed partial class IccDataWriter
         const double Max = ushort.MaxValue + (65535d / 65536d);
         const double Min = ushort.MinValue;
 
-        value = Numerics.Clamp(value, Min, Max);
+        value = Numerics.ClampNumber(value, Min, Max);
         value *= 65536d;
 
         return this.WriteUInt32((uint)Math.Round(value, MidpointRounding.AwayFromZero));
@@ -143,7 +143,7 @@ internal sealed partial class IccDataWriter
         const double Max = 1 + (32767d / 32768d);
         const double Min = 0;
 
-        value = Numerics.Clamp(value, Min, Max);
+        value = Numerics.ClampNumber(value, Min, Max);
         value *= 32768d;
 
         return this.WriteUInt16((ushort)Math.Round(value, MidpointRounding.AwayFromZero));
@@ -159,7 +159,7 @@ internal sealed partial class IccDataWriter
         const double Max = byte.MaxValue + (255d / 256d);
         const double Min = byte.MinValue;
 
-        value = Numerics.Clamp(value, Min, Max);
+        value = Numerics.ClampNumber(value, Min, Max);
         value *= 256d;
 
         return this.WriteUInt16((ushort)Math.Round(value, MidpointRounding.AwayFromZero));

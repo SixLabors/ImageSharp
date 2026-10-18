@@ -350,7 +350,7 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     {
         vector *= MaxBytes;
         vector += Half;
-        vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
+        vector = Numerics.ClampNumber(vector, Vector4.Zero, MaxBytes);
 
         Vector128<byte> result = Vector128.ConvertToInt32(vector.AsVector128()).AsByte();
         return new Argb32(result.GetElement(0), result.GetElement(4), result.GetElement(8), result.GetElement(12));

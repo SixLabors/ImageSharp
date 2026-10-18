@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics.Tensors;
 using BenchmarkDotNet.Attributes;
 
 namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath;
@@ -28,14 +29,14 @@ public class ClampSpan
         for (int i = 0; i < A.Length; i++)
         {
             ref int x = ref A[i];
-            x = Numerics.Clamp(x, 64, 128);
+            x = Math.Clamp(x, 64, 128);
         }
     }
 
     [Benchmark]
     public void ClampVectorIntrinsics()
     {
-        Numerics.Clamp(B, 64, 128);
+        TensorPrimitives.Clamp(B, 64, 128, B);
     }
 }
 

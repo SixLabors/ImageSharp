@@ -146,7 +146,7 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
         {
             case PngColorType.Palette:
                 bpp = this.ColorTable.HasValue
-                    ? Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.ColorTable.Value.Length), 1, 8)
+                    ? Math.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.ColorTable.Value.Length), 1, 8)
                     : 8;
 
                 colorType = PixelColorType.Indexed;
@@ -221,7 +221,7 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
         {
             ColorTableMode = FrameColorTableMode.Global,
             PixelTypeInfo = this.GetPixelTypeInfo(),
-            RepeatCount = (ushort)Numerics.Clamp(this.RepeatCount, 0, ushort.MaxValue),
+            RepeatCount = (ushort)Math.Clamp(this.RepeatCount, 0, ushort.MaxValue),
         };
 
     /// <inheritdoc/>

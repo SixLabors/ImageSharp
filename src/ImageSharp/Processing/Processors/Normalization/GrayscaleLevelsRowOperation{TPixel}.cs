@@ -72,7 +72,7 @@ internal readonly struct GrayscaleLevelsRowOperation<TPixel> : IRowOperation<Vec
     private static int GetLuminanceIndex(Vector4 vector, int levels)
     {
         // A floating-point pixel can exceed the histogram range or produce NaN.
-        float luminance = Numerics.Clamp(ColorNumerics.GetBT709Luminance(vector), 0F, 1F);
+        float luminance = Numerics.ClampNumber(ColorNumerics.GetBT709Luminance(vector), 0F, 1F);
         return (int)MathF.Round(luminance * (levels - 1));
     }
 }

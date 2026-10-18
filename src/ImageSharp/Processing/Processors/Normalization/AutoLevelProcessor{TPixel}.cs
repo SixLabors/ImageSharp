@@ -150,7 +150,7 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
                 Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x);
 
                 // Keep the CDF offset within the histogram even for HDR or nonfinite samples.
-                float boundedLuminance = Numerics.Clamp(ColorNumerics.GetBT709Luminance(vector), 0F, 1F);
+                float boundedLuminance = Numerics.ClampNumber(ColorNumerics.GetBT709Luminance(vector), 0F, 1F);
                 int luminance = (int)MathF.Round(boundedLuminance * (levels - 1));
                 float scaledLuminance = Unsafe.Add(ref cdfBase, (uint)luminance) / noOfPixelsMinusCdfMin;
 
@@ -224,7 +224,7 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
 
                 // Alpha is not a histogram component and must not be scaled into the CDF index range.
                 // The CDF lookup uses bounded indices; the source vector can still contain HDR values.
-                Vector4 indexValues = Numerics.Clamp(vector, Vector4.Zero, Vector4.One) * levelsMinusOne;
+                Vector4 indexValues = Numerics.ClampNumber(vector, Vector4.Zero, Vector4.One) * levelsMinusOne;
 
                 uint originalX = (uint)MathF.Round(indexValues.X);
                 float scaledX = Unsafe.Add(ref cdfBase, originalX) / noOfPixelsMinusCdfMin;

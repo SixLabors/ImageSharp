@@ -37,6 +37,43 @@ public class CicpCompandingTests
     ];
 
     /// <summary>
+    /// Checks that bounded linear and gamma curves map NaN to zero and saturate infinities at every SIMD width.
+    /// </summary>
+    [Fact]
+    public void BoundedCurvesClampNonfiniteValues() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckBoundedCurvesClampNonfiniteValues,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Exercises safe clamping through the scalar and bulk transfer APIs, including a scalar tail and unchanged alpha.
+    /// </summary>
+    private static void CheckBoundedCurvesClampNonfiniteValues()
+    {
+        ReadOnlySpan<CicpTransferCharacteristics> characteristics =
+            [CicpTransferCharacteristics.Linear, CicpTransferCharacteristics.Gamma2_2, CicpTransferCharacteristics.Gamma2_8];
+
+        Vector4 input = new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, .5F);
+        Vector4 expected = new(0F, 1F, 0F, .5F);
+
+        foreach (CicpTransferCharacteristics characteristic in characteristics)
+        {
+            // Seventeen colors fill the widest SIMD group and leave one color for the scalar remainder.
+            // Sixteen-bit precision selects direct evaluation so the lookup table cannot hide an unsafe clamp.
+            Vector4[] expanded = Enumerable.Repeat(input, 17).ToArray();
+            Vector4[] compressed = expanded.ToArray();
+            CicpCompanding.Expand(expanded, characteristic, 16, PixelColorRange.Sdr);
+            CicpCompanding.Compress(compressed, characteristic, 16, PixelColorRange.Sdr);
+
+            Assert.All(expanded, value => Assert.Equal(expected, value));
+            Assert.All(compressed, value => Assert.Equal(expected, value));
+            Assert.Equal(expected, CicpCompanding.Expand(input, characteristic, 16, PixelColorRange.Sdr));
+            Assert.Equal(expected, CicpCompanding.Compress(input, characteristic, 16, PixelColorRange.Sdr));
+            Assert.Equal(0F, CicpCompanding.ToLinear(characteristic, float.NaN));
+            Assert.Equal(0F, CicpCompanding.ToGamma(characteristic, float.NaN));
+        }
+    }
+
+    /// <summary>
     /// Gets every defined AV1-signallable transfer characteristic, including the deterministic unspecified fallback.
     /// </summary>
     public static TheoryData<int> TransferCharacteristics { get; } = new()

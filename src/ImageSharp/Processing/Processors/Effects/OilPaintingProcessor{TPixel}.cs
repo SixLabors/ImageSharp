@@ -141,7 +141,7 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
                     {
                         int fyr = fy - this.radius;
                         int offsetY = y + fyr;
-                        offsetY = Numerics.Clamp(offsetY, 0, maxY);
+                        offsetY = Math.Clamp(offsetY, 0, maxY);
 
                         Span<TPixel> sourceOffsetRow = this.source.DangerousGetRowSpan(offsetY);
 
@@ -149,7 +149,7 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
                         {
                             int fxr = fx - this.radius;
                             int offsetX = x + fxr;
-                            offsetX = Numerics.Clamp(offsetX, 0, maxX);
+                            offsetX = Math.Clamp(offsetX, 0, maxX);
 
                             Vector4 vector = sourceOffsetRow[offsetX].ToUnassociatedScaledVector4();
 
@@ -158,7 +158,7 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
                             float sourceGreen = vector.Y;
 
                             // The computed intensity can be nonfinite or outside [0, 1], so bound it before indexing the bins.
-                            float intensity = Numerics.Clamp((sourceBlue + sourceGreen + sourceRed) / 3F, 0F, 1F);
+                            float intensity = Numerics.ClampNumber((sourceBlue + sourceGreen + sourceRed) / 3F, 0F, 1F);
                             int currentIntensity = (int)MathF.Round(intensity * (this.levels - 1));
 
                             intensityBinsSpan[currentIntensity]++;

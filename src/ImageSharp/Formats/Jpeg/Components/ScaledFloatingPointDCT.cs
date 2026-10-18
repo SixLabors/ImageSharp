@@ -136,10 +136,10 @@ internal static class ScaledFloatingPointDCT
                    (z4 * FP32_2_562915447);
 
             // Save results to the top left 4x4 subregion
-            block[(ctr * 8) + 0] = Numerics.Clamp(((tmp10 + tmp2) * 0.5F) + normalizationValue, 0, maxValue);
-            block[(ctr * 8) + 3] = Numerics.Clamp(((tmp10 - tmp2) * 0.5F) + normalizationValue, 0, maxValue);
-            block[(ctr * 8) + 1] = Numerics.Clamp(((tmp12 + tmp0) * 0.5F) + normalizationValue, 0, maxValue);
-            block[(ctr * 8) + 2] = Numerics.Clamp(((tmp12 - tmp0) * 0.5F) + normalizationValue, 0, maxValue);
+            block[(ctr * 8) + 0] = Numerics.ClampNumber(((tmp10 + tmp2) * 0.5F) + normalizationValue, 0, maxValue);
+            block[(ctr * 8) + 3] = Numerics.ClampNumber(((tmp10 - tmp2) * 0.5F) + normalizationValue, 0, maxValue);
+            block[(ctr * 8) + 1] = Numerics.ClampNumber(((tmp12 + tmp0) * 0.5F) + normalizationValue, 0, maxValue);
+            block[(ctr * 8) + 2] = Numerics.ClampNumber(((tmp12 - tmp0) * 0.5F) + normalizationValue, 0, maxValue);
         }
     }
 
@@ -199,8 +199,8 @@ internal static class ScaledFloatingPointDCT
                    (block[ctr + (8 * 1) + 2] * FP32_3_624509785);
 
             // Save results to the top left 2x2 subregion
-            block[(ctr * 8) + 0] = Numerics.Clamp(((tmp10 + tmp0) * 0.25F) + normalizationValue, 0, maxValue);
-            block[(ctr * 8) + 1] = Numerics.Clamp(((tmp10 - tmp0) * 0.25F) + normalizationValue, 0, maxValue);
+            block[(ctr * 8) + 0] = Numerics.ClampNumber(((tmp10 + tmp0) * 0.25F) + normalizationValue, 0, maxValue);
+            block[(ctr * 8) + 1] = Numerics.ClampNumber(((tmp10 - tmp0) * 0.25F) + normalizationValue, 0, maxValue);
         }
     }
 
@@ -213,6 +213,6 @@ internal static class ScaledFloatingPointDCT
     /// <param name="normalizationValue">Output range normalization value, 1/2 of the <paramref name="maxValue"/>.</param>
     /// <param name="maxValue">Maximum value of the output range.</param>
     public static float TransformIDCT_1x1(float dc, float dequantizer, float normalizationValue, float maxValue)
-        => Numerics.Clamp((dc * dequantizer) + normalizationValue, 0, maxValue);
+        => Numerics.ClampNumber((dc * dequantizer) + normalizationValue, 0, maxValue);
 }
 #pragma warning restore IDE0078

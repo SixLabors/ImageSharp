@@ -241,7 +241,7 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint Pack(Vector4 vector)
     {
-        vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
+        vector = Numerics.ClampNumber(vector, Vector4.Zero, MaxBytes);
 
         uint byte4 = (uint)Math.Round(vector.X) & 0xFF;
         uint byte3 = ((uint)Math.Round(vector.Y) & 0xFF) << 0x8;

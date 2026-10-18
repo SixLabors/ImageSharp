@@ -420,7 +420,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             Span<TPixel> targetPixelSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
             Span<Vector4> sourceRowSpan = this.sourceValues.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
 
-            Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(sourceRowSpan), 0, 1F);
+            Numerics.ClampNumber(MemoryMarshal.Cast<Vector4, float>(sourceRowSpan), 0, 1F);
             GammaCompanding.Compress(sourceRowSpan, this.gamma, this.componentBitDepth, this.colorRange);
 
             PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, sourceRowSpan, targetPixelSpan);
@@ -456,7 +456,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         {
             Span<Vector4> sourceRowSpan = this.sourceValues.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
 
-            Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(sourceRowSpan), 0, 1F);
+            Numerics.ClampNumber(MemoryMarshal.Cast<Vector4, float>(sourceRowSpan), 0, 1F);
             Numerics.CubeRootOnXYZ(sourceRowSpan);
 
             Span<TPixel> targetPixelSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];

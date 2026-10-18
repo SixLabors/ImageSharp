@@ -130,7 +130,7 @@ public readonly struct Hsl : IColorProfile<Hsl, Rgb>
     {
         // HSL stores bounded SDR colors. Clip RGB at this boundary before calculating hue,
         // saturation and lightness; clipping only the derived components distorts the result.
-        Vector3 rgb = Vector3.Clamp(source.AsVector3Unsafe(), Vector3.Zero, Vector3.One);
+        Vector3 rgb = Numerics.ClampNumber(source.AsVector3Unsafe(), Vector3.Zero, Vector3.One);
         float r = rgb.X;
         float g = rgb.Y;
         float b = rgb.Z;

@@ -767,7 +767,7 @@ internal static class HeifSampleConversion
     public static TSample ToSample<TSample>(float value, float maximum)
         where TSample : unmanaged
     {
-        int sample = Numerics.Clamp((int)MathF.Round(value, MidpointRounding.AwayFromZero), 0, (int)maximum);
+        int sample = Math.Clamp((int)MathF.Round(value, MidpointRounding.AwayFromZero), 0, (int)maximum);
         if (typeof(TSample) == typeof(byte))
         {
             byte result = (byte)sample;

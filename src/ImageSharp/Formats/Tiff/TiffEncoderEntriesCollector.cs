@@ -406,7 +406,8 @@ internal class TiffEncoderEntriesCollector
                     });
                 }
             }
-            else if (encoder.BitsPerPixel is TiffBitsPerPixel.Bit64 or TiffBitsPerPixel.Bit128)
+            else if (encoder.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb
+                && encoder.BitsPerPixel is TiffBitsPerPixel.Bit64 or TiffBitsPerPixel.Bit128)
             {
                 // Integer color writers emit straight color with a fourth alpha sample.
                 this.Collector.AddOrReplace(new ExifShortArray(ExifTagValue.ExtraSamples)
@@ -419,7 +420,8 @@ internal class TiffEncoderEntriesCollector
                 (encoder.PhotometricInterpretation is TiffPhotometricInterpretation.Rgb or
                                                       TiffPhotometricInterpretation.PaletteColor or
                                                       TiffPhotometricInterpretation.BlackIsZero or
-                                                      TiffPhotometricInterpretation.WhiteIsZero))
+                                                      TiffPhotometricInterpretation.WhiteIsZero or
+                                                      TiffPhotometricInterpretation.Separated))
             {
                 ExifShort predictor = new(ExifTagValue.Predictor) { Value = (ushort)TiffPredictor.Horizontal };
 
@@ -474,7 +476,7 @@ internal class TiffEncoderEntriesCollector
                     };
 
                 case TiffPhotometricInterpretation.Separated:
-                    return [8, 8, 8, 8];
+                    return encoder.BitsPerPixel == TiffBitsPerPixel.Bit64 ? [16, 16, 16, 16] : [8, 8, 8, 8];
 
                 case TiffPhotometricInterpretation.WhiteIsZero:
                     return encoder.BitsPerPixel switch

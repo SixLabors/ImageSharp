@@ -280,7 +280,7 @@ public partial struct Rgba32P : IPixel<Rgba32P>, IPackedVector<uint>
     {
         vector *= MaxBytes;
         vector += Half;
-        vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
+        vector = Numerics.ClampNumber(vector, Vector4.Zero, MaxBytes);
 
         // Each converted component occupies one 32-bit lane. Reinterpreting those lanes as bytes exposes their low bytes at offsets 0, 4, 8, and 12.
         Vector128<byte> result = Vector128.ConvertToInt32(vector.AsVector128()).AsByte();

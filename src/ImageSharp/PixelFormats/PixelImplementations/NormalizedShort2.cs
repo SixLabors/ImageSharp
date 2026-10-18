@@ -258,7 +258,7 @@ public partial struct NormalizedShort2 : IPixel<NormalizedShort2>, IPackedVector
     private static uint Pack(Vector2 vector)
     {
         vector *= Max;
-        vector = Numerics.Clamp(vector, Min, Max);
+        vector = Numerics.ClampNumber(vector, Min, Max);
 
         // Round rather than truncate.
         uint word2 = (uint)((int)MathF.Round(vector.X) & 0xFFFF);

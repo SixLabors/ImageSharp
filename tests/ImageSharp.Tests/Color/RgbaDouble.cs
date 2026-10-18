@@ -171,7 +171,7 @@ public struct RgbaDouble : IPixel<RgbaDouble>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RgbaDouble FromVector4(Vector4 source)
     {
-        source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
+        source = Numerics.ClampNumber(source, Vector4.Zero, Vector4.One);
         return new RgbaDouble(source.X, source.Y, source.Z, source.W);
     }
 

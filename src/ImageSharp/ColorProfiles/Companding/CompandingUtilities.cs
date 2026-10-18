@@ -106,7 +106,7 @@ public static class CompandingUtilities
         Vector4 zero = Vector4.Zero;
         Vector4 scale = new(Scale);
 
-        Vector4 multiplied = Numerics.Clamp(vector * Scale, zero, scale);
+        Vector4 multiplied = Numerics.ClampNumber(vector * Scale, zero, scale);
 
         float f0 = multiplied.X;
         float f1 = multiplied.Y;
@@ -166,7 +166,7 @@ public static class CompandingUtilities
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
             {
-                Vector4 multiplied = Numerics.Clamp(vectorsBase * Scale, zero, scale);
+                Vector4 multiplied = Numerics.ClampNumber(vectorsBase * Scale, zero, scale);
 
                 float f0 = multiplied.X;
                 float f1 = multiplied.Y;

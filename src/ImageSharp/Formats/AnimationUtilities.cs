@@ -243,10 +243,10 @@ internal static class AnimationUtilities
 
         // An unchanged frame still needs a nonempty rectangle to encode its timing and disposal settings.
         Rectangle bounds = Rectangle.FromLTRB(
-            left = Numerics.Clamp(left, 0, resultFrame.Width - 1),
-            top = Numerics.Clamp(top, 0, resultFrame.Height - 1),
-            Numerics.Clamp(right, left + 1, resultFrame.Width),
-            Numerics.Clamp(bottom, top + 1, resultFrame.Height));
+            left = Math.Clamp(left, 0, resultFrame.Width - 1),
+            top = Math.Clamp(top, 0, resultFrame.Height - 1),
+            Math.Clamp(right, left + 1, resultFrame.Width),
+            Math.Clamp(bottom, top + 1, resultFrame.Height));
 
         // WebP requires even left and top coordinates. Expand the rectangle to include the original changed pixels.
         if (clampingMode == ClampingMode.Even)

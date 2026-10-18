@@ -493,9 +493,12 @@ internal static class TiffDecoderOptionsParser
                 }
 
                 ushort bitsPerChannel = options.BitsPerSample.Channel0;
-                if (bitsPerChannel != 8)
+                if (bitsPerChannel is not (8 or 16)
+                    || options.BitsPerSample.Channel1 != bitsPerChannel
+                    || options.BitsPerSample.Channel2 != bitsPerChannel
+                    || options.BitsPerSample.Channel3 != bitsPerChannel)
                 {
-                    TiffThrowHelper.ThrowNotSupported("Only 8 bits per channel is supported for CMYK images.");
+                    TiffThrowHelper.ThrowNotSupported("CMYK requires four equally sized 8-bit or 16-bit samples.");
                 }
 
                 if (exifProfile.GetValueInternal(ExifTag.InkNames) is not null)

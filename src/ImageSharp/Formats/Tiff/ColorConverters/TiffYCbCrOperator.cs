@@ -130,9 +130,9 @@ internal readonly struct TiffYCbCrOperator
     public void ConvertByte(float y, float cb, float cr, out byte red, out byte green, out byte blue)
     {
         this.ConvertRaw(y, cb, cr, out float r, out float g, out float b);
-        red = (byte)Numerics.Clamp((int)MathF.Round(r), 0, 255);
-        green = (byte)Numerics.Clamp((int)MathF.Round(g), 0, 255);
-        blue = (byte)Numerics.Clamp((int)MathF.Round(b), 0, 255);
+        red = (byte)Math.Clamp((int)MathF.Round(r), 0, 255);
+        green = (byte)Math.Clamp((int)MathF.Round(g), 0, 255);
+        blue = (byte)Math.Clamp((int)MathF.Round(b), 0, 255);
     }
 
     /// <summary>
@@ -158,9 +158,9 @@ internal readonly struct TiffYCbCrOperator
         // Bounded samples can use shared round-to-even conversion without generic integer-overflow handling.
         Vector128<float> minimum = Vector128<float>.Zero;
         Vector128<float> maximum = Vector128.Create(255F);
-        red = Vector128_.ConvertToInt32RoundToEven(Numerics.Clamp(r, minimum, maximum));
-        green = Vector128_.ConvertToInt32RoundToEven(Numerics.Clamp(g, minimum, maximum));
-        blue = Vector128_.ConvertToInt32RoundToEven(Numerics.Clamp(b, minimum, maximum));
+        red = Vector128_.ConvertToInt32RoundToEven(Numerics.ClampNumber(r, minimum, maximum));
+        green = Vector128_.ConvertToInt32RoundToEven(Numerics.ClampNumber(g, minimum, maximum));
+        blue = Vector128_.ConvertToInt32RoundToEven(Numerics.ClampNumber(b, minimum, maximum));
     }
 
     /// <summary>
@@ -186,9 +186,9 @@ internal readonly struct TiffYCbCrOperator
         // Bounded samples can use shared round-to-even conversion without generic integer-overflow handling.
         Vector256<float> minimum = Vector256<float>.Zero;
         Vector256<float> maximum = Vector256.Create(255F);
-        red = Vector256_.ConvertToInt32RoundToEven(Numerics.Clamp(r, minimum, maximum));
-        green = Vector256_.ConvertToInt32RoundToEven(Numerics.Clamp(g, minimum, maximum));
-        blue = Vector256_.ConvertToInt32RoundToEven(Numerics.Clamp(b, minimum, maximum));
+        red = Vector256_.ConvertToInt32RoundToEven(Numerics.ClampNumber(r, minimum, maximum));
+        green = Vector256_.ConvertToInt32RoundToEven(Numerics.ClampNumber(g, minimum, maximum));
+        blue = Vector256_.ConvertToInt32RoundToEven(Numerics.ClampNumber(b, minimum, maximum));
     }
 
     /// <summary>
@@ -214,9 +214,9 @@ internal readonly struct TiffYCbCrOperator
         // Bounded samples can use shared round-to-even conversion without generic integer-overflow handling.
         Vector512<float> minimum = Vector512<float>.Zero;
         Vector512<float> maximum = Vector512.Create(255F);
-        red = Vector512_.ConvertToInt32RoundToEven(Numerics.Clamp(r, minimum, maximum));
-        green = Vector512_.ConvertToInt32RoundToEven(Numerics.Clamp(g, minimum, maximum));
-        blue = Vector512_.ConvertToInt32RoundToEven(Numerics.Clamp(b, minimum, maximum));
+        red = Vector512_.ConvertToInt32RoundToEven(Numerics.ClampNumber(r, minimum, maximum));
+        green = Vector512_.ConvertToInt32RoundToEven(Numerics.ClampNumber(g, minimum, maximum));
+        blue = Vector512_.ConvertToInt32RoundToEven(Numerics.ClampNumber(b, minimum, maximum));
     }
 
     /// <summary>

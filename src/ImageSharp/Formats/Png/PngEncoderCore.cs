@@ -1902,7 +1902,7 @@ internal sealed class PngEncoderCore : IDisposable
     {
         if (colorType is PngColorType.Palette)
         {
-            byte quantizedBits = (byte)Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(quantizedFrame!.Palette.Length), 1, 8);
+            byte quantizedBits = (byte)Math.Clamp(ColorNumerics.GetBitsNeededForColorDepth(quantizedFrame!.Palette.Length), 1, 8);
             byte bits = Math.Max(bitDepth, quantizedBits);
 
             // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk

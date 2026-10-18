@@ -610,6 +610,15 @@ internal sealed class TiffEncoderCore
             compression = TiffCompression.Deflate;
         }
 
+        // CMYK uses four ink samples, with no alpha channel. Keep its 8- or 16-bit component depth
+        // before the RGB fallback below. JPEG's unsupported 16-bit layout has already selected Deflate.
+        if (photometricInterpretation == TiffPhotometricInterpretation.Separated
+            && bitsPerPixel is TiffBitsPerPixel.Bit32 or TiffBitsPerPixel.Bit64)
+        {
+            this.SetEncoderOptions(bitsPerPixel, photometricInterpretation, compression, predictor);
+            return;
+        }
+
         // BitsPerPixel should be the primary source of truth for the encoder options.
         switch (bitsPerPixel)
         {

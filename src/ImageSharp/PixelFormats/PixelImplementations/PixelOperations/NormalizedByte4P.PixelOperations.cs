@@ -462,9 +462,9 @@ public partial struct NormalizedByte4P
                 source = (source + one) / Vector512.Create(2F);
             }
 
-            source = Numerics.Clamp(source, zero, one);
+            source = Numerics.ClampNumber(source, zero, one);
             Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector512<float> nativeAlpha = Numerics.Clamp((alpha * Vector512.Create(2F)) - one, -one, one);
+            Vector512<float> nativeAlpha = Numerics.ClampNumber((alpha * Vector512.Create(2F)) - one, -one, one);
             Vector512<float> storedAlpha = Vector512.Round(nativeAlpha * Vector512.Create(MaxPos));
             storedAlpha += Vector512.Create(MaxPos);
             storedAlpha /= Vector512.Create(ScaledMagnitude);
@@ -491,9 +491,9 @@ public partial struct NormalizedByte4P
                 source = (source + one) / Vector256.Create(2F);
             }
 
-            source = Numerics.Clamp(source, zero, one);
+            source = Numerics.ClampNumber(source, zero, one);
             Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector256<float> nativeAlpha = Numerics.Clamp((alpha * Vector256.Create(2F)) - one, -one, one);
+            Vector256<float> nativeAlpha = Numerics.ClampNumber((alpha * Vector256.Create(2F)) - one, -one, one);
             Vector256<float> storedAlpha = Vector256.Round(nativeAlpha * Vector256.Create(MaxPos));
             storedAlpha += Vector256.Create(MaxPos);
             storedAlpha /= Vector256.Create(ScaledMagnitude);
@@ -520,9 +520,9 @@ public partial struct NormalizedByte4P
                 source = (source + one) / Vector128.Create(2F);
             }
 
-            source = Numerics.Clamp(source, zero, one);
+            source = Numerics.ClampNumber(source, zero, one);
             Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector128<float> nativeAlpha = Numerics.Clamp((alpha * Vector128.Create(2F)) - one, -one, one);
+            Vector128<float> nativeAlpha = Numerics.ClampNumber((alpha * Vector128.Create(2F)) - one, -one, one);
             Vector128<float> storedAlpha = Vector128.Round(nativeAlpha * Vector128.Create(MaxPos));
             storedAlpha += Vector128.Create(MaxPos);
             storedAlpha /= Vector128.Create(ScaledMagnitude);
@@ -623,14 +623,14 @@ public partial struct NormalizedByte4P
             }
 
             Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector512<float> nativeAlpha = Numerics.Clamp((alpha * Vector512.Create(2F)) - one, -one, one);
+            Vector512<float> nativeAlpha = Numerics.ClampNumber((alpha * Vector512.Create(2F)) - one, -one, one);
             Vector512<float> storedAlpha = Vector512.Round(nativeAlpha * Vector512.Create(MaxPos));
             storedAlpha += Vector512.Create(MaxPos);
             storedAlpha /= Vector512.Create(ScaledMagnitude);
             Vector512<float> result = source * (storedAlpha / alpha);
             Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
             result = Vector512.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = Numerics.Clamp(result, zero, storedAlpha);
+            result = Numerics.ClampNumber(result, zero, storedAlpha);
             return Vector512.ConditionalSelect(Vector512.LessThanOrEqual(alpha, zero), zero, result);
         }
 
@@ -653,14 +653,14 @@ public partial struct NormalizedByte4P
             }
 
             Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector256<float> nativeAlpha = Numerics.Clamp((alpha * Vector256.Create(2F)) - one, -one, one);
+            Vector256<float> nativeAlpha = Numerics.ClampNumber((alpha * Vector256.Create(2F)) - one, -one, one);
             Vector256<float> storedAlpha = Vector256.Round(nativeAlpha * Vector256.Create(MaxPos));
             storedAlpha += Vector256.Create(MaxPos);
             storedAlpha /= Vector256.Create(ScaledMagnitude);
             Vector256<float> result = source * (storedAlpha / alpha);
             Vector256<float> alphaMask = Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
             result = Vector256.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = Numerics.Clamp(result, zero, storedAlpha);
+            result = Numerics.ClampNumber(result, zero, storedAlpha);
             return Vector256.ConditionalSelect(Vector256.LessThanOrEqual(alpha, zero), zero, result);
         }
 
@@ -683,14 +683,14 @@ public partial struct NormalizedByte4P
             }
 
             Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector128<float> nativeAlpha = Numerics.Clamp((alpha * Vector128.Create(2F)) - one, -one, one);
+            Vector128<float> nativeAlpha = Numerics.ClampNumber((alpha * Vector128.Create(2F)) - one, -one, one);
             Vector128<float> storedAlpha = Vector128.Round(nativeAlpha * Vector128.Create(MaxPos));
             storedAlpha += Vector128.Create(MaxPos);
             storedAlpha /= Vector128.Create(ScaledMagnitude);
             Vector128<float> result = source * (storedAlpha / alpha);
             Vector128<float> alphaMask = Vector128.Create(0, 0, 0, -1).AsSingle();
             result = Vector128.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = Numerics.Clamp(result, zero, storedAlpha);
+            result = Numerics.ClampNumber(result, zero, storedAlpha);
             return Vector128.ConditionalSelect(Vector128.LessThanOrEqual(alpha, zero), zero, result);
         }
 
@@ -779,7 +779,7 @@ public partial struct NormalizedByte4P
                 source -= one;
             }
 
-            source = Numerics.Clamp(source, -one, one) * Vector512.Create(MaxPos);
+            source = Numerics.ClampNumber(source, -one, one) * Vector512.Create(MaxPos);
             return Vector512_.ConvertToInt32RoundToEven(source);
         }
 
@@ -800,7 +800,7 @@ public partial struct NormalizedByte4P
                 source -= one;
             }
 
-            source = Numerics.Clamp(source, -one, one) * Vector256.Create(MaxPos);
+            source = Numerics.ClampNumber(source, -one, one) * Vector256.Create(MaxPos);
             return Vector256_.ConvertToInt32RoundToEven(source);
         }
 
@@ -821,7 +821,7 @@ public partial struct NormalizedByte4P
                 source -= one;
             }
 
-            source = Numerics.Clamp(source, -one, one) * Vector128.Create(MaxPos);
+            source = Numerics.ClampNumber(source, -one, one) * Vector128.Create(MaxPos);
             return Vector128_.ConvertToInt32RoundToEven(source);
         }
     }

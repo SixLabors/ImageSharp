@@ -126,7 +126,7 @@ internal class Vp8LEncoder : IDisposable
         this.method = method;
         this.transparentColorMode = transparentColorMode;
         this.nearLossless = nearLossless;
-        this.nearLosslessQuality = Numerics.Clamp(nearLosslessQuality, 0, 100);
+        this.nearLosslessQuality = Math.Clamp(nearLosslessQuality, 0, 100);
         this.bitWriter = new Vp8LBitWriter(initialSize);
         this.Bgra = memoryAllocator.Allocate<uint>(pixelCount);
         this.EncodedData = memoryAllocator.Allocate<uint>(pixelCount);

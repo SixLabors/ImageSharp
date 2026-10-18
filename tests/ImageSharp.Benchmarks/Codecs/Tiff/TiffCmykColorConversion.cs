@@ -20,7 +20,7 @@ public class TiffCmykColorConversion
     private readonly Image<RgbaVector> destination = new(Length, 1);
     private readonly byte[] packed = new byte[Length * 4];
     private readonly ColorProfileConverter scalarConverter = new();
-    private readonly CmykTiffColor<RgbaVector> decoder = new(Configuration.Default, new(), Configuration.Default.MemoryAllocator);
+    private readonly CmykTiffColor<RgbaVector> decoder = new(Configuration.Default, new(), Configuration.Default.MemoryAllocator, 8, false);
 
     /// <summary>
     /// Initializes packed CMYK component codes outside measured invocations.

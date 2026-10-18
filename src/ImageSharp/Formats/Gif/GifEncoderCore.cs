@@ -594,7 +594,7 @@ internal sealed class GifEncoderCore
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte ClampIndex(int value) => (byte)Numerics.Clamp(value, byte.MinValue, byte.MaxValue);
+    private static byte ClampIndex(int value) => (byte)Math.Clamp(value, byte.MinValue, byte.MaxValue);
 
     /// <summary>
     /// Returns the index of the transparent color in the palette.

@@ -29,7 +29,7 @@ internal sealed class IccColorConverter<TOperator> : IIccColorConverter
     /// <summary>
     /// Gets the configured operator for construction of a profile-to-profile connection.
     /// </summary>
-    internal TOperator Operator => this.colorOperator;
+    public TOperator Operator => this.colorOperator;
 
     /// <inheritdoc/>
     public bool IsTrc => this.colorOperator.IsTrc;

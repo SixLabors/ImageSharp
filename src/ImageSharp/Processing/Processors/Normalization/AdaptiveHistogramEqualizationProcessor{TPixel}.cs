@@ -61,7 +61,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
     private static int GetLuminanceIndex(Vector4 vector, int levels)
     {
         // Unbounded luminance can address outside the histogram; NaN maps to its first bin.
-        float luminance = Numerics.Clamp(ColorNumerics.GetBT709Luminance(vector), 0F, 1F);
+        float luminance = Numerics.ClampNumber(ColorNumerics.GetBT709Luminance(vector), 0F, 1F);
         return (int)MathF.Round(luminance * (levels - 1));
     }
 

@@ -204,7 +204,7 @@ public static class DCTTests
                     int y8 = y * 8;
                     for (int x = 0; x < 2; x++)
                     {
-                        float clamped = Numerics.Clamp(expected[y8 + x] + NormalizationValue, 0, MaxOutputValue);
+                        float clamped = Numerics.ClampNumber(expected[y8 + x] + NormalizationValue, 0, MaxOutputValue);
                         average2x2 += clamped;
                     }
                 }
@@ -265,7 +265,7 @@ public static class DCTTests
                     int y8 = y * 8;
                     for (int x = 0; x < 4; x++)
                     {
-                        float clamped = Numerics.Clamp(expected[y8 + x] + NormalizationValue, 0, MaxOutputValue);
+                        float clamped = Numerics.ClampNumber(expected[y8 + x] + NormalizationValue, 0, MaxOutputValue);
                         average4x4 += clamped;
                     }
                 }
@@ -310,7 +310,7 @@ public static class DCTTests
                 NormalizationValue,
                 MaxOutputValue);
 
-            float expected = Numerics.Clamp(expectedDest[0] + NormalizationValue, 0, MaxOutputValue);
+            float expected = Numerics.ClampNumber(expectedDest[0] + NormalizationValue, 0, MaxOutputValue);
 
             Assert.Equal((int)actual, (int)expected);
         }

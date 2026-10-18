@@ -20,7 +20,7 @@ internal sealed partial class IccDataWriter
     {
         foreach (float item in value.Values)
         {
-            this.WriteByte((byte)Numerics.Clamp((item * byte.MaxValue) + 0.5F, 0, byte.MaxValue));
+            this.WriteByte((byte)Numerics.ClampNumber((item * byte.MaxValue) + 0.5F, 0, byte.MaxValue));
         }
 
         return value.Values.Length;
@@ -35,7 +35,7 @@ internal sealed partial class IccDataWriter
     {
         foreach (float item in value.Values)
         {
-            this.WriteUInt16((ushort)Numerics.Clamp((item * ushort.MaxValue) + 0.5F, 0, ushort.MaxValue));
+            this.WriteUInt16((ushort)Numerics.ClampNumber((item * ushort.MaxValue) + 0.5F, 0, ushort.MaxValue));
         }
 
         return value.Values.Length * 2;
@@ -86,7 +86,7 @@ internal sealed partial class IccDataWriter
         int count = 0;
         for (int i = 0; i < value.SampleCount; i++)
         {
-            count += this.WriteByte((byte)Numerics.Clamp((value.GetSample(i) * byte.MaxValue) + 0.5F, 0, byte.MaxValue));
+            count += this.WriteByte((byte)Numerics.ClampNumber((value.GetSample(i) * byte.MaxValue) + 0.5F, 0, byte.MaxValue));
         }
 
         return count;
@@ -127,7 +127,7 @@ internal sealed partial class IccDataWriter
         int count = 0;
         for (int i = 0; i < value.SampleCount; i++)
         {
-            count += this.WriteUInt16((ushort)Numerics.Clamp((value.GetSample(i) * ushort.MaxValue) + 0.5F, 0, ushort.MaxValue));
+            count += this.WriteUInt16((ushort)Numerics.ClampNumber((value.GetSample(i) * ushort.MaxValue) + 0.5F, 0, ushort.MaxValue));
         }
 
         return count;

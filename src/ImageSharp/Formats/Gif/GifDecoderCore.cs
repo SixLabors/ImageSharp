@@ -893,7 +893,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                         // Treat any out of bounds values as background.
                         if (index > colorTableMaxIdx)
                         {
-                            index = Numerics.Clamp(index, 0, colorTableMaxIdx);
+                            index = Math.Clamp(index, 0, colorTableMaxIdx);
                         }
 
                         row[x] = colorTable[index].ToPixel<TPixel>();

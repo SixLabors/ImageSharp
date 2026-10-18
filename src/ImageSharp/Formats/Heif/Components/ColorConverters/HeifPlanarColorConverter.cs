@@ -365,8 +365,8 @@ internal static class HeifPlanarColorConverter
         int quarterCoordinate = (coordinate * 2) - position;
         int unclampedLower = quarterCoordinate >= 0 ? quarterCoordinate >> 2 : -((-quarterCoordinate + 3) >> 2);
         int fraction = quarterCoordinate - (unclampedLower * 4);
-        lower = Numerics.Clamp(unclampedLower, 0, maximum);
-        upper = Numerics.Clamp(unclampedLower + 1, 0, maximum);
+        lower = Math.Clamp(unclampedLower, 0, maximum);
+        upper = Math.Clamp(unclampedLower + 1, 0, maximum);
         upperWeight = lower == upper ? 0 : fraction;
     }
 

@@ -64,7 +64,7 @@ public class TiffEncoder : QuantizingImageEncoder
     /// Gets the interpretation of the encoded color samples.
     /// </summary>
     /// <remarks>
-    /// Supported layouts include RGB, palette, grayscale, bilevel, and JPEG-compressed CMYK.
+    /// Supported layouts include RGB, palette, grayscale, bilevel, and CMYK with 4 ink samples of 8 or 16 bits each.
     /// For JPEG compression, Rgb selects JPEG RGB, BlackIsZero selects JPEG grayscale, and Separated selects JPEG CMYK.
     /// <see cref="BitsPerPixel"/> must also select a supported layout.
     /// </remarks>

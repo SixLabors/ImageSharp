@@ -562,7 +562,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel <#=blender#><#=composer#><TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.Clamp(opacity, 0, 1);
+        opacity = Numerics.ClampNumber(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(<#=blender#><#=composer#>(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 <# } #>

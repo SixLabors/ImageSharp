@@ -251,10 +251,10 @@ public partial struct NormalizedByte4P : IPixel<NormalizedByte4P>, IPackedVector
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector4 Associate(Vector4 source)
     {
-        source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
+        source = Numerics.ClampNumber(source, Vector4.Zero, Vector4.One);
 
         // Reproduce the signed-normalized packer's alpha quantization, then associate RGB with the exact alpha that will be stored.
-        float nativeAlpha = Numerics.Clamp((source.W * 2F) - 1F, -1F, 1F);
+        float nativeAlpha = Numerics.ClampNumber((source.W * 2F) - 1F, -1F, 1F);
         float storedAlpha = MathF.Round(nativeAlpha * MaxPos);
         source.W = (storedAlpha + MaxPos) / ScaledMagnitude;
         Numerics.Premultiply(ref source);
@@ -305,7 +305,7 @@ public partial struct NormalizedByte4P : IPixel<NormalizedByte4P>, IPackedVector
             return Vector4.Zero;
         }
 
-        float nativeAlpha = Numerics.Clamp((alpha * 2F) - 1F, -1F, 1F);
+        float nativeAlpha = Numerics.ClampNumber((alpha * 2F) - 1F, -1F, 1F);
         float storedAlpha = (MathF.Round(nativeAlpha * MaxPos) + MaxPos) / ScaledMagnitude;
 
         // Associated RGB scales by the same ratio as alpha. Applying that ratio directly avoids the extra division and multiplication of an unpremultiply/premultiply round trip and preserves exact midpoints when alpha needs no quantization.
@@ -322,7 +322,7 @@ public partial struct NormalizedByte4P : IPixel<NormalizedByte4P>, IPackedVector
     /// <returns>The packed value.</returns>
     private static uint Pack(Vector4 vector)
     {
-        vector = Numerics.Clamp(vector, MinusOne, Vector4.One) * Half;
+        vector = Numerics.ClampNumber(vector, MinusOne, Vector4.One) * Half;
 
         uint byte4 = ((uint)Convert.ToInt16(MathF.Round(vector.X)) & 0xFF) << 0;
         uint byte3 = ((uint)Convert.ToInt16(MathF.Round(vector.Y)) & 0xFF) << 8;

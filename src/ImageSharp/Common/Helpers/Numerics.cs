@@ -194,117 +194,52 @@ internal static class Numerics
     }
 
     /// <summary>
-    /// Returns the value clamped to the inclusive range of min and max.
-    /// </summary>
-    /// <param name="value">The value to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    /// <returns>The clamped <see cref="byte"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte Clamp(byte value, byte min, byte max)
-    {
-        // Order is important here as someone might set min to higher than max.
-        if (value > max)
-        {
-            return max;
-        }
-
-        if (value < min)
-        {
-            return min;
-        }
-
-        return value;
-    }
-
-    /// <summary>
-    /// Returns the value clamped to the inclusive range of min and max.
-    /// </summary>
-    /// <param name="value">The value to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    /// <returns>The clamped <see cref="uint"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint Clamp(uint value, uint min, uint max)
-    {
-        if (value > max)
-        {
-            return max;
-        }
-
-        if (value < min)
-        {
-            return min;
-        }
-
-        return value;
-    }
-
-    /// <summary>
-    /// Returns the value clamped to the inclusive range of min and max.
-    /// </summary>
-    /// <param name="value">The value to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    /// <returns>The clamped <see cref="uint"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Clamp(int value, int min, int max)
-    {
-        if (value > max)
-        {
-            return max;
-        }
-
-        if (value < min)
-        {
-            return min;
-        }
-
-        return value;
-    }
-
-    /// <summary>
-    /// Returns the value clamped to the inclusive range of min and max, mapping NaN to min.
+    /// Clamps the value to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range values retain their bits, including signed zero.
     /// </summary>
     /// <param name="value">The value to clamp.</param>
     /// <param name="min">The minimum inclusive value.</param>
     /// <param name="max">The maximum inclusive value.</param>
     /// <returns>The clamped <see cref="float"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float Clamp(float value, float min, float max) => Clamp<float>(value, min, max);
+    public static float ClampNumber(float value, float min, float max) => ClampNumber<float>(value, min, max);
 
     /// <summary>
-    /// Returns the value clamped to the inclusive range of min and max, mapping NaN to min.
+    /// Clamps the value to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range values retain their bits, including signed zero.
     /// </summary>
     /// <param name="value">The value to clamp.</param>
     /// <param name="min">The minimum inclusive value.</param>
     /// <param name="max">The maximum inclusive value.</param>
     /// <returns>The clamped <see cref="double"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static double Clamp(double value, double min, double max) => Clamp<double>(value, min, max);
+    public static double ClampNumber(double value, double min, double max) => ClampNumber<double>(value, min, max);
 
     /// <summary>
-    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
+    /// Clamps components to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range components retain their bits, including signed zero.
     /// </summary>
     /// <param name="value">The components to clamp.</param>
     /// <param name="min">The inclusive lower bounds.</param>
     /// <param name="max">The inclusive upper bounds.</param>
     /// <returns>The clamped components.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 Clamp(Vector2 value, Vector2 min, Vector2 max) => Clamp(value.AsVector128(), min.AsVector128(), max.AsVector128()).AsVector2();
+    public static Vector2 ClampNumber(Vector2 value, Vector2 min, Vector2 max) => ClampNumber(value.AsVector128(), min.AsVector128(), max.AsVector128()).AsVector2();
 
     /// <summary>
-    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
+    /// Clamps components to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range components retain their bits, including signed zero.
     /// </summary>
     /// <param name="value">The components to clamp.</param>
     /// <param name="min">The inclusive lower bounds.</param>
     /// <param name="max">The inclusive upper bounds.</param>
     /// <returns>The clamped components.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3 Clamp(Vector3 value, Vector3 min, Vector3 max) => Clamp(value.AsVector128(), min.AsVector128(), max.AsVector128()).AsVector3();
+    public static Vector3 ClampNumber(Vector3 value, Vector3 min, Vector3 max) => ClampNumber(value.AsVector128(), min.AsVector128(), max.AsVector128()).AsVector3();
 
     /// <summary>
-    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
+    /// Clamps components to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range components retain their bits, including signed zero.
     /// </summary>
     /// <typeparam name="T">The component type.</typeparam>
     /// <param name="value">The components to clamp.</param>
@@ -312,7 +247,7 @@ internal static class Numerics
     /// <param name="max">The inclusive upper bounds.</param>
     /// <returns>The clamped components.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<T> Clamp<T>(Vector128<T> value, Vector128<T> min, Vector128<T> max)
+    public static Vector128<T> ClampNumber<T>(Vector128<T> value, Vector128<T> min, Vector128<T> max)
         where T : struct, INumber<T>
     {
         // Ordered comparisons map NaN to min and preserve in-range signed zero on every runtime.
@@ -321,7 +256,8 @@ internal static class Numerics
     }
 
     /// <summary>
-    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
+    /// Clamps components to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range components retain their bits, including signed zero.
     /// </summary>
     /// <typeparam name="T">The component type.</typeparam>
     /// <param name="value">The components to clamp.</param>
@@ -329,7 +265,7 @@ internal static class Numerics
     /// <param name="max">The inclusive upper bounds.</param>
     /// <returns>The clamped components.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<T> Clamp<T>(Vector256<T> value, Vector256<T> min, Vector256<T> max)
+    public static Vector256<T> ClampNumber<T>(Vector256<T> value, Vector256<T> min, Vector256<T> max)
         where T : struct, INumber<T>
     {
         // Ordered comparisons map NaN to min and preserve in-range signed zero on every runtime.
@@ -338,7 +274,8 @@ internal static class Numerics
     }
 
     /// <summary>
-    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
+    /// Clamps components to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range components retain their bits, including signed zero.
     /// </summary>
     /// <typeparam name="T">The component type.</typeparam>
     /// <param name="value">The components to clamp.</param>
@@ -346,7 +283,7 @@ internal static class Numerics
     /// <param name="max">The inclusive upper bounds.</param>
     /// <returns>The clamped components.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector512<T> Clamp<T>(Vector512<T> value, Vector512<T> min, Vector512<T> max)
+    public static Vector512<T> ClampNumber<T>(Vector512<T> value, Vector512<T> min, Vector512<T> max)
         where T : struct, INumber<T>
     {
         // Ordered comparisons map NaN to min and preserve in-range signed zero on every runtime.
@@ -355,64 +292,37 @@ internal static class Numerics
     }
 
     /// <summary>
-    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
+    /// Clamps components to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range components retain their bits, including signed zero.
     /// </summary>
     /// <param name="value">The value to clamp.</param>
     /// <param name="min">The minimum inclusive value.</param>
     /// <param name="max">The maximum inclusive value.</param>
     /// <returns>The clamped <see cref="Vector4"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector4 Clamp(Vector4 value, Vector4 min, Vector4 max) => Clamp(value.AsVector128(), min.AsVector128(), max.AsVector128()).AsVector4();
+    public static Vector4 ClampNumber(Vector4 value, Vector4 min, Vector4 max) => ClampNumber(value.AsVector128(), min.AsVector128(), max.AsVector128()).AsVector4();
 
     /// <summary>
-    /// Clamps the span values to the inclusive range of min and max.
+    /// Clamps the span values to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range values retain their bits, including signed zero.
     /// </summary>
     /// <param name="span">The span containing the values to clamp.</param>
     /// <param name="min">The minimum inclusive value.</param>
     /// <param name="max">The maximum inclusive value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Clamp(Span<byte> span, byte min, byte max)
-        => TensorPrimitives.Clamp(span, min, max, span);
+    public static void ClampNumber(Span<float> span, float min, float max)
+        => ClampNumber<float>(span, min, max);
 
     /// <summary>
-    /// Clamps the span values to the inclusive range of min and max.
+    /// Clamps the span values to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range values retain their bits, including signed zero.
     /// </summary>
     /// <param name="span">The span containing the values to clamp.</param>
     /// <param name="min">The minimum inclusive value.</param>
     /// <param name="max">The maximum inclusive value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Clamp(Span<uint> span, uint min, uint max)
-        => TensorPrimitives.Clamp(span, min, max, span);
-
-    /// <summary>
-    /// Clamps the span values to the inclusive range of min and max.
-    /// </summary>
-    /// <param name="span">The span containing the values to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Clamp(Span<int> span, int min, int max)
-        => TensorPrimitives.Clamp(span, min, max, span);
-
-    /// <summary>
-    /// Clamps the span values to the inclusive range of min and max, mapping NaN to min.
-    /// </summary>
-    /// <param name="span">The span containing the values to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Clamp(Span<float> span, float min, float max)
-        => Clamp<float>(span, min, max);
-
-    /// <summary>
-    /// Clamps the span values to the inclusive range of min and max, mapping NaN to min.
-    /// </summary>
-    /// <param name="span">The span containing the values to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Clamp(Span<double> span, double min, double max)
-        => Clamp<double>(span, min, max);
+    public static void ClampNumber(Span<double> span, double min, double max)
+        => ClampNumber<double>(span, min, max);
 
     /// <summary>
     /// Pre-multiplies the "x", "y", "z" components of a vector by its "w" component leaving the "w" component intact.
@@ -435,7 +345,7 @@ internal static class Numerics
     public static void ClampRgbToAlpha(ref Vector4 source)
     {
         Vector4 alpha = PermuteW(source);
-        source = WithW(Clamp(source, Vector4.Zero, alpha), alpha);
+        source = WithW(ClampNumber(source, Vector4.Zero, alpha), alpha);
     }
 
     /// <summary>
@@ -1117,7 +1027,8 @@ internal static class Numerics
         => (uint)length / (uint)Vector512<TVector>.Count;
 
     /// <summary>
-    /// Clamps a floating-point component while mapping NaN to the lower bound.
+    /// Clamps a component to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range values retain their bits, including signed zero.
     /// </summary>
     /// <typeparam name="T">The component type.</typeparam>
     /// <param name="value">The component to clamp.</param>
@@ -1125,7 +1036,7 @@ internal static class Numerics
     /// <param name="max">The inclusive upper bound.</param>
     /// <returns>The clamped component.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static T Clamp<T>(T value, T min, T max)
+    private static T ClampNumber<T>(T value, T min, T max)
         where T : struct, INumber<T>
     {
         // Ordered comparisons map NaN to min; in-range values retain their original bits, including signed zero.
@@ -1133,19 +1044,19 @@ internal static class Numerics
     }
 
     /// <summary>
-    /// Applies the scalar clamp contract to floating-point spans in place.
+    /// Applies the scalar NaN and signed-zero rules to floating-point spans in place.
     /// </summary>
     /// <typeparam name="T">The component type.</typeparam>
     /// <param name="span">The components to clamp.</param>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The inclusive upper bound.</param>
-    private static void Clamp<T>(Span<T> span, T min, T max)
+    private static void ClampNumber<T>(Span<T> span, T min, T max)
         where T : struct, INumber<T>
     {
         ref T start = ref MemoryMarshal.GetReference(span);
         int i = 0;
 
-        // Each register uses the same Clamp overload as individual vector callers. Descending widths consume
+        // Each register uses the same ClampNumber overload as individual vector callers. Descending widths consume
         // the remainder without overlapping stores, and the final components use the scalar overload.
         if (Vector512.IsHardwareAccelerated)
         {
@@ -1155,7 +1066,7 @@ internal static class Numerics
             for (; i <= span.Length - Vector512<T>.Count; i += Vector512<T>.Count)
             {
                 Vector512<T> value = Vector512.LoadUnsafe(ref start, (nuint)i);
-                Clamp(value, lower, upper).StoreUnsafe(ref start, (nuint)i);
+                ClampNumber(value, lower, upper).StoreUnsafe(ref start, (nuint)i);
             }
         }
 
@@ -1167,7 +1078,7 @@ internal static class Numerics
             for (; i <= span.Length - Vector256<T>.Count; i += Vector256<T>.Count)
             {
                 Vector256<T> value = Vector256.LoadUnsafe(ref start, (nuint)i);
-                Clamp(value, lower, upper).StoreUnsafe(ref start, (nuint)i);
+                ClampNumber(value, lower, upper).StoreUnsafe(ref start, (nuint)i);
             }
         }
 
@@ -1179,14 +1090,14 @@ internal static class Numerics
             for (; i <= span.Length - Vector128<T>.Count; i += Vector128<T>.Count)
             {
                 Vector128<T> value = Vector128.LoadUnsafe(ref start, (nuint)i);
-                Clamp(value, lower, upper).StoreUnsafe(ref start, (nuint)i);
+                ClampNumber(value, lower, upper).StoreUnsafe(ref start, (nuint)i);
             }
         }
 
         for (; i < span.Length; i++)
         {
             ref T value = ref Unsafe.Add(ref start, (uint)i);
-            value = Clamp(value, min, max);
+            value = ClampNumber(value, min, max);
         }
     }
 }

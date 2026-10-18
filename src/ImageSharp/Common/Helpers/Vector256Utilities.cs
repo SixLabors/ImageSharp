@@ -82,7 +82,7 @@ internal static class Vector256_
         bits *= Vector256.Create(SignificandScale);
         if (hasSpecial)
         {
-            bits = Vector256.Min(Vector256.Max(bits, Vector256<float>.Zero), Vector256.Create(InfinityBits));
+            bits = Numerics.ClampNumber(bits, Vector256<float>.Zero, Vector256.Create(InfinityBits));
         }
 
         // The encoded bit range is within Int32, so native truncation needs no saturation fixups.

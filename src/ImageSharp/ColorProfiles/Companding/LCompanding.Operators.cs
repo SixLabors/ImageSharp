@@ -107,7 +107,7 @@ public static partial class LCompanding
             // L* uses the linear segment for negative and near-black XYZ values.
             // Keep the existing cube-root exponent rather than substituting a different approximation.
             TVector linear = TOperations.Divide(TOperations.Multiply(value, TOperations.Create(CieConstants.Kappa)), TOperations.Create(MaximumLightness));
-            TVector power = TOperations.Pow(TOperations.Max(value, TOperations.Create(0F)), CubeRootExponent);
+            TVector power = TOperations.Pow(TOperations.Clamp(value, TOperations.Create(0F), TOperations.Create(float.PositiveInfinity)), CubeRootExponent);
             TVector nonlinear = TOperations.Subtract(TOperations.Multiply(TOperations.Create(LightnessScale), power), TOperations.Create(LightnessOffset));
             return TOperations.ConditionalSelect(TOperations.LessThanOrEqual(value, TOperations.Create(CieConstants.Epsilon)), linear, nonlinear);
         }

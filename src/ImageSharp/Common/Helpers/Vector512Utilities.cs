@@ -95,7 +95,7 @@ internal static class Vector512_
         bits *= Vector512.Create(SignificandScale);
         if (hasSpecial)
         {
-            bits = Vector512.Min(Vector512.Max(bits, Vector512<float>.Zero), Vector512.Create(InfinityBits));
+            bits = Numerics.ClampNumber(bits, Vector512<float>.Zero, Vector512.Create(InfinityBits));
         }
 
         // The encoded bit range is within Int32, so native truncation needs no saturation fixups.

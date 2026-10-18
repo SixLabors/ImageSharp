@@ -266,7 +266,7 @@ public partial struct NormalizedShort4 : IPixel<NormalizedShort4>, IPackedVector
     private static ulong Pack(Vector4 vector)
     {
         vector *= Max;
-        vector = Numerics.Clamp(vector, Min, Max);
+        vector = Numerics.ClampNumber(vector, Min, Max);
 
         // Round rather than truncate.
         ulong word4 = ((ulong)Convert.ToInt32(MathF.Round(vector.X)) & 0xFFFF) << 0x00;

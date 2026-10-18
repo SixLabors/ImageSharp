@@ -17,6 +17,58 @@ public partial class SimdUtilsTests
     private static readonly int[] Lengths = [0, 1, 2, 3, 4, 5, 7, 8, 15, 16, 17, 31, 32, 33, 129];
 
     /// <summary>
+    /// Checks saturated sixteen-bit packing and midpoint-to-even rounding across all SIMD widths.
+    /// </summary>
+    [Fact]
+    public void UInt16PackingMatchesScalar() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        ValidateUInt16Packing,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks complete vector groups, scalar tails, code midpoints, nonfinite values and destination padding.
+    /// </summary>
+    private static void ValidateUInt16Packing()
+    {
+        foreach (int length in Lengths.Append(ushort.MaxValue + 1))
+        {
+            float[] source = new float[length];
+            ushort[] expected = new ushort[length + 1];
+            ushort[] actual = new ushort[length + 1];
+            expected[^1] = actual[^1] = ushort.MaxValue;
+
+            for (int i = 0; i < length; i++)
+            {
+                // Half-code inputs expose the rounding rule. The full-range case visits every sixteen-bit midpoint.
+                source[i] = (i + .5F) / ushort.MaxValue;
+            }
+
+            if (length >= 4)
+            {
+                // Saturation belongs to final integer packing, including values outside the stored sample range.
+                source[0] = -1F;
+                source[1] = 2F;
+                source[2] = float.NegativeInfinity;
+                source[3] = float.PositiveInfinity;
+            }
+
+            if (length > 0)
+            {
+                // The final lane covers both complete SIMD groups and scalar tails. Safe packing maps NaN to zero.
+                source[^1] = float.NaN;
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                expected[i] = float.IsNaN(source[i]) ? (ushort)0 : (ushort)MathF.Round(Numerics.ClampNumber(source[i], 0F, 1F) * ushort.MaxValue);
+            }
+
+            SimdUtils.NormalizedFloatToUInt16Saturate(source, actual);
+
+            Assert.Equal(expected, actual);
+        }
+    }
+
+    /// <summary>
     /// Checks bounded byte deinterleaving and signed and unsigned widening across hardware modes.
     /// </summary>
     [Fact]

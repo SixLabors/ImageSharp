@@ -51,7 +51,7 @@ public sealed class PaletteDitherProcessor : IImageProcessor
         Guard.MustBeGreaterThan(palette.Length, 0, nameof(palette));
         Guard.NotNull(dither, nameof(dither));
         this.Dither = dither;
-        this.DitherScale = Numerics.Clamp(ditherScale, QuantizerConstants.MinDitherScale, QuantizerConstants.MaxDitherScale);
+        this.DitherScale = Numerics.ClampNumber(ditherScale, QuantizerConstants.MinDitherScale, QuantizerConstants.MaxDitherScale);
         this.Palette = palette;
     }
 

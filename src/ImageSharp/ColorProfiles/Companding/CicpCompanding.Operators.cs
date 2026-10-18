@@ -325,7 +325,7 @@ internal static partial class CicpCompanding
         /// <inheritdoc/>
         public static float Expand(float value)
         {
-            return new TensorPrimitives_.PowOperator(Gamma).Invoke(Math.Clamp(value, 0F, 1F));
+            return new TensorPrimitives_.PowOperator(Gamma).Invoke(Numerics.ClampNumber(value, 0F, 1F));
         }
 
         /// <inheritdoc/>
@@ -336,13 +336,13 @@ internal static partial class CicpCompanding
             TVector zero = TOperations.Create(0F);
             TVector one = TOperations.Create(1F);
 
-            return TOperations.Pow(TOperations.Min(TOperations.Max(value, zero), one), Gamma);
+            return TOperations.Pow(TOperations.Clamp(value, zero, one), Gamma);
         }
 
         /// <inheritdoc/>
         public static float Compress(float value)
         {
-            return new TensorPrimitives_.PowOperator(1F / Gamma).Invoke(Math.Clamp(value, 0F, 1F));
+            return new TensorPrimitives_.PowOperator(1F / Gamma).Invoke(Numerics.ClampNumber(value, 0F, 1F));
         }
 
         /// <inheritdoc/>
@@ -353,7 +353,7 @@ internal static partial class CicpCompanding
             TVector zero = TOperations.Create(0F);
             TVector one = TOperations.Create(1F);
 
-            return TOperations.Pow(TOperations.Min(TOperations.Max(value, zero), one), 1F / Gamma);
+            return TOperations.Pow(TOperations.Clamp(value, zero, one), 1F / Gamma);
         }
     }
 
@@ -370,7 +370,7 @@ internal static partial class CicpCompanding
         /// <inheritdoc/>
         public static float Expand(float value)
         {
-            return new TensorPrimitives_.PowOperator(Gamma).Invoke(Math.Clamp(value, 0F, 1F));
+            return new TensorPrimitives_.PowOperator(Gamma).Invoke(Numerics.ClampNumber(value, 0F, 1F));
         }
 
         /// <inheritdoc/>
@@ -381,13 +381,13 @@ internal static partial class CicpCompanding
             TVector zero = TOperations.Create(0F);
             TVector one = TOperations.Create(1F);
 
-            return TOperations.Pow(TOperations.Min(TOperations.Max(value, zero), one), Gamma);
+            return TOperations.Pow(TOperations.Clamp(value, zero, one), Gamma);
         }
 
         /// <inheritdoc/>
         public static float Compress(float value)
         {
-            return new TensorPrimitives_.PowOperator(1F / Gamma).Invoke(Math.Clamp(value, 0F, 1F));
+            return new TensorPrimitives_.PowOperator(1F / Gamma).Invoke(Numerics.ClampNumber(value, 0F, 1F));
         }
 
         /// <inheritdoc/>
@@ -398,7 +398,7 @@ internal static partial class CicpCompanding
             TVector zero = TOperations.Create(0F);
             TVector one = TOperations.Create(1F);
 
-            return TOperations.Pow(TOperations.Min(TOperations.Max(value, zero), one), 1F / Gamma);
+            return TOperations.Pow(TOperations.Clamp(value, zero, one), 1F / Gamma);
         }
     }
 
@@ -444,7 +444,7 @@ internal static partial class CicpCompanding
             TVector one = TOperations.Create(1F);
             TVector linear = TOperations.Divide(value, TOperations.Create(4F));
             TVector baseValue = TOperations.Divide(TOperations.Add(value, TOperations.Create(Smpte240Alpha - 1F)), TOperations.Create(Smpte240Alpha));
-            TVector nonlinear = TOperations.Pow(TOperations.Max(baseValue, zero), 1F / Rec709Companding.Exponent);
+            TVector nonlinear = TOperations.Pow(TOperations.Clamp(baseValue, zero, TOperations.Create(float.PositiveInfinity)), 1F / Rec709Companding.Exponent);
             TVector belowOne = TOperations.ConditionalSelect(TOperations.LessThan(value, TOperations.Create(4F * Smpte240Beta)), linear, nonlinear);
             TVector bounded = TOperations.ConditionalSelect(TOperations.LessThan(value, one), belowOne, one);
             return TOperations.ConditionalSelect(TOperations.LessThan(value, zero), zero, bounded);
@@ -487,7 +487,7 @@ internal static partial class CicpCompanding
             TVector one = TOperations.Create(1F);
             TVector linear = TOperations.Multiply(value, TOperations.Create(4F));
             TVector nonlinear = TOperations.Subtract(
-                TOperations.Multiply(TOperations.Create(Smpte240Alpha), TOperations.Pow(TOperations.Max(value, zero), Rec709Companding.Exponent)),
+                TOperations.Multiply(TOperations.Create(Smpte240Alpha), TOperations.Pow(TOperations.Clamp(value, zero, TOperations.Create(float.PositiveInfinity)), Rec709Companding.Exponent)),
                 TOperations.Create(Smpte240Alpha - 1F));
 
             TVector belowOne = TOperations.ConditionalSelect(TOperations.LessThan(value, TOperations.Create(Smpte240Beta)), linear, nonlinear);
@@ -504,7 +504,7 @@ internal static partial class CicpCompanding
         /// <inheritdoc/>
         public static float Expand(float value)
         {
-            return Math.Clamp(value, 0F, 1F);
+            return Numerics.ClampNumber(value, 0F, 1F);
         }
 
         /// <inheritdoc/>
@@ -515,13 +515,13 @@ internal static partial class CicpCompanding
             TVector zero = TOperations.Create(0F);
             TVector one = TOperations.Create(1F);
 
-            return TOperations.Min(TOperations.Max(value, zero), one);
+            return TOperations.Clamp(value, zero, one);
         }
 
         /// <inheritdoc/>
         public static float Compress(float value)
         {
-            return Math.Clamp(value, 0F, 1F);
+            return Numerics.ClampNumber(value, 0F, 1F);
         }
 
         /// <inheritdoc/>
@@ -532,7 +532,7 @@ internal static partial class CicpCompanding
             TVector zero = TOperations.Create(0F);
             TVector one = TOperations.Create(1F);
 
-            return TOperations.Min(TOperations.Max(value, zero), one);
+            return TOperations.Clamp(value, zero, one);
         }
     }
 
@@ -555,7 +555,7 @@ internal static partial class CicpCompanding
         public static float Expand(float value)
         {
             // Zero represents the linear interval [0,0.01]. Its midpoint minimizes the largest round-trip error.
-            return value <= 0F ? ZeroCodeValue : new TensorPrimitives_.PowOperator(2F * (MathF.Min(value, 1F) - 1F)).Invoke(10F);
+            return value <= 0F ? ZeroCodeValue : new TensorPrimitives_.PowOperator(2F * (Numerics.ClampNumber(value, 0F, 1F) - 1F)).Invoke(10F);
         }
 
         /// <inheritdoc/>
@@ -568,7 +568,7 @@ internal static partial class CicpCompanding
 
             // H.273 assigns an interval to zero for logarithmic curves. The scalar midpoint convention is
             // selected lane-wise after evaluating the positive branch, which keeps the hot path branchless.
-            TVector exponent = TOperations.Multiply(TOperations.Subtract(TOperations.Min(value, one), one), TOperations.Create(2F * NaturalLogOfTen));
+            TVector exponent = TOperations.Multiply(TOperations.Subtract(TOperations.Clamp(value, zero, one), one), TOperations.Create(2F * NaturalLogOfTen));
             TVector positive = TOperations.Exp(exponent);
             return TOperations.ConditionalSelect(TOperations.LessThanOrEqual(value, zero), TOperations.Create(ZeroCodeValue), positive);
         }
@@ -576,7 +576,7 @@ internal static partial class CicpCompanding
         /// <inheritdoc/>
         public static float Compress(float value)
         {
-            return value <= LinearCutoff ? 0F : 1F + (MathF.Log10(MathF.Min(value, 1F)) / 2F);
+            return value <= LinearCutoff ? 0F : 1F + (MathF.Log10(Numerics.ClampNumber(value, 0F, 1F)) / 2F);
         }
 
         /// <inheritdoc/>
@@ -590,7 +590,7 @@ internal static partial class CicpCompanding
             // Clamp inactive lanes to the threshold before Log. ConditionalSelect does not short-circuit,
             // so this prevents negative input lanes from contaminating the vector operation with NaN values.
             TVector threshold = TOperations.Create(LinearCutoff);
-            TVector bounded = TOperations.Min(TOperations.Max(value, threshold), one);
+            TVector bounded = TOperations.Clamp(value, threshold, one);
             TVector positive = TOperations.Add(one, TOperations.Divide(TOperations.Log(bounded), TOperations.Create(2F * NaturalLogOfTen)));
             return TOperations.ConditionalSelect(TOperations.LessThanOrEqual(value, threshold), zero, positive);
         }
@@ -615,7 +615,7 @@ internal static partial class CicpCompanding
         public static float Expand(float value)
         {
             // Use the midpoint of this logarithmic curve's interval for zero, as for Log100.
-            return value <= 0F ? ZeroCodeValue : new TensorPrimitives_.PowOperator(2.5F * (MathF.Min(value, 1F) - 1F)).Invoke(10F);
+            return value <= 0F ? ZeroCodeValue : new TensorPrimitives_.PowOperator(2.5F * (Numerics.ClampNumber(value, 0F, 1F) - 1F)).Invoke(10F);
         }
 
         /// <inheritdoc/>
@@ -626,7 +626,7 @@ internal static partial class CicpCompanding
             TVector zero = TOperations.Create(0F);
             TVector one = TOperations.Create(1F);
 
-            TVector exponent = TOperations.Multiply(TOperations.Subtract(TOperations.Min(value, one), one), TOperations.Create(2.5F * NaturalLogOfTen));
+            TVector exponent = TOperations.Multiply(TOperations.Subtract(TOperations.Clamp(value, zero, one), one), TOperations.Create(2.5F * NaturalLogOfTen));
             TVector positive = TOperations.Exp(exponent);
             return TOperations.ConditionalSelect(TOperations.LessThanOrEqual(value, zero), TOperations.Create(ZeroCodeValue), positive);
         }
@@ -634,7 +634,7 @@ internal static partial class CicpCompanding
         /// <inheritdoc/>
         public static float Compress(float value)
         {
-            return value <= LinearCutoff ? 0F : 1F + (MathF.Log10(MathF.Min(value, 1F)) / 2.5F);
+            return value <= LinearCutoff ? 0F : 1F + (MathF.Log10(Numerics.ClampNumber(value, 0F, 1F)) / 2.5F);
         }
 
         /// <inheritdoc/>
@@ -646,7 +646,7 @@ internal static partial class CicpCompanding
             TVector one = TOperations.Create(1F);
 
             TVector threshold = TOperations.Create(LinearCutoff);
-            TVector bounded = TOperations.Min(TOperations.Max(value, threshold), one);
+            TVector bounded = TOperations.Clamp(value, threshold, one);
             TVector positive = TOperations.Add(one, TOperations.Divide(TOperations.Log(bounded), TOperations.Create(2.5F * NaturalLogOfTen)));
             return TOperations.ConditionalSelect(TOperations.LessThanOrEqual(value, threshold), zero, positive);
         }
@@ -686,10 +686,10 @@ internal static partial class CicpCompanding
             where TOperations : struct, ITransferVectorOperations<TVector>
         {
             TVector negativeBase = TOperations.Divide(TOperations.Subtract(value, TOperations.Create(Bt709Alpha - 1F)), TOperations.Create(-Bt709Alpha));
-            TVector negative = TOperations.Negate(TOperations.Pow(TOperations.Max(negativeBase, TOperations.Create(0F)), 1F / Rec709Companding.Exponent));
+            TVector negative = TOperations.Negate(TOperations.Pow(TOperations.Clamp(negativeBase, TOperations.Create(0F), TOperations.Create(float.PositiveInfinity)), 1F / Rec709Companding.Exponent));
             TVector linear = TOperations.Divide(value, TOperations.Create(Rec709Companding.LinearSlope));
             TVector positiveBase = TOperations.Divide(TOperations.Add(value, TOperations.Create(Bt709Alpha - 1F)), TOperations.Create(Bt709Alpha));
-            TVector positive = TOperations.Pow(TOperations.Max(positiveBase, TOperations.Create(0F)), 1F / Rec709Companding.Exponent);
+            TVector positive = TOperations.Pow(TOperations.Clamp(positiveBase, TOperations.Create(0F), TOperations.Create(float.PositiveInfinity)), 1F / Rec709Companding.Exponent);
             TVector centerOrPositive = TOperations.ConditionalSelect(
                 TOperations.LessThan(value, TOperations.Create(Rec709Companding.LinearSlope * Bt709Beta)),
                 linear,
@@ -733,12 +733,12 @@ internal static partial class CicpCompanding
             TVector negative = TOperations.Add(
                 TOperations.Negate(TOperations.Multiply(
                     TOperations.Create(Bt709Alpha),
-                    TOperations.Pow(TOperations.Max(TOperations.Negate(value), zero), Rec709Companding.Exponent))),
+                    TOperations.Pow(TOperations.Clamp(TOperations.Negate(value), zero, TOperations.Create(float.PositiveInfinity)), Rec709Companding.Exponent))),
                 TOperations.Create(Bt709Alpha - 1F));
 
             TVector linear = TOperations.Multiply(value, TOperations.Create(Rec709Companding.LinearSlope));
             TVector positive = TOperations.Subtract(
-                TOperations.Multiply(TOperations.Create(Bt709Alpha), TOperations.Pow(TOperations.Max(value, zero), Rec709Companding.Exponent)),
+                TOperations.Multiply(TOperations.Create(Bt709Alpha), TOperations.Pow(TOperations.Clamp(value, zero, TOperations.Create(float.PositiveInfinity)), Rec709Companding.Exponent)),
                 TOperations.Create(Bt709Alpha - 1F));
 
             TVector centerOrPositive = TOperations.ConditionalSelect(TOperations.LessThan(value, TOperations.Create(Bt709Beta)), linear, positive);
@@ -798,7 +798,7 @@ internal static partial class CicpCompanding
                 TOperations.Create(NegativeScale));
 
             TVector negative = TOperations.Divide(
-                TOperations.Pow(TOperations.Max(negativeBase, zero), 1F / Rec709Companding.Exponent),
+                TOperations.Pow(TOperations.Clamp(negativeBase, zero, TOperations.Create(float.PositiveInfinity)), 1F / Rec709Companding.Exponent),
                 TOperations.Create(-4F));
 
             TVector negativeOrPositive = TOperations.ConditionalSelect(
@@ -841,7 +841,7 @@ internal static partial class CicpCompanding
             where TOperations : struct, ITransferVectorOperations<TVector>
         {
             TVector zero = TOperations.Create(0F);
-            TVector negativePower = TOperations.Pow(TOperations.Max(TOperations.Multiply(TOperations.Create(-4F), value), zero), Rec709Companding.Exponent);
+            TVector negativePower = TOperations.Pow(TOperations.Clamp(TOperations.Multiply(TOperations.Create(-4F), value), zero, TOperations.Create(float.PositiveInfinity)), Rec709Companding.Exponent);
             TVector negative = TOperations.Add(
                 TOperations.Multiply(TOperations.Create(NegativeScale), negativePower),
                 TOperations.Create(NegativeOffset));
@@ -918,8 +918,8 @@ internal static partial class CicpCompanding
                 return 0F;
             }
 
-            float nonlinearPower = new TensorPrimitives_.PowOperator(1F / PqM).Invoke(MathF.Min(value, 1F));
-            float numerator = MathF.Max(nonlinearPower - PqC1, 0F);
+            float nonlinearPower = new TensorPrimitives_.PowOperator(1F / PqM).Invoke(Numerics.ClampNumber(value, 0F, 1F));
+            float numerator = Numerics.ClampNumber(nonlinearPower - PqC1, 0F, float.PositiveInfinity);
             float denominator = PqC2 - (PqC3 * nonlinearPower);
             return new TensorPrimitives_.PowOperator(1F / PqN).Invoke(numerator / denominator);
         }
@@ -936,10 +936,10 @@ internal static partial class CicpCompanding
             where TOperations : struct, ITransferVectorOperations<TVector>
         {
             TVector zero = TOperations.Create(0F);
-            TVector nonlinearPower = TOperations.Pow(TOperations.Min(TOperations.Max(value, zero), TOperations.Create(1F)), 1F / PqM);
-            TVector numerator = TOperations.Max(TOperations.Subtract(nonlinearPower, TOperations.Create(PqC1)), zero);
+            TVector nonlinearPower = TOperations.Pow(TOperations.Clamp(value, zero, TOperations.Create(1F)), 1F / PqM);
+            TVector numerator = TOperations.Clamp(TOperations.Subtract(nonlinearPower, TOperations.Create(PqC1)), zero, TOperations.Create(float.PositiveInfinity));
             TVector denominator = TOperations.Subtract(TOperations.Create(PqC2), TOperations.Multiply(TOperations.Create(PqC3), nonlinearPower));
-            TVector positive = TOperations.Min(TOperations.Pow(TOperations.Divide(numerator, denominator), 1F / PqN), TOperations.Create(1F));
+            TVector positive = TOperations.Clamp(TOperations.Pow(TOperations.Divide(numerator, denominator), 1F / PqN), TOperations.Create(0F), TOperations.Create(1F));
             return TOperations.ConditionalSelect(TOperations.LessThanOrEqual(value, zero), zero, positive);
         }
 
@@ -955,7 +955,7 @@ internal static partial class CicpCompanding
                 return 0F;
             }
 
-            float linearPower = new TensorPrimitives_.PowOperator(PqN).Invoke(MathF.Min(value, 1F));
+            float linearPower = new TensorPrimitives_.PowOperator(PqN).Invoke(Numerics.ClampNumber(value, 0F, 1F));
             return new TensorPrimitives_.PowOperator(PqM).Invoke((PqC1 + (PqC2 * linearPower)) / (1F + (PqC3 * linearPower)));
         }
 
@@ -971,10 +971,10 @@ internal static partial class CicpCompanding
             where TOperations : struct, ITransferVectorOperations<TVector>
         {
             TVector zero = TOperations.Create(0F);
-            TVector linearPower = TOperations.Pow(TOperations.Min(TOperations.Max(value, zero), TOperations.Create(1F)), PqN);
+            TVector linearPower = TOperations.Pow(TOperations.Clamp(value, zero, TOperations.Create(1F)), PqN);
             TVector numerator = TOperations.Add(TOperations.Create(PqC1), TOperations.Multiply(TOperations.Create(PqC2), linearPower));
             TVector denominator = TOperations.Add(TOperations.Create(1F), TOperations.Multiply(TOperations.Create(PqC3), linearPower));
-            TVector positive = TOperations.Min(TOperations.Pow(TOperations.Divide(numerator, denominator), PqM), TOperations.Create(1F));
+            TVector positive = TOperations.Clamp(TOperations.Pow(TOperations.Divide(numerator, denominator), PqM), TOperations.Create(0F), TOperations.Create(1F));
             return TOperations.ConditionalSelect(TOperations.LessThanOrEqual(value, zero), zero, positive);
         }
     }
@@ -992,7 +992,7 @@ internal static partial class CicpCompanding
         /// <inheritdoc/>
         public static float Expand(float value)
         {
-            return new TensorPrimitives_.PowOperator(Gamma).Invoke(MathF.Max(value, 0F)) / Smpte428Scale;
+            return new TensorPrimitives_.PowOperator(Gamma).Invoke(Numerics.ClampNumber(value, 0F, float.PositiveInfinity)) / Smpte428Scale;
         }
 
         /// <inheritdoc/>
@@ -1002,13 +1002,13 @@ internal static partial class CicpCompanding
         {
             TVector zero = TOperations.Create(0F);
 
-            return TOperations.Divide(TOperations.Pow(TOperations.Max(value, zero), Gamma), TOperations.Create(Smpte428Scale));
+            return TOperations.Divide(TOperations.Pow(TOperations.Clamp(value, zero, TOperations.Create(float.PositiveInfinity)), Gamma), TOperations.Create(Smpte428Scale));
         }
 
         /// <inheritdoc/>
         public static float Compress(float value)
         {
-            return new TensorPrimitives_.PowOperator(1F / Gamma).Invoke(Smpte428Scale * MathF.Max(value, 0F));
+            return new TensorPrimitives_.PowOperator(1F / Gamma).Invoke(Smpte428Scale * Numerics.ClampNumber(value, 0F, float.PositiveInfinity));
         }
 
         /// <inheritdoc/>
@@ -1018,7 +1018,7 @@ internal static partial class CicpCompanding
         {
             TVector zero = TOperations.Create(0F);
 
-            return TOperations.Pow(TOperations.Multiply(TOperations.Create(Smpte428Scale), TOperations.Max(value, zero)), 1F / Gamma);
+            return TOperations.Pow(TOperations.Multiply(TOperations.Create(Smpte428Scale), TOperations.Clamp(value, zero, TOperations.Create(float.PositiveInfinity))), 1F / Gamma);
         }
     }
 
@@ -1041,7 +1041,7 @@ internal static partial class CicpCompanding
 
             return value <= 0.5F
                 ? (value * value) / 3F
-                : (MathF.Exp((MathF.Min(value, 1F) - HlgC) / HlgA) + HlgB) / 12F;
+                : (MathF.Exp((Numerics.ClampNumber(value, 0F, 1F) - HlgC) / HlgA) + HlgB) / 12F;
         }
 
         /// <summary>
@@ -1056,7 +1056,7 @@ internal static partial class CicpCompanding
             where TOperations : struct, ITransferVectorOperations<TVector>
         {
             TVector zero = TOperations.Create(0F);
-            TVector bounded = TOperations.Min(TOperations.Max(value, zero), TOperations.Create(1F));
+            TVector bounded = TOperations.Clamp(value, zero, TOperations.Create(1F));
             TVector linear = TOperations.Divide(TOperations.Multiply(bounded, bounded), TOperations.Create(3F));
             TVector exponent = TOperations.Divide(TOperations.Subtract(bounded, TOperations.Create(HlgC)), TOperations.Create(HlgA));
             TVector logarithmic = TOperations.Divide(TOperations.Add(TOperations.Exp(exponent), TOperations.Create(HlgB)), TOperations.Create(12F));
@@ -1076,7 +1076,7 @@ internal static partial class CicpCompanding
                 return 0F;
             }
 
-            float bounded = MathF.Min(value, 1F);
+            float bounded = Numerics.ClampNumber(value, 0F, 1F);
             return bounded <= 1F / 12F
                 ? MathF.Sqrt(3F * bounded)
                 : (HlgA * MathF.Log((12F * bounded) - HlgB)) + HlgC;
@@ -1094,14 +1094,14 @@ internal static partial class CicpCompanding
             where TOperations : struct, ITransferVectorOperations<TVector>
         {
             TVector zero = TOperations.Create(0F);
-            TVector bounded = TOperations.Min(TOperations.Max(value, zero), TOperations.Create(1F));
+            TVector bounded = TOperations.Clamp(value, zero, TOperations.Create(1F));
             TVector linear = TOperations.Sqrt(TOperations.Multiply(TOperations.Create(3F), bounded));
 
             // Clamp the logarithm input for inactive lanes. SIMD conditional selection evaluates both branches,
             // while the scalar definition evaluates Log only above the 1/12 transition.
-            TVector logarithmInput = TOperations.Max(
+            TVector logarithmInput = TOperations.Clamp(
                 TOperations.Subtract(TOperations.Multiply(TOperations.Create(12F), bounded), TOperations.Create(HlgB)),
-                TOperations.Create(float.Epsilon));
+                TOperations.Create(float.Epsilon), TOperations.Create(float.PositiveInfinity));
 
             TVector logarithmic = TOperations.Add(TOperations.Multiply(TOperations.Create(HlgA), TOperations.Log(logarithmInput)), TOperations.Create(HlgC));
             TVector positive = TOperations.ConditionalSelect(TOperations.LessThanOrEqual(bounded, TOperations.Create(1F / 12F)), linear, logarithmic);

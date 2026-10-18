@@ -282,7 +282,7 @@ public class IccColorConverterTests
                 converter.Convert(source, actual);
                 for (int i = 0; i < source.Length; i++)
                 {
-                    Vector4 bounded = Numerics.Clamp(source[i], Vector4.Zero, Vector4.One);
+                    Vector4 bounded = Numerics.ClampNumber(source[i], Vector4.Zero, Vector4.One);
                     Vector3 fractions = dimensions == 3 ? new(bounded.X, bounded.Y, bounded.Z) : new(bounded.Y, bounded.Z, bounded.W);
                     float weight = trilinear ? fractions.X * fractions.Y * fractions.Z : MathF.Min(fractions.X, MathF.Min(fractions.Y, fractions.Z));
                     float expected = dimensions == 3 ? weight : weight + (((0.25F + (0.5F * weight)) - weight) * bounded.X);
@@ -326,7 +326,7 @@ public class IccColorConverterTests
             for (int i = 0; i < source.Length; i++)
             {
                 // The identity ramp returns bounded X; NaN follows the existing clamp rule and becomes zero.
-                float expected = Numerics.Clamp(source[i].X, 0F, 1F);
+                float expected = Numerics.ClampNumber(source[i].X, 0F, 1F);
                 VectorAssert.Equal(new Vector4(expected, 0F, 0F, 0F), actual[i], 5);
             }
         }

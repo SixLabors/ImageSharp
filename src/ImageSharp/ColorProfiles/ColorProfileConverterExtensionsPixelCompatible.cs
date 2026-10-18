@@ -144,7 +144,7 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
     /// <param name="converter">The color profile converter configured with source and target ICC profiles.</param>
     /// <param name="row">The scaled vectors whose RGB components are converted.</param>
     /// <param name="rgbSpan">RGB scratch storage with the same length as <paramref name="row"/>.</param>
-    internal static void Convert(this ColorProfileConverter converter, Span<Vector4> row, Span<Rgb> rgbSpan)
+    public static void Convert(this ColorProfileConverter converter, Span<Vector4> row, Span<Rgb> rgbSpan)
     {
         // ICC transforms RGB only. Keep alpha in the vector row while the RGB scratch span is converted in place.
         Rgb.FromScaledVector4(row, rgbSpan);

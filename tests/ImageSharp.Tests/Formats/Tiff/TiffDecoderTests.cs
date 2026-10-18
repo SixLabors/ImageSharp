@@ -81,9 +81,17 @@ public class TiffDecoderTests : TiffDecoderBaseTester
 
     [Theory]
     [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
-    [WithFile(Cmyk64BitDeflate, PixelTypes.Rgba32)]
     public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder.Instance));
+
+    /// <summary>
+    /// Checks the existing sixteen-bit CMYK sample against an independent decoder.
+    /// </summary>
+    /// <param name="provider">The real sixteen-bit CMYK image.</param>
+    [Theory]
+    [WithFile(Cmyk64BitDeflate, PixelTypes.Rgba32)]
+    public void Decode_Cmyk16_MatchesReference(TestImageProvider<Rgba32> provider)
+        => TestTiffDecoder(provider, useExactComparer: false);
 
     [Theory]
     [InlineData(RgbUncompressed, 24, 256, 256, 300, 300, PixelResolutionUnit.PixelsPerInch)]

@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
+using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -19,6 +20,8 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     private readonly ColorProfileConverter colorProfileConverter;
     private readonly Configuration configuration;
     private readonly bool hasProfile;
+    private readonly int bitsPerSample;
+    private readonly bool isBigEndian;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CmykTiffColor{TPixel}"/> class.
@@ -26,9 +29,13 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <param name="configuration">The image configuration.</param>
     /// <param name="metadata">The frame metadata.</param>
     /// <param name="allocator">The allocator for color conversion buffers.</param>
-    public CmykTiffColor(Configuration configuration, ImageFrameMetadata metadata, MemoryAllocator allocator)
+    /// <param name="bitsPerSample">The validated ink depth, 8 or 16.</param>
+    /// <param name="isBigEndian">Whether the stored sample words use big-endian byte order.</param>
+    public CmykTiffColor(Configuration configuration, ImageFrameMetadata metadata, MemoryAllocator allocator, int bitsPerSample, bool isBigEndian)
     {
         this.configuration = configuration;
+        this.bitsPerSample = bitsPerSample;
+        this.isBigEndian = isBigEndian;
         bool hasProfile = IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? profile);
         ColorConversionOptions options = new()
         {
@@ -60,9 +67,39 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
 
-            // Normalize packed component bytes into the typed row before the one whole-row profile conversion.
-            SimdUtils.ByteToNormalizedFloat(data.Slice(offset, width * 4), floatRow);
-            offset += width * 4;
+            // Normalize all four ink channels before the whole-row color conversion. K never represents alpha.
+            if (this.bitsPerSample == 8)
+            {
+                SimdUtils.ByteToNormalizedFloat(data.Slice(offset, width * 4), floatRow);
+                offset += width * 4;
+            }
+            else
+            {
+                ReadOnlySpan<byte> samples = data.Slice(offset, width * 8);
+                if (this.isBigEndian != BitConverter.IsLittleEndian)
+                {
+                    // The stored words already have the host byte order, so normalize directly into the floating row.
+                    SimdUtils.UInt16ToNormalizedFloat(MemoryMarshal.Cast<byte, ushort>(samples), floatRow);
+                }
+                else
+                {
+                    // Reuse the existing pixel-packing block for byte-order conversion before ICC uses it.
+                    // This bounded block needs no additional allocation or full-row copy.
+                    Span<ushort> words = MemoryMarshal.Cast<Vector4, ushort>(vectors);
+                    Span<float> remaining = floatRow;
+                    while (!remaining.IsEmpty)
+                    {
+                        int count = Math.Min(remaining.Length, words.Length);
+                        Span<ushort> block = words[..count];
+                        TiffUtilities.CopyUShorts(samples[..(count * sizeof(ushort))], block, this.isBigEndian, invert: false);
+                        SimdUtils.UInt16ToNormalizedFloat(block, remaining[..count]);
+                        remaining = remaining[count..];
+                        samples = samples[(count * sizeof(ushort))..];
+                    }
+                }
+
+                offset += width * 8;
+            }
 
             this.colorProfileConverter.Convert<Cmyk, Rgb>(cmykRow, rgbRow);
 

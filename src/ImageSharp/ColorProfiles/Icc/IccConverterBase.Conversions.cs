@@ -17,12 +17,12 @@ internal abstract partial class IccConverterBase
     /// <summary>
     /// Gets a value indicating whether PCS values use a sixteen-bit LUT's legacy encoding.
     /// </summary>
-    internal bool Is16BitLutEntry => this.calculator.Is16BitLut;
+    public bool Is16BitLutEntry => this.calculator.Is16BitLut;
 
     /// <summary>
     /// Gets a value indicating whether the selected transform uses channel curves and a matrix.
     /// </summary>
-    internal bool IsTrc => this.calculator.IsTrc;
+    public bool IsTrc => this.calculator.IsTrc;
 
     /// <summary>
     /// Selects a closed connection once, before row traversal. Each SIMD block then uses direct operator calls.
@@ -30,7 +30,7 @@ internal abstract partial class IccConverterBase
     /// <param name="target">The target profile converter.</param>
     /// <param name="pcs">The connection's PCS encoding and adjustment rules.</param>
     /// <returns>The converter for the complete profile connection.</returns>
-    internal IIccColorConverter Connect(IccConverterBase target, PcsOperator pcs)
+    public IIccColorConverter Connect(IccConverterBase target, PcsOperator pcs)
         => this.calculator switch
         {
             IccColorConverter<ColorTrcOperator> source when pcs.CanCombineXyzMatrices

@@ -157,7 +157,7 @@ public partial struct Rgb48 : IPixel<Rgb48>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgb48 FromVector4(Vector4 source)
     {
-        source = Numerics.Clamp(source, Vector4.Zero, Vector4.One) * Max;
+        source = Numerics.ClampNumber(source, Vector4.Zero, Vector4.One) * Max;
         return new Rgb48((ushort)MathF.Round(source.X), (ushort)MathF.Round(source.Y), (ushort)MathF.Round(source.Z));
     }
 

@@ -34,7 +34,7 @@ internal static partial class Vector4Converters
         /// <param name="source">The source buffer.</param>
         /// <param name="destination">The destination buffer.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void ToUnassociatedVector4<TPixel>(
+        public static void ToUnassociatedVector4<TPixel>(
             Configuration configuration,
             PixelOperations<TPixel> pixelOperations,
             ReadOnlySpan<TPixel> source,
@@ -63,7 +63,7 @@ internal static partial class Vector4Converters
         /// <param name="source">The source buffer.</param>
         /// <param name="destination">The destination buffer.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void ToAssociatedVector4<TPixel>(
+        public static void ToAssociatedVector4<TPixel>(
             Configuration configuration,
             PixelOperations<TPixel> pixelOperations,
             ReadOnlySpan<TPixel> source,
@@ -93,7 +93,7 @@ internal static partial class Vector4Converters
         /// <param name="source">The source buffer.</param>
         /// <param name="destination">The destination buffer.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void FromUnassociatedVector4<TPixel>(
+        public static void FromUnassociatedVector4<TPixel>(
             Configuration configuration,
             PixelOperations<TPixel> pixelOperations,
             Span<Vector4> source,
@@ -122,7 +122,7 @@ internal static partial class Vector4Converters
         /// <param name="source">The source buffer.</param>
         /// <param name="destination">The destination buffer.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void FromAssociatedVector4<TPixel>(
+        public static void FromAssociatedVector4<TPixel>(
             Configuration configuration,
             PixelOperations<TPixel> pixelOperations,
             Span<Vector4> source,

@@ -242,14 +242,14 @@ public class NumericsTests
     [InlineData(128, 16, 196)]
     [InlineData(567, 18, 142)]
     [InlineData(1024, 0, 255)]
-    public void ClampByte(int length, byte min, byte max)
+    public void ClampNumberFloat(int length, float min, float max)
     {
         TestClampSpan(
             length,
             min,
             max,
-            (s, m1, m2) => Numerics.Clamp(s, m1, m2),
-            (v, m1, m2) => Numerics.Clamp(v, m1, m2));
+            (s, m1, m2) => Numerics.ClampNumber(s, m1, m2),
+            (v, m1, m2) => Numerics.ClampNumber(v, m1, m2));
     }
 
     [Theory]
@@ -257,59 +257,14 @@ public class NumericsTests
     [InlineData(128, 16, 196)]
     [InlineData(567, 18, 142)]
     [InlineData(1024, 0, 255)]
-    public void ClampInt(int length, int min, int max)
+    public void ClampNumberDouble(int length, double min, double max)
     {
         TestClampSpan(
             length,
             min,
             max,
-            (s, m1, m2) => Numerics.Clamp(s, m1, m2),
-            (v, m1, m2) => Numerics.Clamp(v, m1, m2));
-    }
-
-    [Theory]
-    [InlineData(64, 36, 96)]
-    [InlineData(128, 16, 196)]
-    [InlineData(567, 18, 142)]
-    [InlineData(1024, 0, 255)]
-    public void ClampUInt(int length, uint min, uint max)
-    {
-        TestClampSpan(
-            length,
-            min,
-            max,
-            (s, m1, m2) => Numerics.Clamp(s, m1, m2),
-            (v, m1, m2) => Numerics.Clamp(v, m1, m2));
-    }
-
-    [Theory]
-    [InlineData(64, 36, 96)]
-    [InlineData(128, 16, 196)]
-    [InlineData(567, 18, 142)]
-    [InlineData(1024, 0, 255)]
-    public void ClampFloat(int length, float min, float max)
-    {
-        TestClampSpan(
-            length,
-            min,
-            max,
-            (s, m1, m2) => Numerics.Clamp(s, m1, m2),
-            (v, m1, m2) => Numerics.Clamp(v, m1, m2));
-    }
-
-    [Theory]
-    [InlineData(64, 36, 96)]
-    [InlineData(128, 16, 196)]
-    [InlineData(567, 18, 142)]
-    [InlineData(1024, 0, 255)]
-    public void ClampDouble(int length, double min, double max)
-    {
-        TestClampSpan(
-            length,
-            min,
-            max,
-            (s, m1, m2) => Numerics.Clamp(s, m1, m2),
-            (v, m1, m2) => Numerics.Clamp(v, m1, m2));
+            (s, m1, m2) => Numerics.ClampNumber(s, m1, m2),
+            (v, m1, m2) => Numerics.ClampNumber(v, m1, m2));
     }
 
     /// <summary>
@@ -321,7 +276,7 @@ public class NumericsTests
     [InlineData(0F, 1F)]
     [InlineData(-2F, 3F)]
     [InlineData(.25F, .75F)]
-    public void ClampSingle_NormalizesNonfiniteValues(float min, float max)
+    public void ClampNumberSingle_NormalizesNonfiniteValues(float min, float max)
     {
         float midpoint = (min + max) / 2;
         float[] inputs = [float.NaN, float.PositiveInfinity, float.NegativeInfinity, midpoint];
@@ -334,24 +289,24 @@ public class NumericsTests
         {
             values[i] = inputs[i % inputs.Length];
             expected[i] = normalized[i % normalized.Length];
-            Assert.Equal(expected[i], Numerics.Clamp(values[i], min, max));
+            Assert.Equal(expected[i], Numerics.ClampNumber(values[i], min, max));
         }
 
         Vector4 input = new(inputs[0], inputs[1], inputs[2], inputs[3]);
         Vector4 result = new(normalized[0], normalized[1], normalized[2], normalized[3]);
-        Assert.Equal(result, Numerics.Clamp(input, new Vector4(min), new Vector4(max)));
-        Assert.Equal(new Vector2(min, max), Numerics.Clamp(new Vector2(float.NaN, float.PositiveInfinity), new Vector2(min), new Vector2(max)));
+        Assert.Equal(result, Numerics.ClampNumber(input, new Vector4(min), new Vector4(max)));
+        Assert.Equal(new Vector2(min, max), Numerics.ClampNumber(new Vector2(float.NaN, float.PositiveInfinity), new Vector2(min), new Vector2(max)));
 
         Vector128<float> vector128 = Vector128.LoadUnsafe(ref values[0]);
-        Assert.Equal(Vector128.LoadUnsafe(ref expected[0]), Numerics.Clamp(vector128, Vector128.Create(min), Vector128.Create(max)));
+        Assert.Equal(Vector128.LoadUnsafe(ref expected[0]), Numerics.ClampNumber(vector128, Vector128.Create(min), Vector128.Create(max)));
 
         Vector256<float> vector256 = Vector256.LoadUnsafe(ref values[0]);
-        Assert.Equal(Vector256.LoadUnsafe(ref expected[0]), Numerics.Clamp(vector256, Vector256.Create(min), Vector256.Create(max)));
+        Assert.Equal(Vector256.LoadUnsafe(ref expected[0]), Numerics.ClampNumber(vector256, Vector256.Create(min), Vector256.Create(max)));
 
         Vector512<float> vector512 = Vector512.LoadUnsafe(ref values[0]);
-        Assert.Equal(Vector512.LoadUnsafe(ref expected[0]), Numerics.Clamp(vector512, Vector512.Create(min), Vector512.Create(max)));
+        Assert.Equal(Vector512.LoadUnsafe(ref expected[0]), Numerics.ClampNumber(vector512, Vector512.Create(min), Vector512.Create(max)));
 
-        Numerics.Clamp(values, min, max);
+        Numerics.ClampNumber(values, min, max);
         Assert.Equal(expected, values);
     }
 
@@ -364,7 +319,7 @@ public class NumericsTests
     [InlineData(0D, 1D)]
     [InlineData(-2D, 3D)]
     [InlineData(.25D, .75D)]
-    public void ClampDouble_NormalizesNonfiniteValues(double min, double max)
+    public void ClampNumberDouble_NormalizesNonfiniteValues(double min, double max)
     {
         double midpoint = (min + max) / 2;
         double[] inputs = [double.NaN, double.PositiveInfinity, double.NegativeInfinity, midpoint];
@@ -377,19 +332,19 @@ public class NumericsTests
         {
             values[i] = inputs[i % inputs.Length];
             expected[i] = normalized[i % normalized.Length];
-            Assert.Equal(expected[i], Numerics.Clamp(values[i], min, max));
+            Assert.Equal(expected[i], Numerics.ClampNumber(values[i], min, max));
         }
 
         Vector128<double> vector128 = Vector128.LoadUnsafe(ref values[0]);
-        Assert.Equal(Vector128.LoadUnsafe(ref expected[0]), Numerics.Clamp(vector128, Vector128.Create(min), Vector128.Create(max)));
+        Assert.Equal(Vector128.LoadUnsafe(ref expected[0]), Numerics.ClampNumber(vector128, Vector128.Create(min), Vector128.Create(max)));
 
         Vector256<double> vector256 = Vector256.LoadUnsafe(ref values[0]);
-        Assert.Equal(Vector256.LoadUnsafe(ref expected[0]), Numerics.Clamp(vector256, Vector256.Create(min), Vector256.Create(max)));
+        Assert.Equal(Vector256.LoadUnsafe(ref expected[0]), Numerics.ClampNumber(vector256, Vector256.Create(min), Vector256.Create(max)));
 
         Vector512<double> vector512 = Vector512.LoadUnsafe(ref values[0]);
-        Assert.Equal(Vector512.LoadUnsafe(ref expected[0]), Numerics.Clamp(vector512, Vector512.Create(min), Vector512.Create(max)));
+        Assert.Equal(Vector512.LoadUnsafe(ref expected[0]), Numerics.ClampNumber(vector512, Vector512.Create(min), Vector512.Create(max)));
 
-        Numerics.Clamp(values, min, max);
+        Numerics.ClampNumber(values, min, max);
         Assert.Equal(expected, values);
     }
 
@@ -397,7 +352,7 @@ public class NumericsTests
     /// Clamping an in-range zero preserves its sign in scalar and bulk conversions.
     /// </summary>
     [Fact]
-    public void Clamp_PreservesInRangeSignedZero()
+    public void ClampNumber_PreservesInRangeSignedZero()
     {
         float[] singles = new float[65];
         double[] doubles = new double[65];
@@ -406,12 +361,12 @@ public class NumericsTests
         {
             singles[i] = i % 2 == 0 ? -0F : 0F;
             doubles[i] = i % 2 == 0 ? -0D : 0D;
-            Assert.Equal(BitConverter.SingleToInt32Bits(singles[i]), BitConverter.SingleToInt32Bits(Numerics.Clamp(singles[i], 0F, 1F)));
-            Assert.Equal(BitConverter.DoubleToInt64Bits(doubles[i]), BitConverter.DoubleToInt64Bits(Numerics.Clamp(doubles[i], 0D, 1D)));
+            Assert.Equal(BitConverter.SingleToInt32Bits(singles[i]), BitConverter.SingleToInt32Bits(Numerics.ClampNumber(singles[i], 0F, 1F)));
+            Assert.Equal(BitConverter.DoubleToInt64Bits(doubles[i]), BitConverter.DoubleToInt64Bits(Numerics.ClampNumber(doubles[i], 0D, 1D)));
         }
 
-        Numerics.Clamp(singles, 0F, 1F);
-        Numerics.Clamp(doubles, 0D, 1D);
+        Numerics.ClampNumber(singles, 0F, 1F);
+        Numerics.ClampNumber(doubles, 0D, 1D);
 
         for (int i = 0; i < singles.Length; i++)
         {

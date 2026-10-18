@@ -133,7 +133,7 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
     {
         // CMYK channels represent bounded ink amounts. Limit RGB before extracting black,
         // so an HDR component above one cannot produce negative black and alter the other inks.
-        Vector3 rgb = Vector3.Clamp(source.AsVector3Unsafe(), Vector3.Zero, Vector3.One);
+        Vector3 rgb = Numerics.ClampNumber(source.AsVector3Unsafe(), Vector3.Zero, Vector3.One);
         Vector3 cmy = Vector3.One - rgb;
 
         // To CMYK
@@ -154,8 +154,89 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        // TODO: We can optimize this by using SIMD
-        for (int i = 0; i < source.Length; i++)
+        ReadOnlySpan<Vector3> packed = MemoryMarshal.Cast<Rgb, Vector3>(source);
+        ref float output = ref Unsafe.As<Cmyk, float>(ref MemoryMarshal.GetReference(destination));
+        int i = 0;
+
+        if (Vector512.IsHardwareAccelerated)
+        {
+            nuint groups = (source.Length - i).Vector512Count<float>();
+            Vector512<float> one = Vector512.Create(1F);
+
+            for (nuint group = 0; group < groups; group++, i += Vector512<float>.Count)
+            {
+                // Each lane contains one RGB color. CMYK ink amounts are bounded, so use the same RGB limits as the scalar model.
+                SimdUtils.Deinterleave3(packed, i, out Vector512<float> r, out Vector512<float> g, out Vector512<float> b);
+                Vector512<float> c = one - Numerics.ClampNumber(r, Vector512<float>.Zero, one);
+                Vector512<float> m = one - Numerics.ClampNumber(g, Vector512<float>.Zero, one);
+                Vector512<float> y = one - Numerics.ClampNumber(b, Vector512<float>.Zero, one);
+                Vector512<float> k = Vector512.Min(c, Vector512.Min(m, y));
+                Vector512<float> nonBlack = Vector512.LessThan(k, Vector512.Create(1F - Constants.Epsilon));
+
+                // Near black, the scalar model returns CMY = 0 and K = 1. Use a safe divisor in those lanes,
+                // then clear their chromatic inks. Keep division rather than a rounded reciprocal to preserve its arithmetic.
+                Vector512<float> divisor = Vector512.ConditionalSelect(nonBlack, one - k, one);
+                c = ((c - k) / divisor) & nonBlack;
+                m = ((m - k) / divisor) & nonBlack;
+                y = ((y - k) / divisor) & nonBlack;
+                k = Vector512.ConditionalSelect(nonBlack, k, one);
+                SimdUtils.Interleave4(c, m, y, k, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint groups = (source.Length - i).Vector256Count<float>();
+            Vector256<float> one = Vector256.Create(1F);
+
+            for (nuint group = 0; group < groups; group++, i += Vector256<float>.Count)
+            {
+                // Each lane contains one RGB color. CMYK ink amounts are bounded, so use the same RGB limits as the scalar model.
+                SimdUtils.Deinterleave3(packed, i, out Vector256<float> r, out Vector256<float> g, out Vector256<float> b);
+                Vector256<float> c = one - Numerics.ClampNumber(r, Vector256<float>.Zero, one);
+                Vector256<float> m = one - Numerics.ClampNumber(g, Vector256<float>.Zero, one);
+                Vector256<float> y = one - Numerics.ClampNumber(b, Vector256<float>.Zero, one);
+                Vector256<float> k = Vector256.Min(c, Vector256.Min(m, y));
+                Vector256<float> nonBlack = Vector256.LessThan(k, Vector256.Create(1F - Constants.Epsilon));
+
+                // Near black, the scalar model returns CMY = 0 and K = 1. Use a safe divisor in those lanes,
+                // then clear their chromatic inks. Keep division rather than a rounded reciprocal to preserve its arithmetic.
+                Vector256<float> divisor = Vector256.ConditionalSelect(nonBlack, one - k, one);
+                c = ((c - k) / divisor) & nonBlack;
+                m = ((m - k) / divisor) & nonBlack;
+                y = ((y - k) / divisor) & nonBlack;
+                k = Vector256.ConditionalSelect(nonBlack, k, one);
+                SimdUtils.Interleave4(c, m, y, k, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint groups = (source.Length - i).Vector128Count<float>();
+            Vector128<float> one = Vector128.Create(1F);
+
+            for (nuint group = 0; group < groups; group++, i += Vector128<float>.Count)
+            {
+                // Each lane contains one RGB color. CMYK ink amounts are bounded, so use the same RGB limits as the scalar model.
+                SimdUtils.Deinterleave3(packed, i, out Vector128<float> r, out Vector128<float> g, out Vector128<float> b);
+                Vector128<float> c = one - Numerics.ClampNumber(r, Vector128<float>.Zero, one);
+                Vector128<float> m = one - Numerics.ClampNumber(g, Vector128<float>.Zero, one);
+                Vector128<float> y = one - Numerics.ClampNumber(b, Vector128<float>.Zero, one);
+                Vector128<float> k = Vector128.Min(c, Vector128.Min(m, y));
+                Vector128<float> nonBlack = Vector128.LessThan(k, Vector128.Create(1F - Constants.Epsilon));
+
+                // Near black, the scalar model returns CMY = 0 and K = 1. Use a safe divisor in those lanes,
+                // then clear their chromatic inks. Keep division rather than a rounded reciprocal to preserve its arithmetic.
+                Vector128<float> divisor = Vector128.ConditionalSelect(nonBlack, one - k, one);
+                c = ((c - k) / divisor) & nonBlack;
+                m = ((m - k) / divisor) & nonBlack;
+                y = ((y - k) / divisor) & nonBlack;
+                k = Vector128.ConditionalSelect(nonBlack, k, one);
+                SimdUtils.Interleave4(c, m, y, k, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+            }
+        }
+
+        for (; i < source.Length; i++)
         {
             Rgb rgb = source[i];
             destination[i] = FromProfileConnectingSpace(options, in rgb);

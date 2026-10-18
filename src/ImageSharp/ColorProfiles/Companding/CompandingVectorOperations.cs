@@ -90,6 +90,15 @@ internal static class CompandingVectorOperations
         public static abstract TVector Max(TVector left, TVector right);
 
         /// <summary>
+        /// Clamps each lane to the inclusive bounds and maps NaN to the lower bound.
+        /// </summary>
+        /// <param name="value">The components to clamp.</param>
+        /// <param name="min">The inclusive lower bounds.</param>
+        /// <param name="max">The inclusive upper bounds.</param>
+        /// <returns>The clamped components.</returns>
+        public static abstract TVector Clamp(TVector value, TVector min, TVector max);
+
+        /// <summary>
         /// Compares whether each left lane is less than its right lane.
         /// </summary>
         /// <param name="left">The left operand.</param>
@@ -193,6 +202,10 @@ internal static class CompandingVectorOperations
         public static Vector128<float> Max(Vector128<float> left, Vector128<float> right) => Vector128.Max(left, right);
 
         /// <inheritdoc/>
+        public static Vector128<float> Clamp(Vector128<float> value, Vector128<float> min, Vector128<float> max)
+            => Numerics.ClampNumber(value, min, max);
+
+        /// <inheritdoc/>
         public static Vector128<float> LessThan(Vector128<float> left, Vector128<float> right) => Vector128.LessThan(left, right);
 
         /// <inheritdoc/>
@@ -255,6 +268,10 @@ internal static class CompandingVectorOperations
         public static Vector256<float> Max(Vector256<float> left, Vector256<float> right) => Vector256.Max(left, right);
 
         /// <inheritdoc/>
+        public static Vector256<float> Clamp(Vector256<float> value, Vector256<float> min, Vector256<float> max)
+            => Numerics.ClampNumber(value, min, max);
+
+        /// <inheritdoc/>
         public static Vector256<float> LessThan(Vector256<float> left, Vector256<float> right) => Vector256.LessThan(left, right);
 
         /// <inheritdoc/>
@@ -315,6 +332,10 @@ internal static class CompandingVectorOperations
 
         /// <inheritdoc/>
         public static Vector512<float> Max(Vector512<float> left, Vector512<float> right) => Vector512.Max(left, right);
+
+        /// <inheritdoc/>
+        public static Vector512<float> Clamp(Vector512<float> value, Vector512<float> min, Vector512<float> max)
+            => Numerics.ClampNumber(value, min, max);
 
         /// <inheritdoc/>
         public static Vector512<float> LessThan(Vector512<float> left, Vector512<float> right) => Vector512.LessThan(left, right);

@@ -142,7 +142,7 @@ public partial struct Rgba128 : IPixel<Rgba128>, IEquatable<Rgba128>
     /// <inheritdoc/>
     public static Rgba128 FromVector4(Vector4 source)
     {
-        source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
+        source = Numerics.ClampNumber(source, Vector4.Zero, Vector4.One);
         return new Rgba128(
             (uint)Math.Round(source.X * Max),
             (uint)Math.Round(source.Y * Max),

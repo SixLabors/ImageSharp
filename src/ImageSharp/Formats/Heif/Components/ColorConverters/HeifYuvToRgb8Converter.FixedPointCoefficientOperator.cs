@@ -89,9 +89,9 @@ internal static partial class HeifYuvToRgb8Converter
             int green = y + (((fixedPoint.GreenCb * centeredBlue) + (fixedPoint.GreenCr * centeredRed) + RoundingBias) >> CoefficientShift);
             int blue = y + (((fixedPoint.BlueCb * centeredBlue) + RoundingBias) >> CoefficientShift);
 
-            r = (byte)Numerics.Clamp(red, 0, byte.MaxValue);
-            g = (byte)Numerics.Clamp(green, 0, byte.MaxValue);
-            b = (byte)Numerics.Clamp(blue, 0, byte.MaxValue);
+            r = (byte)Math.Clamp(red, 0, byte.MaxValue);
+            g = (byte)Math.Clamp(green, 0, byte.MaxValue);
+            b = (byte)Math.Clamp(blue, 0, byte.MaxValue);
         }
     }
 }

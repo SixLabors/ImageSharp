@@ -238,7 +238,7 @@ internal static partial class Vector4Converters
             Vector512<float> zero = Vector512<float>.Zero;
             Vector512<float> one = Vector512<float>.One;
             Vector512<float> byteMax = Vector512.Create((float)byte.MaxValue);
-            source = Numerics.Clamp(source, zero, one);
+            source = Numerics.ClampNumber(source, zero, one);
             Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
             Vector512<float> storedAlpha = Vector512.Floor((alpha * byteMax) + Vector512.Create(.5F));
             Vector512<float> result = source * storedAlpha;
@@ -259,7 +259,7 @@ internal static partial class Vector4Converters
             Vector256<float> zero = Vector256<float>.Zero;
             Vector256<float> one = Vector256<float>.One;
             Vector256<float> byteMax = Vector256.Create((float)byte.MaxValue);
-            source = Numerics.Clamp(source, zero, one);
+            source = Numerics.ClampNumber(source, zero, one);
             Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
             Vector256<float> storedAlpha = Vector256.Floor((alpha * byteMax) + Vector256.Create(.5F));
             Vector256<float> result = source * storedAlpha;
@@ -280,7 +280,7 @@ internal static partial class Vector4Converters
             Vector128<float> zero = Vector128<float>.Zero;
             Vector128<float> one = Vector128<float>.One;
             Vector128<float> byteMax = Vector128.Create((float)byte.MaxValue);
-            source = Numerics.Clamp(source, zero, one);
+            source = Numerics.ClampNumber(source, zero, one);
             Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
             Vector128<float> storedAlpha = Vector128.Floor((alpha * byteMax) + Vector128.Create(.5F));
             Vector128<float> result = source * storedAlpha;
@@ -298,8 +298,8 @@ internal static partial class Vector4Converters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector4 AssociateToByte(Vector4 source)
         {
-            source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
-            float storedAlpha = (byte)Numerics.Clamp((source.W * byte.MaxValue) + 0.5F, 0, byte.MaxValue);
+            source = Numerics.ClampNumber(source, Vector4.Zero, Vector4.One);
+            float storedAlpha = (byte)Numerics.ClampNumber((source.W * byte.MaxValue) + 0.5F, 0, byte.MaxValue);
 
             source *= storedAlpha;
             source.W = storedAlpha;
@@ -370,7 +370,7 @@ internal static partial class Vector4Converters
             }
 
             float byteAlpha = alpha * byte.MaxValue;
-            float storedAlpha = (byte)Numerics.Clamp(byteAlpha + 0.5F, 0, byte.MaxValue);
+            float storedAlpha = (byte)Numerics.ClampNumber(byteAlpha + 0.5F, 0, byte.MaxValue);
 
             if (byteAlpha == storedAlpha)
             {
@@ -459,16 +459,16 @@ internal static partial class Vector4Converters
         {
             Vector512<float> zero = Vector512<float>.Zero;
             Vector512<float> byteMax = Vector512.Create((float)byte.MaxValue);
-            Vector512<float> alpha = Numerics.Clamp(Vector512_.ShuffleNative(source, 0b_11_11_11_11), zero, Vector512.Create(float.PositiveInfinity));
+            Vector512<float> alpha = Numerics.ClampNumber(Vector512_.ShuffleNative(source, 0b_11_11_11_11), zero, Vector512.Create(float.PositiveInfinity));
             Vector512<float> byteAlpha = alpha * byteMax;
-            Vector512<float> storedAlpha = Vector512.Floor(Numerics.Clamp(byteAlpha + Vector512.Create(.5F), zero, byteMax));
+            Vector512<float> storedAlpha = Vector512.Floor(Numerics.ClampNumber(byteAlpha + Vector512.Create(.5F), zero, byteMax));
             Vector512<float> result = (source / alpha) * storedAlpha;
 
             // Exact byte alpha values need no reassociation. Multiplying by 255 directly preserves RGB values that already lie on byte midpoints.
             result = Vector512.ConditionalSelect(Vector512.Equals(byteAlpha, storedAlpha), source * byteMax, result);
             Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
             result = Vector512.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = Numerics.Clamp(result, zero, storedAlpha);
+            result = Numerics.ClampNumber(result, zero, storedAlpha);
             return Vector512.ConditionalSelect(Vector512.Equals(alpha, zero), zero, result);
         }
 
@@ -482,16 +482,16 @@ internal static partial class Vector4Converters
         {
             Vector256<float> zero = Vector256<float>.Zero;
             Vector256<float> byteMax = Vector256.Create((float)byte.MaxValue);
-            Vector256<float> alpha = Numerics.Clamp(Vector256_.ShuffleNative(source, 0b_11_11_11_11), zero, Vector256.Create(float.PositiveInfinity));
+            Vector256<float> alpha = Numerics.ClampNumber(Vector256_.ShuffleNative(source, 0b_11_11_11_11), zero, Vector256.Create(float.PositiveInfinity));
             Vector256<float> byteAlpha = alpha * byteMax;
-            Vector256<float> storedAlpha = Vector256.Floor(Numerics.Clamp(byteAlpha + Vector256.Create(.5F), zero, byteMax));
+            Vector256<float> storedAlpha = Vector256.Floor(Numerics.ClampNumber(byteAlpha + Vector256.Create(.5F), zero, byteMax));
             Vector256<float> result = (source / alpha) * storedAlpha;
 
             // Exact byte alpha values need no reassociation. Multiplying by 255 directly preserves RGB values that already lie on byte midpoints.
             result = Vector256.ConditionalSelect(Vector256.Equals(byteAlpha, storedAlpha), source * byteMax, result);
             Vector256<float> alphaMask = Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
             result = Vector256.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = Numerics.Clamp(result, zero, storedAlpha);
+            result = Numerics.ClampNumber(result, zero, storedAlpha);
             return Vector256.ConditionalSelect(Vector256.Equals(alpha, zero), zero, result);
         }
 
@@ -505,16 +505,16 @@ internal static partial class Vector4Converters
         {
             Vector128<float> zero = Vector128<float>.Zero;
             Vector128<float> byteMax = Vector128.Create((float)byte.MaxValue);
-            Vector128<float> alpha = Numerics.Clamp(Vector128_.ShuffleNative(source, 0b_11_11_11_11), zero, Vector128.Create(float.PositiveInfinity));
+            Vector128<float> alpha = Numerics.ClampNumber(Vector128_.ShuffleNative(source, 0b_11_11_11_11), zero, Vector128.Create(float.PositiveInfinity));
             Vector128<float> byteAlpha = alpha * byteMax;
-            Vector128<float> storedAlpha = Vector128.Floor(Numerics.Clamp(byteAlpha + Vector128.Create(.5F), zero, byteMax));
+            Vector128<float> storedAlpha = Vector128.Floor(Numerics.ClampNumber(byteAlpha + Vector128.Create(.5F), zero, byteMax));
             Vector128<float> result = (source / alpha) * storedAlpha;
 
             // Exact byte alpha values need no reassociation. Multiplying by 255 directly preserves RGB values that already lie on byte midpoints.
             result = Vector128.ConditionalSelect(Vector128.Equals(byteAlpha, storedAlpha), source * byteMax, result);
             Vector128<float> alphaMask = Vector128.Create(0, 0, 0, -1).AsSingle();
             result = Vector128.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = Numerics.Clamp(result, zero, storedAlpha);
+            result = Numerics.ClampNumber(result, zero, storedAlpha);
             return Vector128.ConditionalSelect(Vector128.Equals(alpha, zero), zero, result);
         }
 
@@ -887,6 +887,6 @@ internal static partial class Vector4Converters
         /// <param name="value">The byte magnitude.</param>
         /// <returns>The rounded and clamped byte.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte ConvertToByte(float value) => (byte)Numerics.Clamp(value + .5F, 0, byte.MaxValue);
+        private static byte ConvertToByte(float value) => (byte)Numerics.ClampNumber(value + .5F, 0, byte.MaxValue);
     }
 }

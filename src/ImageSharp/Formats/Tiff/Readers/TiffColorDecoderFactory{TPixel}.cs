@@ -254,10 +254,10 @@ internal static class TiffColorDecoderFactory<TPixel>
             case TiffColorType.Rgba8888:
                 DebugGuard.IsTrue(
                     bitsPerSample.Channels == 4
-                    && bitsPerSample.Channel3 == 8
-                    && bitsPerSample.Channel2 == 8
-                    && bitsPerSample.Channel1 == 8
-                    && bitsPerSample.Channel0 == 8,
+                    && bitsPerSample.Channel0 is 8 or 16
+                    && bitsPerSample.Channel1 == bitsPerSample.Channel0
+                    && bitsPerSample.Channel2 == bitsPerSample.Channel0
+                    && bitsPerSample.Channel3 == bitsPerSample.Channel0,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
                 return new Rgba8888TiffColor<TPixel>(configuration, memoryAllocator, extraSampleType);
@@ -482,7 +482,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 8,
                     "bitsPerSample");
 
-                return new CmykTiffColor<TPixel>(configuration, metadata, memoryAllocator);
+                return new CmykTiffColor<TPixel>(configuration, metadata, memoryAllocator, bitsPerSample.Channel0, byteOrder == ByteOrder.BigEndian);
 
             default:
                 throw TiffThrowHelper.InvalidColorType(colorType.ToString());

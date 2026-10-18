@@ -2,8 +2,14 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.InteropServices;
+using System.Threading.Channels;
+using SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Ans;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPrediction;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Transforms;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using StaticPropertyRange = System.Runtime.CompilerServices.InlineArray2<System.Runtime.CompilerServices.InlineArray2<int>>;
 using Tree = System.Collections.Generic.List<SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.JxlPropertyDecisionNode>;
 
@@ -228,5 +234,108 @@ internal static class JxlModularFrameEncoder
         }
 
         return true;
+    }
+
+    private static float EstimateWeightedPredictionCost(JxlModularImage img, int i)
+    {
+        int extraBits = 0;
+        float histoCost = 0;
+        JxlAnsHybridUIntConfiguration config = new();
+
+        ReadOnlySpan<int> cutoffs =
+        [
+            -500, -392, -255, -191, -127, -95, -63, -47, -31,
+            -23, -15, -11, -7, -4, -3, -1, 0, 1,
+            3, 5, 7, 11, 15, 23, 31, 47, 63,
+            95, 127, 191, 255, 392, 500
+        ];
+
+        int nc = cutoffs.Length + 1;
+        JxlHistogram[] histo = new JxlHistogram[nc];
+
+        for (int j = 0; j < nc; j++)
+        {
+            histo[j] = new JxlHistogram();
+        }
+
+        JxlModularHeader wpHeader = new();
+        JxlContextPrediction.SetPredictorMode(i, wpHeader);
+
+        foreach (JxlModularChannel ch in img.Channels)
+        {
+            int oneRow = ch.Plane.PixelsPerRow;
+            JxlModularState wpState = new(wpHeader, ch.Width);
+            Span<int> properties = [1];
+            bool unhealthy = false;
+
+            for (int y = 0; y < ch.Height; y++)
+            {
+                ReadOnlySpan<int> r = ch.GetRow(y);
+
+                for (int x = 0; x < ch.Width; x++)
+                {
+                    int offset = 0;
+
+                    int left = x != 0 ? r[x - 1] : y != 0 ? r[x - oneRow] : 0;
+                    int top = y != 0 ? r[x - oneRow] : left;
+                    int topleft = x != 0 && y != 0 ? r[x - 1 - oneRow] : left;
+                    int topright = x + 1 < ch.Width && y != 0 ? r[x + 1 - oneRow] : top;
+                    int toptop = y > 1 ? r[x - oneRow - oneRow] : top;
+
+                    long guess = wpState.Predict(true, x, y, ch.Width, top, left, topright, topleft, toptop, properties, offset);
+
+                    int ctx = 0;
+
+                    foreach (int c in cutoffs)
+                    {
+                        ctx += c >= properties[0] ? 1 : 0;
+                    }
+
+                    unhealthy |= JxlMath.SubOverflow((uint)r[x], (uint)guess, out uint res);
+
+                    config.Encode(JxlPackSigned.PackUnsigned((int)res), out uint token, out uint nbits, out uint bits);
+
+                    histo[ctx].Add((int)token);
+                    extraBits += (int)nbits;
+
+                    wpState.UpdatePredictionErrors(r[x], x, y, ch.Width);
+                }
+            }
+
+            if (unhealthy)
+            {
+                return float.MaxValue;
+            }
+
+            foreach (JxlHistogram h in histo)
+            {
+                histoCost += h.ComputeShannonEntropy();
+                h.Clear();
+            }
+        }
+
+        return histoCost + extraBits;
+    }
+
+    private static bool DoTransform(Configuration configuration, JxlModularImage image, JxlTransform tr, JxlGroupHeader wpHeader, bool forceJxlArt = false)
+    {
+        JxlTransform t = tr;
+        bool didIt = true;
+
+        if (forceJxlArt)
+        {
+            t.MetaApply(configuration, image);
+        }
+        else
+        {
+            didIt = TransformForward(configuration, t, image, wpHeader);
+        }
+
+        if (didIt)
+        {
+            image.Transforms.Add(t);
+        }
+
+        return didIt;
     }
 }

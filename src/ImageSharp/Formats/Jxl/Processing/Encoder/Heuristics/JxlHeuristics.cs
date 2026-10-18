@@ -510,6 +510,118 @@ internal static class JxlHeuristics
         }
     }
 
+    public static void UpsampleImage(JxlImageF input, JxlImageF output)
+    {
+        int xsize = input.XSize;
+        int ysize = input.YSize;
+        int xsize2 = output.XSize;
+        int ysize2 = output.YSize;
+
+        for (int y = 0; y < ysize2; y++)
+        {
+            for (int x = 0; x < xsize2; x++)
+            {
+                ReadOnlySpan<float> kernel = Kernel00;
+
+                if (((x & 1) & (y & 1)) != 0)
+                {
+                    kernel = Kernel11;
+                }
+                else if ((x & 1) != 0)
+                {
+                    kernel = Kernel10;
+                }
+                else if ((y & 1) != 0)
+                {
+                    kernel = Kernel01;
+                }
+
+                float sum = 0;
+                int x2 = x / 2;
+                int y2 = y / 2;
+
+                // The min, max is initially opposite
+                float min = float.MaxValue;
+                float max = float.MinValue;
+
+                for (int ky = 0; ky < Size; ky++)
+                {
+                    for (int kx = 0; kx < Size; kx++)
+                    {
+                        int xi = x2 - (Size / 2) + kx;
+                        int yi = y2 - (Size / 2) + ky;
+
+                        if (xi < 0)
+                        {
+                            xi = 0;
+                        }
+
+                        if (xi >= xsize)
+                        {
+                            xi = input.XSize - 1;
+                        }
+
+                        if (yi < 0)
+                        {
+                            yi = 0;
+                        }
+
+                        if (yi >= ysize)
+                        {
+                            yi = input.YSize - 1;
+                        }
+
+                        min = MathF.Min(min, input.GetRow(yi)[xi]);
+                        max = MathF.Max(max, input.GetRow(yi)[xi]);
+                    }
+                }
+
+                for (int ky = 0; ky < Size; ky++)
+                {
+                    for (int kx = 0; kx < Size; kx++)
+                    {
+                        int xi = x2 - (Size / 2) + kx;
+                        int yi = y2 - (Size / 2) + ky;
+
+                        if (xi < 0)
+                        {
+                            xi = 0;
+                        }
+
+                        if (xi >= xsize)
+                        {
+                            xi = input.XSize - 1;
+                        }
+
+                        if (yi < 0)
+                        {
+                            yi = 0;
+                        }
+
+                        if (yi >= ysize)
+                        {
+                            yi = input.YSize - 1;
+                        }
+
+                        sum += input.GetRow(yi)[xi] * kernel[(ky * Size) + kx];
+                    }
+                }
+
+                output.GetRow(y)[x] = sum;
+
+                if (output.GetRow(y)[x] < min)
+                {
+                    output.GetRow(y)[x] = min;
+                }
+
+                if (output.GetRow(y)[x] > max)
+                {
+                    output.GetRow(y)[x] = max;
+                }
+            }
+        }
+    }
+
     private sealed class OccCounters : IDisposable
     {
         private readonly int[] qfCounts;

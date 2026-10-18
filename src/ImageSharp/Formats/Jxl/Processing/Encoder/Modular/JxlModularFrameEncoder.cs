@@ -1,6 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPrediction;
+using StaticPropertyRange = System.Runtime.CompilerServices.InlineArray2<System.Runtime.CompilerServices.InlineArray2<int>>;
+using Tree = System.Collections.Generic.List<SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.JxlPropertyDecisionNode>;
+
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Modular;
 
 internal static class JxlModularFrameEncoder
@@ -50,4 +56,177 @@ internal static class JxlModularFrameEncoder
         1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1,
         0.5f, 0.5f, 0.5f, 0.5f, 0.5f
     ];
+
+    private static bool MergeTrees(List<Tree> trees, IReadOnlyList<int> treeSplits, int begin, int end, Tree tree)
+    {
+        if (trees.Count + 1 != treeSplits.Count)
+        {
+            return false;
+        }
+
+        if (end <= begin || end > trees.Count)
+        {
+            return false;
+        }
+
+        if (end == begin + 1)
+        {
+            // Insert the tree, adding the appropriate offset to all child nodes.
+            // This will make the leaf IDs wrong, but subsequent roundtripping will fix them.
+            int sz = tree.Count;
+            tree.AddRange(trees[begin]);
+
+            for (int i = sz; i < tree.Count; i++)
+            {
+                JxlPropertyDecisionNode decisionNode = tree[i];
+                tree[i] = decisionNode with
+                {
+                    LeftChild = decisionNode.LeftChild + sz,
+                    RightChild = decisionNode.RightChild + sz
+                };
+            }
+
+            return true;
+        }
+
+        int mid = (begin + end) / 2;
+        int splitval = treeSplits[mid] - 1;
+        int cur = tree.Count;
+
+        tree.Add(new JxlPropertyDecisionNode(1, splitval, 0, 0, JxlPredictor.Zero, 0, 1));
+
+        tree[cur] = tree[cur] with
+        {
+            LeftChild = tree.Count
+        };
+
+        if (!MergeTrees(trees, treeSplits, mid, end, tree))
+        {
+            return false;
+        }
+
+        tree[cur] = tree[cur] with
+        {
+            RightChild = tree.Count
+        };
+
+        if (!MergeTrees(trees, treeSplits, begin, mid, tree))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool FloatToInt(ReadOnlySpan<float> rowIn, Span<int> rowOut, int xsize, uint bits, uint expBits, bool fp, double dfactor)
+    {
+        if (bits > sizeof(int) * 8)
+        {
+            return false;
+        }
+
+        if (!fp)
+        {
+            if (bits > 22)
+            {
+                for (int x = 0; x < xsize; x++)
+                {
+                    rowOut[x] = (int)((rowIn[x] * dfactor) + (rowIn[x] < 0 ? -0.5 : 0.5));
+                }
+            }
+            else
+            {
+                float factor = (float)dfactor;
+
+                for (int x = 0; x < xsize; x++)
+                {
+                    rowOut[x] = (int)((rowIn[x] * factor) + (rowIn[x] < 0 ? -0.5f : 0.5f));
+                }
+            }
+
+            return true;
+        }
+
+        if (bits == 32)
+        {
+            if (expBits != 8)
+            {
+                return false;
+            }
+
+            MemoryMarshal.Cast<float, byte>(rowIn[..xsize]).CopyTo(MemoryMarshal.Cast<int, byte>(rowOut[..xsize]));
+            return true;
+        }
+
+        if (bits == 0)
+        {
+            return false;
+        }
+
+        int expBias = (1 << ((int)expBits - 1)) - 1;
+        int maxExp = (1 << (int)expBits) - 1;
+        uint sign = 1u << ((int)bits - 1);
+        int mantBits = (int)bits - (int)expBits - 1;
+        int mantShift = 23 - mantBits;
+
+        for (int x = 0; x < xsize; x++)
+        {
+            uint f = BitConverter.SingleToUInt32Bits(rowIn[x]);
+            int signBit = (int)(f >> 31);
+            f &= 0x7FFFFFFF;
+
+            if (f == 0)
+            {
+                rowOut[x] = signBit != 0 ? (int)sign : 0;
+                continue;
+            }
+
+            int exp = (int)(f >> 23) - 127;
+            int mantissa = (int)(f & 0x007FFFFF);
+
+            if (exp == 128)
+            {
+                f = signBit != 0 ? sign : 0;
+                f |= ((1u << (int)expBits) - 1) << mantBits;
+                f |= (uint)(mantissa >> mantShift);
+                rowOut[x] = (int)f;
+                continue;
+            }
+
+            exp += expBias;
+
+            if (exp <= 0)
+            {
+                mantissa |= 0x00800000;
+
+                if (exp < -mantBits)
+                {
+                    return false;
+                }
+
+                mantissa >>= 1 - exp;
+                exp = 0;
+            }
+
+            if (exp >= maxExp)
+            {
+                return false;
+            }
+
+            if ((mantissa & ((1 << mantShift) - 1)) != 0)
+            {
+                return false;
+            }
+
+            mantissa >>= mantShift;
+
+            f = signBit != 0 ? sign : 0;
+            f |= (uint)(exp << mantBits);
+            f |= (uint)mantissa;
+
+            rowOut[x] = (int)f;
+        }
+
+        return true;
+    }
 }

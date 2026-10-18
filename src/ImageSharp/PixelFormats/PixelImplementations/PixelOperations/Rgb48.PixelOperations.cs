@@ -20,18 +20,6 @@ public partial struct Rgb48
     internal partial class PixelOperations : PixelOperations<Rgb48>
     {
         /// <inheritdoc />
-        public override void ToVector4(Configuration configuration, ReadOnlySpan<Rgb48> source, Span<Vector4> destination)
-            => this.ToUnassociatedVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToScaledVector4(Configuration configuration, ReadOnlySpan<Rgb48> source, Span<Vector4> destination)
-            => this.ToUnassociatedVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<Rgb48> source, Span<Vector4> destination)
-            => this.ToUnassociatedVector4(configuration, source, destination);
-
-        /// <inheritdoc />
         public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<Rgb48> source, Span<Vector4> destination)
         {
             Guard.NotNull(configuration, nameof(configuration));
@@ -96,15 +84,5 @@ public partial struct Rgb48
                 destination[i] = source[i].ToVector4();
             }
         }
-
-        // Alpha is implicitly one, so both outward representations already contain associated color components.
-
-        /// <inheritdoc />
-        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<Rgb48> source, Span<Vector4> destination)
-            => this.ToUnassociatedVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<Rgb48> source, Span<Vector4> destination)
-            => this.ToUnassociatedScaledVector4(configuration, source, destination);
     }
 }

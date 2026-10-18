@@ -349,9 +349,118 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
         }
     }
 
+
+    /// <summary>
+    /// Generates the shared native, scaled and alpha-representation extraction methods for unsigned sixteen-bit formats.
+    /// </summary>
+    /// <param name="pixelType">The unsigned sixteen-bit pixel type.</param>
+    void GenerateUnsigned16Vector4ConversionMethods(string pixelType)
+    {
+        bool hasAlpha = pixelType == "Rgba64" || pixelType == "La32";
+#>
+
+        /// <inheritdoc />
+        public override void ToVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
+            => this.ToUnassociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToScaledVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
+            => this.ToUnassociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
+            => this.ToUnassociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
+<#+ if (hasAlpha) { #>
+        {
+            this.ToUnassociatedVector4(configuration, source, destination);
+
+            // Normalize before association, matching the single-pixel API's floating-point rounding.
+            Numerics.Premultiply(destination[..source.Length]);
+        }
+<#+ } else { #>
+            => this.ToUnassociatedVector4(configuration, source, destination);
+<#+ } #>
+
+        /// <inheritdoc />
+        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
+            => this.ToAssociatedVector4(configuration, source, destination);
+<#+
+        if (pixelType != "La32" && pixelType != "Rg32")
+        {
+            return;
+        }
+
+        // These layouts both store two unsigned words. Only their expansion to RGBA differs.
+        string green = pixelType == "La32" ? "first" : "second";
+#>
+
+        /// <inheritdoc />
+        public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            // Each uint contains two consecutive ushort components: the first in bits 0..15 and the second in bits 16..31.
+            // Both supported layouts use this packed order. No staging array or intermediate pixel conversion is needed.
+            ref uint input = ref Unsafe.As<<#=pixelType#>, uint>(ref MemoryMarshal.GetReference(source));
+            ref float output = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(destination));
+            int i = 0;
+<#+
+        foreach (int width in new[] { 512, 256, 128 })
+        {
+            string vector = "Vector" + width;
+            string blueValue = pixelType == "La32" ? "first" : vector + "<float>.Zero";
+            string alphaValue = pixelType == "La32" ? "second" : vector + ".Create(1F)";
+#>
+
+            if (<#=vector#>.IsHardwareAccelerated)
+            {
+                nuint groups = (source.Length - i).Vector<#=width#>Count<uint>();
+                <#=vector#><uint> mask = <#=vector#>.Create((uint)ushort.MaxValue);
+                <#=vector#><float> maximum = <#=vector#>.Create((float)ushort.MaxValue);
+
+                // One register contains <#=width / 32#> pixels. Masking and shifting separate the two word components.
+                // Both values fit signed int, so conversion avoids the extra work needed for the full uint range.
+                // Divide by 65535 as the single-pixel API does. Multiplying by a rounded reciprocal can change the final float.
+                for (nuint group = 0; group < groups; group++, i += <#=vector#><uint>.Count)
+                {
+                    <#=vector#><uint> packed = <#=vector#>.LoadUnsafe(ref input, (uint)i);
+                    <#=vector#><float> first = <#=vector#>.ConvertToSingle((packed & mask).AsInt32()) / maximum;
+                    <#=vector#><float> second = <#=vector#>.ConvertToSingle((packed >>> 16).AsInt32()) / maximum;
+
+<#+ if (pixelType == "La32") { #>
+                    // Replicate luminance into RGB and retain the pixel's independent alpha. Each output vector is [L, L, L, A].
+<#+ } else { #>
+                    // RG has neither blue nor alpha. Each output vector is [R, G, 0, 1], matching the single-pixel defaults.
+<#+ } #>
+                    SimdUtils.Interleave4(first, <#=green#>, <#=blueValue#>, <#=alphaValue#>, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+                }
+            }
+<#+
+        }
+#>
+
+            // Smaller vector widths consume complete groups left by wider paths. Only the final incomplete group is scalar.
+            // Call the single-pixel API so channel defaults and normalization retain exactly the same arithmetic.
+            for (; i < source.Length; i++)
+            {
+                destination[i] = source[i].ToUnassociatedVector4();
+            }
+        }
+<#+
+    }
+
     void GenerateAllDefaultConversionMethods(string pixelType)
     {
         GenerateDefaultSelfConversionMethods(pixelType);
+
+        if (pixelType == "Rgba64" || pixelType == "Rgb48" || pixelType == "L16" || pixelType == "La32")
+        {
+            GenerateUnsigned16Vector4ConversionMethods(pixelType);
+        }
 
         if (Rgba32CompatibleTypes.Contains(pixelType))
         {

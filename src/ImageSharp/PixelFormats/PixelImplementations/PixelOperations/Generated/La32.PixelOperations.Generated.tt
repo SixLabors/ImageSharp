@@ -1,5 +1,8 @@
 <#@include file="_Common.ttinclude" #>
 <#@ output extension=".cs" #>
+
+using System.Runtime.Intrinsics;
+
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <content>

@@ -30,18 +30,6 @@ public partial struct L16
             ConvertToVector4(source, destination);
         }
 
-        /// <inheritdoc />
-        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<L16> source, Span<Vector4> destination)
-            => this.ToUnassociatedVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<L16> source, Span<Vector4> destination)
-            => this.ToUnassociatedVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<L16> source, Span<Vector4> destination)
-            => this.ToUnassociatedScaledVector4(configuration, source, destination);
-
         /// <summary>
         /// Expands packed luminance samples into normalized RGB vectors with opaque alpha.
         /// </summary>

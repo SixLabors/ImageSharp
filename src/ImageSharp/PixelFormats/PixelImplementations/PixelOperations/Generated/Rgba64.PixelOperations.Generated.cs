@@ -7,7 +7,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats.Utils;
-
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <content>
@@ -37,6 +36,31 @@ public partial struct Rgba64
 
             source.CopyTo(destination.Slice(0, source.Length));
         }
+
+        /// <inheritdoc />
+        public override void ToVector4(Configuration configuration, ReadOnlySpan<Rgba64> source, Span<Vector4> destination)
+            => this.ToUnassociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToScaledVector4(Configuration configuration, ReadOnlySpan<Rgba64> source, Span<Vector4> destination)
+            => this.ToUnassociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<Rgba64> source, Span<Vector4> destination)
+            => this.ToUnassociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<Rgba64> source, Span<Vector4> destination)
+        {
+            this.ToUnassociatedVector4(configuration, source, destination);
+
+            // Normalize before association, matching the single-pixel API's floating-point rounding.
+            Numerics.Premultiply(destination[..source.Length]);
+        }
+
+        /// <inheritdoc />
+        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<Rgba64> source, Span<Vector4> destination)
+            => this.ToAssociatedVector4(configuration, source, destination);
 
         /// <inheritdoc />
         public override void ToArgb32(

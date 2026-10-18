@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Ans;
 using SixLabors.ImageSharp.Memory;
@@ -103,6 +104,26 @@ internal sealed class JxlLz77HashChain
 
             this.numSpecialDistances = JxlAnsReader.NumSpecialDistances;
         }
+    }
+
+    public JxlLz77HashChain(
+        Configuration configuration,
+        int maxChainLength,
+        List<JxlToken> data,
+        int windowSize,
+        int minLength,
+        int maxLength,
+        int distanceMultiplier)
+        : this(
+              configuration,
+              maxChainLength,
+              CollectionsMarshal.AsSpan(data),
+              data.Count,
+              windowSize,
+              minLength,
+              maxLength,
+              distanceMultiplier)
+    {
     }
 
     public uint CountZeros(int pos, uint previousPos)

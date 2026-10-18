@@ -14,7 +14,7 @@ internal sealed class JxlLz77SymbolCostEstimator
     private readonly float[] bits;
     private readonly float[] addSymbolCost;
 
-    public JxlLz77SymbolCostEstimator(int numContexts, bool forceHuffman, List<List<JxlToken>> tokens, JxlAnsLz77Parameters lz77)
+    public JxlLz77SymbolCostEstimator(int numContexts, bool forceHuffman, List<JxlToken>[] tokens, JxlAnsLz77Parameters lz77)
     {
         JxlHistogram[] builder = ArrayPool<JxlHistogram>.Shared.Rent(numContexts);
 

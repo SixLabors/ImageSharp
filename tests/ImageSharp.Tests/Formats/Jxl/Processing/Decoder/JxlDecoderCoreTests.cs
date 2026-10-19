@@ -722,7 +722,7 @@ public class JxlDecoderCoreTests
         using MemoryStream ms = new(byteArrayData);
         ms.Position = 0;
 
-        using JxlDecoderCore decoderCore = new(DecoderOptions.Default);
+        using JxlDecoderInternal decoderCore = new(DecoderOptions.Default);
         decoderCore.SubscribeEvents(JxlDecoderStatus.BasicInfo);
 
         decoderCore.DecodeInput(ms);
@@ -800,7 +800,7 @@ public class JxlDecoderCoreTests
                 Align = 0
             };
 
-            using JxlDecoderCore decoder = new(DecoderOptions.Default);
+            using JxlDecoderInternal decoder = new(DecoderOptions.Default);
             decoder.SubscribeEvents(JxlDecoderStatus.BasicInfo | JxlDecoderStatus.FullImage);
 
             if (renderSpot == 0)
@@ -882,7 +882,7 @@ public class JxlDecoderCoreTests
     public void TestDcNotGettable()
     {
         ReadOnlySpan<byte> compressed = "\xFF\n\0\x10\xB0\x13\0H\x80(\0\xDC\0U\x0F\0\0\xA8P\x19e\xDC\xE0\xE5\\\xCF\x97\x1F:,\xA6m\\gh\xABm\vK\x12E\xC6\xB1I\xAAC&pH\x12\xEB \xF3\x06\x12\bp\0\x80\x9F\x1C\x99W2d\xAD$\x01"u8;
-        using JxlDecoderCore decoder = new(DecoderOptions.Default);
+        using JxlDecoderInternal decoder = new(DecoderOptions.Default);
         decoder.SubscribeEvents(JxlDecoderStatus.BasicInfo);
 
         using MemoryStream ms = new(compressed.ToArray());

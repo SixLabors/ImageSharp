@@ -106,7 +106,7 @@ internal static class JxlEntropyCoder
 
         contextMap.ContextMap = ctxMap;
 
-        if (!JxlDecoderCore.DecodeContextMap(configuration, ref ctxMap, contextMap.ContextCount, reader))
+        if (!JxlDecoderInternal.DecodeContextMap(configuration, ref ctxMap, contextMap.ContextCount, reader))
         {
             return false;
         }

@@ -2125,7 +2125,7 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
         {
             if (this.boxStage != JxlBoxStage.Header)
             {
-                // this.AdvanceInput(this.headerSize);
+                this.AdvanceInput(this.headerSize);
                 this.headerSize = 0;
 
                 if ((this.eventsWanted & JxlDecoderStatus.Box) != 0 && this.boxEvent && !this.boxOutBufferSetCurrentBox)
@@ -2668,7 +2668,7 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
     /// </summary>
     /// <param name="stream">Stream to decode from.</param>
     /// <exception cref="InvalidOperationException">Thrown when data or input parameters are invalid.</exception>
-    public void DecodeInput(Stream stream)
+    public int DecodeInput(Stream stream)
     {
         this.Reset();
         this.decoderStage = JxlDecoderStage.Started;
@@ -2717,7 +2717,21 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
                 throw new InvalidOperationException("Missing metadata boxes for JPEG reconstruction");
             }
         }
+
+        return status;
     }
+
+    /// <summary>
+    /// Sets the event mask.
+    /// </summary>
+    /// <param name="events">The event that we want to subscribe to.</param>
+    public void SubscribeEvents(int events) => this.eventsWanted |= events;
+
+    /// <summary>
+    /// Removes the event mask.
+    /// </summary>
+    /// <param name="events">The event that we want to unsubscribe from.</param>
+    public void UnsubscribeEvents(int events) => this.eventsWanted &= ~events;
 
     private static void ThrowNotEnoughData() => throw new InvalidOperationException("Not enough data");
 

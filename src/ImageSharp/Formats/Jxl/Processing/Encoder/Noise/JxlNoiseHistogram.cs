@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Noise;
 
 internal sealed class JxlNoiseHistogram
 {
-    private const int Bins = 256;
+    public const int Bins = 256;
 
     private readonly uint[] bins = new uint[Bins];
 

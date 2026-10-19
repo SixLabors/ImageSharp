@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Noise;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing.Encoder.Noise;

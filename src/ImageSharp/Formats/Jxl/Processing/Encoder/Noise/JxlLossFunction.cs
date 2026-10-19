@@ -1,11 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Optimize;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Noise;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Noise;
 
-internal sealed class JxlLossFunction(ReadOnlyMemory<JxlNoiseLevel> noiseLevels)
+internal sealed class JxlLossFunction(List<JxlNoiseLevel> noiseLevels)
 {
     public double Compute(Span<double> w, Span<double> df, bool skipRegularization = false)
     {
@@ -16,7 +18,7 @@ internal sealed class JxlLossFunction(ReadOnlyMemory<JxlNoiseLevel> noiseLevels)
 
         w.Clear();
 
-        ReadOnlySpan<JxlNoiseLevel> levels = noiseLevels.Span;
+        ReadOnlySpan<JxlNoiseLevel> levels = CollectionsMarshal.AsSpan(noiseLevels);
 
         for (int i = 0; i < levels.Length; i++)
         {
@@ -60,4 +62,9 @@ internal sealed class JxlLossFunction(ReadOnlyMemory<JxlNoiseLevel> noiseLevels)
 
         return lossFunction;
     }
+
+    public double OptimizeFunction(JxlOptimizeArray<double> a, ref JxlOptimizeArray<double> b) =>
+        this.Compute(
+            a.Span,
+            b.Span);
 }

@@ -152,7 +152,7 @@ public static partial class SRgbCompanding
     /// </summary>
     /// <param name="vectors">The colors, including values outside the SDR range.</param>
     internal static void ExpandExtended(Span<Vector4> vectors)
-        => TensorPrimitives_.Invoke(vectors, new ExpandOperator(1.055F, 0.055F, 0.04045F));
+        => CompandingUtilities.Compand(vectors, new ExpandOperator(1.055F, 0.055F, 0.04045F));
 
     /// <summary>
     /// Expands nonlinear RGB without clipping the result and retains alpha.
@@ -160,14 +160,14 @@ public static partial class SRgbCompanding
     /// <param name="vector">The color, including values outside the SDR range.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
     internal static Vector4 ExpandExtended(Vector4 vector)
-        => TensorPrimitives_.Invoke(vector, new ExpandOperator(1.055F, 0.055F, 0.04045F));
+        => CompandingUtilities.Compand(vector, new ExpandOperator(1.055F, 0.055F, 0.04045F));
 
     /// <summary>
     /// Compresses linear RGB without clipping the result and retains alpha.
     /// </summary>
     /// <param name="vectors">The colors, including values outside the SDR range.</param>
     internal static void CompressExtended(Span<Vector4> vectors)
-        => TensorPrimitives_.Invoke(vectors, new CompressOperator(1.055F, 0.055F, 0.04045F / 12.92F));
+        => CompandingUtilities.Compand(vectors, new CompressOperator(1.055F, 0.055F, 0.04045F / 12.92F));
 
     /// <summary>
     /// Compresses linear RGB without clipping the result and retains alpha.
@@ -175,7 +175,7 @@ public static partial class SRgbCompanding
     /// <param name="vector">The color, including values outside the SDR range.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
     internal static Vector4 CompressExtended(Vector4 vector)
-        => TensorPrimitives_.Invoke(vector, new CompressOperator(1.055F, 0.055F, 0.04045F / 12.92F));
+        => CompandingUtilities.Compand(vector, new CompressOperator(1.055F, 0.055F, 0.04045F / 12.92F));
 
     private class SRgbCompandingKey;
 }

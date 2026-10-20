@@ -37,10 +37,23 @@ internal static partial class Vector4Converters
     // Closing and inlining the traversal lets the JIT devirtualize every Invoke call,
     // specialize the active hardware-width branches, and discard unused operator state.
     [MethodImpl(InliningOptions.AlwaysInline)]
-    private static void Apply<TOperator>(Span<Vector4> vectors, TOperator transform)
+    public static void Apply<TOperator>(Span<Vector4> vectors, TOperator transform)
+        where TOperator : struct, IStatefulVector4Operator
+        => Apply(vectors, vectors, transform);
+
+    /// <summary>
+    /// Transforms complete RGBA vectors into caller-owned destination storage.
+    /// </summary>
+    /// <typeparam name="TOperator">The scalar and SIMD pixel operation.</typeparam>
+    /// <param name="vectors">The source vectors.</param>
+    /// <param name="destination">The destination. Its length must be at least the source length.</param>
+    /// <param name="transform">The operation and its invariant state.</param>
+    [MethodImpl(InliningOptions.AlwaysInline)]
+    public static void Apply<TOperator>(ReadOnlySpan<Vector4> vectors, Span<Vector4> destination, TOperator transform)
         where TOperator : struct, IStatefulVector4Operator
     {
         ref Vector4 vectorBase = ref MemoryMarshal.GetReference(vectors);
+        ref Vector4 destinationBase = ref MemoryMarshal.GetReference(destination);
         int index = 0;
 
         // A Vector4 is one complete pixel. Descending register widths therefore consume groups
@@ -54,7 +67,7 @@ internal static partial class Vector4Converters
             {
                 ref Vector512<float> vector = ref Unsafe.As<Vector4, Vector512<float>>(ref Unsafe.Add(ref vectorBase, (uint)index));
 
-                vector = transform.Invoke(vector);
+                Unsafe.As<Vector4, Vector512<float>>(ref Unsafe.Add(ref destinationBase, (uint)index)) = transform.Invoke(vector);
             }
         }
 
@@ -67,7 +80,7 @@ internal static partial class Vector4Converters
             {
                 ref Vector256<float> vector = ref Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref vectorBase, (uint)index));
 
-                vector = transform.Invoke(vector);
+                Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref destinationBase, (uint)index)) = transform.Invoke(vector);
             }
         }
 
@@ -79,7 +92,7 @@ internal static partial class Vector4Converters
             {
                 ref Vector128<float> vector = ref Unsafe.As<Vector4, Vector128<float>>(ref Unsafe.Add(ref vectorBase, (uint)index));
 
-                vector = transform.Invoke(vector);
+                Unsafe.As<Vector4, Vector128<float>>(ref Unsafe.Add(ref destinationBase, (uint)index)) = transform.Invoke(vector);
             }
 
             return;
@@ -90,7 +103,7 @@ internal static partial class Vector4Converters
         for (; index < vectors.Length; index++)
         {
             ref Vector4 vector = ref Unsafe.Add(ref vectorBase, (uint)index);
-            vector = transform.Invoke(vector);
+            Unsafe.Add(ref destinationBase, (uint)index) = transform.Invoke(vector);
         }
     }
 }

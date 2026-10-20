@@ -251,10 +251,10 @@ public partial struct NormalizedByte4P : IPixel<NormalizedByte4P>, IPackedVector
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector4 Associate(Vector4 source)
     {
-        source = Numerics.ClampNumber(source, Vector4.Zero, Vector4.One);
+        source = ColorNumerics.ClampToFinite(source, Vector4.Zero, Vector4.One);
 
         // Reproduce the signed-normalized packer's alpha quantization, then associate RGB with the exact alpha that will be stored.
-        float nativeAlpha = Numerics.ClampNumber((source.W * 2F) - 1F, -1F, 1F);
+        float nativeAlpha = ColorNumerics.ClampToFinite((source.W * 2F) - 1F, -1F, 1F);
         float storedAlpha = MathF.Round(nativeAlpha * MaxPos);
         source.W = (storedAlpha + MaxPos) / ScaledMagnitude;
         Numerics.Premultiply(ref source);
@@ -298,17 +298,19 @@ public partial struct NormalizedByte4P : IPixel<NormalizedByte4P>, IPackedVector
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector4 Reassociate(Vector4 source)
     {
-        float alpha = source.W;
+        // Keep the divisor finite without limiting positive finite input alpha to the stored opacity range.
+        float alpha = ColorNumerics.ClampToFinite(source.W, 0F, float.MaxValue);
 
         if (alpha <= 0)
         {
             return Vector4.Zero;
         }
 
-        float nativeAlpha = Numerics.ClampNumber((alpha * 2F) - 1F, -1F, 1F);
+        float nativeAlpha = ColorNumerics.ClampToFinite((alpha * 2F) - 1F, -1F, 1F);
         float storedAlpha = (MathF.Round(nativeAlpha * MaxPos) + MaxPos) / ScaledMagnitude;
 
-        // Associated RGB scales by the same ratio as alpha. Applying that ratio directly avoids the extra division and multiplication of an unpremultiply/premultiply round trip and preserves exact midpoints when alpha needs no quantization.
+        // Scale associated RGB by storedAlpha / alpha to retain the straight color when alpha is rounded.
+        // Applying the ratio once also preserves exact component midpoints when alpha is unchanged.
         source *= storedAlpha / alpha;
         source.W = storedAlpha;
         Numerics.ClampRgbToAlpha(ref source);
@@ -322,7 +324,7 @@ public partial struct NormalizedByte4P : IPixel<NormalizedByte4P>, IPackedVector
     /// <returns>The packed value.</returns>
     private static uint Pack(Vector4 vector)
     {
-        vector = Numerics.ClampNumber(vector, MinusOne, Vector4.One) * Half;
+        vector = ColorNumerics.ClampToFinite(vector, MinusOne, Vector4.One) * Half;
 
         uint byte4 = ((uint)Convert.ToInt16(MathF.Round(vector.X)) & 0xFF) << 0;
         uint byte3 = ((uint)Convert.ToInt16(MathF.Round(vector.Y)) & 0xFF) << 8;

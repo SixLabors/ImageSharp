@@ -49,9 +49,6 @@ public static partial class SRgbCompanding
         }
 
         /// <inheritdoc/>
-        public static bool PreserveAlpha => true;
-
-        /// <inheritdoc/>
         public float Invoke(float value)
         {
             float magnitude = MathF.Abs(value);
@@ -119,9 +116,6 @@ public static partial class SRgbCompanding
             this.offset = offset;
             this.threshold = threshold;
         }
-
-        /// <inheritdoc/>
-        public static bool PreserveAlpha => true;
 
         /// <inheritdoc/>
         public float Invoke(float value)

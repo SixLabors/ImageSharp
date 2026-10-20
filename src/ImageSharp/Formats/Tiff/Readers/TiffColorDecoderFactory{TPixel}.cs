@@ -474,12 +474,13 @@ internal static class TiffColorDecoderFactory<TPixel>
                     memoryAllocator);
 
             case TiffColorType.Cmyk:
+            case TiffColorType.Cmyk16161616:
                 DebugGuard.IsTrue(
                     bitsPerSample.Channels == 4
-                    && bitsPerSample.Channel3 == 8
-                    && bitsPerSample.Channel2 == 8
-                    && bitsPerSample.Channel1 == 8
-                    && bitsPerSample.Channel0 == 8,
+                    && bitsPerSample.Channel0 is 8 or 16
+                    && bitsPerSample.Channel1 == bitsPerSample.Channel0
+                    && bitsPerSample.Channel2 == bitsPerSample.Channel0
+                    && bitsPerSample.Channel3 == bitsPerSample.Channel0,
                     "bitsPerSample");
 
                 return new CmykTiffColor<TPixel>(configuration, metadata, memoryAllocator, bitsPerSample.Channel0, byteOrder == ByteOrder.BigEndian);

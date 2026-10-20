@@ -182,7 +182,7 @@ internal static class SignedShort4PixelOperations
                 }
 
                 vector *= ShortMaximum;
-                vector = Numerics.ClampNumber(vector, new Vector4(-ShortMaximum), new Vector4(ShortMaximum));
+                vector = ColorNumerics.ClampToFinite(vector, new Vector4(-ShortMaximum), new Vector4(ShortMaximum));
             }
             else
             {
@@ -192,7 +192,7 @@ internal static class SignedShort4PixelOperations
                     vector += new Vector4(SignedIntegerMinimum);
                 }
 
-                vector = Numerics.ClampNumber(vector, new Vector4(short.MinValue), new Vector4(short.MaxValue));
+                vector = ColorNumerics.ClampToFinite(vector, new Vector4(short.MinValue), new Vector4(short.MaxValue));
             }
 
             int componentIndex = index * Vector128<float>.Count;
@@ -327,7 +327,7 @@ internal static class SignedShort4PixelOperations
             }
 
             source *= Vector512.Create(ShortMaximum);
-            source = Numerics.ClampNumber(source, Vector512.Create(-ShortMaximum), Vector512.Create(ShortMaximum));
+            source = ColorNumerics.ClampToFinite(source, Vector512.Create(-ShortMaximum), Vector512.Create(ShortMaximum));
         }
         else
         {
@@ -337,7 +337,7 @@ internal static class SignedShort4PixelOperations
                 source += Vector512.Create(SignedIntegerMinimum);
             }
 
-            source = Numerics.ClampNumber(source, Vector512.Create((float)short.MinValue), Vector512.Create((float)short.MaxValue));
+            source = ColorNumerics.ClampToFinite(source, Vector512.Create((float)short.MinValue), Vector512.Create((float)short.MaxValue));
         }
 
         return Vector512_.ConvertToInt32RoundToEven(source);
@@ -362,7 +362,7 @@ internal static class SignedShort4PixelOperations
             }
 
             source *= Vector256.Create(ShortMaximum);
-            source = Numerics.ClampNumber(source, Vector256.Create(-ShortMaximum), Vector256.Create(ShortMaximum));
+            source = ColorNumerics.ClampToFinite(source, Vector256.Create(-ShortMaximum), Vector256.Create(ShortMaximum));
         }
         else
         {
@@ -372,7 +372,7 @@ internal static class SignedShort4PixelOperations
                 source += Vector256.Create(SignedIntegerMinimum);
             }
 
-            source = Numerics.ClampNumber(source, Vector256.Create((float)short.MinValue), Vector256.Create((float)short.MaxValue));
+            source = ColorNumerics.ClampToFinite(source, Vector256.Create((float)short.MinValue), Vector256.Create((float)short.MaxValue));
         }
 
         return Vector256_.ConvertToInt32RoundToEven(source);
@@ -397,7 +397,7 @@ internal static class SignedShort4PixelOperations
             }
 
             source *= Vector128.Create(ShortMaximum);
-            source = Numerics.ClampNumber(source, Vector128.Create(-ShortMaximum), Vector128.Create(ShortMaximum));
+            source = ColorNumerics.ClampToFinite(source, Vector128.Create(-ShortMaximum), Vector128.Create(ShortMaximum));
         }
         else
         {
@@ -407,7 +407,7 @@ internal static class SignedShort4PixelOperations
                 source += Vector128.Create(SignedIntegerMinimum);
             }
 
-            source = Numerics.ClampNumber(source, Vector128.Create((float)short.MinValue), Vector128.Create((float)short.MaxValue));
+            source = ColorNumerics.ClampToFinite(source, Vector128.Create((float)short.MinValue), Vector128.Create((float)short.MaxValue));
         }
 
         return Vector128_.ConvertToInt32RoundToEven(source);

@@ -256,7 +256,7 @@ public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<u
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort Pack(Vector2 vector)
     {
-        vector = Numerics.ClampNumber(vector, MinusOne, Vector2.One) * Half;
+        vector = ColorNumerics.ClampToFinite(vector, MinusOne, Vector2.One) * Half;
 
         int byte2 = ((ushort)Convert.ToInt16(Math.Round(vector.X)) & 0xFF) << 0;
         int byte1 = ((ushort)Convert.ToInt16(Math.Round(vector.Y)) & 0xFF) << 8;

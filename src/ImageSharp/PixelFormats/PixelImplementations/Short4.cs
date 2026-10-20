@@ -262,7 +262,7 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
     private static ulong Pack(Vector4 vector)
     {
         // Clamp the value between min and max values
-        vector = Numerics.ClampNumber(vector, Min, Max);
+        vector = ColorNumerics.ClampToFinite(vector, Min, Max);
         ulong word4 = ((ulong)Convert.ToInt32(Math.Round(vector.X)) & 0xFFFF) << 0x00;
         ulong word3 = ((ulong)Convert.ToInt32(Math.Round(vector.Y)) & 0xFFFF) << 0x10;
         ulong word2 = ((ulong)Convert.ToInt32(Math.Round(vector.Z)) & 0xFFFF) << 0x20;

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics;
@@ -29,7 +29,7 @@ internal static partial class SimdUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Vector4 PseudoRound(this Vector4 v)
     {
-        Vector4 sign = Numerics.ClampNumber(v, new Vector4(-1), new Vector4(1));
+        Vector4 sign = ColorNumerics.ClampToFinite(v, new Vector4(-1), new Vector4(1));
 
         return v + (sign * 0.5f);
     }

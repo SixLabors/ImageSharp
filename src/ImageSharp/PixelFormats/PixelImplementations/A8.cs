@@ -215,5 +215,5 @@ public partial struct A8 : IPixel<A8>, IPackedVector<byte>
     /// <param name="alpha">The float containing the value to pack.</param>
     /// <returns>The <see cref="byte"/> containing the packed values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte Pack(float alpha) => (byte)Math.Round(Numerics.ClampNumber(alpha, 0, 1f) * 255f);
+    private static byte Pack(float alpha) => (byte)Math.Round(ColorNumerics.ClampToFinite(alpha, 0, 1f) * 255f);
 }

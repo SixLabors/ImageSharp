@@ -61,7 +61,7 @@ internal abstract partial class JpegColorConverterBase
 
                 // JPEG's RGB device samples are bounded even when the YCbCr matrix overshoots.
                 // Clip before ICC curves, which can raise these samples to fractional powers.
-                Numerics.ClampNumber(samples, 0F, 1F);
+                ColorNumerics.ClampToFinite(samples, 0F, 1F);
             }
         }
 

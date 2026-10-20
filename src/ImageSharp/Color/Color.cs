@@ -352,7 +352,7 @@ public readonly partial struct Color : IEquatable<Color>
     public Color WithAlpha(float alpha)
     {
         Vector4 vector = this.ToScaledVector4(PixelAlphaRepresentation.Unassociated);
-        vector.W = Numerics.ClampNumber(alpha, 0, 1);
+        vector.W = ColorNumerics.ClampToFinite(alpha, 0, 1);
         return new Color(vector, this.AlphaRepresentation, PixelAlphaRepresentation.Unassociated);
     }
 

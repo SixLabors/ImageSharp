@@ -100,7 +100,7 @@ public struct TestArgb : ITestPixel<TestArgb>
     {
         vector *= MaxBytes;
         vector += Half;
-        vector = Numerics.ClampNumber(vector, Vector4.Zero, MaxBytes);
+        vector = ColorNumerics.ClampToFinite(vector, Vector4.Zero, MaxBytes);
 
         Vector128<byte> result = Vector128.ConvertToInt32(vector.AsVector128()).AsByte();
         return new TestArgb(result.GetElement(0), result.GetElement(4), result.GetElement(8), result.GetElement(12));

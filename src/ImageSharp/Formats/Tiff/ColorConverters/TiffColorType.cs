@@ -289,7 +289,12 @@ internal enum TiffColorType
     CieLabPlanar,
 
     /// <summary>
-    /// The pixels are stored as CMYK.
+    /// The pixels are stored as four 8-bit CMYK samples.
     /// </summary>
     Cmyk,
+
+    /// <summary>
+    /// The pixels are stored as four 16-bit CMYK samples.
+    /// </summary>
+    Cmyk16161616,
 }

@@ -28,9 +28,6 @@ public static partial class GammaCompanding
         public ExpandOperator(double gamma) => this.power = new((float)gamma);
 
         /// <inheritdoc/>
-        public static bool PreserveAlpha => true;
-
-        /// <inheritdoc/>
         public float Invoke(float value) => MathF.CopySign(this.power.Invoke(MathF.Abs(value)), value);
 
         /// <inheritdoc/>
@@ -62,9 +59,6 @@ public static partial class GammaCompanding
         /// </summary>
         /// <param name="gamma">The gamma of the nonlinear signal.</param>
         public CompressOperator(double gamma) => this.power = new((float)(1D / gamma));
-
-        /// <inheritdoc/>
-        public static bool PreserveAlpha => true;
 
         /// <inheritdoc/>
         public float Invoke(float value) => MathF.CopySign(this.power.Invoke(MathF.Abs(value)), value);

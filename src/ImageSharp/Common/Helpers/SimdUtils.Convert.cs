@@ -29,7 +29,7 @@ internal static partial class SimdUtils
             // narrowing therefore retains all value bits. Only the lower half contains converted samples.
             for (nuint group = 0; group < groups; group++, i += Vector512<float>.Count)
             {
-                Vector512<float> scaled = Numerics.ClampNumber(Vector512.LoadUnsafe(ref input, (uint)i), Vector512<float>.Zero, Vector512.Create(1F))
+                Vector512<float> scaled = ColorNumerics.ClampToFinite(Vector512.LoadUnsafe(ref input, (uint)i), Vector512<float>.Zero, Vector512.Create(1F))
                     * Vector512.Create((float)ushort.MaxValue);
 
                 Vector512<uint> codes = Vector512_.ConvertToInt32RoundToEven(scaled).AsUInt32();
@@ -45,7 +45,7 @@ internal static partial class SimdUtils
             // narrowing therefore retains all value bits. Only the lower half contains converted samples.
             for (nuint group = 0; group < groups; group++, i += Vector256<float>.Count)
             {
-                Vector256<float> scaled = Numerics.ClampNumber(Vector256.LoadUnsafe(ref input, (uint)i), Vector256<float>.Zero, Vector256.Create(1F))
+                Vector256<float> scaled = ColorNumerics.ClampToFinite(Vector256.LoadUnsafe(ref input, (uint)i), Vector256<float>.Zero, Vector256.Create(1F))
                     * Vector256.Create((float)ushort.MaxValue);
 
                 Vector256<uint> codes = Vector256_.ConvertToInt32RoundToEven(scaled).AsUInt32();
@@ -61,7 +61,7 @@ internal static partial class SimdUtils
             // narrowing therefore retains all value bits. Only the lower half contains converted samples.
             for (nuint group = 0; group < groups; group++, i += Vector128<float>.Count)
             {
-                Vector128<float> scaled = Numerics.ClampNumber(Vector128.LoadUnsafe(ref input, (uint)i), Vector128<float>.Zero, Vector128.Create(1F))
+                Vector128<float> scaled = ColorNumerics.ClampToFinite(Vector128.LoadUnsafe(ref input, (uint)i), Vector128<float>.Zero, Vector128.Create(1F))
                     * Vector128.Create((float)ushort.MaxValue);
 
                 Vector128<uint> codes = Vector128_.ConvertToInt32RoundToEven(scaled).AsUInt32();
@@ -71,7 +71,7 @@ internal static partial class SimdUtils
 
         for (; i < source.Length; i++)
         {
-            Unsafe.Add(ref output, (uint)i) = (ushort)MathF.Round(Numerics.ClampNumber(Unsafe.Add(ref input, (uint)i), 0F, 1F) * ushort.MaxValue);
+            Unsafe.Add(ref output, (uint)i) = (ushort)MathF.Round(ColorNumerics.ClampToFinite(Unsafe.Add(ref input, (uint)i), 0F, 1F) * ushort.MaxValue);
         }
     }
 
@@ -221,6 +221,5 @@ internal static partial class SimdUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte ConvertToByte(float value, float scale) => (byte)Numerics.ClampNumber((value * scale) + .5F, 0, byte.MaxValue);
-
+    private static byte ConvertToByte(float value, float scale) => (byte)ColorNumerics.ClampToFinite((value * scale) + .5F, 0, byte.MaxValue);
 }

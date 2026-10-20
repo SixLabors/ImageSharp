@@ -52,6 +52,8 @@ internal static class HorizontalPredictor
                 UndoRgb48Bit(pixelBytes, width, isBigEndian);
                 break;
             case TiffColorType.Rgba16161616:
+            case TiffColorType.Cmyk16161616:
+                // Prediction treats all four words alike. The fourth CMYK word is K, but uses the same addition as RGBA alpha.
                 UndoRgba64Bit(pixelBytes, width, isBigEndian);
                 break;
             case TiffColorType.Rgb323232:
@@ -146,6 +148,8 @@ internal static class HorizontalPredictor
                 break;
 
             case TiffColorType.Rgba16161616:
+            case TiffColorType.Cmyk16161616:
+                // Tile rows use the same four-word prediction as strips, including carries within each 16-bit sample.
                 if (isBigEndian)
                 {
                     UndoRgb64BitBigEndianRow(pixelBytes, width, y);

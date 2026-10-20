@@ -156,7 +156,7 @@ public static partial class Rec2020Companding
     /// </summary>
     /// <param name="vectors">The colors, including values outside the SDR range.</param>
     internal static void ExpandExtended(Span<Vector4> vectors)
-        => TensorPrimitives_.Invoke(vectors, default(ExpandOperator));
+        => CompandingUtilities.Compand(vectors, default(ExpandOperator));
 
     /// <summary>
     /// Expands nonlinear RGB without clipping the result and retains alpha.
@@ -164,14 +164,14 @@ public static partial class Rec2020Companding
     /// <param name="vector">The color, including values outside the SDR range.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
     internal static Vector4 ExpandExtended(Vector4 vector)
-        => TensorPrimitives_.Invoke(vector, default(ExpandOperator));
+        => CompandingUtilities.Compand(vector, default(ExpandOperator));
 
     /// <summary>
     /// Compresses linear RGB without clipping the result and retains alpha.
     /// </summary>
     /// <param name="vectors">The colors, including values outside the SDR range.</param>
     internal static void CompressExtended(Span<Vector4> vectors)
-        => TensorPrimitives_.Invoke(vectors, default(CompressOperator));
+        => CompandingUtilities.Compand(vectors, default(CompressOperator));
 
     /// <summary>
     /// Compresses linear RGB without clipping the result and retains alpha.
@@ -179,7 +179,7 @@ public static partial class Rec2020Companding
     /// <param name="vector">The color, including values outside the SDR range.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
     internal static Vector4 CompressExtended(Vector4 vector)
-        => TensorPrimitives_.Invoke(vector, default(CompressOperator));
+        => CompandingUtilities.Compand(vector, default(CompressOperator));
 
     private class Rec2020CompandingKey;
 }

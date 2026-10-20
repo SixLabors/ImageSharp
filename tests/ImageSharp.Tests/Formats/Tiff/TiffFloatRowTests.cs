@@ -17,10 +17,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
 public class TiffFloatRowTests
 {
     /// <summary>
-    /// Checks the three-component float writer with hardware intrinsics and its scalar fallback.
+    /// Checks finite color bounds and exact finite samples through the float writer at each SIMD width and scalar fallback.
     /// </summary>
     [Fact]
-    public void FloatRgbWriter_PreservesSamplesAcrossSimdAndTail()
+    public void FloatRgbWriter_AppliesFiniteColorBoundsAcrossSimdAndTail()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunFloatRgbWriter,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
@@ -57,7 +57,7 @@ public class TiffFloatRowTests
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Encodes three-component float samples and checks every decoded component bit.
+    /// Encodes three-component float samples and checks finite color bounds and unchanged finite component bits.
     /// </summary>
     private static void RunFloatRgbWriter()
     {
@@ -65,8 +65,8 @@ public class TiffFloatRowTests
         // a four-pixel SIMD group and a three-pixel scalar tail.
         const int Width = 71;
 
-        // The explicit negative-zero and NaN-payload bits detect changes that
-        // numeric floating-point equality would not expose.
+        // Signed zero must survive finite color conversion. The NaN payload verifies that invalid input
+        // becomes the finite minimum rather than surviving through a raw storage path.
         float[] samples =
         [
             2.5F,
@@ -98,9 +98,9 @@ public class TiffFloatRowTests
         {
             RgbaVector expected = input[x, 0];
             RgbaVector actual = output[x, 0];
-            Assert.Equal(BitConverter.SingleToInt32Bits(expected.R), BitConverter.SingleToInt32Bits(actual.R));
-            Assert.Equal(BitConverter.SingleToInt32Bits(expected.G), BitConverter.SingleToInt32Bits(actual.G));
-            Assert.Equal(BitConverter.SingleToInt32Bits(expected.B), BitConverter.SingleToInt32Bits(actual.B));
+            Assert.Equal(GetExpectedFiniteColorBits(expected.R), BitConverter.SingleToInt32Bits(actual.R));
+            Assert.Equal(GetExpectedFiniteColorBits(expected.G), BitConverter.SingleToInt32Bits(actual.G));
+            Assert.Equal(GetExpectedFiniteColorBits(expected.B), BitConverter.SingleToInt32Bits(actual.B));
             Assert.Equal(1F, actual.A);
         }
     }
@@ -219,9 +219,13 @@ public class TiffFloatRowTests
         }
     }
 
+    /// <summary>
+    /// Float row decoding applies finite RGB and opacity bounds consistently at SIMD widths and scalar tails.
+    /// </summary>
+    /// <param name="count">The decoded row length.</param>
     [Theory]
     [MemberData(nameof(SimdUtilsTests.ArbitraryArraySizes), MemberType = typeof(SimdUtilsTests))]
-    public void FloatDecoderRows_PreserveComponentBitsAcrossSimdAndTail(int count)
+    public void FloatDecoderRows_ApplyFiniteColorBoundsAcrossSimdAndTail(int count)
     {
         static void RunTest(string serialized) => AssertFloatDecoderRows(FeatureTestRunner.Deserialize<int>(serialized));
 
@@ -237,7 +241,8 @@ public class TiffFloatRowTests
     /// <param name="count">The number of pixels in the row.</param>
     private static void AssertFloatDecoderRows(int count)
     {
-        // Payload bits and signed zero reveal conversions that numeric equality misses.
+        // Nonfinite samples must use finite RGB bounds. Bit comparisons also detect changes to signed zero
+        // and finite HDR samples, which must not be clipped to the SDR interval.
         float[] values =
         [
             BitConverter.Int32BitsToSingle(unchecked((int)0x7FC01234)),
@@ -294,9 +299,9 @@ public class TiffFloatRowTests
             for (int i = 0; i < count; i++)
             {
                 RgbaVector actual = pixels.DangerousGetRowSpan(0)[i];
-                Assert.Equal(BitConverter.SingleToInt32Bits(triplets[i * 3]), BitConverter.SingleToInt32Bits(actual.R));
-                Assert.Equal(BitConverter.SingleToInt32Bits(triplets[(i * 3) + 1]), BitConverter.SingleToInt32Bits(actual.G));
-                Assert.Equal(BitConverter.SingleToInt32Bits(triplets[(i * 3) + 2]), BitConverter.SingleToInt32Bits(actual.B));
+                Assert.Equal(GetExpectedFiniteColorBits(triplets[i * 3]), BitConverter.SingleToInt32Bits(actual.R));
+                Assert.Equal(GetExpectedFiniteColorBits(triplets[(i * 3) + 1]), BitConverter.SingleToInt32Bits(actual.G));
+                Assert.Equal(GetExpectedFiniteColorBits(triplets[(i * 3) + 2]), BitConverter.SingleToInt32Bits(actual.B));
                 Assert.Equal(1F, actual.A);
             }
 
@@ -309,10 +314,14 @@ public class TiffFloatRowTests
             for (int i = 0; i < count; i++)
             {
                 RgbaVector actual = pixels.DangerousGetRowSpan(0)[i];
-                Assert.Equal(BitConverter.SingleToInt32Bits(quads[i * 4]), BitConverter.SingleToInt32Bits(actual.R));
-                Assert.Equal(BitConverter.SingleToInt32Bits(quads[(i * 4) + 1]), BitConverter.SingleToInt32Bits(actual.G));
-                Assert.Equal(BitConverter.SingleToInt32Bits(quads[(i * 4) + 2]), BitConverter.SingleToInt32Bits(actual.B));
-                Assert.Equal(BitConverter.SingleToInt32Bits(quads[(i * 4) + 3]), BitConverter.SingleToInt32Bits(actual.A));
+                Assert.Equal(GetExpectedFiniteColorBits(quads[i * 4]), BitConverter.SingleToInt32Bits(actual.R));
+                Assert.Equal(GetExpectedFiniteColorBits(quads[(i * 4) + 1]), BitConverter.SingleToInt32Bits(actual.G));
+                Assert.Equal(GetExpectedFiniteColorBits(quads[(i * 4) + 2]), BitConverter.SingleToInt32Bits(actual.B));
+
+                // Alpha represents opacity even in a floating-point destination; RGB retains the wider finite range.
+                float alpha = quads[(i * 4) + 3];
+                float expectedAlpha = float.IsNaN(alpha) ? 0F : Math.Clamp(alpha, 0F, 1F);
+                Assert.Equal(BitConverter.SingleToInt32Bits(expectedAlpha), BitConverter.SingleToInt32Bits(actual.A));
             }
 
             TiffColorDecoder<RgbaVector, TiffGrayFloat32Source, TiffGrayFloatOperator> grayscale = new(
@@ -324,7 +333,7 @@ public class TiffFloatRowTests
             for (int i = 0; i < count; i++)
             {
                 RgbaVector actual = pixels.DangerousGetRowSpan(0)[i];
-                int expected = BitConverter.SingleToInt32Bits(singles[i]);
+                int expected = GetExpectedFiniteColorBits(singles[i]);
                 Assert.Equal(expected, BitConverter.SingleToInt32Bits(actual.R));
                 Assert.Equal(expected, BitConverter.SingleToInt32Bits(actual.G));
                 Assert.Equal(expected, BitConverter.SingleToInt32Bits(actual.B));
@@ -332,6 +341,14 @@ public class TiffFloatRowTests
             }
         }
     }
+
+    /// <summary>
+    /// Applies the finite binary32 color contract independently of pixel packing and retains in-range component bits.
+    /// </summary>
+    /// <param name="value">The stored TIFF sample.</param>
+    /// <returns>The expected bits after NaN and infinity use finite color bounds.</returns>
+    private static int GetExpectedFiniteColorBits(float value)
+        => BitConverter.SingleToInt32Bits(float.IsNaN(value) ? float.MinValue : Math.Clamp(value, float.MinValue, float.MaxValue));
 
     [Theory]
     [MemberData(nameof(SimdUtilsTests.ArbitraryArraySizes), MemberType = typeof(SimdUtilsTests))]

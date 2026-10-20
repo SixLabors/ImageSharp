@@ -122,6 +122,13 @@ public class MagickReferenceDecoder : ImageDecoder
                 }
             }
 
+            if (!transformed && magicFrame.ColorSpace == ColorSpace.CMYK)
+            {
+                // RGBA export selects channels; it does not convert CMYK inks into RGB.
+                // Ask Magick to apply its unprofiled CMYK conversion before reading RGB samples.
+                magicFrame.ColorSpace = ColorSpace.sRGB;
+            }
+
             ImageFrame<TPixel> frame = new(configuration, imageWidth, imageHeight);
             framesList.Add(frame);
 

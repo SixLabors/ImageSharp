@@ -426,7 +426,7 @@ internal abstract partial class JpegColorConverterBase
             // JPEG stores bounded integer components. Limit the profile's device samples before model conversion;
             // clipping only YCbCr afterward can change the color when RGB is outside the target gamut.
             // Shared ICC conversion stays unclipped for floating-point destinations such as RgbaVector.
-            Numerics.ClampNumber(samples, 0F, 1F);
+            ColorNumerics.ClampToFinite(samples, 0F, 1F);
 
             // The matching operator applies the model transform, inversion and JPEG scaling after ICC has produced device samples.
             TOperator.ConvertFromProfile(samples, profileSpace);

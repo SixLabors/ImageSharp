@@ -17,10 +17,10 @@ public readonly struct TiffBitsPerSample : IEquatable<TiffBitsPerSample>
     /// <param name="channel3">The bits for the channel 3.</param>
     public TiffBitsPerSample(ushort channel0, ushort channel1, ushort channel2, ushort channel3 = 0)
     {
-        this.Channel0 = (ushort)Math.Clamp(channel0, 0, 32);
-        this.Channel1 = (ushort)Math.Clamp(channel1, 0, 32);
-        this.Channel2 = (ushort)Math.Clamp(channel2, 0, 32);
-        this.Channel3 = (ushort)Math.Clamp(channel3, 0, 32);
+        this.Channel0 = (ushort)Math.Clamp((int)channel0, 0, 32);
+        this.Channel1 = (ushort)Math.Clamp((int)channel1, 0, 32);
+        this.Channel2 = (ushort)Math.Clamp((int)channel2, 0, 32);
+        this.Channel3 = (ushort)Math.Clamp((int)channel3, 0, 32);
 
         this.Channels = 0;
         this.Channels += (byte)(this.Channel0 != 0 ? 1 : 0);

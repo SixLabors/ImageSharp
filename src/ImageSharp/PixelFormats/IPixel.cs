@@ -10,6 +10,13 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// The naming convention of each pixel format is to order the color components from least significant to most significant, reading from left to right.
 /// For example in the <see cref="Rgba32"/> pixel format the R component is the least significant byte, and the A component is the most significant.
 /// </summary>
+/// <remarks>
+/// Color-vector conversions clamp color components to the format's finite storage range and alpha to [0,1].
+/// NaN and negative infinity become the component's minimum value. Positive infinity becomes its maximum value.
+/// Floating-point formats preserve finite HDR color values within their storage range and retain signed zero.
+/// Native floating-point vector conversions preserve NaN and infinity. Native half-precision packing follows the <see cref="Half"/> conversion rules.
+/// The selected method specifies whether the vector's RGB components are associated with alpha.
+/// </remarks>
 /// <typeparam name="TSelf">The type implementing this interface</typeparam>
 public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
     where TSelf : unmanaged, IPixel<TSelf>

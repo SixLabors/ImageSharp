@@ -4,12 +4,14 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
 /// Pixel type containing four associated IEEE 754 binary32 components.
-/// Native and scaled vector conversions preserve the stored floating-point values.
+/// Native vector conversions preserve the stored IEEE floating-point values.
+/// Color-vector conversions bound color components to the format's finite range and alpha to [0,1].
 /// </summary>
 /// <remarks>
 /// The component layout is binary-compatible with <c>DXGI_FORMAT_R32G32B32A32_FLOAT</c>.
@@ -87,19 +89,26 @@ public partial struct RgbaVectorP : IPixel<RgbaVectorP>
     public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public readonly Vector4 ToScaledVector4() => this.ToVector4();
+    public readonly Vector4 ToScaledVector4() => this.ToAssociatedScaledVector4();
 
     /// <inheritdoc />
     public readonly Vector4 ToVector4() => new(this.R, this.G, this.B, this.A);
 
     /// <inheritdoc />
-    public readonly Vector4 ToAssociatedScaledVector4() => this.ToVector4();
+    public readonly Vector4 ToAssociatedScaledVector4()
+    {
+        return new Vector4Converters.ReassociateOperator<Vector4Converters.IdentityOperator>(
+            default,
+            new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue)).Invoke(this.ToVector4());
+    }
 
     /// <inheritdoc />
     public readonly Vector4 ToAssociatedVector4() => this.ToVector4();
 
     /// <inheritdoc />
-    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToUnassociatedVector4();
+    public readonly Vector4 ToUnassociatedScaledVector4()
+        => new Vector4Converters.UnassociateOperator(
+            new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue)).Invoke(this.ToVector4());
 
     /// <inheritdoc />
     public readonly Vector4 ToUnassociatedVector4()
@@ -121,19 +130,34 @@ public partial struct RgbaVectorP : IPixel<RgbaVectorP>
     public static PixelOperations<RgbaVectorP> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc />
-    public static RgbaVectorP FromScaledVector4(Vector4 source) => FromAssociatedVector4(source);
+    public static RgbaVectorP FromScaledVector4(Vector4 source) => FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     public static RgbaVectorP FromVector4(Vector4 source) => FromAssociatedVector4(source);
 
     /// <inheritdoc />
-    public static RgbaVectorP FromAssociatedScaledVector4(Vector4 source) => FromAssociatedVector4(source);
+    public static RgbaVectorP FromAssociatedScaledVector4(Vector4 source)
+    {
+        source = new Vector4Converters.ReassociateOperator<Vector4Converters.IdentityOperator>(
+            default,
+            new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue)).Invoke(source);
+
+        return FromAssociatedVector4(source);
+    }
 
     /// <inheritdoc />
     public static RgbaVectorP FromAssociatedVector4(Vector4 source) => new(source.X, source.Y, source.Z, source.W);
 
     /// <inheritdoc />
-    public static RgbaVectorP FromUnassociatedScaledVector4(Vector4 source) => FromUnassociatedVector4(source);
+    public static RgbaVectorP FromUnassociatedScaledVector4(Vector4 source)
+    {
+        // Bound RGB and opacity before association. Half-precision uses the alpha that storage can represent.
+        source = new Vector4Converters.AssociateOperator<Vector4Converters.IdentityOperator>(
+            default,
+            new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue)).Invoke(source);
+
+        return FromAssociatedVector4(source);
+    }
 
     /// <inheritdoc />
     public static RgbaVectorP FromUnassociatedVector4(Vector4 source)

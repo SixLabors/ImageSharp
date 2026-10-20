@@ -1,18 +1,15 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Histograms;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Normalization;
 
 /// <summary>
-/// Applies a global histogram equalization to the image.
+/// Applies global histogram equalization.
 /// </summary>
 /// <typeparam name="TPixel">The pixel format.</typeparam>
 internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizationProcessor<TPixel>
@@ -21,15 +18,12 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
     /// <summary>
     /// Initializes a new instance of the <see cref="GlobalHistogramEqualizationProcessor{TPixel}"/> class.
     /// </summary>
-    /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-    /// <param name="luminanceLevels">
-    /// The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
-    /// or 65536 for 16-bit grayscale images.
-    /// </param>
-    /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
-    /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
-    /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
-    /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+    /// <param name="configuration">The processing configuration.</param>
+    /// <param name="luminanceLevels">The number of bounded luminance bins.</param>
+    /// <param name="clipHistogram">Whether counts are clipped.</param>
+    /// <param name="clipLimit">The count limit.</param>
+    /// <param name="source">The source image.</param>
+    /// <param name="sourceRectangle">The processing region.</param>
     public GlobalHistogramEqualizationProcessor(
         Configuration configuration,
         int luminanceLevels,
@@ -41,105 +35,21 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
     {
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        MemoryAllocator memoryAllocator = this.Configuration.MemoryAllocator;
-        int numberOfPixels = source.Width * source.Height;
-        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
+        HistogramEqualizationOperator operation = new(source.Width * source.Height);
+        Vector3 weights = new(ColorNumerics.Bt709.X, ColorNumerics.Bt709.Y, ColorNumerics.Bt709.Z);
 
-        using IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean);
-
-        // Build the histogram of the grayscale levels.
-        GrayscaleLevelsRowOperation<TPixel> grayscaleOperation = new(this.Configuration, interest, histogramBuffer, source.PixelBuffer, this.LuminanceLevels);
-        ParallelRowIterator.IterateRows<GrayscaleLevelsRowOperation<TPixel>, Vector4>(
+        Histogram.Apply<TPixel, Histogram.CountBin, Histogram.Cdf, HistogramEqualizationOperator>(
             this.Configuration,
-            interest,
-            in grayscaleOperation);
-
-        Span<int> histogram = histogramBuffer.GetSpan();
-        if (this.ClipHistogramEnabled)
-        {
-            this.ClipHistogram(histogram, this.ClipLimit);
-        }
-
-        using IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean);
-
-        // Calculate the cumulative distribution function, which will map each input pixel to a new value.
-        int cdfMin = CalculateCdf(
-            ref MemoryMarshal.GetReference(cdfBuffer.GetSpan()),
-            ref MemoryMarshal.GetReference(histogram),
-            histogram.Length - 1);
-
-        float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;
-
-        // Apply the cdf to each pixel of the image
-        CdfApplicationRowOperation cdfOperation = new(this.Configuration, interest, cdfBuffer, source.PixelBuffer, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
-        ParallelRowIterator.IterateRows<CdfApplicationRowOperation, Vector4>(
-            this.Configuration,
-            interest,
-            in cdfOperation);
-    }
-
-    /// <summary>
-    /// A <see langword="struct"/> implementing the cdf application levels logic for <see cref="GlobalHistogramEqualizationProcessor{TPixel}"/>.
-    /// </summary>
-    private readonly struct CdfApplicationRowOperation : IRowOperation<Vector4>
-    {
-        private readonly Configuration configuration;
-        private readonly Rectangle bounds;
-        private readonly IMemoryOwner<int> cdfBuffer;
-        private readonly Buffer2D<TPixel> source;
-        private readonly int luminanceLevels;
-        private readonly float numberOfPixelsMinusCdfMin;
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public CdfApplicationRowOperation(
-            Configuration configuration,
-            Rectangle bounds,
-            IMemoryOwner<int> cdfBuffer,
-            Buffer2D<TPixel> source,
-            int luminanceLevels,
-            float numberOfPixelsMinusCdfMin)
-        {
-            this.configuration = configuration;
-            this.bounds = bounds;
-            this.cdfBuffer = cdfBuffer;
-            this.source = source;
-            this.luminanceLevels = luminanceLevels;
-            this.numberOfPixelsMinusCdfMin = numberOfPixelsMinusCdfMin;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public int GetRequiredBufferLength(Rectangle bounds) => bounds.Width;
-
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void Invoke(int y, Span<Vector4> span)
-        {
-            Span<Vector4> vectorBuffer = span[..this.bounds.Width];
-            ref Vector4 vectorRef = ref MemoryMarshal.GetReference(vectorBuffer);
-            ref int cdfBase = ref MemoryMarshal.GetReference(this.cdfBuffer.GetSpan());
-            int levels = this.luminanceLevels;
-            float noOfPixelsMinusCdfMin = this.numberOfPixelsMinusCdfMin;
-
-            Span<TPixel> pixelRow = this.source.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
-            PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
-            operations.ToUnassociatedScaledVector4(this.configuration, pixelRow, vectorBuffer);
-
-            for (int x = 0; x < this.bounds.Width; x++)
-            {
-                Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x);
-
-                // Keep the CDF offset within the histogram even for HDR or nonfinite samples.
-                float boundedLuminance = Numerics.ClampNumber(ColorNumerics.GetBT709Luminance(vector), 0F, 1F);
-                int luminance = (int)MathF.Round(boundedLuminance * (levels - 1));
-                float luminanceEqualized = Unsafe.Add(ref cdfBase, (uint)luminance) / noOfPixelsMinusCdfMin;
-                Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, vector.W);
-            }
-
-            operations.FromUnassociatedScaledVector4Destructive(this.configuration, vectorBuffer, pixelRow);
-        }
+            source,
+            this.SourceRectangle,
+            this.LuminanceLevels,
+            weights,
+            this.ClipHistogramEnabled,
+            this.ClipLimit,
+            Histogram.Region.Global,
+            in operation);
     }
 }

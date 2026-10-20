@@ -549,7 +549,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel NormalSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(NormalSrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -565,7 +565,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel NormalSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(NormalSrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -581,7 +581,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel NormalSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(NormalSrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -597,7 +597,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel NormalSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(NormalSrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -613,7 +613,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel NormalSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(NormalSrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -629,7 +629,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel NormalDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(NormalDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -645,7 +645,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel NormalDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(NormalDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -661,7 +661,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel NormalDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(NormalDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -677,7 +677,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel NormalDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(NormalDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -693,7 +693,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel NormalDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(NormalDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -709,7 +709,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel NormalClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(NormalClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -725,7 +725,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel NormalXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(NormalXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -741,7 +741,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel NormalPlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(NormalPlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -1281,7 +1281,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel MultiplySrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(MultiplySrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -1297,7 +1297,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel MultiplySrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(MultiplySrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -1313,7 +1313,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel MultiplySrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(MultiplySrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -1329,7 +1329,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel MultiplySrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(MultiplySrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -1345,7 +1345,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel MultiplySrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(MultiplySrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -1361,7 +1361,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel MultiplyDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(MultiplyDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -1377,7 +1377,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel MultiplyDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(MultiplyDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -1393,7 +1393,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel MultiplyDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(MultiplyDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -1409,7 +1409,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel MultiplyDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(MultiplyDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -1425,7 +1425,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel MultiplyDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(MultiplyDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -1441,7 +1441,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel MultiplyClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(MultiplyClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -1457,7 +1457,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel MultiplyXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(MultiplyXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -1473,7 +1473,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel MultiplyPlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(MultiplyPlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2013,7 +2013,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel AddSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(AddSrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2029,7 +2029,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel AddSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(AddSrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2045,7 +2045,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel AddSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(AddSrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2061,7 +2061,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel AddSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(AddSrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2077,7 +2077,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel AddSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(AddSrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2093,7 +2093,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel AddDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(AddDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2109,7 +2109,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel AddDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(AddDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2125,7 +2125,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel AddDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(AddDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2141,7 +2141,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel AddDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(AddDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2157,7 +2157,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel AddDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(AddDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2173,7 +2173,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel AddClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(AddClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2189,7 +2189,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel AddXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(AddXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2205,7 +2205,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel AddPlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(AddPlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2745,7 +2745,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SubtractSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SubtractSrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2761,7 +2761,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SubtractSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SubtractSrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2777,7 +2777,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SubtractSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SubtractSrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2793,7 +2793,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SubtractSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SubtractSrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2809,7 +2809,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SubtractSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SubtractSrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2825,7 +2825,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SubtractDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SubtractDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2841,7 +2841,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SubtractDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SubtractDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2857,7 +2857,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SubtractDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SubtractDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2873,7 +2873,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SubtractDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SubtractDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2889,7 +2889,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SubtractDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SubtractDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2905,7 +2905,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SubtractClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SubtractClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2921,7 +2921,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SubtractXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SubtractXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -2937,7 +2937,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SubtractPlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SubtractPlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -3477,7 +3477,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ScreenSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ScreenSrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -3493,7 +3493,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ScreenSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ScreenSrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -3509,7 +3509,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ScreenSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ScreenSrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -3525,7 +3525,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ScreenSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ScreenSrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -3541,7 +3541,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ScreenSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ScreenSrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -3557,7 +3557,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ScreenDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ScreenDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -3573,7 +3573,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ScreenDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ScreenDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -3589,7 +3589,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ScreenDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ScreenDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -3605,7 +3605,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ScreenDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ScreenDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -3621,7 +3621,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ScreenDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ScreenDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -3637,7 +3637,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ScreenClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ScreenClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -3653,7 +3653,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ScreenXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ScreenXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -3669,7 +3669,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ScreenPlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ScreenPlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4209,7 +4209,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DarkenSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DarkenSrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4225,7 +4225,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DarkenSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DarkenSrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4241,7 +4241,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DarkenSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DarkenSrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4257,7 +4257,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DarkenSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DarkenSrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4273,7 +4273,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DarkenSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DarkenSrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4289,7 +4289,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DarkenDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DarkenDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4305,7 +4305,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DarkenDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DarkenDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4321,7 +4321,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DarkenDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DarkenDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4337,7 +4337,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DarkenDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DarkenDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4353,7 +4353,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DarkenDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DarkenDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4369,7 +4369,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DarkenClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DarkenClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4385,7 +4385,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DarkenXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DarkenXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4401,7 +4401,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DarkenPlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DarkenPlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4941,7 +4941,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LightenSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LightenSrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4957,7 +4957,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LightenSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LightenSrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4973,7 +4973,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LightenSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LightenSrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -4989,7 +4989,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LightenSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LightenSrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5005,7 +5005,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LightenSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LightenSrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5021,7 +5021,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LightenDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LightenDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5037,7 +5037,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LightenDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LightenDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5053,7 +5053,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LightenDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LightenDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5069,7 +5069,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LightenDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LightenDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5085,7 +5085,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LightenDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LightenDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5101,7 +5101,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LightenClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LightenClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5117,7 +5117,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LightenXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LightenXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5133,7 +5133,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LightenPlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LightenPlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5673,7 +5673,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel OverlaySrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(OverlaySrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5689,7 +5689,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel OverlaySrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(OverlaySrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5705,7 +5705,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel OverlaySrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(OverlaySrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5721,7 +5721,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel OverlaySrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(OverlaySrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5737,7 +5737,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel OverlaySrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(OverlaySrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5753,7 +5753,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel OverlayDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(OverlayDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5769,7 +5769,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel OverlayDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(OverlayDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5785,7 +5785,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel OverlayDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(OverlayDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5801,7 +5801,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel OverlayDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(OverlayDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5817,7 +5817,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel OverlayDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(OverlayDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5833,7 +5833,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel OverlayClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(OverlayClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5849,7 +5849,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel OverlayXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(OverlayXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -5865,7 +5865,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel OverlayPlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(OverlayPlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -6405,7 +6405,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HardLightSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HardLightSrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -6421,7 +6421,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HardLightSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HardLightSrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -6437,7 +6437,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HardLightSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HardLightSrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -6453,7 +6453,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HardLightSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HardLightSrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -6469,7 +6469,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HardLightSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HardLightSrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -6485,7 +6485,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HardLightDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HardLightDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -6501,7 +6501,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HardLightDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HardLightDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -6517,7 +6517,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HardLightDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HardLightDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -6533,7 +6533,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HardLightDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HardLightDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -6549,7 +6549,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HardLightDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HardLightDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -6565,7 +6565,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HardLightClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HardLightClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -6581,7 +6581,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HardLightXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HardLightXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -6597,7 +6597,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HardLightPlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HardLightPlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7137,7 +7137,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDodgeSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDodgeSrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7153,7 +7153,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDodgeSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDodgeSrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7169,7 +7169,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDodgeSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDodgeSrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7185,7 +7185,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDodgeSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDodgeSrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7201,7 +7201,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDodgeSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDodgeSrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7217,7 +7217,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDodgeDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDodgeDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7233,7 +7233,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDodgeDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDodgeDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7249,7 +7249,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDodgeDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDodgeDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7265,7 +7265,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDodgeDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDodgeDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7281,7 +7281,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDodgeDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDodgeDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7297,7 +7297,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDodgeClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDodgeClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7313,7 +7313,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDodgeXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDodgeXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7329,7 +7329,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDodgePlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDodgePlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7869,7 +7869,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorBurnSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorBurnSrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7885,7 +7885,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorBurnSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorBurnSrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7901,7 +7901,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorBurnSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorBurnSrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7917,7 +7917,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorBurnSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorBurnSrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7933,7 +7933,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorBurnSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorBurnSrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7949,7 +7949,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorBurnDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorBurnDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7965,7 +7965,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorBurnDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorBurnDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7981,7 +7981,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorBurnDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorBurnDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -7997,7 +7997,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorBurnDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorBurnDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8013,7 +8013,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorBurnDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorBurnDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8029,7 +8029,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorBurnClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorBurnClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8045,7 +8045,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorBurnXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorBurnXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8061,7 +8061,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorBurnPlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorBurnPlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8601,7 +8601,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SoftLightSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SoftLightSrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8617,7 +8617,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SoftLightSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SoftLightSrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8633,7 +8633,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SoftLightSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SoftLightSrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8649,7 +8649,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SoftLightSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SoftLightSrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8665,7 +8665,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SoftLightSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SoftLightSrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8681,7 +8681,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SoftLightDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SoftLightDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8697,7 +8697,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SoftLightDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SoftLightDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8713,7 +8713,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SoftLightDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SoftLightDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8729,7 +8729,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SoftLightDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SoftLightDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8745,7 +8745,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SoftLightDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SoftLightDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8761,7 +8761,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SoftLightClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SoftLightClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8777,7 +8777,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SoftLightXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SoftLightXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -8793,7 +8793,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SoftLightPlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SoftLightPlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -9333,7 +9333,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DifferenceSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DifferenceSrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -9349,7 +9349,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DifferenceSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DifferenceSrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -9365,7 +9365,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DifferenceSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DifferenceSrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -9381,7 +9381,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DifferenceSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DifferenceSrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -9397,7 +9397,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DifferenceSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DifferenceSrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -9413,7 +9413,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DifferenceDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DifferenceDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -9429,7 +9429,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DifferenceDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DifferenceDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -9445,7 +9445,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DifferenceDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DifferenceDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -9461,7 +9461,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DifferenceDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DifferenceDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -9477,7 +9477,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DifferenceDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DifferenceDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -9493,7 +9493,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DifferenceClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DifferenceClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -9509,7 +9509,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DifferenceXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DifferenceXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -9525,7 +9525,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel DifferencePlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(DifferencePlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10065,7 +10065,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ExclusionSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ExclusionSrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10081,7 +10081,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ExclusionSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ExclusionSrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10097,7 +10097,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ExclusionSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ExclusionSrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10113,7 +10113,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ExclusionSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ExclusionSrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10129,7 +10129,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ExclusionSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ExclusionSrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10145,7 +10145,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ExclusionDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ExclusionDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10161,7 +10161,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ExclusionDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ExclusionDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10177,7 +10177,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ExclusionDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ExclusionDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10193,7 +10193,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ExclusionDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ExclusionDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10209,7 +10209,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ExclusionDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ExclusionDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10225,7 +10225,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ExclusionClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ExclusionClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10241,7 +10241,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ExclusionXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ExclusionXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10257,7 +10257,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ExclusionPlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ExclusionPlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10797,7 +10797,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HueSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HueSrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10813,7 +10813,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HueSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HueSrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10829,7 +10829,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HueSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HueSrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10845,7 +10845,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HueSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HueSrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10861,7 +10861,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HueSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HueSrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10877,7 +10877,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HueDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HueDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10893,7 +10893,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HueDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HueDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10909,7 +10909,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HueDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HueDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10925,7 +10925,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HueDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HueDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10941,7 +10941,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HueDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HueDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10957,7 +10957,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HueClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HueClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10973,7 +10973,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HueXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HueXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -10989,7 +10989,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel HuePlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(HuePlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -11529,7 +11529,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SaturationSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SaturationSrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -11545,7 +11545,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SaturationSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SaturationSrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -11561,7 +11561,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SaturationSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SaturationSrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -11577,7 +11577,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SaturationSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SaturationSrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -11593,7 +11593,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SaturationSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SaturationSrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -11609,7 +11609,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SaturationDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SaturationDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -11625,7 +11625,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SaturationDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SaturationDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -11641,7 +11641,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SaturationDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SaturationDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -11657,7 +11657,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SaturationDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SaturationDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -11673,7 +11673,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SaturationDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SaturationDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -11689,7 +11689,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SaturationClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SaturationClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -11705,7 +11705,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SaturationXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SaturationXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -11721,7 +11721,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel SaturationPlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(SaturationPlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -12261,7 +12261,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorSrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -12277,7 +12277,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorSrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -12293,7 +12293,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorSrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -12309,7 +12309,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorSrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -12325,7 +12325,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorSrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -12341,7 +12341,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -12357,7 +12357,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -12373,7 +12373,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -12389,7 +12389,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -12405,7 +12405,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -12421,7 +12421,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -12437,7 +12437,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -12453,7 +12453,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel ColorPlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(ColorPlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -12993,7 +12993,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LuminositySrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LuminositySrc(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -13009,7 +13009,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LuminositySrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LuminositySrcAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -13025,7 +13025,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LuminositySrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LuminositySrcOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -13041,7 +13041,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LuminositySrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LuminositySrcIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -13057,7 +13057,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LuminositySrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LuminositySrcOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -13073,7 +13073,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LuminosityDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LuminosityDest(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -13089,7 +13089,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LuminosityDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LuminosityDestAtop(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -13105,7 +13105,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LuminosityDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LuminosityDestOver(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -13121,7 +13121,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LuminosityDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LuminosityDestIn(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -13137,7 +13137,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LuminosityDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LuminosityDestOut(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -13153,7 +13153,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LuminosityClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LuminosityClear(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -13169,7 +13169,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LuminosityXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LuminosityXor(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 
@@ -13185,7 +13185,7 @@ internal static partial class PorterDuffFunctions
     public static TPixel LuminosityPlus<TPixel>(TPixel backdrop, TPixel source, float opacity)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        opacity = Numerics.ClampNumber(opacity, 0, 1);
+        opacity = ColorNumerics.ClampToFinite(opacity, 0, 1);
         return TPixel.FromUnassociatedScaledVector4(LuminosityPlus(backdrop.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), opacity));
     }
 }

@@ -4,13 +4,16 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
+using SixLabors.ImageSharp.PixelFormats.Utils;
+
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
 /// Packed pixel type containing four associated 16-bit floating-point values.
 /// </summary>
 /// <remarks>
-/// Native and scaled vector conversions preserve the stored associated IEEE 754 half-precision values.
+/// Native vector conversions preserve the stored IEEE floating-point values.
+/// Color-vector conversions bound color components to the format's finite range and alpha to [0,1].
 /// The packed representation is binary-compatible with <c>DXGI_FORMAT_R16G16B16A16_FLOAT</c>.
 /// </remarks>
 public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
@@ -75,15 +78,22 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToScaledVector4() => this.ToVector4();
+    public readonly Vector4 ToScaledVector4() => this.ToAssociatedScaledVector4();
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToUnassociatedVector4();
+    public readonly Vector4 ToUnassociatedScaledVector4()
+        => new Vector4Converters.UnassociateOperator(
+            new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)).Invoke(this.ToVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToAssociatedScaledVector4() => this.ToScaledVector4();
+    public readonly Vector4 ToAssociatedScaledVector4()
+    {
+        return new Vector4Converters.ReassociateOperator<Vector4Converters.IdentityOperator>(
+            default,
+            new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)).Invoke(this.ToVector4());
+    }
 
     /// <inheritdoc />
     public readonly Vector4 ToVector4() => new(
@@ -140,11 +150,26 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static HalfVector4P FromUnassociatedScaledVector4(Vector4 source) => FromUnassociatedVector4(source);
+    public static HalfVector4P FromUnassociatedScaledVector4(Vector4 source)
+    {
+        // Bound RGB and opacity before association. Half-precision uses the alpha that storage can represent.
+        source = new Vector4Converters.AssociateOperator<Vector4Converters.HalfAlphaOperator>(
+            default,
+            new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)).Invoke(source);
+
+        return FromAssociatedVector4(source);
+    }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static HalfVector4P FromAssociatedScaledVector4(Vector4 source) => FromAssociatedVector4(source);
+    public static HalfVector4P FromAssociatedScaledVector4(Vector4 source)
+    {
+        source = new Vector4Converters.ReassociateOperator<Vector4Converters.HalfAlphaOperator>(
+            default,
+            new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)).Invoke(source);
+
+        return FromAssociatedVector4(source);
+    }
 
     /// <inheritdoc />
     public static HalfVector4P FromAbgr32(Abgr32 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());

@@ -42,9 +42,6 @@ internal static partial class IccColorConverter
         }
 
         /// <inheritdoc/>
-        public static bool PreserveAlpha => false;
-
-        /// <inheritdoc/>
         public float Invoke(float value)
         {
             if (!(value >= this.d))

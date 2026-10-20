@@ -165,7 +165,7 @@ public partial struct Bgr24 : IPixel<Bgr24>
     {
         source *= MaxBytes;
         source += Half;
-        source = Numerics.ClampNumber(source, Vector4.Zero, MaxBytes);
+        source = ColorNumerics.ClampToFinite(source, Vector4.Zero, MaxBytes);
 
         Vector128<byte> result = Vector128.ConvertToInt32(source.AsVector128()).AsByte();
         return new Bgr24(result.GetElement(0), result.GetElement(4), result.GetElement(8));

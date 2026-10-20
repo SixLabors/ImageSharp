@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -45,7 +46,11 @@ public partial struct RgbaHalfP
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            this.ToUnassociatedVector4(configuration, source, destination);
+            // Convert and enforce RGB storage bounds and alpha [0,1] in the same pass.
+            HalfTypeHelper.Unpack(
+                MemoryMarshal.Cast<RgbaHalfP, ushort>(source),
+                destination[..source.Length],
+                new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)));
         }
 
         /// <inheritdoc />
@@ -54,7 +59,13 @@ public partial struct RgbaHalfP
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            this.ToAssociatedVector4(configuration, source, destination);
+            // Convert and enforce RGB storage bounds and alpha [0,1] in the same pass.
+            HalfTypeHelper.Unpack(
+                MemoryMarshal.Cast<RgbaHalfP, ushort>(source),
+                destination[..source.Length],
+                new Vector4Converters.ReassociateOperator<Vector4Converters.IdentityOperator>(
+                    default,
+                    new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)));
         }
 
         /// <inheritdoc />
@@ -85,7 +96,13 @@ public partial struct RgbaHalfP
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            this.FromUnassociatedVector4Destructive(configuration, source, destination);
+            // Convert and enforce RGB storage bounds and alpha [0,1] in the same pass.
+            HalfTypeHelper.Pack(
+                source,
+                MemoryMarshal.Cast<RgbaHalfP, ushort>(destination[..source.Length]),
+                new Vector4Converters.AssociateOperator<Vector4Converters.HalfAlphaOperator>(
+                    default,
+                    new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)));
         }
 
         /// <inheritdoc />
@@ -94,7 +111,13 @@ public partial struct RgbaHalfP
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            this.FromAssociatedVector4Destructive(configuration, source, destination);
+            // Convert and enforce RGB storage bounds and alpha [0,1] in the same pass.
+            HalfTypeHelper.Pack(
+                source,
+                MemoryMarshal.Cast<RgbaHalfP, ushort>(destination[..source.Length]),
+                new Vector4Converters.ReassociateOperator<Vector4Converters.HalfAlphaOperator>(
+                    default,
+                    new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)));
         }
     }
 }

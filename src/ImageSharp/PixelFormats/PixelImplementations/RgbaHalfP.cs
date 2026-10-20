@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -12,7 +13,8 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// The color components are stored in red, green, blue, and alpha order.
 /// </summary>
 /// <remarks>
-/// Native and scaled vectors preserve floating-point component values.
+/// Native vector conversions preserve the stored IEEE floating-point values.
+/// Color-vector conversions bound color components to the format's finite range and alpha to [0,1].
 /// The packed representation is binary-compatible with <c>DXGI_FORMAT_R16G16B16A16_FLOAT</c>.
 /// </remarks>
 [StructLayout(LayoutKind.Sequential)]
@@ -69,7 +71,7 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
     /// </summary>
     /// <param name="vector">The associated vector.</param>
     public RgbaHalfP(Vector4 vector)
-        : this() => this = FromAssociatedScaledVector4(vector);
+        : this() => this = FromAssociatedVector4(vector);
 
     /// <inheritdoc />
     public ulong PackedValue
@@ -118,7 +120,7 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToScaledVector4() => this.ToVector4();
+    public readonly Vector4 ToScaledVector4() => this.ToAssociatedScaledVector4();
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -126,11 +128,18 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToUnassociatedVector4();
+    public readonly Vector4 ToUnassociatedScaledVector4()
+        => new Vector4Converters.UnassociateOperator(
+            new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)).Invoke(this.ToVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToAssociatedScaledVector4() => this.ToScaledVector4();
+    public readonly Vector4 ToAssociatedScaledVector4()
+    {
+        return new Vector4Converters.ReassociateOperator<Vector4Converters.IdentityOperator>(
+            default,
+            new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)).Invoke(this.ToVector4());
+    }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -166,11 +175,26 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static RgbaHalfP FromUnassociatedScaledVector4(Vector4 source) => FromUnassociatedVector4(source);
+    public static RgbaHalfP FromUnassociatedScaledVector4(Vector4 source)
+    {
+        // Bound RGB and opacity before association. Half-precision uses the alpha that storage can represent.
+        source = new Vector4Converters.AssociateOperator<Vector4Converters.HalfAlphaOperator>(
+            default,
+            new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)).Invoke(source);
+
+        return FromAssociatedVector4(source);
+    }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static RgbaHalfP FromAssociatedScaledVector4(Vector4 source) => FromAssociatedVector4(source);
+    public static RgbaHalfP FromAssociatedScaledVector4(Vector4 source)
+    {
+        source = new Vector4Converters.ReassociateOperator<Vector4Converters.HalfAlphaOperator>(
+            default,
+            new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)).Invoke(source);
+
+        return FromAssociatedVector4(source);
+    }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -236,5 +260,6 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
     public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
 
     /// <inheritdoc />
-    public override readonly string ToString() => FormattableString.Invariant($"RgbaHalfP({(float)this.R:#0.##}, {(float)this.G:#0.##}, {(float)this.B:#0.##}, {(float)this.A:#0.##})");
+    public override readonly string ToString()
+        => FormattableString.Invariant($"RgbaHalfP({(float)this.R:#0.##}, {(float)this.G:#0.##}, {(float)this.B:#0.##}, {(float)this.A:#0.##})");
 }

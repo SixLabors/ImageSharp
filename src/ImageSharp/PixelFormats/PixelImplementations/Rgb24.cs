@@ -176,7 +176,7 @@ public partial struct Rgb24 : IPixel<Rgb24>
     {
         source *= MaxBytes;
         source += Half;
-        source = Numerics.ClampNumber(source, Vector4.Zero, MaxBytes);
+        source = ColorNumerics.ClampToFinite(source, Vector4.Zero, MaxBytes);
 
         Vector128<byte> result = Vector128.ConvertToInt32(source.AsVector128()).AsByte();
         return new Rgb24(result.GetElement(0), result.GetElement(4), result.GetElement(8));

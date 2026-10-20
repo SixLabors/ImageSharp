@@ -264,7 +264,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static La32 Pack(Vector4 vector)
     {
-        vector = Numerics.ClampNumber(vector, Vector4.Zero, Vector4.One) * Max;
+        vector = ColorNumerics.ClampToFinite(vector, Vector4.Zero, Vector4.One) * Max;
         ushort l = ColorNumerics.Get16BitBT709Luminance(vector.X, vector.Y, vector.Z);
         ushort a = (ushort)MathF.Round(vector.W);
         return new La32(l, a);

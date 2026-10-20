@@ -29,7 +29,9 @@ public partial struct RgbaVector
                 // The single-pixel associated conversions normalize stored channels before unassociation.
                 // Use the same order to preserve their rounding, with both bulk operations writing only destination storage.
                 sourceOperations.ToAssociatedScaledVector4(configuration, source, vectors);
-                Numerics.UnPremultiply(vectors[..source.Length]);
+                Vector4Converters.Apply(
+                    vectors[..source.Length],
+                    new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue)));
             }
             else
             {
@@ -47,7 +49,7 @@ public partial struct RgbaVector
 
         /// <inheritdoc />
         public override void FromScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<RgbaVector> destinationPixels)
-            => this.FromVector4Destructive(configuration, sourceVectors, destinationPixels);
+            => this.FromUnassociatedScaledVector4Destructive(configuration, sourceVectors, destinationPixels);
 
         /// <inheritdoc />
         public override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<RgbaVector> destinationPixels)
@@ -67,14 +69,30 @@ public partial struct RgbaVector
             Configuration configuration,
             Span<Vector4> sourceVectors,
             Span<RgbaVector> destinationPixels)
-            => this.FromVector4Destructive(configuration, sourceVectors, destinationPixels);
+        {
+            Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationPixels, nameof(destinationPixels));
+
+            // Apply alpha conversion and finite destination bounds while writing the final storage.
+            Vector4Converters.Apply(
+                sourceVectors,
+                MemoryMarshal.Cast<RgbaVector, Vector4>(destinationPixels[..sourceVectors.Length]),
+                new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue));
+        }
 
         /// <inheritdoc />
         public override void FromAssociatedScaledVector4Destructive(
             Configuration configuration,
             Span<Vector4> sourceVectors,
             Span<RgbaVector> destinationPixels)
-            => this.FromAssociatedVector4Destructive(configuration, sourceVectors, destinationPixels);
+        {
+            Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationPixels, nameof(destinationPixels));
+
+            // Apply alpha conversion and finite destination bounds while writing the final storage.
+            Vector4Converters.Apply(
+                sourceVectors,
+                MemoryMarshal.Cast<RgbaVector, Vector4>(destinationPixels[..sourceVectors.Length]),
+                new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue)));
+        }
 
         /// <inheritdoc />
         public override void ToVector4(Configuration configuration, ReadOnlySpan<RgbaVector> sourcePixels, Span<Vector4> destinationVectors)
@@ -102,11 +120,29 @@ public partial struct RgbaVector
 
         /// <inheritdoc />
         public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<RgbaVector> sourcePixels, Span<Vector4> destinationVectors)
-            => this.ToVector4(configuration, sourcePixels, destinationVectors);
+        {
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationVectors, nameof(destinationVectors));
+
+            // Apply alpha conversion and finite destination bounds while writing the final storage.
+            Vector4Converters.Apply(
+                MemoryMarshal.Cast<RgbaVector, Vector4>(sourcePixels),
+                destinationVectors[..sourcePixels.Length],
+                new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue));
+        }
 
         /// <inheritdoc />
         public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<RgbaVector> sourcePixels, Span<Vector4> destinationVectors)
-            => this.ToAssociatedVector4(configuration, sourcePixels, destinationVectors);
+        {
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationVectors, nameof(destinationVectors));
+
+            // Apply alpha conversion and finite destination bounds while writing the final storage.
+            Vector4Converters.Apply(
+                MemoryMarshal.Cast<RgbaVector, Vector4>(sourcePixels),
+                destinationVectors[..sourcePixels.Length],
+                new Vector4Converters.AssociateOperator<Vector4Converters.IdentityOperator>(
+                    default,
+                    new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue)));
+        }
 
         /// <summary>
         /// Copies the vector components into the corresponding pixel storage.

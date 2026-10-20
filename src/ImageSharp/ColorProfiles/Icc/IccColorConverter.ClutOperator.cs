@@ -138,7 +138,7 @@ internal static partial class IccColorConverter
         private Vector4 Convert<TReader>(TReader reader, Vector4 value)
             where TReader : struct, IClutReadOperator
         {
-            Vector4 position = Numerics.ClampNumber(value, Vector4.Zero, Vector4.One) * this.maximum;
+            Vector4 position = ColorNumerics.ClampToFinite(value, Vector4.Zero, Vector4.One) * this.maximum;
             Vector4 fraction = default;
             int offset = 0;
             for (int axis = 0; axis < this.inputCount; axis++)
@@ -835,7 +835,7 @@ internal static partial class IccColorConverter
             out Vector128<int> offset,
             out Vector128<float> fraction)
         {
-            // Ordered comparisons map NaN to zero, as Numerics.ClampNumber does. Bound indices before unchecked gathers.
+            // Ordered comparisons map NaN to zero, as ColorNumerics.ClampToFinite does. Bound indices before unchecked gathers.
             value = Vector128.ConditionalSelect(Vector128.GreaterThan(value, Vector128<float>.One), Vector128<float>.One, value);
             value = Vector128.ConditionalSelect(Vector128.GreaterThanOrEqual(value, Vector128<float>.Zero), value, Vector128<float>.Zero);
             Vector128<float> position = value * Vector128.Create(maximum);
@@ -899,7 +899,7 @@ internal static partial class IccColorConverter
             out Vector256<int> offset,
             out Vector256<float> fraction)
         {
-            // Ordered comparisons map NaN to zero, as Numerics.ClampNumber does. Bound indices before unchecked gathers.
+            // Ordered comparisons map NaN to zero, as ColorNumerics.ClampToFinite does. Bound indices before unchecked gathers.
             value = Vector256.ConditionalSelect(Vector256.GreaterThan(value, Vector256<float>.One), Vector256<float>.One, value);
             value = Vector256.ConditionalSelect(Vector256.GreaterThanOrEqual(value, Vector256<float>.Zero), value, Vector256<float>.Zero);
             Vector256<float> position = value * Vector256.Create(maximum);
@@ -963,7 +963,7 @@ internal static partial class IccColorConverter
             out Vector512<int> offset,
             out Vector512<float> fraction)
         {
-            // Ordered comparisons map NaN to zero, as Numerics.ClampNumber does. Bound indices before unchecked gathers.
+            // Ordered comparisons map NaN to zero, as ColorNumerics.ClampToFinite does. Bound indices before unchecked gathers.
             value = Vector512.ConditionalSelect(Vector512.GreaterThan(value, Vector512<float>.One), Vector512<float>.One, value);
             value = Vector512.ConditionalSelect(Vector512.GreaterThanOrEqual(value, Vector512<float>.Zero), value, Vector512<float>.Zero);
             Vector512<float> position = value * Vector512.Create(maximum);

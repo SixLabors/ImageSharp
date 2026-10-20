@@ -128,7 +128,7 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
     {
         // HSV stores bounded SDR colors. Limit RGB here so extended components do not
         // change hue and saturation before the bounded HSV result is constructed.
-        Vector3 rgb = Numerics.ClampNumber(source.AsVector3Unsafe(), Vector3.Zero, Vector3.One);
+        Vector3 rgb = ColorNumerics.ClampToFinite(source.AsVector3Unsafe(), Vector3.Zero, Vector3.One);
         float r = rgb.X;
         float g = rgb.Y;
         float b = rgb.Z;

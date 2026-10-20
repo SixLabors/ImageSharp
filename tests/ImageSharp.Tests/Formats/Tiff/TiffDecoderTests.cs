@@ -29,10 +29,15 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public static readonly string[] MultiframeTestImages = Multiframes;
 
     /// <summary>
-    /// Decoded floating-point components retain their values in half-vector storage.
+    /// Decoding preserves finite HDR samples within the half-precision range and bounds nonfinite samples.
     /// </summary>
+    /// <remarks>
+    /// The positive-infinity input comes from
+    /// <see href="https://github.com/SixLabors/ImageSharp/security/advisories/GHSA-j3p4-wp97-rph4">CVE-2026-106113</see>.
+    /// The complete decode-and-equalize reproduction remains in HistogramEqualizationTests.GlobalHistogramEqualization_Cve2026106113.
+    /// </remarks>
     /// <param name="hex">The encoded floating-point TIFF.</param>
-    /// <param name="intensity">The decoded intensity.</param>
+    /// <param name="intensity">The intensity stored in the encoded TIFF.</param>
     [Theory]
     [InlineData(
         "49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
@@ -54,28 +59,22 @@ public class TiffDecoderTests : TiffDecoderBaseTester
                 "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
                 "000020000000530103000100000003000000000000000000003F0000003F0000003F0000003F0000003F0000003F0000003F0000003F",
         .5F)]
-    public void Decode_FloatingPointSamples_PreservesHalfVector4Values(string hex, float intensity)
+    public void Decode_FloatingPointSamples_UsesFiniteHalfVector4ColorRange(string hex, float intensity)
     {
         byte[] data = Convert.FromHexString(hex);
         using Image<HalfVector4> image = Image.Load<HalfVector4>(data);
         Assert.Equal(new Size(8, 1), image.Size);
 
+        // Decoding uses the color conversion API: NaN maps to the finite minimum, and positive infinity maps to the finite maximum.
+        // Finite HDR samples such as 2 remain unchanged. These bounds come from Half storage, not the SDR interval [0,1].
+        float expectedIntensity = float.IsNaN(intensity) ? (float)Half.MinValue : Math.Clamp(intensity, (float)Half.MinValue, (float)Half.MaxValue);
+        Vector4 expected = new(expectedIntensity, expectedIntensity, expectedIntensity, 1F);
+
         for (int x = 0; x < image.Width; x++)
         {
-            Vector4 actual = image[x, 0].ToScaledVector4();
-
-            if (float.IsNaN(intensity))
-            {
-                // NaN needs an explicit assertion for each decoded component.
-                Assert.True(float.IsNaN(actual.X));
-                Assert.True(float.IsNaN(actual.Y));
-                Assert.True(float.IsNaN(actual.Z));
-                Assert.Equal(1F, actual.W);
-            }
-            else
-            {
-                Assert.Equal(new Vector4(intensity, intensity, intensity, 1F), actual);
-            }
+            // Check stored components too: output conversion must not conceal a nonfinite value left by the decoder.
+            Assert.Equal(expected, image[x, 0].ToVector4());
+            Assert.Equal(expected, image[x, 0].ToScaledVector4());
         }
     }
 

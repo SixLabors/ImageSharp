@@ -17,6 +17,10 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// The default conversion behavior is suitable for pixel formats that store unassociated alpha.
 /// Pixel formats that store associated alpha should derive their operations from
 /// <see cref="AssociatedAlphaPixelOperations{TPixel}"/>.
+/// Bulk vector conversions follow the corresponding <see cref="IPixel{TSelf}"/> scalar conversion rules.
+/// Integer destinations clamp components and map NaN to the lower endpoint of their numeric range.
+/// Floating-point color conversions use the format's finite limits. Native vector conversions retain IEEE special values.
+/// Finite HDR values remain unchanged within the destination range. In-range signed zero is preserved.
 /// </remarks>
 /// <typeparam name="TPixel">The pixel format.</typeparam>
 public partial class PixelOperations<TPixel>

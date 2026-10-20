@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.ColorProfiles.Companding;
 
@@ -68,6 +69,97 @@ public static class CompandingUtilities
     }
 
     /// <summary>
+    /// Transforms RGB in place and retains each color's alpha.
+    /// </summary>
+    /// <remarks>
+    /// This traversal treats each vector as RGBA. The component operator has no knowledge of that layout.
+    /// Alpha remains unchanged because transfer curves apply to RGB, not opacity.
+    /// </remarks>
+    /// <typeparam name="TOperator">The companding operation.</typeparam>
+    /// <param name="values">The colors to transform.</param>
+    /// <param name="operation">The configured transfer curve.</param>
+    internal static void Compand<TOperator>(Span<Vector4> values, TOperator operation)
+        where TOperator : struct, TensorPrimitives_.IUnaryOperator
+    {
+        Span<float> components = MemoryMarshal.Cast<Vector4, float>(values);
+        ref float first = ref MemoryMarshal.GetReference(components);
+        int i = 0;
+
+        if (Vector512.IsHardwareAccelerated)
+        {
+            nuint count = (components.Length - i).Vector512Count<float>();
+            Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
+
+            // Each register holds four RGBA colors. Restore lanes 3, 7, 11 and 15 from the input to retain alpha.
+            for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
+            {
+                Vector512<float> input = Vector512.LoadUnsafe(ref first, (uint)i);
+                Vector512.ConditionalSelect(alphaMask, input, operation.Invoke(input)).StoreUnsafe(ref first, (uint)i);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint count = (components.Length - i).Vector256Count<float>();
+            Vector256<float> alphaMask = Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
+
+            // Each register holds two RGBA colors. Restore lanes 3 and 7 without a separate pass over alpha.
+            for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
+            {
+                Vector256<float> input = Vector256.LoadUnsafe(ref first, (uint)i);
+                Vector256.ConditionalSelect(alphaMask, input, operation.Invoke(input)).StoreUnsafe(ref first, (uint)i);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint count = (components.Length - i).Vector128Count<float>();
+            Vector128<float> alphaMask = Vector128.Create(0, 0, 0, -1).AsSingle();
+
+            // Each register holds one complete color. The fourth lane always remains alpha.
+            for (nuint block = 0; block < count; block++, i += Vector128<float>.Count)
+            {
+                Vector128<float> input = Vector128.LoadUnsafe(ref first, (uint)i);
+                Vector128.ConditionalSelect(alphaMask, input, operation.Invoke(input)).StoreUnsafe(ref first, (uint)i);
+            }
+        }
+
+        // Every SIMD width ends on a color boundary. The scalar fallback transforms RGB and leaves alpha in place.
+        for (; i < components.Length; i += 4)
+        {
+            Unsafe.Add(ref first, (uint)i) = operation.Invoke(Unsafe.Add(ref first, (uint)i));
+            Unsafe.Add(ref first, (uint)i + 1) = operation.Invoke(Unsafe.Add(ref first, (uint)i + 1));
+            Unsafe.Add(ref first, (uint)i + 2) = operation.Invoke(Unsafe.Add(ref first, (uint)i + 2));
+        }
+    }
+
+    /// <summary>
+    /// Transforms RGB in one color and retains its alpha.
+    /// </summary>
+    /// <typeparam name="TOperator">The component operation.</typeparam>
+    /// <param name="value">The input color.</param>
+    /// <param name="operation">The configured operation.</param>
+    /// <returns>The transformed color with its original alpha.</returns>
+    internal static Vector4 Compand<TOperator>(Vector4 value, TOperator operation)
+        where TOperator : struct, TensorPrimitives_.IUnaryOperator
+    {
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector4 result = operation.Invoke(value.AsVector128()).AsVector4();
+
+            // Restore alpha after the component operation. Transfer curves apply to RGB, not opacity.
+            result.W = value.W;
+            return result;
+        }
+
+        return new Vector4(
+            operation.Invoke(value.X),
+            operation.Invoke(value.Y),
+            operation.Invoke(value.Z),
+            value.W);
+    }
+
+    /// <summary>
     /// Performs the companding operation on the given vectors using the given table.
     /// </summary>
     /// <param name="vectors">The span of vectors.</param>
@@ -106,7 +198,7 @@ public static class CompandingUtilities
         Vector4 zero = Vector4.Zero;
         Vector4 scale = new(Scale);
 
-        Vector4 multiplied = Numerics.ClampNumber(vector * Scale, zero, scale);
+        Vector4 multiplied = ColorNumerics.ClampToFinite(vector * Scale, zero, scale);
 
         float f0 = multiplied.X;
         float f1 = multiplied.Y;
@@ -166,7 +258,7 @@ public static class CompandingUtilities
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
             {
-                Vector4 multiplied = Numerics.ClampNumber(vectorsBase * Scale, zero, scale);
+                Vector4 multiplied = ColorNumerics.ClampToFinite(vectorsBase * Scale, zero, scale);
 
                 float f0 = multiplied.X;
                 float f1 = multiplied.Y;

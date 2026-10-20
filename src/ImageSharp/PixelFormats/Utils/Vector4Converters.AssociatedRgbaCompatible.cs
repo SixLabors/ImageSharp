@@ -238,7 +238,7 @@ internal static partial class Vector4Converters
             Vector512<float> zero = Vector512<float>.Zero;
             Vector512<float> one = Vector512<float>.One;
             Vector512<float> byteMax = Vector512.Create((float)byte.MaxValue);
-            source = Numerics.ClampNumber(source, zero, one);
+            source = ColorNumerics.ClampToFinite(source, zero, one);
             Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
             Vector512<float> storedAlpha = Vector512.Floor((alpha * byteMax) + Vector512.Create(.5F));
             Vector512<float> result = source * storedAlpha;
@@ -259,7 +259,7 @@ internal static partial class Vector4Converters
             Vector256<float> zero = Vector256<float>.Zero;
             Vector256<float> one = Vector256<float>.One;
             Vector256<float> byteMax = Vector256.Create((float)byte.MaxValue);
-            source = Numerics.ClampNumber(source, zero, one);
+            source = ColorNumerics.ClampToFinite(source, zero, one);
             Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
             Vector256<float> storedAlpha = Vector256.Floor((alpha * byteMax) + Vector256.Create(.5F));
             Vector256<float> result = source * storedAlpha;
@@ -280,7 +280,7 @@ internal static partial class Vector4Converters
             Vector128<float> zero = Vector128<float>.Zero;
             Vector128<float> one = Vector128<float>.One;
             Vector128<float> byteMax = Vector128.Create((float)byte.MaxValue);
-            source = Numerics.ClampNumber(source, zero, one);
+            source = ColorNumerics.ClampToFinite(source, zero, one);
             Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
             Vector128<float> storedAlpha = Vector128.Floor((alpha * byteMax) + Vector128.Create(.5F));
             Vector128<float> result = source * storedAlpha;
@@ -298,8 +298,8 @@ internal static partial class Vector4Converters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector4 AssociateToByte(Vector4 source)
         {
-            source = Numerics.ClampNumber(source, Vector4.Zero, Vector4.One);
-            float storedAlpha = (byte)Numerics.ClampNumber((source.W * byte.MaxValue) + 0.5F, 0, byte.MaxValue);
+            source = ColorNumerics.ClampToFinite(source, Vector4.Zero, Vector4.One);
+            float storedAlpha = (byte)ColorNumerics.ClampToFinite((source.W * byte.MaxValue) + 0.5F, 0, byte.MaxValue);
 
             source *= storedAlpha;
             source.W = storedAlpha;
@@ -362,7 +362,8 @@ internal static partial class Vector4Converters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector4 ReassociateToByte(Vector4 source)
         {
-            float alpha = source.W;
+            // Keep positive finite alpha for RGB division. Infinity must become finite before it is used as a divisor.
+            float alpha = ColorNumerics.ClampToFinite(source.W, 0F, float.MaxValue);
 
             if (alpha <= 0)
             {
@@ -370,17 +371,19 @@ internal static partial class Vector4Converters
             }
 
             float byteAlpha = alpha * byte.MaxValue;
-            float storedAlpha = (byte)Numerics.ClampNumber(byteAlpha + 0.5F, 0, byte.MaxValue);
+            float storedAlpha = (byte)ColorNumerics.ClampToFinite(byteAlpha + 0.5F, 0, byte.MaxValue);
 
             if (byteAlpha == storedAlpha)
             {
-                // Quantization leaves alpha unchanged, so RGB is already associated correctly. Avoiding division preserves exact byte midpoints produced by scaling stored components.
+                // Rounding leaves alpha unchanged. Multiply RGB by 255 directly to preserve exact byte midpoints.
+                // Dividing and multiplying again could move a component across its rounding boundary.
                 source *= byte.MaxValue;
             }
             else
             {
-                // Recover straight RGB before multiplying by the stored alpha byte. Keeping the association in byte magnitude preserves exact half-byte rounding boundaries.
-                Numerics.UnPremultiply(ref source);
+                // Recover straight RGB, then multiply by the stored alpha byte.
+                // Working in byte units avoids another multiplication by 255 before rounding.
+                Numerics.UnPremultiply(ref source, new Vector4(alpha));
                 source *= storedAlpha;
             }
 
@@ -459,16 +462,19 @@ internal static partial class Vector4Converters
         {
             Vector512<float> zero = Vector512<float>.Zero;
             Vector512<float> byteMax = Vector512.Create((float)byte.MaxValue);
-            Vector512<float> alpha = Numerics.ClampNumber(Vector512_.ShuffleNative(source, 0b_11_11_11_11), zero, Vector512.Create(float.PositiveInfinity));
+
+            // Keep positive finite alpha for RGB division. Infinity uses float.MaxValue; stored byte alpha is bounded separately.
+            Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
+            alpha = ColorNumerics.ClampToFinite(alpha, zero, Vector512.Create(float.MaxValue));
             Vector512<float> byteAlpha = alpha * byteMax;
-            Vector512<float> storedAlpha = Vector512.Floor(Numerics.ClampNumber(byteAlpha + Vector512.Create(.5F), zero, byteMax));
+            Vector512<float> storedAlpha = Vector512.Floor(ColorNumerics.ClampToFinite(byteAlpha + Vector512.Create(.5F), zero, byteMax));
             Vector512<float> result = (source / alpha) * storedAlpha;
 
             // Exact byte alpha values need no reassociation. Multiplying by 255 directly preserves RGB values that already lie on byte midpoints.
             result = Vector512.ConditionalSelect(Vector512.Equals(byteAlpha, storedAlpha), source * byteMax, result);
             Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
             result = Vector512.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = Numerics.ClampNumber(result, zero, storedAlpha);
+            result = ColorNumerics.ClampToFinite(result, zero, storedAlpha);
             return Vector512.ConditionalSelect(Vector512.Equals(alpha, zero), zero, result);
         }
 
@@ -482,16 +488,19 @@ internal static partial class Vector4Converters
         {
             Vector256<float> zero = Vector256<float>.Zero;
             Vector256<float> byteMax = Vector256.Create((float)byte.MaxValue);
-            Vector256<float> alpha = Numerics.ClampNumber(Vector256_.ShuffleNative(source, 0b_11_11_11_11), zero, Vector256.Create(float.PositiveInfinity));
+
+            // Keep positive finite alpha for RGB division. Infinity uses float.MaxValue; stored byte alpha is bounded separately.
+            Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
+            alpha = ColorNumerics.ClampToFinite(alpha, zero, Vector256.Create(float.MaxValue));
             Vector256<float> byteAlpha = alpha * byteMax;
-            Vector256<float> storedAlpha = Vector256.Floor(Numerics.ClampNumber(byteAlpha + Vector256.Create(.5F), zero, byteMax));
+            Vector256<float> storedAlpha = Vector256.Floor(ColorNumerics.ClampToFinite(byteAlpha + Vector256.Create(.5F), zero, byteMax));
             Vector256<float> result = (source / alpha) * storedAlpha;
 
             // Exact byte alpha values need no reassociation. Multiplying by 255 directly preserves RGB values that already lie on byte midpoints.
             result = Vector256.ConditionalSelect(Vector256.Equals(byteAlpha, storedAlpha), source * byteMax, result);
             Vector256<float> alphaMask = Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
             result = Vector256.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = Numerics.ClampNumber(result, zero, storedAlpha);
+            result = ColorNumerics.ClampToFinite(result, zero, storedAlpha);
             return Vector256.ConditionalSelect(Vector256.Equals(alpha, zero), zero, result);
         }
 
@@ -505,16 +514,19 @@ internal static partial class Vector4Converters
         {
             Vector128<float> zero = Vector128<float>.Zero;
             Vector128<float> byteMax = Vector128.Create((float)byte.MaxValue);
-            Vector128<float> alpha = Numerics.ClampNumber(Vector128_.ShuffleNative(source, 0b_11_11_11_11), zero, Vector128.Create(float.PositiveInfinity));
+
+            // Keep positive finite alpha for RGB division. Infinity uses float.MaxValue; stored byte alpha is bounded separately.
+            Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
+            alpha = ColorNumerics.ClampToFinite(alpha, zero, Vector128.Create(float.MaxValue));
             Vector128<float> byteAlpha = alpha * byteMax;
-            Vector128<float> storedAlpha = Vector128.Floor(Numerics.ClampNumber(byteAlpha + Vector128.Create(.5F), zero, byteMax));
+            Vector128<float> storedAlpha = Vector128.Floor(ColorNumerics.ClampToFinite(byteAlpha + Vector128.Create(.5F), zero, byteMax));
             Vector128<float> result = (source / alpha) * storedAlpha;
 
             // Exact byte alpha values need no reassociation. Multiplying by 255 directly preserves RGB values that already lie on byte midpoints.
             result = Vector128.ConditionalSelect(Vector128.Equals(byteAlpha, storedAlpha), source * byteMax, result);
             Vector128<float> alphaMask = Vector128.Create(0, 0, 0, -1).AsSingle();
             result = Vector128.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = Numerics.ClampNumber(result, zero, storedAlpha);
+            result = ColorNumerics.ClampToFinite(result, zero, storedAlpha);
             return Vector128.ConditionalSelect(Vector128.Equals(alpha, zero), zero, result);
         }
 
@@ -887,6 +899,6 @@ internal static partial class Vector4Converters
         /// <param name="value">The byte magnitude.</param>
         /// <returns>The rounded and clamped byte.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte ConvertToByte(float value) => (byte)Numerics.ClampNumber(value + .5F, 0, byte.MaxValue);
+        private static byte ConvertToByte(float value) => (byte)ColorNumerics.ClampToFinite(value + .5F, 0, byte.MaxValue);
     }
 }

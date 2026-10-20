@@ -225,9 +225,9 @@ public partial struct Bgr565(Vector3 vector) : IPixel<Bgr565>, IPackedVector<ush
     private static ushort Pack(Vector3 vector)
     {
         vector = new Vector3(
-            Numerics.ClampNumber(vector.X, 0F, 1F),
-            Numerics.ClampNumber(vector.Y, 0F, 1F),
-            Numerics.ClampNumber(vector.Z, 0F, 1F));
+            ColorNumerics.ClampToFinite(vector.X, 0F, 1F),
+            ColorNumerics.ClampToFinite(vector.Y, 0F, 1F),
+            ColorNumerics.ClampToFinite(vector.Z, 0F, 1F));
 
         return (ushort)((((int)Math.Round(vector.X * 31F) & 0x1F) << 11)
                | (((int)Math.Round(vector.Y * 63F) & 0x3F) << 5)

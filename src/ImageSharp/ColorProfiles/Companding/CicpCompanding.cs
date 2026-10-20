@@ -278,46 +278,46 @@ internal static partial class CicpCompanding
             case CicpTransferCharacteristics.ItuRBt601_7:
             case CicpTransferCharacteristics.ItuRBt2020_2_10bit:
             case CicpTransferCharacteristics.ItuRBt2020_2_12bit:
-                TensorPrimitives_.Invoke(values, default(ExpandOperator<Bt709Curve>));
+                CompandingUtilities.Compand(values, default(ExpandOperator<Bt709Curve>));
                 break;
             case CicpTransferCharacteristics.Gamma2_2:
-                TensorPrimitives_.Invoke(values, default(ExpandOperator<Gamma22Curve>));
+                CompandingUtilities.Compand(values, default(ExpandOperator<Gamma22Curve>));
                 break;
             case CicpTransferCharacteristics.Gamma2_8:
-                TensorPrimitives_.Invoke(values, default(ExpandOperator<Gamma28Curve>));
+                CompandingUtilities.Compand(values, default(ExpandOperator<Gamma28Curve>));
                 break;
             case CicpTransferCharacteristics.SmpteSt240:
-                TensorPrimitives_.Invoke(values, default(ExpandOperator<Smpte240Curve>));
+                CompandingUtilities.Compand(values, default(ExpandOperator<Smpte240Curve>));
                 break;
             case CicpTransferCharacteristics.Linear:
-                TensorPrimitives_.Invoke(values, default(ExpandOperator<LinearCurve>));
+                CompandingUtilities.Compand(values, default(ExpandOperator<LinearCurve>));
                 break;
             case CicpTransferCharacteristics.Log100:
-                TensorPrimitives_.Invoke(values, default(ExpandOperator<Log100Curve>));
+                CompandingUtilities.Compand(values, default(ExpandOperator<Log100Curve>));
                 break;
             case CicpTransferCharacteristics.Log100Sqrt:
-                TensorPrimitives_.Invoke(values, default(ExpandOperator<Log100SqrtCurve>));
+                CompandingUtilities.Compand(values, default(ExpandOperator<Log100SqrtCurve>));
                 break;
             case CicpTransferCharacteristics.Iec61966_2_4:
-                TensorPrimitives_.Invoke(values, default(ExpandOperator<Iec61966Curve>));
+                CompandingUtilities.Compand(values, default(ExpandOperator<Iec61966Curve>));
                 break;
             case CicpTransferCharacteristics.ItuRBt1361_0:
-                TensorPrimitives_.Invoke(values, default(ExpandOperator<Bt1361Curve>));
+                CompandingUtilities.Compand(values, default(ExpandOperator<Bt1361Curve>));
                 break;
             case CicpTransferCharacteristics.Iec61966_2_1:
-                TensorPrimitives_.Invoke(values, default(ExpandOperator<SrgbCurve>));
+                CompandingUtilities.Compand(values, default(ExpandOperator<SrgbCurve>));
                 break;
             case CicpTransferCharacteristics.SmpteSt2084:
-                TensorPrimitives_.Invoke(values, default(ExpandOperator<PqCurve>));
+                CompandingUtilities.Compand(values, default(ExpandOperator<PqCurve>));
                 break;
             case CicpTransferCharacteristics.SmpteSt428_1:
-                TensorPrimitives_.Invoke(values, default(ExpandOperator<Smpte428Curve>));
+                CompandingUtilities.Compand(values, default(ExpandOperator<Smpte428Curve>));
                 break;
             case CicpTransferCharacteristics.AribStdB67:
-                TensorPrimitives_.Invoke(values, default(ExpandOperator<HlgCurve>));
+                CompandingUtilities.Compand(values, default(ExpandOperator<HlgCurve>));
                 break;
             default:
-                TensorPrimitives_.Invoke(values, default(ExpandOperator<Bt709Curve>));
+                CompandingUtilities.Compand(values, default(ExpandOperator<Bt709Curve>));
                 break;
         }
     }
@@ -409,46 +409,46 @@ internal static partial class CicpCompanding
             case CicpTransferCharacteristics.ItuRBt601_7:
             case CicpTransferCharacteristics.ItuRBt2020_2_10bit:
             case CicpTransferCharacteristics.ItuRBt2020_2_12bit:
-                TensorPrimitives_.Invoke(values, default(CompressOperator<Bt709Curve>));
+                CompandingUtilities.Compand(values, default(CompressOperator<Bt709Curve>));
                 break;
             case CicpTransferCharacteristics.Gamma2_2:
-                TensorPrimitives_.Invoke(values, default(CompressOperator<Gamma22Curve>));
+                CompandingUtilities.Compand(values, default(CompressOperator<Gamma22Curve>));
                 break;
             case CicpTransferCharacteristics.Gamma2_8:
-                TensorPrimitives_.Invoke(values, default(CompressOperator<Gamma28Curve>));
+                CompandingUtilities.Compand(values, default(CompressOperator<Gamma28Curve>));
                 break;
             case CicpTransferCharacteristics.SmpteSt240:
-                TensorPrimitives_.Invoke(values, default(CompressOperator<Smpte240Curve>));
+                CompandingUtilities.Compand(values, default(CompressOperator<Smpte240Curve>));
                 break;
             case CicpTransferCharacteristics.Linear:
-                TensorPrimitives_.Invoke(values, default(CompressOperator<LinearCurve>));
+                CompandingUtilities.Compand(values, default(CompressOperator<LinearCurve>));
                 break;
             case CicpTransferCharacteristics.Log100:
-                TensorPrimitives_.Invoke(values, default(CompressOperator<Log100Curve>));
+                CompandingUtilities.Compand(values, default(CompressOperator<Log100Curve>));
                 break;
             case CicpTransferCharacteristics.Log100Sqrt:
-                TensorPrimitives_.Invoke(values, default(CompressOperator<Log100SqrtCurve>));
+                CompandingUtilities.Compand(values, default(CompressOperator<Log100SqrtCurve>));
                 break;
             case CicpTransferCharacteristics.Iec61966_2_4:
-                TensorPrimitives_.Invoke(values, default(CompressOperator<Iec61966Curve>));
+                CompandingUtilities.Compand(values, default(CompressOperator<Iec61966Curve>));
                 break;
             case CicpTransferCharacteristics.ItuRBt1361_0:
-                TensorPrimitives_.Invoke(values, default(CompressOperator<Bt1361Curve>));
+                CompandingUtilities.Compand(values, default(CompressOperator<Bt1361Curve>));
                 break;
             case CicpTransferCharacteristics.Iec61966_2_1:
-                TensorPrimitives_.Invoke(values, default(CompressOperator<SrgbCurve>));
+                CompandingUtilities.Compand(values, default(CompressOperator<SrgbCurve>));
                 break;
             case CicpTransferCharacteristics.SmpteSt2084:
-                TensorPrimitives_.Invoke(values, default(CompressOperator<PqCurve>));
+                CompandingUtilities.Compand(values, default(CompressOperator<PqCurve>));
                 break;
             case CicpTransferCharacteristics.SmpteSt428_1:
-                TensorPrimitives_.Invoke(values, default(CompressOperator<Smpte428Curve>));
+                CompandingUtilities.Compand(values, default(CompressOperator<Smpte428Curve>));
                 break;
             case CicpTransferCharacteristics.AribStdB67:
-                TensorPrimitives_.Invoke(values, default(CompressOperator<HlgCurve>));
+                CompandingUtilities.Compand(values, default(CompressOperator<HlgCurve>));
                 break;
             default:
-                TensorPrimitives_.Invoke(values, default(CompressOperator<Bt709Curve>));
+                CompandingUtilities.Compand(values, default(CompressOperator<Bt709Curve>));
                 break;
         }
     }

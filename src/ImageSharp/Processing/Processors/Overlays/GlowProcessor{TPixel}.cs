@@ -106,7 +106,7 @@ internal class GlowProcessor<TPixel> : ImageProcessor<TPixel>
             for (int i = 0; i < this.bounds.Width; i++)
             {
                 float distance = Vector2.Distance(this.center, new Vector2(i + this.bounds.X, y));
-                span[i] = Numerics.ClampNumber(this.blendPercent * (1 - (.95F * (distance / this.maxDistance))), 0, 1F);
+                span[i] = ColorNumerics.ClampToFinite(this.blendPercent * (1 - (.95F * (distance / this.maxDistance))), 0, 1F);
             }
 
             Span<TPixel> destination = this.source.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);

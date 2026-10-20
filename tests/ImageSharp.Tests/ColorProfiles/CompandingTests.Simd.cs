@@ -23,6 +23,83 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
     ];
 
     /// <summary>
+    /// Checks that tensor traversal transforms every component, including positions occupied by alpha in RGBA data.
+    /// </summary>
+    [Fact]
+    public void UnaryTraversal_TransformsEveryComponent() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckUnaryTraversal,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks complete SIMD blocks and scalar remainders using exact squares.
+    /// </summary>
+    private static void CheckUnaryTraversal()
+    {
+        ReadOnlySpan<int> lengths = [0, 1, 3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 33];
+        ReadOnlySpan<float> samples = [-2F, -1F, 0.5F, 2F];
+        TensorPrimitives_.PowOperator operation = new(2F);
+
+        foreach (int length in lengths)
+        {
+            float[] actual = new float[length];
+            for (int i = 0; i < actual.Length; i++)
+            {
+                // Every fourth value is two: an RGBA-specific traversal would incorrectly leave it unchanged.
+                actual[i] = samples[i % samples.Length];
+            }
+
+            TensorPrimitives_.Invoke(actual, operation);
+
+            for (int i = 0; i < actual.Length; i++)
+            {
+                float input = samples[i % samples.Length];
+                Assert.Equal(input * input, actual[i]);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks that companding transforms RGB and retains the exact alpha bits in scalar and bulk conversion.
+    /// </summary>
+    [Fact]
+    public void OperatorCompanding_PreservesAlpha() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckOperatorCompanding,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks finite and IEEE alpha values across complete SIMD blocks and remaining colors.
+    /// </summary>
+    private static void CheckOperatorCompanding()
+    {
+        ReadOnlySpan<int> lengths = [0, 1, 3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 33];
+        ReadOnlySpan<float> alpha = [0F, -0F, 0.5F, 2F, float.NaN, float.NegativeInfinity, float.PositiveInfinity];
+        TensorPrimitives_.PowOperator operation = new(2F);
+
+        foreach (int length in lengths)
+        {
+            Vector4[] actual = new Vector4[length];
+            for (int i = 0; i < actual.Length; i++)
+            {
+                // Exact squares test the traversal without introducing transfer-curve approximation error.
+                actual[i] = new Vector4(0.5F, 2F, -3F, alpha[i % alpha.Length]);
+            }
+
+            CompandingUtilities.Compand(actual, operation);
+
+            for (int i = 0; i < actual.Length; i++)
+            {
+                float inputAlpha = alpha[i % alpha.Length];
+                Vector4 single = CompandingUtilities.Compand(new Vector4(0.5F, 2F, -3F, inputAlpha), operation);
+
+                Assert.Equal(new Vector3(0.25F, 4F, 9F), new Vector3(actual[i].X, actual[i].Y, actual[i].Z));
+                Assert.Equal(new Vector3(0.25F, 4F, 9F), new Vector3(single.X, single.Y, single.Z));
+                Assert.Equal(BitConverter.SingleToInt32Bits(inputAlpha), BitConverter.SingleToInt32Bits(actual[i].W));
+                Assert.Equal(BitConverter.SingleToInt32Bits(inputAlpha), BitConverter.SingleToInt32Bits(single.W));
+            }
+        }
+    }
+
+    /// <summary>
     /// Checks table interpolation between sixteen-bit codes and reports error in sixteen-bit channel levels.
     /// </summary>
     [Fact]

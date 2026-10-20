@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -12,7 +13,8 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// The color components are stored in red, green, blue, and alpha order.
 /// </summary>
 /// <remarks>
-/// Native and scaled vector conversions return the stored floating-point values.
+/// Native vector conversions preserve the stored IEEE floating-point values.
+/// Color-vector conversions bound color components to the format's finite range and alpha to [0,1].
 /// The packed representation is binary-compatible with <c>DXGI_FORMAT_R16G16B16A16_FLOAT</c>.
 /// </remarks>
 [StructLayout(LayoutKind.Sequential)]
@@ -120,7 +122,8 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToScaledVector4() => this.ToVector4();
+    public readonly Vector4 ToScaledVector4()
+        => new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue).Invoke(this.ToVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -139,15 +142,16 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToScaledVector4();
+    public readonly Vector4 ToUnassociatedScaledVector4()
+        => new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue).Invoke(this.ToUnassociatedVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToAssociatedScaledVector4()
     {
-        Vector4 vector = this.ToScaledVector4();
-        Numerics.Premultiply(ref vector);
-        return vector;
+        return new Vector4Converters.AssociateOperator<Vector4Converters.IdentityOperator>(
+            default,
+            new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)).Invoke(this.ToVector4());
     }
 
     /// <inheritdoc />
@@ -165,14 +169,16 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static RgbaHalf FromUnassociatedScaledVector4(Vector4 source) => FromScaledVector4(source);
+    public static RgbaHalf FromUnassociatedScaledVector4(Vector4 source)
+        => FromUnassociatedVector4(new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue).Invoke(source));
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RgbaHalf FromAssociatedScaledVector4(Vector4 source)
     {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
+        // Recover straight RGB using the supplied alpha, then bound opacity. Zero alpha retains stored RGB.
+        source = new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)).Invoke(source);
+        return FromUnassociatedVector4(source);
     }
 
     /// <inheritdoc />
@@ -189,7 +195,7 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static RgbaHalf FromScaledVector4(Vector4 source) => FromVector4(source);
+    public static RgbaHalf FromScaledVector4(Vector4 source) => FromUnassociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -244,5 +250,6 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
     public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
 
     /// <inheritdoc />
-    public override readonly string ToString() => FormattableString.Invariant($"RgbaHalf({(float)this.R:#0.##}, {(float)this.G:#0.##}, {(float)this.B:#0.##}, {(float)this.A:#0.##})");
+    public override readonly string ToString()
+        => FormattableString.Invariant($"RgbaHalf({(float)this.R:#0.##}, {(float)this.G:#0.##}, {(float)this.B:#0.##}, {(float)this.A:#0.##})");
 }

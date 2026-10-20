@@ -12,7 +12,7 @@ internal static partial class Vector4Converters
     /// <summary>
     /// Defines a stateful component transform for each register width used by the shared traversal.
     /// </summary>
-    private interface IStatefulVector4Operator
+    public interface IStatefulVector4Operator
     {
         /// <summary>
         /// Transforms one pixel represented by four components.

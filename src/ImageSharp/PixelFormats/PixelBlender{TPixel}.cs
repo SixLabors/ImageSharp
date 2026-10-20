@@ -826,7 +826,7 @@ public abstract class PixelBlender<TPixel>
 
         for (int i = 0; i < destination.Length; i++)
         {
-            destination[i] = PorterDuffFunctions.BlendWithCoverage(background[i], destination[i], Numerics.ClampNumber(coverage[i], 0, 1F));
+            destination[i] = PorterDuffFunctions.BlendWithCoverage(background[i], destination[i], ColorNumerics.ClampToFinite(coverage[i], 0, 1F));
         }
     }
 
@@ -852,7 +852,7 @@ public abstract class PixelBlender<TPixel>
 
         for (int i = 0; i < destination.Length; i++)
         {
-            destination[i] = PorterDuffFunctions.BlendWithCoverage(background[i], destination[i], Numerics.ClampNumber(coverage[i], 0, 1F));
+            destination[i] = PorterDuffFunctions.BlendWithCoverage(background[i], destination[i], ColorNumerics.ClampToFinite(coverage[i], 0, 1F));
         }
     }
 
@@ -878,7 +878,7 @@ public abstract class PixelBlender<TPixel>
 
         for (int i = 0; i < destination.Length; i++)
         {
-            destination[i] = PorterDuffFunctions.BlendWithCoverage(background[i], destination[i], Numerics.ClampNumber(coverage[i], 0, 1F));
+            destination[i] = PorterDuffFunctions.BlendWithCoverage(background[i], destination[i], ColorNumerics.ClampToFinite(coverage[i], 0, 1F));
         }
     }
 
@@ -904,7 +904,7 @@ public abstract class PixelBlender<TPixel>
 
         for (int i = 0; i < destination.Length; i++)
         {
-            destination[i] = PorterDuffFunctions.BlendWithCoverage(background[i], destination[i], Numerics.ClampNumber(coverage[i], 0, 1F));
+            destination[i] = PorterDuffFunctions.BlendWithCoverage(background[i], destination[i], ColorNumerics.ClampToFinite(coverage[i], 0, 1F));
         }
     }
 }

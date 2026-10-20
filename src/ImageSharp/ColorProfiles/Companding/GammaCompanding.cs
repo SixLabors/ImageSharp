@@ -143,7 +143,7 @@ public static partial class GammaCompanding
     /// <param name="vectors">The colors, including values outside the SDR range.</param>
     /// <param name="gamma">The gamma of the nonlinear signal.</param>
     internal static void ExpandExtended(Span<Vector4> vectors, double gamma)
-        => TensorPrimitives_.Invoke(vectors, new ExpandOperator(gamma));
+        => CompandingUtilities.Compand(vectors, new ExpandOperator(gamma));
 
     /// <summary>
     /// Expands nonlinear RGB without clipping the result and retains alpha.
@@ -152,7 +152,7 @@ public static partial class GammaCompanding
     /// <param name="gamma">The gamma of the nonlinear signal.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
     internal static Vector4 ExpandExtended(Vector4 vector, double gamma)
-        => TensorPrimitives_.Invoke(vector, new ExpandOperator(gamma));
+        => CompandingUtilities.Compand(vector, new ExpandOperator(gamma));
 
     /// <summary>
     /// Compresses linear RGB without clipping the result and retains alpha.
@@ -160,7 +160,7 @@ public static partial class GammaCompanding
     /// <param name="vectors">The colors, including values outside the SDR range.</param>
     /// <param name="gamma">The gamma of the nonlinear signal.</param>
     internal static void CompressExtended(Span<Vector4> vectors, double gamma)
-        => TensorPrimitives_.Invoke(vectors, new CompressOperator(gamma));
+        => CompandingUtilities.Compand(vectors, new CompressOperator(gamma));
 
     /// <summary>
     /// Compresses linear RGB without clipping the result and retains alpha.
@@ -169,7 +169,7 @@ public static partial class GammaCompanding
     /// <param name="gamma">The gamma of the nonlinear signal.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
     internal static Vector4 CompressExtended(Vector4 vector, double gamma)
-        => TensorPrimitives_.Invoke(vector, new CompressOperator(gamma));
+        => CompandingUtilities.Compand(vector, new CompressOperator(gamma));
 
     private class GammaCompandingKey;
 }

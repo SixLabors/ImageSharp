@@ -138,7 +138,7 @@ internal static partial class IccColorConverter
             Vector3 components = xyz.AsVector3Unsafe();
             if (this.adjustFrom)
             {
-                components = this.sourceLab ? Numerics.ClampNumber(components, Vector3.Zero, new Vector3(float.PositiveInfinity)) : components;
+                components = this.sourceLab ? Vector3.Max(components, Vector3.Zero) : components;
                 components = (components * new Vector3(SourceBlackPointScaleX, SourceBlackPointScaleY, SourceBlackPointScaleZ))
                     + new Vector3(SourceBlackPointOffsetX, SourceBlackPointOffsetY, SourceBlackPointOffsetZ);
             }
@@ -147,7 +147,7 @@ internal static partial class IccColorConverter
             {
                 components = (components * new Vector3(TargetBlackPointScaleX, TargetBlackPointScaleY, TargetBlackPointScaleZ))
                     - new Vector3(TargetBlackPointOffsetX, TargetBlackPointOffsetY, TargetBlackPointOffsetZ);
-                components = this.targetLab ? components : Numerics.ClampNumber(components, Vector3.Zero, new Vector3(float.PositiveInfinity));
+                components = this.targetLab ? components : Vector3.Max(components, Vector3.Zero);
             }
 
             xyz = new CieXyz(components);
@@ -213,9 +213,9 @@ internal static partial class IccColorConverter
             {
                 if (this.sourceLab)
                 {
-                    x = Numerics.ClampNumber(x, Vector128<float>.Zero, Vector128.Create(float.PositiveInfinity));
-                    y = Numerics.ClampNumber(y, Vector128<float>.Zero, Vector128.Create(float.PositiveInfinity));
-                    z = Numerics.ClampNumber(z, Vector128<float>.Zero, Vector128.Create(float.PositiveInfinity));
+                    x = Vector128.Max(x, Vector128<float>.Zero);
+                    y = Vector128.Max(y, Vector128<float>.Zero);
+                    z = Vector128.Max(z, Vector128<float>.Zero);
                 }
 
                 x = (x * Vector128.Create(SourceBlackPointScaleX)) + Vector128.Create(SourceBlackPointOffsetX);
@@ -230,9 +230,9 @@ internal static partial class IccColorConverter
                 z = (z * Vector128.Create(TargetBlackPointScaleZ)) - Vector128.Create(TargetBlackPointOffsetZ);
                 if (!this.targetLab)
                 {
-                    x = Numerics.ClampNumber(x, Vector128<float>.Zero, Vector128.Create(float.PositiveInfinity));
-                    y = Numerics.ClampNumber(y, Vector128<float>.Zero, Vector128.Create(float.PositiveInfinity));
-                    z = Numerics.ClampNumber(z, Vector128<float>.Zero, Vector128.Create(float.PositiveInfinity));
+                    x = Vector128.Max(x, Vector128<float>.Zero);
+                    y = Vector128.Max(y, Vector128<float>.Zero);
+                    z = Vector128.Max(z, Vector128<float>.Zero);
                 }
             }
 
@@ -312,9 +312,9 @@ internal static partial class IccColorConverter
             {
                 if (this.sourceLab)
                 {
-                    x = Numerics.ClampNumber(x, Vector256<float>.Zero, Vector256.Create(float.PositiveInfinity));
-                    y = Numerics.ClampNumber(y, Vector256<float>.Zero, Vector256.Create(float.PositiveInfinity));
-                    z = Numerics.ClampNumber(z, Vector256<float>.Zero, Vector256.Create(float.PositiveInfinity));
+                    x = Vector256.Max(x, Vector256<float>.Zero);
+                    y = Vector256.Max(y, Vector256<float>.Zero);
+                    z = Vector256.Max(z, Vector256<float>.Zero);
                 }
 
                 x = (x * Vector256.Create(SourceBlackPointScaleX)) + Vector256.Create(SourceBlackPointOffsetX);
@@ -329,9 +329,9 @@ internal static partial class IccColorConverter
                 z = (z * Vector256.Create(TargetBlackPointScaleZ)) - Vector256.Create(TargetBlackPointOffsetZ);
                 if (!this.targetLab)
                 {
-                    x = Numerics.ClampNumber(x, Vector256<float>.Zero, Vector256.Create(float.PositiveInfinity));
-                    y = Numerics.ClampNumber(y, Vector256<float>.Zero, Vector256.Create(float.PositiveInfinity));
-                    z = Numerics.ClampNumber(z, Vector256<float>.Zero, Vector256.Create(float.PositiveInfinity));
+                    x = Vector256.Max(x, Vector256<float>.Zero);
+                    y = Vector256.Max(y, Vector256<float>.Zero);
+                    z = Vector256.Max(z, Vector256<float>.Zero);
                 }
             }
 
@@ -411,9 +411,9 @@ internal static partial class IccColorConverter
             {
                 if (this.sourceLab)
                 {
-                    x = Numerics.ClampNumber(x, Vector512<float>.Zero, Vector512.Create(float.PositiveInfinity));
-                    y = Numerics.ClampNumber(y, Vector512<float>.Zero, Vector512.Create(float.PositiveInfinity));
-                    z = Numerics.ClampNumber(z, Vector512<float>.Zero, Vector512.Create(float.PositiveInfinity));
+                    x = Vector512.Max(x, Vector512<float>.Zero);
+                    y = Vector512.Max(y, Vector512<float>.Zero);
+                    z = Vector512.Max(z, Vector512<float>.Zero);
                 }
 
                 x = (x * Vector512.Create(SourceBlackPointScaleX)) + Vector512.Create(SourceBlackPointOffsetX);
@@ -428,9 +428,9 @@ internal static partial class IccColorConverter
                 z = (z * Vector512.Create(TargetBlackPointScaleZ)) - Vector512.Create(TargetBlackPointOffsetZ);
                 if (!this.targetLab)
                 {
-                    x = Numerics.ClampNumber(x, Vector512<float>.Zero, Vector512.Create(float.PositiveInfinity));
-                    y = Numerics.ClampNumber(y, Vector512<float>.Zero, Vector512.Create(float.PositiveInfinity));
-                    z = Numerics.ClampNumber(z, Vector512<float>.Zero, Vector512.Create(float.PositiveInfinity));
+                    x = Vector512.Max(x, Vector512<float>.Zero);
+                    y = Vector512.Max(y, Vector512<float>.Zero);
+                    z = Vector512.Max(z, Vector512<float>.Zero);
                 }
             }
 

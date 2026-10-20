@@ -51,7 +51,7 @@ public class QuantizerOptions : IDeepCloneable<QuantizerOptions>
     public float DitherScale
     {
         get => this.ditherScale;
-        set => this.ditherScale = Numerics.ClampNumber(value, QuantizerConstants.MinDitherScale, QuantizerConstants.MaxDitherScale);
+        set => this.ditherScale = ColorNumerics.ClampToFinite(value, QuantizerConstants.MinDitherScale, QuantizerConstants.MaxDitherScale);
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ public class QuantizerOptions : IDeepCloneable<QuantizerOptions>
     public float TransparencyThreshold
     {
         get => this.threshold;
-        set => this.threshold = Numerics.ClampNumber(value, QuantizerConstants.MinTransparencyThreshold, QuantizerConstants.MaxTransparencyThreshold);
+        set => this.threshold = ColorNumerics.ClampToFinite(value, QuantizerConstants.MinTransparencyThreshold, QuantizerConstants.MaxTransparencyThreshold);
     }
 
     /// <summary>

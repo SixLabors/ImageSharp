@@ -50,13 +50,13 @@ internal sealed class ExifLong8Array : ExifArrayValue<ulong>
                 return this.SetSingle(val);
 
             case short val:
-                return this.SetSingle((ulong)Math.Clamp(val, 0, short.MaxValue));
+                return this.SetSingle((ulong)Math.Clamp((int)val, 0, short.MaxValue));
 
             case ushort val:
                 return this.SetSingle(val);
 
             case long val:
-                return this.SetSingle((ulong)Numerics.ClampNumber(val, 0, long.MaxValue));
+                return this.SetSingle((ulong)ColorNumerics.ClampToFinite(val, 0, long.MaxValue));
 
             case long[] array:
                 if (value.GetType() == typeof(ulong[]))
@@ -141,7 +141,7 @@ internal sealed class ExifLong8Array : ExifArrayValue<ulong>
         ulong[] numbers = new ulong[values.Length];
         for (int i = 0; i < values.Length; i++)
         {
-            numbers[i] = (ulong)Math.Clamp(values[i], 0, short.MaxValue);
+            numbers[i] = (ulong)Math.Clamp((int)values[i], 0, short.MaxValue);
         }
 
         this.Value = numbers;

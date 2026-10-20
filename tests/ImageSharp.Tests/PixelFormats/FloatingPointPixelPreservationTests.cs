@@ -61,19 +61,73 @@ public class FloatingPointPixelPreservationTests
     }
 
     /// <summary>
-    /// Four-component floating-point formats do not bound alpha to the unit interval.
+    /// Color conversion bounds alpha to [0,1] while retaining finite HDR RGB values.
     /// </summary>
     [Fact]
-    public void ScaledFloatStoragePreservesOutOfRangeAlpha()
+    public void ScaledFloatStorageClampsAlpha()
     {
         Vector4 source = new(2F, -1F, .5F, 2F);
+        Vector4 expected = new(2F, -1F, .5F, 1F);
+        Vector4 expectedAssociated = new(1F, -.5F, .25F, 1F);
 
-        Assert.Equal(source, HalfVector4.FromUnassociatedScaledVector4(source).ToUnassociatedScaledVector4());
-        Assert.Equal(source, RgbaHalf.FromUnassociatedScaledVector4(source).ToUnassociatedScaledVector4());
-        Assert.Equal(source, RgbaVector.FromUnassociatedScaledVector4(source).ToUnassociatedScaledVector4());
-        Assert.Equal(source, HalfVector4P.FromAssociatedScaledVector4(source).ToAssociatedScaledVector4());
-        Assert.Equal(source, RgbaHalfP.FromAssociatedScaledVector4(source).ToAssociatedScaledVector4());
-        Assert.Equal(source, RgbaVectorP.FromAssociatedScaledVector4(source).ToAssociatedScaledVector4());
+        Assert.Equal(expected, HalfVector4.FromUnassociatedScaledVector4(source).ToUnassociatedScaledVector4());
+        Assert.Equal(expected, RgbaHalf.FromUnassociatedScaledVector4(source).ToUnassociatedScaledVector4());
+        Assert.Equal(expected, RgbaVector.FromUnassociatedScaledVector4(source).ToUnassociatedScaledVector4());
+        Assert.Equal(expectedAssociated, HalfVector4P.FromAssociatedScaledVector4(source).ToAssociatedScaledVector4());
+        Assert.Equal(expectedAssociated, RgbaHalfP.FromAssociatedScaledVector4(source).ToAssociatedScaledVector4());
+        Assert.Equal(expectedAssociated, RgbaVectorP.FromAssociatedScaledVector4(source).ToAssociatedScaledVector4());
+    }
+
+    /// <summary>
+    /// Associated color input uses a finite alpha divisor before applying destination opacity limits.
+    /// </summary>
+    [Fact]
+    public void AssociatedColorInputMakesAlphaFiniteBeforeDivision()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertAssociatedColorInputMakesAlphaFiniteBeforeDivision,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks straight floating-point destinations and associated floating-point and byte destinations.
+    /// </summary>
+    private static void AssertAssociatedColorInputMakesAlphaFiniteBeforeDivision()
+    {
+        AssertFiniteAssociatedAlpha<HalfVector4>();
+        AssertFiniteAssociatedAlpha<RgbaHalf>();
+        AssertFiniteAssociatedAlpha<RgbaVector>();
+        AssertFiniteAssociatedAlpha<HalfVector4P>();
+        AssertFiniteAssociatedAlpha<RgbaHalfP>();
+        AssertFiniteAssociatedAlpha<RgbaVectorP>();
+
+        AssertFiniteAssociatedAlpha<Rgba32P>();
+        AssertFiniteAssociatedAlpha<Bgra32P>();
+        AssertFiniteAssociatedAlpha<Argb32P>();
+        AssertFiniteAssociatedAlpha<Abgr32P>();
+        AssertFiniteAssociatedAlpha<NormalizedByte4P>();
+    }
+
+    /// <summary>
+    /// Checks scalar and bulk packing against a known straight color, including a scalar remainder.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    private static void AssertFiniteAssociatedAlpha<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Both inputs must produce straight RGB (1, 0.5, 0). Infinity becomes float.MaxValue before division;
+        // an already finite alpha at that limit stays unchanged. A divisor of infinity would incorrectly produce black.
+        Vector4[] source = new Vector4[65];
+        TPixel[] destination = new TPixel[source.Length];
+        TPixel expected = TPixel.FromUnassociatedScaledVector4(new Vector4(1F, .5F, 0F, 1F));
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            source[i] = new Vector4(float.MaxValue, float.MaxValue / 2F, 0F, i % 2 == 0 ? float.PositiveInfinity : float.MaxValue);
+            Assert.Equal(expected, TPixel.FromAssociatedScaledVector4(source[i]));
+        }
+
+        // Only the expected destination packing uses the unassociated API. The input under test always uses associated conversion.
+        PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(Configuration.Default, source, destination);
+        Assert.All(destination, pixel => Assert.Equal(expected, pixel));
     }
 
     /// <summary>
@@ -113,7 +167,7 @@ public class FloatingPointPixelPreservationTests
     /// </summary>
     private static void AssertBoundedPixelFormatsSaturateNonfiniteComponents()
     {
-        Vector4 input = new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, 1F);
+        Vector4 input = new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, float.PositiveInfinity);
         RgbaVector[] source = new RgbaVector[65];
         Array.Fill(source, RgbaVector.FromUnassociatedScaledVector4(input));
 
@@ -167,7 +221,7 @@ public class FloatingPointPixelPreservationTests
         => AssertBoundedSaturation<TPixel>(input, source, new Vector4(0F, 1F, 0F, 1F));
 
     /// <summary>
-    /// Checks a destination's scalar storage and generic bulk conversion against specified saturation endpoints.
+    /// Checks scalar packing and bulk vector and pixel conversion against fixed saturation endpoints.
     /// </summary>
     /// <typeparam name="TPixel">The bounded destination pixel format.</typeparam>
     /// <param name="input">The input components.</param>
@@ -179,12 +233,22 @@ public class FloatingPointPixelPreservationTests
         Assert.Equal(expected, TPixel.FromUnassociatedScaledVector4(input).ToUnassociatedScaledVector4());
 
         TPixel[] destination = new TPixel[source.Length];
-        PixelOperations<TPixel>.Instance.From(Configuration.Default, source, destination);
 
-        foreach (TPixel pixel in destination)
-        {
-            Assert.Equal(expected, pixel.ToUnassociatedScaledVector4());
-        }
+        // Infinite endpoints have the same meaning in native and scaled units, including signed integer formats.
+        Assert.Equal(expected, TPixel.FromUnassociatedVector4(input).ToUnassociatedScaledVector4());
+
+        Vector4[] vectors = new Vector4[source.Length];
+        Array.Fill(vectors, input);
+        PixelOperations<TPixel>.Instance.FromUnassociatedVector4Destructive(Configuration.Default, vectors, destination);
+        Assert.All(destination, pixel => Assert.Equal(expected, pixel.ToUnassociatedScaledVector4()));
+
+        // Destructive conversion can modify its input, so restore it before testing the scaled entry point.
+        Array.Fill(vectors, input);
+        PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(Configuration.Default, vectors, destination);
+        Assert.All(destination, pixel => Assert.Equal(expected, pixel.ToUnassociatedScaledVector4()));
+
+        PixelOperations<TPixel>.Instance.From(Configuration.Default, source, destination);
+        Assert.All(destination, pixel => Assert.Equal(expected, pixel.ToUnassociatedScaledVector4()));
     }
 
     /// <summary>
@@ -231,7 +295,7 @@ public class FloatingPointPixelPreservationTests
             new(2F, -.5F, .25F, .5F),
             new(0F, 3F, -1F, .25F),
             new(-4F, 0F, .5F, 1F),
-            new(1F, 2F, 3F, 2F),
+            new(1F, 2F, 3F, 1F),
             new(5F, -2F, 1F, .125F)
         ];
 
@@ -240,7 +304,7 @@ public class FloatingPointPixelPreservationTests
             new(1F, -.25F, .125F, .5F),
             new(0F, .75F, -.25F, .25F),
             new(-4F, 0F, .5F, 1F),
-            new(2F, 4F, 6F, 2F),
+            new(1F, 2F, 3F, 1F),
             new(.625F, -.25F, .125F, .125F)
         ];
 
@@ -314,6 +378,14 @@ public class FloatingPointPixelPreservationTests
     /// </summary>
     [Fact]
     public void FloatToBoundedSpanConversionHandlesNonfiniteComponents()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertFloatToBoundedSpanConversionHandlesNonfiniteComponents,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks color and alpha saturation against fixed byte and word values at every SIMD width.
+    /// </summary>
+    private static void AssertFloatToBoundedSpanConversionHandlesNonfiniteComponents()
     {
         Vector4[] inputs =
         [
@@ -321,11 +393,32 @@ public class FloatingPointPixelPreservationTests
             new(float.PositiveInfinity, float.NaN, float.NegativeInfinity, 1F),
             new(float.NegativeInfinity, float.PositiveInfinity, float.NaN, 0F),
             new(2F, -1F, .5F, 1F),
-            new(.25F, .75F, 0F, .5F)
+            new(.25F, .75F, 0F, .5F),
+            new(.25F, .75F, 0F, float.NaN),
+            new(.25F, .75F, 0F, float.NegativeInfinity)
         ];
 
-        Rgba32[] expected32 = [new(0, 255, 0, 255), new(255, 0, 0, 255), new(0, 255, 0, 0), new(255, 0, 128, 255), new(64, 191, 0, 128)];
-        Rgba64[] expected64 = [new(0, 65535, 0, 65535), new(65535, 0, 0, 65535), new(0, 65535, 0, 0), new(65535, 0, 32768, 65535), new(16384, 49151, 0, 32768)];
+        Rgba32[] expected32 =
+        [
+            new(0, 255, 0, 255),
+            new(255, 0, 0, 255),
+            new(0, 255, 0, 0),
+            new(255, 0, 128, 255),
+            new(64, 191, 0, 128),
+            new(64, 191, 0, 0),
+            new(64, 191, 0, 0)
+        ];
+
+        Rgba64[] expected64 =
+        [
+            new(0, 65535, 0, 65535),
+            new(65535, 0, 0, 65535),
+            new(0, 65535, 0, 0),
+            new(65535, 0, 32768, 65535),
+            new(16384, 49151, 0, 32768),
+            new(16384, 49151, 0, 0),
+            new(16384, 49151, 0, 0)
+        ];
         RgbaVector[] source = new RgbaVector[17];
         Rgba32[] destination32 = new Rgba32[source.Length];
         Rgba64[] destination64 = new Rgba64[source.Length];
@@ -346,18 +439,18 @@ public class FloatingPointPixelPreservationTests
     }
 
     /// <summary>
-    /// Float-to-float bulk conversion keeps IEEE special values and the sign of zero.
+    /// Float-to-float color conversion bounds nonfinite RGB and alpha while retaining finite HDR values and signed zero.
     /// </summary>
     [Fact]
-    public void FloatToHalfBulkConversionPreservesSpecialValues()
+    public void FloatToHalfBulkConversionBoundsColorComponents()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            AssertFloatToHalfBulkConversionPreservesSpecialValues,
+            AssertFloatToHalfBulkConversionBoundsColorComponents,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Checks special-value conversion at each supported instruction width.
     /// </summary>
-    private static void AssertFloatToHalfBulkConversionPreservesSpecialValues()
+    private static void AssertFloatToHalfBulkConversionBoundsColorComponents()
     {
         Vector4[] inputs =
         [
@@ -373,36 +466,24 @@ public class FloatingPointPixelPreservationTests
 
         for (int i = 0; i < source.Length; i++)
         {
-            source[i] = RgbaVector.FromUnassociatedScaledVector4(inputs[i % inputs.Length]);
+            source[i] = RgbaVector.FromVector4(inputs[i % inputs.Length]);
         }
 
         PixelOperations<HalfVector4>.Instance.From(Configuration.Default, source, destination);
 
+        // The source uses raw IEEE storage. Generic conversion must apply finite RGB bounds and alpha [0,1].
+        Vector4[] expected =
+        [
+            new(-0F, 65504F, -65504F, 0F),
+            new(2.5F, -1F, .5F, 1F),
+            new(0F, 65504F, -65504F, 0F),
+            new(.25F, .75F, 1.5F, 1F),
+            new(65504F, -65504F, -65504F, -0F)
+        ];
+
         for (int i = 0; i < destination.Length; i++)
         {
-            ulong packed = destination[i].PackedValue;
-
-            // NaN payload bits are not fixed; mask only that component and check its classification.
-            switch (i % inputs.Length)
-            {
-                case 0:
-                    Assert.Equal(0x0000FC007C008000UL, packed & 0x0000FFFFFFFFFFFFUL);
-                    Assert.True(float.IsNaN(destination[i].ToVector4().W));
-                    break;
-                case 1:
-                    Assert.Equal(0x3C003800BC004100UL, packed);
-                    break;
-                case 2:
-                    Assert.Equal(0x0000FBFF7BFF0000UL, packed);
-                    break;
-                case 3:
-                    Assert.Equal(0x40003E003A003400UL, packed);
-                    break;
-                default:
-                    Assert.Equal(0x80000000FC007C00UL, packed & 0xFFFF0000FFFFFFFFUL);
-                    Assert.True(float.IsNaN(destination[i].ToVector4().Z));
-                    break;
-            }
+            Assert.Equal(expected[i % expected.Length], destination[i].ToVector4());
         }
     }
 
@@ -420,13 +501,16 @@ public class FloatingPointPixelPreservationTests
     /// </summary>
     private static void AssertHalfVector4BulkPackingMatchesBinary16BoundaryBits()
     {
+        // Binary16's smallest positive subnormal is 2^-24. Half that value rounds to zero with nearest-even rounding.
+        const float MinimumHalfSubnormal = 1F / (1 << 24);
         Vector4[] inputs =
         [
             new(1.00048828125F, 65504F, 65520F, -0F),
             new(-1.00048828125F, -65504F, -65520F, 0F),
             new(.5F, -.5F, 2F, -2F),
             new(0F, 1F, -1F, 4F),
-            new(.25F, .75F, 1.5F, -4F)
+            new(.25F, .75F, 1.5F, -4F),
+            new(MinimumHalfSubnormal, MinimumHalfSubnormal / 2F, -MinimumHalfSubnormal, -MinimumHalfSubnormal / 2F)
         ];
 
         ulong[] expectedBits =
@@ -435,7 +519,8 @@ public class FloatingPointPixelPreservationTests
             0x0000FC00FBFFBC00,
             0xC0004000B8003800,
             0x4400BC003C000000,
-            0xC4003E003A003400
+            0xC4003E003A003400,
+            0x8000800100000001
         ];
 
         Vector4[] source = new Vector4[17];
@@ -446,7 +531,7 @@ public class FloatingPointPixelPreservationTests
             source[i] = inputs[i % inputs.Length];
         }
 
-        PixelOperations<HalfVector4>.Instance.FromUnassociatedScaledVector4Destructive(Configuration.Default, source, actual);
+        PixelOperations<HalfVector4>.Instance.FromUnassociatedVector4Destructive(Configuration.Default, source, actual);
 
         for (int i = 0; i < actual.Length; i++)
         {
@@ -455,82 +540,115 @@ public class FloatingPointPixelPreservationTests
     }
 
     /// <summary>
-    /// HalfSingle preserves scaled input identically in scalar and bulk conversions.
+    /// HalfSingle applies finite color bounds identically in scalar and bulk conversions.
     /// </summary>
     [Fact]
-    public void HalfSingle_ScaledInputIsPreserved() => AssertScaledInputIsPreserved<HalfSingle>();
+    public void HalfSingle_ColorInputMatchesFiniteContract()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            () => AssertColorInputMatchesFiniteContract<HalfSingle>(),
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// HalfVector2 preserves scaled input identically in scalar and bulk conversions.
+    /// HalfVector2 applies finite color bounds identically in scalar and bulk conversions.
     /// </summary>
     [Fact]
-    public void HalfVector2_ScaledInputIsPreserved() => AssertScaledInputIsPreserved<HalfVector2>();
+    public void HalfVector2_ColorInputMatchesFiniteContract()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            () => AssertColorInputMatchesFiniteContract<HalfVector2>(),
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// HalfVector4 preserves scaled input identically in scalar and bulk conversions.
+    /// HalfVector4 applies finite color bounds identically in scalar and bulk conversions.
     /// </summary>
     [Fact]
-    public void HalfVector4_ScaledInputIsPreserved() => AssertScaledInputIsPreserved<HalfVector4>();
+    public void HalfVector4_ColorInputMatchesFiniteContract()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            () => AssertColorInputMatchesFiniteContract<HalfVector4>(),
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// HalfVector4P preserves scaled input identically in scalar and bulk conversions.
+    /// HalfVector4P applies finite color bounds identically in scalar and bulk conversions.
     /// </summary>
     [Fact]
-    public void HalfVector4P_ScaledInputIsPreserved() => AssertScaledInputIsPreserved<HalfVector4P>();
+    public void HalfVector4P_ColorInputMatchesFiniteContract()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            () => AssertColorInputMatchesFiniteContract<HalfVector4P>(),
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// RgbaVector preserves scaled input identically in scalar and bulk conversions.
+    /// RgbaVector applies finite color bounds identically in scalar and bulk conversions.
     /// </summary>
     [Fact]
-    public void RgbaVector_ScaledInputIsPreserved() => AssertScaledInputIsPreserved<RgbaVector>();
+    public void RgbaVector_ColorInputMatchesFiniteContract()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            () => AssertColorInputMatchesFiniteContract<RgbaVector>(),
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// RgbaHalf preserves scaled input identically in scalar and bulk conversions.
+    /// RgbaHalf applies finite color bounds identically in scalar and bulk conversions.
     /// </summary>
     [Fact]
-    public void RgbaHalf_ScaledInputIsPreserved() => AssertScaledInputIsPreserved<RgbaHalf>();
+    public void RgbaHalf_ColorInputMatchesFiniteContract()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            () => AssertColorInputMatchesFiniteContract<RgbaHalf>(),
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// RgbaHalfP preserves scaled input identically in scalar and bulk conversions.
+    /// RgbaHalfP applies finite color bounds identically in scalar and bulk conversions.
     /// </summary>
     [Fact]
-    public void RgbaHalfP_ScaledInputIsPreserved() => AssertScaledInputIsPreserved<RgbaHalfP>();
+    public void RgbaHalfP_ColorInputMatchesFiniteContract()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            () => AssertColorInputMatchesFiniteContract<RgbaHalfP>(),
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Associated binary32 pixels preserve unassociated scaled input in scalar and bulk conversions.
     /// </summary>
     [Fact]
-    public void RgbaVectorP_ScaledInputIsPreserved() => AssertScaledInputIsPreserved<RgbaVectorP>();
+    public void RgbaVectorP_ColorInputMatchesFiniteContract()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            () => AssertColorInputMatchesFiniteContract<RgbaVectorP>(),
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Raw half storage and scaled vectors preserve IEEE special values.
     /// </summary>
     [Fact]
-    public void HalfVector4_ScaledOutputPreservesSpecialValues() => AssertScaledOutputPreservesSpecialValues();
+    public void HalfVector4_ColorOutputBoundsNonfiniteValues() => AssertColorOutputBoundsNonfiniteValues();
 
     /// <summary>
     /// Associated half-vector conversion preserves the stored component values.
     /// </summary>
     [Fact]
-    public void HalfVector4P_AssociatedScaledInputIsPreserved() => AssertAssociatedScaledInputIsPreserved<HalfVector4P>();
+    public void HalfVector4P_AssociatedColorInputMatchesFiniteContract()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            () => AssertAssociatedColorInputMatchesFiniteContract<HalfVector4P>(),
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Associated half-RGBA conversion preserves the stored component values.
     /// </summary>
     [Fact]
-    public void RgbaHalfP_AssociatedScaledInputIsPreserved() => AssertAssociatedScaledInputIsPreserved<RgbaHalfP>();
+    public void RgbaHalfP_AssociatedColorInputMatchesFiniteContract()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            () => AssertAssociatedColorInputMatchesFiniteContract<RgbaHalfP>(),
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Associated binary32 pixels preserve stored values in scalar and bulk conversions.
+    /// Associated binary32 color conversions apply finite RGB bounds and alpha [0,1].
     /// </summary>
     [Fact]
-    public void RgbaVectorP_AssociatedScaledInputIsPreserved() => AssertAssociatedScaledInputIsPreserved<RgbaVectorP>();
+    public void RgbaVectorP_AssociatedColorInputMatchesFiniteContract()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            () => AssertAssociatedColorInputMatchesFiniteContract<RgbaVectorP>(),
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Checks that the scaled modifier does not change finite floating-point input.
+    /// Checks native storage separately from finite color conversion and bounded alpha.
     /// </summary>
     /// <typeparam name="TPixel">The destination pixel format.</typeparam>
-    private static void AssertScaledInputIsPreserved<TPixel>()
+    private static void AssertColorInputMatchesFiniteContract<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Vector4[] inputs =
@@ -538,25 +656,46 @@ public class FloatingPointPixelPreservationTests
             new(2.5F, -2F, .5F, 1F),
             new(.25F, .5F, .75F, .5F),
             new(-3F, 4F, .25F, 0F),
-            new(65504F, -65504F, 0F, 1F)
+            new(65504F, -65504F, 0F, 1F),
+            new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, 1F),
+            new(-0F, 0F, -0F, 1F),
+            new(2F, -1F, .5F, float.NaN),
+            new(2F, -1F, .5F, float.PositiveInfinity),
+            new(2F, -1F, .5F, float.NegativeInfinity),
+            new(2F, -1F, .5F, -1F),
+            new(2F, -1F, .5F, 2F),
+            new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, float.NaN)
         ];
 
-        // Seventeen pixels exercise wide registers and the narrower remainder paths.
-        Vector4[] source = new Vector4[17];
+        // Sixty-five pixels cover full SIMD blocks and a final pixel at every supported width.
+        Vector4[] source = new Vector4[65];
         TPixel[] expected = new TPixel[source.Length];
+        TPixel[] expectedColor = new TPixel[source.Length];
         TPixel[] actual = new TPixel[source.Length];
+        Vector4[] expectedVectors = new Vector4[source.Length];
+        Vector4[] actualVectors = new Vector4[source.Length];
 
         for (int i = 0; i < source.Length; i++)
         {
             int sample = i % inputs.Length;
             source[i] = inputs[sample];
             expected[i] = TPixel.FromUnassociatedVector4(source[i]);
-            Assert.Equal(expected[i], TPixel.FromUnassociatedScaledVector4(source[i]));
+            expectedColor[i] = TPixel.FromUnassociatedVector4(GetExpectedColorInput<TPixel>(source[i]));
+            Assert.Equal(expectedColor[i], TPixel.FromUnassociatedScaledVector4(source[i]));
+            expectedVectors[i] = expectedColor[i].ToUnassociatedVector4();
         }
 
-        // Associated formats otherwise interpret the vectors using their native alpha representation.
-        PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(Configuration.Default, source, actual);
+        PixelOperations<TPixel>.Instance.FromUnassociatedVector4Destructive(Configuration.Default, source.AsSpan().ToArray(), actual);
         Assert.Equal(expected, actual);
+
+        PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(Configuration.Default, source.AsSpan().ToArray(), actual);
+        Assert.Equal(expectedColor, actual);
+
+        PixelOperations<TPixel>.Instance.ToUnassociatedVector4(Configuration.Default, actual, actualVectors);
+        Assert.Equal(expectedVectors, actualVectors);
+
+        PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(Configuration.Default, actual, actualVectors);
+        Assert.Equal(expectedVectors, actualVectors);
     }
 
     /// <summary>
@@ -598,10 +737,10 @@ public class FloatingPointPixelPreservationTests
     }
 
     /// <summary>
-    /// Checks that the scaled modifier does not change associated floating-point input.
+    /// Checks raw associated storage separately from finite color conversion and bounded alpha.
     /// </summary>
     /// <typeparam name="TPixel">The associated destination pixel format.</typeparam>
-    private static void AssertAssociatedScaledInputIsPreserved<TPixel>()
+    private static void AssertAssociatedColorInputMatchesFiniteContract<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Vector4[] inputs =
@@ -609,11 +748,17 @@ public class FloatingPointPixelPreservationTests
             new(2.5F, -2F, .5F, 1F),
             new(1F, .5F, 1.5F, 2F),
             new(.125F, .25F, .375F, .5F),
-            new(-3F, 4F, .25F, 0F)
+            new(-3F, 4F, .25F, 0F),
+            new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, 1F),
+            new(-0F, 0F, -0F, -0F),
+            new(2F, -1F, .5F, float.NaN),
+            new(2F, -1F, .5F, float.PositiveInfinity),
+            new(2F, -1F, .5F, float.NegativeInfinity)
         ];
 
-        Vector4[] source = new Vector4[17];
+        Vector4[] source = new Vector4[65];
         TPixel[] expected = new TPixel[source.Length];
+        TPixel[] expectedColor = new TPixel[source.Length];
         TPixel[] actual = new TPixel[source.Length];
 
         for (int i = 0; i < source.Length; i++)
@@ -621,17 +766,71 @@ public class FloatingPointPixelPreservationTests
             int sample = i % inputs.Length;
             source[i] = inputs[sample];
             expected[i] = TPixel.FromAssociatedVector4(source[i]);
-            Assert.Equal(expected[i], TPixel.FromAssociatedScaledVector4(source[i]));
+            Vector4 color = source[i];
+
+            // Make alpha finite before recovering straight RGB. Keep positive finite values above one for division;
+            // using one or infinity as the divisor would change the color. Stored opacity is bounded separately below.
+            float alpha = float.IsNaN(color.W) ? 0F : Math.Clamp(color.W, 0F, float.MaxValue);
+            if (alpha > 1F)
+            {
+                color.X /= alpha;
+                color.Y /= alpha;
+                color.Z /= alpha;
+            }
+
+            color.W = float.IsNaN(color.W) ? 0F : Math.Clamp(color.W, 0F, 1F);
+            expectedColor[i] = TPixel.FromAssociatedVector4(GetExpectedColorInput<TPixel>(color));
+            Assert.Equal(expectedColor[i], TPixel.FromAssociatedScaledVector4(source[i]));
         }
 
-        PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(Configuration.Default, source, actual);
+        PixelOperations<TPixel>.Instance.FromAssociatedVector4Destructive(Configuration.Default, source.AsSpan().ToArray(), actual);
         Assert.Equal(expected, actual);
+
+        PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(Configuration.Default, source.AsSpan().ToArray(), actual);
+        Assert.Equal(expectedColor, actual);
+
+        // Matching alpha representation requires no arithmetic. Compare storage bytes to include signed zero and NaN payloads.
+        Assert.Equal(MemoryMarshal.AsBytes(expectedColor.AsSpan()).ToArray(), MemoryMarshal.AsBytes(actual.AsSpan()).ToArray());
+
+        Vector4[] expectedVectors = new Vector4[source.Length];
+        Vector4[] actualVectors = new Vector4[source.Length];
+        for (int i = 0; i < source.Length; i++)
+        {
+            expectedVectors[i] = expectedColor[i].ToAssociatedVector4();
+        }
+
+        PixelOperations<TPixel>.Instance.ToAssociatedVector4(Configuration.Default, actual, actualVectors);
+        Assert.Equal(expectedVectors, actualVectors);
+
+        PixelOperations<TPixel>.Instance.ToAssociatedScaledVector4(Configuration.Default, actual, actualVectors);
+        Assert.Equal(expectedVectors, actualVectors);
+    }
+
+    /// <summary>
+    /// Applies the color-conversion contract independently of the pixel conversion implementation.
+    /// </summary>
+    /// <typeparam name="TPixel">The floating-point format whose storage precision supplies the RGB limits.</typeparam>
+    /// <param name="input">The raw input components.</param>
+    /// <returns>Finite RGB components and opacity in [0,1], ready for native packing.</returns>
+    private static Vector4 GetExpectedColorInput<TPixel>(Vector4 input)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // These tests cover binary16 and binary32 formats. Alpha has the same opacity range in both.
+        int precision = TPixel.GetPixelTypeInfo().ComponentInfo.Value.GetMaximumComponentPrecision();
+        float maximum = precision == 16 ? 65504F : float.MaxValue;
+        for (int component = 0; component < 3; component++)
+        {
+            input[component] = float.IsNaN(input[component]) ? -maximum : Math.Clamp(input[component], -maximum, maximum);
+        }
+
+        input.W = float.IsNaN(input.W) ? 0F : Math.Clamp(input.W, 0F, 1F);
+        return input;
     }
 
     /// <summary>
     /// Checks native storage and scaled output independently of integer conversion semantics.
     /// </summary>
-    private static void AssertScaledOutputPreservesSpecialValues()
+    private static void AssertColorOutputBoundsNonfiniteValues()
     {
         Vector4 native = new(float.PositiveInfinity, float.NegativeInfinity, float.NaN, 65504F);
         HalfVector4 pixel = HalfVector4.FromVector4(native);
@@ -639,16 +838,15 @@ public class FloatingPointPixelPreservationTests
         Assert.True(float.IsNegativeInfinity(pixel.ToVector4().Y));
         Assert.True(float.IsNaN(pixel.ToVector4().Z));
 
-        Vector4 expected = pixel.ToVector4();
-        Assert.True(float.IsPositiveInfinity(expected.X));
-        Assert.True(float.IsNegativeInfinity(expected.Y));
-        Assert.True(float.IsNaN(expected.Z));
-        Assert.Equal(65504F, expected.W);
-        Assert.True(float.IsPositiveInfinity(new HalfSingle(float.PositiveInfinity).ToScaledVector4().X));
-        Assert.True(float.IsNaN(new HalfSingle(float.NaN).ToScaledVector4().X));
+        Vector4 expected = pixel.ToScaledVector4();
+        Assert.Equal(65504F, expected.X);
+        Assert.Equal(-65504F, expected.Y);
+        Assert.Equal(-65504F, expected.Z);
+        Assert.Equal(1F, expected.W);
+        Assert.Equal(65504F, new HalfSingle(float.PositiveInfinity).ToScaledVector4().X);
+        Assert.Equal(-65504F, new HalfSingle(float.NaN).ToScaledVector4().X);
         Vector4 halfVector2 = new HalfVector2(new Vector2(float.PositiveInfinity, float.NaN)).ToScaledVector4();
-        Assert.True(float.IsPositiveInfinity(halfVector2.X));
-        Assert.True(float.IsNaN(halfVector2.Y));
-
+        Assert.Equal(65504F, halfVector2.X);
+        Assert.Equal(-65504F, halfVector2.Y);
     }
 }

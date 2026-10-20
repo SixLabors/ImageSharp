@@ -196,10 +196,10 @@ public readonly partial struct OrderedDither : IDither, IEquatable<OrderedDither
 
         float factor = spread * this.thresholdMatrix[y % this.modulusY, x % this.modulusX] * scale;
 
-        attempt.R = (byte)Numerics.ClampNumber(rgba.R + factor, byte.MinValue, byte.MaxValue);
-        attempt.G = (byte)Numerics.ClampNumber(rgba.G + factor, byte.MinValue, byte.MaxValue);
-        attempt.B = (byte)Numerics.ClampNumber(rgba.B + factor, byte.MinValue, byte.MaxValue);
-        attempt.A = (byte)Numerics.ClampNumber(rgba.A + factor, byte.MinValue, byte.MaxValue);
+        attempt.R = (byte)ColorNumerics.ClampToFinite(rgba.R + factor, byte.MinValue, byte.MaxValue);
+        attempt.G = (byte)ColorNumerics.ClampToFinite(rgba.G + factor, byte.MinValue, byte.MaxValue);
+        attempt.B = (byte)ColorNumerics.ClampToFinite(rgba.B + factor, byte.MinValue, byte.MaxValue);
+        attempt.A = (byte)ColorNumerics.ClampToFinite(rgba.A + factor, byte.MinValue, byte.MaxValue);
 
         return TPixel.FromRgba32(attempt);
     }

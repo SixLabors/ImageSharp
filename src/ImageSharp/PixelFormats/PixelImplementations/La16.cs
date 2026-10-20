@@ -239,7 +239,7 @@ public partial struct La16 : IPixel<La16>, IPackedVector<ushort>
     {
         vector *= MaxBytes;
         vector += Half;
-        vector = Numerics.ClampNumber(vector, Vector4.Zero, MaxBytes);
+        vector = ColorNumerics.ClampToFinite(vector, Vector4.Zero, MaxBytes);
 
         Vector128<byte> result = Vector128.ConvertToInt32(vector.AsVector128()).AsByte();
         byte l = ColorNumerics.Get8BitBT709Luminance(result.GetElement(0), result.GetElement(4), result.GetElement(8));

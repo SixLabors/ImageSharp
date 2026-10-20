@@ -151,7 +151,7 @@ internal class YCbCrTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     // Apply TIFF's YCbCr matrix to produce the RGB values expected by the embedded RGB ICC profile.
                     // The stored byte codes describe bounded RGB. Clip matrix overshoot before ICC, without rounding fractional samples.
                     YCbCr.ToProfileConnectionSpace(rgbSourceOptions, ycbcrRow, rgbRow);
-                    Numerics.ClampNumber(MemoryMarshal.Cast<Rgb, float>(rgbRow), 0F, 1F);
+                    ColorNumerics.ClampToFinite(MemoryMarshal.Cast<Rgb, float>(rgbRow), 0F, 1F);
                     iccConverter.Convert<Rgb, Rgb>(rgbRow, rgbRow);
                 }
                 else

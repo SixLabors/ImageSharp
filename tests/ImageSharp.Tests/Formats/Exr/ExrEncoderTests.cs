@@ -125,11 +125,15 @@ public class ExrEncoderTests
         }
     }
 
+    /// <summary>
+    /// EXR color conversion bounds nonfinite RGB and retains the sign of zero alpha.
+    /// </summary>
+    /// <param name="compression">The lossless compression method.</param>
     [Theory]
     [InlineData(ExrCompression.None)]
     [InlineData(ExrCompression.Zip)]
     [InlineData(ExrCompression.Zips)]
-    public void FloatDefaultLoad_PreservesNonfiniteSamplesAndSignedZero(ExrCompression compression)
+    public void FloatDefaultLoad_BoundsNonfiniteSamplesAndPreservesSignedZero(ExrCompression compression)
     {
         using Image<RgbaVectorP> input = new(65, 1);
         RgbaVectorP pixel = new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, -0F);
@@ -146,12 +150,15 @@ public class ExrEncoderTests
         using Image decoded = Image.Load(stream);
         Image<RgbaVectorP> output = Assert.IsType<Image<RgbaVectorP>>(decoded);
 
+        // Color conversion uses finite float storage bounds. Zero alpha retains the stored associated RGB.
+        RgbaVectorP expected = new(float.MinValue, float.MaxValue, float.MinValue, -0F);
+
         for (int x = 0; x < output.Width; x++)
         {
             RgbaVectorP actual = output[x, 0];
-            Assert.True(float.IsNaN(actual.R));
-            Assert.True(float.IsPositiveInfinity(actual.G));
-            Assert.True(float.IsNegativeInfinity(actual.B));
+            Assert.Equal(expected.R, actual.R);
+            Assert.Equal(expected.G, actual.G);
+            Assert.Equal(expected.B, actual.B);
             Assert.Equal(BitConverter.SingleToInt32Bits(-0F), BitConverter.SingleToInt32Bits(actual.A));
         }
     }

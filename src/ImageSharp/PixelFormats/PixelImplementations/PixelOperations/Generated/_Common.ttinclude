@@ -304,9 +304,8 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
         {
             Span<byte> destinationBytes = MemoryMarshal.Cast<<#=pixelType#>, byte>(destination);
 
-            // The SIMD saturating conversion produces RGBA byte order. Reusing the destination
-            // buffer and shuffling it in place avoids the row-sized Rgba32 temporary used by
-            // the generic Rgba-compatible path for non-Rgba32 formats.
+            // Clamp at byte packing: NaN becomes zero, and infinities become the corresponding byte endpoints.
+            // The shared SIMD conversion writes RGBA bytes. Shuffle them in place to avoid a temporary pixel row.
             SimdUtils.NormalizedFloatToByteSaturate(
                 MemoryMarshal.Cast<Vector4, float>(sourceVectors),
                 destinationBytes);

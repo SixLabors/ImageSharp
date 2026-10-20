@@ -33,8 +33,11 @@ public class BinaryThresholdTest
         Assert.Equal(RgbaVector.FromRgba32(Color.White.ToPixel<Rgba32>()), image[64, 0]);
     }
 
+    /// <summary>
+    /// Thresholding measures the finite RGB supplied by pixel conversion and does not discard transparent RGB.
+    /// </summary>
     [Fact]
-    public void LuminanceThreshold_NonfiniteMetricsSelectLower()
+    public void LuminanceThreshold_UsesFiniteConvertedComponents()
     {
         using Image<RgbaVector> image = new(65, 1);
         for (int x = 0; x < image.Width; x++)
@@ -50,12 +53,16 @@ public class BinaryThresholdTest
 
         image.Mutate(x => x.BinaryThreshold(.5F));
 
-        Assert.Equal(0F, image[0, 0].R);
+        // NaN and negative infinity become float.MinValue; positive infinity becomes float.MaxValue.
+        // The opposite red limits place the threshold at zero, so ordinary positive RGB selects the upper color.
+        Assert.Equal(1F, image[0, 0].R);
         Assert.Equal(1F, image[30, 0].R);
         Assert.Equal(0F, image[31, 0].R);
-        Assert.Equal(0F, image[32, 0].R);
+        Assert.Equal(1F, image[32, 0].R);
         Assert.Equal(0F, image[33, 0].R);
-        Assert.Equal(0F, image[34, 0].R);
+
+        // Alpha becomes zero, but luminance still uses the finite RGB components.
+        Assert.Equal(1F, image[34, 0].R);
     }
 
     [Fact]
@@ -109,15 +116,19 @@ public class BinaryThresholdTest
         Assert.Equal(1F, image[64, 0].R);
     }
 
+    /// <summary>
+    /// Equal NaN inputs become equal finite minima, which follow the constant-range upper-color rule.
+    /// </summary>
     [Fact]
-    public void LuminanceThreshold_WithoutFiniteMetricsSelectsLower()
+    public void LuminanceThreshold_NonfiniteInputsBecomeConstantFiniteRange()
     {
         using Image<RgbaVector> image = new(65, 1, new RgbaVector(float.NaN, float.NaN, float.NaN));
 
         image.Mutate(x => x.BinaryThreshold(.5F));
 
-        Assert.Equal(0F, image[0, 0].R);
-        Assert.Equal(0F, image[64, 0].R);
+        // Pixel conversion replaces NaN before the processor measures the range.
+        Assert.Equal(1F, image[0, 0].R);
+        Assert.Equal(1F, image[64, 0].R);
     }
 
     public static readonly TheoryData<float> BinaryThresholdValues

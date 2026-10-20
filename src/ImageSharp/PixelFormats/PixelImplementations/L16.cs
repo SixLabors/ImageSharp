@@ -210,7 +210,7 @@ public partial struct L16 : IPixel<L16>, IPackedVector<ushort>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort Pack(Vector4 vector)
     {
-        vector = Numerics.ClampNumber(vector, Vector4.Zero, Vector4.One) * Max;
+        vector = ColorNumerics.ClampToFinite(vector, Vector4.Zero, Vector4.One) * Max;
         return ColorNumerics.Get16BitBT709Luminance(vector.X, vector.Y, vector.Z);
     }
 }

@@ -225,7 +225,7 @@ public partial struct Bgra4444 : IPixel<Bgra4444>, IPackedVector<ushort>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort Pack(Vector4 vector)
     {
-        vector = Numerics.ClampNumber(vector, Vector4.Zero, Vector4.One);
+        vector = ColorNumerics.ClampToFinite(vector, Vector4.Zero, Vector4.One);
         return (ushort)((((int)Math.Round(vector.W * 15F) & 0x0F) << 12)
                       | (((int)Math.Round(vector.X * 15F) & 0x0F) << 8)
                       | (((int)Math.Round(vector.Y * 15F) & 0x0F) << 4)

@@ -462,9 +462,9 @@ public partial struct NormalizedByte4P
                 source = (source + one) / Vector512.Create(2F);
             }
 
-            source = Numerics.ClampNumber(source, zero, one);
+            source = ColorNumerics.ClampToFinite(source, zero, one);
             Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector512<float> nativeAlpha = Numerics.ClampNumber((alpha * Vector512.Create(2F)) - one, -one, one);
+            Vector512<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector512.Create(2F)) - one, -one, one);
             Vector512<float> storedAlpha = Vector512.Round(nativeAlpha * Vector512.Create(MaxPos));
             storedAlpha += Vector512.Create(MaxPos);
             storedAlpha /= Vector512.Create(ScaledMagnitude);
@@ -491,9 +491,9 @@ public partial struct NormalizedByte4P
                 source = (source + one) / Vector256.Create(2F);
             }
 
-            source = Numerics.ClampNumber(source, zero, one);
+            source = ColorNumerics.ClampToFinite(source, zero, one);
             Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector256<float> nativeAlpha = Numerics.ClampNumber((alpha * Vector256.Create(2F)) - one, -one, one);
+            Vector256<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector256.Create(2F)) - one, -one, one);
             Vector256<float> storedAlpha = Vector256.Round(nativeAlpha * Vector256.Create(MaxPos));
             storedAlpha += Vector256.Create(MaxPos);
             storedAlpha /= Vector256.Create(ScaledMagnitude);
@@ -520,9 +520,9 @@ public partial struct NormalizedByte4P
                 source = (source + one) / Vector128.Create(2F);
             }
 
-            source = Numerics.ClampNumber(source, zero, one);
+            source = ColorNumerics.ClampToFinite(source, zero, one);
             Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector128<float> nativeAlpha = Numerics.ClampNumber((alpha * Vector128.Create(2F)) - one, -one, one);
+            Vector128<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector128.Create(2F)) - one, -one, one);
             Vector128<float> storedAlpha = Vector128.Round(nativeAlpha * Vector128.Create(MaxPos));
             storedAlpha += Vector128.Create(MaxPos);
             storedAlpha /= Vector128.Create(ScaledMagnitude);
@@ -622,15 +622,17 @@ public partial struct NormalizedByte4P
                 source = (source + one) / Vector512.Create(2F);
             }
 
+            // Each RGBA group uses one replicated finite divisor. Preserve finite alpha above one until RGB is recovered.
             Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector512<float> nativeAlpha = Numerics.ClampNumber((alpha * Vector512.Create(2F)) - one, -one, one);
+            alpha = ColorNumerics.ClampToFinite(alpha, zero, Vector512.Create(float.MaxValue));
+            Vector512<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector512.Create(2F)) - one, -one, one);
             Vector512<float> storedAlpha = Vector512.Round(nativeAlpha * Vector512.Create(MaxPos));
             storedAlpha += Vector512.Create(MaxPos);
             storedAlpha /= Vector512.Create(ScaledMagnitude);
             Vector512<float> result = source * (storedAlpha / alpha);
             Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
             result = Vector512.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = Numerics.ClampNumber(result, zero, storedAlpha);
+            result = ColorNumerics.ClampToFinite(result, zero, storedAlpha);
             return Vector512.ConditionalSelect(Vector512.LessThanOrEqual(alpha, zero), zero, result);
         }
 
@@ -652,15 +654,17 @@ public partial struct NormalizedByte4P
                 source = (source + one) / Vector256.Create(2F);
             }
 
+            // Each RGBA group uses one replicated finite divisor. Preserve finite alpha above one until RGB is recovered.
             Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector256<float> nativeAlpha = Numerics.ClampNumber((alpha * Vector256.Create(2F)) - one, -one, one);
+            alpha = ColorNumerics.ClampToFinite(alpha, zero, Vector256.Create(float.MaxValue));
+            Vector256<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector256.Create(2F)) - one, -one, one);
             Vector256<float> storedAlpha = Vector256.Round(nativeAlpha * Vector256.Create(MaxPos));
             storedAlpha += Vector256.Create(MaxPos);
             storedAlpha /= Vector256.Create(ScaledMagnitude);
             Vector256<float> result = source * (storedAlpha / alpha);
             Vector256<float> alphaMask = Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
             result = Vector256.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = Numerics.ClampNumber(result, zero, storedAlpha);
+            result = ColorNumerics.ClampToFinite(result, zero, storedAlpha);
             return Vector256.ConditionalSelect(Vector256.LessThanOrEqual(alpha, zero), zero, result);
         }
 
@@ -682,15 +686,17 @@ public partial struct NormalizedByte4P
                 source = (source + one) / Vector128.Create(2F);
             }
 
+            // Each RGBA group uses one replicated finite divisor. Preserve finite alpha above one until RGB is recovered.
             Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector128<float> nativeAlpha = Numerics.ClampNumber((alpha * Vector128.Create(2F)) - one, -one, one);
+            alpha = ColorNumerics.ClampToFinite(alpha, zero, Vector128.Create(float.MaxValue));
+            Vector128<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector128.Create(2F)) - one, -one, one);
             Vector128<float> storedAlpha = Vector128.Round(nativeAlpha * Vector128.Create(MaxPos));
             storedAlpha += Vector128.Create(MaxPos);
             storedAlpha /= Vector128.Create(ScaledMagnitude);
             Vector128<float> result = source * (storedAlpha / alpha);
             Vector128<float> alphaMask = Vector128.Create(0, 0, 0, -1).AsSingle();
             result = Vector128.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = Numerics.ClampNumber(result, zero, storedAlpha);
+            result = ColorNumerics.ClampToFinite(result, zero, storedAlpha);
             return Vector128.ConditionalSelect(Vector128.LessThanOrEqual(alpha, zero), zero, result);
         }
 
@@ -758,7 +764,11 @@ public partial struct NormalizedByte4P
             for (; i < source.Length; i++)
             {
                 Vector4 vector = Unsafe.Add(ref sourceBase, (uint)i);
-                Unsafe.Add(ref destinationBase, (uint)i) = scaled ? FromScaledVector4(vector) : FromVector4(vector);
+
+                // Both signed-byte formats use this packer. The caller owns alpha conversion; pack only the supplied components.
+                Unsafe.Add(ref destinationBase, (uint)i) = scaled
+                    ? PackAssociatedScaledVector4(vector)
+                    : new NormalizedByte4P { PackedValue = NormalizedByte4P.Pack(vector) };
             }
         }
 
@@ -779,7 +789,7 @@ public partial struct NormalizedByte4P
                 source -= one;
             }
 
-            source = Numerics.ClampNumber(source, -one, one) * Vector512.Create(MaxPos);
+            source = ColorNumerics.ClampToFinite(source, -one, one) * Vector512.Create(MaxPos);
             return Vector512_.ConvertToInt32RoundToEven(source);
         }
 
@@ -800,7 +810,7 @@ public partial struct NormalizedByte4P
                 source -= one;
             }
 
-            source = Numerics.ClampNumber(source, -one, one) * Vector256.Create(MaxPos);
+            source = ColorNumerics.ClampToFinite(source, -one, one) * Vector256.Create(MaxPos);
             return Vector256_.ConvertToInt32RoundToEven(source);
         }
 
@@ -821,7 +831,7 @@ public partial struct NormalizedByte4P
                 source -= one;
             }
 
-            source = Numerics.ClampNumber(source, -one, one) * Vector128.Create(MaxPos);
+            source = ColorNumerics.ClampToFinite(source, -one, one) * Vector128.Create(MaxPos);
             return Vector128_.ConvertToInt32RoundToEven(source);
         }
     }

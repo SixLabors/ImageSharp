@@ -280,7 +280,7 @@ public partial struct Bgra32P : IPixel<Bgra32P>, IPackedVector<uint>
     {
         vector *= MaxBytes;
         vector += Half;
-        vector = Numerics.ClampNumber(vector, Vector4.Zero, MaxBytes);
+        vector = ColorNumerics.ClampToFinite(vector, Vector4.Zero, MaxBytes);
 
         // Each converted component occupies one 32-bit lane. Reinterpreting those lanes as bytes exposes their low bytes at offsets 0, 4, 8, and 12.
         Vector128<byte> result = Vector128.ConvertToInt32(vector.AsVector128()).AsByte();

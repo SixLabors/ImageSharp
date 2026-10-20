@@ -19,9 +19,6 @@ public static partial class Rec2020Companding
     internal readonly struct ExpandOperator : TensorPrimitives_.IUnaryOperator
     {
         /// <inheritdoc/>
-        public static bool PreserveAlpha => true;
-
-        /// <inheritdoc/>
         public float Invoke(float value) => new Rec709Companding.ExpandOperator((float)Alpha, (float)AlphaMinusOne, (float)InverseBeta).Invoke(value);
 
         /// <inheritdoc/>
@@ -55,9 +52,6 @@ public static partial class Rec2020Companding
     /// </summary>
     internal readonly struct CompressOperator : TensorPrimitives_.IUnaryOperator
     {
-        /// <inheritdoc/>
-        public static bool PreserveAlpha => true;
-
         /// <inheritdoc/>
         public float Invoke(float value) => new Rec709Companding.CompressOperator((float)Alpha, (float)AlphaMinusOne, (float)Beta).Invoke(value);
 

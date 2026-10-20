@@ -143,7 +143,7 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgb96 FromVector4(Vector4 source)
     {
-        source = Numerics.ClampNumber(source, Vector4.Zero, Vector4.One);
+        source = ColorNumerics.ClampToFinite(source, Vector4.Zero, Vector4.One);
         return new Rgb96(
             (uint)Math.Round(source.X * Max),
             (uint)Math.Round(source.Y * Max),

@@ -61,15 +61,20 @@ public partial class ColorTests
         Assert.Equal(new Vector4(1F, 0.5F, 0.25F, 0.5F), actual);
     }
 
+    /// <summary>
+    /// Floating-point pixel conversion retains HDR RGB while bounding opacity to [0,1].
+    /// </summary>
     [Fact]
     public void FloatColorsPreserveValuesOutsideUnitInterval()
     {
-        Vector4 expected = new(2F, -1F, 0.5F, 2F);
+        Vector4 input = new(2F, -1F, 0.5F, 2F);
+        Vector4 expected = new(2F, -1F, 0.5F, 1F);
 
-        Color scalar = Color.FromScaledVector(expected);
+        // RGB uses the floating-point storage range; opacity remains bounded even when RGB exceeds one.
+        Color scalar = Color.FromScaledVector(input);
         Assert.Equal(expected, scalar.ToPixel<RgbaVector>().ToUnassociatedScaledVector4());
 
-        Vector4[] sources = [expected];
+        Vector4[] sources = [input];
         Color[] colors = new Color[sources.Length];
         RgbaVector[] pixels = new RgbaVector[sources.Length];
 

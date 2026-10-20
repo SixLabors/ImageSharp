@@ -61,7 +61,7 @@ internal static class Vector128_
         bits *= Vector128.Create(SignificandScale);
         if (hasSpecial)
         {
-            bits = Numerics.ClampNumber(bits, Vector128<float>.Zero, Vector128.Create(InfinityBits));
+            bits = Vector128.Clamp(bits, Vector128<float>.Zero, Vector128.Create(InfinityBits));
         }
 
         // The encoded bit range is within Int32, so native truncation needs no saturation fixups.

@@ -18,9 +18,9 @@ public class YcbCrToRgb
         int ccb = cb - 128;
         int ccr = cr - 128;
 
-        byte r = (byte)Numerics.ClampNumber(y + (1.402F * ccr), 0, 255);
-        byte g = (byte)Numerics.ClampNumber(y - (0.34414F * ccb) - (0.71414F * ccr), 0, 255);
-        byte b = (byte)Numerics.ClampNumber(y + (1.772F * ccb), 0, 255);
+        byte r = (byte)ColorNumerics.ClampToFinite(y + (1.402F * ccr), 0, 255);
+        byte g = (byte)ColorNumerics.ClampToFinite(y - (0.34414F * ccb) - (0.71414F * ccr), 0, 255);
+        byte b = (byte)ColorNumerics.ClampToFinite(y + (1.772F * ccb), 0, 255);
 
         return new Vector3(r, g, b);
     }

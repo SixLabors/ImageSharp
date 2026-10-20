@@ -506,7 +506,8 @@ internal static class TiffDecoderOptionsParser
                     TiffThrowHelper.ThrowNotSupported("The custom ink name strings are not supported for CMYK images.");
                 }
 
-                options.ColorType = TiffColorType.Cmyk;
+                // Horizontal prediction restores each sample at its stored width. CMYK16 must not use byte-wise addition.
+                options.ColorType = bitsPerChannel == 16 ? TiffColorType.Cmyk16161616 : TiffColorType.Cmyk;
                 break;
             }
 

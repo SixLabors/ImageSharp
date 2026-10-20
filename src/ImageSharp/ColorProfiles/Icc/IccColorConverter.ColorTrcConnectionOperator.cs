@@ -62,7 +62,7 @@ internal static partial class IccColorConverter
             value = this.matrix.Convert(this.sourceCurves.Convert(value));
             if (this.clipNegativeXyz)
             {
-                value = new Vector4(Numerics.ClampNumber(value.AsVector3(), Vector3.Zero, new Vector3(float.PositiveInfinity)), 1F);
+                value = new Vector4(Vector3.Max(value.AsVector3(), Vector3.Zero), 1F);
                 value = this.matrixAfterClipping.Convert(value);
             }
 
@@ -80,9 +80,9 @@ internal static partial class IccColorConverter
             if (this.clipNegativeXyz)
             {
                 // Black-point adjustment clips negative XYZ before the target matrix. Device RGB remains unbounded.
-                x = Numerics.ClampNumber(x, Vector128<float>.Zero, Vector128.Create(float.PositiveInfinity));
-                y = Numerics.ClampNumber(y, Vector128<float>.Zero, Vector128.Create(float.PositiveInfinity));
-                z = Numerics.ClampNumber(z, Vector128<float>.Zero, Vector128.Create(float.PositiveInfinity));
+                x = Vector128.Max(x, Vector128<float>.Zero);
+                y = Vector128.Max(y, Vector128<float>.Zero);
+                z = Vector128.Max(z, Vector128<float>.Zero);
                 this.matrixAfterClipping.Convert(ref x, ref y, ref z);
             }
 
@@ -100,9 +100,9 @@ internal static partial class IccColorConverter
             if (this.clipNegativeXyz)
             {
                 // Black-point adjustment clips negative XYZ before the target matrix. Device RGB remains unbounded.
-                x = Numerics.ClampNumber(x, Vector256<float>.Zero, Vector256.Create(float.PositiveInfinity));
-                y = Numerics.ClampNumber(y, Vector256<float>.Zero, Vector256.Create(float.PositiveInfinity));
-                z = Numerics.ClampNumber(z, Vector256<float>.Zero, Vector256.Create(float.PositiveInfinity));
+                x = Vector256.Max(x, Vector256<float>.Zero);
+                y = Vector256.Max(y, Vector256<float>.Zero);
+                z = Vector256.Max(z, Vector256<float>.Zero);
                 this.matrixAfterClipping.Convert(ref x, ref y, ref z);
             }
 
@@ -120,9 +120,9 @@ internal static partial class IccColorConverter
             if (this.clipNegativeXyz)
             {
                 // Black-point adjustment clips negative XYZ before the target matrix. Device RGB remains unbounded.
-                x = Numerics.ClampNumber(x, Vector512<float>.Zero, Vector512.Create(float.PositiveInfinity));
-                y = Numerics.ClampNumber(y, Vector512<float>.Zero, Vector512.Create(float.PositiveInfinity));
-                z = Numerics.ClampNumber(z, Vector512<float>.Zero, Vector512.Create(float.PositiveInfinity));
+                x = Vector512.Max(x, Vector512<float>.Zero);
+                y = Vector512.Max(y, Vector512<float>.Zero);
+                z = Vector512.Max(z, Vector512<float>.Zero);
                 this.matrixAfterClipping.Convert(ref x, ref y, ref z);
             }
 

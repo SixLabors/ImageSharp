@@ -44,7 +44,7 @@ public class HalfVector4Tests
     public void HalfVector4_ToScaledVector4()
     {
         // arrange
-        Vector4 expected = new((float)Half.MinValue, 0F, (float)Half.MaxValue, (float)Half.MinValue);
+        Vector4 expected = new((float)Half.MinValue, 0F, (float)Half.MaxValue, 0F);
         HalfVector4 pixel = new((float)Half.MinValue, 0F, (float)Half.MaxValue, (float)Half.MinValue);
 
         // act
@@ -59,7 +59,7 @@ public class HalfVector4Tests
     {
         // arrange
         Vector4 scaled = new((float)Half.MinValue, -32752F, 0F, (float)Half.MaxValue);
-        ulong expected = new HalfVector4(scaled).PackedValue;
+        ulong expected = new HalfVector4(scaled.X, scaled.Y, scaled.Z, 1F).PackedValue;
 
         // act
         HalfVector4 pixel = HalfVector4.FromScaledVector4(scaled);
@@ -82,7 +82,7 @@ public class HalfVector4Tests
         HalfVector4[] source = new HalfVector4[17];
         Vector4[] expectedVectors = new Vector4[source.Length];
         Array.Fill(source, pixel);
-        Array.Fill(expectedVectors, new Vector4((float)Half.MinValue, 0F, (float)Half.MaxValue, (float)Half.MinValue));
+        Array.Fill(expectedVectors, new Vector4((float)Half.MinValue, 0F, (float)Half.MaxValue, 0F));
 
         Vector4[] actualVectors = new Vector4[source.Length];
         PixelOperations<HalfVector4>.Instance.ToScaledVector4(Configuration.Default, source, actualVectors);
@@ -91,7 +91,9 @@ public class HalfVector4Tests
         Vector4[] destructiveSource = [.. expectedVectors];
         HalfVector4[] actualPixels = new HalfVector4[source.Length];
         PixelOperations<HalfVector4>.Instance.FromScaledVector4Destructive(Configuration.Default, destructiveSource, actualPixels);
-        Assert.Equal(source, actualPixels);
+        // Color conversion retains the HDR RGB limits and replaces the invalid negative opacity with zero.
+        HalfVector4 expectedPixel = new((float)Half.MinValue, 0F, (float)Half.MaxValue, 0F);
+        Assert.All(actualPixels, actual => Assert.Equal(expectedPixel, actual));
     }
 
     [Fact]

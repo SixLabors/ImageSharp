@@ -18,7 +18,7 @@ public readonly struct Y : IColorProfile<Y, Rgb>
     /// </summary>
     /// <param name="l">The luminance component.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Y(float l) => this.L = Numerics.ClampNumber(l, 0, 1);
+    public Y(float l) => this.L = ColorNumerics.ClampToFinite(l, 0, 1);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #pragma warning disable SA1313 // Parameter names should begin with lower-case letter

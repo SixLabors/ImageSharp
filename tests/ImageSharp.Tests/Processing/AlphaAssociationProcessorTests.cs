@@ -28,12 +28,6 @@ public class AlphaAssociationProcessorTests
     [InlineData(ProcessorCase.Median)]
     [InlineData(ProcessorCase.MedianPreserveAlpha)]
     [InlineData(ProcessorCase.BokehBlur)]
-    [InlineData(ProcessorCase.OilPaint)]
-    [InlineData(ProcessorCase.HistogramGlobal)]
-    [InlineData(ProcessorCase.HistogramAdaptiveSlidingWindow)]
-    [InlineData(ProcessorCase.HistogramAdaptiveTileInterpolation)]
-    [InlineData(ProcessorCase.HistogramAutoLevel)]
-    [InlineData(ProcessorCase.HistogramAutoLevelSeparateChannels)]
     [InlineData(ProcessorCase.ResizeCompanded)]
     [InlineData(ProcessorCase.ResizeUnassociated)]
     [InlineData(ProcessorCase.AffineTransform)]
@@ -44,6 +38,31 @@ public class AlphaAssociationProcessorTests
     {
         using Image<RgbaVector> unassociated = processor == ProcessorCase.EntropyCrop ? CreateEntropyCropImage() : CreateTestImage();
         using Image<ScaledRgbaVectorP> associated = CreateAssociatedImage(unassociated);
+
+        ApplyProcessor(unassociated, processor);
+        ApplyProcessor(associated, processor);
+
+        AssertEquivalent(unassociated, associated);
+    }
+
+    /// <summary>
+    /// Histogram processors use the same bins for equivalent extended colors in either alpha representation.
+    /// </summary>
+    /// <param name="processor">The histogram-based processor to compare.</param>
+    [Theory]
+    [InlineData(ProcessorCase.OilPaint)]
+    [InlineData(ProcessorCase.HistogramGlobal)]
+    [InlineData(ProcessorCase.HistogramAdaptiveSlidingWindow)]
+    [InlineData(ProcessorCase.HistogramAdaptiveTileInterpolation)]
+    [InlineData(ProcessorCase.HistogramAutoLevel)]
+    [InlineData(ProcessorCase.HistogramAutoLevelSeparateChannels)]
+    public void HistogramProcessorsTreatEquivalentExtendedAlphaRepresentationsEqually(ProcessorCase processor)
+    {
+        using Image<RgbaVector> unassociated = CreateTestImage();
+
+        // Both formats declare Extended. The SDR test format selects a different histogram mapping,
+        // so it cannot isolate alpha representation in these comparisons.
+        using Image<RgbaVectorP> associated = unassociated.CloneAs<RgbaVectorP>();
 
         ApplyProcessor(unassociated, processor);
         ApplyProcessor(associated, processor);
@@ -394,7 +413,14 @@ public class AlphaAssociationProcessorTests
             NumberOfTiles = 2
         };
 
-    private static void AssertEquivalent(Image<RgbaVector> unassociated, Image<ScaledRgbaVectorP> associated)
+    /// <summary>
+    /// Compares logical colors after both alpha representations use the same sixteen-bit destination.
+    /// </summary>
+    /// <typeparam name="TPixel">The associated source format.</typeparam>
+    /// <param name="unassociated">The processed straight colors.</param>
+    /// <param name="associated">The processed associated colors.</param>
+    private static void AssertEquivalent<TPixel>(Image<RgbaVector> unassociated, Image<TPixel> associated)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         // Materialize both representations through the same 16-bit logical-color boundary. Their floating-point storage paths can differ by one rounding operation when associated results are unassociated for RgbaVector storage.
         using Image<Rgba64> expected = unassociated.CloneAs<Rgba64>();

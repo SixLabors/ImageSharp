@@ -43,7 +43,7 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
             ? source.ToAssociatedScaledVector4()
             : source.ToUnassociatedScaledVector4();
 
-        Vector4 result = TOperator.Invoke(backgroundVector, sourceVector, Numerics.ClampNumber(amount, 0, 1F));
+        Vector4 result = TOperator.Invoke(backgroundVector, sourceVector, ColorNumerics.ClampToFinite(amount, 0, 1F));
 
         return TOperator.IsAssociatedAlpha
             ? TPixel.FromAssociatedScaledVector4(result)
@@ -93,7 +93,7 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     {
         // Public entry points validate the row lengths, so all three references can advance in lockstep.
         int scalarStart = 0;
-        amount = Numerics.ClampNumber(amount, 0, 1F);
+        amount = ColorNumerics.ClampToFinite(amount, 0, 1F);
 
         ref Vector4 destinationRef = ref MemoryMarshal.GetReference(destination);
         ref Vector4 backgroundRef = ref MemoryMarshal.GetReference(background);
@@ -144,7 +144,7 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     {
         // Public entry points validate the row lengths, so the destination and background advance together.
         int scalarStart = 0;
-        amount = Numerics.ClampNumber(amount, 0, 1F);
+        amount = ColorNumerics.ClampToFinite(amount, 0, 1F);
 
         ref Vector4 destinationRef = ref MemoryMarshal.GetReference(destination);
         ref Vector4 backgroundRef = ref MemoryMarshal.GetReference(background);
@@ -239,7 +239,10 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
 
         for (int i = scalarStart; i < destination.Length; i++)
         {
-            Unsafe.Add(ref destinationRef, (uint)i) = TOperator.Invoke(Unsafe.Add(ref backgroundRef, (uint)i), Unsafe.Add(ref sourceRef, (uint)i), Numerics.ClampNumber(Unsafe.Add(ref amountRef, (uint)i), 0, 1F));
+                    Unsafe.Add(ref destinationRef, (uint)i) = TOperator.Invoke(
+                        Unsafe.Add(ref backgroundRef, (uint)i),
+                        Unsafe.Add(ref sourceRef, (uint)i),
+                        ColorNumerics.ClampToFinite(Unsafe.Add(ref amountRef, (uint)i), 0, 1F));
         }
     }
 
@@ -290,7 +293,10 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
 
         for (int i = scalarStart; i < destination.Length; i++)
         {
-            Unsafe.Add(ref destinationRef, (uint)i) = TOperator.Invoke(Unsafe.Add(ref backgroundRef, (uint)i), source, Numerics.ClampNumber(Unsafe.Add(ref amountRef, (uint)i), 0, 1F));
+                    Unsafe.Add(ref destinationRef, (uint)i) = TOperator.Invoke(
+                        Unsafe.Add(ref backgroundRef, (uint)i),
+                        source,
+                        ColorNumerics.ClampToFinite(Unsafe.Add(ref amountRef, (uint)i), 0, 1F));
         }
     }
 
@@ -299,7 +305,7 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     {
         // Coverage mixes the composed result back toward the original background, so it is fused into this pass.
         int scalarStart = 0;
-        amount = Numerics.ClampNumber(amount, 0, 1F);
+        amount = ColorNumerics.ClampToFinite(amount, 0, 1F);
 
         ref Vector4 destinationRef = ref MemoryMarshal.GetReference(destination);
         ref Vector4 backgroundRef = ref MemoryMarshal.GetReference(background);
@@ -356,7 +362,7 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
             Vector4 backgroundPixel = Unsafe.Add(ref backgroundRef, (uint)i);
             Vector4 blended = TOperator.Invoke(backgroundPixel, Unsafe.Add(ref sourceRef, (uint)i), amount);
 
-            float clampedCoverage = Numerics.ClampNumber(Unsafe.Add(ref coverageRef, (uint)i), 0, 1F);
+            float clampedCoverage = ColorNumerics.ClampToFinite(Unsafe.Add(ref coverageRef, (uint)i), 0, 1F);
             Unsafe.Add(ref destinationRef, (uint)i) = TOperator.IsAssociatedAlpha
                 ? AssociatedAlphaPorterDuffFunctions.BlendWithCoverage(backgroundPixel, blended, clampedCoverage)
                 : PorterDuffFunctions.BlendWithCoverage(backgroundPixel, blended, clampedCoverage);
@@ -368,7 +374,7 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     {
         // The constant source is expanded once per selected width and reused for the complete row.
         int scalarStart = 0;
-        amount = Numerics.ClampNumber(amount, 0, 1F);
+        amount = ColorNumerics.ClampToFinite(amount, 0, 1F);
 
         ref Vector4 destinationRef = ref MemoryMarshal.GetReference(destination);
         ref Vector4 backgroundRef = ref MemoryMarshal.GetReference(background);
@@ -424,7 +430,7 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
             Vector4 backgroundPixel = Unsafe.Add(ref backgroundRef, (uint)i);
             Vector4 blended = TOperator.Invoke(backgroundPixel, source, amount);
 
-            float clampedCoverage = Numerics.ClampNumber(Unsafe.Add(ref coverageRef, (uint)i), 0, 1F);
+            float clampedCoverage = ColorNumerics.ClampToFinite(Unsafe.Add(ref coverageRef, (uint)i), 0, 1F);
             Unsafe.Add(ref destinationRef, (uint)i) = TOperator.IsAssociatedAlpha
                 ? AssociatedAlphaPorterDuffFunctions.BlendWithCoverage(backgroundPixel, blended, clampedCoverage)
                 : PorterDuffFunctions.BlendWithCoverage(backgroundPixel, blended, clampedCoverage);
@@ -493,9 +499,13 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
         for (int i = scalarStart; i < destination.Length; i++)
         {
             Vector4 backgroundPixel = Unsafe.Add(ref backgroundRef, (uint)i);
-            Vector4 blended = TOperator.Invoke(backgroundPixel, Unsafe.Add(ref sourceRef, (uint)i), Numerics.ClampNumber(Unsafe.Add(ref amountRef, (uint)i), 0, 1F));
 
-            float clampedCoverage = Numerics.ClampNumber(Unsafe.Add(ref coverageRef, (uint)i), 0, 1F);
+            Vector4 blended = TOperator.Invoke(
+                backgroundPixel,
+                Unsafe.Add(ref sourceRef, (uint)i),
+                ColorNumerics.ClampToFinite(Unsafe.Add(ref amountRef, (uint)i), 0, 1F));
+
+            float clampedCoverage = ColorNumerics.ClampToFinite(Unsafe.Add(ref coverageRef, (uint)i), 0, 1F);
             Unsafe.Add(ref destinationRef, (uint)i) = TOperator.IsAssociatedAlpha
                 ? AssociatedAlphaPorterDuffFunctions.BlendWithCoverage(backgroundPixel, blended, clampedCoverage)
                 : PorterDuffFunctions.BlendWithCoverage(backgroundPixel, blended, clampedCoverage);
@@ -563,9 +573,9 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
         for (int i = scalarStart; i < destination.Length; i++)
         {
             Vector4 backgroundPixel = Unsafe.Add(ref backgroundRef, (uint)i);
-            Vector4 blended = TOperator.Invoke(backgroundPixel, source, Numerics.ClampNumber(Unsafe.Add(ref amountRef, (uint)i), 0, 1F));
+            Vector4 blended = TOperator.Invoke(backgroundPixel, source, ColorNumerics.ClampToFinite(Unsafe.Add(ref amountRef, (uint)i), 0, 1F));
 
-            float clampedCoverage = Numerics.ClampNumber(Unsafe.Add(ref coverageRef, (uint)i), 0, 1F);
+            float clampedCoverage = ColorNumerics.ClampToFinite(Unsafe.Add(ref coverageRef, (uint)i), 0, 1F);
             Unsafe.Add(ref destinationRef, (uint)i) = TOperator.IsAssociatedAlpha
                 ? AssociatedAlphaPorterDuffFunctions.BlendWithCoverage(backgroundPixel, blended, clampedCoverage)
                 : PorterDuffFunctions.BlendWithCoverage(backgroundPixel, blended, clampedCoverage);

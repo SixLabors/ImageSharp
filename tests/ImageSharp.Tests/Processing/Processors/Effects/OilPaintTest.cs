@@ -47,16 +47,17 @@ public class OilPaintTest
             ImageComparer.TolerantPercentage(0.01F));
 
     /// <summary>
-    /// A uniform image isolates bin selection; the output must retain the source component even at nonfinite endpoints.
+    /// A uniform image retains finite HDR components. Nonfinite color input uses the pixel format's finite endpoints.
     /// </summary>
     /// <param name="component">The unbounded component.</param>
+    /// <param name="expected">The finite color-conversion result required by RgbaVector.</param>
     [Theory]
-    [InlineData(2F)]
-    [InlineData(100F)]
-    [InlineData(float.PositiveInfinity)]
-    [InlineData(float.NegativeInfinity)]
-    [InlineData(float.NaN)]
-    public void Issue2518_PixelComponentOutsideOfRange_UsesBoundedIntensityBin(float component)
+    [InlineData(2F, 2F)]
+    [InlineData(100F, 100F)]
+    [InlineData(float.PositiveInfinity, float.MaxValue)]
+    [InlineData(float.NegativeInfinity, float.MinValue)]
+    [InlineData(float.NaN, float.MinValue)]
+    public void Issue2518_PixelComponentOutsideOfRange_UsesBoundedIntensityBin(float component, float expected)
     {
         using Image<RgbaVector> image = new(10, 10, new RgbaVector(1, 1, component));
 
@@ -67,23 +68,16 @@ public class OilPaintTest
             for (int x = 0; x < image.Width; x++)
             {
                 float actual = image[x, y].ToVector4().Z;
-                if (float.IsNaN(component))
-                {
-                    Assert.True(float.IsNaN(actual));
-                }
-                else
-                {
-                    Assert.Equal(component, actual);
-                }
+                Assert.Equal(expected, actual);
             }
         }
     }
 
     /// <summary>
-    /// Values above the intensity range share its last bin while their color samples remain unbounded.
+    /// Distinct HDR magnitudes occupy separate bins; an equal-count tie retains the first selected bin.
     /// </summary>
     [Fact]
-    public void OilPaint_HdrSamplesShareEndpointBinWithoutClampingColor()
+    public void OilPaint_HdrSamplesUseDistinctMagnitudeBins()
     {
         using Image<RgbaVector> image = new(2, 2);
         image[0, 0] = new RgbaVector(2F, 2F, 2F);
@@ -93,6 +87,8 @@ public class OilPaintTest
 
         image.Mutate(ctx => ctx.OilPaint(2, 2));
 
-        Assert.Equal(new RgbaVector(3F, 3F, 3F), image[1, 1]);
+        // The neighborhood contains two samples of each value. The 2.0 bin reaches each
+        // new maximum first, so the existing strict-greater tie rule selects its own mean.
+        Assert.Equal(new RgbaVector(2F, 2F, 2F), image[1, 1]);
     }
 }

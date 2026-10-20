@@ -133,7 +133,7 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
     {
         // CMYK channels represent bounded ink amounts. Limit RGB before extracting black,
         // so an HDR component above one cannot produce negative black and alter the other inks.
-        Vector3 rgb = Numerics.ClampNumber(source.AsVector3Unsafe(), Vector3.Zero, Vector3.One);
+        Vector3 rgb = ColorNumerics.ClampToFinite(source.AsVector3Unsafe(), Vector3.Zero, Vector3.One);
         Vector3 cmy = Vector3.One - rgb;
 
         // To CMYK
@@ -167,9 +167,9 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
             {
                 // Each lane contains one RGB color. CMYK ink amounts are bounded, so use the same RGB limits as the scalar model.
                 SimdUtils.Deinterleave3(packed, i, out Vector512<float> r, out Vector512<float> g, out Vector512<float> b);
-                Vector512<float> c = one - Numerics.ClampNumber(r, Vector512<float>.Zero, one);
-                Vector512<float> m = one - Numerics.ClampNumber(g, Vector512<float>.Zero, one);
-                Vector512<float> y = one - Numerics.ClampNumber(b, Vector512<float>.Zero, one);
+                Vector512<float> c = one - ColorNumerics.ClampToFinite(r, Vector512<float>.Zero, one);
+                Vector512<float> m = one - ColorNumerics.ClampToFinite(g, Vector512<float>.Zero, one);
+                Vector512<float> y = one - ColorNumerics.ClampToFinite(b, Vector512<float>.Zero, one);
                 Vector512<float> k = Vector512.Min(c, Vector512.Min(m, y));
                 Vector512<float> nonBlack = Vector512.LessThan(k, Vector512.Create(1F - Constants.Epsilon));
 
@@ -193,9 +193,9 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
             {
                 // Each lane contains one RGB color. CMYK ink amounts are bounded, so use the same RGB limits as the scalar model.
                 SimdUtils.Deinterleave3(packed, i, out Vector256<float> r, out Vector256<float> g, out Vector256<float> b);
-                Vector256<float> c = one - Numerics.ClampNumber(r, Vector256<float>.Zero, one);
-                Vector256<float> m = one - Numerics.ClampNumber(g, Vector256<float>.Zero, one);
-                Vector256<float> y = one - Numerics.ClampNumber(b, Vector256<float>.Zero, one);
+                Vector256<float> c = one - ColorNumerics.ClampToFinite(r, Vector256<float>.Zero, one);
+                Vector256<float> m = one - ColorNumerics.ClampToFinite(g, Vector256<float>.Zero, one);
+                Vector256<float> y = one - ColorNumerics.ClampToFinite(b, Vector256<float>.Zero, one);
                 Vector256<float> k = Vector256.Min(c, Vector256.Min(m, y));
                 Vector256<float> nonBlack = Vector256.LessThan(k, Vector256.Create(1F - Constants.Epsilon));
 
@@ -219,9 +219,9 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
             {
                 // Each lane contains one RGB color. CMYK ink amounts are bounded, so use the same RGB limits as the scalar model.
                 SimdUtils.Deinterleave3(packed, i, out Vector128<float> r, out Vector128<float> g, out Vector128<float> b);
-                Vector128<float> c = one - Numerics.ClampNumber(r, Vector128<float>.Zero, one);
-                Vector128<float> m = one - Numerics.ClampNumber(g, Vector128<float>.Zero, one);
-                Vector128<float> y = one - Numerics.ClampNumber(b, Vector128<float>.Zero, one);
+                Vector128<float> c = one - ColorNumerics.ClampToFinite(r, Vector128<float>.Zero, one);
+                Vector128<float> m = one - ColorNumerics.ClampToFinite(g, Vector128<float>.Zero, one);
+                Vector128<float> y = one - ColorNumerics.ClampToFinite(b, Vector128<float>.Zero, one);
                 Vector128<float> k = Vector128.Min(c, Vector128.Min(m, y));
                 Vector128<float> nonBlack = Vector128.LessThan(k, Vector128.Create(1F - Constants.Epsilon));
 

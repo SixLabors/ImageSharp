@@ -59,7 +59,7 @@ public partial class SimdUtilsTests
 
             for (int i = 0; i < length; i++)
             {
-                expected[i] = float.IsNaN(source[i]) ? (ushort)0 : (ushort)MathF.Round(Numerics.ClampNumber(source[i], 0F, 1F) * ushort.MaxValue);
+                expected[i] = float.IsNaN(source[i]) ? (ushort)0 : (ushort)MathF.Round(ColorNumerics.ClampToFinite(source[i], 0F, 1F) * ushort.MaxValue);
             }
 
             SimdUtils.NormalizedFloatToUInt16Saturate(source, actual);

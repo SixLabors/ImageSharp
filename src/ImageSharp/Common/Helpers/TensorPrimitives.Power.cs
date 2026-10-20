@@ -73,9 +73,6 @@ internal static partial class TensorPrimitives_
             Finite
         }
 
-        /// <inheritdoc/>
-        public static bool PreserveAlpha => false;
-
         /// <summary>
         /// Gets the exponent shared by every component.
         /// </summary>
@@ -180,7 +177,7 @@ internal static partial class TensorPrimitives_
             float outputBits = adjusted + ExpOffset - (ExpLinear * fraction);
             outputBits += ExpNumerator / (ExpDenominator - fraction);
             outputBits *= SignificandScale;
-            outputBits = Numerics.ClampNumber(outputBits, 0F, (float)0x7F800000);
+            outputBits = Math.Clamp(outputBits, 0F, (float)0x7F800000);
             float result = BitConverter.Int32BitsToSingle((int)outputBits);
             result *= low ? 1F / SubnormalScale : 1F;
             return result * (high ? 2F : 1F);

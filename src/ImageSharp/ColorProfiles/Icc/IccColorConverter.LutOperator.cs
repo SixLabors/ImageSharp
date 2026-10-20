@@ -86,10 +86,10 @@ internal static partial class IccColorConverter
             if (this.identity)
             {
                 // Adding zero retains the table interpolation's positive zero for an input of negative zero.
-                return 0F + Numerics.ClampNumber(value, 0F, 1F);
+                return 0F + ColorNumerics.ClampToFinite(value, 0F, 1F);
             }
 
-            float position = Numerics.ClampNumber(value, 0F, 1F) * (this.table.Length - 1);
+            float position = ColorNumerics.ClampToFinite(value, 0F, 1F) * (this.table.Length - 1);
             int index = Math.Min((int)position, this.table.Length - 1);
             float lower = this.table[index];
             float upper = index < this.table.Length - 1 ? this.table[index + 1] : 1F;
@@ -138,7 +138,7 @@ internal static partial class IccColorConverter
                 Vector128<float> scale = Vector128.Create((float)(this.table.Length - 1));
                 Vector128<int> last = Vector128.Create(this.table.Length - 1);
 
-                // Ordered comparisons map NaN to zero, matching Numerics.ClampNumber. The last cell repeats its endpoint.
+                // Ordered comparisons map NaN to zero, matching ColorNumerics.ClampToFinite. The last cell repeats its endpoint.
                 Vector128<float> bounded = Vector128.ConditionalSelect(Vector128.GreaterThan(value, Vector128<float>.One), Vector128<float>.One, value);
                 bounded = Vector128.ConditionalSelect(Vector128.GreaterThanOrEqual(bounded, Vector128<float>.Zero), bounded, Vector128<float>.Zero);
                 Vector128<float> position = bounded * scale;
@@ -244,7 +244,7 @@ internal static partial class IccColorConverter
                 Vector256<float> scale = Vector256.Create((float)(this.table.Length - 1));
                 Vector256<int> last = Vector256.Create(this.table.Length - 1);
 
-                // Ordered comparisons map NaN to zero, matching Numerics.ClampNumber. The last cell repeats its endpoint.
+                // Ordered comparisons map NaN to zero, matching ColorNumerics.ClampToFinite. The last cell repeats its endpoint.
                 Vector256<float> bounded = Vector256.ConditionalSelect(Vector256.GreaterThan(value, Vector256<float>.One), Vector256<float>.One, value);
                 bounded = Vector256.ConditionalSelect(Vector256.GreaterThanOrEqual(bounded, Vector256<float>.Zero), bounded, Vector256<float>.Zero);
                 Vector256<float> position = bounded * scale;
@@ -350,7 +350,7 @@ internal static partial class IccColorConverter
                 Vector512<float> scale = Vector512.Create((float)(this.table.Length - 1));
                 Vector512<int> last = Vector512.Create(this.table.Length - 1);
 
-                // Ordered comparisons map NaN to zero, matching Numerics.ClampNumber. The last cell repeats its endpoint.
+                // Ordered comparisons map NaN to zero, matching ColorNumerics.ClampToFinite. The last cell repeats its endpoint.
                 Vector512<float> bounded = Vector512.ConditionalSelect(Vector512.GreaterThan(value, Vector512<float>.One), Vector512<float>.One, value);
                 bounded = Vector512.ConditionalSelect(Vector512.GreaterThanOrEqual(bounded, Vector512<float>.Zero), bounded, Vector512<float>.Zero);
                 Vector512<float> position = bounded * scale;

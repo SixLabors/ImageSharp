@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
@@ -158,8 +160,25 @@ public partial class WebpEncoderTests
     private static Image<RgbaVector> CreateProfileReference<TPixel>(Image<TPixel> source, IccProfile profile)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Floating storage avoids an extra quantization back into the source pixel format before BGRA packing.
-        Image<RgbaVector> expected = source.CloneAs<RgbaVector>();
+        ImageFrame<RgbaVector>[] frames = new ImageFrame<RgbaVector>[source.Frames.Count];
+
+        for (int i = 0; i < frames.Length; i++)
+        {
+            ImageFrame<TPixel> frame = source.Frames[i];
+            ImageFrame<RgbaVector> referenceFrame = new(source.Configuration, frame.Width, frame.Height, frame.Metadata.DeepClone());
+            frames[i] = referenceFrame;
+
+            // Extract straight colors directly. CloneAs can normalize associated byte channels before dividing by alpha,
+            // which changes float rounding before ICC. Keep the extracted floats until WebP performs its final byte packing.
+            for (int y = 0; y < frame.Height; y++)
+            {
+                Span<Vector4> row = MemoryMarshal.Cast<RgbaVector, Vector4>(referenceFrame.PixelBuffer.DangerousGetRowSpan(y));
+                PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(source.Configuration, frame.PixelBuffer.DangerousGetRowSpan(y), row);
+            }
+        }
+
+        // Copy animation metadata with the frames. The reference image owns their pixel buffers.
+        Image<RgbaVector> expected = new(source.Configuration, source.Metadata.DeepClone(), frames);
         IccProfile.GetIccProfileForEncoding(profile, PixelColorType.RGB, source.Configuration.MemoryAllocator, out ColorProfileConverter converter);
         Assert.NotNull(converter);
         converter.Convert(expected);

@@ -171,7 +171,8 @@ public partial class ColorProfileConverterTests(ITestOutputHelper testOutputHelp
             Assert.Equal(expected, scalar);
             Assert.Equal(scalar, bulk[i]);
             Assert.Equal(associated ? PixelAlphaRepresentation.Associated : PixelAlphaRepresentation.Unassociated, scalar.AlphaRepresentation);
-            Assert.Equal(source.W, scalar.ToScaledVector4(PixelAlphaRepresentation.Unassociated).W);
+            // Target pixel packing retains valid opacity and bounds the over-range input to one.
+            Assert.Equal(Math.Clamp(source.W, 0F, 1F), scalar.ToScaledVector4(PixelAlphaRepresentation.Unassociated).W);
         }
     }
 

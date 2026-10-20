@@ -46,9 +46,6 @@ public static partial class Rec709Companding
         }
 
         /// <inheritdoc/>
-        public static bool PreserveAlpha => true;
-
-        /// <inheritdoc/>
         public float Invoke(float value)
             => value < this.threshold ? value / LinearSlope
                 : new TensorPrimitives_.PowOperator(1F / Exponent).Invoke((value + this.offset) / this.scale);
@@ -81,7 +78,7 @@ public static partial class Rec709Companding
             // selecting its result must not clip the linear segment or values above reference white.
             TVector linear = TOperations.Divide(value, TOperations.Create(LinearSlope));
             TVector basis = TOperations.Divide(TOperations.Add(value, TOperations.Create(this.offset)), TOperations.Create(this.scale));
-            TVector power = TOperations.Pow(TOperations.Clamp(basis, TOperations.Create(0F), TOperations.Create(float.PositiveInfinity)), 1F / Exponent);
+            TVector power = TOperations.Pow(TOperations.Max(basis, TOperations.Create(0F)), 1F / Exponent);
             TVector nonlinear = power;
             return TOperations.ConditionalSelect(TOperations.LessThan(value, TOperations.Create(this.threshold)), linear, nonlinear);
         }
@@ -108,9 +105,6 @@ public static partial class Rec709Companding
             this.offset = offset;
             this.threshold = threshold;
         }
-
-        /// <inheritdoc/>
-        public static bool PreserveAlpha => true;
 
         /// <inheritdoc/>
         public float Invoke(float value)
@@ -144,7 +138,7 @@ public static partial class Rec709Companding
             // The linear segment also defines negative inputs. Bound only the unused power base;
             // selecting its result must not clip the linear segment or values above reference white.
             TVector linear = TOperations.Multiply(value, TOperations.Create(LinearSlope));
-            TVector power = TOperations.Pow(TOperations.Clamp(value, TOperations.Create(0F), TOperations.Create(float.PositiveInfinity)), Exponent);
+            TVector power = TOperations.Pow(TOperations.Max(value, TOperations.Create(0F)), Exponent);
             TVector nonlinear = TOperations.Subtract(TOperations.Multiply(TOperations.Create(this.scale), power), TOperations.Create(this.offset));
             return TOperations.ConditionalSelect(TOperations.LessThan(value, TOperations.Create(this.threshold)), linear, nonlinear);
         }

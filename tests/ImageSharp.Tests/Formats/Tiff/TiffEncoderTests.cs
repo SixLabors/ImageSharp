@@ -342,8 +342,9 @@ public partial class TiffEncoderTests : TiffEncoderBaseTester
     [InlineData(TiffPhotometricInterpretation.BlackIsZero, TiffBitsPerPixel.Bit8)]
     [InlineData(TiffPhotometricInterpretation.WhiteIsZero, TiffBitsPerPixel.Bit8)]
     [InlineData(TiffPhotometricInterpretation.BlackIsZero, TiffBitsPerPixel.Bit16)]
-    //// Unsupported TiffPhotometricInterpretation should default to 24 bits
     [InlineData(TiffPhotometricInterpretation.CieLab, TiffBitsPerPixel.Bit24)]
+    [InlineData(TiffPhotometricInterpretation.CieLab, TiffBitsPerPixel.Bit48)]
+    //// Unsupported TiffPhotometricInterpretation should default to 24 bits
     [InlineData(TiffPhotometricInterpretation.ColorFilterArray, TiffBitsPerPixel.Bit24)]
     [InlineData(TiffPhotometricInterpretation.ItuLab, TiffBitsPerPixel.Bit24)]
     [InlineData(TiffPhotometricInterpretation.LinearRaw, TiffBitsPerPixel.Bit24)]

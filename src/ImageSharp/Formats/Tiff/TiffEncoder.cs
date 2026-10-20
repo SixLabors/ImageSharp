@@ -65,6 +65,8 @@ public class TiffEncoder : QuantizingImageEncoder
     /// </summary>
     /// <remarks>
     /// Supported layouts include RGB, palette, grayscale, bilevel, and CMYK with 4 ink samples of 8 or 16 bits each.
+    /// CIE Lab output uses 3 samples of 8 or 16 bits each and has no alpha sample.
+    /// YCbCr output uses 3 samples of 8 bits each with full-resolution chroma.
     /// For JPEG compression, Rgb selects JPEG RGB, BlackIsZero selects JPEG grayscale, and Separated selects JPEG CMYK.
     /// <see cref="BitsPerPixel"/> must also select a supported layout.
     /// </remarks>

@@ -289,6 +289,16 @@ internal enum TiffColorType
     CieLabPlanar,
 
     /// <summary>
+    /// The pixels contain three sixteen-bit Lab samples, with signed fixed-point chroma.
+    /// </summary>
+    CieLab161616,
+
+    /// <summary>
+    /// The sixteen-bit Lab components occupy separate planes.
+    /// </summary>
+    CieLab161616Planar,
+
+    /// <summary>
     /// The pixels are stored as four 8-bit CMYK samples.
     /// </summary>
     Cmyk,

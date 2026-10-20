@@ -31,6 +31,14 @@ internal readonly struct TiffYCbCrOperator
     private readonly Vector3 referenceBlackOffset;
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="TiffYCbCrOperator"/> struct with TIFF's default coding ranges and coefficients.
+    /// </summary>
+    public TiffYCbCrOperator()
+        : this(DefaultReferenceBlackWhite, DefaultLuma)
+    {
+    }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="TiffYCbCrOperator"/> struct.
     /// </summary>
     /// <param name="referenceBlackAndWhite">The component reference ranges.</param>
@@ -82,13 +90,24 @@ internal readonly struct TiffYCbCrOperator
     }
 
     /// <summary>
+    /// Gets the TIFF default luma coefficients for red, green and blue.
+    /// </summary>
+    public static ReadOnlySpan<Rational> DefaultCoefficients => DefaultLuma;
+
+    /// <summary>
+    /// Gets the TIFF default black and white reference codes for Y, Cb and Cr.
+    /// </summary>
+    public static ReadOnlySpan<Rational> DefaultReferenceLevels => DefaultReferenceBlackWhite;
+
+    /// <summary>
     /// Gets the transform between TIFF YCbCr samples and device RGB.
     /// </summary>
     public YCbCrTransform ProfileTransform
     {
         get
         {
-            // An RGB ICC profile expects TIFF YCbCr converted to RGB. ICC then maps that RGB to sRGB.
+            // An RGB profile describes the values on the RGB side of this transform.
+            // Decoding applies this matrix before ICC; encoding applies the reverse matrix after ICC.
             //
             // The TIFF reader divides stored codes by 255. Black reference values are also divided by 255.
             // The shared converter subtracts each black reference from its matching Y, Cb, or Cr sample.
@@ -111,8 +130,7 @@ internal readonly struct TiffYCbCrOperator
                 M44 = 1F,
             };
 
-            // The shared transform requires both conversion directions. Decoder setup derives RGB to YCbCr once.
-            // Decoding uses only the YCbCr to RGB matrix.
+            // Derive the reverse matrix once during setup. Readers use YCbCr to RGB; writers use RGB to YCbCr.
             Matrix4x4.Invert(yCbCrToRgb, out Matrix4x4 rgbToYCbCr);
             return new YCbCrTransform(rgbToYCbCr, yCbCrToRgb, this.referenceBlackOffset);
         }

@@ -321,6 +321,12 @@ internal sealed class TiffEncoderCore
             TiffPhotometricInterpretation.PaletteColor => PixelColorType.Indexed,
             TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero => PixelColorType.Luminance,
             TiffPhotometricInterpretation.Separated => PixelColorType.CMYK,
+            TiffPhotometricInterpretation.CieLab => PixelColorType.Lab,
+
+            // RGB profiles describe the values before the TIFF matrix. A YCbCr profile describes the stored components directly.
+            TiffPhotometricInterpretation.YCbCr => sourceProfile?.Header.DataColorSpace == IccColorSpaceType.YCbCr
+                ? PixelColorType.YCbCr
+                : PixelColorType.RGB,
             _ => PixelColorType.RGB
         };
 
@@ -604,10 +610,28 @@ internal sealed class TiffEncoderCore
             return;
         }
 
-        // The remaining JPEG layout is eight-bit RGB. Unsupported layouts use the existing Deflate fallback.
-        if (compression == TiffCompression.Jpeg && bitsPerPixel != TiffBitsPerPixel.Bit24)
+        // The nested JPEG writer supports RGB, grayscale and CMYK. Preserve explicit Lab or YCbCr output with Deflate;
+        // those sample layouts belong to the non-JPEG writers selected below.
+        if (compression == TiffCompression.Jpeg
+            && (bitsPerPixel != TiffBitsPerPixel.Bit24
+                || photometricInterpretation is TiffPhotometricInterpretation.CieLab or TiffPhotometricInterpretation.YCbCr))
         {
             compression = TiffCompression.Deflate;
+        }
+
+        if (photometricInterpretation == TiffPhotometricInterpretation.YCbCr && bitsPerPixel == TiffBitsPerPixel.Bit24)
+        {
+            // Full-resolution TIFF YCbCr stores three byte samples per pixel. Its writer emits matching 1x1 sampling tags.
+            this.SetEncoderOptions(bitsPerPixel, photometricInterpretation, compression, predictor);
+            return;
+        }
+
+        // Lab stores three samples without alpha. Keep their depth before the RGB fallback.
+        if (photometricInterpretation == TiffPhotometricInterpretation.CieLab
+            && bitsPerPixel is TiffBitsPerPixel.Bit24 or TiffBitsPerPixel.Bit48)
+        {
+            this.SetEncoderOptions(bitsPerPixel, photometricInterpretation, compression, predictor);
+            return;
         }
 
         // CMYK uses four ink samples, with no alpha channel. Keep its 8- or 16-bit component depth

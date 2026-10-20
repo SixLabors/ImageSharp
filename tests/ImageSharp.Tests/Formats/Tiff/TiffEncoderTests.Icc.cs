@@ -164,12 +164,17 @@ public partial class TiffEncoderTests
     /// </summary>
     /// <param name="provider">The real multi-frame TIFF.</param>
     /// <param name="overrideSettings">Whether the encoder supplies explicit settings.</param>
+    /// <param name="secondInterpretation">The second frame's sample layout.</param>
     [Theory]
-    [WithFile(TestImages.Tiff.MultiframeLzwPredictor, PixelTypes.Rgba32, false)]
-    [WithFile(TestImages.Tiff.MultiframeLzwPredictor, PixelTypes.Rgba32, true)]
-    public void Encode_ResolvesSettingsPerFrame(TestImageProvider<Rgba32> provider, bool overrideSettings)
+    [WithFile(TestImages.Tiff.MultiframeLzwPredictor, PixelTypes.Rgba32, false, TiffPhotometricInterpretation.WhiteIsZero)]
+    [WithFile(TestImages.Tiff.MultiframeLzwPredictor, PixelTypes.Rgba32, true, TiffPhotometricInterpretation.WhiteIsZero)]
+    [WithFile(TestImages.Tiff.MultiframeLzwPredictor, PixelTypes.Rgba32, false, TiffPhotometricInterpretation.CieLab)]
+    [WithFile(TestImages.Tiff.MultiframeLzwPredictor, PixelTypes.Rgba32, false, TiffPhotometricInterpretation.YCbCr)]
+    public void Encode_ResolvesSettingsPerFrame(TestImageProvider<Rgba32> provider, bool overrideSettings, TiffPhotometricInterpretation secondInterpretation)
     {
         using Image<Rgba32> source = provider.GetImage();
+
+        // Give each frame different settings so the encoder cannot reuse the first frame's resolved layout.
         TiffFrameMetadata first = source.Frames[0].Metadata.GetTiffMetadata();
         first.SampleFormat = TiffSampleFormat.Float;
         first.BitsPerPixel = TiffBitsPerPixel.Bit96;
@@ -179,11 +184,20 @@ public partial class TiffEncoderTests
 
         TiffFrameMetadata second = source.Frames[1].Metadata.GetTiffMetadata();
         second.SampleFormat = TiffSampleFormat.UnsignedInteger;
-        second.BitsPerPixel = TiffBitsPerPixel.Bit16;
-        second.PhotometricInterpretation = TiffPhotometricInterpretation.WhiteIsZero;
+
+        TiffBitsPerPixel secondDepth = secondInterpretation switch
+        {
+            TiffPhotometricInterpretation.CieLab => TiffBitsPerPixel.Bit48,
+            TiffPhotometricInterpretation.YCbCr => TiffBitsPerPixel.Bit24,
+            _ => TiffBitsPerPixel.Bit16
+        };
+
+        second.BitsPerPixel = secondDepth;
+        second.PhotometricInterpretation = secondInterpretation;
         second.Compression = TiffCompression.Lzw;
         second.Predictor = TiffPredictor.Horizontal;
 
+        // Explicit encoder options must replace both frames' settings. Null options must retain each frame's settings.
         TiffEncoder encoder = overrideSettings
             ? new TiffEncoder
             {
@@ -208,14 +222,17 @@ public partial class TiffEncoderTests
             Assert.Equal(overrideSettings ? TiffSampleFormat.UnsignedInteger : expected.SampleFormat, actual.SampleFormat);
             Assert.Equal(overrideSettings ? TiffBitsPerPixel.Bit48 : expected.BitsPerPixel, actual.BitsPerPixel);
             Assert.Equal(overrideSettings ? TiffPhotometricInterpretation.Rgb : expected.PhotometricInterpretation, actual.PhotometricInterpretation);
+
             Assert.Equal(overrideSettings ? TiffCompression.Deflate : expected.Compression, actual.Compression);
             Assert.Equal(overrideSettings ? TiffPredictor.None : expected.Predictor, actual.Predictor);
         }
 
+        // Resolving output options must leave the source metadata unchanged.
         Assert.Equal(TiffSampleFormat.Float, first.SampleFormat);
         Assert.Equal(TiffBitsPerPixel.Bit96, first.BitsPerPixel);
+
         Assert.Equal(TiffSampleFormat.UnsignedInteger, second.SampleFormat);
-        Assert.Equal(TiffBitsPerPixel.Bit16, second.BitsPerPixel);
+        Assert.Equal(secondDepth, second.BitsPerPixel);
     }
 
     /// <summary>
@@ -345,38 +362,69 @@ public partial class TiffEncoderTests
     /// <param name="provider">The real image with transparent and partial-alpha pixels.</param>
     /// <param name="depth">The stored sample depth.</param>
     /// <param name="format">The stored sample format.</param>
+    /// <param name="interpretation">The explicit sample layout, or null to select it from the depth.</param>
     [Theory]
-    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, TiffBitsPerPixel.Bit1, TiffSampleFormat.UnsignedInteger)]
-    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, TiffBitsPerPixel.Bit4, TiffSampleFormat.UnsignedInteger)]
-    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, TiffBitsPerPixel.Bit8, TiffSampleFormat.UnsignedInteger)]
-    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, TiffBitsPerPixel.Bit24, TiffSampleFormat.UnsignedInteger)]
-    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, TiffBitsPerPixel.Bit64, TiffSampleFormat.UnsignedInteger)]
-    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, TiffBitsPerPixel.Bit32, TiffSampleFormat.Float)]
-    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, TiffBitsPerPixel.Bit96, TiffSampleFormat.Float)]
-    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, TiffBitsPerPixel.Bit128, TiffSampleFormat.Float)]
+    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, TiffBitsPerPixel.Bit1, TiffSampleFormat.UnsignedInteger, null)]
+    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, TiffBitsPerPixel.Bit4, TiffSampleFormat.UnsignedInteger, null)]
+    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, TiffBitsPerPixel.Bit8, TiffSampleFormat.UnsignedInteger, null)]
+    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, TiffBitsPerPixel.Bit24, TiffSampleFormat.UnsignedInteger, null)]
+    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, TiffBitsPerPixel.Bit64, TiffSampleFormat.UnsignedInteger, null)]
+    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, TiffBitsPerPixel.Bit32, TiffSampleFormat.Float, null)]
+    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, TiffBitsPerPixel.Bit96, TiffSampleFormat.Float, null)]
+    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, TiffBitsPerPixel.Bit128, TiffSampleFormat.Float, null)]
+    [WithFile(
+        TestImages.Webp.Lossy.WithIccpAndAlpha,
+        PixelTypes.Rgba32,
+        TiffBitsPerPixel.Bit24,
+        TiffSampleFormat.UnsignedInteger,
+        TiffPhotometricInterpretation.CieLab)]
+    [WithFile(
+        TestImages.Webp.Lossy.WithIccpAndAlpha,
+        PixelTypes.Rgba32,
+        TiffBitsPerPixel.Bit48,
+        TiffSampleFormat.UnsignedInteger,
+        TiffPhotometricInterpretation.CieLab)]
+    [WithFile(
+        TestImages.Webp.Lossy.WithIccpAndAlpha,
+        PixelTypes.Rgba32,
+        TiffBitsPerPixel.Bit24,
+        TiffSampleFormat.UnsignedInteger,
+        TiffPhotometricInterpretation.YCbCr)]
     public void Encode_ClearTransparentPixels_DoesNotChangeSource(
         TestImageProvider<Rgba32> provider,
         TiffBitsPerPixel depth,
-        TiffSampleFormat format)
+        TiffSampleFormat format,
+        TiffPhotometricInterpretation? interpretation)
     {
         using Image<Rgba32> source = provider.GetImage();
         source.Metadata.IccProfile = null;
         source.Frames.RootFrame.Metadata.IccProfile = null;
+
         using Image<Rgba32> unchanged = source.Clone();
+
+        // Clear a copy through the existing pixel API. Encoding it with Preserve defines the expected Clear output.
         using Image<Rgba32> expected = source.Clone();
         EncodingUtilities.ReplaceTransparentPixels(expected.Frames.RootFrame);
 
         using MemoryStream reference = new();
-        expected.Save(reference, new TiffEncoder { BitsPerPixel = depth, SampleFormat = format });
+        expected.Save(reference, new TiffEncoder { BitsPerPixel = depth, SampleFormat = format, PhotometricInterpretation = interpretation });
         reference.Position = 0;
         using Image<Rgba64> expectedPixels = Image.Load<Rgba64>(reference);
 
         using MemoryStream encoded = new();
-        source.Save(encoded, new TiffEncoder { BitsPerPixel = depth, SampleFormat = format, TransparentColorMode = TransparentColorMode.Clear });
+        source.Save(encoded, new TiffEncoder
+        {
+            BitsPerPixel = depth,
+            SampleFormat = format,
+            PhotometricInterpretation = interpretation,
+            TransparentColorMode = TransparentColorMode.Clear
+        });
+
         encoded.Position = 0;
         using Image<Rgba64> actual = Image.Load<Rgba64>(encoded);
 
         ImageComparer.Exact.VerifySimilarity(expectedPixels, actual);
+
         ImageComparer.Exact.VerifySimilarity(unchanged, source);
     }
 

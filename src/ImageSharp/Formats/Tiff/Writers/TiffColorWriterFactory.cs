@@ -64,6 +64,20 @@ internal static class TiffColorWriterFactory
 
         switch (photometricInterpretation)
         {
+            case TiffPhotometricInterpretation.YCbCr:
+                return new TiffYCbCrWriter<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector, converter, clearTransparentPixels);
+
+            case TiffPhotometricInterpretation.CieLab:
+                return new TiffLabWriter<TPixel>(
+                    image,
+                    encodingSize,
+                    memoryAllocator,
+                    configuration,
+                    entriesCollector,
+                    bitsPerPixel,
+                    converter,
+                    clearTransparentPixels);
+
             case TiffPhotometricInterpretation.Separated:
                 return new TiffCmykWriter<TPixel>(
                     image,

@@ -459,6 +459,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                 return new YCbCrTiffColor<TPixel>(configuration, metadata, memoryAllocator, referenceBlackAndWhite, ycbcrCoefficients, ycbcrSubSampling);
 
             case TiffColorType.CieLab:
+            case TiffColorType.CieLab161616:
 
                 DebugGuard.IsTrue(bitsPerSample.Channels == 3, "bitsPerSample");
 
@@ -517,6 +518,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                 return new YCbCrPlanarTiffColor<TPixel>(configuration, metadata, allocator, referenceBlackAndWhite, ycbcrCoefficients, ycbcrSubSampling);
 
             case TiffColorType.CieLabPlanar:
+            case TiffColorType.CieLab161616Planar:
                 return bitsPerSample.Channel0 == 8
                     ? new TiffLabPlanarColorDecoder<TPixel, TiffLab8Source>(configuration, new TiffLab8Source(planar: true), metadata, allocator)
                     : new TiffLabPlanarColorDecoder<TPixel, TiffLab16Source>(

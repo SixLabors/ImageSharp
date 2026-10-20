@@ -31,10 +31,12 @@ internal static class HorizontalPredictor
             case TiffColorType.BlackIsZero8:
             case TiffColorType.WhiteIsZero8:
             case TiffColorType.PaletteColor:
+            case TiffColorType.CieLabPlanar:
                 UndoGray8Bit(pixelBytes, width);
                 break;
             case TiffColorType.BlackIsZero16:
             case TiffColorType.WhiteIsZero16:
+            case TiffColorType.CieLab161616Planar:
                 UndoGray16Bit(pixelBytes, width, isBigEndian);
                 break;
             case TiffColorType.BlackIsZero32:
@@ -43,6 +45,7 @@ internal static class HorizontalPredictor
                 break;
             case TiffColorType.Rgb888:
             case TiffColorType.CieLab:
+            case TiffColorType.YCbCr:
                 UndoRgb24Bit(pixelBytes, width);
                 break;
             case TiffColorType.Rgba8888:
@@ -50,6 +53,7 @@ internal static class HorizontalPredictor
                 UndoRgba32Bit(pixelBytes, width);
                 break;
             case TiffColorType.Rgb161616:
+            case TiffColorType.CieLab161616:
                 UndoRgb48Bit(pixelBytes, width, isBigEndian);
                 break;
             case TiffColorType.Rgba16161616:
@@ -97,11 +101,13 @@ internal static class HorizontalPredictor
             case TiffColorType.BlackIsZero8:
             case TiffColorType.WhiteIsZero8:
             case TiffColorType.PaletteColor:
+            case TiffColorType.CieLabPlanar:
                 UndoGray8BitRow(pixelBytes, width, y);
                 break;
 
             case TiffColorType.BlackIsZero16:
             case TiffColorType.WhiteIsZero16:
+            case TiffColorType.CieLab161616Planar:
                 if (isBigEndian)
                 {
                     UndoGray16BitBigEndianRow(pixelBytes, width, y);
@@ -128,6 +134,7 @@ internal static class HorizontalPredictor
 
             case TiffColorType.Rgb888:
             case TiffColorType.CieLab:
+            case TiffColorType.YCbCr:
                 UndoRgb24BitRow(pixelBytes, width, y);
                 break;
 
@@ -137,6 +144,7 @@ internal static class HorizontalPredictor
                 break;
 
             case TiffColorType.Rgb161616:
+            case TiffColorType.CieLab161616:
                 if (isBigEndian)
                 {
                     UndoRgb48BitBigEndianRow(pixelBytes, width, y);

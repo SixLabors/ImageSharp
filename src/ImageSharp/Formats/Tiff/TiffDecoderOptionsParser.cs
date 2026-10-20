@@ -478,9 +478,16 @@ internal static class TiffDecoderOptionsParser
                     TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported for CieLab images.");
                 }
 
+                ushort bits = options.BitsPerSample.Channel0;
+                if (bits is not (8 or 16) || options.BitsPerSample.Channel1 != bits || options.BitsPerSample.Channel2 != bits)
+                {
+                    TiffThrowHelper.ThrowNotSupported("CIE Lab requires three equally sized eight-bit or sixteen-bit samples.");
+                }
+
+                // Prediction operates on stored words, including signed chroma bits. Retain the depth for decompression.
                 options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky
-                    ? TiffColorType.CieLab
-                    : TiffColorType.CieLabPlanar;
+                    ? bits == 8 ? TiffColorType.CieLab : TiffColorType.CieLab161616
+                    : bits == 8 ? TiffColorType.CieLabPlanar : TiffColorType.CieLab161616Planar;
 
                 break;
             }

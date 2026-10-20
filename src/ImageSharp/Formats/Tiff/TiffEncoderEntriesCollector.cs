@@ -2,7 +2,9 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Formats.Tiff.ColorConverters;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -376,6 +378,37 @@ internal class TiffEncoderEntriesCollector
             this.Collector.AddOrReplace(compression);
             this.Collector.AddOrReplace(photometricInterpretation);
 
+            if (encoder.PhotometricInterpretation == TiffPhotometricInterpretation.YCbCr)
+            {
+                // The writer emits one Y/Cb/Cr triple per pixel. Replace inherited subsampling and coding tags;
+                // source TIFF metadata can describe reduced chroma or different ranges and coefficients.
+                this.Collector.AddOrReplace(new ExifShortArray(ExifTagValue.YCbCrSubsampling) { Value = [1, 1] });
+
+                this.Collector.AddOrReplace(new ExifRationalArray(ExifTagValue.YCbCrCoefficients)
+                {
+                    Value = TiffYCbCrOperator.DefaultCoefficients.ToArray()
+                });
+
+                this.Collector.AddOrReplace(new ExifRationalArray(ExifTagValue.ReferenceBlackWhite)
+                {
+                    Value = TiffYCbCrOperator.DefaultReferenceLevels.ToArray()
+                });
+            }
+
+            if (encoder.PhotometricInterpretation == TiffPhotometricInterpretation.CieLab)
+            {
+                // Unprofiled Lab conversion uses D50, matching the decoder. Replace any source white-point tag
+                // so other readers interpret these new Lab samples under that same reference white.
+                CieXyz white = KnownIlluminants.D50;
+                float sum = white.X + white.Y + white.Z;
+
+                // TIFF stores the white point as x/y chromaticity, not XYZ tristimulus values.
+                this.Collector.AddOrReplace(new ExifRationalArray(ExifTagValue.WhitePoint)
+                {
+                    Value = [new Rational(white.X / sum), new Rational(white.Y / sum)]
+                });
+            }
+
             if (encoder.PhotometricInterpretation == TiffPhotometricInterpretation.Separated)
             {
                 // Separated CMYK has four color channels. These tags identify the inks in those samples.
@@ -421,7 +454,9 @@ internal class TiffEncoderEntriesCollector
                                                       TiffPhotometricInterpretation.PaletteColor or
                                                       TiffPhotometricInterpretation.BlackIsZero or
                                                       TiffPhotometricInterpretation.WhiteIsZero or
-                                                      TiffPhotometricInterpretation.Separated))
+                                                      TiffPhotometricInterpretation.Separated or
+                                                      TiffPhotometricInterpretation.CieLab or
+                                                      TiffPhotometricInterpretation.YCbCr))
             {
                 ExifShort predictor = new(ExifTagValue.Predictor) { Value = (ushort)TiffPredictor.Horizontal };
 
@@ -464,6 +499,10 @@ internal class TiffEncoderEntriesCollector
                     }
 
                     return TiffConstants.BitsPerSample8Bit.ToArray();
+
+                case TiffPhotometricInterpretation.CieLab:
+                    // CIELAB has three components: unsigned L* and two's-complement a* and b*.
+                    return encoder.BitsPerPixel == TiffBitsPerPixel.Bit48 ? [16, 16, 16] : [8, 8, 8];
 
                 case TiffPhotometricInterpretation.Rgb:
                     return encoder.BitsPerPixel switch

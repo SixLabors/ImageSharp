@@ -30,6 +30,7 @@ public class IccProfileTests
     [InlineData(TestIccProfiles.Fogra39, PixelColorType.CMYK, true, true)]
     [InlineData(TestIccProfiles.Fogra39, PixelColorType.YCCK, true, true)]
     [InlineData(TestIccProfiles.Fogra39, PixelColorType.RGB, false, false)]
+    [InlineData(TestIccProfiles.RommRgb, PixelColorType.CMYK, false, false)]
     [InlineData(TestIccProfiles.RommRgb, PixelColorType.Luminance, false, false)]
     [InlineData(TestIccProfiles.RommRgb, PixelColorType.YCbCr, false, false)]
     [InlineData(TestIccProfiles.RommRgb, PixelColorType.Other, false, false)]

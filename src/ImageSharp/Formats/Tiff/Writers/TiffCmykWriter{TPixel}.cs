@@ -66,8 +66,8 @@ internal sealed class TiffCmykWriter<TPixel> : TiffBaseColorWriter<TPixel>
         Span<byte> output = this.stripBuffer.GetSpan()[..byteCount];
         Span<float> storage = this.conversionBuffer.GetSpan();
 
-        // Four floats per pixel first hold straight RGBA, then CMYK. The separate three-float RGB row
-        // retains the input while ICC writes all four ink channels. Both buffers are reused across rows and strips.
+        // One allocation holds two rows: four floats per pixel for straight RGBA/CMYK, and three for RGB.
+        // Copy RGB into its own row before ICC overwrites the RGBA row with four inks. Reuse this allocation for every strip.
         Span<Vector4> vectors = MemoryMarshal.Cast<float, Vector4>(storage[..(width * 4)]);
         Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(storage[(width * 4)..]);
         Span<Cmyk> cmyk = MemoryMarshal.Cast<Vector4, Cmyk>(vectors);
@@ -101,6 +101,7 @@ internal sealed class TiffCmykWriter<TPixel> : TiffBaseColorWriter<TPixel>
             ReadOnlySpan<float> inks = MemoryMarshal.Cast<Cmyk, float>(cmyk);
             if (this.BitsPerPixel == 32)
             {
+                // All four components are ink amounts. Pack them alike; K must not use a pixel format's alpha conversion.
                 SimdUtils.NormalizedFloatToByteSaturate(inks, samples);
             }
             else

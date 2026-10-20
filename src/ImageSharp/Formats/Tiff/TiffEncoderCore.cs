@@ -272,7 +272,7 @@ internal sealed class TiffEncoderCore
     /// <param name="bitsPerPixel">The bits per pixel.</param>
     /// <param name="compression">The compression type.</param>
     /// <param name="sampleFormat">The sample format.</param>
-    /// <param name="photometricInterpretation">The resolved grayscale, palette, RGB, or JPEG CMYK sample interpretation.</param>
+    /// <param name="photometricInterpretation">The resolved grayscale, palette, RGB or CMYK sample interpretation.</param>
     /// <param name="ifdOffset">The marker to write this IFD offset.</param>
     /// <param name="cancellationToken">The token to request cancellation.</param>
     /// <returns>

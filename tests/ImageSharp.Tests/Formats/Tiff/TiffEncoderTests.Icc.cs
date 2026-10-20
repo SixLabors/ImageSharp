@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
@@ -20,6 +21,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
 
 public partial class TiffEncoderTests
 {
+    private readonly ITestOutputHelper roundTripOutput;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TiffEncoderTests"/> class.
+    /// </summary>
+    /// <param name="output">The test output used to record measured round-trip differences.</param>
+    public TiffEncoderTests(ITestOutputHelper output) => this.roundTripOutput = output;
+
     /// <summary>
     /// Checks the return transform at each supported RGB depth, without rounding through the source pixel type.
     /// </summary>
@@ -468,10 +477,18 @@ public partial class TiffEncoderTests
     /// <typeparam name="TPixel">The source precision.</typeparam>
     /// <param name="provider">The real source image.</param>
     /// <param name="clearTransparentPixels">Whether zero-alpha color is cleared.</param>
+    /// <param name="photometric">The TIFF sample interpretation.</param>
+    /// <param name="jpegColorType">The matching standalone JPEG representation.</param>
     [Theory]
-    [WithFile(TestImages.Png.Rgb48Bpp, PixelTypes.Rgba64, false)]
-    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, true)]
-    public void Encode_JpegCompression_UsesNestedColorConversion<TPixel>(TestImageProvider<TPixel> provider, bool clearTransparentPixels)
+    [WithFile(TestImages.Png.Rgb48Bpp, PixelTypes.Rgba64, false, TiffPhotometricInterpretation.Rgb, JpegColorType.Rgb)]
+    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, true, TiffPhotometricInterpretation.Rgb, JpegColorType.Rgb)]
+    [WithFile(TestImages.Png.Rgb48Bpp, PixelTypes.Rgba64, false, TiffPhotometricInterpretation.YCbCr, JpegColorType.YCbCrRatio444)]
+    [WithFile(TestImages.Webp.Lossless.WithIccpAndAlpha, PixelTypes.Rgba32, true, TiffPhotometricInterpretation.YCbCr, JpegColorType.YCbCrRatio444)]
+    public void Encode_JpegCompression_UsesNestedColorConversion<TPixel>(
+        TestImageProvider<TPixel> provider,
+        bool clearTransparentPixels,
+        TiffPhotometricInterpretation photometric,
+        JpegColorType jpegColorType)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> source = provider.GetImage();
@@ -479,6 +496,7 @@ public partial class TiffEncoderTests
         source.Frames.RootFrame.Metadata.IccProfile = profile;
         using Image<TPixel> unchanged = source.Clone();
         using Image<TPixel> reference = source.Clone();
+
         if (clearTransparentPixels)
         {
             EncodingUtilities.ReplaceTransparentPixels(reference.Frames.RootFrame);
@@ -486,7 +504,7 @@ public partial class TiffEncoderTests
 
         // A standalone JPEG and a JPEG strip must use the same source precision, profile, and quality.
         using MemoryStream jpeg = new();
-        reference.Save(jpeg, new JpegEncoder { ColorType = JpegColorType.Rgb, Quality = 75, SkipMetadata = true });
+        reference.Save(jpeg, new JpegEncoder { ColorType = jpegColorType, Quality = 75, SkipMetadata = true });
         jpeg.Position = 0;
         using Image<RgbaVector> expected = Image.Load<RgbaVector>(jpeg);
 
@@ -494,6 +512,7 @@ public partial class TiffEncoderTests
         {
             BitsPerPixel = TiffBitsPerPixel.Bit24,
             Compression = TiffCompression.Jpeg,
+            PhotometricInterpretation = photometric,
             TransparentColorMode = clearTransparentPixels ? TransparentColorMode.Clear : TransparentColorMode.Preserve,
             SkipMetadata = true
         };
@@ -504,10 +523,13 @@ public partial class TiffEncoderTests
         using Image<RgbaVector> actual = Image.Load<RgbaVector>(encoded);
 
         Assert.Equal(TiffCompression.Jpeg, actual.Frames.RootFrame.Metadata.GetTiffMetadata().Compression);
+        Assert.Equal(photometric, actual.Frames.RootFrame.Metadata.GetTiffMetadata().PhotometricInterpretation);
         Assert.Equal(profile.ToByteArray(), actual.Frames.RootFrame.Metadata.IccProfile.ToByteArray());
+
         ImageComparer.Exact.VerifySimilarity(expected, actual);
+
         ImageComparer.Exact.VerifySimilarity(unchanged, source);
-        source.DebugSave(provider, extension: "tiff", encoder: encoder);
+        source.DebugSave(provider, testOutputDetails: jpegColorType, extension: "tiff", encoder: encoder);
     }
 
     /// <summary>
@@ -717,7 +739,6 @@ public partial class TiffEncoderTests
     /// </summary>
     /// <param name="provider">The real source image.</param>
     /// <param name="photometric">The TIFF sample interpretation.</param>
-    /// <param name="jpegColorType">The matching JPEG component layout.</param>
     /// <param name="depth">The TIFF sample depth.</param>
     /// <param name="profileFile">The profile fixture, or null to retain the source TIFF profile.</param>
     [Theory]
@@ -725,24 +746,27 @@ public partial class TiffEncoderTests
         TestImages.Png.Gray4Bpp,
         PixelTypes.RgbaVector,
         TiffPhotometricInterpretation.BlackIsZero,
-        JpegColorType.Luminance,
         TiffBitsPerPixel.Bit8,
         TestIccProfiles.DotGain20)]
     [WithFile(
         TestImages.Tiff.Issues2454_B,
         PixelTypes.RgbaVector,
         TiffPhotometricInterpretation.Separated,
-        JpegColorType.Cmyk,
         TiffBitsPerPixel.Bit32,
         null)]
     public void Encode_JpegCompression_UsesNativeGrayAndCmyk(
         TestImageProvider<RgbaVector> provider,
         TiffPhotometricInterpretation photometric,
-        JpegColorType jpegColorType,
         TiffBitsPerPixel depth,
         string profileFile)
     {
         using Image<RgbaVector> source = provider.GetImage();
+
+        // Keep a real central region with complete SIMD groups, a scalar tail and enough rows for JPEG MCU boundaries.
+        int width = Math.Min(257, source.Width);
+        int height = Math.Min(129, source.Height);
+        source.Mutate(x => x.Crop(new Rectangle((source.Width - width) / 2, (source.Height - height) / 2, width, height)));
+
         using Image<RgbaVector> unchanged = source.Clone();
         IccProfile originalImageProfile = source.Metadata.IccProfile;
         IccProfile profile = profileFile is null
@@ -763,20 +787,27 @@ public partial class TiffEncoderTests
         {
             IccProfile selectedProfile = includeProfile ? profile : null;
             source.Frames.RootFrame.Metadata.IccProfile = selectedProfile;
-            using Image<RgbaVector> reference = source.Clone();
-            reference.Metadata.IccProfile = selectedProfile;
 
-            using MemoryStream jpeg = new();
-            reference.Save(jpeg, new JpegEncoder { ColorType = jpegColorType, Quality = 75, SkipMetadata = true });
-            jpeg.Position = 0;
-            using Image<RgbaVector> expected = Image.Load<RgbaVector>(jpeg);
-
+            // TIFF stores conventional CMYK; a standalone Adobe JPEG inverts those samples before the lossy DCT.
+            // Decode the emitted TIFF independently to check the stored convention and its retained profile together.
             using MemoryStream encoded = new();
             source.Save(encoded, encoder);
+            source.DebugSave(provider, testOutputDetails: $"{photometric}_{includeProfile}", extension: "tiff", encoder: encoder);
+
+            encoded.Position = 0;
+            using Image<RgbaVector> expected = ReferenceDecoder.Decode<RgbaVector>(DecoderOptions.Default, encoded);
             encoded.Position = 0;
             using Image<RgbaVector> actual = Image.Load<RgbaVector>(encoded);
             TiffFrameMetadata metadata = actual.Frames.RootFrame.Metadata.GetTiffMetadata();
             ExifProfile exif = actual.Frames.RootFrame.Metadata.ExifProfile;
+
+            // libjpeg and libtiff return identical integer CMYK samples. ImageSharp retains fractional IDCT samples through ICC.
+            // Direct cosine evaluation agrees with our IDCT within 0.0001 byte levels. With identical fractional CMYK input,
+            // LittleCMS differs by less than 0.045 RGB byte levels per channel. Rounding CMYK first increases the maximum
+            // summed RGB difference to 4.822 byte levels on this fixture, so only profiled CMYK needs a five-level bound.
+            // The comparer uses sixteen-bit units. Add one unit for float subtraction and check every pixel independently.
+            int rgbByteLevels = includeProfile && photometric == TiffPhotometricInterpretation.Separated ? 5 : 3;
+            ImageComparer.Tolerant(0F, (rgbByteLevels * (ushort.MaxValue / byte.MaxValue)) + 1).VerifySimilarity(expected, actual);
 
             Assert.Equal(TiffCompression.Jpeg, metadata.Compression);
             Assert.Equal(photometric, metadata.PhotometricInterpretation);
@@ -792,11 +823,96 @@ public partial class TiffEncoderTests
                 Assert.Equal((ushort)4, exif.GetValue(ExifTag.NumberOfInks).Value);
             }
 
-            ImageComparer.Exact.VerifySimilarity(expected, actual);
             ImageComparer.Exact.VerifySimilarity(unchanged, source);
             Assert.Same(selectedProfile, source.Frames.RootFrame.Metadata.IccProfile);
             Assert.Same(originalImageProfile, source.Metadata.IccProfile);
-            source.DebugSave(provider, testOutputDetails: $"{jpegColorType}_{includeProfile}", extension: "tiff", encoder: encoder);
         }
     }
+
+    /// <summary>
+    /// Decodes complete YCCK TIFF input and saves CMYK JPEG TIFF while retaining its original ICC profile.
+    /// </summary>
+    /// <param name="provider">The original YCCK TIFF fixture.</param>
+    [Theory]
+    [WithFile(TestImages.Tiff.Issues2454_A, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Tiff.Issues2454_B, PixelTypes.Rgba32)]
+    public void Encode_JpegCompression_YcckRoundTrip(TestImageProvider<Rgba32> provider)
+    {
+        using Image<Rgba32> source = provider.GetImage(TiffDecoder.Instance);
+        IccProfile profile = Assert.IsType<IccProfile>(source.Frames.RootFrame.Metadata.IccProfile);
+        byte[] profileBytes = profile.ToByteArray();
+
+        // Trace the shared return transform before JPEG. This separates profile error from JPEG's quantization.
+        ColorProfileConverter toDevice = new(new ColorConversionOptions
+        {
+            SourceIccProfile = CompactSrgbV4Profile.Profile,
+            TargetIccProfile = profile
+        });
+
+        ColorProfileConverter toWorking = new(new ColorConversionOptions
+        {
+            SourceIccProfile = profile,
+            TargetIccProfile = CompactSrgbV4Profile.Profile
+        });
+
+        // These PNGs show the decoded working RGB values. Their RGB layout cannot retain the source CMYK profile.
+        source.DebugSave(provider, testOutputDetails: "DecodedInput");
+
+        // Save uncompressed ink samples so native checks can separate ICC conversion from JPEG compression.
+        source.DebugSave(provider, testOutputDetails: "CmykBeforeJpeg", extension: "tiff", encoder: new TiffEncoder
+        {
+            BitsPerPixel = TiffBitsPerPixel.Bit32,
+            PhotometricInterpretation = TiffPhotometricInterpretation.Separated,
+            Compression = TiffCompression.None
+        });
+
+        TiffEncoder encoder = new()
+        {
+            BitsPerPixel = TiffBitsPerPixel.Bit32,
+            PhotometricInterpretation = TiffPhotometricInterpretation.Separated,
+            Compression = TiffCompression.Jpeg
+        };
+
+        using MemoryStream encoded = new();
+        source.Save(encoded, encoder);
+        source.DebugSave(provider, testOutputDetails: "Encoded", extension: "tiff", encoder: encoder);
+
+        encoded.Position = 0;
+        using Image<Rgba32> actual = Image.Load<Rgba32>(encoded);
+        actual.DebugSave(provider, testOutputDetails: "DecodedOutput");
+
+        Assert.Equal(source.Size, actual.Size);
+        Assert.Equal(TiffCompression.Jpeg, actual.Frames.RootFrame.Metadata.GetTiffMetadata().Compression);
+        Assert.Equal(profileBytes, actual.Frames.RootFrame.Metadata.IccProfile.ToByteArray());
+        Assert.Same(profile, source.Frames.RootFrame.Metadata.IccProfile);
+
+        // The new JPEG strip defines its own tables. Source tables must not survive as a second, conflicting definition.
+        Assert.False(actual.Frames.RootFrame.Metadata.ExifProfile.TryGetValue(ExifTag.JPEGTables, out _));
+
+        // Record the actual error without inventing a passing tolerance for this diagnostic.
+        // ImageComparer reports sixteen-bit units; divide by 257 to express the same differences as byte levels.
+        ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(source, actual);
+        float red = report.Differences.Max(difference => MathF.Abs(difference.RedDifference)) / 257F;
+        float green = report.Differences.Max(difference => MathF.Abs(difference.GreenDifference)) / 257F;
+        float blue = report.Differences.Max(difference => MathF.Abs(difference.BlueDifference)) / 257F;
+
+        this.roundTripOutput.WriteLine($"{provider.SourceFileOrDescription}: {source.Width}x{source.Height}; ICC bytes={profileBytes.Length}");
+        this.roundTripOutput.WriteLine($"Different pixels={report.Differences.Length} of {source.Width * source.Height}");
+        this.roundTripOutput.WriteLine($"Maximum RGB differences in byte levels: {red}/{green}/{blue}");
+        this.roundTripOutput.WriteLine($"Pixel (0,0): input={source[0, 0]}; output={actual[0, 0]}");
+
+        // Inspect the first pixel and the largest red error. Both use the same public ICC conversion as the codec.
+        PixelDifference worst = report.Differences.MaxBy(difference => MathF.Abs(difference.RedDifference));
+        foreach (Point point in new[] { Point.Empty, worst.Position })
+        {
+            Vector4 vector = source[point.X, point.Y].ToScaledVector4();
+            Rgb working = new(vector.X, vector.Y, vector.Z);
+            Cmyk inks = toDevice.Convert<Rgb, Cmyk>(working);
+            Rgb returned = toWorking.Convert<Cmyk, Rgb>(inks);
+            this.roundTripOutput.WriteLine($"Pixel {point}: source={source[point.X, point.Y]}");
+            this.roundTripOutput.WriteLine($"Pixel {point}: CMYK byte units={inks.ToScaledVector4() * 255F}");
+            this.roundTripOutput.WriteLine($"ICC-only RGB byte units={returned.ToScaledVector3() * 255F}; JPEG={actual[point.X, point.Y]}");
+        }
+    }
+
 }

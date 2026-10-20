@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Tests.TestDataIcc.Conversion;
 using SixLabors.ImageSharp.Tests.TestUtilities;
+using static SixLabors.ImageSharp.ColorProfiles.ColorProfileConverterExtensionsIcc;
 using static SixLabors.ImageSharp.ColorProfiles.Icc.IccColorConverter;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
@@ -18,6 +19,83 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
 /// </summary>
 public class IccColorConverterTests
 {
+    /// <summary>
+    /// Checks a v2 curve-only source against LittleCMS without treating its curves as a perceptual lookup table.
+    /// </summary>
+    [Fact]
+    public void V2CurveProfile_MatchesNativeBlackPointConversion() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckV2CurveProfile,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Converts RGB black through the real sRGB2014 and Fogra39 profiles at every execution width.
+    /// </summary>
+    private static void CheckV2CurveProfile()
+    {
+        ColorProfileConverter converter = new(new ColorConversionOptions
+        {
+            SourceIccProfile = TestIccProfiles.GetProfile(TestIccProfiles.StandardRgbV2),
+            TargetIccProfile = TestIccProfiles.GetProfile(TestIccProfiles.Fogra39)
+        });
+
+        // LittleCMS, with perceptual intent and optimization/cache disabled, gives these CMYK amounts
+        // for RGB black. Values use [0,1] ink units, not LittleCMS's [0,100] float CMYK units.
+        // The largest measured difference was 1.30E-5; round upward to 2E-5 for single-precision differences.
+        Vector4 expected = new(0.770153344F, 0.665583253F, 0.546013594F, 0.999984741F);
+        ApproximateFloatComparer comparer = new(2E-5F);
+        Rgb[] source = new Rgb[31];
+        Cmyk[] actual = new Cmyk[source.Length];
+
+        // Thirty-one pixels exercise all complete SIMD groups and the scalar remainder without changing the source color.
+        converter.Convert<Rgb, Cmyk>(source, actual);
+        foreach (Cmyk value in actual)
+        {
+            Assert.Equal(expected, value.ToScaledVector4(), comparer);
+        }
+
+        Assert.Equal(expected, converter.Convert<Rgb, Cmyk>(default(Rgb)).ToScaledVector4(), comparer);
+    }
+
+    /// <summary>
+    /// Checks that floating-point PCS adjustment retains negative XYZ at every SIMD width and in the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void FloatingPcsConversion_RetainsNegativeXyz() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckFloatingPcsConversion,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Connects identical XYZ encodings through their forward and reverse perceptual black-point adjustments.
+    /// </summary>
+    private static void CheckFloatingPcsConversion()
+    {
+        IccProfile profile = CompactSrgbV4Profile.Profile;
+        ConversionParams source = new(profile, true, IccRenderingIntent.Perceptual, IccInterpolationMethod.Auto);
+        ConversionParams target = new(profile, false, IccRenderingIntent.Perceptual, IccInterpolationMethod.Auto);
+        PcsOperator operation = new(source, target, new ColorConversionOptions());
+        Vector4[] inputs = new Vector4[31];
+        Vector4[] actual = new Vector4[inputs.Length];
+
+        // The unbounded CMM model retains intermediate XYZ; PcsOperator links the original paper.
+        // Inverse black-point adjustments must cancel, including for negative colors and values above one.
+        // Thirty-one colors cover sixteen-, eight- and four-lane blocks plus a three-color scalar tail.
+        for (int i = 0; i < inputs.Length; i++)
+        {
+            inputs[i] = new Vector4((i - 16) / 16F, (8 - i) / 16F, i / 16F, 1F);
+        }
+
+        new IccColorConverter<PcsOperator>(operation).Convert(inputs, actual);
+
+        // The stored adjustment coefficients are rounded floats. Their forward/reverse composition
+        // left at most 1.686E-7 error across scalar and SIMD paths. Round upward to 2E-7 for float differences.
+        const float tolerance = 2E-7F;
+        Assert.Equal(inputs, actual, new ApproximateFloatComparer(tolerance));
+        for (int i = 0; i < inputs.Length; i++)
+        {
+            Assert.Equal(inputs[i], operation.Convert(inputs[i]), new ApproximateFloatComparer(tolerance));
+        }
+    }
+
     /// <summary>
     /// Checks that setup-time sRGB specialization preserves the general curve formula at every execution width.
     /// </summary>
@@ -163,6 +241,58 @@ public class IccColorConverterTests
     public void Tables_MatchExpectedValues() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
         CheckTables,
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks that legacy matrices do not change Lab or RGB input, at each SIMD width and in the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void LegacyMatrices_IgnoreNonXyzInputs() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckLegacyMatrices,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Compares each legacy LUT with an equivalent LUT whose unused matrix is identity.
+    /// </summary>
+    private static void CheckLegacyMatrices()
+    {
+        IEnumerable<object[]> data = IccConversionDataLutEntry.Lut8ConversionTestData.Concat(IccConversionDataLutEntry.Lut16ConversionTestData);
+        foreach (object[] test in data)
+        {
+            foreach (IccColorSpaceType inputColorSpace in new[] { IccColorSpaceType.CieLab, IccColorSpaceType.Rgb })
+            {
+                // ICC.1 sections 10.10 and 10.11 permit this matrix only for XYZ input.
+                // Removing the matrix must therefore leave every Lab or RGB result unchanged.
+                SampledLutColorOperator actualOperator;
+                SampledLutColorOperator identityOperator;
+                if (test[0] is IccLut8TagDataEntry lut8)
+                {
+                    actualOperator = new(lut8, inputColorSpace, false);
+                    IccLut8TagDataEntry identity = new(lut8.InputValues, lut8.ClutValues, lut8.OutputValues);
+                    identityOperator = new(identity, inputColorSpace, false);
+                }
+                else
+                {
+                    IccLut16TagDataEntry lut16 = (IccLut16TagDataEntry)test[0];
+                    actualOperator = new(lut16, inputColorSpace, false);
+                    IccLut16TagDataEntry identity = new(lut16.InputValues, lut16.ClutValues, lut16.OutputValues);
+                    identityOperator = new(identity, inputColorSpace, false);
+                }
+
+                // 31 samples traverse sixteen-, eight- and four-lane blocks, then a three-sample scalar remainder.
+                Vector4[] source = Enumerable.Repeat((Vector4)test[1], 31).ToArray();
+                Vector4[] actual = new Vector4[source.Length];
+                IccColorConverter<SampledLutColorOperator> converter = new(actualOperator);
+                converter.Convert(source, actual);
+
+                for (int i = 0; i < source.Length; i++)
+                {
+                    Vector4 expected = identityOperator.Convert(source[i]);
+                    VectorAssert.Equal(expected, actual[i], 4);
+                    VectorAssert.Equal(expected, actualOperator.Convert(source[i]), 4);
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// Checks scalar/SIMD agreement across every normalized sixteen-bit code, including extreme ICC exponents.
@@ -556,8 +686,8 @@ public class IccColorConverterTests
         {
             IIccColorConverter converter = group.Key switch
             {
-                IccLut8TagDataEntry entry => new IccColorConverter<SampledLutColorOperator>(new(entry, false)),
-                IccLut16TagDataEntry entry => new IccColorConverter<SampledLutColorOperator>(new(entry, false)),
+                IccLut8TagDataEntry entry => new IccColorConverter<SampledLutColorOperator>(new(entry, IccColorSpaceType.CieXyz, false)),
+                IccLut16TagDataEntry entry => new IccColorConverter<SampledLutColorOperator>(new(entry, IccColorSpaceType.CieXyz, false)),
                 IccLutAToBTagDataEntry entry => new IccColorConverter<LutColorOperator>(new(entry, false)),
                 IccLutBToATagDataEntry entry => new IccColorConverter<LutColorOperator>(new(entry, false)),
                 _ => throw new InvalidOperationException("Unexpected ICC fixture tag.")

@@ -64,10 +64,10 @@ public partial class ColorProfileConverterTests
         List<float[]> inputs = Enumerable.Range(0, 31).Select(i => Inputs[i % Inputs.Count]).ToList();
         foreach ((string source, string target) in connections)
         {
-            List<Vector4> actual = GetBulkActualTargetValues(inputs, source, target);
+            List<Vector4> actual = GetBulkActualTargetValues(inputs, source, target, IccInterpolationMethod.Trilinear);
             for (int i = 0; i < inputs.Count; i++)
             {
-                Vector4 expected = GetActualTargetValues(inputs[i], source, target);
+                Vector4 expected = GetActualTargetValues(inputs[i], source, target, IccInterpolationMethod.Trilinear);
                 VectorAssert.Equal(expected, actual[i], 5);
             }
         }

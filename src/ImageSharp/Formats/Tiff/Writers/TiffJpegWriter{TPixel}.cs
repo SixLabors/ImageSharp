@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors;
 using SixLabors.ImageSharp.Memory;
@@ -18,7 +18,7 @@ internal sealed class TiffJpegWriter<TPixel> : TiffBaseColorWriter<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     private readonly IccProfile? profile;
-    private readonly JpegColorType colorType;
+    private readonly JpegColorSpace colorSpace;
     private readonly CancellationToken cancellationToken;
     private readonly bool clearTransparentPixels;
 
@@ -31,7 +31,7 @@ internal sealed class TiffJpegWriter<TPixel> : TiffBaseColorWriter<TPixel>
     /// <param name="configuration">The source configuration.</param>
     /// <param name="collector">The directory entries.</param>
     /// <param name="profile">The frame's compatible retained ICC profile, or null.</param>
-    /// <param name="colorType">The JPEG color type selected from TIFF's resolved photometric interpretation.</param>
+    /// <param name="colorSpace">The JPEG component model and sample convention selected from TIFF's resolved interpretation.</param>
     /// <param name="clearTransparentPixels">Whether JPEG sets RGB to zero for fully transparent input pixels in its reusable row buffer.</param>
     /// <param name="cancellationToken">The token to request cancellation.</param>
     public TiffJpegWriter(
@@ -41,22 +41,22 @@ internal sealed class TiffJpegWriter<TPixel> : TiffBaseColorWriter<TPixel>
         Configuration configuration,
         TiffEncoderEntriesCollector collector,
         IccProfile? profile,
-        JpegColorType colorType,
+        JpegColorSpace colorSpace,
         bool clearTransparentPixels,
         CancellationToken cancellationToken)
         : base(frame, encodingSize, allocator, configuration, collector)
     {
         this.profile = profile;
-        this.colorType = colorType;
+        this.colorSpace = colorSpace;
         this.clearTransparentPixels = clearTransparentPixels;
         this.cancellationToken = cancellationToken;
     }
 
     /// <inheritdoc />
-    public override int BitsPerPixel => this.colorType switch
+    public override int BitsPerPixel => this.colorSpace switch
     {
-        JpegColorType.Luminance => 8,
-        JpegColorType.Cmyk => 32,
+        JpegColorSpace.Luminance => 8,
+        JpegColorSpace.TiffCmyk => 32,
         _ => 24
     };
 
@@ -71,7 +71,7 @@ internal sealed class TiffJpegWriter<TPixel> : TiffBaseColorWriter<TPixel>
             this.Configuration,
             region,
             this.profile,
-            this.colorType,
+            this.colorSpace,
             this.clearTransparentPixels,
             this.cancellationToken);
     }

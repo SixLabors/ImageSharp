@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestDataIcc.Conversion;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Wacton.Unicolour;
@@ -26,8 +27,8 @@ public partial class ColorProfileConverterTests(ITestOutputHelper testOutputHelp
         [0, 0, 0, 1],
         [1, 1, 1, 1],
         [0.5f, 0.5f, 0.5f, 0.5f],
-        [0.199678659f, 0.67982769f, 0.805381715f, 0.982666492f], // requires clipping before source is PCS adjusted for Fogra39 -> sRGBv2
-        [0.776568174f, 0.961630166f, 0.31032759f, 0.895294666f], // requires clipping after target is PCS adjusted for Fogra39 -> sRGBv2
+        [0.199678659f, 0.67982769f, 0.805381715f, 0.982666492f], // Exposes clipping before source PCS adjustment.
+        [0.776568174f, 0.961630166f, 0.31032759f, 0.895294666f], // Exposes clipping after target PCS adjustment.
         [GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue()]
     ];
 
@@ -88,16 +89,12 @@ public partial class ColorProfileConverterTests(ITestOutputHelper testOutputHelp
     [InlineData(TestIccProfiles.Swop2006, TestIccProfiles.Swop2006)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
     [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.JapanColor2003)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 8-bit vs 16-bit)
     [InlineData(TestIccProfiles.JapanColor2011, TestIccProfiles.Fogra39)] // CMYK -> LAB -> CMYK (different LUT versions, v2 vs v4)
-    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Cgats21, 5E-4F)] // Nonlinear profile stages.
-    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV4, 5E-4F)] // Nonlinear profile stages.
     [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.Fogra39, 5E-4F)] // Nonlinear profile stages.
     [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.RommRgb, 5E-4F)] // Nonlinear profile stages.
     [InlineData(TestIccProfiles.RommRgb, TestIccProfiles.StandardRgbV4, 5E-4F)] // Nonlinear profile stages.
-    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV2, 0.0005)] // CMYK -> LAB -> XYZ -> RGB (different LUT tags, A2B vs TRC) --- tolerance slightly higher due to difference in inverse curve implementation
-    [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39, 5E-4F)] // Nonlinear profile stages.
     public void CanConvertIccProfiles(string sourceProfile, string targetProfile, double tolerance = 0.000005)
     {
-        List<Vector4> actual = Inputs.ConvertAll(input => GetActualTargetValues(input, sourceProfile, targetProfile));
+        List<Vector4> actual = Inputs.ConvertAll(input => GetActualTargetValues(input, sourceProfile, targetProfile, IccInterpolationMethod.Trilinear));
         AssertConversion(sourceProfile, targetProfile, actual, tolerance, testOutputHelper);
     }
 
@@ -108,18 +105,37 @@ public partial class ColorProfileConverterTests(ITestOutputHelper testOutputHelp
     [InlineData(TestIccProfiles.Swop2006, TestIccProfiles.Swop2006)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
     [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.JapanColor2003)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 8-bit vs 16-bit)
     [InlineData(TestIccProfiles.JapanColor2011, TestIccProfiles.Fogra39)] // CMYK -> LAB -> CMYK (different LUT versions, v2 vs v4)
-    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Cgats21, 5E-4F)] // Nonlinear profile stages.
-    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV4, 5E-4F)] // Nonlinear profile stages.
     [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.Fogra39, 5E-4F)] // Nonlinear profile stages.
     [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.RommRgb, 5E-4F)] // Nonlinear profile stages.
     [InlineData(TestIccProfiles.RommRgb, TestIccProfiles.StandardRgbV4, 5E-4F)] // Nonlinear profile stages.
-    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV2, 0.0005)] // CMYK -> LAB -> XYZ -> RGB (different LUT tags, A2B vs TRC) --- tolerance slightly higher due to difference in inverse curve implementation
-    [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39, 5E-4F)] // Nonlinear profile stages.
     [InlineData(TestIccProfiles.Issue129, TestIccProfiles.StandardRgbV4, 5E-4F)] // Nonlinear profile stages.
     public void CanBulkConvertIccProfiles(string sourceProfile, string targetProfile, double tolerance = 0.000005)
     {
-        List<Vector4> actual = GetBulkActualTargetValues(Inputs, sourceProfile, targetProfile);
+        List<Vector4> actual = GetBulkActualTargetValues(Inputs, sourceProfile, targetProfile, IccInterpolationMethod.Trilinear);
         AssertConversion(sourceProfile, targetProfile, actual, tolerance, testOutputHelper);
+    }
+
+    /// <summary>
+    /// Checks scalar and bulk connections against LittleCMS without changing profile headers or clipping intermediate XYZ.
+    /// </summary>
+    /// <param name="sourceProfile">The unchanged source profile.</param>
+    /// <param name="targetProfile">The unchanged destination profile.</param>
+    /// <param name="expected">The independent floating-point outputs for the fixed device samples.</param>
+    [Theory]
+    [MemberData(nameof(IccConversionDataProfiles.UnboundedConnections), MemberType = typeof(IccConversionDataProfiles))]
+    public void Convert_UnboundedProfileConnections_MatchLittleCms(string sourceProfile, string targetProfile, Vector4[] expected)
+    {
+        List<float[]> inputs = IccConversionDataProfiles.Inputs;
+        List<Vector4> scalar = inputs.ConvertAll(input => GetActualTargetValues(input, sourceProfile, targetProfile, IccInterpolationMethod.Auto));
+        List<Vector4> bulk = GetBulkActualTargetValues(inputs, sourceProfile, targetProfile, IccInterpolationMethod.Auto);
+
+        // Unicolour's PCS adjustment clips negative XYZ and the old adapter changes v2 profile headers to avoid it.
+        // Neither result describes this unbounded connection. The fixed native data uses the original profiles and source intent.
+        // Auto matches LittleCMS's device-input and Lab-input table choices. Separate operator tests retain multilinear coverage.
+        // Keep the existing 5E-4 component bound for analytic curves and the reference's inverse-curve quantization.
+        ApproximateFloatComparer comparer = new(5E-4F);
+        Assert.Equal(expected, scalar, comparer);
+        Assert.Equal(expected, bulk, comparer);
     }
 
     /// <summary>
@@ -348,8 +364,8 @@ public partial class ColorProfileConverterTests(ITestOutputHelper testOutputHelp
         bool isTargetPerceptualV2 = targetConfig.Icc.Intent == Intent.Perceptual && targetConfig.Icc.Profile!.Header.ProfileVersion.Major == 2;
         if (isSourcePerceptualV2 && isTargetPerceptualV2)
         {
-            sourceConfig = GetUnicolourConfigAsV4Header(sourceConfig);
-            targetConfig = GetUnicolourConfigAsV4Header(targetConfig);
+            sourceConfig = GetUnicolourConfigAsV4Header(sourceProfile);
+            targetConfig = GetUnicolourConfigAsV4Header(targetProfile);
         }
 
         Channels channels = new([.. input.Select(value => (double)value)]);
@@ -363,9 +379,9 @@ public partial class ColorProfileConverterTests(ITestOutputHelper testOutputHelp
         return target.Icc.Values;
     }
 
-    private static Wacton.Unicolour.Configuration GetUnicolourConfigAsV4Header(Wacton.Unicolour.Configuration config)
+    private static Wacton.Unicolour.Configuration GetUnicolourConfigAsV4Header(string profileFile)
     {
-        string profilePath = config.Icc.Profile!.FileInfo.FullName;
+        string profilePath = TestIccProfiles.GetFullPath(profileFile);
         string modifiedFilename = $"{Path.GetFileNameWithoutExtension(profilePath)}_modified.icc";
         string modifiedProfile = Path.Combine(Path.GetDirectoryName(profilePath)!, modifiedFilename);
 
@@ -386,13 +402,21 @@ public partial class ColorProfileConverterTests(ITestOutputHelper testOutputHelp
         return modifiedConfig;
     }
 
-    private static Vector4 GetActualTargetValues(float[] input, string sourceProfile, string targetProfile)
+    /// <summary>
+    /// Converts one device color through the requested profile pair and interpolation method.
+    /// </summary>
+    /// <param name="input">The normalized device components.</param>
+    /// <param name="sourceProfile">The source profile fixture.</param>
+    /// <param name="targetProfile">The destination profile fixture.</param>
+    /// <param name="interpolationMethod">The table interpolation used by the independent comparison.</param>
+    /// <returns>The destination device components.</returns>
+    private static Vector4 GetActualTargetValues(float[] input, string sourceProfile, string targetProfile, IccInterpolationMethod interpolationMethod)
     {
         ColorProfileConverter converter = new(new ColorConversionOptions
         {
             SourceIccProfile = TestIccProfiles.GetProfile(sourceProfile),
             TargetIccProfile = TestIccProfiles.GetProfile(targetProfile),
-            IccInterpolationMethod = IccInterpolationMethod.Trilinear
+            IccInterpolationMethod = interpolationMethod
         });
 
         IccColorSpaceType sourceDataSpace = converter.Options.SourceIccProfile!.Header.DataColorSpace;
@@ -411,13 +435,25 @@ public partial class ColorProfileConverterTests(ITestOutputHelper testOutputHelp
         };
     }
 
-    private static List<Vector4> GetBulkActualTargetValues(List<float[]> inputs, string sourceProfile, string targetProfile)
+    /// <summary>
+    /// Converts device colors through the requested profile pair and interpolation method.
+    /// </summary>
+    /// <param name="inputs">The normalized device components.</param>
+    /// <param name="sourceProfile">The source profile fixture.</param>
+    /// <param name="targetProfile">The destination profile fixture.</param>
+    /// <param name="interpolationMethod">The table interpolation used by the independent comparison.</param>
+    /// <returns>The destination device components in source order.</returns>
+    private static List<Vector4> GetBulkActualTargetValues(
+        List<float[]> inputs,
+        string sourceProfile,
+        string targetProfile,
+        IccInterpolationMethod interpolationMethod)
     {
         ColorProfileConverter converter = new(new ColorConversionOptions
         {
             SourceIccProfile = TestIccProfiles.GetProfile(sourceProfile),
             TargetIccProfile = TestIccProfiles.GetProfile(targetProfile),
-            IccInterpolationMethod = IccInterpolationMethod.Trilinear
+            IccInterpolationMethod = interpolationMethod
         });
 
         IccColorSpaceType sourceDataSpace = converter.Options.SourceIccProfile!.Header.DataColorSpace;

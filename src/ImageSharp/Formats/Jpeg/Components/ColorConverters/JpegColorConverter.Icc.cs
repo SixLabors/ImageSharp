@@ -370,7 +370,7 @@ internal abstract partial class JpegColorConverterBase
 
             switch (TOperator.ColorSpace)
             {
-                case JpegColorSpace.Grayscale:
+                case JpegColorSpace.Luminance:
                     profileConverter.Convert<Y, Rgb>(MemoryMarshal.Cast<float, Y>(samples), destination);
                     break;
 
@@ -403,7 +403,7 @@ internal abstract partial class JpegColorConverterBase
 
             switch (TOperator.ColorSpace)
             {
-                case JpegColorSpace.Grayscale:
+                case JpegColorSpace.Luminance:
                     profileConverter.Convert<Rgb, Y>(source, MemoryMarshal.Cast<float, Y>(samples));
                     break;
 

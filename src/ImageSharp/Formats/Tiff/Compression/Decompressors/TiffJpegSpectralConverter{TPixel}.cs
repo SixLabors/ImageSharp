@@ -50,6 +50,8 @@ internal sealed class TiffJpegSpectralConverter<TPixel> : SpectralConverter<TPix
     private static JpegColorSpace GetJpegColorSpace(TiffPhotometricInterpretation interpretation, IRawJpegData data) => interpretation switch
     {
         TiffPhotometricInterpretation.Rgb => JpegColorSpace.RGB,
+
+        // TIFF stores conventional ink values, including K. YCCK changes only the representation of the other three channels.
         TiffPhotometricInterpretation.Separated => data.ColorSpace == JpegColorSpace.Ycck ? JpegColorSpace.TiffYccK : JpegColorSpace.TiffCmyk,
         TiffPhotometricInterpretation.YCbCr => JpegColorSpace.YCbCr,
         _ => throw new InvalidImageContentException($"Invalid TIFF photometric interpretation for JPEG decoding: {interpretation}"),

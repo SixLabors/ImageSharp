@@ -49,7 +49,7 @@ public class TiffEncoder : QuantizingImageEncoder
     /// Gets the compression type to use.
     /// </summary>
     /// <remarks>
-    /// JPEG compression supports eight-bit samples: 8-bit BlackIsZero grayscale, 24-bit RGB, and 32-bit Separated CMYK.
+    /// JPEG compression supports eight-bit samples: 8-bit BlackIsZero grayscale, 24-bit RGB or YCbCr, and 32-bit Separated CMYK.
     /// Other sample layouts use the encoder's compression fallback.
     /// </remarks>
     public TiffCompression? Compression { get; init; }
@@ -67,7 +67,7 @@ public class TiffEncoder : QuantizingImageEncoder
     /// Supported layouts include RGB, palette, grayscale, bilevel, and CMYK with 4 ink samples of 8 or 16 bits each.
     /// CIE Lab output uses 3 samples of 8 or 16 bits each and has no alpha sample.
     /// YCbCr output uses 3 samples of 8 bits each with full-resolution chroma.
-    /// For JPEG compression, Rgb selects JPEG RGB, BlackIsZero selects JPEG grayscale, and Separated selects JPEG CMYK.
+    /// For JPEG compression, Rgb selects RGB, YCbCr selects full-resolution YCbCr, BlackIsZero selects grayscale, and Separated selects CMYK.
     /// <see cref="BitsPerPixel"/> must also select a supported layout.
     /// </remarks>
     public TiffPhotometricInterpretation? PhotometricInterpretation { get; init; }

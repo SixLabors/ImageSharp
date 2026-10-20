@@ -14,6 +14,13 @@ internal static partial class IccColorConverter
     /// <summary>
     /// Connects encoded ICC PCS values through XYZ while applying the selected black-point adjustments.
     /// </summary>
+    /// <remarks>
+    /// Intermediate XYZ values remain unbounded. Sampled tables enforce their input limits, and pixel conversion enforces the destination's storage limits.
+    /// This matches LittleCMS's handling of intermediate XYZ, including negative values produced by Lab conversion and black-point adjustment.
+    /// This follows the processing model in Marti Maria's
+    /// <see href="https://www.littlecms.com/CIC18_UnboundedCMM.pdf">Unbounded Color Engines (CIC18_UnboundedCMM)</see>.
+    /// ICC.1 section 6.4 defines clipping for PCS encodings; it does not select the CMM's internal numeric representation.
+    /// </remarks>
     internal readonly struct PcsOperator : IIccColorConverterOperator
     {
         // These XYZ coefficients implement the ICC perceptual black-point adjustment.
@@ -83,12 +90,11 @@ internal static partial class IccColorConverter
         /// <summary>
         /// Gets the linear XYZ adjustment for a connection between two matrix/TRC profiles.
         /// </summary>
-        /// <param name="clipNegativeXyz">Whether target black-point adjustment clips negative XYZ.</param>
-        /// <returns>The XYZ scale and offset, without the temporary PCS encoding.</returns>
-        public MatrixOperator GetXyzAdjustment(out bool clipNegativeXyz)
+        /// <returns>The XYZ scale and offset, without PCS encoding or clipping of floating-point values.</returns>
+        public MatrixOperator GetXyzAdjustment()
         {
             // Matrix/TRC profiles connect through XYZ. Their PCS encode/decode scales cancel between stages.
-            // Combine only the linear black-point adjustments; clipping remains a separate operation.
+            // Keep intermediate XYZ unbounded as described in the type remarks. The linear adjustments can then be combined.
             Vector3 scale = Vector3.One;
             Vector3 offset = Vector3.Zero;
             if (this.adjustFrom)
@@ -104,12 +110,11 @@ internal static partial class IccColorConverter
                 offset = (offset * targetScale) - new Vector3(TargetBlackPointOffsetX, TargetBlackPointOffsetY, TargetBlackPointOffsetZ);
             }
 
-            clipNegativeXyz = this.adjustTo;
             return new MatrixOperator(Matrix4x4.CreateScale(scale), offset);
         }
 
         /// <summary>
-        /// Connects one color using the same PCS decoding, clipping and adjustment order as the SIMD paths.
+        /// Connects one color using the same floating-point PCS decoding and adjustment order as the SIMD paths.
         /// </summary>
         /// <param name="value">The source's encoded PCS color.</param>
         /// <returns>The target's encoded PCS color.</returns>
@@ -135,10 +140,11 @@ internal static partial class IccColorConverter
                 xyz = CieXyz.FromScaledVector4(value);
             }
 
+            // Keep negative XYZ through both adjustments. Clipping here changes the color before the target matrix or curves.
+            // Sampled target tables still enforce their input limits. See the unbounded CMM reference in the type remarks.
             Vector3 components = xyz.AsVector3Unsafe();
             if (this.adjustFrom)
             {
-                components = this.sourceLab ? Vector3.Max(components, Vector3.Zero) : components;
                 components = (components * new Vector3(SourceBlackPointScaleX, SourceBlackPointScaleY, SourceBlackPointScaleZ))
                     + new Vector3(SourceBlackPointOffsetX, SourceBlackPointOffsetY, SourceBlackPointOffsetZ);
             }
@@ -147,7 +153,6 @@ internal static partial class IccColorConverter
             {
                 components = (components * new Vector3(TargetBlackPointScaleX, TargetBlackPointScaleY, TargetBlackPointScaleZ))
                     - new Vector3(TargetBlackPointOffsetX, TargetBlackPointOffsetY, TargetBlackPointOffsetZ);
-                components = this.targetLab ? components : Vector3.Max(components, Vector3.Zero);
             }
 
             xyz = new CieXyz(components);
@@ -207,17 +212,10 @@ internal static partial class IccColorConverter
                 z *= Vector128.Create(PcsXyzDecodeScale);
             }
 
-            // Keep ICC v2 black-point correction in XYZ. Lab sources clip negative XYZ before correction;
-            // XYZ destinations clip after the reverse correction. Neither rule clips ordinary HDR conversion.
+            // Apply the same unbounded XYZ adjustment as the scalar path. Each lane remains one independent color.
+            // Target table lookups enforce their input limits after this connection.
             if (this.adjustFrom)
             {
-                if (this.sourceLab)
-                {
-                    x = Vector128.Max(x, Vector128<float>.Zero);
-                    y = Vector128.Max(y, Vector128<float>.Zero);
-                    z = Vector128.Max(z, Vector128<float>.Zero);
-                }
-
                 x = (x * Vector128.Create(SourceBlackPointScaleX)) + Vector128.Create(SourceBlackPointOffsetX);
                 y = (y * Vector128.Create(SourceBlackPointScaleY)) + Vector128.Create(SourceBlackPointOffsetY);
                 z = (z * Vector128.Create(SourceBlackPointScaleZ)) + Vector128.Create(SourceBlackPointOffsetZ);
@@ -228,12 +226,6 @@ internal static partial class IccColorConverter
                 x = (x * Vector128.Create(TargetBlackPointScaleX)) - Vector128.Create(TargetBlackPointOffsetX);
                 y = (y * Vector128.Create(TargetBlackPointScaleY)) - Vector128.Create(TargetBlackPointOffsetY);
                 z = (z * Vector128.Create(TargetBlackPointScaleZ)) - Vector128.Create(TargetBlackPointOffsetZ);
-                if (!this.targetLab)
-                {
-                    x = Vector128.Max(x, Vector128<float>.Zero);
-                    y = Vector128.Max(y, Vector128<float>.Zero);
-                    z = Vector128.Max(z, Vector128<float>.Zero);
-                }
             }
 
             if (this.targetLab)
@@ -306,17 +298,10 @@ internal static partial class IccColorConverter
                 z *= Vector256.Create(PcsXyzDecodeScale);
             }
 
-            // Keep ICC v2 black-point correction in XYZ. Lab sources clip negative XYZ before correction;
-            // XYZ destinations clip after the reverse correction. Neither rule clips ordinary HDR conversion.
+            // Apply the same unbounded XYZ adjustment as the scalar path. Each lane remains one independent color.
+            // Target table lookups enforce their input limits after this connection.
             if (this.adjustFrom)
             {
-                if (this.sourceLab)
-                {
-                    x = Vector256.Max(x, Vector256<float>.Zero);
-                    y = Vector256.Max(y, Vector256<float>.Zero);
-                    z = Vector256.Max(z, Vector256<float>.Zero);
-                }
-
                 x = (x * Vector256.Create(SourceBlackPointScaleX)) + Vector256.Create(SourceBlackPointOffsetX);
                 y = (y * Vector256.Create(SourceBlackPointScaleY)) + Vector256.Create(SourceBlackPointOffsetY);
                 z = (z * Vector256.Create(SourceBlackPointScaleZ)) + Vector256.Create(SourceBlackPointOffsetZ);
@@ -327,12 +312,6 @@ internal static partial class IccColorConverter
                 x = (x * Vector256.Create(TargetBlackPointScaleX)) - Vector256.Create(TargetBlackPointOffsetX);
                 y = (y * Vector256.Create(TargetBlackPointScaleY)) - Vector256.Create(TargetBlackPointOffsetY);
                 z = (z * Vector256.Create(TargetBlackPointScaleZ)) - Vector256.Create(TargetBlackPointOffsetZ);
-                if (!this.targetLab)
-                {
-                    x = Vector256.Max(x, Vector256<float>.Zero);
-                    y = Vector256.Max(y, Vector256<float>.Zero);
-                    z = Vector256.Max(z, Vector256<float>.Zero);
-                }
             }
 
             if (this.targetLab)
@@ -405,17 +384,10 @@ internal static partial class IccColorConverter
                 z *= Vector512.Create(PcsXyzDecodeScale);
             }
 
-            // Keep ICC v2 black-point correction in XYZ. Lab sources clip negative XYZ before correction;
-            // XYZ destinations clip after the reverse correction. Neither rule clips ordinary HDR conversion.
+            // Apply the same unbounded XYZ adjustment as the scalar path. Each lane remains one independent color.
+            // Target table lookups enforce their input limits after this connection.
             if (this.adjustFrom)
             {
-                if (this.sourceLab)
-                {
-                    x = Vector512.Max(x, Vector512<float>.Zero);
-                    y = Vector512.Max(y, Vector512<float>.Zero);
-                    z = Vector512.Max(z, Vector512<float>.Zero);
-                }
-
                 x = (x * Vector512.Create(SourceBlackPointScaleX)) + Vector512.Create(SourceBlackPointOffsetX);
                 y = (y * Vector512.Create(SourceBlackPointScaleY)) + Vector512.Create(SourceBlackPointOffsetY);
                 z = (z * Vector512.Create(SourceBlackPointScaleZ)) + Vector512.Create(SourceBlackPointOffsetZ);
@@ -426,12 +398,6 @@ internal static partial class IccColorConverter
                 x = (x * Vector512.Create(TargetBlackPointScaleX)) - Vector512.Create(TargetBlackPointOffsetX);
                 y = (y * Vector512.Create(TargetBlackPointScaleY)) - Vector512.Create(TargetBlackPointOffsetY);
                 z = (z * Vector512.Create(TargetBlackPointScaleZ)) - Vector512.Create(TargetBlackPointOffsetZ);
-                if (!this.targetLab)
-                {
-                    x = Vector512.Max(x, Vector512<float>.Zero);
-                    y = Vector512.Max(y, Vector512<float>.Zero);
-                    z = Vector512.Max(z, Vector512<float>.Zero);
-                }
             }
 
             if (this.targetLab)

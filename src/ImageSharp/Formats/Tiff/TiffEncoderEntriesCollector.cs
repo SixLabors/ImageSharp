@@ -220,8 +220,9 @@ internal class TiffEncoderEntriesCollector
                 {
                     // This encoder writes strips. Source tile entries would point readers at data that the new file does not contain.
                     // ProcessIccProfile writes the checked output profile separately. A copied EXIF entry can describe a different color space.
+                    // JPEG strips contain their own new coding tables. Retaining source JPEGTables would define conflicting tables.
                     ExifTagValue tag = (ExifTagValue)(ushort)entry.Tag;
-                    if (tag is ExifTagValue.IccProfile or ExifTagValue.TileWidth or ExifTagValue.TileLength
+                    if (tag is ExifTagValue.IccProfile or ExifTagValue.JPEGTables or ExifTagValue.TileWidth or ExifTagValue.TileLength
                         or ExifTagValue.TileOffsets or ExifTagValue.TileByteCounts)
                     {
                         continue;

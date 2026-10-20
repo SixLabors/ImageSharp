@@ -190,7 +190,11 @@ internal static class ColorProfileConverterExtensionsIcc
 
         internal IccVersion Version => this.Header.Version;
 
-        internal bool HasV2PerceptualHandling => this.Intent == IccRenderingIntent.Perceptual && this.Version.Major == 2;
+        /// <summary>
+        /// Gets a value indicating whether a v2 perceptual table uses the legacy black point. Curve-only profiles have no perceptual table;
+        /// treating them as v2 tables can omit the source adjustment while still applying its inverse at the target.
+        /// </summary>
+        internal bool HasV2PerceptualHandling => this.Intent == IccRenderingIntent.Perceptual && this.Version.Major == 2 && !this.Converter.IsTrc;
 
         internal bool HasNoPerceptualHandling => this.Intent == IccRenderingIntent.Perceptual && this.Converter.IsTrc;
 

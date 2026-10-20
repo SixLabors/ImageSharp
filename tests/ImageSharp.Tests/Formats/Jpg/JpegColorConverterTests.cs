@@ -52,8 +52,8 @@ public partial class JpegColorConverterTests
     /// <param name="colorSpace">The JPEG color space.</param>
     /// <param name="precision">The JPEG sample precision.</param>
     [Theory]
-    [InlineData(JpegColorSpace.Grayscale, 8)]
-    [InlineData(JpegColorSpace.Grayscale, 12)]
+    [InlineData(JpegColorSpace.Luminance, 8)]
+    [InlineData(JpegColorSpace.Luminance, 12)]
     [InlineData(JpegColorSpace.Ycck, 8)]
     [InlineData(JpegColorSpace.Ycck, 12)]
     [InlineData(JpegColorSpace.Cmyk, 8)]
@@ -81,7 +81,7 @@ public partial class JpegColorConverterTests
     /// <param name="colorSpace">The JPEG color space.</param>
     /// <param name="expectedType">The expected closed converter type.</param>
     [Theory]
-    [InlineData(JpegColorSpace.Grayscale, typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.GrayScaleOperator>))]
+    [InlineData(JpegColorSpace.Luminance, typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.GrayScaleOperator>))]
     [InlineData(JpegColorSpace.RGB, typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.RgbOperator>))]
     [InlineData(JpegColorSpace.Cmyk, typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.CmykOperator>))]
     [InlineData(JpegColorSpace.YCbCr, typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.YCbCrOperator>))]
@@ -101,7 +101,7 @@ public partial class JpegColorConverterTests
     /// <param name="colorSpace">The JPEG color space.</param>
     /// <param name="componentCount">The number of component planes owned by the color model.</param>
     [Theory]
-    [InlineData(JpegColorSpace.Grayscale, 1)]
+    [InlineData(JpegColorSpace.Luminance, 1)]
     [InlineData(JpegColorSpace.RGB, 3)]
     [InlineData(JpegColorSpace.Cmyk, 4)]
     [InlineData(JpegColorSpace.YCbCr, 3)]
@@ -128,8 +128,8 @@ public partial class JpegColorConverterTests
     /// <param name="componentCount">The number of component planes owned by the color model.</param>
     /// <param name="precision">The JPEG sample precision.</param>
     [Theory]
-    [InlineData(JpegColorSpace.Grayscale, 1, 8)]
-    [InlineData(JpegColorSpace.Grayscale, 1, 12)]
+    [InlineData(JpegColorSpace.Luminance, 1, 8)]
+    [InlineData(JpegColorSpace.Luminance, 1, 12)]
     [InlineData(JpegColorSpace.RGB, 3, 8)]
     [InlineData(JpegColorSpace.RGB, 3, 12)]
     [InlineData(JpegColorSpace.Cmyk, 4, 8)]
@@ -146,7 +146,7 @@ public partial class JpegColorConverterTests
     {
         switch (colorSpace)
         {
-            case JpegColorSpace.Grayscale:
+            case JpegColorSpace.Luminance:
                 ValidateOperator<JpegColorConverterBase.GrayScaleOperator>(componentCount, precision);
                 break;
             case JpegColorSpace.RGB:
@@ -180,8 +180,8 @@ public partial class JpegColorConverterTests
     /// <param name="componentCount">The number of component planes owned by the color model.</param>
     /// <param name="precision">The JPEG sample precision.</param>
     [Theory]
-    [InlineData(JpegColorSpace.Grayscale, 1, 8)]
-    [InlineData(JpegColorSpace.Grayscale, 1, 12)]
+    [InlineData(JpegColorSpace.Luminance, 1, 8)]
+    [InlineData(JpegColorSpace.Luminance, 1, 12)]
     [InlineData(JpegColorSpace.RGB, 3, 8)]
     [InlineData(JpegColorSpace.RGB, 3, 12)]
     [InlineData(JpegColorSpace.YCbCr, 3, 8)]
@@ -206,7 +206,7 @@ public partial class JpegColorConverterTests
         // needs a one-channel profile so the profile's declared data space agrees with the Y input.
         IccProfile profile = colorSpace switch
         {
-            JpegColorSpace.Grayscale => CreateGrayProfile(),
+            JpegColorSpace.Luminance => CreateGrayProfile(),
             JpegColorSpace.Cmyk or JpegColorSpace.Ycck or JpegColorSpace.TiffCmyk or JpegColorSpace.TiffYccK
                 => TestIccProfiles.GetProfile(TestIccProfiles.Fogra39),
             _ => CompactSrgbV4Profile.Profile,
@@ -229,7 +229,7 @@ public partial class JpegColorConverterTests
         float maximumValue = MathF.Pow(2, precision) - 1;
         Rgb[] grayscaleExpected = null;
 
-        if (colorSpace == JpegColorSpace.Grayscale)
+        if (colorSpace == JpegColorSpace.Luminance)
         {
             // The profile converter has distinct scalar and span entry points. Production converts the complete
             // grayscale row, so the independent reference must exercise that same public span contract.
@@ -254,7 +254,7 @@ public partial class JpegColorConverterTests
 
             switch (colorSpace)
             {
-                case JpegColorSpace.Grayscale:
+                case JpegColorSpace.Luminance:
                     expected = grayscaleExpected[i];
                     break;
 
@@ -324,7 +324,7 @@ public partial class JpegColorConverterTests
         float maximumValue = (1 << precision) - 1;
         JpegColorSpace[] spaces =
         [
-            JpegColorSpace.Grayscale, JpegColorSpace.RGB, JpegColorSpace.YCbCr,
+            JpegColorSpace.Luminance, JpegColorSpace.RGB, JpegColorSpace.YCbCr,
             JpegColorSpace.Cmyk, JpegColorSpace.Ycck, JpegColorSpace.TiffCmyk, JpegColorSpace.TiffYccK
         ];
 
@@ -334,7 +334,7 @@ public partial class JpegColorConverterTests
 
         foreach (JpegColorSpace space in spaces)
         {
-            int componentCount = space == JpegColorSpace.Grayscale ? 1 : space is JpegColorSpace.RGB or JpegColorSpace.YCbCr ? 3 : 4;
+            int componentCount = space == JpegColorSpace.Luminance ? 1 : space is JpegColorSpace.RGB or JpegColorSpace.YCbCr ? 3 : 4;
             IccProfile profile = componentCount switch
             {
                 1 => CreateGrayProfile(),
@@ -724,7 +724,7 @@ public partial class JpegColorConverterTests
 
         switch (colorSpace)
         {
-            case JpegColorSpace.Grayscale:
+            case JpegColorSpace.Luminance:
                 float luminance = c0 / MaxColorChannelValue;
                 expected = new Rgb(luminance, luminance, luminance);
                 break;

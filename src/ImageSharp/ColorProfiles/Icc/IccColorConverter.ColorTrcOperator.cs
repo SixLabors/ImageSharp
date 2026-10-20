@@ -51,23 +51,23 @@ internal static partial class IccColorConverter
         /// Connects two matrix/TRC profiles and combines adjacent linear stages before traversal.
         /// </summary>
         /// <param name="target">The selected PCS-to-device operator.</param>
-        /// <param name="pcs">The connection's XYZ adjustment and clipping rules.</param>
+        /// <param name="pcs">The connection's floating-point XYZ adjustment.</param>
         /// <returns>The complete connection using the shared SIMD traversal.</returns>
         public IIccColorConverter Connect(ColorTrcOperator target, PcsOperator pcs)
         {
-            MatrixOperator adjustment = pcs.GetXyzAdjustment(out bool clipNegativeXyz);
+            MatrixOperator adjustment = pcs.GetXyzAdjustment();
             MatrixOperator sourceMatrix = this.operation.Matrix.Then(adjustment);
             TrcOperator curves = this.operation.Curves;
 
             // Select the curve formulas before traversal. Closed stages avoid the general curve-kind switch in every component block.
             if (curves.TryGetGamma(out GammaTrcOperator sourceGamma))
             {
-                return CreateConnection(sourceGamma, target, sourceMatrix, clipNegativeXyz);
+                return CreateConnection(sourceGamma, target, sourceMatrix);
             }
 
             return curves.TryGetSRgb(out SRgbTrcOperator sourceSRgb)
-                ? CreateConnection(sourceSRgb, target, sourceMatrix, clipNegativeXyz)
-                : CreateConnection(curves, target, sourceMatrix, clipNegativeXyz);
+                ? CreateConnection(sourceSRgb, target, sourceMatrix)
+                : CreateConnection(curves, target, sourceMatrix);
         }
 
         /// <summary>
@@ -77,24 +77,19 @@ internal static partial class IccColorConverter
         /// <param name="source">The source curves.</param>
         /// <param name="target">The target matrix and channel curves.</param>
         /// <param name="sourceMatrix">The source matrix with its XYZ adjustment.</param>
-        /// <param name="clipNegativeXyz">Whether the PCS rule clips negative XYZ between the matrices.</param>
         /// <returns>The connection with its target curve formula selected.</returns>
-        private static IIccColorConverter CreateConnection<TSource>(
-            TSource source,
-            ColorTrcOperator target,
-            MatrixOperator sourceMatrix,
-            bool clipNegativeXyz)
+        private static IIccColorConverter CreateConnection<TSource>(TSource source, ColorTrcOperator target, MatrixOperator sourceMatrix)
             where TSource : struct, IIccColorConverterOperator
         {
             TrcOperator curves = target.operation.Curves;
             if (curves.TryGetGamma(out GammaTrcOperator gamma))
             {
-                return CreateConnection(source, gamma, sourceMatrix, target.operation.Matrix, clipNegativeXyz);
+                return CreateConnection(source, gamma, sourceMatrix, target.operation.Matrix);
             }
 
             return curves.TryGetSRgb(out SRgbTrcOperator srgb)
-                ? CreateConnection(source, srgb, sourceMatrix, target.operation.Matrix, clipNegativeXyz)
-                : CreateConnection(source, curves, sourceMatrix, target.operation.Matrix, clipNegativeXyz);
+                ? CreateConnection(source, srgb, sourceMatrix, target.operation.Matrix)
+                : CreateConnection(source, curves, sourceMatrix, target.operation.Matrix);
         }
 
         /// <summary>
@@ -144,17 +139,15 @@ internal static partial class IccColorConverter
         /// <param name="target">The target curves.</param>
         /// <param name="sourceMatrix">The source matrix with its XYZ adjustment.</param>
         /// <param name="targetMatrix">The target matrix.</param>
-        /// <param name="clipNegativeXyz">Whether the PCS adjustment clips negative XYZ before the target matrix.</param>
         /// <returns>The connection using the shared SIMD traversal.</returns>
         private static IccColorConverter<ColorTrcConnectionOperator<TSource, TTarget>> CreateConnection<TSource, TTarget>(
             TSource source,
             TTarget target,
             MatrixOperator sourceMatrix,
-            MatrixOperator targetMatrix,
-            bool clipNegativeXyz)
+            MatrixOperator targetMatrix)
             where TSource : struct, IIccColorConverterOperator
             where TTarget : struct, IIccColorConverterOperator
-            => new(new(source, sourceMatrix, targetMatrix, target, clipNegativeXyz));
+            => new(new(source, sourceMatrix, targetMatrix, target));
 
         /// <inheritdoc/>
         public Vector4 Convert(Vector4 value) => this.operation.Convert(value);

@@ -583,11 +583,42 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
         image.DebugSave(provider);
 
-        // Preserve keeps the converted pixels, so both modes use the existing ICC reference.
+        // Preserve keeps the converted pixels, so both modes use the same ICC reference.
+        // The Issue2454_B reference retains negative intermediate XYZ until final pixel packing. Its five previously
+        // clipped dark pixels were checked with libjpeg coefficients, direct cosine IDCT and LittleCMS using the original profile.
         provider.Utility.TestName = nameof(this.TiffDecoder_CanDecode_YccK_ICC);
 
         // Approximate ICC curves can move final rounding. Limit the total RGB error to three eight-bit codes per pixel.
         image.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
+    }
+
+    /// <summary>
+    /// Checks that TIFF's nested JPEG decoder retains fractional and negative ICC output in floating-point pixels.
+    /// </summary>
+    /// <param name="provider">The existing YCCK TIFF with its original CMYK profile.</param>
+    [Theory]
+    [WithFile(Issues2454_B, PixelTypes.RgbaVector)]
+    public void TiffDecoder_YcckIcc_RetainsFloatingRgb(TestImageProvider<RgbaVector> provider)
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertFloatingYcckRgb,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider);
+
+    /// <summary>
+    /// Compares a dark pixel with the independently checked native transform before byte packing.
+    /// </summary>
+    /// <param name="providerDump">The serialized image provider.</param>
+    private static void AssertFloatingYcckRgb(string providerDump)
+    {
+        TestImageProvider<RgbaVector> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<RgbaVector>>(providerDump);
+        using Image<RgbaVector> image = provider.GetImage(TiffDecoder.Instance);
+
+        // LittleCMS transforms the same fractional CMYK samples through this TIFF's unchanged ICC profile.
+        // Its RGB result below uses byte-code units; divide by 255 to compare normalized floating-point pixels.
+        // This bound covers the established analytic-curve error. Rounding RGB to bytes would lose the green fraction;
+        // clipping intermediate XYZ would also change this pixel. Neither operation is required by float storage.
+        Vector4 expected = new(-15.415898F / 255F, 5.247180F / 255F, -3.835872F / 255F, 1F);
+        Assert.Equal(expected, image[1767, 1161].ToScaledVector4(), new ApproximateFloatComparer(5E-4F));
     }
 
     [Theory]

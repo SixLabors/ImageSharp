@@ -14,7 +14,7 @@ internal abstract partial class JpegColorConverterBase
     internal readonly struct GrayScaleOperator : IJpegColorConverterOperator
     {
         /// <inheritdoc/>
-        public static JpegColorSpace ColorSpace => JpegColorSpace.Grayscale;
+        public static JpegColorSpace ColorSpace => JpegColorSpace.Luminance;
 
         /// <inheritdoc/>
         public static int ComponentCount => 1;

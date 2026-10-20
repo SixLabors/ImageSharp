@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Ani;
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Ico;
-using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Tiff.Writers;
@@ -347,11 +347,12 @@ internal sealed class TiffEncoderCore
 
         // TIFF has no separate JPEG color-type option. Its resolved photometric interpretation selects the nested JPEG color type.
         // JPEG receives the original TPixel region and performs its own ICC conversion with the supplied profile.
-        JpegColorType jpegColorType = photometricInterpretation switch
+        JpegColorSpace jpegColorSpace = photometricInterpretation switch
         {
-            TiffPhotometricInterpretation.Separated => JpegColorType.Cmyk,
-            TiffPhotometricInterpretation.BlackIsZero => JpegColorType.Luminance,
-            _ => JpegColorType.Rgb
+            TiffPhotometricInterpretation.Separated => JpegColorSpace.TiffCmyk,
+            TiffPhotometricInterpretation.BlackIsZero => JpegColorSpace.Luminance,
+            TiffPhotometricInterpretation.YCbCr => JpegColorSpace.YCbCr,
+            _ => JpegColorSpace.RGB
         };
 
         using TiffBaseColorWriter<TPixel> colorWriter = compression == TiffCompression.Jpeg
@@ -362,7 +363,7 @@ internal sealed class TiffEncoderCore
                 this.configuration,
                 entriesCollector,
                 outputProfile,
-                jpegColorType,
+                jpegColorSpace,
                 EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode),
                 cancellationToken)
             : TiffColorWriterFactory.Create(
@@ -610,11 +611,10 @@ internal sealed class TiffEncoderCore
             return;
         }
 
-        // The nested JPEG writer supports RGB, grayscale and CMYK. Preserve explicit Lab or YCbCr output with Deflate;
-        // those sample layouts belong to the non-JPEG writers selected below.
+        // JPEG has no Lab component model. Keep explicit Lab output with Deflate; supported JPEG layouts retain JPEG compression.
         if (compression == TiffCompression.Jpeg
             && (bitsPerPixel != TiffBitsPerPixel.Bit24
-                || photometricInterpretation is TiffPhotometricInterpretation.CieLab or TiffPhotometricInterpretation.YCbCr))
+                || photometricInterpretation == TiffPhotometricInterpretation.CieLab))
         {
             compression = TiffCompression.Deflate;
         }

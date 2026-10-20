@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -41,36 +43,42 @@ internal class TiffJpegCompressor : TiffBaseCompressor
     {
         int width = rows.Length / (3 * height);
         using Image<Rgb24> image = Image.LoadPixelData<Rgb24>(rows, width, height);
-        this.CompressStrip(image.Configuration, image.Frames.RootFrame.PixelBuffer.GetRegion(), null, JpegColorType.Rgb, false, default);
+        this.CompressStrip(image.Configuration, image.Frames.RootFrame.PixelBuffer.GetRegion(), null, JpegColorSpace.RGB, false, default);
     }
 
     /// <summary>
     /// Encodes source pixels as a JPEG strip without an intermediate byte image.
     /// </summary>
     /// <remarks>
-    /// TIFF selects colorType from its resolved photometric interpretation and supplies the compatible frame profile.
+    /// TIFF selects the component model from its resolved photometric interpretation and supplies the compatible frame profile.
     /// JPEG applies the color conversion itself. TIFF writes that same profile in its IccProfile directory entry.
     /// </remarks>
     /// <typeparam name="TPixel">The source pixel format.</typeparam>
     /// <param name="configuration">The source configuration.</param>
     /// <param name="pixels">The source region, which remains unchanged.</param>
     /// <param name="profile">The frame's retained ICC profile, or null.</param>
-    /// <param name="colorType">RGB, grayscale, or CMYK, as selected by TIFF's resolved sample layout.</param>
+    /// <param name="colorSpace">
+    /// The internal JPEG component model and stored sample convention. Separated TIFF output uses <see cref="JpegColorSpace.TiffCmyk"/>.
+    /// This parameter uses <see cref="JpegColorSpace"/> because the public <see cref="JpegColorType.Cmyk"/> selects inverted Adobe CMYK.
+    /// The public enum has no TIFF CMYK value. RGB rows use <see cref="JpegColorSpace.RGB"/> for direct RGB components.
+    /// The selected frame configuration retains full resolution for each component; this parameter does not select chroma subsampling.
+    /// </param>
     /// <param name="clearTransparentPixels">Whether JPEG sets RGB to zero for fully transparent input pixels in its reusable row buffer.</param>
     /// <param name="cancellationToken">The token to request cancellation.</param>
     public void CompressStrip<TPixel>(
         Configuration configuration,
         Buffer2DRegion<TPixel> pixels,
         IccProfile? profile,
-        JpegColorType colorType,
+        JpegColorSpace colorSpace,
         bool clearTransparentPixels,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // TIFF supplies the JPEG color type explicitly. Empty JPEG metadata cannot change that choice.
+        // Select by the internal model so TiffCmyk reaches the conventional-ink converter instead of the standalone Adobe converter.
         // SkipMetadata omits optional JPEG metadata. The separately supplied ICC profile still controls conversion and embedding.
-        JpegEncoderCore encoder = new(new JpegEncoder { ColorType = colorType, SkipMetadata = true });
-        encoder.Encode(configuration, pixels, new ImageMetadata(), profile, clearTransparentPixels, this.Output, cancellationToken);
+        JpegFrameConfig frameConfig = JpegEncoderCore.GetFrameConfig(colorSpace);
+        JpegEncoderCore encoder = new(new JpegEncoder { SkipMetadata = true });
+        encoder.Encode(configuration, pixels, frameConfig, new ImageMetadata(), profile, clearTransparentPixels, this.Output, cancellationToken);
     }
 
     /// <inheritdoc/>

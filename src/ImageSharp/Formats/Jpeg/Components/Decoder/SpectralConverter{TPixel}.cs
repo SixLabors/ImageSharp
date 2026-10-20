@@ -3,6 +3,7 @@
 #nullable disable
 
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
@@ -192,11 +193,22 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
                 // without writing through its aliased component planes.
                 this.colorConverter.ConvertToRgb(values.Slice(0, width), rgb, this.iccConverter, scratch);
 
-                // Keep the established JPEG packing behavior: quantize converted RGB to bytes,
-                // then let PixelOperations pack those opaque samples into the requested TPixel.
-                Span<byte> rgbBytes = this.rgbBuffer.GetSpan();
-                SimdUtils.NormalizedFloatToByteSaturate(MemoryMarshal.Cast<Rgb, float>(rgb), rgbBytes);
-                PixelOperations<TPixel>.Instance.FromRgb24Bytes(this.Configuration, rgbBytes, this.pixelBuffer.DangerousGetRowSpan(yy), width);
+                // ICC can produce fractional RGB and values outside [0,1], even from bounded JPEG components.
+                // Let TPixel apply its own range and precision instead of clipping every destination through bytes.
+                // Sixteen vectors hold one full Vector512 batch. Separate stack storage protects the packed RGB row
+                // while RGB expands from three floats to four and the destructive pixel packer reuses its input.
+                InlineArray16<Vector4> storage = default;
+                Span<Vector4> vectors = storage;
+                Span<TPixel> pixelRow = this.pixelBuffer.DangerousGetRowSpan(yy);
+
+                for (int x = 0; x < width; x += vectors.Length)
+                {
+                    int count = Math.Min(vectors.Length, width - x);
+                    Span<Vector4> block = vectors[..count];
+                    Rgb.ToScaledVector4(rgb.Slice(x, count), block);
+                    PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.Configuration, block, pixelRow.Slice(x, count));
+                }
+
                 continue;
             }
             else

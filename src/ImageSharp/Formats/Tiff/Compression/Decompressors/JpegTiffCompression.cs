@@ -101,10 +101,9 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
             case TiffPhotometricInterpretation.Rgb:
             case TiffPhotometricInterpretation.Separated:
             {
-                // Complete JPEG streams retain normal JPEG color deduction; table-based strips use TIFF's photometric interpretation.
-                using SpectralConverter<TPixel> spectralConverter = this.jpegTables is null
-                    ? new SpectralConverter<TPixel>(configuration)
-                    : new TiffJpegSpectralConverter<TPixel>(configuration, this.photometricInterpretation);
+                // The IFD defines the strip's component convention, whether JPEG tables are shared or stored in the strip.
+                // JPEG selects the matching TIFF operator and owns ICC conversion in both cases.
+                using SpectralConverter<TPixel> spectralConverter = new TiffJpegSpectralConverter<TPixel>(configuration, this.photometricInterpretation);
 
                 if (this.jpegTables is not null)
                 {

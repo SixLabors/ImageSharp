@@ -104,12 +104,12 @@ internal abstract partial class IccConverterBase
         };
 
     /// <summary>
-    /// Creates a LUT calculator with interpolation selected for its input color space and direction.
+    /// Creates the selected profile table's operator with its input color space and interpolation rules.
     /// </summary>
     /// <param name="profile">The profile containing the table.</param>
-    /// <param name="tag">The transform tag to evaluate.</param>
-    /// <returns>The configured table calculator.</returns>
+    /// <param name="tag">The AToB device-to-PCS table or BToA PCS-to-device table selected for the rendering intent.</param>
     /// <param name="interpolationMethod">The requested interpolation method.</param>
+    /// <returns>The configured table operator.</returns>
     private static IIccColorConverter InitA(IccProfile profile, IccProfileTag tag, IccInterpolationMethod interpolationMethod)
     {
         // Lab-indexed output and linking tables use independent-axis interpolation.
@@ -120,10 +120,18 @@ internal abstract partial class IccConverterBase
                 && (tag is IccProfileTag.BToA0 or IccProfileTag.BToA1 or IccProfileTag.BToA2
                     || profile.Header.Class is IccProfileClass.DeviceLink or IccProfileClass.Abstract));
 
+        // AToB input uses Header.DataColorSpace. BToA input uses Header.ProfileConnectionSpace.
+        // ICC.1 sections 10.10 and 10.11 permit legacy lut8Type and lut16Type matrices only for XYZ input.
+        // Lab also has three channels. Its samples must bypass this matrix before entering the input curves.
+        IccColorSpaceType inputColorSpace = tag is IccProfileTag.AToB0 or IccProfileTag.AToB1 or IccProfileTag.AToB2
+            ? profile.Header.DataColorSpace
+            : profile.Header.ProfileConnectionSpace;
+
         return GetTag(profile, tag) switch
         {
-            IccLut8TagDataEntry lut8 => new IccColorConverter<SampledLutColorOperator>(new(lut8, useTrilinearInterpolation)),
-            IccLut16TagDataEntry lut16 => new IccColorConverter<SampledLutColorOperator>(new(lut16, useTrilinearInterpolation)),
+            // Both legacy storage types use the XYZ-only matrix rule. The mAB and mBA operators below use their own matrix order.
+            IccLut8TagDataEntry lut8 => new IccColorConverter<SampledLutColorOperator>(new(lut8, inputColorSpace, useTrilinearInterpolation)),
+            IccLut16TagDataEntry lut16 => new IccColorConverter<SampledLutColorOperator>(new(lut16, inputColorSpace, useTrilinearInterpolation)),
             IccLutAToBTagDataEntry lutAtoB => new IccColorConverter<LutColorOperator>(new LutColorOperator(lutAtoB, useTrilinearInterpolation)),
             IccLutBToATagDataEntry lutBtoA => new IccColorConverter<LutColorOperator>(new LutColorOperator(lutBtoA, useTrilinearInterpolation)),
             _ => throw new InvalidIccProfileException($"Invalid entry {tag}."),

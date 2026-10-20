@@ -562,7 +562,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     {
         if (componentCount == 1)
         {
-            return JpegColorSpace.Grayscale;
+            return JpegColorSpace.Luminance;
         }
 
         if (componentCount == 3)
@@ -598,7 +598,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     {
         if (componentCount == 1)
         {
-            return JpegColorSpace.Grayscale;
+            return JpegColorSpace.Luminance;
         }
 
         if (componentCount == 3)
@@ -623,7 +623,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     {
         switch (this.ColorSpace)
         {
-            case JpegColorSpace.Grayscale:
+            case JpegColorSpace.Luminance:
                 return JpegColorType.Luminance;
 
             case JpegColorSpace.RGB:

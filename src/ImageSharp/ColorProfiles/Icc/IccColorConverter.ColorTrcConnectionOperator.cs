@@ -22,8 +22,6 @@ internal static partial class IccColorConverter
         private TSource sourceCurves;
         private TTarget targetCurves;
         private readonly MatrixOperator matrix;
-        private readonly MatrixOperator matrixAfterClipping;
-        private readonly bool clipNegativeXyz;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ColorTrcConnectionOperator{TSource, TTarget}"/> struct.
@@ -32,22 +30,14 @@ internal static partial class IccColorConverter
         /// <param name="sourceMatrix">The source matrix combined with the linear XYZ adjustment.</param>
         /// <param name="targetMatrix">The target profile's XYZ-to-device matrix.</param>
         /// <param name="targetCurves">The target profile's inverse device curves.</param>
-        /// <param name="clipNegativeXyz">Whether the PCS adjustment clips negative XYZ before the target matrix.</param>
-        public ColorTrcConnectionOperator(
-            TSource sourceCurves,
-            MatrixOperator sourceMatrix,
-            MatrixOperator targetMatrix,
-            TTarget targetCurves,
-            bool clipNegativeXyz)
+        public ColorTrcConnectionOperator(TSource sourceCurves, MatrixOperator sourceMatrix, MatrixOperator targetMatrix, TTarget targetCurves)
         {
             this.sourceCurves = sourceCurves;
             this.targetCurves = targetCurves;
-            this.clipNegativeXyz = clipNegativeXyz;
 
-            // A required XYZ clipping step prevents matrix concatenation across that boundary.
-            // Otherwise one matrix maps source linear components directly to target linear components.
-            this.matrix = clipNegativeXyz ? sourceMatrix : sourceMatrix.Then(targetMatrix);
-            this.matrixAfterClipping = targetMatrix;
+            // Keep XYZ unbounded between the linear stages; PcsOperator documents this CMM processing rule.
+            // Combine the matrices once. Target channel curves still apply their own domain limits.
+            this.matrix = sourceMatrix.Then(targetMatrix);
         }
 
         /// <inheritdoc/>
@@ -60,12 +50,6 @@ internal static partial class IccColorConverter
         public Vector4 Convert(Vector4 value)
         {
             value = this.matrix.Convert(this.sourceCurves.Convert(value));
-            if (this.clipNegativeXyz)
-            {
-                value = new Vector4(Vector3.Max(value.AsVector3(), Vector3.Zero), 1F);
-                value = this.matrixAfterClipping.Convert(value);
-            }
-
             value.W = 1F;
             return this.targetCurves.Convert(value);
         }
@@ -77,15 +61,6 @@ internal static partial class IccColorConverter
             // Each lane is one independent color. Curves keep their original order around the linear stages.
             this.sourceCurves.Convert(ref x, ref y, ref z, ref w);
             this.matrix.Convert(ref x, ref y, ref z);
-            if (this.clipNegativeXyz)
-            {
-                // Black-point adjustment clips negative XYZ before the target matrix. Device RGB remains unbounded.
-                x = Vector128.Max(x, Vector128<float>.Zero);
-                y = Vector128.Max(y, Vector128<float>.Zero);
-                z = Vector128.Max(z, Vector128<float>.Zero);
-                this.matrixAfterClipping.Convert(ref x, ref y, ref z);
-            }
-
             w = Vector128<float>.One;
             this.targetCurves.Convert(ref x, ref y, ref z, ref w);
         }
@@ -97,15 +72,6 @@ internal static partial class IccColorConverter
             // Each lane is one independent color. Curves keep their original order around the linear stages.
             this.sourceCurves.Convert(ref x, ref y, ref z, ref w);
             this.matrix.Convert(ref x, ref y, ref z);
-            if (this.clipNegativeXyz)
-            {
-                // Black-point adjustment clips negative XYZ before the target matrix. Device RGB remains unbounded.
-                x = Vector256.Max(x, Vector256<float>.Zero);
-                y = Vector256.Max(y, Vector256<float>.Zero);
-                z = Vector256.Max(z, Vector256<float>.Zero);
-                this.matrixAfterClipping.Convert(ref x, ref y, ref z);
-            }
-
             w = Vector256<float>.One;
             this.targetCurves.Convert(ref x, ref y, ref z, ref w);
         }
@@ -117,15 +83,6 @@ internal static partial class IccColorConverter
             // Each lane is one independent color. Curves keep their original order around the linear stages.
             this.sourceCurves.Convert(ref x, ref y, ref z, ref w);
             this.matrix.Convert(ref x, ref y, ref z);
-            if (this.clipNegativeXyz)
-            {
-                // Black-point adjustment clips negative XYZ before the target matrix. Device RGB remains unbounded.
-                x = Vector512.Max(x, Vector512<float>.Zero);
-                y = Vector512.Max(y, Vector512<float>.Zero);
-                z = Vector512.Max(z, Vector512<float>.Zero);
-                this.matrixAfterClipping.Convert(ref x, ref y, ref z);
-            }
-
             w = Vector512<float>.One;
             this.targetCurves.Convert(ref x, ref y, ref z, ref w);
         }

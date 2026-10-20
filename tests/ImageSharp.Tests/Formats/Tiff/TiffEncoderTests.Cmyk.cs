@@ -111,9 +111,9 @@ public partial class TiffEncoderTests
         byte[] profileBytes = profile.ToByteArray();
         using Image<RgbaVector> unchanged = source.Clone();
 
-        // This RGB float TIFF supplies the exact working pixels for the separate libtiff/LittleCMS component comparison.
+        // Input_RgbFloat contains the exact cropped RGB pixels before CMYK conversion. All Output_Cmyk files use this input.
         // Its RGB layout omits the incompatible CMYK profile without changing the source samples or metadata.
-        source.DebugSave(provider, testOutputDetails: "CmykInput", extension: "tiff", encoder: new TiffEncoder
+        source.DebugSave(provider, testOutputDetails: "Input_RgbFloat", extension: "tiff", encoder: new TiffEncoder
         {
             BitsPerPixel = TiffBitsPerPixel.Bit96,
             SampleFormat = TiffSampleFormat.Float,
@@ -159,7 +159,7 @@ public partial class TiffEncoderTests
                     AssertCmykSamples(source, encoded.ToArray(), exif, depth, profile);
                 }
 
-                source.DebugSave(provider, testOutputDetails: $"{depth}_{compression}", extension: "tiff", encoder: encoder);
+                source.DebugSave(provider, testOutputDetails: $"Output_Cmyk_{depth}_{compression}", extension: "tiff", encoder: encoder);
             }
         }
 

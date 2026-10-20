@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
@@ -48,8 +47,7 @@ internal sealed class TiffRgba64LittleEndianDecoder<TPixel> : TiffBaseColorDecod
 
         // Native-order Rgba64 rows feed the associated pixel operation in one pass.
         // Zero-alpha RGB codes remain available to destination alpha conversion.
-        using IMemoryOwner<Vector4> owner = this.configuration.MemoryAllocator.Allocate<Vector4>(width);
-        Span<Vector4> vectors = owner.GetSpan();
+        Span<Vector4> vectors = this.GetVectorBuffer(this.configuration.MemoryAllocator, width);
 
         for (int y = top; y < top + height; y++)
         {

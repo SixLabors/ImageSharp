@@ -31,7 +31,8 @@ public partial struct RgbaVector
                 sourceOperations.ToAssociatedScaledVector4(configuration, source, vectors);
                 Vector4Converters.Apply(
                     vectors[..source.Length],
-                    new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue)));
+                    new Vector4Converters.UnassociateOperator(
+                        new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
             }
             else
             {
@@ -76,7 +77,7 @@ public partial struct RgbaVector
             Vector4Converters.Apply(
                 sourceVectors,
                 MemoryMarshal.Cast<RgbaVector, Vector4>(destinationPixels[..sourceVectors.Length]),
-                new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue));
+                new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue));
         }
 
         /// <inheritdoc />
@@ -91,7 +92,7 @@ public partial struct RgbaVector
             Vector4Converters.Apply(
                 sourceVectors,
                 MemoryMarshal.Cast<RgbaVector, Vector4>(destinationPixels[..sourceVectors.Length]),
-                new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue)));
+                new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
         }
 
         /// <inheritdoc />
@@ -105,7 +106,7 @@ public partial struct RgbaVector
 
         /// <inheritdoc />
         public override void ToScaledVector4(Configuration configuration, ReadOnlySpan<RgbaVector> sourcePixels, Span<Vector4> destinationVectors)
-            => this.ToVector4(configuration, sourcePixels, destinationVectors);
+            => this.ToUnassociatedScaledVector4(configuration, sourcePixels, destinationVectors);
 
         /// <inheritdoc />
         public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<RgbaVector> sourcePixels, Span<Vector4> destinationVectors)
@@ -127,7 +128,7 @@ public partial struct RgbaVector
             Vector4Converters.Apply(
                 MemoryMarshal.Cast<RgbaVector, Vector4>(sourcePixels),
                 destinationVectors[..sourcePixels.Length],
-                new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue));
+                new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue));
         }
 
         /// <inheritdoc />
@@ -141,7 +142,7 @@ public partial struct RgbaVector
                 destinationVectors[..sourcePixels.Length],
                 new Vector4Converters.AssociateOperator<Vector4Converters.IdentityOperator>(
                     default,
-                    new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue)));
+                    new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
         }
 
         /// <summary>

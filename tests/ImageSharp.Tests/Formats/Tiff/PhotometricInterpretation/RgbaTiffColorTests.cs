@@ -96,17 +96,15 @@ public class RgbaTiffColorTests : PhotometricInterpretationTestBase
         using Image<Rgba32P> littleRgba32P = new(width, 1);
         using Image<Rgba32P> bigRgba32P = new(width, 1);
 
-        new TiffRgba64LittleEndianDecoder<Rgba32>(
-            Configuration.Default,
-            extraSamplesType == TiffExtraSampleType.AssociatedAlphaData).Decode(littleEndian, littleRgba32.Frames.RootFrame.PixelBuffer, 0, 0, width, 1);
+        using TiffRgba64LittleEndianDecoder<Rgba32> littleDecoder = new(Configuration.Default, associated);
+        littleDecoder.Decode(littleEndian, littleRgba32.Frames.RootFrame.PixelBuffer, 0, 0, width, 1);
 
         new TiffRgba64BigEndianDecoder<Rgba32>(
             Configuration.Default,
             extraSamplesType == TiffExtraSampleType.AssociatedAlphaData).Decode(bigEndian, bigRgba32.Frames.RootFrame.PixelBuffer, 0, 0, width, 1);
 
-        new TiffRgba64LittleEndianDecoder<Rgba32P>(
-            Configuration.Default,
-            extraSamplesType == TiffExtraSampleType.AssociatedAlphaData).Decode(littleEndian, littleRgba32P.Frames.RootFrame.PixelBuffer, 0, 0, width, 1);
+        using TiffRgba64LittleEndianDecoder<Rgba32P> littleAssociatedDecoder = new(Configuration.Default, associated);
+        littleAssociatedDecoder.Decode(littleEndian, littleRgba32P.Frames.RootFrame.PixelBuffer, 0, 0, width, 1);
 
         new TiffRgba64BigEndianDecoder<Rgba32P>(
             Configuration.Default,

@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -11,7 +12,7 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// </summary>
 /// <remarks>
 /// Native vector conversions preserve the stored IEEE floating-point values.
-/// Color-vector conversions bound color components to the format's finite range.
+/// Color-vector conversions bound color components to [-65504,65504].
 /// The packed representation is
 /// binary-compatible with <c>DXGI_FORMAT_R16G16_FLOAT</c>.
 /// </remarks>
@@ -77,7 +78,7 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToScaledVector4()
-        => ColorNumerics.ClampToFinite(this.ToVector4(), new Vector4((float)Half.MinValue), new Vector4((float)Half.MaxValue));
+        => new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(this.ToVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -101,12 +102,12 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToUnassociatedScaledVector4()
-        => ColorNumerics.ClampToFinite(this.ToUnassociatedVector4(), new Vector4((float)Half.MinValue), new Vector4((float)Half.MaxValue));
+        => new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(this.ToUnassociatedVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToAssociatedScaledVector4()
-        => ColorNumerics.ClampToFinite(this.ToAssociatedVector4(), new Vector4((float)Half.MinValue), new Vector4((float)Half.MaxValue));
+        => new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(this.ToAssociatedVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -119,7 +120,7 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static HalfVector2 FromUnassociatedScaledVector4(Vector4 source)
-        => FromUnassociatedVector4(ColorNumerics.ClampToFinite(source, new Vector4((float)Half.MinValue), new Vector4((float)Half.MaxValue)));
+        => FromUnassociatedVector4(new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(source));
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

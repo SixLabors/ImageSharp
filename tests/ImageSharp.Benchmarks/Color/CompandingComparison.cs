@@ -90,11 +90,11 @@ public abstract class CompandingComparison
         this.CopySource();
         if (this.Compress)
         {
-            SRgbCompanding.CompressExtended(this.destination);
+            SRgbCompanding.Compress(this.destination);
         }
         else
         {
-            SRgbCompanding.ExpandExtended(this.destination);
+            SRgbCompanding.Expand(this.destination);
         }
     }
 

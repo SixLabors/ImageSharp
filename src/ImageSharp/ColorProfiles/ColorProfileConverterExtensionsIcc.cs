@@ -52,10 +52,7 @@ internal static class ColorProfileConverterExtensionsIcc
     /// Converts a span of color values from a source color profile to a destination color profile using ICC profiles.
     /// </summary>
     /// <remarks>
-    /// This method performs color conversion by transforming the input values through the Profile
-    /// Connection Space (PCS) as defined by the provided ICC profiles. Perceptual adjustments are applied as required
-    /// by the profiles. The method does not support absolute colorimetric intent and will not perform such
-    /// conversions.
+    /// Both source and target ICC profiles must be set. The converter selects their transform tables and applies the PCS adjustments for the profile connection.
     /// </remarks>
     /// <typeparam name="TFrom">The type representing the source color profile. Must implement <see cref="IColorProfile{TFrom}"/>.</typeparam>
     /// <typeparam name="TTo">The type representing the destination color profile. Must implement <see cref="IColorProfile{TTo}"/>.</typeparam>
@@ -120,32 +117,14 @@ internal static class ColorProfileConverterExtensionsIcc
                 TargetWhitePoint = KnownIlluminants.D50Icc
             };
 
-            this.Source = source.Converter;
-            this.Target = target.Converter;
             PcsOperator pcs = new(source, target, pcsOptions);
-            this.Pcs = new IccColorConverter<PcsOperator>(pcs);
-            this.Converter = this.Source.Connect(this.Target, pcs);
+            this.Converter = source.Converter.Connect(target.Converter, pcs);
         }
 
         /// <summary>
         /// Gets the complete source-to-target connection.
         /// </summary>
         public IIccColorConverter Converter { get; }
-
-        /// <summary>
-        /// Gets the source device-to-PCS transform.
-        /// </summary>
-        public IccConverterBase Source { get; }
-
-        /// <summary>
-        /// Gets the PCS connection and its black-point rules.
-        /// </summary>
-        public IIccColorConverter Pcs { get; }
-
-        /// <summary>
-        /// Gets the target PCS-to-device transform.
-        /// </summary>
-        public IccConverterBase Target { get; }
     }
 
     /// <summary>

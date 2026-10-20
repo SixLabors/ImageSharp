@@ -43,5 +43,6 @@ internal sealed class GrayJpegSpectralConverter<TPixel> : SpectralConverter<TPix
     }
 
     /// <inheritdoc/>
-    protected override JpegColorConverterBase GetColorConverter(JpegFrame frame, IRawJpegData jpegData) => JpegColorConverterBase.GetConverter(JpegColorSpace.Luminance, frame.Precision);
+    protected override JpegColorConverterBase GetColorConverter(JpegFrame frame, IRawJpegData jpegData)
+        => JpegColorConverterBase.GetConverter(JpegColorSpace.Luminance, frame.Precision);
 }

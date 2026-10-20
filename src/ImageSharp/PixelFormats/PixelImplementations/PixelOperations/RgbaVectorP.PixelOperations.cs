@@ -70,7 +70,7 @@ public partial struct RgbaVectorP
                 destination[..source.Length],
                 new Vector4Converters.ReassociateOperator<Vector4Converters.IdentityOperator>(
                     default,
-                    new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue)));
+                    new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
         }
 
         /// <inheritdoc />
@@ -83,7 +83,7 @@ public partial struct RgbaVectorP
             Vector4Converters.Apply(
                 MemoryMarshal.Cast<RgbaVectorP, Vector4>(source),
                 destination[..source.Length],
-                new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue)));
+                new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
         }
 
         /// <inheritdoc />
@@ -98,7 +98,7 @@ public partial struct RgbaVectorP
                 MemoryMarshal.Cast<RgbaVectorP, Vector4>(destination[..source.Length]),
                 new Vector4Converters.ReassociateOperator<Vector4Converters.IdentityOperator>(
                     default,
-                    new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue)));
+                    new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
         }
 
         /// <inheritdoc />
@@ -113,7 +113,7 @@ public partial struct RgbaVectorP
                 MemoryMarshal.Cast<RgbaVectorP, Vector4>(destination[..source.Length]),
                 new Vector4Converters.AssociateOperator<Vector4Converters.IdentityOperator>(
                     default,
-                    new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue)));
+                    new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
         }
     }
 }

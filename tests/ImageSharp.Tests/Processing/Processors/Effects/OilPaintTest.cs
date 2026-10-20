@@ -54,9 +54,9 @@ public class OilPaintTest
     [Theory]
     [InlineData(2F, 2F)]
     [InlineData(100F, 100F)]
-    [InlineData(float.PositiveInfinity, float.MaxValue)]
-    [InlineData(float.NegativeInfinity, float.MinValue)]
-    [InlineData(float.NaN, float.MinValue)]
+    [InlineData(float.PositiveInfinity, 65504F)]
+    [InlineData(float.NegativeInfinity, -65504F)]
+    [InlineData(float.NaN, -65504F)]
     public void Issue2518_PixelComponentOutsideOfRange_UsesBoundedIntensityBin(float component, float expected)
     {
         using Image<RgbaVector> image = new(10, 10, new RgbaVector(1, 1, component));

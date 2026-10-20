@@ -129,11 +129,8 @@ internal class YCbCrTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
 
         if (iccConverter is not null)
         {
-            using IMemoryOwner<Rgb> rgbBuffer = this.memoryAllocator.Allocate<Rgb>(width);
-            using IMemoryOwner<Vector4> vectorBuffer = this.memoryAllocator.Allocate<Vector4>(width);
-
-            Span<Rgb> rgbRow = rgbBuffer.Memory.Span;
-            Span<Vector4> vectorRow = vectorBuffer.Memory.Span;
+            Span<Rgb> rgbRow = this.GetRgbBuffer(this.memoryAllocator, width);
+            Span<Vector4> vectorRow = this.GetVectorBuffer(this.memoryAllocator, width);
 
             // YCbCr and RGB each contain three floats. The shared converter loads each group before its RGB store,
             // so these views can safely share one full-row buffer for the source codes and converted output.
@@ -196,7 +193,13 @@ internal class YCbCrTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         }
     }
 
-    private static void ReverseChromaSubSampling(int width, int height, int horizontalSubSampling, int verticalSubSampling, ReadOnlySpan<byte> source, Span<byte> destination)
+    private static void ReverseChromaSubSampling(
+        int width,
+        int height,
+        int horizontalSubSampling,
+        int verticalSubSampling,
+        ReadOnlySpan<byte> source,
+        Span<byte> destination)
     {
         // If width and height are not multiples of ChromaSubsampleHoriz and ChromaSubsampleVert respectively,
         // then the source data will be padded.

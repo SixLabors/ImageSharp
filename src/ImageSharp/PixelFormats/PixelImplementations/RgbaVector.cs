@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Unpacked pixel type containing four 32-bit floating-point values.
 /// The color components are stored in red, green, blue, and alpha order.
 /// Native vector conversions preserve the stored IEEE floating-point values.
-/// Color-vector conversions bound color components to the format's finite range and alpha to [0,1].
+/// Color-vector conversions bound color components to [-65504,65504] and alpha to [0,1].
 /// </summary>
 /// <remarks>
 /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
@@ -105,7 +105,8 @@ public partial struct RgbaVector : IPixel<RgbaVector>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToScaledVector4() => new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue).Invoke(this.ToVector4());
+    public readonly Vector4 ToScaledVector4()
+        => new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(this.ToVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -125,7 +126,7 @@ public partial struct RgbaVector : IPixel<RgbaVector>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToUnassociatedScaledVector4()
-        => new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue).Invoke(this.ToUnassociatedVector4());
+        => new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(this.ToUnassociatedVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -133,7 +134,7 @@ public partial struct RgbaVector : IPixel<RgbaVector>
     {
         return new Vector4Converters.AssociateOperator<Vector4Converters.IdentityOperator>(
             default,
-            new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue)).Invoke(this.ToVector4());
+            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(this.ToVector4());
     }
 
     /// <inheritdoc />
@@ -152,14 +153,15 @@ public partial struct RgbaVector : IPixel<RgbaVector>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RgbaVector FromUnassociatedScaledVector4(Vector4 source)
-        => FromUnassociatedVector4(new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue).Invoke(source));
+        => FromUnassociatedVector4(new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(source));
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RgbaVector FromAssociatedScaledVector4(Vector4 source)
     {
         // Recover straight RGB using the supplied alpha, then bound opacity. Zero alpha retains stored RGB.
-        source = new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator(float.MinValue, float.MaxValue)).Invoke(source);
+        source = new Vector4Converters.UnassociateOperator(
+            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(source);
         return FromUnassociatedVector4(source);
     }
 

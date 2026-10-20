@@ -151,6 +151,8 @@ internal static partial class IccColorConverter
             Vector4 result = default;
             if (this.tetrahedral)
             {
+                // Four-input tables use tetrahedra in the last three dimensions.
+                // Interpolate between two slices along the first dimension.
                 int axis = this.inputCount - 3;
                 float first = fraction[axis];
                 float second = fraction[axis + 1];
@@ -270,6 +272,8 @@ internal static partial class IccColorConverter
 
             if (this.tetrahedral)
             {
+                // Four-input tables use tetrahedra in the last three dimensions.
+                // Interpolate between two slices along the first dimension.
                 int axis = this.inputCount - 3;
                 Vector128<float> first = axis == 0 ? fx : fy;
                 Vector128<float> second = axis == 0 ? fy : fz;
@@ -463,6 +467,8 @@ internal static partial class IccColorConverter
 
             if (this.tetrahedral)
             {
+                // Four-input tables use tetrahedra in the last three dimensions.
+                // Interpolate between two slices along the first dimension.
                 int axis = this.inputCount - 3;
                 Vector256<float> first = axis == 0 ? fx : fy;
                 Vector256<float> second = axis == 0 ? fy : fz;
@@ -656,6 +662,8 @@ internal static partial class IccColorConverter
 
             if (this.tetrahedral)
             {
+                // Four-input tables use tetrahedra in the last three dimensions.
+                // Interpolate between two slices along the first dimension.
                 int axis = this.inputCount - 3;
                 Vector512<float> first = axis == 0 ? fx : fy;
                 Vector512<float> second = axis == 0 ? fy : fz;

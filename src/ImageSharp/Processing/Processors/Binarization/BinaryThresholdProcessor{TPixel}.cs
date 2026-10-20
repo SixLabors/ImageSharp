@@ -62,11 +62,10 @@ internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
             }
         }
 
-        // Compute in double precision so a finite range spanning large negative and
-        // positive HDR values does not overflow before its percentage is applied.
+        // Pixel color conversion bounds HDR components to [-65504,65504], so subtracting the observed limits is safe in float.
         bool hasFiniteValue = minimum <= maximum;
         float threshold = hasFiniteValue
-            ? (float)(minimum + (this.definition.Threshold * ((double)maximum - minimum)))
+            ? minimum + (this.definition.Threshold * (maximum - minimum))
             : 0F;
 
         RowOperation operation = new(

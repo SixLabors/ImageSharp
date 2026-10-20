@@ -81,10 +81,14 @@ public class TiffIntegerColorConversion
     }
 
     /// <summary>
-    /// Releases the shared destination image after benchmarking.
+    /// Releases the associated reader's conversion row and destination image after benchmarking.
     /// </summary>
     [GlobalCleanup]
-    public void Cleanup() => this.destination.Dispose();
+    public void Cleanup()
+    {
+        this.rgba16LittleAssociatedReader.Dispose();
+        this.destination.Dispose();
+    }
 
     /// <summary>
     /// Measures scalar eight-bit WhiteIsZero decoding.

@@ -10,8 +10,6 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// </summary>
 public class CieLuvAndHslConversionTests
 {
-    private static readonly ApproximateColorProfileComparer Comparer = new(.0002F);
-
     // These conversions evaluate approximate powers. Scaled components give the error bound the same units across color models.
     private static readonly ApproximateColorProfileComparer CompandingComparer = new(5E-4F, scaled: true);
 

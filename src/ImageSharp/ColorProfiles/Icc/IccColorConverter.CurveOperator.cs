@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -151,7 +152,9 @@ internal static partial class IccColorConverter
         /// <returns>Whether the normalized formula has a positive finite exponent other than one.</returns>
         public bool TryGetSRgb(out SRgbCurveOperator curve)
         {
-            if (this.kind == CurveKind.SRgb && this.power.Kind == TensorPrimitives_.PowOperator.PowerKind.Finite && this.power.Exponent > 0F)
+            if (this.kind == CurveKind.SRgb
+                && float.IsFinite(this.power.Exponent) && this.power.Exponent != 1F
+                && this.power.Exponent > 0F)
             {
                 curve = new(this.a, this.b, this.c, this.d, this.e, this.power);
                 return true;

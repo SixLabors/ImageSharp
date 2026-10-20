@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
@@ -54,10 +53,9 @@ internal class TiffLabColorDecoder<TPixel, TSource> : TiffBaseColorDecoder<TPixe
     /// <inheritdoc />
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        // The color converter reads the complete Lab row before writing RGB output.
-        // Lab and RGB each use three floats, so the input and output can share one row buffer.
-        using IMemoryOwner<Rgb> rgbBuffer = this.converter.Options.MemoryAllocator.Allocate<Rgb>(width);
-        Span<Rgb> rgbRow = rgbBuffer.Memory.Span[..width];
+        // Lab and RGB each use three floats per pixel. The converter reads each block before overwriting it,
+        // so both views can share this row.
+        Span<Rgb> rgbRow = this.GetRgbBuffer(this.converter.Options.MemoryAllocator, width);
         Span<CieLab> labRow = MemoryMarshal.Cast<Rgb, CieLab>(rgbRow);
         InlineArray16<Vector4> vectorBuffer = default;
         Span<Vector4> vectors = vectorBuffer;

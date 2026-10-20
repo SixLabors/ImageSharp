@@ -50,7 +50,7 @@ public partial struct RgbaHalfP
             HalfTypeHelper.Unpack(
                 MemoryMarshal.Cast<RgbaHalfP, ushort>(source),
                 destination[..source.Length],
-                new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)));
+                new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
         }
 
         /// <inheritdoc />
@@ -65,7 +65,7 @@ public partial struct RgbaHalfP
                 destination[..source.Length],
                 new Vector4Converters.ReassociateOperator<Vector4Converters.IdentityOperator>(
                     default,
-                    new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)));
+                    new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
         }
 
         /// <inheritdoc />
@@ -102,7 +102,7 @@ public partial struct RgbaHalfP
                 MemoryMarshal.Cast<RgbaHalfP, ushort>(destination[..source.Length]),
                 new Vector4Converters.AssociateOperator<Vector4Converters.HalfAlphaOperator>(
                     default,
-                    new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)));
+                    new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
         }
 
         /// <inheritdoc />
@@ -117,7 +117,7 @@ public partial struct RgbaHalfP
                 MemoryMarshal.Cast<RgbaHalfP, ushort>(destination[..source.Length]),
                 new Vector4Converters.ReassociateOperator<Vector4Converters.HalfAlphaOperator>(
                     default,
-                    new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)));
+                    new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
         }
     }
 }

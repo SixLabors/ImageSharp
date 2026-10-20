@@ -15,6 +15,21 @@ namespace SixLabors.ImageSharp;
 internal static class ColorNumerics
 {
     /// <summary>
+    /// The maximum RGB component used by floating-point color-vector conversions.
+    /// </summary>
+    /// <remarks>
+    /// This is the largest finite half-precision value. Float and half color conversions use the same range.
+    /// The working range leaves headroom for float sums and products. Intermediate calculations can exceed this range.
+    /// Native floating-point conversions retain their storage range.
+    /// </remarks>
+    public const float MaxColorValue = 65504F;
+
+    /// <summary>
+    /// The minimum RGB component used by floating-point color-vector conversions.
+    /// </summary>
+    public const float MinColorValue = -MaxColorValue;
+
+    /// <summary>
     /// Vector for converting pixel to gray value as specified by
     /// ITU-R Recommendation BT.709.
     /// </summary>

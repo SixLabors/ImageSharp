@@ -35,7 +35,7 @@ public class HistogramConcurrentProcessing
     private Image<RgbaVector> source;
     private Image<RgbaVector>[] working;
     private ParallelOptions parallelOptions;
-    private Action<int> pagedAction;
+    private Action<int> slidingWindowAction;
 
     /// <summary>
     /// Gets or sets the real source photograph, decoded before measurement.
@@ -59,7 +59,7 @@ public class HistogramConcurrentProcessing
         this.source.Mutate(x => x.Resize(1024, 1024));
         this.working = new Image<RgbaVector>[BatchSize];
         this.parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = this.ConcurrentImages };
-        this.pagedAction = this.ProcessPaged;
+        this.slidingWindowAction = this.ProcessSlidingWindow;
     }
 
     /// <summary>
@@ -96,13 +96,13 @@ public class HistogramConcurrentProcessing
     /// Processes the same batch with histogram pages allocated as needed.
     /// </summary>
     [Benchmark(OperationsPerInvoke = BatchSize)]
-    public void SlidingWindow() => Parallel.For(0, BatchSize, this.parallelOptions, this.pagedAction);
+    public void SlidingWindow() => Parallel.For(0, BatchSize, this.parallelOptions, this.slidingWindowAction);
 
     /// <summary>
     /// Processes one independent image using bins allocated as needed.
     /// </summary>
     /// <param name="index">The image index within the batch.</param>
-    private void ProcessPaged(int index)
+    private void ProcessSlidingWindow(int index)
     {
         Image<RgbaVector> image = this.working[index];
 

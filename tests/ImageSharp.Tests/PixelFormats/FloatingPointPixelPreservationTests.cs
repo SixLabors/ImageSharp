@@ -612,10 +612,13 @@ public class FloatingPointPixelPreservationTests
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Raw half storage and scaled vectors preserve IEEE special values.
+    /// Raw storage preserves IEEE values; color output uses finite RGB and valid opacity.
     /// </summary>
     [Fact]
-    public void HalfVector4_ColorOutputBoundsNonfiniteValues() => AssertColorOutputBoundsNonfiniteValues();
+    public void FloatingPoint_ColorOutputBoundsNonfiniteValues()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertColorOutputBoundsNonfiniteValues,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Associated half-vector conversion preserves the stored component values.
@@ -657,6 +660,8 @@ public class FloatingPointPixelPreservationTests
             new(.25F, .5F, .75F, .5F),
             new(-3F, 4F, .25F, 0F),
             new(65504F, -65504F, 0F, 1F),
+            new(65535F, -65535F, float.MaxValue, 1F),
+            new(float.MinValue, 65535F, -65535F, .5F),
             new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, 1F),
             new(-0F, 0F, -0F, 1F),
             new(2F, -1F, .5F, float.NaN),
@@ -680,7 +685,7 @@ public class FloatingPointPixelPreservationTests
             int sample = i % inputs.Length;
             source[i] = inputs[sample];
             expected[i] = TPixel.FromUnassociatedVector4(source[i]);
-            expectedColor[i] = TPixel.FromUnassociatedVector4(GetExpectedColorInput<TPixel>(source[i]));
+            expectedColor[i] = TPixel.FromUnassociatedVector4(GetExpectedColorInput(source[i]));
             Assert.Equal(expectedColor[i], TPixel.FromUnassociatedScaledVector4(source[i]));
             expectedVectors[i] = expectedColor[i].ToUnassociatedVector4();
         }
@@ -749,6 +754,8 @@ public class FloatingPointPixelPreservationTests
             new(1F, .5F, 1.5F, 2F),
             new(.125F, .25F, .375F, .5F),
             new(-3F, 4F, .25F, 0F),
+            new(65535F, -65535F, 65504F, .5F),
+            new(float.MaxValue, float.MinValue, 0F, 1F),
             new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, 1F),
             new(-0F, 0F, -0F, -0F),
             new(2F, -1F, .5F, float.NaN),
@@ -779,7 +786,7 @@ public class FloatingPointPixelPreservationTests
             }
 
             color.W = float.IsNaN(color.W) ? 0F : Math.Clamp(color.W, 0F, 1F);
-            expectedColor[i] = TPixel.FromAssociatedVector4(GetExpectedColorInput<TPixel>(color));
+            expectedColor[i] = TPixel.FromAssociatedVector4(GetExpectedColorInput(color));
             Assert.Equal(expectedColor[i], TPixel.FromAssociatedScaledVector4(source[i]));
         }
 
@@ -809,18 +816,14 @@ public class FloatingPointPixelPreservationTests
     /// <summary>
     /// Applies the color-conversion contract independently of the pixel conversion implementation.
     /// </summary>
-    /// <typeparam name="TPixel">The floating-point format whose storage precision supplies the RGB limits.</typeparam>
     /// <param name="input">The raw input components.</param>
     /// <returns>Finite RGB components and opacity in [0,1], ready for native packing.</returns>
-    private static Vector4 GetExpectedColorInput<TPixel>(Vector4 input)
-        where TPixel : unmanaged, IPixel<TPixel>
+    private static Vector4 GetExpectedColorInput(Vector4 input)
     {
-        // These tests cover binary16 and binary32 formats. Alpha has the same opacity range in both.
-        int precision = TPixel.GetPixelTypeInfo().ComponentInfo.Value.GetMaximumComponentPrecision();
-        float maximum = precision == 16 ? 65504F : float.MaxValue;
+        // Binary16 and binary32 color APIs share signed RGB bounds. Keep these literals independent of the implementation.
         for (int component = 0; component < 3; component++)
         {
-            input[component] = float.IsNaN(input[component]) ? -maximum : Math.Clamp(input[component], -maximum, maximum);
+            input[component] = float.IsNaN(input[component]) ? -65504F : Math.Clamp(input[component], -65504F, 65504F);
         }
 
         input.W = float.IsNaN(input.W) ? 0F : Math.Clamp(input.W, 0F, 1F);
@@ -848,5 +851,82 @@ public class FloatingPointPixelPreservationTests
         Vector4 halfVector2 = new HalfVector2(new Vector2(float.PositiveInfinity, float.NaN)).ToScaledVector4();
         Assert.Equal(65504F, halfVector2.X);
         Assert.Equal(-65504F, halfVector2.Y);
+
+        AssertBulkColorOutputBoundsNonfiniteValues<HalfSingle>();
+        AssertBulkColorOutputBoundsNonfiniteValues<HalfVector2>();
+        AssertBulkColorOutputBoundsNonfiniteValues<HalfVector4>();
+        AssertBulkColorOutputBoundsNonfiniteValues<RgbaHalf>();
+        AssertBulkColorOutputBoundsNonfiniteValues<RgbaVector>();
+        AssertBulkColorOutputBoundsNonfiniteValues<HalfVector4P>();
+        AssertBulkColorOutputBoundsNonfiniteValues<RgbaHalfP>();
+        AssertBulkColorOutputBoundsNonfiniteValues<RgbaVectorP>();
+    }
+
+    /// <summary>
+    /// Checks implicit and explicit bulk color output against the finite contract and single-pixel conversion.
+    /// </summary>
+    /// <typeparam name="TPixel">The floating-point pixel format.</typeparam>
+    private static void AssertBulkColorOutputBoundsNonfiniteValues<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        ReadOnlySpan<Vector4> inputs =
+        [
+            new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, 2F),
+            new(-2F, 4F, -0F, float.NaN),
+            new(.25F, .5F, 1.5F, -1F),
+            new(65535F, -65535F, float.MaxValue, 1F),
+            new(32752F, -32752F, 65504F, .5F),
+            new(-0F, 0F, -0F, .5F),
+            new(float.MinValue, float.MaxValue, 0F, 0F)
+        ];
+
+        foreach (int length in new[] { 1, 17, 65 })
+        {
+            TPixel[] pixels = new TPixel[length];
+            Vector4[] expected = new Vector4[length];
+            Vector4[] expectedUnassociated = new Vector4[length];
+            Vector4[] actual = new Vector4[length];
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                Vector4 input = inputs[i % inputs.Length];
+                pixels[i] = TPixel.FromVector4(input);
+
+                // Native packing determines stored channels and half rounding. Color output then applies the shared bounds.
+                Vector4 stored = pixels[i].ToVector4();
+                Vector4 associated = stored;
+                if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+                {
+                    // Recover straight RGB before bounding it. Zero alpha retains stored RGB; positive infinity uses a finite divisor.
+                    float alpha = float.IsNaN(stored.W) ? 0F : Math.Clamp(stored.W, 0F, float.MaxValue);
+                    if (alpha > 1F)
+                    {
+                        // Associated output must retain the straight color when stored opacity decreases to one.
+                        associated.X /= alpha;
+                        associated.Y /= alpha;
+                        associated.Z /= alpha;
+                    }
+
+                    if (alpha != 0F)
+                    {
+                        stored.X /= alpha;
+                        stored.Y /= alpha;
+                        stored.Z /= alpha;
+                    }
+                }
+
+                expected[i] = GetExpectedColorInput(associated);
+                Assert.Equal(expected[i], pixels[i].ToScaledVector4());
+                expectedUnassociated[i] = GetExpectedColorInput(stored);
+                Assert.Equal(expectedUnassociated[i], pixels[i].ToUnassociatedScaledVector4());
+            }
+
+            PixelOperations<TPixel>.Instance.ToScaledVector4(Configuration.Default, pixels, actual);
+            Assert.Equal(expected, actual);
+            Assert.Equal(MemoryMarshal.AsBytes(expected.AsSpan()).ToArray(), MemoryMarshal.AsBytes(actual.AsSpan()).ToArray());
+
+            PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(Configuration.Default, pixels, actual);
+            Assert.Equal(expectedUnassociated, actual);
+            Assert.Equal(MemoryMarshal.AsBytes(expectedUnassociated.AsSpan()).ToArray(), MemoryMarshal.AsBytes(actual.AsSpan()).ToArray());
+        }
     }
 }

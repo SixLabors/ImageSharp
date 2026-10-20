@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
-using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
@@ -36,8 +35,7 @@ internal class Rgba8888TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         int offset = 0;
         bool hasAssociatedAlpha = this.extraSamplesType.HasValue && this.extraSamplesType == TiffExtraSampleType.AssociatedAlphaData;
 
-        using IMemoryOwner<Vector4> vectors = hasAssociatedAlpha ? this.memoryAllocator.Allocate<Vector4>(width) : null;
-        Span<Vector4> vectorsSpan = hasAssociatedAlpha ? vectors.GetSpan() : [];
+        Span<Vector4> vectorsSpan = hasAssociatedAlpha ? this.GetVectorBuffer(this.memoryAllocator, width) : [];
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);

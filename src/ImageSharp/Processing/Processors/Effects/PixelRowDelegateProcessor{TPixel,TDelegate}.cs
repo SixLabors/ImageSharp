@@ -60,7 +60,7 @@ internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProces
     }
 
     /// <summary>
-    /// A <see langword="struct"/> implementing the convolution logic for <see cref="PixelRowDelegateProcessor{TPixel,TDelegate}"/>.
+    /// Converts each row to vectors, invokes the user delegate and packs its output.
     /// </summary>
     private readonly struct RowOperation : IRowOperation<Vector4>
     {

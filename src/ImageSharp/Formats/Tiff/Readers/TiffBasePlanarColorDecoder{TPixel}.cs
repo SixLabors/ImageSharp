@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Readers;
 /// The base class for planar color decoders.
 /// </summary>
 /// <typeparam name="TPixel">The pixel format.</typeparam>
-internal abstract class TiffBasePlanarColorDecoder<TPixel>
+internal abstract class TiffBasePlanarColorDecoder<TPixel> : TiffBaseColorDecoder
     where TPixel : unmanaged, IPixel<TPixel>
 {
     /// <summary>

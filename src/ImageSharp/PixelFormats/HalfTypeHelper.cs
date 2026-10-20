@@ -199,8 +199,8 @@ internal static class HalfTypeHelper
         ReadOnlySpan<ushort> packedDestination = destination[..source.Length];
         int i = 0;
 
-        // Each narrowing operation consumes two float registers and writes one
-        // half register, preserving the original component order and bit pattern.
+        // Each pack consumes two float registers and produces one ushort register.
+        // Components retain RGBA order; Pack rounds each value to binary16.
         if (Vector512.IsHardwareAccelerated)
         {
             nuint vectorCount = packedDestination[i..].Vector512Count<ushort>();

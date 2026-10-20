@@ -31,6 +31,18 @@ public class HistogramStorageTests(ITestOutputHelper output)
         provider);
 
     /// <summary>
+    /// Checks empty sample windows with cached and streamed traversal under each SIMD feature setting.
+    /// </summary>
+    /// <param name="provider">A small image whose default tile count produces a window width of zero or one.</param>
+    [Theory]
+    [WithTestPatternImages(7, 3, PixelTypes.Rgba32)]
+    [WithTestPatternImages(8, 3, PixelTypes.Rgba32)]
+    public void SmallSlidingWindows_PreserveEmptySampling(TestImageProvider<Rgba32> provider) => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckSmallSlidingWindows,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+        provider);
+
+    /// <summary>
     /// Reports live allocator-owned buffers separately from managed allocation measurements.
     /// </summary>
     /// <param name="provider">The same source photograph used by the benchmark.</param>
@@ -95,6 +107,33 @@ public class HistogramStorageTests(ITestOutputHelper output)
         new AutoLevelProcessor(256, false, 350, true),
         new AutoLevelProcessor(256, false, 350, false)
     ];
+
+    /// <summary>
+    /// Checks both buffer strategies against black RGB with unchanged alpha for the existing empty-window sampling rule.
+    /// </summary>
+    /// <param name="serializedProvider">The provider passed through FeatureTestRunner.</param>
+    private static void CheckSmallSlidingWindows(string serializedProvider)
+    {
+        TestImageProvider<Rgba32> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(serializedProvider);
+        using Image<Rgba32> source = provider.GetImage();
+        using Image<Rgba32> expected = source.Clone();
+        expected.Mutate(x => x.Brightness(0F));
+
+        // Both widths produce zero sample rows. Their empty CDF produces zero RGB in bounded pixel storage.
+        // One byte forces streamed traversal; the normal working-buffer budget retains the complete index cache.
+        foreach (int bufferSize in new[] { 1, source.Configuration.WorkingBufferSizeHintInBytes })
+        {
+            Configuration configuration = source.Configuration.Clone();
+            configuration.WorkingBufferSizeHintInBytes = bufferSize;
+            using Image<Rgba32> actual = source.Clone(configuration);
+            actual.Mutate(x => x.HistogramEqualization(new HistogramEqualizationOptions
+            {
+                Method = HistogramEqualizationMethod.AdaptiveSlidingWindow
+            }));
+
+            ImageComparer.Exact.VerifySimilarity(expected, actual);
+        }
+    }
 
     /// <summary>
     /// Compares cached and streamed windows, row parallelism and independent images using the normal processor lifecycle.

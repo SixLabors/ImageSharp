@@ -4,7 +4,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
-using static SixLabors.ImageSharp.ColorProfiles.Companding.CompandingVectorOperations;
 
 namespace SixLabors.ImageSharp.ColorProfiles.Icc;
 
@@ -54,48 +53,79 @@ internal static partial class IccColorConverter
             return this.power.Invoke(input < 0F ? 0F : input) + this.e;
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Applies the selected formula with one independent color component in each lane.
+        /// </summary>
+        /// <param name="value">The input components, including values above one.</param>
+        /// <returns>The converted components in the same lane order.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector128<float> Invoke(Vector128<float> value) => this.Invoke<Vector128<float>, Vector128Operations>(value);
+        public Vector128<float> Invoke(Vector128<float> value)
+        {
+            Vector128<float> zero = Vector128.Create(0F);
+            Vector128<float> active = Vector128.LessThanOrEqual(Vector128.Create(this.d), value);
+            Vector128<float> input = Vector128.Add(Vector128.Multiply(Vector128.Create(this.a), value), Vector128.Create(this.b));
 
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector256<float> Invoke(Vector256<float> value) => this.Invoke<Vector256<float>, Vector256Operations>(value);
+            // Inactive lanes use one as a safe power base. The final selection keeps their linear result.
+            input = Vector128.ConditionalSelect(active, input, Vector128.Create(1F));
+            input = Vector128.ConditionalSelect(Vector128.LessThan(input, zero), zero, input);
 
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector512<float> Invoke(Vector512<float> value) => this.Invoke<Vector512<float>, Vector512Operations>(value);
+            // Use the classified power for exact square/cube arithmetic and the general finite kernel.
+            // This matches the general ICC curve, including signed zero and nonfinite inputs.
+            Vector128<float> power = this.power.Invoke(input);
+
+            Vector128<float> nonlinear = Vector128.Add(power, Vector128.Create(this.e));
+            Vector128<float> linear = Vector128.Multiply(Vector128.Create(this.c), value);
+            return Vector128.ConditionalSelect(active, nonlinear, linear);
+        }
 
         /// <summary>
         /// Applies the selected formula with one independent color component in each lane.
         /// </summary>
-        /// <typeparam name="TVector">The SIMD register type.</typeparam>
-        /// <typeparam name="TOperations">The shared operations for this SIMD width.</typeparam>
         /// <param name="value">The input components, including values above one.</param>
         /// <returns>The converted components in the same lane order.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private TVector Invoke<TVector, TOperations>(TVector value)
-            where TVector : struct
-            where TOperations : struct, ITransferVectorOperations<TVector>
+        public Vector256<float> Invoke(Vector256<float> value)
         {
-            TVector zero = TOperations.Create(0F);
-            TVector active = TOperations.LessThanOrEqual(TOperations.Create(this.d), value);
-            TVector input = TOperations.Add(TOperations.Multiply(TOperations.Create(this.a), value), TOperations.Create(this.b));
+            Vector256<float> zero = Vector256.Create(0F);
+            Vector256<float> active = Vector256.LessThanOrEqual(Vector256.Create(this.d), value);
+            Vector256<float> input = Vector256.Add(Vector256.Multiply(Vector256.Create(this.a), value), Vector256.Create(this.b));
 
             // Inactive lanes use one as a safe power base. The final selection keeps their linear result.
-            input = TOperations.ConditionalSelect(active, input, TOperations.Create(1F));
-            input = TOperations.ConditionalSelect(TOperations.LessThan(input, zero), zero, input);
-            TVector power = TOperations.Pow(TOperations.Abs(input), this.power.Exponent);
+            input = Vector256.ConditionalSelect(active, input, Vector256.Create(1F));
+            input = Vector256.ConditionalSelect(Vector256.LessThan(input, zero), zero, input);
 
-            // The factory excluded zero, one and nonfinite exponents. Only odd integer powers retain negative zero.
-            if (this.power.OddMask != 0)
-            {
-                power = TOperations.CopySign(power, input);
-            }
+            // Use the classified power for exact square/cube arithmetic and the general finite kernel.
+            // This matches the general ICC curve, including signed zero and nonfinite inputs.
+            Vector256<float> power = this.power.Invoke(input);
 
-            TVector nonlinear = TOperations.Add(power, TOperations.Create(this.e));
-            TVector linear = TOperations.Multiply(TOperations.Create(this.c), value);
-            return TOperations.ConditionalSelect(active, nonlinear, linear);
+            Vector256<float> nonlinear = Vector256.Add(power, Vector256.Create(this.e));
+            Vector256<float> linear = Vector256.Multiply(Vector256.Create(this.c), value);
+            return Vector256.ConditionalSelect(active, nonlinear, linear);
+        }
+
+        /// <summary>
+        /// Applies the selected formula with one independent color component in each lane.
+        /// </summary>
+        /// <param name="value">The input components, including values above one.</param>
+        /// <returns>The converted components in the same lane order.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+        {
+            Vector512<float> zero = Vector512.Create(0F);
+            Vector512<float> active = Vector512.LessThanOrEqual(Vector512.Create(this.d), value);
+            Vector512<float> input = Vector512.Add(Vector512.Multiply(Vector512.Create(this.a), value), Vector512.Create(this.b));
+
+            // Inactive lanes use one as a safe power base. The final selection keeps their linear result.
+            input = Vector512.ConditionalSelect(active, input, Vector512.Create(1F));
+            input = Vector512.ConditionalSelect(Vector512.LessThan(input, zero), zero, input);
+
+            // Use the classified power for exact square/cube arithmetic and the general finite kernel.
+            // This matches the general ICC curve, including signed zero and nonfinite inputs.
+            Vector512<float> power = this.power.Invoke(input);
+
+            Vector512<float> nonlinear = Vector512.Add(power, Vector512.Create(this.e));
+            Vector512<float> linear = Vector512.Multiply(Vector512.Create(this.c), value);
+            return Vector512.ConditionalSelect(active, nonlinear, linear);
         }
     }
 }

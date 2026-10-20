@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
@@ -53,10 +52,9 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     {
         int offset = 0;
 
-        // The converter moves the complete CMYK input into its PCS buffers before writing RGB.
-        // The first three floats per pixel can therefore receive RGB after the four-float source is consumed.
-        using IMemoryOwner<Vector4> vectorBuffer = this.colorProfileConverter.Options.MemoryAllocator.Allocate<Vector4>(width);
-        Span<Vector4> vectorRow = vectorBuffer.Memory.Span[..width];
+        // Each conversion block reads four ink components per pixel before it writes three RGB components.
+        // RGB output stays before the next unread CMYK block.
+        Span<Vector4> vectorRow = this.GetVectorBuffer(this.colorProfileConverter.Options.MemoryAllocator, width);
         Span<Cmyk> cmykRow = MemoryMarshal.Cast<Vector4, Cmyk>(vectorRow);
         Span<float> floatRow = MemoryMarshal.Cast<Vector4, float>(vectorRow);
         Span<Rgb> rgbRow = MemoryMarshal.Cast<float, Rgb>(floatRow[..(width * 3)]);

@@ -4,7 +4,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
-using static SixLabors.ImageSharp.ColorProfiles.Companding.CompandingVectorOperations;
 
 namespace SixLabors.ImageSharp.ColorProfiles.Companding;
 

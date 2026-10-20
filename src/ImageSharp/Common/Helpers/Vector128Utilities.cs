@@ -113,13 +113,16 @@ internal static class Vector128_
         Vector128<float> positive = Vector128.ConditionalSelect(zero, Vector128<float>.One, value);
         Vector128<uint> small = Vector128.LessThan(positive.AsUInt32(), Vector128.Create(SmallestNormalBits));
         bool hasSmall = small != Vector128<uint>.Zero;
+
+        // Multiplication by 2^24 makes positive subnormal inputs normal. Subtract 24 from their logarithms below.
         Vector128<float> normalized = positive;
         if (hasSmall)
         {
             normalized = Vector128.ConditionalSelect(small.AsSingle(), positive * Vector128.Create(SubnormalScale), positive);
         }
 
-        // The float encoding supplies the exponent. The rational term approximates the mantissa's logarithm.
+        // Keep the 23 mantissa bits and set exponent 126 to put the mantissa in [0.5,1).
+        // Combine the encoded exponent and the rational mantissa correction to approximate log2.
         Vector128<int> bits = normalized.AsInt32();
         Vector128<float> mantissa = ((bits & Vector128.Create(0x007FFFFF)) | Vector128.Create(0x3F000000)).AsSingle();
         Vector128<float> logarithm = (Vector128.ConvertToSingle(bits) * Vector128.Create(ExponentScale)) - Vector128.Create(Offset);

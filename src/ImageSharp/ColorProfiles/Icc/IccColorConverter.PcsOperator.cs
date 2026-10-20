@@ -41,8 +41,8 @@ internal static partial class IccColorConverter
         private readonly ColorConversionOptions options;
         private readonly bool sourceLab;
         private readonly bool targetLab;
-        private readonly bool sourceV2;
-        private readonly bool targetV2;
+        private readonly bool sourceLegacyLab;
+        private readonly bool targetLegacyLab;
         private readonly bool adjustFrom;
         private readonly bool adjustTo;
 
@@ -69,8 +69,12 @@ internal static partial class IccColorConverter
                 _ => throw new ArgumentOutOfRangeException(nameof(target), "Unsupported ICC profile connection space.")
             };
 
-            this.sourceV2 = source.Is16BitLutEntry;
-            this.targetV2 = target.Is16BitLutEntry;
+            // A sixteen-bit LUT uses legacy Lab codes regardless of the profile's major version.
+            this.sourceLegacyLab = source.Is16BitLutEntry;
+            this.targetLegacyLab = target.Is16BitLutEntry;
+
+            // Matching v2 perceptual tables need no black-point adjustment between them; their adjustments cancel.
+            // When only one table uses this convention, adjust that side. Curve-only perceptual profiles need their corresponding adjustment.
             bool oneV2 = source.HasV2PerceptualHandling ^ target.HasV2PerceptualHandling;
             this.adjustFrom = source.HasNoPerceptualHandling || (oneV2 && source.HasV2PerceptualHandling);
             this.adjustTo = target.HasNoPerceptualHandling || (oneV2 && target.HasV2PerceptualHandling);
@@ -123,15 +127,15 @@ internal static partial class IccColorConverter
             // Equal connection spaces need no color-model round trip. Legacy Lab encoding alone changes its scale.
             if (!this.adjustFrom && !this.adjustTo && this.sourceLab == this.targetLab)
             {
-                return this.sourceLab && this.sourceV2 != this.targetV2
-                    ? value * (this.sourceV2 ? LegacyLabDecodeScale : LegacyLabEncodeScale)
+                return this.sourceLab && this.sourceLegacyLab != this.targetLegacyLab
+                    ? value * (this.sourceLegacyLab ? LegacyLabDecodeScale : LegacyLabEncodeScale)
                     : value;
             }
 
             CieXyz xyz;
             if (this.sourceLab)
             {
-                value = this.sourceV2 ? value * LegacyLabDecodeScale : value;
+                value = this.sourceLegacyLab ? value * LegacyLabDecodeScale : value;
                 CieLab lab = CieLab.FromScaledVector4(value);
                 xyz = lab.ToProfileConnectingSpace(this.options);
             }
@@ -160,7 +164,7 @@ internal static partial class IccColorConverter
             {
                 CieLab lab = CieLab.FromProfileConnectingSpace(this.options, in xyz);
                 value = lab.ToScaledVector4();
-                return this.targetV2 ? value * LegacyLabEncodeScale : value;
+                return this.targetLegacyLab ? value * LegacyLabEncodeScale : value;
             }
 
             return xyz.ToScaledVector4();
@@ -178,9 +182,9 @@ internal static partial class IccColorConverter
             // Matching PCS values are already encoded for the target, except for legacy Lab's scale.
             if (!this.adjustFrom && !this.adjustTo && this.sourceLab == this.targetLab)
             {
-                if (this.sourceLab && this.sourceV2 != this.targetV2)
+                if (this.sourceLab && this.sourceLegacyLab != this.targetLegacyLab)
                 {
-                    Vector128<float> scale = Vector128.Create(this.sourceV2 ? LegacyLabDecodeScale : LegacyLabEncodeScale);
+                    Vector128<float> scale = Vector128.Create(this.sourceLegacyLab ? LegacyLabDecodeScale : LegacyLabEncodeScale);
                     x *= scale;
                     y *= scale;
                     z *= scale;
@@ -192,7 +196,7 @@ internal static partial class IccColorConverter
 
             if (this.sourceLab)
             {
-                if (this.sourceV2)
+                if (this.sourceLegacyLab)
                 {
                     x *= Vector128.Create(LegacyLabDecodeScale);
                     y *= Vector128.Create(LegacyLabDecodeScale);
@@ -235,7 +239,7 @@ internal static partial class IccColorConverter
                 x /= Vector128.Create(100F);
                 y = (y + Vector128.Create(128F)) / Vector128.Create(255F);
                 z = (z + Vector128.Create(128F)) / Vector128.Create(255F);
-                if (this.targetV2)
+                if (this.targetLegacyLab)
                 {
                     x *= Vector128.Create(LegacyLabEncodeScale);
                     y *= Vector128.Create(LegacyLabEncodeScale);
@@ -249,7 +253,7 @@ internal static partial class IccColorConverter
                 z *= Vector128.Create(PcsXyzEncodeScale);
             }
 
-            w = this.targetLab && this.targetV2 ? Vector128.Create(LegacyLabEncodeScale) : Vector128<float>.One;
+            w = this.targetLab && this.targetLegacyLab ? Vector128.Create(LegacyLabEncodeScale) : Vector128<float>.One;
         }
 
         /// <summary>
@@ -264,9 +268,9 @@ internal static partial class IccColorConverter
             // Matching PCS values are already encoded for the target, except for legacy Lab's scale.
             if (!this.adjustFrom && !this.adjustTo && this.sourceLab == this.targetLab)
             {
-                if (this.sourceLab && this.sourceV2 != this.targetV2)
+                if (this.sourceLab && this.sourceLegacyLab != this.targetLegacyLab)
                 {
-                    Vector256<float> scale = Vector256.Create(this.sourceV2 ? LegacyLabDecodeScale : LegacyLabEncodeScale);
+                    Vector256<float> scale = Vector256.Create(this.sourceLegacyLab ? LegacyLabDecodeScale : LegacyLabEncodeScale);
                     x *= scale;
                     y *= scale;
                     z *= scale;
@@ -278,7 +282,7 @@ internal static partial class IccColorConverter
 
             if (this.sourceLab)
             {
-                if (this.sourceV2)
+                if (this.sourceLegacyLab)
                 {
                     x *= Vector256.Create(LegacyLabDecodeScale);
                     y *= Vector256.Create(LegacyLabDecodeScale);
@@ -321,7 +325,7 @@ internal static partial class IccColorConverter
                 x /= Vector256.Create(100F);
                 y = (y + Vector256.Create(128F)) / Vector256.Create(255F);
                 z = (z + Vector256.Create(128F)) / Vector256.Create(255F);
-                if (this.targetV2)
+                if (this.targetLegacyLab)
                 {
                     x *= Vector256.Create(LegacyLabEncodeScale);
                     y *= Vector256.Create(LegacyLabEncodeScale);
@@ -335,7 +339,7 @@ internal static partial class IccColorConverter
                 z *= Vector256.Create(PcsXyzEncodeScale);
             }
 
-            w = this.targetLab && this.targetV2 ? Vector256.Create(LegacyLabEncodeScale) : Vector256<float>.One;
+            w = this.targetLab && this.targetLegacyLab ? Vector256.Create(LegacyLabEncodeScale) : Vector256<float>.One;
         }
 
         /// <summary>
@@ -350,9 +354,9 @@ internal static partial class IccColorConverter
             // Matching PCS values are already encoded for the target, except for legacy Lab's scale.
             if (!this.adjustFrom && !this.adjustTo && this.sourceLab == this.targetLab)
             {
-                if (this.sourceLab && this.sourceV2 != this.targetV2)
+                if (this.sourceLab && this.sourceLegacyLab != this.targetLegacyLab)
                 {
-                    Vector512<float> scale = Vector512.Create(this.sourceV2 ? LegacyLabDecodeScale : LegacyLabEncodeScale);
+                    Vector512<float> scale = Vector512.Create(this.sourceLegacyLab ? LegacyLabDecodeScale : LegacyLabEncodeScale);
                     x *= scale;
                     y *= scale;
                     z *= scale;
@@ -364,7 +368,7 @@ internal static partial class IccColorConverter
 
             if (this.sourceLab)
             {
-                if (this.sourceV2)
+                if (this.sourceLegacyLab)
                 {
                     x *= Vector512.Create(LegacyLabDecodeScale);
                     y *= Vector512.Create(LegacyLabDecodeScale);
@@ -407,7 +411,7 @@ internal static partial class IccColorConverter
                 x /= Vector512.Create(100F);
                 y = (y + Vector512.Create(128F)) / Vector512.Create(255F);
                 z = (z + Vector512.Create(128F)) / Vector512.Create(255F);
-                if (this.targetV2)
+                if (this.targetLegacyLab)
                 {
                     x *= Vector512.Create(LegacyLabEncodeScale);
                     y *= Vector512.Create(LegacyLabEncodeScale);
@@ -421,7 +425,7 @@ internal static partial class IccColorConverter
                 z *= Vector512.Create(PcsXyzEncodeScale);
             }
 
-            w = this.targetLab && this.targetV2 ? Vector512.Create(LegacyLabEncodeScale) : Vector512<float>.One;
+            w = this.targetLab && this.targetLegacyLab ? Vector512.Create(LegacyLabEncodeScale) : Vector512<float>.One;
         }
     }
 }

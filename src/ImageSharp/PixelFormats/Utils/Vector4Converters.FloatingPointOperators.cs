@@ -37,7 +37,7 @@ internal static partial class Vector4Converters
     }
 
     /// <summary>
-    /// Bounds RGB to the format's finite range and alpha to [0,1].
+    /// Bounds RGB to the working color range and alpha to [0,1].
     /// </summary>
     public readonly struct ColorClampOperator : IStatefulVector4Operator
     {
@@ -47,10 +47,14 @@ internal static partial class Vector4Converters
         /// <summary>
         /// Initializes a new instance of the <see cref="ColorClampOperator"/> struct.
         /// </summary>
-        /// <param name="minimum">The minimum finite RGB component.</param>
-        /// <param name="maximum">The maximum finite RGB component.</param>
+        /// <param name="minimum">The minimum stored RGB component. The working color lower bound also applies.</param>
+        /// <param name="maximum">The maximum stored RGB component. The working color upper bound also applies.</param>
         public ColorClampOperator(float minimum, float maximum)
         {
+            // Color conversion uses one RGB range for float and half storage. Native vector conversion keeps its IEEE values.
+            minimum = MathF.Max(minimum, ColorNumerics.MinColorValue);
+            maximum = MathF.Min(maximum, ColorNumerics.MaxColorValue);
+
             // Each four-lane group is RGBA. Alpha represents opacity, so its bounds do not follow RGB storage precision.
             this.minimum = Vector128.Create(minimum, minimum, minimum, 0F);
             this.maximum = Vector128.Create(maximum, maximum, maximum, 1F);

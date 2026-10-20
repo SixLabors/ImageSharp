@@ -12,9 +12,6 @@ public class CieLuvAndYCbCrConversionTests
 {
     private static readonly ApproximateColorProfileComparer Comparer = new(.0002F);
 
-    // These conversions evaluate approximate powers. Scaled components give the error bound the same units across color models.
-    private static readonly ApproximateColorProfileComparer CompandingComparer = new(5E-4F, scaled: true);
-
     // CIE Luv has no scaled-vector implementation. Its lightness and chromatic components use the 100-unit lightness scale.
     private static readonly ApproximateColorProfileComparer LuvCompandingComparer = new(100F * 5E-4F);
 

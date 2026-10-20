@@ -47,11 +47,13 @@ internal static partial class Histogram
         where TOperation : struct, IHistogramOperation<TBin, TData>
     {
         int cacheHeight = Math.Max(1, (windowWidth / 2) * 2);
+        int cachePadding = Math.Max(0, windowWidth - 1);
         long imageCacheBytes = (long)source.Width * cacheHeight * sizeof(int);
-        long stripEdgeBytes = (long)(windowWidth - 1) * cacheHeight * sizeof(int);
+        long stripEdgeBytes = (long)cachePadding * cacheHeight * sizeof(int);
         int cacheLimit = Math.Min(configuration.WorkingBufferSizeHintInBytes, configuration.MemoryAllocator.GetBufferCapacityInBytes());
 
-        // Each strip caches its columns and windowWidth - 1 extra columns needed by its sampling window.
+        // Each strip caches its output columns and the extra columns needed by its sampling window.
+        // Empty windows need no extra columns, but still need storage for output colors and query indices.
         // The total cache stores the image columns once, plus these extra columns for each strip.
         // Limit the combined cache size to cacheLimit by reducing the maximum number of parallel strips.
         // This limit covers cached bin indices. The output frame and histogram bins have separate storage.
@@ -67,7 +69,7 @@ internal static partial class Histogram
         MemoryAllocator allocator = configuration.MemoryAllocator;
         using Buffer2D<TPixel> target = allocator.Allocate2D<TPixel>(source.Width, source.Height);
         WindowConsumer<TPixel, TBin, TData, TOperation> traversal = new(
-            configuration, source, target, mapping, windowWidth, weights, cacheRows, clipHistogram, clipLimit, operation);
+            configuration, source, target, mapping, windowWidth, cachePadding, weights, cacheRows, clipHistogram, clipLimit, operation);
 
         // Transpose the scheduling rectangle so RowInterval partitions source columns. Each interval
         // reads unchanged source pixels and writes a disjoint strip of the single output buffer.
@@ -258,6 +260,7 @@ internal static partial class Histogram
     /// <param name="targetPixels">The shared output buffer. Each interval writes only its own columns.</param>
     /// <param name="mapping">The shared measurement mapping.</param>
     /// <param name="windowWidth">The sample-window width.</param>
+    /// <param name="cachePadding">The nonnegative number of extra cached columns required by the window edges.</param>
     /// <param name="weights">The RGB measurement coefficients.</param>
     /// <param name="cacheRows">Whether the combined strip caches fit the working-buffer budget.</param>
     /// <param name="clipHistogram">Whether queries use a reusable clipped copy of the counts.</param>
@@ -269,6 +272,7 @@ internal static partial class Histogram
         Buffer2D<TPixel> targetPixels,
         HistogramIndexMapping mapping,
         int windowWidth,
+        int cachePadding,
         Vector3 weights,
         bool cacheRows,
         bool clipHistogram,
@@ -284,7 +288,7 @@ internal static partial class Histogram
         {
             // Counts and conversion spans belong to this interval and remain reusable until it returns.
             // Other intervals read the same source but write disjoint columns of the shared output frame.
-            int capacity = cacheRows ? columns.Max - columns.Min + windowWidth - 1 : windowWidth;
+            int capacity = cacheRows ? columns.Max - columns.Min + cachePadding : Math.Max(1, windowWidth);
             using Histogram<TBin> histogram = new(configuration, mapping, capacity);
             using Histogram<TBin>? clipped = clipHistogram ? new(configuration, mapping, 0) : null;
             Histogram<TBin>.Query query = new(histogram.GetData());
@@ -314,7 +318,7 @@ internal static partial class Histogram
             int radius = windowWidth / 2;
             int columnCount = columns.Max - columns.Min;
             int cacheLeft = columns.Min - radius;
-            int cacheWidth = columnCount + windowWidth - 1;
+            int cacheWidth = columnCount + cachePadding;
 
             // The existing sampling bounds use two half-heights, including for odd window widths.
             // Keep that sample count and the existing square-area normalization.
@@ -379,7 +383,8 @@ internal static partial class Histogram
                         buffered = 0;
                     }
 
-                    if (x + step != endX)
+                    // Zero sample rows leave the histogram empty. Such windows have no edges to move.
+                    if (x + step != endX && windowHeight > 0)
                     {
                         // The ring's physical row order does not affect integer counts. Both edges
                         // can use their cached spans directly, regardless of the current firstSlot.
@@ -476,7 +481,8 @@ internal static partial class Histogram
                         buffered = 0;
                     }
 
-                    if (y + step != endY)
+                    // Zero sample rows leave the histogram empty. Do not add edges while advancing its output position.
+                    if (y + step != endY && windowHeight > 0)
                     {
                         this.UpdateSourceRow(source, y + departingOffset, x - radius, ref histogram, -1);
                         this.UpdateSourceRow(source, y + enteringOffset, x - radius, ref histogram, 1);

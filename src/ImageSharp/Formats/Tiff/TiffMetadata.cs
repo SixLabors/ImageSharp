@@ -279,7 +279,10 @@ public class TiffMetadata : IFormatMetadata<TiffMetadata>
         {
             ColorType = colorType,
             ComponentInfo = info,
-            AlphaRepresentation = alpha
+            AlphaRepresentation = alpha,
+
+            // Floating-point samples retain values outside [0,1]. Integer samples use normalized component values.
+            ColorRange = this.SampleFormat == TiffSampleFormat.Float ? PixelColorRange.Extended : PixelColorRange.Sdr
         };
     }
 

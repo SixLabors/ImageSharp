@@ -47,7 +47,7 @@ public partial struct RgbaHalf
             HalfTypeHelper.Unpack(
                 MemoryMarshal.Cast<RgbaHalf, ushort>(source),
                 destination[..source.Length],
-                new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue));
+                new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue));
         }
 
         /// <inheritdoc />
@@ -62,7 +62,7 @@ public partial struct RgbaHalf
                 destination[..source.Length],
                 new Vector4Converters.AssociateOperator<Vector4Converters.IdentityOperator>(
                     default,
-                    new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)));
+                    new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
         }
 
         /// <inheritdoc />
@@ -94,7 +94,7 @@ public partial struct RgbaHalf
             HalfTypeHelper.Pack(
                 source,
                 MemoryMarshal.Cast<RgbaHalf, ushort>(destination[..source.Length]),
-                new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue));
+                new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue));
         }
 
         /// <inheritdoc />
@@ -107,7 +107,7 @@ public partial struct RgbaHalf
             HalfTypeHelper.Pack(
                 source,
                 MemoryMarshal.Cast<RgbaHalf, ushort>(destination[..source.Length]),
-                new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)));
+                new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
         }
     }
 }

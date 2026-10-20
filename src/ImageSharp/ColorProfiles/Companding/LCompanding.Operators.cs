@@ -4,7 +4,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
-using static SixLabors.ImageSharp.ColorProfiles.Companding.CompandingVectorOperations;
 
 namespace SixLabors.ImageSharp.ColorProfiles.Companding;
 
@@ -31,35 +30,49 @@ public static partial class LCompanding
         public float Invoke(float value)
             => value <= LinearThreshold ? (MaximumLightness * value) / CieConstants.Kappa : Numerics.Pow3((value + LightnessOffset) / LightnessScale);
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Applies the curve to independent component lanes without clipping the final values.
+        /// </summary>
+        /// <param name="value">The input components.</param>
+        /// <returns>The converted components.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector128<float> Invoke(Vector128<float> value) => Invoke<Vector128<float>, Vector128Operations>(value);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector256<float> Invoke(Vector256<float> value) => Invoke<Vector256<float>, Vector256Operations>(value);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector512<float> Invoke(Vector512<float> value) => Invoke<Vector512<float>, Vector512Operations>(value);
+        public Vector128<float> Invoke(Vector128<float> value)
+        {
+            // L* stores lightness divided by 100. Its inverse is linear through 0.08, then cubic.
+            Vector128<float> linear = Vector128.Divide(Vector128.Multiply(value, Vector128.Create(MaximumLightness)), Vector128.Create(CieConstants.Kappa));
+            Vector128<float> basis = Vector128.Divide(Vector128.Add(value, Vector128.Create(LightnessOffset)), Vector128.Create(LightnessScale));
+            Vector128<float> nonlinear = Vector128.Multiply(Vector128.Multiply(basis, basis), basis);
+            return Vector128.ConditionalSelect(Vector128.LessThanOrEqual(value, Vector128.Create(LinearThreshold)), linear, nonlinear);
+        }
 
         /// <summary>
         /// Applies the curve to independent component lanes without clipping the final values.
         /// </summary>
-        /// <typeparam name="TVector">The register type.</typeparam>
-        /// <typeparam name="TOperations">The register operations.</typeparam>
         /// <param name="value">The input components.</param>
         /// <returns>The converted components.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TVector Invoke<TVector, TOperations>(TVector value)
-            where TVector : struct
-            where TOperations : struct, ITransferVectorOperations<TVector>
+        public Vector256<float> Invoke(Vector256<float> value)
         {
             // L* stores lightness divided by 100. Its inverse is linear through 0.08, then cubic.
-            TVector linear = TOperations.Divide(TOperations.Multiply(value, TOperations.Create(MaximumLightness)), TOperations.Create(CieConstants.Kappa));
-            TVector basis = TOperations.Divide(TOperations.Add(value, TOperations.Create(LightnessOffset)), TOperations.Create(LightnessScale));
-            TVector nonlinear = TOperations.Multiply(TOperations.Multiply(basis, basis), basis);
-            return TOperations.ConditionalSelect(TOperations.LessThanOrEqual(value, TOperations.Create(LinearThreshold)), linear, nonlinear);
+            Vector256<float> linear = Vector256.Divide(Vector256.Multiply(value, Vector256.Create(MaximumLightness)), Vector256.Create(CieConstants.Kappa));
+            Vector256<float> basis = Vector256.Divide(Vector256.Add(value, Vector256.Create(LightnessOffset)), Vector256.Create(LightnessScale));
+            Vector256<float> nonlinear = Vector256.Multiply(Vector256.Multiply(basis, basis), basis);
+            return Vector256.ConditionalSelect(Vector256.LessThanOrEqual(value, Vector256.Create(LinearThreshold)), linear, nonlinear);
+        }
+
+        /// <summary>
+        /// Applies the curve to independent component lanes without clipping the final values.
+        /// </summary>
+        /// <param name="value">The input components.</param>
+        /// <returns>The converted components.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+        {
+            // L* stores lightness divided by 100. Its inverse is linear through 0.08, then cubic.
+            Vector512<float> linear = Vector512.Divide(Vector512.Multiply(value, Vector512.Create(MaximumLightness)), Vector512.Create(CieConstants.Kappa));
+            Vector512<float> basis = Vector512.Divide(Vector512.Add(value, Vector512.Create(LightnessOffset)), Vector512.Create(LightnessScale));
+            Vector512<float> nonlinear = Vector512.Multiply(Vector512.Multiply(basis, basis), basis);
+            return Vector512.ConditionalSelect(Vector512.LessThanOrEqual(value, Vector512.Create(LinearThreshold)), linear, nonlinear);
         }
     }
 
@@ -74,36 +87,52 @@ public static partial class LCompanding
                 ? (value * CieConstants.Kappa) / MaximumLightness
                 : (LightnessScale * new TensorPrimitives_.PowOperator(CubeRootExponent).Invoke(value)) - LightnessOffset;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Applies the curve to independent component lanes without clipping the final values.
+        /// </summary>
+        /// <param name="value">The input components.</param>
+        /// <returns>The converted components.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector128<float> Invoke(Vector128<float> value) => Invoke<Vector128<float>, Vector128Operations>(value);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector256<float> Invoke(Vector256<float> value) => Invoke<Vector256<float>, Vector256Operations>(value);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector512<float> Invoke(Vector512<float> value) => Invoke<Vector512<float>, Vector512Operations>(value);
+        public Vector128<float> Invoke(Vector128<float> value)
+        {
+            // L* uses the linear segment for negative and near-black XYZ values.
+            // Keep the existing cube-root exponent rather than substituting a different approximation.
+            Vector128<float> linear = Vector128.Divide(Vector128.Multiply(value, Vector128.Create(CieConstants.Kappa)), Vector128.Create(MaximumLightness));
+            Vector128<float> power = Vector128_.Pow(Vector128.Max(value, Vector128.Create(0F)), CubeRootExponent);
+            Vector128<float> nonlinear = Vector128.Subtract(Vector128.Multiply(Vector128.Create(LightnessScale), power), Vector128.Create(LightnessOffset));
+            return Vector128.ConditionalSelect(Vector128.LessThanOrEqual(value, Vector128.Create(CieConstants.Epsilon)), linear, nonlinear);
+        }
 
         /// <summary>
         /// Applies the curve to independent component lanes without clipping the final values.
         /// </summary>
-        /// <typeparam name="TVector">The register type.</typeparam>
-        /// <typeparam name="TOperations">The register operations.</typeparam>
         /// <param name="value">The input components.</param>
         /// <returns>The converted components.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TVector Invoke<TVector, TOperations>(TVector value)
-            where TVector : struct
-            where TOperations : struct, ITransferVectorOperations<TVector>
+        public Vector256<float> Invoke(Vector256<float> value)
         {
             // L* uses the linear segment for negative and near-black XYZ values.
             // Keep the existing cube-root exponent rather than substituting a different approximation.
-            TVector linear = TOperations.Divide(TOperations.Multiply(value, TOperations.Create(CieConstants.Kappa)), TOperations.Create(MaximumLightness));
-            TVector power = TOperations.Pow(TOperations.Max(value, TOperations.Create(0F)), CubeRootExponent);
-            TVector nonlinear = TOperations.Subtract(TOperations.Multiply(TOperations.Create(LightnessScale), power), TOperations.Create(LightnessOffset));
-            return TOperations.ConditionalSelect(TOperations.LessThanOrEqual(value, TOperations.Create(CieConstants.Epsilon)), linear, nonlinear);
+            Vector256<float> linear = Vector256.Divide(Vector256.Multiply(value, Vector256.Create(CieConstants.Kappa)), Vector256.Create(MaximumLightness));
+            Vector256<float> power = Vector256_.Pow(Vector256.Max(value, Vector256.Create(0F)), CubeRootExponent);
+            Vector256<float> nonlinear = Vector256.Subtract(Vector256.Multiply(Vector256.Create(LightnessScale), power), Vector256.Create(LightnessOffset));
+            return Vector256.ConditionalSelect(Vector256.LessThanOrEqual(value, Vector256.Create(CieConstants.Epsilon)), linear, nonlinear);
+        }
+
+        /// <summary>
+        /// Applies the curve to independent component lanes without clipping the final values.
+        /// </summary>
+        /// <param name="value">The input components.</param>
+        /// <returns>The converted components.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+        {
+            // L* uses the linear segment for negative and near-black XYZ values.
+            // Keep the existing cube-root exponent rather than substituting a different approximation.
+            Vector512<float> linear = Vector512.Divide(Vector512.Multiply(value, Vector512.Create(CieConstants.Kappa)), Vector512.Create(MaximumLightness));
+            Vector512<float> power = Vector512_.Pow(Vector512.Max(value, Vector512.Create(0F)), CubeRootExponent);
+            Vector512<float> nonlinear = Vector512.Subtract(Vector512.Multiply(Vector512.Create(LightnessScale), power), Vector512.Create(LightnessOffset));
+            return Vector512.ConditionalSelect(Vector512.LessThanOrEqual(value, Vector512.Create(CieConstants.Epsilon)), linear, nonlinear);
         }
     }
 }

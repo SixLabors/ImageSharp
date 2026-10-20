@@ -488,7 +488,7 @@ internal class TiffDecoderCore : ImageDecoderCore
         {
             // Planar JPEG, OldJPEG and WebP are rejected by the options parser. These buffers always receive raw channel samples.
             using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(width, this.BitsPerPixel, frame.Metadata);
-            TiffBasePlanarColorDecoder<TPixel> colorDecoder = this.CreatePlanarColorDecoder<TPixel>(frame.Metadata);
+            using TiffBasePlanarColorDecoder<TPixel> colorDecoder = this.CreatePlanarColorDecoder<TPixel>(frame.Metadata);
 
             // Reuse one buffer per channel. Each plane's own bit depth determines its byte count.
             for (int channel = 0; channel < channels; channel++)
@@ -656,6 +656,7 @@ internal class TiffDecoderCore : ImageDecoderCore
         }
         finally
         {
+            colorDecoder?.Dispose();
             stripBuffer?.Dispose();
         }
     }
@@ -695,7 +696,7 @@ internal class TiffDecoderCore : ImageDecoderCore
         {
             // The parser excludes nested image codecs from planar decoding. Every channel is decompressed as TIFF samples.
             using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(width, this.BitsPerPixel, frame.Metadata, true, tileWidth, tileLength);
-            TiffBasePlanarColorDecoder<TPixel> colorDecoder = this.CreatePlanarColorDecoder<TPixel>(frame.Metadata);
+            using TiffBasePlanarColorDecoder<TPixel> colorDecoder = this.CreatePlanarColorDecoder<TPixel>(frame.Metadata);
 
             // Tile rows are byte-aligned. Allocate one reusable buffer per plane at that plane's bit depth.
             for (int channel = 0; channel < channels; channel++)
@@ -861,6 +862,7 @@ internal class TiffDecoderCore : ImageDecoderCore
         }
         finally
         {
+            colorDecoder?.Dispose();
             tileBuffer?.Dispose();
         }
     }

@@ -150,8 +150,8 @@ public class ExrEncoderTests
         using Image decoded = Image.Load(stream);
         Image<RgbaVectorP> output = Assert.IsType<Image<RgbaVectorP>>(decoded);
 
-        // Color conversion uses finite float storage bounds. Zero alpha retains the stored associated RGB.
-        RgbaVectorP expected = new(float.MinValue, float.MaxValue, float.MinValue, -0F);
+        // Color conversion bounds RGB to [-65504,65504]. Zero alpha retains the associated RGB after applying these bounds.
+        RgbaVectorP expected = new(-65504F, 65504F, -65504F, -0F);
 
         for (int x = 0; x < output.Width; x++)
         {

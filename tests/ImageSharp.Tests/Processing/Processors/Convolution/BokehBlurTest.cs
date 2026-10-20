@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Globalization;
+using System.Numerics;
 using System.Text.RegularExpressions;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -42,6 +43,79 @@ public class BokehBlurTest
     public void VerifyBokehBlurProcessorArguments_Fail(int radius, int components, float gamma)
         => Assert.Throws<ArgumentOutOfRangeException>(
             () => new BokehBlurProcessor(radius, components, gamma));
+
+    /// <summary>
+    /// Checks that the processor retains gamma. Shared companding owns the converted RGB range.
+    /// </summary>
+    [Theory]
+    [InlineData(1F, 1F)]
+    [InlineData(3F, 3F)]
+    [InlineData(7F, 7F)]
+    [InlineData(70F, 70F)]
+    [InlineData(float.PositiveInfinity, float.PositiveInfinity)]
+    public void Gamma_IsRetained(float requested, float expected)
+        => Assert.Equal(expected, new BokehBlurProcessor(2, 2, requested).Gamma);
+
+    /// <summary>
+    /// Checks that exposure uses the shared RGB bounds in float and half pixels at every execution width.
+    /// </summary>
+    [Fact]
+    public void UniformHdr_UsesBoundedCompanding() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckUniformHdr,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Exercises the default and larger gamma values with every kernel component count.
+    /// </summary>
+    private static void CheckUniformHdr()
+    {
+        ReadOnlySpan<float> gammaValues = [3F, 7F, 70F];
+        foreach (float gamma in gammaValues)
+        {
+            for (int components = 1; components <= 6; components++)
+            {
+                CheckUniformHdrPixels<RgbaVector>(gamma, components);
+                CheckUniformHdrPixels<HalfVector4>(gamma, components);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks finite native storage and the constant-color response of the normalized convolution kernels.
+    /// </summary>
+    /// <typeparam name="TPixel">The floating-point storage format.</typeparam>
+    /// <param name="gamma">The requested exposure exponent.</param>
+    /// <param name="components">The number of complex kernel components.</param>
+    private static void CheckUniformHdrPixels<TPixel>(float gamma, int components)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        const float Magnitude = 65504F;
+        TPixel color = TPixel.FromUnassociatedScaledVector4(new Vector4(Magnitude, -Magnitude, Magnitude / 2F, 1F));
+
+        // A uniform region remains uniform under convolution. Gamma expansion saturates at the shared RGB bound,
+        // so its inverse starts from 65504 rather than the unbounded power. Use MathF.Pow as the independent reference.
+        float expectedMagnitude = MathF.Pow(Magnitude, 1F / gamma);
+        TPixel expectedColor = TPixel.FromUnassociatedScaledVector4(new Vector4(expectedMagnitude, -expectedMagnitude, expectedMagnitude, 1F));
+        using Image<TPixel> expected = new(17, 3, expectedColor);
+        using Image<TPixel> actual = new(17, 3, color);
+
+        actual.Mutate(x => x.BokehBlur(2, components, gamma));
+
+        // Two approximate transfer functions each allow 0.0005 relative error. Half storage adds at most 0.0005.
+        // A zero image threshold checks each pixel against that combined bound; it does not average pixel errors.
+        int threshold = (int)MathF.Ceiling(3F * expectedMagnitude * ushort.MaxValue * 0.0015F);
+        ImageComparer.Tolerant(0F, threshold).VerifySimilarity(expected, actual);
+
+        for (int y = 0; y < actual.Height; y++)
+        {
+            foreach (TPixel pixel in actual.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y))
+            {
+                // Native vectors expose stored IEEE values, so this also detects nonfinite values hidden by color conversion.
+                Vector4 value = pixel.ToVector4();
+                Assert.True(float.IsFinite(value.X) && float.IsFinite(value.Y) && float.IsFinite(value.Z) && float.IsFinite(value.W));
+            }
+        }
+    }
 
     [Fact]
     public void VerifyComplexComponents()

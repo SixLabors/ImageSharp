@@ -67,10 +67,15 @@ public class TiffLabColorConversion
     }
 
     /// <summary>
-    /// Releases the shared destination image after benchmarking.
+    /// Releases the readers' conversion rows and destination image after benchmarking.
     /// </summary>
     [GlobalCleanup]
-    public void Cleanup() => this.destination.Dispose();
+    public void Cleanup()
+    {
+        this.packed8Decoder.Dispose();
+        this.packed16Decoder.Dispose();
+        this.destination.Dispose();
+    }
 
     /// <summary>
     /// Measures per-pixel Lab8 normalization, conversion, and pixel packing.

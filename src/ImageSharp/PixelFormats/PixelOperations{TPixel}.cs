@@ -19,8 +19,8 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// <see cref="AssociatedAlphaPixelOperations{TPixel}"/>.
 /// Bulk vector conversions follow the corresponding <see cref="IPixel{TSelf}"/> scalar conversion rules.
 /// Integer destinations clamp components and map NaN to the lower endpoint of their numeric range.
-/// Floating-point color conversions use the format's finite limits. Native vector conversions retain IEEE special values.
-/// Finite HDR values remain unchanged within the destination range. In-range signed zero is preserved.
+/// Floating-point color conversions bound RGB to [-65504,65504] and alpha to [0,1]. Native vector conversions retain IEEE special values.
+/// Finite HDR values remain unchanged within this color range. In-range signed zero is preserved.
 /// </remarks>
 /// <typeparam name="TPixel">The pixel format.</typeparam>
 public partial class PixelOperations<TPixel>

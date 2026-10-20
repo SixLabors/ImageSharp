@@ -158,20 +158,29 @@ public class TiffMetadataTests
         Assert.Equal(TiffSampleFormat.Float, meta.SampleFormat);
     }
 
-    [Fact]
-    public void TiffMetadata_PixelTypeInfo_DescribesSingle32BitGrayscaleSample()
+    /// <summary>
+    /// Checks that one 32-bit grayscale sample reports its component layout and the range of its sample format.
+    /// </summary>
+    /// <param name="sampleFormat">The integer or floating-point sample format.</param>
+    /// <param name="expectedColorRange">The color range supported by that sample format.</param>
+    [Theory]
+    [InlineData(TiffSampleFormat.UnsignedInteger, PixelColorRange.Sdr)]
+    [InlineData(TiffSampleFormat.Float, PixelColorRange.Extended)]
+    public void TiffMetadata_PixelTypeInfo_DescribesSingle32BitGrayscaleSample(TiffSampleFormat sampleFormat, PixelColorRange expectedColorRange)
     {
         TiffMetadata metadata = new()
         {
             BitsPerPixel = TiffBitsPerPixel.Bit32,
             BitsPerSample = new TiffBitsPerSample(32, 0, 0),
-            PhotometricInterpretation = TiffPhotometricInterpretation.BlackIsZero
+            PhotometricInterpretation = TiffPhotometricInterpretation.BlackIsZero,
+            SampleFormat = sampleFormat
         };
 
         PixelTypeInfo info = metadata.GetPixelTypeInfo();
 
         Assert.Equal(32, info.BitsPerPixel);
         Assert.Equal(PixelColorType.Luminance, info.ColorType);
+        Assert.Equal(expectedColorRange, info.ColorRange);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
         Assert.Equal(1, info.ComponentInfo.Value.ComponentCount);
         Assert.Equal(32, info.ComponentInfo.Value.GetComponentPrecision(0));

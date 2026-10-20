@@ -48,7 +48,7 @@ public partial struct HalfVector4
             HalfTypeHelper.Unpack(
                 MemoryMarshal.Cast<HalfVector4, ushort>(source),
                 destination[..source.Length],
-                new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue));
+                new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue));
         }
 
         /// <inheritdoc />
@@ -63,7 +63,7 @@ public partial struct HalfVector4
                 destination[..source.Length],
                 new Vector4Converters.AssociateOperator<Vector4Converters.IdentityOperator>(
                     default,
-                    new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)));
+                    new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
         }
 
         /// <inheritdoc />
@@ -82,7 +82,9 @@ public partial struct HalfVector4
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            HalfTypeHelper.PackFromAssociated(MemoryMarshal.Cast<Vector4, float>(source), MemoryMarshal.Cast<HalfVector4, ushort>(destination[..source.Length]));
+            HalfTypeHelper.PackFromAssociated(
+                MemoryMarshal.Cast<Vector4, float>(source),
+                MemoryMarshal.Cast<HalfVector4, ushort>(destination[..source.Length]));
         }
 
         /// <inheritdoc />
@@ -95,7 +97,7 @@ public partial struct HalfVector4
             HalfTypeHelper.Pack(
                 source,
                 MemoryMarshal.Cast<HalfVector4, ushort>(destination[..source.Length]),
-                new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue));
+                new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue));
         }
 
         /// <inheritdoc />
@@ -108,7 +110,7 @@ public partial struct HalfVector4
             HalfTypeHelper.Pack(
                 source,
                 MemoryMarshal.Cast<HalfVector4, ushort>(destination[..source.Length]),
-                new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)));
+                new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
         }
     }
 }

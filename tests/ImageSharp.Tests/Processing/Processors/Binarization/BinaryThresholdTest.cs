@@ -53,8 +53,8 @@ public class BinaryThresholdTest
 
         image.Mutate(x => x.BinaryThreshold(.5F));
 
-        // NaN and negative infinity become float.MinValue; positive infinity becomes float.MaxValue.
-        // The opposite red limits place the threshold at zero, so ordinary positive RGB selects the upper color.
+        // NaN and negative infinity become -65504; positive infinity becomes 65504.
+        // Ordinary positive RGB lies above the midpoint between the two converted red extremes and selects the upper color.
         Assert.Equal(1F, image[0, 0].R);
         Assert.Equal(1F, image[30, 0].R);
         Assert.Equal(0F, image[31, 0].R);

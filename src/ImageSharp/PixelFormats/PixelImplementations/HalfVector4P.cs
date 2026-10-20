@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// </summary>
 /// <remarks>
 /// Native vector conversions preserve the stored IEEE floating-point values.
-/// Color-vector conversions bound color components to the format's finite range and alpha to [0,1].
+/// Color-vector conversions bound color components to [-65504,65504] and alpha to [0,1].
 /// The packed representation is binary-compatible with <c>DXGI_FORMAT_R16G16B16A16_FLOAT</c>.
 /// </remarks>
 public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
@@ -84,7 +84,7 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToUnassociatedScaledVector4()
         => new Vector4Converters.UnassociateOperator(
-            new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)).Invoke(this.ToVector4());
+            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(this.ToVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -92,7 +92,7 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
     {
         return new Vector4Converters.ReassociateOperator<Vector4Converters.IdentityOperator>(
             default,
-            new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)).Invoke(this.ToVector4());
+            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(this.ToVector4());
     }
 
     /// <inheritdoc />
@@ -155,7 +155,7 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
         // Bound RGB and opacity before association. Half-precision uses the alpha that storage can represent.
         source = new Vector4Converters.AssociateOperator<Vector4Converters.HalfAlphaOperator>(
             default,
-            new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)).Invoke(source);
+            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(source);
 
         return FromAssociatedVector4(source);
     }
@@ -166,7 +166,7 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
     {
         source = new Vector4Converters.ReassociateOperator<Vector4Converters.HalfAlphaOperator>(
             default,
-            new Vector4Converters.ColorClampOperator((float)Half.MinValue, (float)Half.MaxValue)).Invoke(source);
+            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(source);
 
         return FromAssociatedVector4(source);
     }

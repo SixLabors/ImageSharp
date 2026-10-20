@@ -16,7 +16,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution;
 /// Applies bokeh blur processing to the image.
 /// </summary>
 /// <typeparam name="TPixel">The pixel format.</typeparam>
-/// <remarks>This processor is based on the code from Mike Pound, see <a href="https://github.com/mikepound/convolve">github.com/mikepound/convolve</a>.</remarks>
+/// <remarks>
+/// This processor is based on the code from Mike Pound, see <a href="https://github.com/mikepound/convolve">github.com/mikepound/convolve</a>.
+/// </remarks>
 internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -24,6 +26,16 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
     /// The gamma highlight factor to use when applying the effect
     /// </summary>
     private readonly float gamma;
+
+    /// <summary>
+    /// The normalized source color range used by the shared gamma compander.
+    /// </summary>
+    private readonly PixelColorRange colorRange;
+
+    /// <summary>
+    /// The source component precision used to select the shared gamma conversion.
+    /// </summary>
+    private readonly int componentBitDepth;
 
     /// <summary>
     /// The size of each complex convolution kernel.
@@ -44,7 +56,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
     /// Initializes a new instance of the <see cref="BokehBlurProcessor{TPixel}"/> class.
     /// </summary>
     /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-    /// <param name="definition">The <see cref="BoxBlurProcessor"/> defining the processor parameters.</param>
+    /// <param name="definition">The <see cref="BokehBlurProcessor"/> defining the processor parameters.</param>
     /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
     /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
     public BokehBlurProcessor(Configuration configuration, BokehBlurProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
@@ -52,6 +64,10 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
     {
         this.gamma = definition.Gamma;
         this.kernelSize = (definition.Radius * 2) + 1;
+
+        PixelTypeInfo pixelInfo = TPixel.GetPixelTypeInfo();
+        this.componentBitDepth = pixelInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
+        this.colorRange = pixelInfo.ColorRange;
 
         // Get the bokeh blur data
         BokehBlurKernelData data = BokehBlurKernelDataProvider.GetBokehBlurKernelData(
@@ -78,75 +94,62 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
     {
         Rectangle sourceRectangle = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
 
-        // Preliminary gamma highlight pass
-        if (this.gamma == 3F)
-        {
-            ApplyGamma3ExposureRowOperation gammaOperation = new(sourceRectangle, source.PixelBuffer, this.Configuration);
-            ParallelRowIterator.IterateRows<ApplyGamma3ExposureRowOperation, Vector4>(
-                this.Configuration,
-                sourceRectangle,
-                in gammaOperation);
-        }
-        else
-        {
-            ApplyGammaExposureRowOperation gammaOperation = new(sourceRectangle, source.PixelBuffer, this.Configuration, this.gamma);
-            ParallelRowIterator.IterateRows<ApplyGammaExposureRowOperation, Vector4>(
-                this.Configuration,
-                sourceRectangle,
-                in gammaOperation);
-        }
+        // Each row holds two image-width planes: [gamma-expanded input | accumulated output].
+        // The input stays unchanged until all kernel components finish. The output accumulates their contributions.
+        // GetRegion creates non-owning views into colorBuffer.
+        // Only the processing rectangle is initialized; the sampling map keeps every convolution read inside it.
+        using Buffer2D<Vector4> colorBuffer = this.Configuration.MemoryAllocator.Allocate2D<Vector4>(source.Width * 2, source.Height);
+        Buffer2DRegion<Vector4> exposedValues = colorBuffer.GetRegion(0, 0, source.Width, source.Height);
+        Buffer2DRegion<Vector4> outputValues = colorBuffer.GetRegion(source.Width, 0, source.Width, source.Height);
 
-        // Create a 0-filled buffer to use to store the result of the component convolutions
-        using Buffer2D<Vector4> processingBuffer = this.Configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size, AllocationOptions.Clean);
+        ApplyGammaExposureRowOperation exposure = new(
+            sourceRectangle,
+            source.PixelBuffer,
+            exposedValues,
+            outputValues,
+            this.Configuration,
+            this.gamma,
+            this.componentBitDepth,
+            this.colorRange);
 
-        // Perform the 1D convolutions on all the kernel components and accumulate the results
-        this.OnFrameApplyCore(source, sourceRectangle, this.Configuration, processingBuffer);
+        ParallelRowIterator.IterateRows(this.Configuration, sourceRectangle, in exposure);
+        this.OnFrameApplyCore(exposedValues, sourceRectangle, this.Configuration, outputValues);
 
-        // Apply the inverse gamma exposure pass, and write the final pixel data
-        if (this.gamma == 3F)
-        {
-            ApplyInverseGamma3ExposureRowOperation operation = new(sourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration);
-            ParallelRowIterator.IterateRows(
-                this.Configuration,
-                sourceRectangle,
-                in operation);
-        }
-        else
-        {
-            ApplyInverseGammaExposureRowOperation operation = new(sourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, this.gamma);
-            ParallelRowIterator.IterateRows(
-                this.Configuration,
-                sourceRectangle,
-                in operation);
-        }
+        ApplyInverseGammaExposureRowOperation inverse = new(
+            sourceRectangle,
+            source.PixelBuffer,
+            outputValues,
+            this.Configuration,
+            this.gamma,
+            this.componentBitDepth,
+            this.colorRange);
+
+        ParallelRowIterator.IterateRows(this.Configuration, sourceRectangle, in inverse);
     }
 
     /// <summary>
-    /// Computes and aggregates the convolution for each complex kernel component in the processor.
+    /// Evaluates each complex kernel as two real separable convolutions and accumulates their contributions.
     /// </summary>
-    /// <param name="source">The source image. Cannot be null.</param>
-    /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
-    /// <param name="configuration">The configuration.</param>
-    /// <param name="processingBuffer">The buffer with the raw pixel data to use to aggregate the results of each convolution.</param>
+    /// <param name="exposedValues">The associated, gamma-expanded float colors shared by every kernel component.</param>
+    /// <param name="sourceRectangle">The processing rectangle in image coordinates.</param>
+    /// <param name="configuration">The memory allocation and parallel processing configuration.</param>
+    /// <param name="outputValues">The initially zeroed float output plane, separate from the input plane in the same allocation.</param>
     private void OnFrameApplyCore(
-        ImageFrame<TPixel> source,
+        Buffer2DRegion<Vector4> exposedValues,
         Rectangle sourceRectangle,
         Configuration configuration,
-        Buffer2D<Vector4> processingBuffer)
+        Buffer2DRegion<Vector4> outputValues)
     {
-        // Allocate the buffer with the intermediate convolution results
-        using Buffer2D<ComplexVector4> firstPassBuffer = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size);
+        // Standard two-pass convolution stores its horizontal results in TPixel.
+        // Bokeh must retain signed RGB and alpha intermediates until all weighted kernel contributions are accumulated.
+        // Keep those values as floats to avoid pixel-format rounding or clamping between passes.
 
-        // Unlike in the standard 2 pass convolution processor, we use a rectangle of 1x the interest width
-        // to speedup the actual convolution, by applying bulk pixel conversion and clamping calculation.
-        // The second half of the buffer will just target the temporary buffer of complex pixel values.
-        // This is needed because the bokeh blur operates as TPixel -> complex -> TPixel, so we cannot
-        // convert back to standard pixels after each separate 1D convolution pass. Like in the gaussian
-        // blur though, we preallocate and compute the kernel sampling maps before processing each complex
-        // component, to avoid recomputing the same sampling map once per convolution pass. Since we are
-        // doing two 1D convolutions with the same kernel, we can use a single kernel sampling map as if
-        // we were using a 2D kernel with each dimension being the same as the length of our kernel, and
-        // use the two sampling offset spans resulting from this same map. This saves some extra work.
+        // This scratch buffer holds either horizontal sum, Ha or Hb. Every pass overwrites its processed pixels.
+        // Together with the input and output planes, image storage uses 48 bytes per pixel.
+        using Buffer2D<Vector4> horizontalValues = configuration.MemoryAllocator.Allocate2D<Vector4>(exposedValues.Size);
+
+        // Both convolution directions use the same kernel size and processing rectangle.
+        // Build their clamped sampling offsets once and share them across all components.
         using KernelSamplingMap mapXY = new(configuration.MemoryAllocator);
 
         mapXY.BuildSamplingOffsetMap(this.kernelSize, this.kernelSize, sourceRectangle);
@@ -154,132 +157,54 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         ref Complex64[] baseRef = ref MemoryMarshal.GetReference(this.kernels.AsSpan());
         ref Vector4 paramsRef = ref MemoryMarshal.GetReference(this.kernelParameters.AsSpan());
 
-        // Perform two 1D convolutions for each component in the current instance
         for (int i = 0; i < this.kernels.Length; i++)
         {
-            // Compute the resulting complex buffer for the current component
             Complex64[] kernel = Unsafe.Add(ref baseRef, (uint)i);
             Vector4 parameters = Unsafe.Add(ref paramsRef, (uint)i);
 
-            // Horizontal convolution
-            FirstPassConvolutionRowOperation horizontalOperation = new(
-                sourceRectangle,
-                firstPassBuffer,
-                source.PixelBuffer,
-                mapXY,
-                kernel,
-                configuration);
-
-            ParallelRowIterator.IterateRows<FirstPassConvolutionRowOperation, Vector4>(
-                configuration,
-                sourceRectangle,
-                in horizontalOperation);
-
-            // Vertical 1D convolutions to accumulate the partial results on the target buffer
-            BokehBlurProcessor.SecondPassConvolutionRowOperation verticalOperation = new(
-                sourceRectangle,
-                processingBuffer,
-                firstPassBuffer,
-                mapXY,
-                kernel,
-                parameters.Z,
-                parameters.W);
-
-            ParallelRowIterator.IterateRows(
-                configuration,
-                sourceRectangle,
-                in verticalOperation);
-        }
-    }
-
-    /// <summary>
-    /// A <see langword="struct"/> implementing the vertical convolution logic for <see cref="BokehBlurProcessor{T}"/>.
-    /// </summary>
-    private readonly struct FirstPassConvolutionRowOperation : IRowOperation<Vector4>
-    {
-        private readonly Rectangle bounds;
-        private readonly Buffer2D<ComplexVector4> targetValues;
-        private readonly Buffer2D<TPixel> sourcePixels;
-        private readonly KernelSamplingMap map;
-        private readonly Complex64[] kernel;
-        private readonly Configuration configuration;
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public FirstPassConvolutionRowOperation(
-            Rectangle bounds,
-            Buffer2D<ComplexVector4> targetValues,
-            Buffer2D<TPixel> sourcePixels,
-            KernelSamplingMap map,
-            Complex64[] kernel,
-            Configuration configuration)
-        {
-            this.bounds = bounds;
-            this.targetValues = targetValues;
-            this.sourcePixels = sourcePixels;
-            this.map = map;
-            this.kernel = kernel;
-            this.configuration = configuration;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public int GetRequiredBufferLength(Rectangle bounds)
-            => bounds.Width;
-
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void Invoke(int y, Span<Vector4> span)
-        {
-            int boundsX = this.bounds.X;
-            int boundsWidth = this.bounds.Width;
-            int kernelSize = this.kernel.Length;
-
-            // Clear the target buffer for each row run
-            Span<ComplexVector4> targetBuffer = this.targetValues.DangerousGetRowSpan(y);
-            targetBuffer.Clear();
-
-            // Gamma exposure temporarily stores premultiplied numeric intermediates in TPixel without changing their
-            // representation. Read the native scaled values back directly to avoid an associate/unassociate round trip.
-            Span<TPixel> sourceRow = this.sourcePixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-            PixelOperations<TPixel>.Instance.ToScaledVector4(this.configuration, sourceRow, span);
-
-            ref Vector4 sourceBase = ref MemoryMarshal.GetReference(span);
-            ref ComplexVector4 targetStart = ref MemoryMarshal.GetReference(targetBuffer);
-            ref ComplexVector4 targetEnd = ref Unsafe.Add(ref targetStart, (uint)span.Length);
-            ref Complex64 kernelBase = ref MemoryMarshal.GetArrayDataReference(this.kernel);
-            ref Complex64 kernelEnd = ref Unsafe.Add(ref kernelBase, (uint)kernelSize);
-            ref int sampleColumnBase = ref MemoryMarshal.GetReference(this.map.GetColumnOffsetSpan());
-
-            while (Unsafe.IsAddressLessThan(ref targetStart, ref targetEnd))
+            // Let a and b be the real and imaginary kernel coefficients, and Ha and Hb their horizontal sums.
+            // The weighted complex result is z*Re + w*Im:
+            // z*(a*Ha - b*Hb) + w*(a*Hb + b*Ha) = (z*a + w*b)*Ha + (w*a - z*b)*Hb.
+            // Evaluate the two terms separately so one float image can hold either Ha or Hb.
+            for (int kernelOffset = 0; kernelOffset < 2; kernelOffset++)
             {
-                ref Complex64 kernelStart = ref kernelBase;
-                ref int sampleColumnStart = ref sampleColumnBase;
+                BokehBlurProcessor.FirstPassConvolutionRowOperation horizontalOperation = new(
+                    sourceRectangle,
+                    horizontalValues,
+                    exposedValues,
+                    mapXY,
+                    kernel,
+                    kernelOffset);
 
-                while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
-                {
-                    Vector4 sample = Unsafe.Add(ref sourceBase, (uint)(sampleColumnStart - boundsX));
+                ParallelRowIterator.IterateRows(configuration, sourceRectangle, in horizontalOperation);
 
-                    targetStart.Sum(kernelStart * sample);
+                float realWeight = kernelOffset == 0 ? parameters.Z : parameters.W;
+                float imaginaryWeight = kernelOffset == 0 ? parameters.W : -parameters.Z;
 
-                    kernelStart = ref Unsafe.Add(ref kernelStart, 1);
-                    sampleColumnStart = ref Unsafe.Add(ref sampleColumnStart, 1);
-                }
+                BokehBlurProcessor.SecondPassConvolutionRowOperation verticalOperation = new(
+                    sourceRectangle,
+                    outputValues,
+                    horizontalValues,
+                    mapXY,
+                    kernel,
+                    realWeight,
+                    imaginaryWeight);
 
-                // Shift the base column sampling reference by one row at the end of each outer
-                // iteration so that the inner tight loop indexing can skip the multiplication
-                sampleColumnBase = ref Unsafe.Add(ref sampleColumnBase, (uint)kernelSize);
-                targetStart = ref Unsafe.Add(ref targetStart, 1);
+                // Each iterator completes before returning. Finish every vertical read before reusing horizontalValues.
+                ParallelRowIterator.IterateRows(configuration, sourceRectangle, in verticalOperation);
             }
         }
     }
 
     /// <summary>
-    /// A <see langword="struct"/> implementing the gamma exposure logic for <see cref="BokehBlurProcessor{T}"/>.
+    /// Converts source pixels to associated float colors, applies gamma once, and clears the output plane.
     /// </summary>
-    private readonly struct ApplyGammaExposureRowOperation : IRowOperation<Vector4>
+    private readonly struct ApplyGammaExposureRowOperation : IRowOperation
     {
         private readonly Rectangle bounds;
-        private readonly Buffer2D<TPixel> targetPixels;
+        private readonly Buffer2D<TPixel> sourcePixels;
+        private readonly Buffer2DRegion<Vector4> targetValues;
+        private readonly Buffer2DRegion<Vector4> outputValues;
         private readonly Configuration configuration;
         private readonly float gamma;
         private readonly int componentBitDepth;
@@ -289,97 +214,59 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         /// Initializes a new instance of the <see cref="ApplyGammaExposureRowOperation"/> struct.
         /// </summary>
         /// <param name="bounds">The processed rectangle.</param>
-        /// <param name="targetPixels">The pixels containing the expanded samples.</param>
+        /// <param name="sourcePixels">The original pixels, which remain unchanged until the final output conversion.</param>
+        /// <param name="targetValues">The input plane for associated, gamma-expanded colors.</param>
+        /// <param name="outputValues">The separate output plane to clear before accumulating convolution results.</param>
         /// <param name="configuration">The pixel conversion configuration.</param>
         /// <param name="gamma">The expansion exponent.</param>
+        /// <param name="componentBitDepth">The source component precision.</param>
+        /// <param name="colorRange">The source and result color range.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public ApplyGammaExposureRowOperation(
             Rectangle bounds,
-            Buffer2D<TPixel> targetPixels,
+            Buffer2D<TPixel> sourcePixels,
+            Buffer2DRegion<Vector4> targetValues,
+            Buffer2DRegion<Vector4> outputValues,
             Configuration configuration,
-            float gamma)
+            float gamma,
+            int componentBitDepth,
+            PixelColorRange colorRange)
         {
             this.bounds = bounds;
-            this.targetPixels = targetPixels;
+            this.sourcePixels = sourcePixels;
+            this.targetValues = targetValues;
+            this.outputValues = outputValues;
             this.configuration = configuration;
             this.gamma = gamma;
-
-            // Resolve the pixel precision once before row traversal. Unknown precision keeps analytic conversion.
-            PixelTypeInfo pixelInfo = TPixel.GetPixelTypeInfo();
-            this.componentBitDepth = pixelInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
-            this.colorRange = pixelInfo.ColorRange;
+            this.componentBitDepth = componentBitDepth;
+            this.colorRange = colorRange;
         }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public int GetRequiredBufferLength(Rectangle bounds)
-            => bounds.Width;
-
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void Invoke(int y, Span<Vector4> span)
+        public void Invoke(int y)
         {
-            Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
-            PixelOperations<TPixel>.Instance.ToAssociatedScaledVector4(this.configuration, targetRowSpan[..span.Length], span);
+            ReadOnlySpan<TPixel> sourceRow = this.sourcePixels.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
+            Span<Vector4> targetRow = this.targetValues.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
 
-            // Only eight-bit SDR input uses tables. Extended values and higher precision use analytic gamma conversion.
-            GammaCompanding.Expand(span[..this.bounds.Width], this.gamma, this.componentBitDepth, this.colorRange);
+            // Associate before gamma, then retain the float result for every kernel component.
+            // The shared compander selects the curve path and bounds RGB while retaining alpha.
+            PixelOperations<TPixel>.Instance.ToAssociatedScaledVector4(this.configuration, sourceRow, targetRow);
+            GammaCompanding.Expand(targetRow, this.gamma, this.componentBitDepth, this.colorRange);
 
-            // The first convolution pass consumes these values as raw premultiplied numerics. Preserve them in the
-            // native TPixel representation instead of quantizing through an alpha-association conversion.
-            PixelOperations<TPixel>.Instance.FromScaledVector4Destructive(this.configuration, span, targetRowSpan);
+            // Clear only output pixels that the vertical passes will accumulate. The input plane remains untouched.
+            this.outputValues.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width).Clear();
         }
     }
 
     /// <summary>
-    /// A <see langword="struct"/> implementing the 3F gamma exposure logic for <see cref="BokehBlurProcessor{T}"/>.
-    /// </summary>
-    private readonly struct ApplyGamma3ExposureRowOperation : IRowOperation<Vector4>
-    {
-        private readonly Rectangle bounds;
-        private readonly Buffer2D<TPixel> targetPixels;
-        private readonly Configuration configuration;
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public ApplyGamma3ExposureRowOperation(
-            Rectangle bounds,
-            Buffer2D<TPixel> targetPixels,
-            Configuration configuration)
-        {
-            this.bounds = bounds;
-            this.targetPixels = targetPixels;
-            this.configuration = configuration;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public int GetRequiredBufferLength(Rectangle bounds)
-            => bounds.Width;
-
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void Invoke(int y, Span<Vector4> span)
-        {
-            Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
-
-            PixelOperations<TPixel>.Instance.ToAssociatedScaledVector4(this.configuration, targetRowSpan[..span.Length], span);
-
-            Numerics.CubePowOnXYZ(span);
-
-            // The first convolution pass consumes these values as raw premultiplied numerics. Preserve them in the
-            // native TPixel representation instead of quantizing through an alpha-association conversion.
-            PixelOperations<TPixel>.Instance.FromScaledVector4Destructive(this.configuration, span, targetRowSpan);
-        }
-    }
-
-    /// <summary>
-    /// A <see langword="struct"/> implementing the inverse gamma exposure logic for <see cref="BokehBlurProcessor{T}"/>.
+    /// Applies inverse gamma to the accumulated float output and converts it to the destination pixel format.
     /// </summary>
     private readonly struct ApplyInverseGammaExposureRowOperation : IRowOperation
     {
         private readonly Rectangle bounds;
         private readonly Buffer2D<TPixel> targetPixels;
-        private readonly Buffer2D<Vector4> sourceValues;
+        private readonly Buffer2DRegion<Vector4> sourceValues;
         private readonly Configuration configuration;
         private readonly float gamma;
         private readonly int componentBitDepth;
@@ -390,78 +277,39 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         /// </summary>
         /// <param name="bounds">The processed rectangle.</param>
         /// <param name="targetPixels">The destination pixels.</param>
-        /// <param name="sourceValues">The convolved floating-point samples.</param>
+        /// <param name="sourceValues">The accumulated float output plane.</param>
         /// <param name="configuration">The pixel conversion configuration.</param>
         /// <param name="gamma">The gamma value whose inverse compresses the samples.</param>
+        /// <param name="componentBitDepth">The source component precision.</param>
+        /// <param name="colorRange">The source and result color range.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public ApplyInverseGammaExposureRowOperation(
             Rectangle bounds,
             Buffer2D<TPixel> targetPixels,
-            Buffer2D<Vector4> sourceValues,
+            Buffer2DRegion<Vector4> sourceValues,
             Configuration configuration,
-            float gamma)
+            float gamma,
+            int componentBitDepth,
+            PixelColorRange colorRange)
         {
             this.bounds = bounds;
             this.targetPixels = targetPixels;
             this.sourceValues = sourceValues;
             this.configuration = configuration;
             this.gamma = gamma;
-
-            // Resolve the pixel precision once before row traversal. Unknown precision keeps analytic conversion.
-            PixelTypeInfo pixelInfo = TPixel.GetPixelTypeInfo();
-            this.componentBitDepth = pixelInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
-            this.colorRange = pixelInfo.ColorRange;
+            this.componentBitDepth = componentBitDepth;
+            this.colorRange = colorRange;
         }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void Invoke(int y)
         {
-            Span<TPixel> targetPixelSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
-            Span<Vector4> sourceRowSpan = this.sourceValues.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
+            Span<TPixel> targetRow = this.targetPixels.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
+            Span<Vector4> sourceRow = this.sourceValues.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
 
-            ColorNumerics.ClampToFinite(MemoryMarshal.Cast<Vector4, float>(sourceRowSpan), 0, 1F);
-            GammaCompanding.Compress(sourceRowSpan, this.gamma, this.componentBitDepth, this.colorRange);
-
-            PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, sourceRowSpan, targetPixelSpan);
-        }
-    }
-
-    /// <summary>
-    /// A <see langword="struct"/> implementing the inverse 3F gamma exposure logic for <see cref="BokehBlurProcessor{T}"/>.
-    /// </summary>
-    private readonly struct ApplyInverseGamma3ExposureRowOperation : IRowOperation
-    {
-        private readonly Rectangle bounds;
-        private readonly Buffer2D<TPixel> targetPixels;
-        private readonly Buffer2D<Vector4> sourceValues;
-        private readonly Configuration configuration;
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public ApplyInverseGamma3ExposureRowOperation(
-            Rectangle bounds,
-            Buffer2D<TPixel> targetPixels,
-            Buffer2D<Vector4> sourceValues,
-            Configuration configuration)
-        {
-            this.bounds = bounds;
-            this.targetPixels = targetPixels;
-            this.sourceValues = sourceValues;
-            this.configuration = configuration;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void Invoke(int y)
-        {
-            Span<Vector4> sourceRowSpan = this.sourceValues.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
-
-            ColorNumerics.ClampToFinite(MemoryMarshal.Cast<Vector4, float>(sourceRowSpan), 0, 1F);
-            Numerics.CubeRootOnXYZ(sourceRowSpan);
-
-            Span<TPixel> targetPixelSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
-
-            PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, sourceRowSpan, targetPixelSpan);
+            GammaCompanding.Compress(sourceRow, this.gamma, this.componentBitDepth, this.colorRange);
+            PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, sourceRow, targetRow);
         }
     }
 }

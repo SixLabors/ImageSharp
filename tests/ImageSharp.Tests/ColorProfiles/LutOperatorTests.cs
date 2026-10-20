@@ -2,17 +2,17 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Tests.TestDataIcc.Conversion;
 using SixLabors.ImageSharp.Tests.TestUtilities;
-using static SixLabors.ImageSharp.ColorProfiles.Icc.IccColorConverter;
 
-namespace SixLabors.ImageSharp.Tests.ColorProfiles.Icc.Operators;
+namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 
 /// <summary>
-/// Tests ICC <see cref="LutOperator"/>
+/// Tests shared sampled-curve interpolation.
 /// </summary>
 [Trait("Color", "Conversion")]
-public class IccLutOperatorTests
+public class LutOperatorTests
 {
     /// <summary>
     /// Checks homogeneous first-sample lookups with each supported SIMD width and scalar conversion.
@@ -118,12 +118,15 @@ public class IccLutOperatorTests
 
     [Theory]
     [MemberData(nameof(IccConversionDataLut.LutConversionTestData), MemberType = typeof(IccConversionDataLut))]
-    internal void IccLutOperator_WithLut_ReturnsResult(float[] lut, bool inverted, float input, float expected)
+    internal void LutOperator_WithLut_ReturnsResult(float[] lut, bool inverted, float input, float expected)
     {
         LutOperator calculator = new(lut, inverted);
 
         float result = calculator.Convert(input);
 
         Assert.Equal(expected, result, 4f);
+
+        // The shared unary contract follows the configured direction, including inverse lookup.
+        Assert.Equal(expected, calculator.Invoke(input), 4f);
     }
 }

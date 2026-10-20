@@ -33,6 +33,7 @@ internal static partial class TensorPrimitives_
             this.Kind = exponent == 0F ? PowerKind.Zero
                 : exponent == 1F ? PowerKind.Identity
                 : exponent == 2F ? PowerKind.Square
+                : exponent == 3F ? PowerKind.Cube
                 : !float.IsFinite(exponent) ? PowerKind.NonFinite
                 : PowerKind.Finite;
 
@@ -61,6 +62,11 @@ internal static partial class TensorPrimitives_
             /// Squaring uses one multiplication instead of logarithm and exponential approximations.
             /// </summary>
             Square,
+
+            /// <summary>
+            /// Cubing uses two multiplications instead of logarithm and exponential approximations.
+            /// </summary>
+            Cube,
 
             /// <summary>
             /// Nonfinite exponents use IEEE comparisons without evaluating a logarithm.
@@ -104,6 +110,8 @@ internal static partial class TensorPrimitives_
                     return value;
                 case PowerKind.Square:
                     return value * value;
+                case PowerKind.Cube:
+                    return value * value * value;
                 case PowerKind.NonFinite:
                     return MathF.Pow(value, this.Exponent);
             }
@@ -195,6 +203,8 @@ internal static partial class TensorPrimitives_
                     return value;
                 case PowerKind.Square:
                     return value * value;
+                case PowerKind.Cube:
+                    return value * value * value;
             }
 
             if (this.Kind == PowerKind.NonFinite)
@@ -243,6 +253,8 @@ internal static partial class TensorPrimitives_
                     return value;
                 case PowerKind.Square:
                     return value * value;
+                case PowerKind.Cube:
+                    return value * value * value;
             }
 
             if (this.Kind == PowerKind.NonFinite)
@@ -291,6 +303,8 @@ internal static partial class TensorPrimitives_
                     return value;
                 case PowerKind.Square:
                     return value * value;
+                case PowerKind.Cube:
+                    return value * value * value;
             }
 
             if (this.Kind == PowerKind.NonFinite)

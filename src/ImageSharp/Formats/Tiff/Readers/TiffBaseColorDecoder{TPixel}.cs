@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Readers;
 /// The base class for photometric interpretation decoders.
 /// </summary>
 /// <typeparam name="TPixel">The pixel format.</typeparam>
-internal abstract class TiffBaseColorDecoder<TPixel>
+internal abstract class TiffBaseColorDecoder<TPixel> : TiffBaseColorDecoder
     where TPixel : unmanaged, IPixel<TPixel>
 {
     /// <summary>

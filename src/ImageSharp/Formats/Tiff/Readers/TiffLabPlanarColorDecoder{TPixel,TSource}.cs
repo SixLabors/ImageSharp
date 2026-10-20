@@ -58,9 +58,9 @@ internal class TiffLabPlanarColorDecoder<TPixel, TSource> : TiffBasePlanarColorD
         ReadOnlySpan<byte> chromaA = data[1].GetSpan();
         ReadOnlySpan<byte> chromaB = data[2].GetSpan();
 
-        // The converter consumes the complete Lab row before writing RGB into the same three-float storage.
-        using IMemoryOwner<Rgb> rgbBuffer = this.converter.Options.MemoryAllocator.Allocate<Rgb>(width);
-        Span<Rgb> rgbRow = rgbBuffer.Memory.Span[..width];
+        // Lab and RGB each use three floats per pixel. The converter reads each block before overwriting it,
+        // so both views can share this row.
+        Span<Rgb> rgbRow = this.GetRgbBuffer(this.converter.Options.MemoryAllocator, width);
         Span<CieLab> labRow = MemoryMarshal.Cast<Rgb, CieLab>(rgbRow);
         InlineArray16<Vector4> vectorBuffer = default;
         Span<Vector4> vectors = vectorBuffer;

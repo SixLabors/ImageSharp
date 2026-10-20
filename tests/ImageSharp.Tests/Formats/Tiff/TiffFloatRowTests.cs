@@ -318,7 +318,7 @@ public class TiffFloatRowTests
                 Assert.Equal(GetExpectedFiniteColorBits(quads[(i * 4) + 1]), BitConverter.SingleToInt32Bits(actual.G));
                 Assert.Equal(GetExpectedFiniteColorBits(quads[(i * 4) + 2]), BitConverter.SingleToInt32Bits(actual.B));
 
-                // Alpha represents opacity even in a floating-point destination; RGB retains the wider finite range.
+                // Alpha represents opacity in [0,1]; RGB uses the finite color range [-65504,65504].
                 float alpha = quads[(i * 4) + 3];
                 float expectedAlpha = float.IsNaN(alpha) ? 0F : Math.Clamp(alpha, 0F, 1F);
                 Assert.Equal(BitConverter.SingleToInt32Bits(expectedAlpha), BitConverter.SingleToInt32Bits(actual.A));
@@ -343,12 +343,12 @@ public class TiffFloatRowTests
     }
 
     /// <summary>
-    /// Applies the finite binary32 color contract independently of pixel packing and retains in-range component bits.
+    /// Applies the finite color range [-65504,65504] independently of pixel packing and retains in-range component bits.
     /// </summary>
     /// <param name="value">The stored TIFF sample.</param>
     /// <returns>The expected bits after NaN and infinity use finite color bounds.</returns>
     private static int GetExpectedFiniteColorBits(float value)
-        => BitConverter.SingleToInt32Bits(float.IsNaN(value) ? float.MinValue : Math.Clamp(value, float.MinValue, float.MaxValue));
+        => BitConverter.SingleToInt32Bits(float.IsNaN(value) ? -65504F : Math.Clamp(value, -65504F, 65504F));
 
     [Theory]
     [MemberData(nameof(SimdUtilsTests.ArbitraryArraySizes), MemberType = typeof(SimdUtilsTests))]

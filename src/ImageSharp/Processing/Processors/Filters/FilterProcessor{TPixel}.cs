@@ -42,7 +42,7 @@ internal class FilterProcessor<TPixel> : ImageProcessor<TPixel>
     }
 
     /// <summary>
-    /// A <see langword="struct"/> implementing the convolution logic for <see cref="FilterProcessor{TPixel}"/>.
+    /// Applies the color matrix to straight source colors and packs each output row.
     /// </summary>
     private readonly struct RowOperation : IRowOperation<Vector4>
     {

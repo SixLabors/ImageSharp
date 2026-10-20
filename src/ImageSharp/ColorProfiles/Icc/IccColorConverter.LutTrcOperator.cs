@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.ColorProfiles.Icc;
@@ -30,6 +31,16 @@ internal static partial class IccColorConverter
             if (entries.Length > 4)
             {
                 throw new InvalidIccProfileException("ICC conversion supports at most four channel tables.");
+            }
+
+            // Validate profile tables before shared interpolation can read a neighboring sample.
+            // Curve tags with zero or one entry use identity or gamma conversion instead of this sampled-table path.
+            foreach (IccLut entry in entries)
+            {
+                if (entry.Values.Length < 2)
+                {
+                    throw new InvalidIccProfileException("Sampled ICC tables require at least two entries.");
+                }
             }
 
             // Legacy tag constructors require at least one table. Each table is a forward lookup;

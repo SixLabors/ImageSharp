@@ -147,13 +147,16 @@ internal static class Vector512_
         Vector512<float> positive = Vector512.ConditionalSelect(zero, Vector512<float>.One, value);
         Vector512<uint> small = Vector512.LessThan(positive.AsUInt32(), Vector512.Create(SmallestNormalBits));
         bool hasSmall = small != Vector512<uint>.Zero;
+
+        // Multiplication by 2^24 makes positive subnormal inputs normal. Subtract 24 from their logarithms below.
         Vector512<float> normalized = positive;
         if (hasSmall)
         {
             normalized = Vector512.ConditionalSelect(small.AsSingle(), positive * Vector512.Create(SubnormalScale), positive);
         }
 
-        // The float encoding supplies the exponent. The rational term approximates the mantissa's logarithm.
+        // Keep the 23 mantissa bits and set exponent 126 to put the mantissa in [0.5,1).
+        // Combine the encoded exponent and the rational mantissa correction to approximate log2.
         Vector512<int> bits = normalized.AsInt32();
         Vector512<float> mantissa = ((bits & Vector512.Create(0x007FFFFF)) | Vector512.Create(0x3F000000)).AsSingle();
         Vector512<float> logarithm = (Vector512.ConvertToSingle(bits) * Vector512.Create(ExponentScale)) - Vector512.Create(Offset);

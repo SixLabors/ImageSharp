@@ -238,11 +238,14 @@ public class TiffPlanarAndFloatColorConversion
     }
 
     /// <summary>
-    /// Releases the encoded component planes and destination.
+    /// Releases the readers' conversion rows, encoded component planes, and destination.
     /// </summary>
     [GlobalCleanup]
     public void Cleanup()
     {
+        this.packedDecoder?.Dispose();
+        this.planarDecoder?.Dispose();
+
         foreach (IMemoryOwner<byte> plane in this.planes)
         {
             plane.Dispose();

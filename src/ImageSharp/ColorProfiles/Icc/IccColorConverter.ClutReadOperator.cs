@@ -80,6 +80,9 @@ internal static partial class IccColorConverter
             this.data = data;
             this.count = count;
             this.stride = count * sizeof(byte);
+
+            // Byte order determines which end of the loaded word contains the first component.
+            // Skip the leading padding; subsequent components move by one sample in that byte order.
             this.firstShift = BitConverter.IsLittleEndian ? padding * 8 : 32 - ((padding + sizeof(byte)) * 8);
         }
 
@@ -172,6 +175,9 @@ internal static partial class IccColorConverter
             this.data = data;
             this.count = count;
             this.stride = count * sizeof(ushort);
+
+            // Byte order determines which end of the loaded word contains the first component.
+            // Skip the leading padding; subsequent components move by one sample in that byte order.
             this.firstShift = BitConverter.IsLittleEndian ? padding * 8 : 64 - ((padding + sizeof(ushort)) * 8);
             this.padding = padding;
         }

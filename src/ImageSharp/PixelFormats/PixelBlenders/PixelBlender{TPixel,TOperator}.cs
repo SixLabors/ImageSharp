@@ -239,10 +239,10 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
 
         for (int i = scalarStart; i < destination.Length; i++)
         {
-                    Unsafe.Add(ref destinationRef, (uint)i) = TOperator.Invoke(
-                        Unsafe.Add(ref backgroundRef, (uint)i),
-                        Unsafe.Add(ref sourceRef, (uint)i),
-                        ColorNumerics.ClampToFinite(Unsafe.Add(ref amountRef, (uint)i), 0, 1F));
+            Unsafe.Add(ref destinationRef, (uint)i) = TOperator.Invoke(
+                Unsafe.Add(ref backgroundRef, (uint)i),
+                Unsafe.Add(ref sourceRef, (uint)i),
+                ColorNumerics.ClampToFinite(Unsafe.Add(ref amountRef, (uint)i), 0, 1F));
         }
     }
 
@@ -293,10 +293,10 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
 
         for (int i = scalarStart; i < destination.Length; i++)
         {
-                    Unsafe.Add(ref destinationRef, (uint)i) = TOperator.Invoke(
-                        Unsafe.Add(ref backgroundRef, (uint)i),
-                        source,
-                        ColorNumerics.ClampToFinite(Unsafe.Add(ref amountRef, (uint)i), 0, 1F));
+            Unsafe.Add(ref destinationRef, (uint)i) = TOperator.Invoke(
+                Unsafe.Add(ref backgroundRef, (uint)i),
+                source,
+                ColorNumerics.ClampToFinite(Unsafe.Add(ref amountRef, (uint)i), 0, 1F));
         }
     }
 
@@ -610,8 +610,8 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     {
         Vector256<float> result = Vector256.Create(Vector128.Create(values), Vector128.Create(Unsafe.Add(ref values, 1)));
 
-        // Amount and coverage share the same public 0..1 contract and therefore the same packed clamp.
-        return Vector256.Min(Vector256.Max(Vector256<float>.Zero, result), Vector256.Create(1F));
+        // Use the scalar tail's rule: NaN becomes zero, and infinities become the corresponding opacity endpoints.
+        return ColorNumerics.ClampToFinite(result, Vector256<float>.Zero, Vector256<float>.One);
     }
 
     /// <summary>
@@ -624,7 +624,7 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     {
         Vector512<float> result = Vector512.Create(values, values, values, values, Unsafe.Add(ref values, 1), Unsafe.Add(ref values, 1), Unsafe.Add(ref values, 1), Unsafe.Add(ref values, 1), Unsafe.Add(ref values, 2), Unsafe.Add(ref values, 2), Unsafe.Add(ref values, 2), Unsafe.Add(ref values, 2), Unsafe.Add(ref values, 3), Unsafe.Add(ref values, 3), Unsafe.Add(ref values, 3), Unsafe.Add(ref values, 3));
 
-        // Amount and coverage share the same public 0..1 contract and therefore the same packed clamp.
-        return Vector512.Min(Vector512.Max(Vector512<float>.Zero, result), Vector512.Create(1F));
+        // Use the scalar tail's rule: NaN becomes zero, and infinities become the corresponding opacity endpoints.
+        return ColorNumerics.ClampToFinite(result, Vector512<float>.Zero, Vector512<float>.One);
     }
 }

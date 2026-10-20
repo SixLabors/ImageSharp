@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
-using static SixLabors.ImageSharp.ColorProfiles.Companding.CompandingVectorOperations;
 
 namespace SixLabors.ImageSharp.ColorProfiles.Companding;
 
@@ -58,38 +57,58 @@ public static partial class SRgbCompanding
             return MathF.CopySign(result, value);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Evaluates one magnitude curve and restores the sign of each input component.
+        /// </summary>
+        /// <param name="value">Independent signed RGB components.</param>
+        /// <returns>The converted components without clipping.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector128<float> Invoke(Vector128<float> value) => this.Invoke<Vector128<float>, Vector128Operations>(value);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector256<float> Invoke(Vector256<float> value) => this.Invoke<Vector256<float>, Vector256Operations>(value);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector512<float> Invoke(Vector512<float> value) => this.Invoke<Vector512<float>, Vector512Operations>(value);
+        public Vector128<float> Invoke(Vector128<float> value)
+        {
+            // The extended curve is symmetric about zero. One power evaluation serves both signs.
+            // Each lane is independent, so a negative neighbor cannot change another lane's result.
+            Vector128<float> magnitude = Vector128.Abs(value);
+            Vector128<float> linear = Vector128.Divide(magnitude, Vector128.Create(LinearSlope));
+            Vector128<float> basis = Vector128.Divide(Vector128.Add(magnitude, Vector128.Create(this.offset)), Vector128.Create(this.scale));
+            Vector128<float> nonlinear = Vector128_.Pow(basis, Exponent);
+            Vector128<float> result = Vector128.ConditionalSelect(Vector128.LessThanOrEqual(magnitude, Vector128.Create(this.threshold)), linear, nonlinear);
+            return Vector128.CopySign(result, value);
+        }
 
         /// <summary>
         /// Evaluates one magnitude curve and restores the sign of each input component.
         /// </summary>
-        /// <typeparam name="TVector">The register type.</typeparam>
-        /// <typeparam name="TOperations">The register operations selected by the caller.</typeparam>
         /// <param name="value">Independent signed RGB components.</param>
         /// <returns>The converted components without clipping.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TVector Invoke<TVector, TOperations>(TVector value)
-            where TVector : struct
-            where TOperations : struct, ITransferVectorOperations<TVector>
+        public Vector256<float> Invoke(Vector256<float> value)
         {
             // The extended curve is symmetric about zero. One power evaluation serves both signs.
             // Each lane is independent, so a negative neighbor cannot change another lane's result.
-            TVector magnitude = TOperations.Abs(value);
-            TVector linear = TOperations.Divide(magnitude, TOperations.Create(LinearSlope));
-            TVector basis = TOperations.Divide(TOperations.Add(magnitude, TOperations.Create(this.offset)), TOperations.Create(this.scale));
-            TVector nonlinear = TOperations.Pow(basis, Exponent);
-            TVector result = TOperations.ConditionalSelect(TOperations.LessThanOrEqual(magnitude, TOperations.Create(this.threshold)), linear, nonlinear);
-            return TOperations.CopySign(result, value);
+            Vector256<float> magnitude = Vector256.Abs(value);
+            Vector256<float> linear = Vector256.Divide(magnitude, Vector256.Create(LinearSlope));
+            Vector256<float> basis = Vector256.Divide(Vector256.Add(magnitude, Vector256.Create(this.offset)), Vector256.Create(this.scale));
+            Vector256<float> nonlinear = Vector256_.Pow(basis, Exponent);
+            Vector256<float> result = Vector256.ConditionalSelect(Vector256.LessThanOrEqual(magnitude, Vector256.Create(this.threshold)), linear, nonlinear);
+            return Vector256.CopySign(result, value);
+        }
+
+        /// <summary>
+        /// Evaluates one magnitude curve and restores the sign of each input component.
+        /// </summary>
+        /// <param name="value">Independent signed RGB components.</param>
+        /// <returns>The converted components without clipping.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+        {
+            // The extended curve is symmetric about zero. One power evaluation serves both signs.
+            // Each lane is independent, so a negative neighbor cannot change another lane's result.
+            Vector512<float> magnitude = Vector512.Abs(value);
+            Vector512<float> linear = Vector512.Divide(magnitude, Vector512.Create(LinearSlope));
+            Vector512<float> basis = Vector512.Divide(Vector512.Add(magnitude, Vector512.Create(this.offset)), Vector512.Create(this.scale));
+            Vector512<float> nonlinear = Vector512_.Pow(basis, Exponent);
+            Vector512<float> result = Vector512.ConditionalSelect(Vector512.LessThanOrEqual(magnitude, Vector512.Create(this.threshold)), linear, nonlinear);
+            return Vector512.CopySign(result, value);
         }
     }
 
@@ -127,38 +146,58 @@ public static partial class SRgbCompanding
             return MathF.CopySign(result, value);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Evaluates one magnitude curve and restores the sign of each input component.
+        /// </summary>
+        /// <param name="value">Independent signed RGB components.</param>
+        /// <returns>The converted components without clipping.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector128<float> Invoke(Vector128<float> value) => this.Invoke<Vector128<float>, Vector128Operations>(value);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector256<float> Invoke(Vector256<float> value) => this.Invoke<Vector256<float>, Vector256Operations>(value);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector512<float> Invoke(Vector512<float> value) => this.Invoke<Vector512<float>, Vector512Operations>(value);
+        public Vector128<float> Invoke(Vector128<float> value)
+        {
+            // The extended curve is symmetric about zero. One power evaluation serves both signs.
+            // Each lane is independent, so a negative neighbor cannot change another lane's result.
+            Vector128<float> magnitude = Vector128.Abs(value);
+            Vector128<float> linear = Vector128.Multiply(magnitude, Vector128.Create(LinearSlope));
+            Vector128<float> power = Vector128_.Pow(magnitude, 1F / Exponent);
+            Vector128<float> nonlinear = Vector128.Subtract(Vector128.Multiply(Vector128.Create(this.scale), power), Vector128.Create(this.offset));
+            Vector128<float> result = Vector128.ConditionalSelect(Vector128.LessThanOrEqual(magnitude, Vector128.Create(this.threshold)), linear, nonlinear);
+            return Vector128.CopySign(result, value);
+        }
 
         /// <summary>
         /// Evaluates one magnitude curve and restores the sign of each input component.
         /// </summary>
-        /// <typeparam name="TVector">The register type.</typeparam>
-        /// <typeparam name="TOperations">The register operations selected by the caller.</typeparam>
         /// <param name="value">Independent signed RGB components.</param>
         /// <returns>The converted components without clipping.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TVector Invoke<TVector, TOperations>(TVector value)
-            where TVector : struct
-            where TOperations : struct, ITransferVectorOperations<TVector>
+        public Vector256<float> Invoke(Vector256<float> value)
         {
             // The extended curve is symmetric about zero. One power evaluation serves both signs.
             // Each lane is independent, so a negative neighbor cannot change another lane's result.
-            TVector magnitude = TOperations.Abs(value);
-            TVector linear = TOperations.Multiply(magnitude, TOperations.Create(LinearSlope));
-            TVector power = TOperations.Pow(magnitude, 1F / Exponent);
-            TVector nonlinear = TOperations.Subtract(TOperations.Multiply(TOperations.Create(this.scale), power), TOperations.Create(this.offset));
-            TVector result = TOperations.ConditionalSelect(TOperations.LessThanOrEqual(magnitude, TOperations.Create(this.threshold)), linear, nonlinear);
-            return TOperations.CopySign(result, value);
+            Vector256<float> magnitude = Vector256.Abs(value);
+            Vector256<float> linear = Vector256.Multiply(magnitude, Vector256.Create(LinearSlope));
+            Vector256<float> power = Vector256_.Pow(magnitude, 1F / Exponent);
+            Vector256<float> nonlinear = Vector256.Subtract(Vector256.Multiply(Vector256.Create(this.scale), power), Vector256.Create(this.offset));
+            Vector256<float> result = Vector256.ConditionalSelect(Vector256.LessThanOrEqual(magnitude, Vector256.Create(this.threshold)), linear, nonlinear);
+            return Vector256.CopySign(result, value);
+        }
+
+        /// <summary>
+        /// Evaluates one magnitude curve and restores the sign of each input component.
+        /// </summary>
+        /// <param name="value">Independent signed RGB components.</param>
+        /// <returns>The converted components without clipping.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+        {
+            // The extended curve is symmetric about zero. One power evaluation serves both signs.
+            // Each lane is independent, so a negative neighbor cannot change another lane's result.
+            Vector512<float> magnitude = Vector512.Abs(value);
+            Vector512<float> linear = Vector512.Multiply(magnitude, Vector512.Create(LinearSlope));
+            Vector512<float> power = Vector512_.Pow(magnitude, 1F / Exponent);
+            Vector512<float> nonlinear = Vector512.Subtract(Vector512.Multiply(Vector512.Create(this.scale), power), Vector512.Create(this.offset));
+            Vector512<float> result = Vector512.ConditionalSelect(Vector512.LessThanOrEqual(magnitude, Vector512.Create(this.threshold)), linear, nonlinear);
+            return Vector512.CopySign(result, value);
         }
     }
 }

@@ -6,14 +6,20 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.ColorProfiles.Companding;
 
 /// <summary>
 /// Companding utilities that allow the accelerated compression-expansion of color channels.
 /// </summary>
+/// <remarks>
+/// Inputs use normalized color component units. SDR components use [0,1]; extended components use [-65504,65504].
+/// The supplied transfer curve determines whether input components are linear or nonlinear.
+/// Vector4 APIs transform RGB in X, Y, Z and retain alpha in W. Component APIs transform every SIMD lane.
+/// </remarks>
 public static class CompandingUtilities
 {
     private const int Length = Scale + 2; // 256kb @ 16bit precision.
@@ -62,7 +68,10 @@ public static class CompandingUtilities
         {
             double d = (double)i / Scale;
             d = compandingFunction(d, modifier);
-            result[i] = (float)d;
+
+            // These tables serve SDR colors. Bound each sample before interpolation so invalid samples
+            // cannot create NaNs between table entries, including at an exact endpoint.
+            result[i] = Compand((float)d, default(Vector4Converters.IdentityOperator), PixelColorRange.Sdr);
         }
 
         return result;
@@ -74,16 +83,22 @@ public static class CompandingUtilities
     /// <remarks>
     /// This traversal treats each vector as RGBA. The component operator has no knowledge of that layout.
     /// Alpha remains unchanged because transfer curves apply to RGB, not opacity.
+    /// Results use the requested color range. NaN maps to its lower bound; infinities map to the corresponding bounds.
     /// </remarks>
     /// <typeparam name="TOperator">The companding operation.</typeparam>
-    /// <param name="values">The colors to transform.</param>
+    /// <param name="values">The normalized RGB colors to transform. Each vector stores RGB in X, Y, Z and alpha in W.</param>
     /// <param name="operation">The configured transfer curve.</param>
-    internal static void Compand<TOperator>(Span<Vector4> values, TOperator operation)
+    /// <param name="colorRange">SDR bounds RGB to [0,1]. Extended RGB uses the shared finite color range.</param>
+    internal static void Compand<TOperator>(Span<Vector4> values, TOperator operation, PixelColorRange colorRange)
         where TOperator : struct, TensorPrimitives_.IUnaryOperator
     {
         Span<float> components = MemoryMarshal.Cast<Vector4, float>(values);
         ref float first = ref MemoryMarshal.GetReference(components);
         int i = 0;
+
+        // The curve can overflow even when its input is bounded. Limit its result before any caller consumes it.
+        // Bounds are selected once per span; alpha is restored after clamping the independent component lanes.
+        BoundedOperator<TOperator> bounded = new(operation, colorRange);
 
         if (Vector512.IsHardwareAccelerated)
         {
@@ -94,7 +109,8 @@ public static class CompandingUtilities
             for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
             {
                 Vector512<float> input = Vector512.LoadUnsafe(ref first, (uint)i);
-                Vector512.ConditionalSelect(alphaMask, input, operation.Invoke(input)).StoreUnsafe(ref first, (uint)i);
+                Vector512<float> result = bounded.Invoke(input);
+                Vector512.ConditionalSelect(alphaMask, input, result).StoreUnsafe(ref first, (uint)i);
             }
         }
 
@@ -107,7 +123,8 @@ public static class CompandingUtilities
             for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
             {
                 Vector256<float> input = Vector256.LoadUnsafe(ref first, (uint)i);
-                Vector256.ConditionalSelect(alphaMask, input, operation.Invoke(input)).StoreUnsafe(ref first, (uint)i);
+                Vector256<float> result = bounded.Invoke(input);
+                Vector256.ConditionalSelect(alphaMask, input, result).StoreUnsafe(ref first, (uint)i);
             }
         }
 
@@ -120,16 +137,17 @@ public static class CompandingUtilities
             for (nuint block = 0; block < count; block++, i += Vector128<float>.Count)
             {
                 Vector128<float> input = Vector128.LoadUnsafe(ref first, (uint)i);
-                Vector128.ConditionalSelect(alphaMask, input, operation.Invoke(input)).StoreUnsafe(ref first, (uint)i);
+                Vector128<float> result = bounded.Invoke(input);
+                Vector128.ConditionalSelect(alphaMask, input, result).StoreUnsafe(ref first, (uint)i);
             }
         }
 
         // Every SIMD width ends on a color boundary. The scalar fallback transforms RGB and leaves alpha in place.
         for (; i < components.Length; i += 4)
         {
-            Unsafe.Add(ref first, (uint)i) = operation.Invoke(Unsafe.Add(ref first, (uint)i));
-            Unsafe.Add(ref first, (uint)i + 1) = operation.Invoke(Unsafe.Add(ref first, (uint)i + 1));
-            Unsafe.Add(ref first, (uint)i + 2) = operation.Invoke(Unsafe.Add(ref first, (uint)i + 2));
+            Unsafe.Add(ref first, (uint)i) = bounded.Invoke(Unsafe.Add(ref first, (uint)i));
+            Unsafe.Add(ref first, (uint)i + 1) = bounded.Invoke(Unsafe.Add(ref first, (uint)i + 1));
+            Unsafe.Add(ref first, (uint)i + 2) = bounded.Invoke(Unsafe.Add(ref first, (uint)i + 2));
         }
     }
 
@@ -137,15 +155,18 @@ public static class CompandingUtilities
     /// Transforms RGB in one color and retains its alpha.
     /// </summary>
     /// <typeparam name="TOperator">The component operation.</typeparam>
-    /// <param name="value">The input color.</param>
+    /// <param name="value">The normalized RGB color. X, Y, Z contain RGB; W contains alpha.</param>
     /// <param name="operation">The configured operation.</param>
+    /// <param name="colorRange">SDR bounds RGB to [0,1]. Extended RGB uses the shared finite color range.</param>
     /// <returns>The transformed color with its original alpha.</returns>
-    internal static Vector4 Compand<TOperator>(Vector4 value, TOperator operation)
+    internal static Vector4 Compand<TOperator>(Vector4 value, TOperator operation, PixelColorRange colorRange)
         where TOperator : struct, TensorPrimitives_.IUnaryOperator
     {
+        BoundedOperator<TOperator> bounded = new(operation, colorRange);
+
         if (Vector128.IsHardwareAccelerated)
         {
-            Vector4 result = operation.Invoke(value.AsVector128()).AsVector4();
+            Vector4 result = bounded.Invoke(value.AsVector128()).AsVector4();
 
             // Restore alpha after the component operation. Transfer curves apply to RGB, not opacity.
             result.W = value.W;
@@ -153,128 +174,135 @@ public static class CompandingUtilities
         }
 
         return new Vector4(
-            operation.Invoke(value.X),
-            operation.Invoke(value.Y),
-            operation.Invoke(value.Z),
+            bounded.Invoke(value.X),
+            bounded.Invoke(value.Y),
+            bounded.Invoke(value.Z),
             value.W);
     }
 
     /// <summary>
+    /// Transforms one independent component and applies the requested result range.
+    /// </summary>
+    /// <typeparam name="TOperator">The component operation.</typeparam>
+    /// <param name="value">The normalized input component in the transfer curve's domain.</param>
+    /// <param name="operation">The configured transfer curve.</param>
+    /// <param name="colorRange">The range applied to the converted component.</param>
+    /// <returns>The finite component within the requested range.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static float Compand<TOperator>(float value, TOperator operation, PixelColorRange colorRange)
+        where TOperator : struct, TensorPrimitives_.IUnaryOperator
+        => new BoundedOperator<TOperator>(operation, colorRange).Invoke(value);
+
+    /// <summary>
+    /// Transforms independent 128-bit component lanes through the bounded companding operation.
+    /// </summary>
+    /// <typeparam name="TOperator">The component operation.</typeparam>
+    /// <param name="value">The normalized input components in the transfer curve's domain. Every lane is color data.</param>
+    /// <param name="operation">The configured transfer curve.</param>
+    /// <param name="colorRange">The range applied to every converted component.</param>
+    /// <returns>The finite components within the requested range.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Vector128<float> Compand<TOperator>(Vector128<float> value, TOperator operation, PixelColorRange colorRange)
+        where TOperator : struct, TensorPrimitives_.IUnaryOperator
+        => new BoundedOperator<TOperator>(operation, colorRange).Invoke(value);
+
+    /// <summary>
+    /// Transforms independent 256-bit component lanes through the bounded companding operation.
+    /// </summary>
+    /// <typeparam name="TOperator">The component operation.</typeparam>
+    /// <param name="value">The normalized input components in the transfer curve's domain. Every lane is color data.</param>
+    /// <param name="operation">The configured transfer curve.</param>
+    /// <param name="colorRange">The range applied to every converted component.</param>
+    /// <returns>The finite components within the requested range.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Vector256<float> Compand<TOperator>(Vector256<float> value, TOperator operation, PixelColorRange colorRange)
+        where TOperator : struct, TensorPrimitives_.IUnaryOperator
+        => new BoundedOperator<TOperator>(operation, colorRange).Invoke(value);
+
+    /// <summary>
+    /// Transforms independent 512-bit component lanes through the bounded companding operation.
+    /// </summary>
+    /// <typeparam name="TOperator">The component operation.</typeparam>
+    /// <param name="value">The normalized input components in the transfer curve's domain. Every lane is color data.</param>
+    /// <param name="operation">The configured transfer curve.</param>
+    /// <param name="colorRange">The range applied to every converted component.</param>
+    /// <returns>The finite components within the requested range.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Vector512<float> Compand<TOperator>(Vector512<float> value, TOperator operation, PixelColorRange colorRange)
+        where TOperator : struct, TensorPrimitives_.IUnaryOperator
+        => new BoundedOperator<TOperator>(operation, colorRange).Invoke(value);
+
+    /// <summary>
     /// Performs the companding operation on the given vectors using the given table.
     /// </summary>
-    /// <param name="vectors">The span of vectors.</param>
+    /// <param name="vectors">The normalized SDR colors with RGB in [0,1]. Alpha remains unchanged.</param>
     /// <param name="table">The lookup table.</param>
     public static void Compand(Span<Vector4> vectors, float[] table)
     {
         DebugGuard.MustBeGreaterThanOrEqualTo(table.Length, Length, nameof(table));
 
-        if (Avx2.IsSupported && vectors.Length >= 2)
-        {
-            CompandAvx2(vectors, table);
-
-            if (Numerics.Modulo2(vectors.Length) != 0)
-            {
-                // Vector4 fits neatly in pairs. Any overlap has to be equal to 1.
-                ref Vector4 last = ref MemoryMarshal.GetReference(vectors[^1..]);
-                last = Compand(last, table);
-            }
-        }
-        else
-        {
-            CompandScalar(vectors, table);
-        }
+        // Exclude the padding sample from the input coordinate range. Shared traversal retains alpha at every SIMD width.
+        Compand(vectors, new LutOperator(table, false, Scale + 1), PixelColorRange.Sdr);
     }
 
     /// <summary>
     /// Performs the companding operation on the given vector using the given table.
     /// </summary>
-    /// <param name="vector">The vector.</param>
+    /// <param name="vector">The normalized SDR color with RGB in [0,1]. Alpha remains unchanged.</param>
     /// <param name="table">The lookup table.</param>
     /// <returns>The <see cref="Vector4"/></returns>
     public static Vector4 Compand(Vector4 vector, float[] table)
     {
         DebugGuard.MustBeGreaterThanOrEqualTo(table.Length, Length, nameof(table));
 
-        Vector4 zero = Vector4.Zero;
-        Vector4 scale = new(Scale);
-
-        Vector4 multiplied = ColorNumerics.ClampToFinite(vector * Scale, zero, scale);
-
-        float f0 = multiplied.X;
-        float f1 = multiplied.Y;
-        float f2 = multiplied.Z;
-
-        uint i0 = (uint)f0;
-        uint i1 = (uint)f1;
-        uint i2 = (uint)f2;
-
-        // Alpha is already a linear representation of opacity so we do not want to convert it.
-        vector.X = Numerics.Lerp(table[i0], table[i0 + 1], f0 - (int)i0);
-        vector.Y = Numerics.Lerp(table[i1], table[i1 + 1], f1 - (int)i1);
-        vector.Z = Numerics.Lerp(table[i2], table[i2 + 1], f2 - (int)i2);
-
-        return vector;
+        // Match the span's logical table range and retain alpha through the same companding operation.
+        return Compand(vector, new LutOperator(table, false, Scale + 1), PixelColorRange.Sdr);
     }
 
-    private static unsafe void CompandAvx2(Span<Vector4> vectors, float[] table)
+    /// <summary>
+    /// Evaluates a transfer curve and enforces the result contract for every companding entry point.
+    /// </summary>
+    /// <typeparam name="TOperator">The curve arithmetic, independent of color range and pixel layout.</typeparam>
+    private readonly struct BoundedOperator<TOperator> : TensorPrimitives_.IUnaryOperator
+        where TOperator : struct, TensorPrimitives_.IUnaryOperator
     {
-        fixed (float* tablePointer = &MemoryMarshal.GetArrayDataReference(table))
+        private readonly TOperator operation;
+        private readonly float minimum;
+        private readonly float maximum;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BoundedOperator{TOperator}"/> struct.
+        /// </summary>
+        /// <param name="operation">The transfer curve.</param>
+        /// <param name="colorRange">The range applied after evaluating the curve.</param>
+        public BoundedOperator(TOperator operation, PixelColorRange colorRange)
         {
-            Vector256<float> scale = Vector256.Create((float)Scale);
-            Vector256<float> zero = Vector256<float>.Zero;
-            Vector256<int> offset = Vector256.Create(1);
+            this.operation = operation;
 
-            // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
-            ref Vector256<float> vectorsBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
-            ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (uint)vectors.Length / 2u);
-
-            while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
-            {
-                Vector256<float> multiplied = Avx.Multiply(scale, vectorsBase);
-                multiplied = Avx.Min(Avx.Max(zero, multiplied), scale);
-
-                Vector256<int> truncated = Avx.ConvertToVector256Int32WithTruncation(multiplied);
-                Vector256<float> truncatedF = Avx.ConvertToVector256Single(truncated);
-
-                Vector256<float> low = Avx2.GatherVector256(tablePointer, truncated, sizeof(float));
-                Vector256<float> high = Avx2.GatherVector256(tablePointer, Avx2.Add(truncated, offset), sizeof(float));
-
-                // Alpha is already a linear representation of opacity so we do not want to convert it.
-                Vector256<float> companded = Numerics.Lerp(low, high, Avx.Subtract(multiplied, truncatedF));
-                vectorsBase = Avx.Blend(companded, vectorsBase, Numerics.BlendAlphaControl);
-                vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
-            }
+            // Normalized color components use [0,1] for SDR and [-65504,65504] for extended RGB.
+            // Select these limits once per operation. ClampToFinite maps NaN and negative infinity to the lower limit,
+            // and positive infinity to the upper limit.
+            this.minimum = colorRange == PixelColorRange.Sdr ? 0F : ColorNumerics.MinColorValue;
+            this.maximum = colorRange == PixelColorRange.Sdr ? 1F : ColorNumerics.MaxColorValue;
         }
-    }
 
-    private static unsafe void CompandScalar(Span<Vector4> vectors, float[] table)
-    {
-        fixed (float* tablePointer = &MemoryMarshal.GetArrayDataReference(table))
-        {
-            Vector4 zero = Vector4.Zero;
-            Vector4 scale = new(Scale);
-            ref Vector4 vectorsBase = ref MemoryMarshal.GetReference(vectors);
-            ref Vector4 vectorsLast = ref Unsafe.Add(ref vectorsBase, (uint)vectors.Length);
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float value) => ColorNumerics.ClampToFinite(this.operation.Invoke(value), this.minimum, this.maximum);
 
-            while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
-            {
-                Vector4 multiplied = ColorNumerics.ClampToFinite(vectorsBase * Scale, zero, scale);
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> value)
+            => ColorNumerics.ClampToFinite(this.operation.Invoke(value), Vector128.Create(this.minimum), Vector128.Create(this.maximum));
 
-                float f0 = multiplied.X;
-                float f1 = multiplied.Y;
-                float f2 = multiplied.Z;
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> value)
+            => ColorNumerics.ClampToFinite(this.operation.Invoke(value), Vector256.Create(this.minimum), Vector256.Create(this.maximum));
 
-                uint i0 = (uint)f0;
-                uint i1 = (uint)f1;
-                uint i2 = (uint)f2;
-
-                // Alpha is already a linear representation of opacity so we do not want to convert it.
-                vectorsBase.X = Numerics.Lerp(tablePointer[i0], tablePointer[i0 + 1], f0 - (int)i0);
-                vectorsBase.Y = Numerics.Lerp(tablePointer[i1], tablePointer[i1 + 1], f1 - (int)i1);
-                vectorsBase.Z = Numerics.Lerp(tablePointer[i2], tablePointer[i2 + 1], f2 - (int)i2);
-
-                vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
-            }
-        }
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+            => ColorNumerics.ClampToFinite(this.operation.Invoke(value), Vector512.Create(this.minimum), Vector512.Create(this.maximum));
     }
 }

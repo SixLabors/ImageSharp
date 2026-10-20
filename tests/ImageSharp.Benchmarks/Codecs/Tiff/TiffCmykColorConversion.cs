@@ -38,10 +38,14 @@ public class TiffCmykColorConversion
     }
 
     /// <summary>
-    /// Releases the destination image after benchmarking.
+    /// Releases the reader's conversion row and destination image after benchmarking.
     /// </summary>
     [GlobalCleanup]
-    public void Cleanup() => this.destination.Dispose();
+    public void Cleanup()
+    {
+        this.decoder.Dispose();
+        this.destination.Dispose();
+    }
 
     /// <summary>
     /// Measures per-pixel CMYK normalization, color conversion, and RgbaVector packing.

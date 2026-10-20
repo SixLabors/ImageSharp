@@ -12,6 +12,12 @@ namespace SixLabors.ImageSharp.ColorProfiles.Companding;
 /// Negative components use the magnitude curve with the original sign.
 /// </summary>
 /// <remarks>
+/// Inputs use normalized RGB component units, not native integer channel values.
+/// Compress accepts linear RGB. Expand accepts nonlinear RGB encoded with this transfer curve.
+/// SDR inputs use [0,1]. Extended inputs use [-65504,65504] in the same normalized units.
+/// Overloads without a colorRange parameter expect extended inputs.
+/// RGB results are clamped to the selected normalized range. Alpha remains unchanged.
+/// After curve evaluation, NaN results map to the lower bound; infinite results map to the corresponding bounds.
 /// <see href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>
 /// <see href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html"/>
 /// </remarks>
@@ -22,154 +28,158 @@ public static partial class GammaCompanding
     private static Func<double, double, double> ExpandFunction => Math.Pow;
 
     /// <summary>
-    /// Compresses linear RGB without clipping and retains alpha.
+    /// Compresses linear RGB within the extended color range and retains alpha.
     /// </summary>
-    /// <param name="vectors">The span of vectors.</param>
+    /// <param name="vectors">The normalized linear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="gamma">The gamma value.</param>
     public static void Compress(Span<Vector4> vectors, double gamma)
-        => CompressExtended(vectors, gamma);
+        => CompressCore(vectors, gamma, PixelColorRange.Extended);
 
     /// <summary>
     /// Compresses linear RGB at the requested component precision and retains alpha.
     /// </summary>
-    /// <param name="vectors">The colors to transform.</param>
+    /// <param name="vectors">The normalized linear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="gamma">The gamma value.</param>
     /// <param name="bitDepth">The required precision per color component.</param>
-    /// <param name="colorRange">The input color range. Only eight-bit SDR conversion clips RGB to [0,1] and uses lookup tables.</param>
+    /// <param name="colorRange">The expected normalized RGB input range and the result limits: [0,1] for SDR or [-65504,65504] for extended RGB.</param>
     public static void Compress(Span<Vector4> vectors, double gamma, int bitDepth, PixelColorRange colorRange)
     {
         // Gamma compression rises sharply near zero. Table interpolation loses higher-precision color values.
-        // Keep both directions on the eight-bit SDR path; other inputs use unclipped analytic conversion.
+        // Keep both directions on the eight-bit SDR path; other inputs use analytic conversion.
         if (bitDepth == 8 && colorRange == PixelColorRange.Sdr)
         {
             CompandingUtilities.Compand(vectors, CompandingUtilities.GetCompressLookupTable<GammaCompandingKey>(CompressFunction, gamma));
         }
         else
         {
-            CompressExtended(vectors, gamma);
+            CompressCore(vectors, gamma, colorRange);
         }
     }
 
     /// <summary>
-    /// Expands nonlinear RGB without clipping and retains alpha.
+    /// Expands nonlinear RGB within the extended color range and retains alpha.
     /// </summary>
-    /// <param name="vectors">The span of vectors.</param>
+    /// <param name="vectors">The normalized nonlinear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="gamma">The gamma value.</param>
     public static void Expand(Span<Vector4> vectors, double gamma)
-        => ExpandExtended(vectors, gamma);
+        => ExpandCore(vectors, gamma, PixelColorRange.Extended);
 
     /// <summary>
     /// Expands nonlinear RGB at the requested component precision and retains alpha.
     /// </summary>
-    /// <param name="vectors">The colors to transform.</param>
+    /// <param name="vectors">The normalized nonlinear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="gamma">The gamma value.</param>
     /// <param name="bitDepth">The required precision per color component.</param>
-    /// <param name="colorRange">The input color range. Only eight-bit SDR conversion clips RGB to [0,1] and uses lookup tables.</param>
+    /// <param name="colorRange">The expected normalized RGB input range and the result limits: [0,1] for SDR or [-65504,65504] for extended RGB.</param>
     public static void Expand(Span<Vector4> vectors, double gamma, int bitDepth, PixelColorRange colorRange)
     {
         // Gamma compression rises sharply near zero. Table interpolation loses higher-precision color values.
-        // Keep both directions on the eight-bit SDR path; other inputs use unclipped analytic conversion.
+        // Keep both directions on the eight-bit SDR path; other inputs use analytic conversion.
         if (bitDepth == 8 && colorRange == PixelColorRange.Sdr)
         {
             CompandingUtilities.Compand(vectors, CompandingUtilities.GetExpandLookupTable<GammaCompandingKey>(ExpandFunction, gamma));
         }
         else
         {
-            ExpandExtended(vectors, gamma);
+            ExpandCore(vectors, gamma, colorRange);
         }
     }
 
     /// <summary>
-    /// Compresses linear RGB without clipping and retains alpha.
+    /// Compresses linear RGB within the extended color range and retains alpha.
     /// </summary>
-    /// <param name="vector">The vector.</param>
+    /// <param name="vector">The normalized linear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="gamma">The gamma value.</param>
     /// <returns>The <see cref="Vector4"/>.</returns>
     public static Vector4 Compress(Vector4 vector, double gamma)
-        => CompressExtended(vector, gamma);
+        => CompressCore(vector, gamma, PixelColorRange.Extended);
 
     /// <summary>
     /// Compresses linear RGB at the requested component precision and retains alpha.
     /// </summary>
-    /// <param name="vector">The colors to transform.</param>
+    /// <param name="vector">The normalized linear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="gamma">The gamma value.</param>
     /// <param name="bitDepth">The required precision per color component.</param>
-    /// <param name="colorRange">The input color range. Only eight-bit SDR conversion clips RGB to [0,1] and uses lookup tables.</param>
+    /// <param name="colorRange">The expected normalized RGB input range and the result limits: [0,1] for SDR or [-65504,65504] for extended RGB.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
     public static Vector4 Compress(Vector4 vector, double gamma, int bitDepth, PixelColorRange colorRange)
     {
         // Gamma compression rises sharply near zero. Table interpolation loses higher-precision color values.
-        // Keep both directions on the eight-bit SDR path; other inputs use unclipped analytic conversion.
+        // Keep both directions on the eight-bit SDR path; other inputs use analytic conversion.
         if (bitDepth == 8 && colorRange == PixelColorRange.Sdr)
         {
             return CompandingUtilities.Compand(vector, CompandingUtilities.GetCompressLookupTable<GammaCompandingKey>(CompressFunction, gamma));
         }
 
-        return CompressExtended(vector, gamma);
+        return CompressCore(vector, gamma, colorRange);
     }
 
     /// <summary>
-    /// Expands nonlinear RGB without clipping and retains alpha.
+    /// Expands nonlinear RGB within the extended color range and retains alpha.
     /// </summary>
-    /// <param name="vector">The vector.</param>
+    /// <param name="vector">The normalized nonlinear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="gamma">The gamma value.</param>
     /// <returns>The <see cref="Vector4"/>.</returns>
     public static Vector4 Expand(Vector4 vector, double gamma)
-        => ExpandExtended(vector, gamma);
+        => ExpandCore(vector, gamma, PixelColorRange.Extended);
 
     /// <summary>
     /// Expands nonlinear RGB at the requested component precision and retains alpha.
     /// </summary>
-    /// <param name="vector">The colors to transform.</param>
+    /// <param name="vector">The normalized nonlinear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="gamma">The gamma value.</param>
     /// <param name="bitDepth">The required precision per color component.</param>
-    /// <param name="colorRange">The input color range. Only eight-bit SDR conversion clips RGB to [0,1] and uses lookup tables.</param>
+    /// <param name="colorRange">The expected normalized RGB input range and the result limits: [0,1] for SDR or [-65504,65504] for extended RGB.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
     public static Vector4 Expand(Vector4 vector, double gamma, int bitDepth, PixelColorRange colorRange)
     {
         // Gamma compression rises sharply near zero. Table interpolation loses higher-precision color values.
-        // Keep both directions on the eight-bit SDR path; other inputs use unclipped analytic conversion.
+        // Keep both directions on the eight-bit SDR path; other inputs use analytic conversion.
         if (bitDepth == 8 && colorRange == PixelColorRange.Sdr)
         {
             return CompandingUtilities.Compand(vector, CompandingUtilities.GetExpandLookupTable<GammaCompandingKey>(ExpandFunction, gamma));
         }
 
-        return ExpandExtended(vector, gamma);
+        return ExpandCore(vector, gamma, colorRange);
     }
 
     /// <summary>
-    /// Expands nonlinear RGB without clipping the result and retains alpha.
+    /// Expands nonlinear RGB within the requested color range and retains alpha.
     /// </summary>
-    /// <param name="vectors">The colors, including values outside the SDR range.</param>
+    /// <param name="vectors">The normalized nonlinear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="gamma">The gamma of the nonlinear signal.</param>
-    internal static void ExpandExtended(Span<Vector4> vectors, double gamma)
-        => CompandingUtilities.Compand(vectors, new ExpandOperator(gamma));
+    /// <param name="colorRange">The range applied to the converted RGB components.</param>
+    private static void ExpandCore(Span<Vector4> vectors, double gamma, PixelColorRange colorRange)
+        => CompandingUtilities.Compand(vectors, new ExpandOperator(gamma), colorRange);
 
     /// <summary>
-    /// Expands nonlinear RGB without clipping the result and retains alpha.
+    /// Expands nonlinear RGB within the requested color range and retains alpha.
     /// </summary>
-    /// <param name="vector">The color, including values outside the SDR range.</param>
+    /// <param name="vector">The normalized nonlinear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="gamma">The gamma of the nonlinear signal.</param>
+    /// <param name="colorRange">The range applied to the converted RGB components.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
-    internal static Vector4 ExpandExtended(Vector4 vector, double gamma)
-        => CompandingUtilities.Compand(vector, new ExpandOperator(gamma));
+    private static Vector4 ExpandCore(Vector4 vector, double gamma, PixelColorRange colorRange)
+        => CompandingUtilities.Compand(vector, new ExpandOperator(gamma), colorRange);
 
     /// <summary>
-    /// Compresses linear RGB without clipping the result and retains alpha.
+    /// Compresses linear RGB within the requested color range and retains alpha.
     /// </summary>
-    /// <param name="vectors">The colors, including values outside the SDR range.</param>
+    /// <param name="vectors">The normalized linear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="gamma">The gamma of the nonlinear signal.</param>
-    internal static void CompressExtended(Span<Vector4> vectors, double gamma)
-        => CompandingUtilities.Compand(vectors, new CompressOperator(gamma));
+    /// <param name="colorRange">The range applied to the converted RGB components.</param>
+    private static void CompressCore(Span<Vector4> vectors, double gamma, PixelColorRange colorRange)
+        => CompandingUtilities.Compand(vectors, new CompressOperator(gamma), colorRange);
 
     /// <summary>
-    /// Compresses linear RGB without clipping the result and retains alpha.
+    /// Compresses linear RGB within the requested color range and retains alpha.
     /// </summary>
-    /// <param name="vector">The color, including values outside the SDR range.</param>
+    /// <param name="vector">The normalized linear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="gamma">The gamma of the nonlinear signal.</param>
+    /// <param name="colorRange">The range applied to the converted RGB components.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
-    internal static Vector4 CompressExtended(Vector4 vector, double gamma)
-        => CompandingUtilities.Compand(vector, new CompressOperator(gamma));
+    private static Vector4 CompressCore(Vector4 vector, double gamma, PixelColorRange colorRange)
+        => CompandingUtilities.Compand(vector, new CompressOperator(gamma), colorRange);
 
     private class GammaCompandingKey;
 }

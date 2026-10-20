@@ -67,6 +67,38 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
+    /// Checks table endpoints for nonfinite RGB in complete SIMD pairs and the remaining color.
+    /// </summary>
+    [Fact]
+    public void TableCompanding_BoundsNonfiniteRgb() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckTableCompandingNonfiniteRgb,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks the bounded table contract independently of transfer-curve approximation.
+    /// </summary>
+    private static void CheckTableCompandingNonfiniteRgb()
+    {
+        // An identity table exposes endpoint selection directly. The third color exercises the scalar tail after an AVX2 pair.
+        float[] table = CompandingUtilities.GetExpandLookupTable<CompandingTests>(static (value, _) => value);
+        Vector4[] colors =
+        [
+            new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, 0.25F),
+            new(float.PositiveInfinity, float.NegativeInfinity, float.NaN, -0.25F),
+            new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, 1.25F)
+        ];
+
+        Vector4[] expected = [new(0F, 1F, 0F, 0.25F), new(1F, 0F, 0F, -0.25F), new(0F, 1F, 0F, 1.25F)];
+        for (int i = 0; i < colors.Length; i++)
+        {
+            Assert.Equal(expected[i], CompandingUtilities.Compand(colors[i], table));
+        }
+
+        CompandingUtilities.Compand(colors, table);
+        Assert.Equal(expected, colors);
+    }
+
+    /// <summary>
     /// Checks finite and IEEE alpha values across complete SIMD blocks and remaining colors.
     /// </summary>
     private static void CheckOperatorCompanding()
@@ -84,12 +116,12 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
                 actual[i] = new Vector4(0.5F, 2F, -3F, alpha[i % alpha.Length]);
             }
 
-            CompandingUtilities.Compand(actual, operation);
+            CompandingUtilities.Compand(actual, operation, PixelColorRange.Extended);
 
             for (int i = 0; i < actual.Length; i++)
             {
                 float inputAlpha = alpha[i % alpha.Length];
-                Vector4 single = CompandingUtilities.Compand(new Vector4(0.5F, 2F, -3F, inputAlpha), operation);
+                Vector4 single = CompandingUtilities.Compand(new Vector4(0.5F, 2F, -3F, inputAlpha), operation, PixelColorRange.Extended);
 
                 Assert.Equal(new Vector3(0.25F, 4F, 9F), new Vector3(actual[i].X, actual[i].Y, actual[i].Z));
                 Assert.Equal(new Vector3(0.25F, 4F, 9F), new Vector3(single.X, single.Y, single.Z));
@@ -250,14 +282,6 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Checks NaN and infinite powers at each SIMD width and in scalar remainders.
-    /// </summary>
-    [Fact]
-    public void NonFinitePowers_MatchScalar() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-        CheckNonFinitePowers,
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
-
-    /// <summary>
     /// Checks IEEE power results independently of ordinary finite-value approximation error.
     /// </summary>
     [Fact]
@@ -406,12 +430,6 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
     /// </summary>
     private static void CheckBulkPower()
         => CheckPowerExponents([0F, 1F, 2F, 3F, 2.2F, -2F, -3F, float.PositiveInfinity, float.NegativeInfinity, float.NaN]);
-
-    /// <summary>
-    /// Checks nonfinite exponents independently of finite-power approximation errors.
-    /// </summary>
-    private static void CheckNonFinitePowers()
-        => CheckPowerExponents([float.PositiveInfinity, float.NegativeInfinity, float.NaN]);
 
     /// <summary>
     /// Compares the bulk power API with scalar power for each supplied exponent.

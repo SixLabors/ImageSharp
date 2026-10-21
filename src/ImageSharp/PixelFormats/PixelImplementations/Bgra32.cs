@@ -74,6 +74,50 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="Bgra32"/> struct from normalized components.
+    /// </summary>
+    /// <param name="r">The red component.</param>
+    /// <param name="g">The green component.</param>
+    /// <param name="b">The blue component.</param>
+    /// <param name="a">The alpha component.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Bgra32(float r, float g, float b, float a = 1)
+        : this(new Vector4(r, g, b, a))
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Bgra32"/> struct from normalized RGB components with opaque alpha.
+    /// </summary>
+    /// <param name="vector">The red, green, and blue components.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Bgra32(Vector3 vector)
+        : this(new Vector4(vector, 1F))
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Bgra32"/> struct from normalized RGBA components.
+    /// </summary>
+    /// <param name="vector">The red, green, blue, and alpha components.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Bgra32(Vector4 vector)
+        : this() => this = Pack(vector);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Bgra32"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// The bytes use B, G, R, A memory order. Integer interpretation follows the platform byte order.
+    /// On little-endian systems, the integer layout is <c>0xAARRGGBB</c>.
+    /// This constructor copies the stored bits without color conversion or alpha association.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Bgra32(uint packed)
+        : this() => this.PackedValue = packed;
+
+    /// <summary>
     /// Gets or sets the packed representation of the Bgra32 struct.
     /// </summary>
     public uint Bgra
